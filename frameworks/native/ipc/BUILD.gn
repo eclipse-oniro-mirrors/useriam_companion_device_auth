@@ -1,0 +1,126 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/config/components/idl_tool/idl.gni")
+import("//build/ohos.gni")
+import("../../../companion_device_auth.gni")
+
+config("companion_device_auth_native_ipc_config") {
+  include_dirs = [
+    "${companion_device_auth_path}/interfaces/inner_api",
+    "${companion_device_auth_path}/frameworks/native/idl",
+    "${target_gen_dir}",
+  ]
+}
+
+idl_gen_interface("companion_device_auth_ipc_interface") {
+  sources = [ "idl/ICompanionDeviceAuth.idl" ]
+
+  sources_common = [ "CompanionDeviceAuthTypes.idl" ]
+
+  sources_callback = [
+    "IIpcAvailableDeviceStatusCallback.idl",
+    "IIpcContinuousAuthStatusCallback.idl",
+    "IIpcDeviceSelectCallback.idl",
+    "IIpcTemplateStatusCallback.idl",
+    "IIpcSetDeviceSelectResultCallback.idl",
+  ]
+
+  log_domainid = "0xD002407"
+  log_tag = "COMPANION_DEVICE_AUTH_IPC"
+  subsystem_name = companion_device_auth_subsystem_name
+  part_name = companion_device_auth_part_name
+}
+
+ohos_source_set("companion_device_auth_proxy") {
+  sanitize = companion_device_auth_sanitize
+  branch_protector_ret = "pac_ret"
+
+  output_file_path = get_target_outputs(":companion_device_auth_ipc_interface")
+  sources =
+      filter_include(output_file_path, [ "*companion_device_auth_proxy.cpp" ])
+  sources +=
+      filter_include(output_file_path,
+                     [ "*ipc_available_device_status_callback_stub.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_template_status_callback_stub.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_continuous_auth_status_callback_stub.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_device_select_callback_stub.cpp" ])
+  sources +=
+      filter_include(output_file_path, [ "*companion_device_auth_types.cpp" ])
+  sources +=
+      filter_include(output_file_path,
+                     [ "*ipc_set_device_select_result_callback_proxy.cpp" ])
+
+  configs = [
+    "${companion_device_auth_path}/common:companion_device_auth_common_config",
+  ]
+
+  public_configs = [ ":companion_device_auth_native_ipc_config" ]
+  remove_configs = [ "//build/config/compiler:no_exceptions" ]
+
+  deps = [ ":companion_device_auth_ipc_interface" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+  ]
+
+  subsystem_name = companion_device_auth_subsystem_name
+  part_name = companion_device_auth_part_name
+}
+
+ohos_source_set("companion_device_auth_stub") {
+  sanitize = companion_device_auth_sanitize
+  branch_protector_ret = "pac_ret"
+
+  output_file_path = get_target_outputs(":companion_device_auth_ipc_interface")
+  sources =
+      filter_include(output_file_path, [ "*companion_device_auth_stub.cpp" ])
+  sources +=
+      filter_include(output_file_path,
+                     [ "*ipc_available_device_status_callback_proxy.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_template_status_callback_proxy.cpp" ])
+  sources +=
+      filter_include(output_file_path,
+                     [ "*ipc_continuous_auth_status_callback_proxy.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_device_select_callback_proxy.cpp" ])
+  sources +=
+      filter_include(output_file_path, [ "*companion_device_auth_types.cpp" ])
+  sources +=
+      filter_include(output_file_path,
+                     [ "*ipc_set_device_select_result_callback_stub.cpp" ])
+
+  configs = [
+    "${companion_device_auth_path}/common:companion_device_auth_common_config",
+  ]
+
+  public_configs = [ ":companion_device_auth_native_ipc_config" ]
+  remove_configs = [ "//build/config/compiler:no_exceptions" ]
+
+  deps = [ ":companion_device_auth_ipc_interface" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+  ]
+
+  subsystem_name = companion_device_auth_subsystem_name
+  part_name = companion_device_auth_part_name
+}

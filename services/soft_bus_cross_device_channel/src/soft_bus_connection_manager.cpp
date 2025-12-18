@@ -1,0 +1,513 @@
+/*
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ */
+
+#include "soft_bus_connection_manager.h"
+
+#include <algorithm>
+#include <utility>
+
+#include "device_manager.h"
+#include "softbus_error_code.h"
+#include "system_ability_definition.h"
+
+#include "iam_check.h"
+#include "iam_logger.h"
+
+#include "cda_attributes.h"
+#include "sa_status_listener.h"
+#include "scope_guard.h"
+#include "service_common.h"
+#include "singleton_manager.h"
+#include "soft_bus_channel_common.h"
+#include "soft_bus_global_callbacks.h"
+#include "soft_bus_socket.h"
+#include "subscription.h"
+#include "task_runner_manager.h"
+
+#define LOG_TAG "COMPANION_DEVICE_AUTH"
+
+namespace OHOS {
+namespace UserIam {
+namespace CompanionDeviceAuth {
+using DeviceManager = OHOS::DistributedHardware::DeviceManager;
+
+namespace {
+constexpr int32_t INVALID_SOCKET_ID = -1;
+constexpr int32_t QOS_MIN_BW = 1024 * 1024;
+constexpr int32_t QOS_MAX_LATENCY = 30 * 1000;
+constexpr int32_t QOS_MIN_LATENCY = 100;
+constexpr int32_t QOS_MAX_WAIT_TIMEOUT = 30 * 1000;
+constexpr const char *SOFTBUS_SA_NAME = "SoftBusServer";
+} // namespace
+
+std::shared_ptr<SoftBusConnectionManager> SoftBusConnectionManager::Create()
+{
+    auto adapter = std::shared_ptr<SoftBusConnectionManager>(new SoftBusConnectionManager());
+    bool ret = adapter->Initialize();
+    if (!ret) {
+        IAM_LOGE("Initialize SoftBusConnectionManager failed");
+        return nullptr;
+    }
+
+    SetGlobalSoftBusConnectionManager(adapter);
+
+    IAM_LOGI("SoftBusConnectionManager created successfully");
+    return adapter;
+}
+
+SoftBusConnectionManager::SoftBusConnectionManager()
+{
+}
+
+SoftBusConnectionManager::~SoftBusConnectionManager()
+{
+    CloseAllSockets("destroy");
+    ClearGlobalSoftBusConnectionManager(this);
+    IAM_LOGI("SoftBusConnectionManager destroyed");
+}
+
+bool SoftBusConnectionManager::Initialize()
+{
+    return true;
+}
+
+bool SoftBusConnectionManager::Start()
+{
+    if (started_) {
+        IAM_LOGI("SoftBusConnectionManager already started");
+        return true;
+    }
+
+    std::weak_ptr<SoftBusConnectionManager> weakSelf = weak_from_this();
+    saStatusListener_ = SaStatusListener::Create(
+        SOFTBUS_SA_NAME, SOFTBUS_SERVER_SA_ID,
+        [weakSelf]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleSoftBusServiceReady();
+        },
+        [weakSelf]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleSoftBusServiceUnavailable();
+        });
+    ENSURE_OR_RETURN_VAL(saStatusListener_, false);
+
+    started_ = true;
+    return true;
+}
+
+bool SoftBusConnectionManager::StartServerSocket()
+{
+    if (serverSocketId_.has_value()) {
+        IAM_LOGI("Server socket already created: %{public}d", serverSocketId_.value());
+        return true;
+    }
+
+    SocketInfo info = {
+        .name = const_cast<char *>(SERVER_SOCKET_NAME),
+        .peerName = nullptr,
+        .peerNetworkId = nullptr,
+        .pkgName = const_cast<char *>(PKG_NAME),
+        .dataType = DATA_TYPE_BYTES,
+    };
+
+    int32_t socketId = ::Socket(info);
+    if (socketId <= INVALID_SOCKET_ID) {
+        IAM_LOGE("Create server socket failed: %{public}d", socketId);
+        return false;
+    }
+
+    ScopeGuard guard([socketId]() { ::Shutdown(socketId); });
+
+    QosTV serverQos[] = {
+        { .qos = QOS_TYPE_MIN_BW, .value = QOS_MIN_BW },
+        { .qos = QOS_TYPE_MAX_LATENCY, .value = QOS_MAX_LATENCY },
+        { .qos = QOS_TYPE_MIN_LATENCY, .value = QOS_MIN_LATENCY },
+        { .qos = QOS_TYPE_MAX_WAIT_TIMEOUT, .value = QOS_MAX_WAIT_TIMEOUT },
+    };
+
+    ISocketListener listener;
+    listener.OnBind = SoftBusOnBind;
+    listener.OnShutdown = SoftBusOnShutdown;
+    listener.OnBytes = SoftBusOnBytes;
+    listener.OnError = SoftBusOnError;
+    listener.OnNegotiate = SoftBusOnNegotiate;
+
+    int32_t ret = ::Listen(socketId, serverQos, 4, &listener);
+    if (ret != SOFTBUS_OK) {
+        IAM_LOGE("Listen failed: %{public}d", ret);
+        return false;
+    }
+
+    guard.Cancel();
+    serverSocketId_ = socketId;
+
+    IAM_LOGI("Server socket created and listening: %{public}d", socketId);
+    return true;
+}
+
+bool SoftBusConnectionManager::OpenConnection(const std::string &connectionName,
+    const PhysicalDeviceKey &physicalDeviceKey, const std::string &networkId)
+{
+    if (FindSocketByConnectionName(connectionName) != nullptr) {
+        IAM_LOGE("Connection already exists: %{public}s", connectionName.c_str());
+        return false;
+    }
+
+    std::string socketName = std::string(CLIENT_SOCKET_NAME_PREFIX) + "." + connectionName;
+    SocketInfo info = { .name = const_cast<char *>(socketName.c_str()),
+        .peerName = const_cast<char *>(SERVER_SOCKET_NAME),
+        .peerNetworkId = const_cast<char *>(networkId.c_str()),
+        .pkgName = const_cast<char *>(PKG_NAME),
+        .dataType = DATA_TYPE_BYTES };
+
+    int32_t socketId = ::Socket(info);
+    if (socketId <= INVALID_SOCKET_ID) {
+        IAM_LOGE("Create client socket failed: %{public}d", socketId);
+        return false;
+    }
+
+    ScopeGuard guard([socketId]() { ::Shutdown(socketId); });
+
+    QosTV clientQos[] = {
+        { .qos = QOS_TYPE_MIN_BW, .value = QOS_MIN_BW },
+        { .qos = QOS_TYPE_MAX_LATENCY, .value = QOS_MAX_LATENCY },
+        { .qos = QOS_TYPE_MIN_LATENCY, .value = QOS_MIN_LATENCY },
+    };
+
+    ISocketListener listener;
+    listener.OnBind = SoftBusOnBind;
+    listener.OnShutdown = SoftBusOnShutdown;
+    listener.OnBytes = SoftBusOnBytes;
+    listener.OnError = SoftBusOnError;
+
+    int32_t ret = ::BindAsync(socketId, clientQos, 3, &listener);
+    if (ret != SOFTBUS_OK) {
+        IAM_LOGE("BindAsync failed: %{public}d", ret);
+        return false;
+    }
+
+    auto socket = std::make_shared<SoftBusSocket>(socketId, connectionName, physicalDeviceKey, weak_from_this());
+    if (socket == nullptr) {
+        IAM_LOGE("Failed to create socket object");
+        return false;
+    }
+    sockets_.push_back(socket);
+    guard.Cancel();
+
+    IAM_LOGI("OpenConnection initiated: %{public}s, socketId=%{public}d", connectionName.c_str(), socketId);
+    return true;
+}
+
+void SoftBusConnectionManager::CloseConnection(const std::string &connectionName)
+{
+    auto entry = FindSocketByConnectionName(connectionName);
+    if (entry == nullptr) {
+        IAM_LOGW("Connection not found: %{public}s", connectionName.c_str());
+        return;
+    }
+
+    RemoveSocket(entry->GetSocketId(), "active-close");
+
+    IAM_LOGI("Connection closed: %{public}s", connectionName.c_str());
+}
+
+bool SoftBusConnectionManager::SendMessage(const std::string &connectionName, const std::vector<uint8_t> &rawMsg)
+{
+    auto entry = FindSocketByConnectionName(connectionName);
+    if (entry == nullptr || !entry->IsConnected()) {
+        IAM_LOGE("Connection not found or not connected: %{public}s", connectionName.c_str());
+        return false;
+    }
+
+    int32_t ret = ::SendBytes(entry->GetSocketId(), rawMsg.data(), rawMsg.size());
+    if (ret != SOFTBUS_OK) {
+        IAM_LOGE("SendBytes failed: %{public}d", ret);
+        return false;
+    }
+
+    return true;
+}
+
+void SoftBusConnectionManager::HandleBind(int32_t socketId, const std::string &peerNetworkId)
+{
+    IAM_LOGI("HandleBind: socketId=%{public}d, peer=%{public}s", socketId, peerNetworkId.c_str());
+
+    auto entry = FindSocketBySocketId(socketId);
+    if (entry != nullptr) {
+        // outbound connection
+        entry->HandleOutboundConnected();
+        return;
+    }
+
+    // inbound connection
+    ScopeGuard guard([socketId]() { ::Shutdown(socketId); });
+    std::string udid;
+    int32_t getUiid = DeviceManager::GetInstance().GetUdidByNetworkId(PKG_NAME, peerNetworkId, udid);
+    ENSURE_OR_RETURN(getUiid == 0);
+    ENSURE_OR_RETURN(!udid.empty());
+
+    PhysicalDeviceKey physicalDeviceKey = {
+        .idType = DeviceIdType::UNIFIED_DEVICE_ID,
+        .deviceId = udid,
+    };
+    auto socket = std::make_shared<SoftBusSocket>(socketId, physicalDeviceKey, weak_from_this());
+    if (socket == nullptr) {
+        IAM_LOGE("Failed to create socket object for inbound connection");
+        return;
+    }
+    sockets_.push_back(socket);
+    guard.Cancel();
+
+    IAM_LOGI("Inbound connection accepted: socketId=%{public}d", socketId);
+}
+
+void SoftBusConnectionManager::HandleError(int32_t socketId, int32_t errCode)
+{
+    IAM_LOGE("HandleError: socketId=%{public}d, errCode=%{public}d", socketId, errCode);
+
+    auto entry = FindSocketBySocketId(socketId);
+    if (entry == nullptr) {
+        IAM_LOGW("Socket not found for error handling");
+        return;
+    }
+
+    RemoveSocket(socketId, "error_" + std::to_string(errCode));
+}
+
+void SoftBusConnectionManager::HandleShutdown(int32_t socketId, int32_t reason)
+{
+    IAM_LOGI("HandleShutdown: socketId=%{public}d, reason=%{public}d", socketId, reason);
+
+    auto entry = FindSocketBySocketId(socketId);
+    if (entry == nullptr) {
+        RemoveSocket(socketId);
+        return;
+    }
+
+    entry->MarkShutdownByPeer();
+    RemoveSocket(socketId, "shutdown_reason_" + std::to_string(reason));
+}
+
+void SoftBusConnectionManager::HandleBytes(int32_t socketId, const void *data, uint32_t dataLen)
+{
+    IAM_LOGI("HandleBytes: socketId=%{public}d, len=%{public}u", socketId, dataLen);
+
+    auto socket = FindSocketBySocketId(socketId);
+    ENSURE_OR_RETURN(socket != nullptr);
+
+    std::vector<uint8_t> message(static_cast<const uint8_t *>(data), static_cast<const uint8_t *>(data) + dataLen);
+
+    if (socket->IsInbound() && socket->GetConnectionName().empty()) {
+        Attributes attributes(message);
+        std::string connectionName;
+        if (attributes.GetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName) &&
+            !connectionName.empty()) {
+            IAM_LOGI("Updated connectionName from message: %{public}s", connectionName.c_str());
+            socket->HandleInboundConnected(connectionName);
+        }
+    }
+
+    if (rawMessageSubscribers_.empty()) {
+        return;
+    }
+
+    std::map<int32_t, OnRawMessage> subscribers = rawMessageSubscribers_;
+    std::string connectionName = socket->GetConnectionName();
+    TaskRunnerManager::GetInstance().PostTaskOnResident(
+        [subscribers, connectionName, message = std::move(message)]() mutable {
+            for (const auto &pair : subscribers) {
+                if (pair.second != nullptr) {
+                    pair.second(connectionName, message);
+                }
+            }
+        });
+}
+
+std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeRawMessage(OnRawMessage &&callback)
+{
+    ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
+
+    int32_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    rawMessageSubscribers_[subscriptionId] = std::move(callback);
+
+    IAM_LOGI("raw message subscription added: %{public}d", subscriptionId);
+
+    auto weakSelf = weak_from_this();
+    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+        auto self = weakSelf.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        self->UnsubscribeRawMessage(subscriptionId);
+    });
+}
+
+void SoftBusConnectionManager::UnsubscribeRawMessage(int32_t subscriptionId)
+{
+    rawMessageSubscribers_.erase(subscriptionId);
+    IAM_LOGI("raw message subscription removed: %{public}d", subscriptionId);
+}
+
+std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeConnectionStatus(OnConnectionStatusChange &&callback)
+{
+    ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
+
+    int32_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    connectionStatusSubscribers_[subscriptionId] = std::move(callback);
+
+    IAM_LOGI("connection status subscription added: %{public}d", subscriptionId);
+
+    auto weakSelf = weak_from_this();
+    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+        auto self = weakSelf.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        self->UnsubscribeConnectionStatus(subscriptionId);
+    });
+}
+
+void SoftBusConnectionManager::UnsubscribeConnectionStatus(int32_t subscriptionId)
+{
+    connectionStatusSubscribers_.erase(subscriptionId);
+    IAM_LOGI("connection status subscription removed: %{public}d", subscriptionId);
+}
+
+std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeIncomingConnection(OnIncomingConnection &&callback)
+{
+    ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
+
+    int32_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    incomingConnectionSubscribers_[subscriptionId] = std::move(callback);
+
+    IAM_LOGI("incoming connection subscription added: %{public}d", subscriptionId);
+
+    auto weakSelf = weak_from_this();
+    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+        auto self = weakSelf.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        self->UnsubscribeIncomingConnection(subscriptionId);
+    });
+}
+
+void SoftBusConnectionManager::UnsubscribeIncomingConnection(int32_t subscriptionId)
+{
+    incomingConnectionSubscribers_.erase(subscriptionId);
+    IAM_LOGI("incoming connection subscription removed: %{public}d", subscriptionId);
+}
+
+void SoftBusConnectionManager::NotifyIncomingConnection(const std::string &connectionName,
+    const PhysicalDeviceKey &physicalDeviceKey)
+{
+    if (incomingConnectionSubscribers_.empty()) {
+        return;
+    }
+
+    std::map<int32_t, OnIncomingConnection> subscribers = incomingConnectionSubscribers_;
+    TaskRunnerManager::GetInstance().PostTaskOnResident([subscribers, connectionName, physicalDeviceKey]() mutable {
+        for (const auto &pair : subscribers) {
+            if (pair.second != nullptr) {
+                pair.second(connectionName, physicalDeviceKey);
+            }
+        }
+    });
+}
+
+std::shared_ptr<SoftBusSocket> SoftBusConnectionManager::FindSocketByConnectionName(const std::string &connectionName)
+{
+    auto it =
+        std::find_if(sockets_.begin(), sockets_.end(), [&connectionName](const std::shared_ptr<SoftBusSocket> &socket) {
+            return socket != nullptr && socket->GetConnectionName() == connectionName;
+        });
+    return it != sockets_.end() && *it != nullptr ? *it : nullptr;
+}
+
+std::shared_ptr<SoftBusSocket> SoftBusConnectionManager::FindSocketBySocketId(int32_t socketId)
+{
+    auto it = std::find_if(sockets_.begin(), sockets_.end(), [&socketId](const std::shared_ptr<SoftBusSocket> &socket) {
+        return socket != nullptr && socket->GetSocketId() == socketId;
+    });
+    return it != sockets_.end() && *it != nullptr ? *it : nullptr;
+}
+
+void SoftBusConnectionManager::RemoveSocket(int32_t socketId, const std::string &closeReason)
+{
+    auto it = std::find_if(sockets_.begin(), sockets_.end(), [&socketId](const std::shared_ptr<SoftBusSocket> &socket) {
+        return socket != nullptr && socket->GetSocketId() == socketId;
+    });
+    if (it != sockets_.end()) {
+        if (*it != nullptr) {
+            (*it)->SetCloseReason(closeReason);
+        }
+        sockets_.erase(it);
+    }
+}
+
+void SoftBusConnectionManager::HandleSoftBusServiceReady()
+{
+    IAM_LOGI("SoftBus service ready, start server socket");
+    bool ret = StartServerSocket();
+    if (!ret) {
+        IAM_LOGE("StartServerSocket failed");
+    }
+}
+
+void SoftBusConnectionManager::CloseAllSockets(const std::string &reason)
+{
+    // Set close reason before clearing
+    for (auto &socket : sockets_) {
+        if (socket != nullptr) {
+            socket->SetCloseReason(reason);
+        }
+    }
+
+    if (serverSocketId_.has_value()) {
+        ::Shutdown(serverSocketId_.value());
+        serverSocketId_.reset();
+    }
+    sockets_.clear();
+}
+
+void SoftBusConnectionManager::HandleSoftBusServiceUnavailable()
+{
+    IAM_LOGI("SoftBus service unavailable, closing sockets");
+
+    CloseAllSockets("softbus down");
+}
+
+void SoftBusConnectionManager::ReportConnectionEstablished(const std::string &connectionName)
+{
+    if (connectionStatusSubscribers_.empty()) {
+        return;
+    }
+
+    std::map<int32_t, OnConnectionStatusChange> subscribers = connectionStatusSubscribers_;
+    TaskRunnerManager::GetInstance().PostTaskOnResident([subscribers, connectionName]() mutable {
+        for (const auto &pair : subscribers) {
+            if (pair.second != nullptr) {
+                pair.second(connectionName, ConnectionStatus::CONNECTED, "established");
+            }
+        }
+    });
+}
+
+void SoftBusConnectionManager::ReportConnectionClosed(const std::string &connectionName, const std::string &reason)
+{
+    if (connectionStatusSubscribers_.empty()) {
+        return;
+    }
+
+    std::map<int32_t, OnConnectionStatusChange> subscribers = connectionStatusSubscribers_;
+    TaskRunnerManager::GetInstance().PostTaskOnResident([subscribers, connectionName, reason]() mutable {
+        for (const auto &pair : subscribers) {
+            if (pair.second != nullptr) {
+                pair.second(connectionName, ConnectionStatus::DISCONNECTED, reason);
+            }
+        }
+    });
+}
+
+} // namespace CompanionDeviceAuth
+} // namespace UserIam
+} // namespace OHOS

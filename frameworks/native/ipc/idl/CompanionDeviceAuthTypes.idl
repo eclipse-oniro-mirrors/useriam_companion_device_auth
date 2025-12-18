@@ -1,0 +1,103 @@
+/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package OHOS.UserIam.CompanionDeviceAuth;
+
+/**
+ * @brief Device key used to identify a companion device.
+ */
+struct IpcDeviceKey {
+    /** Device id type (enum represented by int). */
+    int deviceIdType;
+    /** Device id string. */
+    String deviceId;
+    /** Device user id in remote device. */
+    int deviceUserId;
+};
+
+/**
+ * @brief Result key used to identify a companion device.
+ */
+struct IpcDeviceSelectResult {
+    /** Device keys used to identify a companion device. */
+    IpcDeviceKey[] deviceKeys;
+    /** Whether selectionContext is present.*/
+    boolean hasSelectionContext;
+    /** Optional context information related to the device selection process. */
+    unsigned char[] selectionContext;
+};
+
+/**
+ * @brief Status of a companion device.
+ */
+struct IpcDeviceStatus {
+    /** Device key. */
+    IpcDeviceKey deviceKey;
+    /** Remote device user name. */
+    String deviceUserName;
+    /** Remote device model or vendor info. */
+    String deviceModelInfo;
+    /** Remote device display name. */
+    String deviceName;
+    /** Online status. */
+    boolean isOnline;
+    /** Supported business ids (enums represented by int). */
+    int[] supportedBusinessIds;
+};
+
+/**
+ * @brief Template status bound to a companion device.
+ */
+struct IpcTemplateStatus {
+    /** Template id (uint64). */
+    unsigned long templateId;
+    /** Whether template is confirmed by user. */
+    boolean isConfirmed;
+    /** Whether template is valid. */
+    boolean isValid;
+    /** Local user id. */
+    int localUserId;
+    /** Added time in milliseconds since epoch. */
+    long addedTime;
+    /** Enabled business ids for this template (enums represented by int). */
+    int[] enabledBusinessIds;
+    /** Device status of the companion device bound to this template. */
+    IpcDeviceStatus deviceStatus;
+};
+
+/**
+ * @brief Continuous authentication status payload.
+ */
+struct IpcContinuousAuthStatus {
+    /** Whether authentication passed. */
+    boolean isAuthPassed;
+    /** Whether authTrustLevel is present. */
+    boolean hasAuthTrustLevel;
+    /** Auth trust level (enum represented by int). */
+    int authTrustLevel;
+};
+
+/**
+ * @brief Subscribe parameter for continuous auth status.
+ */
+struct IpcSubscribeContinuousAuthStatusParam {
+    /** Local user id to subscribe. */
+    int localUserId;
+    /** Whether templateId is present. */
+    boolean hasTemplateId;
+    /** Template id when hasTemplateId is true. */
+    unsigned long templateId;
+};
+

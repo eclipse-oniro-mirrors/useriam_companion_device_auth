@@ -1,0 +1,90 @@
+/*
+ * Copyright (C) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::common::constants::*;
+use crate::common::types::*;
+use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
+use crate::traits::crypto_engine::CryptoEngineRegistry;
+use crate::traits::db_manager::{HostDeviceInfo, HostDeviceSk};
+use crate::traits::time_keeper::TimeKeeperRegistry;
+use crate::{log_e, log_i, p, Box, Vec};
+
+pub fn add_host_device(
+    device_info: &HostDeviceInfo,
+    sk_info: &HostDeviceSk,
+) -> Result<(), ErrorCode> {
+    let old_device_info = match CompanionDbManagerRegistry::get_mut()
+        .get_device_by_device_key(&device_info.device_key)
+    {
+        Ok(info) => Some(info),
+        Err(ErrorCode::NotFound) => None,
+        Err(_) => return Err(ErrorCode::GeneralError),
+    };
+
+    if let Some(old_info) = old_device_info {
+        delete_host_device(old_info.binding_id)?;
+    }
+
+    CompanionDbManagerRegistry::get_mut().add_device(device_info)?;
+    CompanionDbManagerRegistry::get_mut().write_device_sk(device_info.binding_id, sk_info)?;
+    CompanionDbManagerRegistry::get_mut().write_device_db()?;
+    Ok(())
+}
+
+pub fn delete_host_device(binding_id: i32) -> Result<(), ErrorCode> {
+    let filter = Box::new(move |device_info: &HostDeviceInfo| device_info.binding_id == binding_id);
+    CompanionDbManagerRegistry::get_mut().remove_device(filter)?;
+    CompanionDbManagerRegistry::get_mut().delete_device_sk(binding_id)?;
+    CompanionDbManagerRegistry::get_mut().delete_token_db(binding_id)?;
+    CompanionDbManagerRegistry::get_mut().write_device_db()?;
+    Ok(())
+}
+
+pub fn update_host_device_last_used_time(binding_id: i32) -> Result<(), ErrorCode> {
+    let filter = Box::new(move |device_info: &HostDeviceInfo| device_info.binding_id == binding_id);
+    let mut device_info = CompanionDbManagerRegistry::get_mut().get_device(filter)?;
+    device_info.last_used_time = TimeKeeperRegistry::get()
+        .get_rtc_time()
+        .map_err(|e| p!(e))?;
+    device_info.is_token_valid = true;
+    CompanionDbManagerRegistry::get_mut().update_device(&device_info)?;
+    Ok(())
+}
+
+pub fn update_host_device_token_valid_flag(
+    binding_id: i32,
+    is_token_valid: bool,
+) -> Result<(), ErrorCode> {
+    let filter = Box::new(move |device_info: &HostDeviceInfo| device_info.binding_id == binding_id);
+    let mut device_info = CompanionDbManagerRegistry::get_mut().get_device(filter)?;
+    device_info.is_token_valid = is_token_valid;
+    CompanionDbManagerRegistry::get_mut().update_device(&device_info)?;
+    Ok(())
+}
+
+pub fn get_host_device(binding_id: i32) -> Result<HostDeviceInfo, ErrorCode> {
+    let filter = Box::new(move |device_info: &HostDeviceInfo| device_info.binding_id == binding_id);
+    let device_info = CompanionDbManagerRegistry::get_mut().get_device(filter)?;
+    Ok(device_info)
+}
+
+pub fn get_session_key(binding_id: i32, salt: &[u8]) -> Result<Vec<u8>, ErrorCode> {
+    let sk = CompanionDbManagerRegistry::get_mut()
+        .read_device_sk(binding_id)
+        .map_err(|e| p!(e))?;
+    Ok(CryptoEngineRegistry::get()
+        .hkdf(&salt, &sk.sk)
+        .map_err(|e| p!(e))?)
+}

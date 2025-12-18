@@ -1,0 +1,122 @@
+/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@!namespace("@ohos.userIAM.companionDeviceAuth", "companionDeviceAuth")
+
+@!sts_inject("""
+static {
+    loadLibraryWithPermissionCheck("companiondeviceauth_ani", "@ohos.userIAM.companionDeviceAuth"); }
+""")
+
+from ohos.userIAM.userAuth.userAuth use AuthTrustLevel;
+
+enum BusinessId : i32 {
+    DEFAULT = 0, VENDOR_BEGIN = 10000
+}
+
+enum DeviceIdType : i32 {
+    UNIFIED_DEVICE_ID = 1, VENDOR_BEGIN = 10000
+}
+
+enum SelectPurpose : i32 {
+    SELECT_ADD_DEVICE = 1, SELECT_AUTH_DEVICE = 2, VENDOR_BEGIN = 10000
+}
+
+struct DeviceKey {
+deviceIdType:
+    i32;
+deviceId:
+    String;
+deviceUserId:
+    i32;
+}
+
+struct DeviceStatus {
+deviceKey:
+    DeviceKey;
+deviceUserName:
+    String;
+deviceModelInfo:
+    String;
+deviceName:
+    String;
+isOnline:
+    bool;
+supportedBusinessIds:
+    Array<i32>;
+}
+
+struct TemplateStatus {
+templateId:
+    @typedarray Array<u8>;
+isConfirmed:
+    bool;
+isValid:
+    bool;
+localUserId:
+    i32;
+addedTime:
+    @sts_type("Date") Opaque;
+enabledBusinessIds:
+    Array<i32>;
+deviceStatus:
+    DeviceStatus;
+}
+
+struct ContinuousAuthParam {
+templateId:
+    Optional<@typedarray Array<u8>>;
+}
+
+struct DeviceSelectResult {
+deviceKeys:
+    Array<DeviceKey>;
+selectionContext:
+    Optional<@typedarray Array<u8>>;
+}
+ 
+interface StatusMonitor {
+    @gen_promise("getTemplateStatus") getTemplateStatusSync() : Array<TemplateStatus>;
+
+    onTemplateChange(callback : (templateStatusList : Array<TemplateStatus>) = > void) : void;
+
+    offTemplateChange(callback : Optional<(templateStatusList : Array<TemplateStatus>) => void >) : void;
+
+    onContinuousAuthChange(param
+                           : ContinuousAuthParam, callback
+                           : (isAuthPassed
+                                 : bool, @optional authTrustLevel
+                                 : Optional<AuthTrustLevel>) = > void)
+        : void;
+
+    offContinuousAuthChange(callback
+                            : Optional<(isAuthPassed
+                                           : bool, @optional authTrustLevel
+                                           : Optional<AuthTrustLevel>) => void >)
+        : void;
+
+    onAvailableDeviceChange(callback : (deviceStatusList : Array<DeviceStatus>) = > void) : void;
+
+    offAvailableDeviceChange(callback : Optional<(deviceStatusList : Array<DeviceStatus>) => void >) : void;
+}
+
+function getStatusMonitor(localUserId: i32): StatusMonitor;
+
+@gen_promise("updateEnabledBusinessIds")
+function updateEnabledBusinessIdsSync(templateId: @typedarray Array<u8>, enabledBusinessIds: Array<i32>): void;
+
+function registerDeviceSelectCallback(callback: (selectPurpose: i32) => DeviceSelectResult): void;
+
+function unregisterDeviceSelectCallback(): void;

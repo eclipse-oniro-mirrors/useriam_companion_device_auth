@@ -1,0 +1,86 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("//build/templates/rust/rust_cxx.gni")
+import("../companion_device_auth.gni")
+import("BUILD.gni")
+
+# Configuration for include directories
+config("service_config") {
+  include_dirs = [
+    "common/inc",
+    "companion/inc",
+    "cross_device_comm/inc",
+    "cross_device_entry/inc",
+    "cross_device_interaction",
+    "cross_device_interaction/add_companion/inc",
+    "cross_device_interaction/auth_maintain_state_change/inc",
+    "cross_device_interaction/common/inc",
+    "cross_device_interaction/handler/inc",
+    "request/inc",
+    "cross_device_interaction/delegate_auth/inc",
+    "cross_device_interaction/issue_token/inc",
+    "cross_device_interaction/keep_alive/inc",
+    "cross_device_interaction/obtain_token/inc",
+    "cross_device_interaction/remove_host_binding/inc",
+    "cross_device_interaction/revoke_token/inc",
+    "cross_device_interaction/sync_device_status/inc",
+    "cross_device_interaction/token_auth/inc",
+    "cross_device_interaction/mix_auth/inc",
+    "cross_device_msg/inc",
+    "fwk_comm/inc",
+    "host_binding/inc",
+    "misc/inc",
+    "security_agent/cpp/inc",
+    "security_agent/gen",
+    "service_entry/inc",
+    "service_entry/src",
+    "singleton/inc",
+    "singleton/inc/companion",
+    "singleton/inc/cross_device_comm",
+    "singleton/inc/cross_device_interaction",
+    "singleton/inc/host_binding",
+    "singleton/inc/misc",
+    "singleton/inc/request",
+    "singleton/inc/security_agent",
+    "soft_bus_cross_device_channel/inc",
+    "utils/inc",
+    "${companion_device_auth_path}/common/inc",
+    "${companion_device_auth_path}/frameworks/native/ipc/idl",
+  ]
+}
+
+ohos_shared_library("companiondeviceauthservice") {
+  sanitize = companion_device_auth_sanitize
+  branch_protector_ret = "pac_ret"
+
+  remove_configs = [ "//build/config/compiler:no_exceptions" ]
+
+  sources = companion_device_auth_service_sources
+
+  configs = [
+    ":service_config",
+    "${companion_device_auth_path}/common:companion_device_auth_common_config",
+  ]
+
+  deps = companion_device_auth_service_deps
+  external_deps = companion_device_auth_service_external_deps
+
+  if (use_musl) {
+    version_script = "companion_device_auth_service_map"
+  }
+
+  subsystem_name = companion_device_auth_subsystem_name
+  part_name = companion_device_auth_part_name
+}
