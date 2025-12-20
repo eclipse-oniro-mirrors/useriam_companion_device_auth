@@ -1,0 +1,12 @@
+{
+    "process": "useriam",
+    "systemability": [
+        {
+            "name": 945,
+            "libpath": "libcompaniondeviceauthservice.z.so",
+            "run-on-create": true,
+            "distributed": false,
+            "dump_level": 1
+        }
+    ]
+}

@@ -1,0 +1,169 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("../companion_device_auth.gni")
+
+companion_device_auth_service_local_sources = [
+  "companion/src/companion.cpp",
+  "companion/src/companion_manager_impl.cpp",
+  "cross_device_comm/src/channel_manager.cpp",
+  "cross_device_comm/src/connection_manager.cpp",
+  "cross_device_comm/src/cross_device_comm_manager_impl.cpp",
+  "cross_device_comm/src/device_status_entry.cpp",
+  "cross_device_comm/src/device_status_manager.cpp",
+  "cross_device_comm/src/local_device_status_manager.cpp",
+  "cross_device_comm/src/message_router.cpp",
+  "cross_device_interaction/add_companion/src/add_companion_message.cpp",
+  "cross_device_interaction/add_companion/src/companion_add_companion_request.cpp",
+  "cross_device_interaction/add_companion/src/companion_init_key_negotiation_handler.cpp",
+  "cross_device_interaction/add_companion/src/host_add_companion_request.cpp",
+  "cross_device_interaction/auth_maintain_state_change/src/auth_maintain_state_change_message.cpp",
+  "cross_device_interaction/auth_maintain_state_change/src/companion_auth_maintain_state_change_request.cpp",
+  "cross_device_interaction/auth_maintain_state_change/src/host_auth_maintain_state_change_handler.cpp",
+  "cross_device_interaction/common/src/common_message.cpp",
+  "cross_device_interaction/common/src/inbound_request.cpp",
+  "cross_device_interaction/common/src/outbound_request.cpp",
+  "cross_device_interaction/delegate_auth/src/companion_delegate_auth_callback.cpp",
+  "cross_device_interaction/delegate_auth/src/companion_delegate_auth_request.cpp",
+  "cross_device_interaction/delegate_auth/src/companion_start_delegate_auth_handler.cpp",
+  "cross_device_interaction/delegate_auth/src/delegate_auth_message.cpp",
+  "cross_device_interaction/delegate_auth/src/host_delegate_auth_request.cpp",
+  "cross_device_interaction/handler/src/async_incoming_message_handler.cpp",
+  "cross_device_interaction/handler/src/incoming_message_handler_registry.cpp",
+  "cross_device_interaction/handler/src/sync_incoming_message_handler.cpp",
+  "cross_device_interaction/issue_token/src/companion_issue_token_request.cpp",
+  "cross_device_interaction/issue_token/src/companion_pre_issue_token_handler.cpp",
+  "cross_device_interaction/issue_token/src/host_issue_token_request.cpp",
+  "cross_device_interaction/issue_token/src/issue_token_message.cpp",
+  "cross_device_interaction/keep_alive/src/keep_alive_handler.cpp",
+  "cross_device_interaction/mix_auth/src/host_mix_auth_request.cpp",
+  "cross_device_interaction/mix_auth/src/host_single_mix_auth_request.cpp",
+  "cross_device_interaction/obtain_token/src/companion_obtain_token_request.cpp",
+  "cross_device_interaction/obtain_token/src/host_obtain_token_request.cpp",
+  "cross_device_interaction/obtain_token/src/host_pre_obtain_token_handler.cpp",
+  "cross_device_interaction/obtain_token/src/obtain_token_message.cpp",
+  "cross_device_interaction/remove_host_binding/src/companion_remove_host_binding_handler.cpp",
+  "cross_device_interaction/remove_host_binding/src/host_remove_host_binding_request.cpp",
+  "cross_device_interaction/remove_host_binding/src/remove_host_binding_message.cpp",
+  "cross_device_interaction/revoke_token/src/companion_revoke_token_request.cpp",
+  "cross_device_interaction/revoke_token/src/host_revoke_token_handler.cpp",
+  "cross_device_interaction/revoke_token/src/revoke_token_message.cpp",
+  "cross_device_interaction/sync_device_status/src/companion_sync_device_status_handler.cpp",
+  "cross_device_interaction/sync_device_status/src/host_sync_device_status_request.cpp",
+  "cross_device_interaction/sync_device_status/src/sync_device_status_message.cpp",
+  "cross_device_interaction/token_auth/src/companion_token_auth_handler.cpp",
+  "cross_device_interaction/token_auth/src/host_token_auth_request.cpp",
+  "cross_device_interaction/token_auth/src/token_auth_message.cpp",
+  "fwk_comm/src/companion_auth_interface_adapter.cpp",
+  "fwk_comm/src/companion_device_auth_all_in_one_executor.cpp",
+  "fwk_comm/src/companion_device_auth_driver.cpp",
+  "fwk_comm/src/companion_device_auth_executor_callback.cpp",
+  "fwk_comm/src/fwk_comm_manager.cpp",
+  "host_binding/src/host_binding.cpp",
+  "host_binding/src/host_binding_manager_impl.cpp",
+  "misc/src/misc_manager_impl.cpp",
+  "misc/src/system_param_manager_impl.cpp",
+  "request/src/base_request.cpp",
+  "request/src/request_factory_impl.cpp",
+  "request/src/request_manager_impl.cpp",
+  "security_agent/cpp/src/command_invoker.cpp",
+  "security_agent/cpp/src/companion_device_auth_ffi_util.cpp",
+  "security_agent/cpp/src/security_agent_impl.cpp",
+  "service_entry/src/available_device_subscription.cpp",
+  "service_entry/src/companion_device_auth_service.cpp",
+  "service_entry/src/continuous_auth_subscription.cpp",
+  "service_entry/src/subscription_manager.cpp",
+  "service_entry/src/subscription_util.cpp",
+  "service_entry/src/template_status_subscription.cpp",
+  "singleton/src/singleton_manager.cpp",
+  "soft_bus_cross_device_channel/src/soft_bus_channel.cpp",
+  "soft_bus_cross_device_channel/src/soft_bus_connection_manager.cpp",
+  "soft_bus_cross_device_channel/src/soft_bus_device_status_manager.cpp",
+  "soft_bus_cross_device_channel/src/soft_bus_global_callbacks.cpp",
+  "soft_bus_cross_device_channel/src/soft_bus_socket.cpp",
+  "utils/src/callback_death_recipient.cpp",
+  "utils/src/cda_attributes.cpp",
+  "utils/src/relative_timer.cpp",
+  "utils/src/resident_task_runner.cpp",
+  "utils/src/sa_status_listener.cpp",
+  "utils/src/subscription.cpp",
+  "utils/src/task_runner_manager.cpp",
+  "utils/src/temporary_task_runner.cpp",
+  "utils/src/xcollie_helper.cpp",
+]
+
+companion_device_auth_service_sources = []
+foreach(src, companion_device_auth_service_local_sources) {
+  companion_device_auth_service_sources +=
+      [ "${companion_device_auth_path}/services/" + src ]
+}
+
+companion_device_auth_service_sources_for_ut = companion_device_auth_service_sources - [
+                                                 "${companion_device_auth_path}/services/utils/src/relative_timer.cpp",
+                                                 "${companion_device_auth_path}/services/utils/src/task_runner_manager.cpp",
+                                               ]
+
+# For UT, always include both active_user_id_manager implementations
+companion_device_auth_service_sources_for_ut += [
+  "${companion_device_auth_path}/services/misc/src/default_active_user_id_manager.cpp",
+  "${companion_device_auth_path}/services/misc/src/constant_active_user_id_manager.cpp",
+]
+
+companion_device_auth_service_deps = [
+  "${companion_device_auth_path}/frameworks/native/ipc:companion_device_auth_stub",
+  "${companion_device_auth_path}/services/security_agent:companiondeviceauthservice_rs",
+  "${companion_device_auth_path}/services/security_agent:lib_companiondeviceauthservice_rs_cpp_if",
+]
+
+companion_device_auth_service_external_deps = [
+  "access_token:libaccesstoken_sdk",
+  "access_token:libtokenid_sdk",
+  "access_token:libtokensetproc_shared",
+  "c_utils:utils",
+  "device_manager:devicemanagersdk",
+  "dsoftbus:softbus_client",
+  "hicollie:libhicollie",
+  "hilog:libhilog",
+  "init:libbeget_proxy",
+  "init:libbegetutil",
+  "ipc:ipc_core",
+  "ipc:ipc_single",
+  "json:nlohmann_json_static",
+  "rust_cxx:cxx_cppdeps",
+  "safwk:system_ability_fwk",
+  "samgr:samgr_proxy",
+  "user_auth_framework:userauth_client",
+  "user_auth_framework:userauth_executors",
+]
+
+# For UT, always include os_account dependency
+companion_device_auth_service_external_deps_for_ut =
+    companion_device_auth_service_external_deps +
+    [ "os_account:os_account_innerkits" ]
+
+# Determine has_os_account_part based on global_parts_info
+if (!defined(global_parts_info) ||
+    defined(global_parts_info.account_os_account)) {
+  has_os_account_part = true
+} else {
+  has_os_account_part = false
+}
+
+# Add conditional sources and external deps based on has_os_account_part
+if (has_os_account_part) {
+  companion_device_auth_service_sources += [ "${companion_device_auth_path}/services/misc/src/default_active_user_id_manager.cpp" ]
+  companion_device_auth_service_external_deps +=
+      [ "os_account:os_account_innerkits" ]
+} else {
+  companion_device_auth_service_sources += [ "${companion_device_auth_path}/services/misc/src/constant_active_user_id_manager.cpp" ]
+}

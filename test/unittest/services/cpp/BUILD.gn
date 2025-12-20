@@ -1,0 +1,122 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/test.gni")
+import("../../../../companion_device_auth.gni")
+import("../../../../services/BUILD.gni")
+
+ohos_unittest("companion_device_auth_services_cpp_test") {
+  sanitize = companion_device_auth_sanitize
+  branch_protector_ret = "pac_ret"
+  module_out_path = "companion_device_auth/services"
+
+  cflags = [
+    "-DENABLE_TEST",
+    "-DENABLE_UNIT_TEST",
+    "-Dprivate=public",
+    "-Dprotected=public",
+  ]
+
+  sources = companion_device_auth_service_sources_for_ut
+
+  sources += [
+    "fake/access_token/token_setproc.cpp",
+    "fake/device_manager/device_manager.cpp",
+    "fake/self/relative_timer.cpp",
+    "fake/self/task_runner_manager.cpp",
+    "fake/softbus/softbus.cpp",
+    "fake/system/parameter.cpp",
+    "fake/user_auth_framework/idriver_manager.cpp",
+    "fake/user_auth_framework/user_auth_client.cpp",
+    "src/attributes_test.cpp",
+    "src/auth_maintain_state_change_message_test.cpp",
+    "src/available_device_subscription_test.cpp",
+    "src/callback_death_recipient_test.cpp",
+    "src/channel_manager_test.cpp",
+    "src/companion_add_companion_request_test.cpp",
+    "src/companion_auth_maintain_state_change_request_test.cpp",
+    "src/companion_delegate_auth_request_test.cpp",
+    "src/companion_device_auth_ffi_util_test.cpp",
+    "src/companion_device_auth_service_test.cpp",
+    "src/companion_init_key_negotiation_handler_test.cpp",
+    "src/companion_issue_token_request_test.cpp",
+    "src/companion_manager_impl_test.cpp",
+    "src/companion_obtain_token_request_test.cpp",
+    "src/companion_pre_issue_token_handler_test.cpp",
+    "src/companion_remove_host_binding_handler_test.cpp",
+    "src/companion_revoke_token_request_test.cpp",
+    "src/companion_start_delegate_auth_handler_test.cpp",
+    "src/companion_sync_device_status_handler_test.cpp",
+    "src/companion_test.cpp",
+    "src/companion_token_auth_handler_test.cpp",
+    "src/connection_manager_test.cpp",
+    "src/continuous_auth_subscription_test.cpp",
+    "src/cross_device_comm_manager_impl_test.cpp",
+    "src/delegate_auth_message_test.cpp",
+    "src/device_status_entry_test.cpp",
+    "src/device_status_manager_test.cpp",
+    "src/error_guard_test.cpp",
+    "src/host_add_companion_request_test.cpp",
+    "src/host_auth_maintain_state_change_handler_test.cpp",
+    "src/host_binding_manager_impl_test.cpp",
+    "src/host_binding_test.cpp",
+    "src/host_delegate_auth_request_test.cpp",
+    "src/host_issue_token_request_test.cpp",
+    "src/host_mix_auth_request_test.cpp",
+    "src/host_obtain_token_request_test.cpp",
+    "src/host_pre_obtain_token_handler_test.cpp",
+    "src/host_remove_host_binding_request_test.cpp",
+    "src/host_revoke_token_handler_test.cpp",
+    "src/host_single_mix_auth_request_test.cpp",
+    "src/host_sync_device_status_request_test.cpp",
+    "src/host_token_auth_request_test.cpp",
+    "src/issue_token_message_test.cpp",
+    "src/keep_alive_handler_test.cpp",
+    "src/local_device_status_manager_test.cpp",
+    "src/message_router_test.cpp",
+    "src/relative_timer_test.cpp",
+    "src/request_manager_impl_test.cpp",
+    "src/resident_task_runner_test.cpp",
+    "src/scope_guard_test.cpp",
+    "src/subscription_manager_test.cpp",
+    "src/subscription_test.cpp",
+    "src/template_status_subscription_test.cpp",
+    "src/token_auth_message_test.cpp",
+  ]
+
+  include_dirs = [
+    "mock",
+    "inc",
+    "fake",
+    "fake/access_token",
+    "fake/device_manager",
+    "fake/self",
+    "fake/softbus",
+    "fake/system",
+    "fake/user_auth_framework",
+  ]
+
+  configs = [ "${companion_device_auth_path}/services:service_config" ]
+
+  deps = companion_device_auth_service_deps
+
+  external_deps = companion_device_auth_service_external_deps_for_ut + [
+                    "googletest:gmock_main",
+                    "googletest:gtest_main",
+                  ]
+
+  remove_configs = [ "//build/config/compiler:no_exceptions" ]
+
+  subsystem_name = companion_device_auth_subsystem_name
+  part_name = companion_device_auth_part_name
+}

@@ -1,0 +1,67 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[package]
+name = "device_auth"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "device_auth"
+path = "rust/lib.rs"
+crate-type = ["rlib"]  # cdylib 用于生成动态库，rlib 保留静态库功能
+
+[[test]]
+name = "unit_test"
+path = "tests/unit_test/unit_test.rs"
+required-features = ["test-utils"]
+
+[[test]]
+name = "integration_test"
+path = "tests/integration_test/integration_test.rs"
+required-features = ["test-utils"]
+
+[dependencies]
+serde      = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde-big-array = "0.5"
+libc = { version = "0.2", default-features = false }
+openssl = { version = "0.10", features = ["vendored"] }
+cxx = { version = "1.0", features = ["c++14"], optional = true }
+mockall = { version = "0.12", optional = true }
+hilog_rust = { git = "https://gitcode.com/openharmony/hiviewdfx_hilog.git" }
+
+[features]
+default = []
+cxxbridge = ["cxx"]
+test-utils = ["mockall"]
+
+[dev-dependencies]
+mockall = "0.12"
+
+[profile.dev]
+panic = "abort"
+
+[profile.test]
+panic = "unwind"
+
+[profile.release]
+opt-level = 'z'     # 优化大小而不是速度
+lto = true          # 启用链接时优化
+codegen-units = 1   # 降低并行度以提高优化
+strip = true        # 自动剥离符号
+panic = "abort"     # 使用 abort 而不是展开堆栈
+
+[lints.rust]
+dead_code = "allow"
+unused_imports = "allow"

@@ -1,0 +1,106 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/config/components/ets_frontend/ets2abc_config.gni")
+import("//build/ohos.gni")
+import("//build/ohos/taihe_idl/taihe.gni")
+import("../../../companion_device_auth.gni")
+
+copy_taihe_idl("companion_device_auth_copy_taihe_idl") {
+  sources = [ "idl/ohos.userIAM.companionDeviceAuth.taihe" ]
+}
+
+taihe_generated_file_path = "$taihe_file_path/out/${companion_device_auth_subsystem_name}/${companion_device_auth_part_name}"
+
+ohos_taihe("companion_device_auth_taihe") {
+  taihe_generated_file_path = "$taihe_generated_file_path"
+  deps = [ ":companion_device_auth_copy_taihe_idl" ]
+  outputs = [
+    "$taihe_generated_file_path/src/ohos.userIAM.companionDeviceAuth.ani.cpp",
+    "$taihe_generated_file_path/src/ohos.userIAM.companionDeviceAuth.abi.c",
+  ]
+}
+
+taihe_shared_library("companiondeviceauth_ani") {
+  include_dirs = [
+    "inc",
+    "${companion_device_auth_path}/common/inc",
+    "${companion_device_auth_path}/frameworks/native/client/inc",
+  ]
+  sources = get_target_outputs(":companion_device_auth_taihe")
+  sources += [
+    "src/ani_available_device_status_callback.cpp",
+    "src/ani_constructor.cpp",
+    "src/ani_continuous_auth_status_callback.cpp",
+    "src/ani_device_select_callback.cpp",
+    "src/ani_template_status_callback.cpp",
+    "src/companion_device_auth_ani_helper.cpp",
+    "src/ohos.userIAM.companionDeviceAuth.impl.cpp",
+    "src/status_monitor.cpp",
+  ]
+  external_deps = [
+    "ability_base:want",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:ability_manager",
+    "ability_runtime:abilitykit_native",
+    "ability_runtime:ani_base_context",
+    "ability_runtime:app_context",
+    "ability_runtime:ui_extension",
+    "ace_engine:ace_uicontent",
+    "c_utils:utils",
+    "hiappevent:hiappevent_innerapi",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "runtime_core:ani",
+    "user_auth_framework:userauth_ani",
+  ]
+
+  sanitize = companion_device_auth_sanitize
+
+  configs = [
+    "${companion_device_auth_path}/common:companion_device_auth_common_config",
+  ]
+
+  deps = [
+    ":companion_device_auth_taihe",
+    "${companion_device_auth_path}/frameworks/native/client:companion_device_auth_client",
+  ]
+  remove_configs = [ "//build/config/compiler:no_exceptions" ]
+  taihe_generated_file_path = "$taihe_generated_file_path"
+  output_extension = "so"
+  part_name = companion_device_auth_part_name
+  subsystem_name = companion_device_auth_subsystem_name
+}
+
+generate_static_abc("companiondeviceauth") {
+  base_url = "$taihe_generated_file_path"
+  files = [ "$taihe_generated_file_path/@ohos.userIAM.companionDeviceAuth.ets" ]
+  is_boot_abc = "True"
+  device_dst_file = "system/framework/companiondeviceauth.abc"
+  dependencies = [ ":companion_device_auth_taihe" ]
+}
+
+ohos_prebuilt_etc("companion_device_auth_abc_etc") {
+  source = "$target_out_dir/companiondeviceauth.abc"
+  module_install_dir = "framework"
+  deps = [ ":companiondeviceauth" ]
+  part_name = companion_device_auth_part_name
+  subsystem_name = companion_device_auth_subsystem_name
+}
+
+group("companion_device_auth_ani") {
+  deps = [
+    ":companion_device_auth_abc_etc",
+    ":companiondeviceauth_ani",
+  ]
+}

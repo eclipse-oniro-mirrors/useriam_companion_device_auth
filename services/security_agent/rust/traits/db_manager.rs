@@ -1,0 +1,122 @@
+/*
+ * Copyright (C) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::common::constants::*;
+use crate::common::types::*;
+
+use crate::entry::companion_device_auth_ffi::DeviceKeyFfi;
+use crate::String;
+use crate::{log_e, singleton_registry, Box, Vec};
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DeviceKey {
+    pub device_id: String,
+    pub device_id_type: i32,
+    pub user_id: i32,
+}
+
+impl Default for DeviceKey {
+    fn default() -> Self {
+        DeviceKey {
+            device_id: String::new(),
+            device_id_type: 0,
+            user_id: 0,
+        }
+    }
+}
+
+impl TryFrom<&DeviceKeyFfi> for DeviceKey {
+    type Error = ErrorCode;
+
+    fn try_from(ffi_key: &DeviceKeyFfi) -> Result<Self, ErrorCode> {
+        let device_id =
+            String::from_utf8(ffi_key.device_id.data.to_vec()).map_err(|_| ErrorCode::BadParam)?;
+
+        Ok(DeviceKey {
+            device_id,
+            device_id_type: ffi_key.device_id_type,
+            user_id: ffi_key.user_id,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct UserInfo {
+    pub user_id: i32,
+    pub user_type: i32,
+}
+
+// Companion Db
+#[derive(Debug, Clone)]
+pub struct HostDeviceSk {
+    pub sk: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+pub struct HostDeviceInfo {
+    pub device_key: DeviceKey,
+    pub binding_id: i32,
+    pub user_info: UserInfo,
+    pub binding_time: u64,
+    pub last_used_time: u64,
+    pub is_token_valid: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct HostTokenInfo {
+    pub token: Vec<u8>,
+    pub atl: AuthTrustLevel,
+}
+
+// Host Db
+#[derive(Debug, Clone)]
+pub struct CompanionDeviceBaseInfo {
+    pub device_model: String,
+    pub device_name: String,
+    pub device_user_name: String,
+    pub business_ids: Vec<i32>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CompanionDeviceCapability {
+    pub device_type: DeviceType,
+    pub esl: ExecutorSecurityLevel,
+    pub track_ability_level: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct CompanionDeviceSk {
+    pub device_type: DeviceType,
+    pub sk: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CompanionDeviceInfo {
+    pub template_id: u64,
+    pub device_key: DeviceKey,
+    pub user_info: UserInfo,
+    pub added_time: u64,
+    pub secure_protocol_id: u16,
+    pub is_valid: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct CompanionTokenInfo {
+    pub template_id: u64,
+    pub device_type: DeviceType,
+    pub token: Vec<u8>,
+    pub atl: AuthTrustLevel,
+    pub added_time: u64,
+}
