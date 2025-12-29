@@ -3,7 +3,7 @@
 - [简介](#简介)
 - [目录](#目录)
 - [说明](#说明)
-  - [使用场景描述](#使用场景描述)
+  - [应用场景](#应用场景)
   - [接口说明](#接口说明)
   - [使用说明](#使用说明)
 - [相关仓](#相关仓)
@@ -89,32 +89,20 @@
 
 ## 说明
 
-### 使用场景描述
-### 1.伴随设备添加
-（1）在 “设置” -> “生物识别和密码” 界面，点击 “伴随设备管理”
-（2）弹出本机密码认证界面，输入正确的密码
-（3）密码认证成功后，进入伴随设备管理界面，点击“添加新设备”
-（4）显示可添加为伴随设备的其他设备，选中任意设备
-（5）点击 “添加”，即可将对应设备添加为伴随设备
-（6）在伴随设备管理界面可以看到新添加的设备
+### 应用场景
+**图3** 应用场景
+<p>
+  <img src="./figures/应用场景.png" alt="伴随设备应用场景" style="zoom:65%;" />
+</p>
 
-### 2.伴随设备认证
-以手机投屏PC场景为例，在PC被添加为手机的伴随设备的前提下：
-（1）手机锁屏后，无法直接在PC侧进行操作
-（2）通过伴随设备认证机制，在PC侧进行人脸认证，将PC人脸认证结果流转至手机侧
-（3）完成手机侧的用户身份认证，可以在不操作手机的情况下完成手机锁屏解锁
-
-### 3.伴随设备删除
-（1）在 “设置” -> “生物识别和密码” 界面，点击 “伴随设备管理”
-（2）弹出本机密码认证界面，输入正确的密码
-（3）密码认证成功后，进入伴随设备管理界面
-（4）选中已经添加为伴随设备的其他设备，弹出删除选项
-（5）点击删除，即可删除伴随设备
-（6）伴随设备删除后将不再在伴随设备管理界面显示，也不再支持伴随设备认证
+### 应用场景1：作为伴随设备的手表融合手机上的人脸认证，提升人脸认证安全性
+### 应用场景2：手表作为伴随设备支持手机/PC无感认证用户身份后解锁
+### 应用场景3：PC作为手机的伴随设备，通过PC本地的人脸/指纹认证用户身份后支持投屏手机解锁，避免了分布式场景下用户在设备间的来回切换
+### 应用场景4：手表作为手机的伴随设备，与手机的人脸进行双因子融合认证，提升手机人脸认证的安全性
 
 ### 接口说明
 
-**表1** 可信设备管理接口
+**表1** 伴随设备管理接口
 
 | 接口名  | 描述                             |
 | ------ | -------------------------------- |
@@ -122,16 +110,17 @@
 | registerDeviceSelectCallback(callback: DeviceSelectCallback): void | 注册设备选择回调函数，以提供定制化的设备选择逻辑 |
 | unregisterDeviceSelectCallback(): void | 注销当前已注册的设备选择回调函数 |
 | updateEnabledBusinessIds(templateId: Uint8Array, enabledBusinessIds: int[]): Promise<void> | 更新指定模板的已启用业务标识符列表，新范围将在返回的 Promise 解析后生效 |
-| StatusMonitor.getTemplateStatus(): Promise<TemplateStatus[]> | 获取已经添加的可信设备信息 |
-| StatusMonitor.onTemplateChange(callback: TemplateStatusCallback): void | 注册监听已添加的可信设备的状态变化 |
-| StatusMonitor.offTemplateChange(callback?: TemplateStatusCallback): void | 注销监听已添加的可信设备的状态变化 |
+| StatusMonitor.getTemplateStatus(): Promise<TemplateStatus[]> | 获取已经添加的伴随设备信息 |
+| StatusMonitor.onTemplateChange(callback: TemplateStatusCallback): void | 注册监听已添加的伴随设备的状态变化 |
+| StatusMonitor.offTemplateChange(callback?: TemplateStatusCallback): void | 注销监听已添加的伴随设备的状态变化 |
 | StatusMonitor.onAvailableDeviceChange(callback: AvailableDeviceStatusCallback): void | 注册监听在线可添加的设备状态变化 |
 | StatusMonitor.offAvailableDeviceChange(callback?: AvailableDeviceStatusCallback): void | 注销监听在线可添加的设备状态变化，主要用于手表、耳机等有佩戴检测的穿戴设备，可持续认证用户身份 |
 | StatusMonitor.onContinuousAuthChange(param: ContinuousAuthParam, callback: ContinuousAuthStatusCallback): void | 注册监听伴随设备的持续身份认证情况 |
 | StatusMonitor.offContinuousAuthChange(callback?: ContinuousAuthStatusCallback): void | 注销监听伴随设备的持续身份认证情况 |
 
 ### 使用说明
-- 需在尽可能安全的环境中实现头文件services/singleton/inc/security_agent/security_agent.h中定义的接口，确保伴随设备认证结果的安全性。
+- （1）需在尽可能安全的环境中实现头文件services/singleton/inc/security_agent/security_agent.h中定义的接口，确保伴随设备认证结果的安全性。
+- （2）需要实现伴随设备管理界面
 
 ## 相关仓
 
