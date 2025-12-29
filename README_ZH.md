@@ -3,7 +3,7 @@
 - [简介](#简介)
 - [目录](#目录)
 - [说明](#说明)
-  - [使用场景描述](#使用场景描述)
+  - [应用场景](#应用场景)
   - [接口说明](#接口说明)
   - [使用说明](#使用说明)
 - [相关仓](#相关仓)
@@ -89,7 +89,13 @@
 
 ## 说明
 
-### 使用场景描述
+### 应用场景
+**图3** 应用场景
+<p>
+  <img src="./figures/应用场景.png" alt="伴随设备应用场景" style="zoom:65%;" />
+</p>
+
+
 ### 1.伴随设备添加
 （1）在 “设置” 界面，点击 “伴随设备管理”
 （2）进入伴随设备管理界面，点击“添加新设备”
@@ -112,7 +118,7 @@
 
 ### 接口说明
 
-**表1** 可信设备管理接口
+**表1** 伴随设备管理接口
 
 | 接口名  | 描述                             |
 | ------ | -------------------------------- |
@@ -120,16 +126,17 @@
 | registerDeviceSelectCallback(callback: DeviceSelectCallback): void | 注册设备选择回调函数，以提供定制化的设备选择逻辑 |
 | unregisterDeviceSelectCallback(): void | 注销当前已注册的设备选择回调函数 |
 | updateEnabledBusinessIds(templateId: Uint8Array, enabledBusinessIds: int[]): Promise<void> | 更新指定模板的已启用业务标识符列表，新范围将在返回的 Promise 解析后生效 |
-| StatusMonitor.getTemplateStatus(): Promise<TemplateStatus[]> | 获取已经添加的可信设备信息 |
-| StatusMonitor.onTemplateChange(callback: TemplateStatusCallback): void | 注册监听已添加的可信设备的状态变化 |
-| StatusMonitor.offTemplateChange(callback?: TemplateStatusCallback): void | 注销监听已添加的可信设备的状态变化 |
+| StatusMonitor.getTemplateStatus(): Promise<TemplateStatus[]> | 获取已经添加的伴随设备信息 |
+| StatusMonitor.onTemplateChange(callback: TemplateStatusCallback): void | 注册监听已添加的伴随设备的状态变化 |
+| StatusMonitor.offTemplateChange(callback?: TemplateStatusCallback): void | 注销监听已添加的伴随设备的状态变化 |
 | StatusMonitor.onAvailableDeviceChange(callback: AvailableDeviceStatusCallback): void | 注册监听在线可添加的设备状态变化 |
 | StatusMonitor.offAvailableDeviceChange(callback?: AvailableDeviceStatusCallback): void | 注销监听在线可添加的设备状态变化，主要用于手表、耳机等有佩戴检测的穿戴设备，可持续认证用户身份 |
 | StatusMonitor.onContinuousAuthChange(param: ContinuousAuthParam, callback: ContinuousAuthStatusCallback): void | 注册监听伴随设备的持续身份认证情况 |
 | StatusMonitor.offContinuousAuthChange(callback?: ContinuousAuthStatusCallback): void | 注销监听伴随设备的持续身份认证情况 |
 
 ### 使用说明
-- 需在尽可能安全的环境中实现头文件services/singleton/inc/security_agent/security_agent.h中定义的接口，确保伴随设备认证结果的安全性。
+- （1）需在尽可能安全的环境中实现头文件services/singleton/inc/security_agent/security_agent.h中定义的接口，确保伴随设备认证结果的安全性。
+- （2）需要实现伴随设备管理界面
 
 ## 相关仓
 
