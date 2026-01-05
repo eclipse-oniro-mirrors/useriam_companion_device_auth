@@ -15,8 +15,9 @@
 
 #include "issue_token_message.h"
 
-#include "common_message.h"
 #include "iam_check.h"
+
+#include "common_message.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 

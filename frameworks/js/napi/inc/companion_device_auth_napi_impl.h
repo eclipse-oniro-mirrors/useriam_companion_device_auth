@@ -16,13 +16,13 @@
 #ifndef COMPANION_DEVICE_AUTH_NAPI_IMPL_H
 #define COMPANION_DEVICE_AUTH_NAPI_IMPL_H
 
-#include "common_defines.h"
-#include "companion_device_auth_common_defines.h"
-#include "companion_device_auth_napi_common.h"
-#include "companion_device_auth_napi_helper.h"
-#include "idevice_select_callback.h"
 #include "napi/native_api.h"
 #include "napi/native_common.h"
+
+#include "common_defines.h"
+#include "companion_device_auth_common_defines.h"
+#include "companion_device_auth_napi_helper.h"
+#include "idevice_select_callback.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -31,7 +31,8 @@ class CompanionDeviceAuthNapiImpl {
 public:
     static napi_value RegisterDeviceSelectCallback(napi_env env, napi_callback_info info);
     static napi_value UnregisterDeviceSelectCallback(napi_env env, napi_callback_info info);
-    static napi_value UpdateEnabledBusinessIds(napi_env env, napi_callback_info info);
+    static napi_value UpdateEnabledBusinessIds(napi_env env, napi_callback_info info, napi_value voidPromise,
+        napi_deferred promiseDeferred);
 
 private:
     CompanionDeviceAuthNapiImpl() = default;

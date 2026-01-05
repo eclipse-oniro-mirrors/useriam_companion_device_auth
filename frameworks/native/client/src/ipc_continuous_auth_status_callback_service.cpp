@@ -15,10 +15,11 @@
 
 #include "ipc_continuous_auth_status_callback_service.h"
 
-#include "common_defines.h"
-#include "companion_device_auth_common_defines.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
+
+#include "common_defines.h"
+#include "companion_device_auth_common_defines.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_SDK"
 
@@ -48,6 +49,11 @@ int32_t IpcContinuousAuthStatusCallbackService::OnContinuousAuthStatusChange(con
 
     callback_->OnContinuousAuthStatusChange(status.isAuthPassed, status.authTrustLevel);
     return SUCCESS;
+}
+
+std::shared_ptr<IContinuousAuthStatusCallback> IpcContinuousAuthStatusCallbackService::GetCallback()
+{
+    return callback_;
 }
 
 int32_t IpcContinuousAuthStatusCallbackService::CallbackEnter([[maybe_unused]] uint32_t code)

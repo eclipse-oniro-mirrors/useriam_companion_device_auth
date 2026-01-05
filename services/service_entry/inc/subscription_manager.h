@@ -22,20 +22,21 @@
 #include <utility>
 #include <vector>
 
+#include "iremote_object.h"
+#include "nocopyable.h"
+
 #include "available_device_subscription.h"
 #include "companion_device_auth_types.h"
 #include "continuous_auth_subscription.h"
 #include "iipc_available_device_status_callback.h"
 #include "iipc_continuous_auth_status_callback.h"
 #include "iipc_template_status_callback.h"
-#include "iremote_object.h"
-#include "nocopyable.h"
 #include "template_status_subscription.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class SubscriptionManager : public NoCopyable {
+class SubscriptionManager : public NoCopyable, public std::enable_shared_from_this<SubscriptionManager> {
 public:
     SubscriptionManager();
     ~SubscriptionManager() = default;

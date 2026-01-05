@@ -55,6 +55,7 @@ companion_device_auth_service_local_sources = [
   "cross_device_interaction/remove_host_binding/src/companion_remove_host_binding_handler.cpp",
   "cross_device_interaction/remove_host_binding/src/host_remove_host_binding_request.cpp",
   "cross_device_interaction/remove_host_binding/src/remove_host_binding_message.cpp",
+  "cross_device_interaction/request_aborted/src/request_aborted_message.cpp",
   "cross_device_interaction/revoke_token/src/companion_revoke_token_request.cpp",
   "cross_device_interaction/revoke_token/src/host_revoke_token_handler.cpp",
   "cross_device_interaction/revoke_token/src/revoke_token_message.cpp",
@@ -64,6 +65,13 @@ companion_device_auth_service_local_sources = [
   "cross_device_interaction/token_auth/src/companion_token_auth_handler.cpp",
   "cross_device_interaction/token_auth/src/host_token_auth_request.cpp",
   "cross_device_interaction/token_auth/src/token_auth_message.cpp",
+  "external_adapters/src/access_token_kit_adapter_impl.cpp",
+  "external_adapters/src/adapter_manager.cpp",
+  "external_adapters/src/device_manager_adapter_impl.cpp",
+  "external_adapters/src/driver_manager_adapter_impl.cpp",
+  "external_adapters/src/sa_manager_adapter_impl.cpp",
+  "external_adapters/src/soft_bus_adapter_impl.cpp",
+  "external_adapters/src/user_auth_adapter_impl.cpp",
   "fwk_comm/src/companion_auth_interface_adapter.cpp",
   "fwk_comm/src/companion_device_auth_all_in_one_executor.cpp",
   "fwk_comm/src/companion_device_auth_driver.cpp",
@@ -86,11 +94,6 @@ companion_device_auth_service_local_sources = [
   "service_entry/src/subscription_util.cpp",
   "service_entry/src/template_status_subscription.cpp",
   "singleton/src/singleton_manager.cpp",
-  "soft_bus_cross_device_channel/src/soft_bus_channel.cpp",
-  "soft_bus_cross_device_channel/src/soft_bus_connection_manager.cpp",
-  "soft_bus_cross_device_channel/src/soft_bus_device_status_manager.cpp",
-  "soft_bus_cross_device_channel/src/soft_bus_global_callbacks.cpp",
-  "soft_bus_cross_device_channel/src/soft_bus_socket.cpp",
   "utils/src/callback_death_recipient.cpp",
   "utils/src/cda_attributes.cpp",
   "utils/src/relative_timer.cpp",
@@ -102,36 +105,44 @@ companion_device_auth_service_local_sources = [
   "utils/src/xcollie_helper.cpp",
 ]
 
+# Conditionally add cross-device channel sources
+# These will be prefixed with ${companion_device_auth_path}/services/ by the foreach loop below
+if (companion_device_auth_has_soft_bus_channel) {
+  companion_device_auth_service_local_sources += [
+    "cross_device_channels/soft_bus/src/soft_bus_channel.cpp",
+    "cross_device_channels/soft_bus/src/soft_bus_connection_manager.cpp",
+    "cross_device_channels/soft_bus/src/soft_bus_device_status_manager.cpp",
+    "cross_device_channels/soft_bus/src/soft_bus_global_callbacks.cpp",
+    "cross_device_channels/soft_bus/src/soft_bus_socket.cpp",
+  ]
+}
+
 companion_device_auth_service_sources = []
 foreach(src, companion_device_auth_service_local_sources) {
   companion_device_auth_service_sources +=
       [ "${companion_device_auth_path}/services/" + src ]
 }
 
-companion_device_auth_service_sources_for_ut = companion_device_auth_service_sources - [
-                                                 "${companion_device_auth_path}/services/utils/src/relative_timer.cpp",
-                                                 "${companion_device_auth_path}/services/utils/src/task_runner_manager.cpp",
-                                               ]
+companion_device_auth_service_sources_for_test = companion_device_auth_service_sources - [
+                                                   "${companion_device_auth_path}/services/utils/src/relative_timer.cpp",
+                                                   "${companion_device_auth_path}/services/utils/src/task_runner_manager.cpp",
+                                                 ]
 
-# For UT, always include both active_user_id_manager implementations
-companion_device_auth_service_sources_for_ut += [
-  "${companion_device_auth_path}/services/misc/src/default_active_user_id_manager.cpp",
-  "${companion_device_auth_path}/services/misc/src/constant_active_user_id_manager.cpp",
-]
+companion_device_auth_service_deps = [ "${companion_device_auth_path}/frameworks/native/ipc:companion_device_auth_stub" ]
 
-companion_device_auth_service_deps = [
-  "${companion_device_auth_path}/frameworks/native/ipc:companion_device_auth_stub",
-  "${companion_device_auth_path}/services/security_agent:companiondeviceauthservice_rs",
-  "${companion_device_auth_path}/services/security_agent:lib_companiondeviceauthservice_rs_cpp_if",
-]
+if (!companion_device_auth_enable_extension) {
+  companion_device_auth_service_deps += [
+    "${companion_device_auth_path}/services/security_agent:companiondeviceauthservice_rs",
+    "${companion_device_auth_path}/services/security_agent:lib_companiondeviceauthservice_rs_cpp_if",
+  ]
+}
 
 companion_device_auth_service_external_deps = [
   "access_token:libaccesstoken_sdk",
   "access_token:libtokenid_sdk",
   "access_token:libtokensetproc_shared",
+  "bluetooth:btframework",
   "c_utils:utils",
-  "device_manager:devicemanagersdk",
-  "dsoftbus:softbus_client",
   "hicollie:libhicollie",
   "hilog:libhilog",
   "init:libbeget_proxy",
@@ -146,24 +157,40 @@ companion_device_auth_service_external_deps = [
   "user_auth_framework:userauth_executors",
 ]
 
-# For UT, always include os_account dependency
-companion_device_auth_service_external_deps_for_ut =
-    companion_device_auth_service_external_deps +
-    [ "os_account:os_account_innerkits" ]
-
-# Determine has_os_account_part based on global_parts_info
-if (!defined(global_parts_info) ||
-    defined(global_parts_info.account_os_account)) {
-  has_os_account_part = true
-} else {
-  has_os_account_part = false
+if (companion_device_auth_enable_extension) {
+  companion_device_auth_service_external_deps += [
+    "ffrt:libffrt",
+    "hisysevent:libhisysevent",
+    "tee_client:libteec",
+  ]
 }
 
-# Add conditional sources and external deps based on has_os_account_part
-if (has_os_account_part) {
-  companion_device_auth_service_sources += [ "${companion_device_auth_path}/services/misc/src/default_active_user_id_manager.cpp" ]
+companion_device_auth_service_external_deps_for_ut =
+    companion_device_auth_service_external_deps
+
+companion_device_auth_service_flags = []
+
+if (companion_device_auth_has_account_os_account) {
+  companion_device_auth_service_sources += [ "${companion_device_auth_path}/services/misc/src/default_user_id_manager.cpp" ]
   companion_device_auth_service_external_deps +=
       [ "os_account:os_account_innerkits" ]
+  companion_device_auth_service_sources_for_test += [
+    "${companion_device_auth_path}/services/misc/src/default_user_id_manager.cpp",
+    "${companion_device_auth_path}/services/misc/src/constant_user_id_manager.cpp",
+  ]
+  companion_device_auth_service_external_deps_for_ut +=
+      [ "os_account:os_account_innerkits" ]
 } else {
-  companion_device_auth_service_sources += [ "${companion_device_auth_path}/services/misc/src/constant_active_user_id_manager.cpp" ]
+  companion_device_auth_service_sources += [ "${companion_device_auth_path}/services/misc/src/constant_user_id_manager.cpp" ]
+  companion_device_auth_service_sources_for_test += [ "${companion_device_auth_path}/services/misc/src/constant_user_id_manager.cpp" ]
+}
+
+if (companion_device_auth_has_soft_bus_channel) {
+  soft_bus_deps = [
+    "device_manager:devicemanagersdk",
+    "dsoftbus:softbus_client",
+  ]
+  companion_device_auth_service_flags += [ "-DHAS_SOFT_BUS_CHANNEL" ]
+  companion_device_auth_service_external_deps += soft_bus_deps
+  companion_device_auth_service_external_deps_for_ut += soft_bus_deps
 }

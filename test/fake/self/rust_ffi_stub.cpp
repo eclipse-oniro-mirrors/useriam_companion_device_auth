@@ -1,0 +1,45 @@
+/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "securec.h"
+
+#include "companion_device_auth_ffi.h"
+
+namespace OHOS {
+namespace UserIam {
+namespace CompanionDeviceAuth {
+extern "C" {
+// Stub implementation for Rust FFI functions
+int32_t init_rust_env()
+{
+    return 0;
+}
+
+int32_t destroy_rust_env()
+{
+    return 0;
+}
+
+int32_t invoke_rust_command(RustCommandParam param)
+{
+    (void)param;
+    return 0;
+}
+
+} // extern "C"
+
+} // namespace CompanionDeviceAuth
+} // namespace UserIam
+} // namespace OHOS

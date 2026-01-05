@@ -57,7 +57,9 @@ public:
 
     class CompanionDeviceAuthAllInOneExecutorInner;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     FwkResultCode RunOnResidentSync(std::function<FwkResultCode()> func);
 
     std::shared_ptr<CompanionDeviceAuthAllInOneExecutorInner> inner_;

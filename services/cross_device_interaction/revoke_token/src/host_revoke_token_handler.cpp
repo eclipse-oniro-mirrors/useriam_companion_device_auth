@@ -15,11 +15,11 @@
 
 #include "host_revoke_token_handler.h"
 
-#include "error_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
 #include "companion_manager.h"
+#include "error_guard.h"
 #include "revoke_token_message.h"
 #include "security_agent.h"
 #include "singleton_manager.h"

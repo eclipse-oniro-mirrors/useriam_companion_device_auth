@@ -15,12 +15,13 @@
 
 #include "ani_template_status_callback.h"
 
-#include "common_defines.h"
-#include "companion_device_auth_ani_helper.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 #include "iam_ptr.h"
+
+#include "common_defines.h"
+#include "companion_device_auth_ani_helper.h"
 #include "ohos.userIAM.companionDeviceAuth.proj.hpp"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
@@ -87,8 +88,8 @@ int32_t AniTemplateStatusCallback::SetCallback(taihe::optional<TemplateStatusCal
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (HasSameCallback(callback)) {
-        IAM_LOGE("has same callback");
-        return GENERAL_ERROR;
+        IAM_LOGI("has same callback");
+        return SUCCESS;
     }
     auto callbackPtr = MakeShared<taihe::optional<TemplateStatusCallback>>(callback);
     callbacks_.push_back(callbackPtr);
@@ -136,10 +137,11 @@ bool AniTemplateStatusCallback::HasSameCallback(taihe::optional<TemplateStatusCa
     return false;
 }
 
-void AniTemplateStatusCallback::RemoveSingleCallback(TemplateStatusCallback callback)
+void AniTemplateStatusCallback::RemoveSingleCallback(taihe::optional<TemplateStatusCallback> callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackPtr = MakeShared<TemplateStatusCallback>(callback);
+    auto callbackPtr = MakeShared<taihe::optional<TemplateStatusCallback>>(callback);
     if (!HasCallback()) {
         IAM_LOGE("callbacks_ is empty");
         return;
@@ -168,6 +170,18 @@ void AniTemplateStatusCallback::RemoveSingleCallback(TemplateStatusCallback call
     } else {
         IAM_LOGI("remove success");
     }
+}
+
+int32_t AniTemplateStatusCallback::GetUserId()
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    return userId_;
+}
+
+void AniTemplateStatusCallback::SetUserId(int32_t userId)
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    userId_ = userId;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

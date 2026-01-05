@@ -61,6 +61,7 @@ bool EncodeHostBeginIssueTokenInput(const HostBeginIssueTokenInput &input, HostB
 bool DecodeHostBeginIssueTokenOutput(const HostBeginIssueTokenOutputFfi &ffi, HostBeginIssueTokenOutput &output);
 bool EncodeHostEndIssueTokenInput(const HostEndIssueTokenInput &input, HostEndIssueTokenInputFfi &ffi);
 bool DecodeHostEndIssueTokenOutput(const HostEndIssueTokenOutputFfi &ffi, Atl &atl);
+bool EncodeHostActivateTokenInput(const HostActivateTokenInput &input, HostActivateTokenInputFfi &ffi);
 
 bool EncodeHostBeginTokenAuthInput(const HostBeginTokenAuthInput &input, HostBeginTokenAuthInputFfi &ffi);
 bool DecodeHostBeginTokenAuthOutput(const HostBeginTokenAuthOutputFfi &ffi, HostBeginTokenAuthOutput &output);
@@ -71,6 +72,13 @@ bool EncodeHostUpdateCompanionStatusInput(const HostUpdateCompanionStatusInput &
     HostUpdateCompanionStatusInputFfi &ffi);
 bool EncodeHostUpdateCompanionEnabledBusinessIdsInput(const HostUpdateCompanionEnabledBusinessIdsInput &input,
     HostUpdateCompanionEnabledBusinessIdsInputFfi &ffi);
+
+struct HostCheckTemplateEnrolledInput;
+struct HostCheckTemplateEnrolledOutput;
+bool EncodeHostCheckTemplateEnrolledInput(const HostCheckTemplateEnrolledInput &input,
+    HostCheckTemplateEnrolledInputFfi &ffi);
+bool DecodeHostCheckTemplateEnrolledOutput(const HostCheckTemplateEnrolledOutputFfi &ffi,
+    HostCheckTemplateEnrolledOutput &output);
 
 bool EncodeHostBeginDelegateAuthInput(const HostBeginDelegateAuthInput &input, HostBeginDelegateAuthInputFfi &ffi);
 bool DecodeHostBeginDelegateAuthOutput(const HostBeginDelegateAuthOutputFfi &ffi, HostBeginDelegateAuthOutput &output);

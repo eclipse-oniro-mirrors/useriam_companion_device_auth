@@ -16,14 +16,15 @@
 #ifndef COMPANION_DEVICE_AUTH_ANI_HELPER_H
 #define COMPANION_DEVICE_AUTH_ANI_HELPER_H
 
+#include <iostream>
 #include <vector>
 
 #include "nocopyable.h"
 
 #include "ani.h"
-#include "ohos.userIAM.companionDeviceAuth.proj.hpp"
-
+#include "common_defines.h"
 #include "companion_device_auth_common_defines.h"
+#include "ohos.userIAM.companionDeviceAuth.proj.hpp"
 
 namespace companionDeviceAuth = ohos::userIAM::companionDeviceAuth;
 
@@ -46,6 +47,7 @@ public:
     static ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel ConvertAuthTrustLevel(int32_t authTrustLevel);
     static bool IsAuthTrustLevelValid(int32_t authTrustLevel);
     static std::vector<uint8_t> ConvertArrayToUint8Vector(const taihe::array<uint8_t> &input);
+    static void ThrowBusinessError(int32_t error);
 
 private:
     CompanionDeviceAuthAniHelper() = default;

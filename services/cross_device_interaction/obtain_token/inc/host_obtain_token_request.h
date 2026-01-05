@@ -18,12 +18,12 @@
 
 #include <memory>
 
-#include "active_user_id_manager.h"
 #include "companion_manager.h"
 #include "inbound_request.h"
 #include "obtain_token_message.h"
 #include "security_agent.h"
 #include "service_common.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {

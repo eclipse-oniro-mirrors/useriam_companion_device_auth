@@ -30,6 +30,7 @@ ohos_shared_library("companion_device_auth_client") {
     "src/ipc_device_select_callback_service.cpp",
     "src/ipc_template_status_callback_service.cpp",
     "src/set_device_select_result_callback.cpp",
+    "src/system_ability_listener.cpp",
   ]
 
   configs = [
@@ -54,7 +55,6 @@ ohos_shared_library("companion_device_auth_client") {
     "hilog:libhilog",
     "init:libbeget_proxy",
     "init:libbegetutil",
-    "ipc:ipc_single",
     "ipc:ipc_single",
     "napi:ace_napi",
     "samgr:samgr_proxy",

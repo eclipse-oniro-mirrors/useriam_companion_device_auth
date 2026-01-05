@@ -20,7 +20,8 @@ use crate::entry::companion_device_auth_ffi::DeviceKeyFfi;
 use crate::String;
 use crate::{log_e, singleton_registry, Box, Vec};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeviceKey {
     pub device_id: String,
     pub device_id_type: i32,
@@ -29,11 +30,7 @@ pub struct DeviceKey {
 
 impl Default for DeviceKey {
     fn default() -> Self {
-        DeviceKey {
-            device_id: String::new(),
-            device_id_type: 0,
-            user_id: 0,
-        }
+        DeviceKey { device_id: String::new(), device_id_type: 0, user_id: 0 }
     }
 }
 
@@ -41,14 +38,9 @@ impl TryFrom<&DeviceKeyFfi> for DeviceKey {
     type Error = ErrorCode;
 
     fn try_from(ffi_key: &DeviceKeyFfi) -> Result<Self, ErrorCode> {
-        let device_id =
-            String::from_utf8(ffi_key.device_id.data.to_vec()).map_err(|_| ErrorCode::BadParam)?;
+        let device_id = String::from_utf8(ffi_key.device_id.data.to_vec()).map_err(|_| ErrorCode::BadParam)?;
 
-        Ok(DeviceKey {
-            device_id,
-            device_id_type: ffi_key.device_id_type,
-            user_id: ffi_key.user_id,
-        })
+        Ok(DeviceKey { device_id, device_id_type: ffi_key.device_id_type, user_id: ffi_key.user_id })
     }
 }
 
@@ -71,7 +63,6 @@ pub struct HostDeviceInfo {
     pub user_info: UserInfo,
     pub binding_time: u64,
     pub last_used_time: u64,
-    pub is_token_valid: bool,
 }
 
 #[derive(Debug, Clone)]

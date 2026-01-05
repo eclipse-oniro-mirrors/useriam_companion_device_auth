@@ -23,9 +23,10 @@
 #include "nocopyable.h"
 #include "securec.h"
 
-#include "common_defines.h"
 #include "iam_logger.h"
 
+#include "common_defines.h"
+#include "icommand_invoker.h"
 #include "security_agent.h"
 #include "subscription.h"
 
@@ -63,6 +64,7 @@ public:
         HostBeginAddCompanionOutput &output) override;
     ResultCode HostEndAddCompanion(const HostEndAddCompanionInput &input, HostEndAddCompanionOutput &output) override;
     ResultCode HostCancelAddCompanion(const HostCancelAddCompanionInput &input) override;
+    ResultCode HostActivateToken(const HostActivateTokenInput &input) override;
 
     ResultCode CompanionInitKeyNegotiation(const CompanionInitKeyNegotiationInput &input,
         CompanionInitKeyNegotiationOutput &output) override;
@@ -113,6 +115,7 @@ public:
     // Token auth
     ResultCode HostBeginTokenAuth(const HostBeginTokenAuthInput &input, HostBeginTokenAuthOutput &output) override;
     ResultCode HostEndTokenAuth(const HostEndTokenAuthInput &input, HostEndTokenAuthOutput &output) override;
+    ResultCode HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output) override;
 
     ResultCode CompanionProcessTokenAuth(const CompanionProcessTokenAuthInput &input,
         CompanionProcessTokenAuthOutput &output) override;
@@ -124,11 +127,15 @@ public:
     // Update companion device status
     ResultCode HostUpdateCompanionStatus(const HostUpdateCompanionStatusInput &input) override;
     ResultCode HostUpdateCompanionEnabledBusinessIds(const HostUpdateCompanionEnabledBusinessIdsInput &input) override;
+    ResultCode HostCheckTemplateEnrolled(const HostCheckTemplateEnrolledInput &input,
+        HostCheckTemplateEnrolledOutput &output) override;
 
+#ifndef ENABLE_TEST
 private:
-    explicit SecurityAgentImpl(std::shared_ptr<class CommandInvoker> invoker);
+#endif
+    explicit SecurityAgentImpl(std::shared_ptr<ICommandInvoker> invoker);
     void Initialize() override;
-    std::shared_ptr<class CommandInvoker> invoker_;
+    std::shared_ptr<ICommandInvoker> invoker_;
     std::unique_ptr<Subscription> activeUserSubscription_;
 };
 } // namespace CompanionDeviceAuth

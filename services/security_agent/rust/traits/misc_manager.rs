@@ -24,11 +24,7 @@ use mockall::automock;
 
 #[cfg_attr(any(test, feature = "test-utils"), automock)]
 pub trait MiscManager {
-    fn get_distribute_key(
-        &self,
-        local_udid: Udid,
-        peer_udid: Udid,
-    ) -> Result<crate::Vec<u8>, ErrorCode>;
+    fn get_distribute_key(&self, local_udid: Udid, peer_udid: Udid) -> Result<crate::Vec<u8>, ErrorCode>;
     fn set_local_key_pair(&mut self, key_pair: KeyPair) -> Result<(), ErrorCode>;
     fn get_local_key_pair(&self) -> Result<KeyPair, ErrorCode>;
     fn set_fwk_pub_key(&mut self, pub_key: Vec<u8>) -> Result<(), ErrorCode>;
@@ -38,11 +34,7 @@ pub trait MiscManager {
 pub struct DummyMiscManager;
 
 impl MiscManager for DummyMiscManager {
-    fn get_distribute_key(
-        &self,
-        _local_udid: Udid,
-        _peer_udid: Udid,
-    ) -> Result<crate::Vec<u8>, ErrorCode> {
+    fn get_distribute_key(&self, _local_udid: Udid, _peer_udid: Udid) -> Result<crate::Vec<u8>, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
@@ -69,3 +61,24 @@ impl MiscManager for DummyMiscManager {
 }
 
 singleton_registry!(MiscManagerRegistry, MiscManager, DummyMiscManager);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dummy_misc_manager_test() {
+        let mut dummy_misc_manager = DummyMiscManager;
+        assert_eq!(
+            dummy_misc_manager.get_distribute_key(Udid::default(), Udid::default()),
+            Err(ErrorCode::GeneralError)
+        );
+        assert_eq!(
+            dummy_misc_manager.set_local_key_pair(KeyPair::new(Vec::<u8>::new(), Vec::<u8>::new())),
+            Err(ErrorCode::GeneralError)
+        );
+        assert_eq!(dummy_misc_manager.get_local_key_pair(), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_misc_manager.set_fwk_pub_key(Vec::<u8>::new()), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_misc_manager.get_fwk_pub_key(), Err(ErrorCode::GeneralError));
+    }
+}

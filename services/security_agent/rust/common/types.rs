@@ -17,9 +17,15 @@ use crate::common::constants::*;
 use crate::log_e;
 use crate::String;
 use crate::Vec;
+// use serde_big_array::BigArray;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd)]
-pub struct Udid(pub [u8; UDID_LEN]);
+#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
+pub struct Udid(
+    // #[cfg_attr(feature = "test-utils", serde(with = "BigArray"))]
+    // #[cfg_attr(feature = "test-utils", serde(with = "serde_big_array::BigArray"))]
+    pub [u8; UDID_LEN],
+);
 
 impl Default for Udid {
     fn default() -> Self {
@@ -32,11 +38,7 @@ impl TryFrom<String> for Udid {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         if value.len() != UDID_LEN {
-            log_e!(
-                "udid length mismatch, expected: {}, actual: {}",
-                UDID_LEN,
-                value.len()
-            );
+            log_e!("udid length mismatch, expected: {}, actual: {}", UDID_LEN, value.len());
             return Err(ErrorCode::BadParam);
         }
 
@@ -48,12 +50,7 @@ impl TryFrom<String> for Udid {
 
 impl core::fmt::Debug for Udid {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(
-            f,
-            "Udid({:02X?}...{:02X?})",
-            &self.0[..2],
-            &self.0[UDID_LEN - 2..]
-        )
+        write!(f, "Udid({:02X?}...{:02X?})", &self.0[..2], &self.0[UDID_LEN - 2..])
     }
 }
 
@@ -63,11 +60,7 @@ impl TryFrom<&Vec<u8>> for Udid {
     type Error = ErrorCode;
     fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
         if value.len() != UDID_LEN {
-            log_e!(
-                "udid length mismatch, expected: {}, actual: {}",
-                UDID_LEN,
-                value.len()
-            );
+            log_e!("udid length mismatch, expected: {}, actual: {}", UDID_LEN, value.len());
             return Err(ErrorCode::BadParam);
         }
         let mut udid = [0u8; UDID_LEN];

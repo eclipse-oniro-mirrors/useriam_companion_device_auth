@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,10 +18,10 @@
 #include <map>
 
 #include "iam_check.h"
-#include "iam_executor_idriver_manager.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
 
+#include "adapter_manager.h"
 #include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
 
@@ -47,7 +47,6 @@ std::shared_ptr<FwkCommManager> FwkCommManager::Create()
 bool FwkCommManager::Initialize()
 {
     IAM_LOGI("start Initialize FwkCommManager");
-    const uint16_t driverId = 1;
     const auto adapter = MakeShared<CompanionAuthInterfaceAdapter>();
     if (adapter == nullptr) {
         IAM_LOGE("make adapter failed");
@@ -58,16 +57,8 @@ bool FwkCommManager::Initialize()
         IAM_LOGE("make driver failed");
         return false;
     }
-    const std::map<std::string, UserIam::UserAuth::HdiConfig> hdiName2Config = {
-        { "companion_device_auth", { driverId, driver } },
-    };
 
-    int32_t ret = UserIam::UserAuth::IDriverManager::Start(hdiName2Config, false);
-    if (ret != UserAuth::SUCCESS) {
-        IAM_LOGE("start driver manager failed");
-        return false;
-    }
-    return true;
+    return GetDriverManagerAdapter().Start(driver);
 }
 
 } // namespace CompanionDeviceAuth

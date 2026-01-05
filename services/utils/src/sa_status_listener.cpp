@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,12 +19,11 @@
 #include <new>
 #include <utility>
 
-#include "if_system_ability_manager.h"
-#include "iservice_registry.h"
-
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
+#include "if_system_ability_manager.h"
 #include "task_runner_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
@@ -80,6 +79,7 @@ void SaStatusListener::SaStatusStub::OnRemoveSystemAbility(int32_t systemAbility
 std::unique_ptr<SaStatusListener> SaStatusListener::Create(const std::string &name, int32_t systemAbilityId,
     AddFunc &&addFunc, RemoveFunc &&removeFunc)
 {
+#ifndef ENABLE_TEST
     std::unique_ptr<SaStatusListener> listener(
         new (std::nothrow) SaStatusListener(name, systemAbilityId, std::move(addFunc), std::move(removeFunc)));
     ENSURE_OR_RETURN_VAL(listener != nullptr, nullptr);
@@ -88,11 +88,13 @@ std::unique_ptr<SaStatusListener> SaStatusListener::Create(const std::string &na
         IAM_LOGE("subscribe failed");
         return nullptr;
     }
-
     return listener;
+#else
+    return nullptr;
+#endif
 }
 
-SaStatusListener::SaStatusListener(const std::string &name, int32_t systemAbilityId, AddFunc &&addFunc,
+SaStatusListener::SaStatusListener([[maybe_unused]] const std::string &name, int32_t systemAbilityId, AddFunc &&addFunc,
     RemoveFunc &&removeFunc)
     : systemAbilityId_(systemAbilityId),
       stub_(new(std::nothrow) SaStatusStub(systemAbilityId, std::move(addFunc), std::move(removeFunc)))
@@ -108,12 +110,8 @@ bool SaStatusListener::Subscribe()
 {
     ENSURE_OR_RETURN_VAL(stub_ != nullptr, false);
 
-    auto sam = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
-    ENSURE_OR_RETURN_VAL(sam != nullptr, false);
-
-    int32_t ret = sam->SubscribeSystemAbility(systemAbilityId_, stub_);
-    if (ret != ERR_OK) {
-        IAM_LOGE("SubscribeSystemAbility failed, ret=%{public}d", ret);
+    if (!GetSaManagerAdapter().SubscribeSystemAbility(systemAbilityId_, stub_)) {
+        IAM_LOGE("SubscribeSystemAbility failed");
         return false;
     }
 
@@ -125,16 +123,8 @@ void SaStatusListener::Unsubscribe()
 {
     ENSURE_OR_RETURN(stub_ != nullptr);
 
-    auto sam = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
-    if (sam == nullptr) {
-        IAM_LOGW("failed to get SAM");
-        stub_ = nullptr;
-        return;
-    }
-
-    int32_t ret = sam->UnSubscribeSystemAbility(systemAbilityId_, stub_);
-    if (ret != ERR_OK) {
-        IAM_LOGE("UnSubscribeSystemAbility failed, ret=%{public}d", ret);
+    if (!GetSaManagerAdapter().UnSubscribeSystemAbility(systemAbilityId_, stub_)) {
+        IAM_LOGW("UnSubscribeSystemAbility failed for SA %{public}d", systemAbilityId_);
     }
 
     stub_ = nullptr;

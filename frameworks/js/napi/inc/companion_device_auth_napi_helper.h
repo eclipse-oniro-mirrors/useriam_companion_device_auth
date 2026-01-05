@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "napi/native_api.h"
-
 #include "nocopyable.h"
 
 #include "companion_device_auth_client.h"
@@ -66,7 +65,7 @@ public:
     static napi_status CallVoidNapiFunc(napi_env env, napi_ref funcRef, size_t argc, const napi_value *argv);
     static napi_status CallNapiFuncWithResult(napi_env env, napi_ref funcRef, size_t argc, const napi_value *argv,
         napi_value *result);
-    static napi_value GenerateBusinessError(napi_env env, int32_t result);
+    static napi_value GenerateBusinessError(napi_env env, int32_t error);
     static napi_status GetFunctionRef(napi_env env, napi_value value, napi_ref &ref);
     static std::string GetStringFromValueUtf8(napi_env env, napi_value value);
 

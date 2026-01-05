@@ -15,11 +15,11 @@
 
 use crate::common::constants::*;
 use crate::common::types::*;
-use crate::traits::companion_request_manager::{
-    CompanionRequest, CompanionRequestManager, DynCompanionRequest,
-};
+use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestManager, DynCompanionRequest};
 use crate::traits::db_manager::DeviceKey;
 use crate::{log_e, log_i, p, Box, Vec};
+
+const MAX_REQUEST_NUM: usize = 50;
 
 pub struct DefaultCompanionRequestManager {
     requests: Vec<Box<DynCompanionRequest>>,
@@ -27,9 +27,7 @@ pub struct DefaultCompanionRequestManager {
 
 impl DefaultCompanionRequestManager {
     pub fn new() -> Self {
-        Self {
-            requests: Vec::new(),
-        }
+        Self { requests: Vec::with_capacity(MAX_REQUEST_NUM) }
     }
 }
 
@@ -37,13 +35,14 @@ impl CompanionRequestManager for DefaultCompanionRequestManager {
     fn add_request(&mut self, request: Box<DynCompanionRequest>) -> Result<(), ErrorCode> {
         log_i!("add_request start");
         let request_id = request.get_request_id();
-        if self
-            .requests
-            .iter()
-            .any(|req| req.get_request_id() == request_id)
-        {
-            log_e!("Auth request with id {} already exists", request_id);
+        if self.requests.iter().any(|req| req.get_request_id() == request_id) {
+            log_e!("request with id {} already exists", request_id);
             return Err(ErrorCode::IdExists);
+        }
+
+        if self.requests.len() >= MAX_REQUEST_NUM {
+            log_e!("request is reached limit");
+            self.requests.remove(0);
         }
 
         self.requests.push(request);
@@ -52,18 +51,13 @@ impl CompanionRequestManager for DefaultCompanionRequestManager {
 
     fn remove_request(&mut self, request_id: i32) -> Result<Box<DynCompanionRequest>, ErrorCode> {
         log_i!("remove_request start");
-        if let Some(pos) = self
+        let pos = self
             .requests
             .iter()
             .position(|req| req.get_request_id() == request_id)
-        {
-            let request = self.requests.remove(pos);
-            log_i!("Removed auth request with id: {}", request_id);
-            Ok(request)
-        } else {
-            log_e!("Auth request with id {} not found", request_id);
-            Err(ErrorCode::NotFound)
-        }
+            .ok_or(ErrorCode::NotFound)?;
+
+        Ok(self.requests.remove(pos))
     }
 
     fn get_request(&mut self, request_id: i32) -> Result<&mut DynCompanionRequest, ErrorCode> {

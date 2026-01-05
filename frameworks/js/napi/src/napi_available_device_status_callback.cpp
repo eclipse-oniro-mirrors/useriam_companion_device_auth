@@ -15,13 +15,13 @@
 
 #include "napi_available_device_status_callback.h"
 
+#include "napi/native_node_api.h"
 #include <uv.h>
 
-#include "napi/native_node_api.h"
-
-#include "companion_device_auth_napi_helper.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
+
+#include "companion_device_auth_napi_helper.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_NAPI"
 
@@ -49,7 +49,6 @@ NapiAvailableDeviceStatusCallback::~NapiAvailableDeviceStatusCallback()
 bool NapiAvailableDeviceStatusCallback::IsCallbackExists(const std::shared_ptr<JsRefHolder> &callback)
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-
     auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
         [&callback](const std::shared_ptr<JsRefHolder> &item) { return item->Equals(callback); });
 
@@ -61,7 +60,7 @@ ResultCode NapiAvailableDeviceStatusCallback::SetCallback(const std::shared_ptr<
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (IsCallbackExists(callback)) {
         IAM_LOGI("same callback already exist");
-        return GENERAL_ERROR;
+        return SUCCESS;
     }
 
     callbacks_.push_back(callback);
@@ -131,6 +130,7 @@ void NapiAvailableDeviceStatusCallback::OnAvailableDeviceStatusChange(
     const std::vector<ClientDeviceStatus> deviceStatusList)
 {
     IAM_LOGI("start");
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
     uv_loop_s *loop = nullptr;
     napi_status napiStatus = napi_get_uv_event_loop(env_, &loop);
     if (napiStatus != napi_ok || loop == nullptr) {
@@ -175,6 +175,18 @@ void NapiAvailableDeviceStatusCallback::OnAvailableDeviceStatusChange(
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
     // clang-format on
+}
+
+int32_t NapiAvailableDeviceStatusCallback::GetUserId()
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    return userId_;
+}
+
+void NapiAvailableDeviceStatusCallback::SetUserId(int32_t userId)
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    userId_ = userId;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

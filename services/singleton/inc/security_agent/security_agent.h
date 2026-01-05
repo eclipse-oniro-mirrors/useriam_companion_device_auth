@@ -129,9 +129,15 @@ struct HostEndAddCompanionInput {
 struct HostEndAddCompanionOutput {
     std::vector<uint8_t> fwkMsg;
     TemplateId templateId;
+    std::vector<uint8_t> tokenData;
+    Atl atl;
 };
 
 struct HostCancelAddCompanionInput {
+    RequestId requestId;
+};
+
+struct HostActivateTokenInput {
     RequestId requestId;
 };
 
@@ -163,6 +169,7 @@ struct CompanionBeginAddHostBindingOutput {
 struct CompanionEndAddHostBindingInput {
     RequestId requestId;
     ResultCode resultCode;
+    std::vector<uint8_t> tokenData; // Host 发送的加密后的 Token 数据（可选，仅当成功时）
 };
 
 struct CompanionEndAddHostBindingOutput {
@@ -374,6 +381,16 @@ struct CompanionProcessTokenAuthOutput {
     std::vector<uint8_t> tokenAuthReply;
 };
 
+// Update token input/output structs
+struct HostUpdateTokenInput {
+    TemplateId templateId;
+    std::vector<uint8_t> fwkMsg;
+};
+
+struct HostUpdateTokenOutput {
+    bool needRedistribute;
+};
+
 // Update companion status input/output structs
 struct HostUpdateCompanionStatusInput {
     TemplateId templateId;
@@ -384,6 +401,14 @@ struct HostUpdateCompanionStatusInput {
 struct HostUpdateCompanionEnabledBusinessIdsInput {
     TemplateId templateId;
     std::vector<BusinessIdType> enabledBusinessIds;
+};
+
+struct HostCheckTemplateEnrolledInput {
+    TemplateId templateId;
+};
+
+struct HostCheckTemplateEnrolledOutput {
+    bool enrolled;
 };
 
 // Revoke operations input structs
@@ -426,6 +451,7 @@ public:
     virtual ResultCode HostEndAddCompanion(const HostEndAddCompanionInput &input,
         HostEndAddCompanionOutput &output) = 0;
     virtual ResultCode HostCancelAddCompanion(const HostCancelAddCompanionInput &input) = 0;
+    virtual ResultCode HostActivateToken(const HostActivateTokenInput &input) = 0;
 
     virtual ResultCode CompanionInitKeyNegotiation(const CompanionInitKeyNegotiationInput &input,
         CompanionInitKeyNegotiationOutput &output) = 0;
@@ -479,6 +505,7 @@ public:
     // Token auth
     virtual ResultCode HostBeginTokenAuth(const HostBeginTokenAuthInput &input, HostBeginTokenAuthOutput &output) = 0;
     virtual ResultCode HostEndTokenAuth(const HostEndTokenAuthInput &input, HostEndTokenAuthOutput &output) = 0;
+    virtual ResultCode HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output) = 0;
 
     virtual ResultCode CompanionProcessTokenAuth(const CompanionProcessTokenAuthInput &input,
         CompanionProcessTokenAuthOutput &output) = 0;
@@ -487,12 +514,16 @@ public:
     virtual ResultCode HostUpdateCompanionStatus(const HostUpdateCompanionStatusInput &input) = 0;
     virtual ResultCode HostUpdateCompanionEnabledBusinessIds(
         const HostUpdateCompanionEnabledBusinessIdsInput &input) = 0;
+    virtual ResultCode HostCheckTemplateEnrolled(const HostCheckTemplateEnrolledInput &input,
+        HostCheckTemplateEnrolledOutput &output) = 0;
 
     // Revoke token
     virtual ResultCode HostRevokeToken(const HostRevokeTokenInput &input) = 0;
     virtual ResultCode CompanionRevokeToken(const CompanionRevokeTokenInput &input) = 0;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     virtual void Initialize() = 0;
 };
 } // namespace CompanionDeviceAuth

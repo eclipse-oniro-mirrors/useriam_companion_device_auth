@@ -14,4 +14,5 @@
  */
 
 pub mod companion_enroll;
+pub mod enroll_message;
 pub mod host_enroll;

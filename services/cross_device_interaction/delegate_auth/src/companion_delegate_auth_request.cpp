@@ -16,12 +16,11 @@
 #include "companion_delegate_auth_request.h"
 
 #include "ipc_skeleton.h"
-#include "token_setproc.h"
-#include "user_auth_client.h"
 
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "common_message.h"
 #include "companion_delegate_auth_callback.h"
 #include "cross_device_comm_manager_impl.h"
@@ -31,6 +30,7 @@
 #include "security_agent.h"
 #include "service_converter.h"
 #include "singleton_manager.h"
+#include "token_setproc.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -106,7 +106,7 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
 
     auto callerTokenId = IPCSkeleton::GetCallingTokenID();
     SetFirstCallerTokenID(callerTokenId);
-    uint64_t contextId = UserAuth::UserAuthClient::GetInstance().BeginWidgetAuth(authParam, widgetParam, callback);
+    uint64_t contextId = GetUserAuthAdapter().BeginWidgetAuth(authParam, widgetParam, callback);
     ENSURE_OR_RETURN_VAL(contextId != 0, false);
     contextId_ = contextId;
     return true;
@@ -181,7 +181,6 @@ bool CompanionDelegateAuthRequest::SendDelegateAuthResult(ResultCode resultCode,
         IAM_LOGE("%{public}s SendMessage failed", GetDescription());
         return false;
     }
-    authResultSent_ = true;
     return true;
 }
 
@@ -222,15 +221,11 @@ void CompanionDelegateAuthRequest::CompleteWithError(ResultCode result)
     IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
     if (contextId_.has_value()) {
         IAM_LOGI("%{public}s delegate auth not completed, cancelling", GetDescription());
-        int32_t ret = UserAuth::UserAuthClient::GetInstance().CancelAuthentication(*contextId_);
+        int32_t ret = GetUserAuthAdapter().CancelAuthentication(*contextId_);
         if (ret != ResultCode::SUCCESS) {
             IAM_LOGE("%{public}s CancelAuthentication failed ret=%{public}d", GetDescription(), ret);
         }
         contextId_.reset();
-    }
-    if (!authResultSent_) {
-        IAM_LOGI("%{public}s delegate auth not completed", GetDescription());
-        SendDelegateAuthResult(result, {});
     }
     Destroy();
 }
@@ -247,7 +242,8 @@ uint32_t CompanionDelegateAuthRequest::GetMaxConcurrency() const
 }
 
 bool CompanionDelegateAuthRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new CompanionDelegateAuthRequest preempts existing one
     if (newRequestType == RequestType::COMPANION_DELEGATE_AUTH_REQUEST) {

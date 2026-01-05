@@ -66,6 +66,7 @@ public:
     void SetCompanionValid(bool isValid);
     void SetCompanionTokenAtl(std::optional<Atl> tokenAtl);
     void SetDeviceNames(const std::string &deviceName, const std::string &deviceUserName);
+    void RefreshTokenTimer();
     void NotifySubscribers();
 
 #ifndef ENABLE_TEST

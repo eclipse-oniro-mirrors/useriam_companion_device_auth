@@ -86,17 +86,17 @@ bool HostBinding::Initialize()
     auto devcieStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus();
     HandleDeviceStatusChanged(devcieStatusList);
 
-    localDeviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeLocalDeviceStatus(
-        [weakSelf = weak_from_this()](const LocalDeviceStatus &localDeviceStatus) {
+    localDeviceStatusSubscription_ =
+        GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive([weakSelf = weak_from_this()](bool isActive) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->HandleLocalDeviceStatusChanged(localDeviceStatus);
+            self->HandleAuthMaintainActiveChanged(isActive);
         });
     if (localDeviceStatusSubscription_ == nullptr) {
-        IAM_LOGE("%{public}s failed to subscribe local device status", GetDescription().c_str());
+        IAM_LOGE("%{public}s failed to subscribe auth maintain active", GetDescription().c_str());
         return false;
     }
-    HandleLocalDeviceStatusChanged(GetCrossDeviceCommManager().GetLocalDeviceStatus());
+    HandleAuthMaintainActiveChanged(GetCrossDeviceCommManager().IsAuthMaintainActive());
 
     return true;
 }
@@ -130,16 +130,15 @@ void HostBinding::HandleHostDeviceOffline()
     SetTokenValid(false);
 }
 
-void HostBinding::HandleLocalDeviceStatusChanged(const LocalDeviceStatus &localDeviceStatus)
+void HostBinding::HandleAuthMaintainActiveChanged(bool isActive)
 {
-    if (status_.localAuthMaintainActive == localDeviceStatus.isAuthMaintainActive) {
+    if (status_.localAuthMaintainActive == isActive) {
         return;
     }
 
-    status_.localAuthMaintainActive = localDeviceStatus.isAuthMaintainActive;
-    IAM_LOGI("%{public}s local auth maintain active -> %{public}d", description_.c_str(),
-        localDeviceStatus.isAuthMaintainActive);
-    if (!localDeviceStatus.isAuthMaintainActive) {
+    status_.localAuthMaintainActive = isActive;
+    IAM_LOGI("%{public}s local auth maintain active -> %{public}d", description_.c_str(), isActive);
+    if (!isActive) {
         IAM_LOGE("%{public}s local auth maintain inactive, revoking token", description_.c_str());
         SetTokenValid(false);
     }
@@ -152,7 +151,6 @@ void HostBinding::SetTokenValid(bool isTokenValid)
     IAM_LOGI("%{public}s set token valid %{public}s -> %{public}s", description_.c_str(), GetBoolStr(oldTokenValid),
         GetBoolStr(isTokenValid));
 
-    tokenTimeoutSubscription_.reset();
     if (!isTokenValid && oldTokenValid) {
         CompanionRevokeTokenInput input = { status_.bindingId };
         (void)GetSecurityAgent().CompanionRevokeToken(input);
@@ -168,17 +166,6 @@ void HostBinding::SetTokenValid(bool isTokenValid)
         }
 
         IAM_LOGI("%{public}s successfully started CompanionRevokeTokenRequest", description_.c_str());
-    } else if (isTokenValid) {
-        tokenTimeoutSubscription_ = RelativeTimer::GetInstance().Register(
-            [weakSelf = weak_from_this()]() {
-                auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
-                IAM_LOGI("%{public}s token timeout, revoking token", self->GetDescription().c_str());
-                self->SetTokenValid(false);
-            },
-            TOKEN_TIMEOUT_MS);
-        ENSURE_OR_RETURN(tokenTimeoutSubscription_ != nullptr);
-        IAM_LOGI("%{public}s registered token timeout timer", description_.c_str());
     }
 }
 

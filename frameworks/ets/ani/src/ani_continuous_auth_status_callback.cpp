@@ -15,24 +15,21 @@
 
 #include "ani_continuous_auth_status_callback.h"
 
-#include "common_defines.h"
-#include "companion_device_auth_ani_helper.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 #include "iam_ptr.h"
+
+#include "common_defines.h"
+#include "companion_device_auth_ani_helper.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-AniContinuousAuthStatusCallback::AniContinuousAuthStatusCallback(std::optional<uint64_t> templateId)
+AniContinuousAuthStatusCallback::AniContinuousAuthStatusCallback()
 {
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (templateId.has_value()) {
-        templateId_ = templateId.value();
-    }
 }
 
 AniContinuousAuthStatusCallback::~AniContinuousAuthStatusCallback()
@@ -78,8 +75,8 @@ int32_t AniContinuousAuthStatusCallback::SetCallback(taihe::optional<ContinuousA
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (HasSameCallback(callback)) {
-        IAM_LOGE("has same callback");
-        return GENERAL_ERROR;
+        IAM_LOGI("has same callback");
+        return SUCCESS;
     }
     auto callbackPtr = MakeShared<taihe::optional<ContinuousAuthStatusCallback>>(callback);
     callbacks_.push_back(callbackPtr);
@@ -137,23 +134,6 @@ void AniContinuousAuthStatusCallback::RemoveSingleCallback(taihe::optional<Conti
     }
 }
 
-int32_t AniContinuousAuthStatusCallback::GetTemplateId(uint64_t &templateId)
-{
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (!templateId_.has_value()) {
-        IAM_LOGE("template id not exist");
-        return GENERAL_ERROR;
-    }
-    templateId = templateId_.value();
-    return SUCCESS;
-}
-
-bool AniContinuousAuthStatusCallback::HasTemplateId()
-{
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    return templateId_.has_value();
-}
-
 bool AniContinuousAuthStatusCallback::HasSameCallback(taihe::optional<ContinuousAuthStatusCallback> callback)
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
@@ -177,6 +157,30 @@ bool AniContinuousAuthStatusCallback::HasSameCallback(taihe::optional<Continuous
 
     IAM_LOGI("do not have same callback");
     return false;
+}
+
+int32_t AniContinuousAuthStatusCallback::GetUserId()
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    return userId_;
+}
+
+void AniContinuousAuthStatusCallback::SetUserId(int32_t userId)
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    userId_ = userId;
+}
+
+std::optional<uint64_t> AniContinuousAuthStatusCallback::GetTemplateId()
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    return templateId_;
+}
+
+void AniContinuousAuthStatusCallback::SetTemplateId(uint64_t templateId)
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    templateId_ = templateId;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

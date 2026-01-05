@@ -19,19 +19,24 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "icommand_invoker.h"
+
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class CommandInvoker {
+class CommandInvoker : public ICommandInvoker {
 public:
     CommandInvoker() = default;
     ~CommandInvoker() = default;
-    int32_t Initialize();
-    void Uninitialize();
-    int32_t InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen, uint8_t *outputData,
-        uint32_t outputDataLen);
 
+    ResultCode Initialize() override;
+    void Finalize() override;
+    ResultCode InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen, uint8_t *outputData,
+        uint32_t outputDataLen) override;
+
+#ifndef ENABLE_TEST
 private:
+#endif
     bool inited_ = false;
 };
 } // namespace CompanionDeviceAuth

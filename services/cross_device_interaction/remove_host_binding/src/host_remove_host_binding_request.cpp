@@ -127,7 +127,8 @@ uint32_t HostRemoveHostBindingRequest::GetMaxConcurrency() const
 }
 
 bool HostRemoveHostBindingRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostRemoveHostBindingRequest preempts existing one
     if (newRequestType == RequestType::HOST_REMOVE_HOST_BINDING_REQUEST) {

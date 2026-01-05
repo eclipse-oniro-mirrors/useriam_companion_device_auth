@@ -15,13 +15,13 @@
 
 #include "napi_template_status_callback.h"
 
+#include "napi/native_node_api.h"
 #include <uv.h>
 
-#include "napi/native_node_api.h"
-
-#include "companion_device_auth_napi_helper.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
+
+#include "companion_device_auth_napi_helper.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_NAPI"
 
@@ -62,7 +62,7 @@ ResultCode NapiTemplateStatusCallback::SetCallback(const std::shared_ptr<JsRefHo
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (IsCallbackExists(callback)) {
         IAM_LOGI("same callback already exist");
-        return GENERAL_ERROR;
+        return SUCCESS;
     }
 
     callbacks_.push_back(callback);
@@ -173,6 +173,18 @@ void NapiTemplateStatusCallback::OnTemplateStatusChange(const std::vector<Client
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
     // clang-format on
+}
+
+int32_t NapiTemplateStatusCallback::GetUserId()
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    return userId_;
+}
+
+void NapiTemplateStatusCallback::SetUserId(int32_t userId)
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    userId_ = userId;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -17,6 +17,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -67,15 +68,20 @@ void HostMixAuthRequest::Start()
     }
 }
 
-bool HostMixAuthRequest::Cancel()
+bool HostMixAuthRequest::Cancel(ResultCode resultCode)
 {
+    if (cancelled_) {
+        IAM_LOGI("%{public}s already cancelled, skip", GetDescription());
+        return true;
+    }
+    cancelled_ = true;
     std::unordered_map<uint64_t, std::shared_ptr<IRequest>> requestMap = std::move(requestMap_);
     for (auto &entry : requestMap) {
         if (entry.second != nullptr) {
-            entry.second->Cancel();
+            entry.second->Cancel(resultCode);
         }
     }
-    CompleteWithError(ResultCode::CANCELED);
+    CompleteWithError(resultCode);
     return true;
 }
 
@@ -106,7 +112,7 @@ void HostMixAuthRequest::HandleAuthResult(TemplateId templateId, ResultCode resu
     std::unordered_map<uint64_t, std::shared_ptr<IRequest>> requestMap = std::move(requestMap_);
     for (auto &entry : requestMap) {
         if (entry.second != nullptr) {
-            entry.second->Cancel();
+            entry.second->Cancel(ResultCode::CANCELED);
         }
     }
     CompleteWithSuccess(extraInfo);
@@ -118,7 +124,8 @@ uint32_t HostMixAuthRequest::GetMaxConcurrency() const
 }
 
 bool HostMixAuthRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostMixAuthRequest preempts existing one
     if (newRequestType == RequestType::HOST_MIX_AUTH_REQUEST) {

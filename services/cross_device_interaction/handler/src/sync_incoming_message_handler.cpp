@@ -15,9 +15,10 @@
 
 #include "sync_incoming_message_handler.h"
 
-#include "error_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
+
+#include "error_guard.h"
 #include "singleton_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"

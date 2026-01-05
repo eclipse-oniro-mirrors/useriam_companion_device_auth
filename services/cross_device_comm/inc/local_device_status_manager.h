@@ -24,11 +24,11 @@
 
 #include "nocopyable.h"
 
-#include "active_user_id_manager.h"
 #include "channel_manager.h"
 #include "cross_device_common.h"
 #include "service_common.h"
 #include "subscription.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -40,11 +40,14 @@ public:
 
     ~LocalDeviceStatusManager() = default;
 
-    virtual LocalDeviceStatus GetLocalDeviceStatus();
-    virtual std::unique_ptr<Subscription> SubscribeLocalDeviceStatus(OnLocalDeviceStatusChange &&callback);
+    virtual bool IsAuthMaintainActive();
+    virtual std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback);
+
+    virtual std::map<ChannelId, DeviceKey> GetLocalDeviceKeys();
+    virtual std::optional<DeviceKey> GetLocalDeviceKey(ChannelId channelId);
+    virtual LocalDeviceProfile GetLocalDeviceProfile();
 
     virtual void SetAuthMaintainActive(bool isActive);
-    virtual bool isAuthMaintainActive();
 
 #ifndef ENABLE_TEST
 private:
@@ -53,9 +56,10 @@ private:
     bool Init();
 
     std::shared_ptr<ChannelManager> channelMgr_;
-    LocalDeviceStatus localDeviceStatus_;
+    LocalDeviceProfile profile_;
+    LocalDeviceAuthState authState_;
 
-    std::map<int32_t, OnLocalDeviceStatusChange> statusSubscribers_;
+    std::map<int32_t, std::function<void(bool)>> statusSubscribers_;
     std::atomic<int32_t> nextSubscriptionId_ { 1 };
     std::unique_ptr<Subscription> authMaintainSubscription_;
     std::unique_ptr<Subscription> activeUserIdSubscription_;

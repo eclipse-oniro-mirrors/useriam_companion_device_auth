@@ -53,3 +53,16 @@ impl TimeKeeper for DummyTimeKeeper {
 }
 
 singleton_registry!(TimeKeeperRegistry, TimeKeeper, DummyTimeKeeper);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dummy_time_keeper_test() {
+        let dummy_time_keeper = DummyTimeKeeper;
+        assert_eq!(dummy_time_keeper.get_system_time(), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_time_keeper.get_rtc_time(), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_time_keeper.get_ree_time(), Err(ErrorCode::GeneralError));
+    }
+}

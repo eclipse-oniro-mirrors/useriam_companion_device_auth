@@ -18,12 +18,15 @@
 #include <new>
 #include <vector>
 
-#include "companion_manager.h"
-#include "cross_device_comm_manager.h"
 #include "errors.h"
+
 #include "iam_check.h"
 #include "iam_logger.h"
+
+#include "companion_manager.h"
+#include "cross_device_comm_manager.h"
 #include "singleton_manager.h"
+#include "subscription_manager.h"
 #include "subscription_util.h"
 #include "task_runner_manager.h"
 
@@ -33,14 +36,18 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-TemplateStatusSubscription::TemplateStatusSubscription(UserId userId) : userId_(userId)
+TemplateStatusSubscription::TemplateStatusSubscription(UserId userId,
+    std::weak_ptr<SubscriptionManager> subscriptionManager)
+    : userId_(userId),
+      subscriptionManager_(subscriptionManager)
 {
 }
 
-std::shared_ptr<TemplateStatusSubscription> TemplateStatusSubscription::Create(UserId userId)
+std::shared_ptr<TemplateStatusSubscription> TemplateStatusSubscription::Create(UserId userId,
+    std::weak_ptr<SubscriptionManager> subscriptionManager)
 {
-    auto subscription =
-        std::shared_ptr<TemplateStatusSubscription>(new (std::nothrow) TemplateStatusSubscription(userId));
+    auto subscription = std::shared_ptr<TemplateStatusSubscription>(
+        new (std::nothrow) TemplateStatusSubscription(userId, subscriptionManager));
     ENSURE_OR_RETURN_VAL(subscription != nullptr, nullptr);
 
     if (!subscription->Initialize()) {
@@ -91,6 +98,17 @@ void TemplateStatusSubscription::OnCallbackAdded(const sptr<IIpcTemplateStatusCa
     });
 }
 
+void TemplateStatusSubscription::OnCallbackRemoteDied(const sptr<IIpcTemplateStatusCallback> &callback)
+{
+    ENSURE_OR_RETURN(callback != nullptr);
+
+    TaskRunnerManager::GetInstance().PostTaskOnResident([callback, weakManager = subscriptionManager_]() {
+        auto manager = weakManager.lock();
+        ENSURE_OR_RETURN(manager != nullptr);
+        manager->RemoveTemplateStatusCallback(callback);
+    });
+}
+
 void TemplateStatusSubscription::HandleCompanionStatusChange(const std::vector<CompanionStatus> &companionStatusList)
 {
     IAM_LOGI("HandleCompanionStatusChange start, total companion status count:%{public}zu, userId:%{public}d",
@@ -115,12 +133,7 @@ void TemplateStatusSubscription::HandleCompanionStatusChange(const std::vector<C
 
     cachedTemplateStatus_ = templateStatusList;
 
-    std::vector<sptr<IIpcTemplateStatusCallback>> callbacks;
-    for (const auto &info : callbacks_) {
-        if (info.callback != nullptr) {
-            callbacks.push_back(info.callback);
-        }
-    }
+    auto callbacks = callbacks_;
 
     IAM_LOGI("NotifyTemplateStatus start, callback count:%{public}zu, template status count:%{public}zu",
         callbacks.size(), templateStatusList.size());

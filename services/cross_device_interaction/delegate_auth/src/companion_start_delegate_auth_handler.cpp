@@ -15,12 +15,12 @@
 
 #include "companion_start_delegate_auth_handler.h"
 
-#include "error_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
 #include "common_message.h"
 #include "delegate_auth_message.h"
+#include "error_guard.h"
 #include "request_manager.h"
 #include "singleton_manager.h"
 

@@ -20,11 +20,11 @@
 #include <sstream>
 #include <utility>
 
-#include "common_defines.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "common_defines.h"
 #include "device_status_manager.h"
 #include "local_device_status_manager.h"
 #include "message_router.h"
@@ -71,24 +71,6 @@ void ConnectionManager::SetMessageRouter(std::weak_ptr<MessageRouter> messageRou
     weakMessageRouter_ = messageRouter;
 }
 
-void ConnectionManager::OnDeviceStatusManagerReady(std::shared_ptr<DeviceStatusManager> deviceStatusManager)
-{
-    ENSURE_OR_RETURN(deviceStatusManager != nullptr);
-
-    deviceStatusSubscription_ = deviceStatusManager->SubscribeDeviceStatus(
-        [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
-            auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            self->HandleDeviceStatusChange(deviceStatusList);
-        });
-    ENSURE_OR_RETURN(deviceStatusSubscription_ != nullptr);
-
-    std::vector<DeviceStatus> currentDevices = deviceStatusManager->GetAllDeviceStatus();
-    HandleDeviceStatusChange(currentDevices);
-
-    IAM_LOGI("device status subscription established");
-}
-
 bool ConnectionManager::Initialize()
 {
     ENSURE_OR_RETURN_VAL(channelManager_ != nullptr, false);
@@ -102,20 +84,26 @@ bool ConnectionManager::Initialize()
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleChannelConnectionStatusChange(connectionName, status, reason);
             });
-        if (subscription != nullptr) {
-            channelSubscriptions_[channelId] = std::move(subscription);
-        }
+        ENSURE_OR_RETURN_VAL(subscription != nullptr, false);
+        channelSubscriptions_[channelId] = std::move(subscription);
 
-        // Subscribe to incoming connections
         auto incomingSubscription = channel->SubscribeIncomingConnection(
             [weakSelf, channelId](const std::string &connectionName, const PhysicalDeviceKey &remotePhysicalDeviceKey) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleIncomingConnectionFromChannel(channelId, connectionName, remotePhysicalDeviceKey);
             });
-        if (incomingSubscription != nullptr) {
-            incomingConnectionSubscriptions_[channelId] = std::move(incomingSubscription);
-        }
+        ENSURE_OR_RETURN_VAL(incomingSubscription != nullptr, false);
+        incomingConnectionSubscriptions_[channelId] = std::move(incomingSubscription);
+
+        auto physicalDeviceSubscription = channel->SubscribePhysicalDeviceStatus(
+            [weakSelf, channelId](const std::vector<PhysicalDeviceStatus> &statusList) {
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->HandlePhysicalDeviceStatusChange(channelId, statusList);
+            });
+        ENSURE_OR_RETURN_VAL(physicalDeviceSubscription != nullptr, false);
+        physicalDeviceSubscriptions_.push_back(std::move(physicalDeviceSubscription));
     }
 
     return true;
@@ -132,8 +120,9 @@ bool ConnectionManager::OpenConnection(const PhysicalDeviceKey &physicalDeviceKe
     auto channel = channelManager_->GetChannelById(channelId);
     ENSURE_OR_RETURN_VAL(channel != nullptr, false);
 
-    // Get local PhysicalDeviceKey from channel
-    PhysicalDeviceKey localPhysicalKey = channel->GetLocalPhysicalDeviceKey();
+    auto localPhysicalKeyOpt = channel->GetLocalPhysicalDeviceKey();
+    ENSURE_OR_RETURN_VAL(localPhysicalKeyOpt.has_value(), false);
+    const auto &localPhysicalKey = localPhysicalKeyOpt.value();
     ENSURE_OR_RETURN_VAL(localPhysicalKey.idType != DeviceIdType::UNKNOWN, false);
     ENSURE_OR_RETURN_VAL(!localPhysicalKey.deviceId.empty(), false);
 
@@ -172,16 +161,37 @@ void ConnectionManager::CloseConnection(const std::string &connectionName, const
         return;
     }
 
-    Connection &connection = it->second;
+    Connection connection = it->second;
     ChannelId channelId = connection.channelId;
+    connectionMap_.erase(it);
 
-    // Get channel and close physical connection
     auto channel = channelManager_->GetChannelById(channelId);
-    if (channel) {
-        channel->CloseConnection(connectionName);
+    ENSURE_OR_RETURN(channel != nullptr);
+
+    if (channel->RequiresDisconnectNotification() && !connection.isInbound) {
+        Attributes request;
+        request.SetStringValue(Attributes::ATTR_CDA_SA_REASON, reason);
+
+        auto messageRouter = weakMessageRouter_.lock();
+        ENSURE_OR_RETURN(messageRouter != nullptr);
+
+        bool sendRet = messageRouter->SendMessage(connectionName, MessageType::DISCONNECT, request,
+            [connectionName](const Attributes &) {
+                IAM_LOGE("unexpected reply to disconnect request for: %{public}s", connectionName.c_str());
+            });
+        if (!sendRet) {
+            IAM_LOGE("failed to send disconnect request for: %{public}s", connectionName.c_str());
+        }
     }
 
-    connectionMap_.erase(it);
+    if (channel != nullptr) {
+        if (connection.isInbound) {
+            channel->OnRemoteDisconnect(connectionName, reason);
+        } else {
+            channel->CloseConnection(connectionName);
+        }
+    }
+
     CheckIdleMonitoring();
 
     NotifyConnectionStatus(connectionName, ConnectionStatus::DISCONNECTED, reason);
@@ -312,7 +322,7 @@ void ConnectionManager::HandleChannelConnectionClosed(const std::string &connect
 
     auto it = connectionMap_.find(connectionName);
     if (it == connectionMap_.end()) {
-        IAM_LOGW("connection not found: %{public}s", connectionName.c_str());
+        IAM_LOGI("connection not found: %{public}s", connectionName.c_str());
         return;
     }
 
@@ -485,37 +495,43 @@ void ConnectionManager::UnsubscribeConnectionStatus(SubscribeId subscriptionId)
     IAM_LOGI("connection status subscription removed: id=%{public}d", subscriptionId);
 }
 
-void ConnectionManager::HandleDeviceStatusChange(const std::vector<DeviceStatus> &deviceStatusList)
+void ConnectionManager::HandlePhysicalDeviceStatusChange(ChannelId channelId,
+    const std::vector<PhysicalDeviceStatus> &statusList)
 {
-    IAM_LOGI("device status changed: new device count=%{public}zu", deviceStatusList.size());
-
-    std::set<PhysicalDeviceKey> onlineDevices;
-    for (const auto &deviceStatus : deviceStatusList) {
-        PhysicalDeviceKey physicalKey;
-        physicalKey.idType = deviceStatus.deviceKey.idType;
-        physicalKey.deviceId = deviceStatus.deviceKey.deviceId;
-        onlineDevices.insert(physicalKey);
-    }
+    IAM_LOGI("physical device status changed for channel=%{public}d: device count=%{public}zu", channelId,
+        statusList.size());
 
     std::vector<std::string> connectionsToClose;
     for (const auto &pair : connectionMap_) {
         const Connection &connection = pair.second;
 
-        // If this device is not in the online list, mark connection for closure
-        if (onlineDevices.find(connection.remotePhysicalDeviceKey) == onlineDevices.end()) {
+        if (connection.channelId != channelId) {
+            continue;
+        }
+
+        bool deviceOnline = false;
+        for (const auto &deviceStatus : statusList) {
+            if (deviceStatus.physicalDeviceKey == connection.remotePhysicalDeviceKey) {
+                deviceOnline = true;
+                break;
+            }
+        }
+
+        if (!deviceOnline) {
             connectionsToClose.push_back(connection.connectionName);
-            IAM_LOGI("marking connection for closure: %{public}s (device offline: type=%{public}d id=%{public}s)",
+            IAM_LOGI(
+                "marking connection for closure: %{public}s (device offline on channel: type=%{public}d id=%{public}s)",
                 connection.connectionName.c_str(), static_cast<int32_t>(connection.remotePhysicalDeviceKey.idType),
                 GetMaskedString(connection.remotePhysicalDeviceKey.deviceId).c_str());
         }
     }
 
-    // Close the connections to offline devices
     if (!connectionsToClose.empty()) {
         for (const auto &connectionName : connectionsToClose) {
             CloseConnection(connectionName, "device_down");
         }
-        IAM_LOGI("closed %{public}zu connections due to devices going offline", connectionsToClose.size());
+        IAM_LOGI("closed %{public}zu connections due to devices going offline on channel=%{public}d",
+            connectionsToClose.size(), channelId);
     }
 }
 

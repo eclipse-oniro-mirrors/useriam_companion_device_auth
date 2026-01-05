@@ -19,6 +19,7 @@
 #include "iam_logger.h"
 
 #include "error_guard.h"
+#include "request_aborted_message.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -65,10 +66,16 @@ void InboundRequest::Start()
     IAM_LOGI("%{public}s started successfully", GetDescription());
 }
 
-bool InboundRequest::Cancel()
+bool InboundRequest::Cancel(ResultCode resultCode)
 {
+    if (cancelled_) {
+        IAM_LOGI("%{public}s already cancelled, skip", GetDescription());
+        return true;
+    }
+    cancelled_ = true;
     IAM_LOGI("%{public}s cancel", GetDescription());
-    CompleteWithError(ResultCode::CANCELED);
+    SendRequestAborted(resultCode, "request cancelled");
+    CompleteWithError(resultCode);
     return true;
 }
 
@@ -106,6 +113,32 @@ void InboundRequest::HandleConnectionStatus(const std::string &connName, Connect
             IAM_LOGE("%{public}s unknown connection status: %{public}d", GetDescription(),
                 static_cast<int32_t>(status));
     }
+}
+
+void InboundRequest::SendRequestAborted(ResultCode result, const std::string &reason)
+{
+    IAM_LOGI("%{public}s sending RequestAborted: result=%{public}d, reason=%{public}s", GetDescription(),
+        static_cast<int32_t>(result), reason.c_str());
+
+    RequestAbortedRequest abortReq;
+    abortReq.result = result;
+    abortReq.reason = reason;
+
+    Attributes request;
+    bool encodeRet = EncodeRequestAbortedRequest(abortReq, request);
+    ENSURE_OR_RETURN(encodeRet);
+
+    GetCrossDeviceCommManager().SendMessage(connectionName_, MessageType::REQUEST_ABORTED, request,
+        [description = GetDescription()](const Attributes &reply) {
+            IAM_LOGI("%{public}s RequestAborted reply received", description);
+            (void)reply;
+        });
+}
+
+void InboundRequest::CompleteWithError(ResultCode result)
+{
+    IAM_LOGE("%{public}s completing with error result=%{public}d", GetDescription(), static_cast<int32_t>(result));
+    Destroy();
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -30,12 +30,13 @@ ohos_rust_unittest("companion_device_auth_services_rust_test") {
     "src/simple_test.rs",
   ]
 
-  # Add rust service sources from services/BUILD.gni
-  sources += companion_device_auth_rust_service_sources
-
   external_deps = companion_device_auth_rust_service_external_deps
 
   deps = companion_device_auth_rust_service_deps
+
+  deps += [
+    "//base/useriam/companion_device_auth/services/security_agent:companiondeviceauthservice_rs",
+  ]
 
   rustenv = []
 

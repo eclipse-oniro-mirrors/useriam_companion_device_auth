@@ -23,6 +23,7 @@
 
 #include "companion_manager.h"
 #include "singleton_manager.h"
+#include "subscription_manager.h"
 #include "task_runner_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
@@ -31,17 +32,19 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-ContinuousAuthSubscription::ContinuousAuthSubscription(UserId userId, std::optional<TemplateId> templateId)
+ContinuousAuthSubscription::ContinuousAuthSubscription(UserId userId, std::optional<TemplateId> templateId,
+    std::weak_ptr<SubscriptionManager> subscriptionManager)
     : userId_(userId),
-      templateId_(templateId)
+      templateId_(templateId),
+      subscriptionManager_(subscriptionManager)
 {
 }
 
 std::shared_ptr<ContinuousAuthSubscription> ContinuousAuthSubscription::Create(UserId userId,
-    std::optional<TemplateId> templateId)
+    std::optional<TemplateId> templateId, std::weak_ptr<SubscriptionManager> subscriptionManager)
 {
-    auto subscription =
-        std::shared_ptr<ContinuousAuthSubscription>(new (std::nothrow) ContinuousAuthSubscription(userId, templateId));
+    auto subscription = std::shared_ptr<ContinuousAuthSubscription>(
+        new (std::nothrow) ContinuousAuthSubscription(userId, templateId, subscriptionManager));
     ENSURE_OR_RETURN_VAL(subscription != nullptr, nullptr);
 
     if (!subscription->Initialize()) {
@@ -106,6 +109,17 @@ void ContinuousAuthSubscription::OnCallbackAdded(const sptr<IIpcContinuousAuthSt
     });
 }
 
+void ContinuousAuthSubscription::OnCallbackRemoteDied(const sptr<IIpcContinuousAuthStatusCallback> &callback)
+{
+    ENSURE_OR_RETURN(callback != nullptr);
+
+    TaskRunnerManager::GetInstance().PostTaskOnResident([callback, weakManager = subscriptionManager_]() {
+        auto manager = weakManager.lock();
+        ENSURE_OR_RETURN(manager != nullptr);
+        manager->RemoveContinuousAuthStatusCallback(callback);
+    });
+}
+
 void ContinuousAuthSubscription::HandleCompanionStatusChange(const std::vector<CompanionStatus> &companionStatusList)
 {
     IAM_LOGI("HandleCompanionStatusChange, userId:%{public}d, hasTemplateId:%{public}d, total:%{public}zu", userId_,
@@ -139,12 +153,7 @@ void ContinuousAuthSubscription::NotifyAuthStatus(std::optional<Atl> authTrustLe
 {
     IAM_LOGI("Auth status changed, authTrustLevel:%{public}s", GetOptionalString(authTrustLevel).c_str());
 
-    std::vector<sptr<IIpcContinuousAuthStatusCallback>> callbacks;
-    for (const auto &info : callbacks_) {
-        if (info.callback != nullptr) {
-            callbacks.push_back(info.callback);
-        }
-    }
+    auto callbacks = callbacks_;
 
     IpcContinuousAuthStatus status;
     status.isAuthPassed = authTrustLevel.has_value();

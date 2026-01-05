@@ -15,6 +15,7 @@ import("//build/config/features.gni")
 import("//build/test.gni")
 import("../../../companion_device_auth.gni")
 import("../../../services/BUILD.gni")
+import("../../fake/BUILD.gni")
 
 ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
   branch_protector_ret = "pac_ret"
@@ -23,6 +24,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
 
   cflags = [
     "-DENABLE_TEST",
+    "-DDISABLE_COMPANION_DEVICE_AUTH_LOG",
     "-g",
     "-O0",
     "-Wno-unused-variable",
@@ -31,10 +33,138 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
     "-Dprotected=public",
   ]
 
-  sources = companion_device_auth_service_sources +
-            [ "src/companion_device_auth_services_fuzzer.cpp" ]
+  sources = companion_device_auth_service_sources_for_test +
+            companion_device_auth_fake_sources + [
+              "companion_device_auth_services_fuzzer.cpp",
+              "fuzz_helpers/adapter_initializer.cpp",
+              "fuzz_helpers/fuzz_data_generator.cpp",
+              "fuzz_helpers/singleton_initializer.cpp",
+
+              # cross_device_channels/soft_bus cases
+              "cases/cross_device_channels/soft_bus/soft_bus_channel_fuzzer.cpp",
+              "cases/cross_device_channels/soft_bus/soft_bus_connection_manager_fuzzer.cpp",
+              "cases/cross_device_channels/soft_bus/soft_bus_device_status_manager_fuzzer.cpp",
+              "cases/cross_device_channels/soft_bus/soft_bus_global_callbacks_fuzzer.cpp",
+              "cases/cross_device_channels/soft_bus/soft_bus_socket_fuzzer.cpp",
+
+              # cross_device_interaction cases
+              "cases/cross_device_interaction/add_companion/add_companion_message_fuzzer.cpp",
+              "cases/cross_device_interaction/add_companion/companion_add_companion_request_fuzzer.cpp",
+              "cases/cross_device_interaction/add_companion/companion_init_key_negotiation_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/add_companion/host_add_companion_request_fuzzer.cpp",
+              "cases/cross_device_interaction/auth_maintain_state_change/auth_maintain_state_change_message_fuzzer.cpp",
+              "cases/cross_device_interaction/auth_maintain_state_change/companion_auth_maintain_state_change_request_fuzzer.cpp",
+              "cases/cross_device_interaction/auth_maintain_state_change/host_auth_maintain_state_change_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/common/common_message_fuzzer.cpp",
+              "cases/cross_device_interaction/delegate_auth/companion_delegate_auth_callback_fuzzer.cpp",
+              "cases/cross_device_interaction/delegate_auth/companion_delegate_auth_request_fuzzer.cpp",
+              "cases/cross_device_interaction/delegate_auth/companion_start_delegate_auth_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/delegate_auth/delegate_auth_message_fuzzer.cpp",
+              "cases/cross_device_interaction/delegate_auth/host_delegate_auth_request_fuzzer.cpp",
+              "cases/cross_device_interaction/handler/async_incoming_message_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/handler/incoming_message_handler_registry_fuzzer.cpp",
+              "cases/cross_device_interaction/handler/sync_incoming_message_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/issue_token/companion_issue_token_request_fuzzer.cpp",
+              "cases/cross_device_interaction/issue_token/companion_pre_issue_token_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/issue_token/host_issue_token_request_fuzzer.cpp",
+              "cases/cross_device_interaction/issue_token/issue_token_message_fuzzer.cpp",
+              "cases/cross_device_interaction/keep_alive/keep_alive_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/mix_auth/host_mix_auth_request_fuzzer.cpp",
+              "cases/cross_device_interaction/mix_auth/host_single_mix_auth_request_fuzzer.cpp",
+              "cases/cross_device_interaction/obtain_token/companion_obtain_token_request_fuzzer.cpp",
+              "cases/cross_device_interaction/obtain_token/host_obtain_token_request_fuzzer.cpp",
+              "cases/cross_device_interaction/obtain_token/host_pre_obtain_token_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/obtain_token/obtain_token_message_fuzzer.cpp",
+              "cases/cross_device_interaction/remove_host_binding/companion_remove_host_binding_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/remove_host_binding/host_remove_host_binding_request_fuzzer.cpp",
+              "cases/cross_device_interaction/remove_host_binding/remove_host_binding_message_fuzzer.cpp",
+              "cases/cross_device_interaction/request_aborted/request_aborted_message_fuzzer.cpp",
+              "cases/cross_device_interaction/revoke_token/companion_revoke_token_request_fuzzer.cpp",
+              "cases/cross_device_interaction/revoke_token/host_revoke_token_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/revoke_token/revoke_token_message_fuzzer.cpp",
+              "cases/cross_device_interaction/sync_device_status/companion_sync_device_status_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/sync_device_status/host_sync_device_status_request_fuzzer.cpp",
+              "cases/cross_device_interaction/sync_device_status/sync_device_status_message_fuzzer.cpp",
+              "cases/cross_device_interaction/token_auth/companion_token_auth_handler_fuzzer.cpp",
+              "cases/cross_device_interaction/token_auth/host_token_auth_request_fuzzer.cpp",
+              "cases/cross_device_interaction/token_auth/token_auth_message_fuzzer.cpp",
+
+              # cross_device_comm cases
+              "cases/cross_device_comm/channel_manager_fuzzer.cpp",
+              "cases/cross_device_comm/connection_manager_fuzzer.cpp",
+              "cases/cross_device_comm/cross_device_comm_manager_impl_fuzzer.cpp",
+              "cases/cross_device_comm/device_status_entry_fuzzer.cpp",
+              "cases/cross_device_comm/device_status_manager_fuzzer.cpp",
+              "cases/cross_device_comm/local_device_status_manager_fuzzer.cpp",
+              "cases/cross_device_comm/message_router_fuzzer.cpp",
+
+              # misc cases
+              "cases/misc/cda_attributes_fuzzer.cpp",
+              "cases/misc/constant_user_id_manager_fuzzer.cpp",
+              "cases/misc/default_user_id_manager_fuzzer.cpp",
+              "cases/misc/misc_manager_impl_fuzzer.cpp",
+              "cases/misc/system_param_manager_impl_fuzzer.cpp",
+
+              # request cases
+              "cases/request/base_request_fuzzer.cpp",
+              "cases/request/request_factory_impl_fuzzer.cpp",
+              "cases/request/request_fuzzer.cpp",
+              "cases/request/request_manager_impl_fuzzer.cpp",
+
+              # common cases
+              "cases/common/service_common_fuzzer.cpp",
+              "cases/common/service_converter_fuzzer.cpp",
+
+              # security_agent cases
+              "cases/security_agent/cpp/command_invoker_fuzzer.cpp",
+              "cases/security_agent/cpp/companion_device_auth_ffi_util_fuzzer.cpp",
+              "cases/security_agent/cpp/ffi_util_fuzzer.cpp",
+              "cases/security_agent/cpp/security_agent_impl_fuzzer.cpp",
+
+              # host_binding cases
+              "cases/host_binding/host_binding_fuzzer.cpp",
+              "cases/host_binding/host_binding_manager_fuzzer.cpp",
+              "cases/host_binding/host_binding_manager_impl_fuzzer.cpp",
+
+              # service_entry cases (excluded - depend on SystemAbility framework, same as CMakeLists.txt)
+              "cases/service_entry/available_device_subscription_fuzzer.cpp",
+              "cases/service_entry/continuous_auth_subscription_fuzzer.cpp",
+              "cases/service_entry/subscription_manager_fuzzer.cpp",
+              "cases/service_entry/subscription_util_fuzzer.cpp",
+              "cases/service_entry/template_status_subscription_fuzzer.cpp",
+
+              # fwk_comm cases
+              "cases/fwk_comm/all_in_one_executor_fuzzer.cpp",
+              "cases/fwk_comm/companion_auth_interface_adapter_fuzzer.cpp",
+              "cases/fwk_comm/companion_device_auth_all_in_one_executor_fuzzer.cpp",
+              "cases/fwk_comm/companion_device_auth_driver_fuzzer.cpp",
+              "cases/fwk_comm/companion_device_auth_executor_callback_fuzzer.cpp",
+              "cases/fwk_comm/driver_fuzzer.cpp",
+              "cases/fwk_comm/executor_callback_fuzzer.cpp",
+              "cases/fwk_comm/fwk_comm_manager_fuzzer.cpp",
+
+              # external_adapters cases
+              "cases/external_adapters/access_token_kit_adapter_fuzzer.cpp",
+              "cases/external_adapters/device_manager_adapter_fuzzer.cpp",
+              "cases/external_adapters/driver_manager_adapter_fuzzer.cpp",
+              "cases/external_adapters/sa_manager_adapter_fuzzer.cpp",
+              "cases/external_adapters/soft_bus_adapter_fuzzer.cpp",
+              "cases/external_adapters/user_auth_adapter_fuzzer.cpp",
+
+              # utils cases
+              "cases/utils/error_guard_fuzzer.cpp",
+              "cases/utils/sa_status_listener_fuzzer.cpp",
+              "cases/utils/scope_guard_fuzzer.cpp",
+              "cases/utils/subscription_fuzzer.cpp",
+
+              # companion cases
+              "cases/companion/companion_fuzzer.cpp",
+              "cases/companion/companion_manager_impl_fuzzer.cpp",
+            ]
 
   configs = [ "${companion_device_auth_path}/services:service_config" ]
+
+  include_dirs = companion_device_auth_fake_include_dirs + [ "fuzz_helpers" ]
 
   deps = companion_device_auth_service_deps
 

@@ -18,7 +18,7 @@ echo "Running cbindgen..."
 mkdir -p gen
 
 # Generate C header with cbindgen
-cbindgen --config cbindgen.toml rust/entry/device_auth_ffi.rs -vv --output gen/cbindgen_device_auth_ffi.h
+cbindgen --config cbindgen.toml rust/entry/companion_device_auth_ffi.rs -vv --output gen/cbindgen_companion_device_auth_ffi.h
 
 echo "cbindgen generation completed successfully!"
-echo "Generated header: gen/cbindgen_device_auth_ffi.h"
+echo "Generated header: gen/cbindgen_companion_device_auth_ffi.h"

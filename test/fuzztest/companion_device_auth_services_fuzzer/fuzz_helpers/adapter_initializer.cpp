@@ -1,0 +1,266 @@
+/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "adapter_initializer.h"
+
+#include <memory>
+#include <string>
+
+#include "fuzzer/FuzzedDataProvider.h"
+
+#include "device_manager_adapter.h"
+#include "ipc_object_stub.h"
+#include "system_ability_status_change_stub.h"
+
+#include "access_token_kit_adapter.h"
+#include "adapter_manager.h"
+#include "driver_manager_adapter.h"
+#include "fuzz_data_generator.h"
+#include "sa_manager_adapter.h"
+#include "soft_bus_adapter.h"
+#include "user_auth_adapter.h"
+
+namespace OHOS {
+namespace UserIam {
+namespace CompanionDeviceAuth {
+
+// Mock Adapter classes for dependency injection during fuzzing
+
+class MockDriverManagerAdapter : public IDriverManagerAdapter {
+public:
+    explicit MockDriverManagerAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    bool Start(std::shared_ptr<CompanionDeviceAuthDriver> driver) override
+    {
+        (void)driver;
+        return fuzzData_.ConsumeBool();
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+class MockDeviceManagerAdapter : public IDeviceManagerAdapter {
+public:
+    explicit MockDeviceManagerAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    bool InitDeviceManager() override
+    {
+        return fuzzData_.ConsumeBool();
+    }
+
+    void UnInitDeviceManager() override
+    {
+    }
+
+    std::optional<std::string> GetUdidByNetworkId(const std::string &networkId) override
+    {
+        (void)networkId;
+        if (fuzzData_.ConsumeBool()) {
+            return GenerateRandomString(fuzzData_);
+        }
+        return std::optional<std::string>();
+    }
+
+    bool QueryTrustedDevices(std::vector<DmDeviceInfo> &deviceList) override
+    {
+        (void)deviceList;
+        return fuzzData_.ConsumeBool();
+    }
+
+    bool RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
+    {
+        (void)callback;
+        return fuzzData_.ConsumeBool();
+    }
+
+    void UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
+    {
+        (void)callback;
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+class MockSoftBusAdapter : public ISoftBusAdapter {
+public:
+    explicit MockSoftBusAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    void RegisterCallback(std::shared_ptr<ISoftBusSocketCallback> callback) override
+    {
+        (void)callback;
+    }
+
+    std::optional<SocketId> CreateServerSocket() override
+    {
+        if (fuzzData_.ConsumeBool()) {
+            return fuzzData_.ConsumeIntegral<SocketId>();
+        }
+        return std::optional<SocketId>();
+    }
+
+    std::optional<SocketId> CreateClientSocket(const std::string &networkId) override
+    {
+        (void)networkId;
+        if (fuzzData_.ConsumeBool()) {
+            return fuzzData_.ConsumeIntegral<SocketId>();
+        }
+        return std::optional<SocketId>();
+    }
+
+    bool SendBytes(int32_t socketId, const std::vector<uint8_t> &data) override
+    {
+        (void)socketId;
+        (void)data;
+        return fuzzData_.ConsumeBool();
+    }
+
+    void ShutdownSocket(int32_t socketId) override
+    {
+        (void)socketId;
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+class MockAccessTokenKitAdapter : public IAccessTokenKitAdapter {
+public:
+    explicit MockAccessTokenKitAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    bool CheckPermission(IPCObjectStub &stub, const std::string &permissionName) override
+    {
+        (void)stub;
+        (void)permissionName;
+        return fuzzData_.ConsumeBool();
+    }
+
+    bool CheckSystemPermission(IPCObjectStub &stub) override
+    {
+        (void)stub;
+        return fuzzData_.ConsumeBool();
+    }
+
+    uint32_t GetAccessTokenId(IPCObjectStub &stub) override
+    {
+        (void)stub;
+        return fuzzData_.ConsumeIntegral<uint32_t>();
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+class MockUserAuthAdapter : public IUserAuthAdapter {
+public:
+    explicit MockUserAuthAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    uint64_t BeginDelegateAuth(uint32_t userId, const std::vector<uint8_t> &challenge, uint32_t authTrustLevel,
+        const std::shared_ptr<UserAuth::AuthenticationCallback> &callback) override
+    {
+        (void)userId;
+        (void)challenge;
+        (void)authTrustLevel;
+        (void)callback;
+        return fuzzData_.ConsumeIntegral<uint64_t>();
+    }
+
+    uint64_t BeginWidgetAuth(const UserAuth::WidgetAuthParam &authParam, const UserAuth::WidgetParam &widgetParam,
+        const std::shared_ptr<UserAuth::AuthenticationCallback> &callback) override
+    {
+        (void)authParam;
+        (void)widgetParam;
+        (void)callback;
+        return fuzzData_.ConsumeIntegral<uint64_t>();
+    }
+
+    int32_t CancelAuthentication(uint64_t contextId) override
+    {
+        (void)contextId;
+        return fuzzData_.ConsumeIntegral<int32_t>();
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+class MockSaManagerAdapter : public ISaManagerAdapter {
+public:
+    explicit MockSaManagerAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    bool SubscribeSystemAbility(int32_t systemAbilityId, const sptr<SystemAbilityStatusChangeStub> &listener) override
+    {
+        (void)systemAbilityId;
+        (void)listener;
+        return fuzzData_.ConsumeBool();
+    }
+
+    bool UnSubscribeSystemAbility(int32_t systemAbilityId, const sptr<SystemAbilityStatusChangeStub> &listener) override
+    {
+        (void)systemAbilityId;
+        (void)listener;
+        return fuzzData_.ConsumeBool();
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
+{
+    AdapterManager &adapterMgr = AdapterManager::GetInstance();
+
+    auto driverMgr = std::make_shared<MockDriverManagerAdapter>(fuzzData);
+    adapterMgr.SetDriverManagerAdapter(driverMgr);
+
+    auto deviceMgr = std::make_shared<MockDeviceManagerAdapter>(fuzzData);
+    adapterMgr.SetDeviceManagerAdapter(deviceMgr);
+
+    auto softBusAdapter = std::make_shared<MockSoftBusAdapter>(fuzzData);
+    adapterMgr.SetSoftBusAdapter(softBusAdapter);
+
+    auto accessTokenAdapter = std::make_shared<MockAccessTokenKitAdapter>(fuzzData);
+    adapterMgr.SetAccessTokenKitAdapter(accessTokenAdapter);
+
+    auto userAuthAdapter = std::make_shared<MockUserAuthAdapter>(fuzzData);
+    adapterMgr.SetUserAuthAdapter(userAuthAdapter);
+
+    auto saMgrAdapter = std::make_shared<MockSaManagerAdapter>(fuzzData);
+    adapterMgr.SetSaManagerAdapter(saMgrAdapter);
+
+    return true;
+}
+
+void CleanupAdapterManager()
+{
+    AdapterManager::GetInstance().Reset();
+}
+
+} // namespace CompanionDeviceAuth
+} // namespace UserIam
+} // namespace OHOS

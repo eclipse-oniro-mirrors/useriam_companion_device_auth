@@ -15,8 +15,9 @@
 
 #include "keep_alive_handler.h"
 
-#include "error_guard.h"
 #include "iam_logger.h"
+
+#include "error_guard.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 

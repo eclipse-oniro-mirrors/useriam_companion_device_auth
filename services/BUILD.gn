@@ -22,7 +22,6 @@ config("service_config") {
     "common/inc",
     "companion/inc",
     "cross_device_comm/inc",
-    "cross_device_entry/inc",
     "cross_device_interaction",
     "cross_device_interaction/add_companion/inc",
     "cross_device_interaction/auth_maintain_state_change/inc",
@@ -33,17 +32,18 @@ config("service_config") {
     "cross_device_interaction/issue_token/inc",
     "cross_device_interaction/keep_alive/inc",
     "cross_device_interaction/obtain_token/inc",
+    "cross_device_interaction/request_aborted/inc",
     "cross_device_interaction/remove_host_binding/inc",
     "cross_device_interaction/revoke_token/inc",
     "cross_device_interaction/sync_device_status/inc",
     "cross_device_interaction/token_auth/inc",
     "cross_device_interaction/mix_auth/inc",
-    "cross_device_msg/inc",
+    "external_adapters/inc",
     "fwk_comm/inc",
+    "cross_device_channels/native_channel/inc",
     "host_binding/inc",
     "misc/inc",
     "security_agent/cpp/inc",
-    "security_agent/gen",
     "service_entry/inc",
     "service_entry/src",
     "singleton/inc",
@@ -54,11 +54,14 @@ config("service_config") {
     "singleton/inc/misc",
     "singleton/inc/request",
     "singleton/inc/security_agent",
-    "soft_bus_cross_device_channel/inc",
+    "cross_device_channels/soft_bus/inc",
+    "cross_device_channels/common/inc",
     "utils/inc",
     "${companion_device_auth_path}/common/inc",
     "${companion_device_auth_path}/frameworks/native/ipc/idl",
   ]
+
+  cflags = companion_device_auth_service_flags
 }
 
 ohos_shared_library("companiondeviceauthservice") {

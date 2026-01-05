@@ -13,24 +13,56 @@
  * limitations under the License.
  */
 
-#include "ohos.userIAM.companionDeviceAuth.impl.hpp"
-#include "ohos.userIAM.companionDeviceAuth.proj.hpp"
-#include "stdexcept"
+#include "accesstoken_kit.h"
+#include "ipc_skeleton.h"
+#include "iservice_registry.h"
+#include "system_ability_definition.h"
 
-#include "ani_device_select_callback.h"
-#include "companion_device_auth_ani_helper.h"
-#include "companion_device_auth_common_defines.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
+
+#include "ani_device_select_callback.h"
+#include "companion_device_auth_ani_helper.h"
+#include "companion_device_auth_client.h"
+#include "companion_device_auth_common_defines.h"
+#include "ohos.userIAM.companionDeviceAuth.impl.hpp"
+#include "ohos.userIAM.companionDeviceAuth.proj.hpp"
 #include "status_monitor.h"
+#include "stdexcept"
 #include "taihe/runtime.hpp"
+#include "tokenid_kit.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
 
 namespace CompanionDeviceAuth = OHOS::UserIam::CompanionDeviceAuth;
 
 namespace {
+bool CheckUseUserIdmPermission()
+{
+    using namespace OHOS::Security::AccessToken;
+    uint64_t fullTokenId = OHOS::IPCSkeleton::GetCallingFullTokenID();
+    AccessTokenID tokenId = fullTokenId & CompanionDeviceAuth::TOKEN_ID_LOW_MASK;
+    if (AccessTokenKit::VerifyAccessToken(tokenId, CompanionDeviceAuth::USE_USER_IDM_PERMISSION) != RET_SUCCESS) {
+        return false;
+    }
+    return true;
+}
+
+bool CheckCallerIsSystemApp()
+{
+    using namespace OHOS::Security::AccessToken;
+    uint64_t fullTokenId = OHOS::IPCSkeleton::GetCallingFullTokenID();
+    bool checkRet = TokenIdKit::IsSystemAppByFullTokenID(fullTokenId);
+    AccessTokenID tokenId = fullTokenId & CompanionDeviceAuth::TOKEN_ID_LOW_MASK;
+    ATokenTypeEnum callingType = AccessTokenKit::GetTokenTypeFlag(tokenId);
+    if (checkRet && callingType == OHOS::Security::AccessToken::TOKEN_HAP) {
+        IAM_LOGI("the caller is system application");
+        return true;
+    }
+    return false;
+}
+
 class StatusMonitorImpl {
 public:
     explicit StatusMonitorImpl(int32_t localUserId)
@@ -40,8 +72,24 @@ public:
 
     ::taihe::array<::ohos::userIAM::companionDeviceAuth::TemplateStatus> getTemplateStatusSync()
     {
+        if (!CheckUseUserIdmPermission()) {
+            IAM_LOGE("CheckUseUserIdmPermission fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+            return {};
+        }
+
+        if (!CheckCallerIsSystemApp()) {
+            IAM_LOGE("CheckCallerIsSystemApp fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+            return {};
+        }
+
         if (statusMonitor_ == nullptr) {
             IAM_LOGE("statusMonitor_ is null");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::ResultCode::GENERAL_ERROR);
             return {};
         }
         std::vector<CompanionDeviceAuth::ClientTemplateStatus> clientTemplateStatusList;
@@ -49,6 +97,7 @@ public:
         int32_t ret = statusMonitor_->GetTemplateStatus(clientTemplateStatusList);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("getTemplateStatus fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return {};
         }
 
@@ -70,13 +119,30 @@ public:
             ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>
             callback)
     {
+        if (!CheckUseUserIdmPermission()) {
+            IAM_LOGE("CheckUseUserIdmPermission fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+            return;
+        }
+
+        if (!CheckCallerIsSystemApp()) {
+            IAM_LOGE("CheckCallerIsSystemApp fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+            return;
+        }
+
         if (statusMonitor_ == nullptr) {
             IAM_LOGE("statusMonitor_ is null");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::ResultCode::GENERAL_ERROR);
             return;
         }
         int32_t ret = statusMonitor_->OnTemplateChange(callback);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("OnTemplateChange fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
     }
@@ -85,13 +151,30 @@ public:
             ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>>
             callback)
     {
+        if (!CheckUseUserIdmPermission()) {
+            IAM_LOGE("CheckUseUserIdmPermission fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+            return;
+        }
+
+        if (!CheckCallerIsSystemApp()) {
+            IAM_LOGE("CheckCallerIsSystemApp fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+            return;
+        }
+
         if (statusMonitor_ == nullptr) {
             IAM_LOGE("statusMonitor_ is null");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::ResultCode::GENERAL_ERROR);
             return;
         }
         int32_t ret = statusMonitor_->OffTemplateChange(callback);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("OnTemplateChange fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
     }
@@ -101,13 +184,30 @@ public:
             ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
             callback)
     {
+        if (!CheckUseUserIdmPermission()) {
+            IAM_LOGE("CheckUseUserIdmPermission fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+            return;
+        }
+
+        if (!CheckCallerIsSystemApp()) {
+            IAM_LOGE("CheckCallerIsSystemApp fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+            return;
+        }
+
         if (statusMonitor_ == nullptr) {
             IAM_LOGE("statusMonitor_ is null");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::ResultCode::GENERAL_ERROR);
             return;
         }
         int32_t ret = statusMonitor_->OnContinuousAuthChange(param, callback);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("OnContinuousAuthChange fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
     }
@@ -116,13 +216,30 @@ public:
             ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
             callback)
     {
+        if (!CheckUseUserIdmPermission()) {
+            IAM_LOGE("CheckUseUserIdmPermission fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+            return;
+        }
+
+        if (!CheckCallerIsSystemApp()) {
+            IAM_LOGE("CheckCallerIsSystemApp fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+            return;
+        }
+
         if (statusMonitor_ == nullptr) {
             IAM_LOGE("statusMonitor_ is null");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::ResultCode::GENERAL_ERROR);
             return;
         }
         int32_t ret = statusMonitor_->OffContinuousAuthChange(callback);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("OffContinuousAuthChange fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
     }
@@ -131,13 +248,30 @@ public:
             ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>
             callback)
     {
+        if (!CheckUseUserIdmPermission()) {
+            IAM_LOGE("CheckUseUserIdmPermission fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+            return;
+        }
+
+        if (!CheckCallerIsSystemApp()) {
+            IAM_LOGE("CheckCallerIsSystemApp fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+            return;
+        }
+
         if (statusMonitor_ == nullptr) {
             IAM_LOGE("statusMonitor_ is null");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::ResultCode::GENERAL_ERROR);
             return;
         }
         int32_t ret = statusMonitor_->OnAvailableDeviceChange(callback);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("OnAvailableDeviceChange fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
     }
@@ -146,13 +280,30 @@ public:
             ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>>
             callback)
     {
+        if (!CheckUseUserIdmPermission()) {
+            IAM_LOGE("CheckUseUserIdmPermission fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+            return;
+        }
+
+        if (!CheckCallerIsSystemApp()) {
+            IAM_LOGE("CheckCallerIsSystemApp fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+            return;
+        }
+
         if (statusMonitor_ == nullptr) {
             IAM_LOGE("statusMonitor_ is null");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+                CompanionDeviceAuth::ResultCode::GENERAL_ERROR);
             return;
         }
         int32_t ret = statusMonitor_->OffAvailableDeviceChange(callback);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("OffAvailableDeviceChange fail");
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
     }
@@ -164,6 +315,31 @@ private:
 ::ohos::userIAM::companionDeviceAuth::StatusMonitor getStatusMonitor(int32_t localUserId)
 {
     IAM_LOGI("start");
+    if (!CheckUseUserIdmPermission()) {
+        IAM_LOGE("CheckUseUserIdmPermission fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+    }
+
+    if (!CheckCallerIsSystemApp()) {
+        IAM_LOGE("CheckCallerIsSystemApp fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+    }
+
+    bool isUserIdValid = false;
+    int32_t ret =
+        CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().CheckLocalUserIdValid(localUserId, isUserIdValid);
+    if (ret != CompanionDeviceAuth::SUCCESS) {
+        IAM_LOGE("CheckLocalUserIdValid fail, ret:%{public}d", ret);
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+    }
+
+    if (!isUserIdValid) {
+        IAM_LOGE("input local user id is invalid");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(CompanionDeviceAuth::USER_ID_NOT_FOUND);
+    }
+
     auto statusMonitor =
         taihe::make_holder<StatusMonitorImpl, ::ohos::userIAM::companionDeviceAuth::StatusMonitor>(localUserId);
     return statusMonitor;
@@ -172,6 +348,20 @@ private:
 void updateEnabledBusinessIdsSync(::taihe::array_view<uint8_t> templateId,
     ::taihe::array_view<int32_t> enabledBusinessIds)
 {
+    if (!CheckUseUserIdmPermission()) {
+        IAM_LOGE("CheckUseUserIdmPermission fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+        return;
+    }
+
+    if (!CheckCallerIsSystemApp()) {
+        IAM_LOGE("CheckCallerIsSystemApp fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+        return;
+    }
+
     uint64_t clientTemplateId = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(templateId);
     std::vector<int32_t> clientEnabledBusinessIds =
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertArrayToInt32Vector(enabledBusinessIds);
@@ -179,15 +369,32 @@ void updateEnabledBusinessIdsSync(::taihe::array_view<uint8_t> templateId,
         clientTemplateId, clientEnabledBusinessIds);
     if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
         IAM_LOGE("UpdateEnabledBusinessIds fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
     }
 }
 
 void registerDeviceSelectCallback(
     ::taihe::callback_view<::ohos::userIAM::companionDeviceAuth::DeviceSelectResult(int32_t selectPurpose)> callback)
 {
+    if (!CheckUseUserIdmPermission()) {
+        IAM_LOGE("CheckUseUserIdmPermission fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+        return;
+    }
+
+    if (!CheckCallerIsSystemApp()) {
+        IAM_LOGE("CheckCallerIsSystemApp fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+        return;
+    }
+
     auto deviceSelectCallback = CompanionDeviceAuth::MakeShared<CompanionDeviceAuth::AniDeviceSelectCallback>();
     if (deviceSelectCallback == nullptr) {
         IAM_LOGE("deviceSelectCallback is null");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::ResultCode::GENERAL_ERROR);
         return;
     }
 
@@ -199,14 +406,30 @@ void registerDeviceSelectCallback(
         deviceSelectCallback);
     if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
         IAM_LOGE("RegisterDeviceSelectCallback fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
     }
 }
 
 void unregisterDeviceSelectCallback()
 {
+    if (!CheckUseUserIdmPermission()) {
+        IAM_LOGE("CheckUseUserIdmPermission fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+        return;
+    }
+
+    if (!CheckCallerIsSystemApp()) {
+        IAM_LOGE("CheckCallerIsSystemApp fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+        return;
+    }
+
     int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().UnregisterDeviceSelectCallback();
     if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
         IAM_LOGE("UnregisterDeviceSelectCallback fail");
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
     }
 }
 } // namespace

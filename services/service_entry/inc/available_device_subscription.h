@@ -20,37 +20,41 @@
 #include <memory>
 #include <vector>
 
-#include "active_user_id_manager.h"
+#include "callback_subscription_base.h"
 #include "companion_device_auth_types.h"
 #include "companion_manager.h"
 #include "cross_device_comm_manager.h"
 #include "iipc_available_device_status_callback.h"
 #include "service_common.h"
 #include "subscription.h"
-
-#include "callback_subscription_base.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+class SubscriptionManager;
+
 class AvailableDeviceSubscription
     : public CallbackSubscriptionBase<IIpcAvailableDeviceStatusCallback, AvailableDeviceSubscription> {
 public:
-    static std::shared_ptr<AvailableDeviceSubscription> Create(UserId userId);
+    static std::shared_ptr<AvailableDeviceSubscription> Create(UserId userId,
+        std::weak_ptr<SubscriptionManager> subscriptionManager);
     ~AvailableDeviceSubscription() = default;
 
     UserId GetUserId() const;
     std::weak_ptr<AvailableDeviceSubscription> GetWeakPtr() override;
     void OnCallbackAdded(const sptr<IIpcAvailableDeviceStatusCallback> &callback) override;
+    void OnCallbackRemoteDied(const sptr<IIpcAvailableDeviceStatusCallback> &callback) override;
 
 #ifndef ENABLE_TEST
 private:
 #endif
-    explicit AvailableDeviceSubscription(UserId userId);
+    AvailableDeviceSubscription(UserId userId, std::weak_ptr<SubscriptionManager> subscriptionManager);
     bool Initialize();
     void HandleDeviceStatusChange(const std::vector<DeviceStatus> &deviceStatusList);
 
     UserId userId_;
+    std::weak_ptr<SubscriptionManager> subscriptionManager_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
     std::vector<IpcDeviceStatus> cachedAvailableDeviceStatus_;
 };

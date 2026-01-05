@@ -18,14 +18,13 @@
 
 #include <mutex>
 
+#include "napi/native_api.h"
+#include "napi/native_common.h"
 #include "nocopyable.h"
 
 #include "common_defines.h"
-#include "companion_device_auth_napi_common.h"
 #include "companion_device_auth_napi_helper.h"
 #include "iavailable_device_status_callback.h"
-#include "napi/native_api.h"
-#include "napi/native_common.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -38,17 +37,21 @@ public:
     ~NapiAvailableDeviceStatusCallback() override;
 
     void OnAvailableDeviceStatusChange(const std::vector<ClientDeviceStatus> deviceStatusList) override;
+    int32_t GetUserId() override;
+
     bool IsCallbackExists(const std::shared_ptr<JsRefHolder> &callback);
     napi_status DoCallback(const std::vector<ClientDeviceStatus> deviceStatusList);
     ResultCode SetCallback(const std::shared_ptr<JsRefHolder> &callback);
     ResultCode ClearCallback();
     ResultCode RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback);
     bool HasCallback();
+    void SetUserId(int32_t userId);
 
 private:
     napi_env env_ { nullptr };
     std::recursive_mutex mutex_;
     std::vector<std::shared_ptr<JsRefHolder>> callbacks_;
+    int32_t userId_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

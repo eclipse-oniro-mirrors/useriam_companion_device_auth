@@ -39,7 +39,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 class MessageRouter;
-class DeviceStatusManager;
 
 struct Connection {
     std::string connectionName;
@@ -59,7 +58,6 @@ public:
     ~ConnectionManager();
 
     void SetMessageRouter(std::weak_ptr<MessageRouter> messageRouter);
-    void OnDeviceStatusManagerReady(std::shared_ptr<DeviceStatusManager> deviceStatusManager);
 
     bool OpenConnection(const PhysicalDeviceKey &physicalDeviceKey, ChannelId channelId,
         std::string &outConnectionName);
@@ -128,8 +126,7 @@ private:
     // Idle connection monitoring
     std::unique_ptr<Subscription> idleMonitorTimerSubscription_;
 
-    // Device status monitoring
-    std::unique_ptr<Subscription> deviceStatusSubscription_;
+    std::vector<std::unique_ptr<Subscription>> physicalDeviceSubscriptions_;
 
     // Helper methods
     std::string GenerateConnectionName(const PhysicalDeviceKey &localPhysicalKey,
@@ -142,7 +139,7 @@ private:
     void HandleChannelConnectionClosed(const std::string &connectionName, const std::string &reason);
     void HandleIncomingConnectionFromChannel(ChannelId channelId, const std::string &connectionName,
         const PhysicalDeviceKey &remotePhysicalDeviceKey);
-    void HandleDeviceStatusChange(const std::vector<DeviceStatus> &deviceStatusList);
+    void HandlePhysicalDeviceStatusChange(ChannelId channelId, const std::vector<PhysicalDeviceStatus> &statusList);
     void NotifyConnectionStatus(const std::string &connectionName, ConnectionStatus status, const std::string &reason);
     void UnsubscribeConnectionStatus(SubscribeId subscriptionId);
 };

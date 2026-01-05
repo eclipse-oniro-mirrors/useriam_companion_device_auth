@@ -20,9 +20,9 @@
 #include <map>
 #include <memory>
 
-#include "common_defines.h"
 #include "iremote_object.h"
 
+#include "common_defines.h"
 #include "misc_manager.h"
 
 namespace OHOS {
@@ -42,9 +42,11 @@ public:
         DeviceSelectResultHandler &&resultHandler) override;
     void ClearDeviceSelectCallback(uint32_t tokenId) override;
     std::optional<std::string> GetLocalUdid() override;
-    uint32_t GetAccessTokenId(IPCObjectStub &stub) override;
+    bool CheckBusinessIds(const std::vector<int32_t> &businessIds) override;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     MiscManagerImpl();
     struct CallbackInfo {
         sptr<IIpcDeviceSelectCallback> callback;

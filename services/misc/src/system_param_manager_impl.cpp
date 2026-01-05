@@ -18,11 +18,10 @@
 #include <algorithm>
 #include <utility>
 
-#include "parameter.h"
-
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "parameter.h"
 #include "singleton_manager.h"
 #include "subscription.h"
 #include "task_runner_manager.h"
@@ -140,10 +139,14 @@ void SystemParamManagerImpl::UnwatchParam(int32_t subscriptionId)
             keyToRemove = it->first;
             subscriptionIds.erase(subscriptionIdIt);
             if (subscriptionIds.empty()) {
-                keyToSubscriptionIds_.erase(it);
+                keyToRemove = it->first;
             }
             break;
         }
+    }
+
+    if (!keyToRemove.empty() && keyToSubscriptionIds_[keyToRemove].empty()) {
+        keyToSubscriptionIds_.erase(keyToRemove);
     }
 
     subscriptions_.erase(subscriptionIt);

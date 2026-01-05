@@ -19,14 +19,11 @@
 #include <future>
 #include <utility>
 
-#include "common_defines.h"
 #include "iam_check.h"
 #include "iam_logger.h"
-#include "service_common.h"
-#include "task_runner.h"
-#include "task_runner_manager.h"
 
 #include "cda_attributes.h"
+#include "common_defines.h"
 #include "companion_device_auth_executor_callback.h"
 #include "companion_manager.h"
 #include "host_add_companion_request.h"
@@ -36,6 +33,9 @@
 #include "request_factory.h"
 #include "request_manager.h"
 #include "security_agent.h"
+#include "service_common.h"
+#include "task_runner.h"
+#include "task_runner_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 

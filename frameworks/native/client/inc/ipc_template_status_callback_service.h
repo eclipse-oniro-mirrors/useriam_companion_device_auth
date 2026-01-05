@@ -30,6 +30,7 @@ public:
     explicit IpcTemplateStatusCallbackService(const std::shared_ptr<ITemplateStatusCallback> &impl);
     ~IpcTemplateStatusCallbackService() override = default;
     int32_t OnTemplateStatusChange(const std::vector<IpcTemplateStatus> &templateStatusList) override;
+    std::shared_ptr<ITemplateStatusCallback> GetCallback();
     int32_t CallbackEnter([[maybe_unused]] uint32_t code) override;
     int32_t CallbackExit([[maybe_unused]] uint32_t code, [[maybe_unused]] int32_t result) override;
 

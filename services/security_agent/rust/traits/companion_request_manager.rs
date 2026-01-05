@@ -16,16 +16,13 @@
 use crate::common::constants::*;
 use crate::common::types::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionBeginAddHostBindingInputFfi, CompanionBeginAddHostBindingOutputFfi,
-    CompanionBeginDelegateAuthInputFfi, CompanionBeginDelegateAuthOutputFfi,
-    CompanionBeginObtainTokenInputFfi, CompanionBeginObtainTokenOutputFfi,
-    CompanionEndAddHostBindingInputFfi, CompanionEndAddHostBindingOutputFfi,
-    CompanionEndDelegateAuthInputFfi, CompanionEndDelegateAuthOutputFfi,
-    CompanionEndObtainTokenInputFfi, CompanionEndObtainTokenOutputFfi,
-    CompanionInitKeyNegotiationInputFfi, CompanionInitKeyNegotiationOutputFfi,
-    CompanionPreIssueTokenInputFfi, CompanionPreIssueTokenOutputFfi, CompanionProcessCheckInputFfi,
-    CompanionProcessCheckOutputFfi, CompanionProcessIssueTokenInputFfi,
-    CompanionProcessIssueTokenOutputFfi, CompanionProcessTokenAuthInputFfi,
+    CompanionBeginAddHostBindingInputFfi, CompanionBeginAddHostBindingOutputFfi, CompanionBeginDelegateAuthInputFfi,
+    CompanionBeginDelegateAuthOutputFfi, CompanionBeginObtainTokenInputFfi, CompanionBeginObtainTokenOutputFfi,
+    CompanionEndAddHostBindingInputFfi, CompanionEndAddHostBindingOutputFfi, CompanionEndDelegateAuthInputFfi,
+    CompanionEndDelegateAuthOutputFfi, CompanionEndObtainTokenInputFfi, CompanionEndObtainTokenOutputFfi,
+    CompanionInitKeyNegotiationInputFfi, CompanionInitKeyNegotiationOutputFfi, CompanionPreIssueTokenInputFfi,
+    CompanionPreIssueTokenOutputFfi, CompanionProcessCheckInputFfi, CompanionProcessCheckOutputFfi,
+    CompanionProcessIssueTokenInputFfi, CompanionProcessIssueTokenOutputFfi, CompanionProcessTokenAuthInputFfi,
     CompanionProcessTokenAuthOutputFfi,
 };
 
@@ -66,10 +63,7 @@ pub enum CompanionRequestOutput {
 
 pub trait CompanionRequest {
     fn get_request_id(&self) -> i32;
-    fn prepare(
-        &mut self,
-        input: CompanionRequestInput,
-    ) -> Result<CompanionRequestOutput, ErrorCode>;
+    fn prepare(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode>;
     fn begin(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode>;
     fn end(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode>;
 }
@@ -99,8 +93,41 @@ impl CompanionRequestManager for DummyCompanionRequestManager {
     }
 }
 
-singleton_registry!(
-    CompanionRequestManagerRegistry,
-    CompanionRequestManager,
-    DummyCompanionRequestManager
-);
+singleton_registry!(CompanionRequestManagerRegistry, CompanionRequestManager, DummyCompanionRequestManager);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct DummyCompanionRequest;
+
+    impl CompanionRequest for DummyCompanionRequest {
+        fn get_request_id(&self) -> i32 {
+            log_e!("not implemented");
+            0
+        }
+        fn prepare(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+            log_e!("not implemented");
+            Err(ErrorCode::GeneralError)
+        }
+        fn begin(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+            log_e!("not implemented");
+            Err(ErrorCode::GeneralError)
+        }
+        fn end(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+            log_e!("not implemented");
+            Err(ErrorCode::GeneralError)
+        }
+    }
+
+    #[test]
+    fn dummy_companion_request_manager_test() {
+        let mut dummy_companion_request_manager = DummyCompanionRequestManager;
+        assert_eq!(
+            dummy_companion_request_manager.add_request(Box::new(DummyCompanionRequest)),
+            Err(ErrorCode::GeneralError)
+        );
+        assert!(dummy_companion_request_manager.remove_request(0).is_err());
+        assert!(dummy_companion_request_manager.get_request(0).is_err());
+    }
+}

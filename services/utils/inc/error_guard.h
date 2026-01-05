@@ -19,8 +19,9 @@
 #include <functional>
 #include <utility>
 
-#include "common_defines.h"
 #include "nocopyable.h"
+
+#include "common_defines.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -55,7 +56,9 @@ public:
         handler_ = nullptr;
     }
 
+#ifndef ENABLE_TEST
 private:
+#endif
     ErrorHandler handler_;
     ResultCode resultCode_ { ResultCode::GENERAL_ERROR };
 };

@@ -32,7 +32,7 @@ public:
         std::vector<TemplateId> templateIdList, FwkResultCallback &&requestCallback);
 
     void Start() override final;
-    bool Cancel() override final;
+    bool Cancel(ResultCode resultCode) override final;
 
     uint32_t GetMaxConcurrency() const override;
     bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,

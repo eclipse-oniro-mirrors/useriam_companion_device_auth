@@ -17,14 +17,16 @@
 
 #include <new>
 
-#include "active_user_id_manager.h"
-#include "companion_manager.h"
-#include "cross_device_comm_manager.h"
 #include "iam_check.h"
 #include "iam_logger.h"
+
+#include "companion_manager.h"
+#include "cross_device_comm_manager.h"
 #include "singleton_manager.h"
+#include "subscription_manager.h"
 #include "subscription_util.h"
 #include "task_runner_manager.h"
+#include "user_id_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -32,14 +34,18 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-AvailableDeviceSubscription::AvailableDeviceSubscription(UserId userId) : userId_(userId)
+AvailableDeviceSubscription::AvailableDeviceSubscription(UserId userId,
+    std::weak_ptr<SubscriptionManager> subscriptionManager)
+    : userId_(userId),
+      subscriptionManager_(subscriptionManager)
 {
 }
 
-std::shared_ptr<AvailableDeviceSubscription> AvailableDeviceSubscription::Create(UserId userId)
+std::shared_ptr<AvailableDeviceSubscription> AvailableDeviceSubscription::Create(UserId userId,
+    std::weak_ptr<SubscriptionManager> subscriptionManager)
 {
-    auto subscription =
-        std::shared_ptr<AvailableDeviceSubscription>(new (std::nothrow) AvailableDeviceSubscription(userId));
+    auto subscription = std::shared_ptr<AvailableDeviceSubscription>(
+        new (std::nothrow) AvailableDeviceSubscription(userId, subscriptionManager));
     ENSURE_OR_RETURN_VAL(subscription != nullptr, nullptr);
 
     if (!subscription->Initialize()) {
@@ -83,6 +89,16 @@ void AvailableDeviceSubscription::OnCallbackAdded(const sptr<IIpcAvailableDevice
         });
 }
 
+void AvailableDeviceSubscription::OnCallbackRemoteDied(const sptr<IIpcAvailableDeviceStatusCallback> &callback)
+{
+    ENSURE_OR_RETURN(callback != nullptr);
+    TaskRunnerManager::GetInstance().PostTaskOnResident([callback, weakManager = subscriptionManager_]() {
+        auto manager = weakManager.lock();
+        ENSURE_OR_RETURN(manager != nullptr);
+        manager->RemoveAvailableDeviceStatusCallback(callback);
+    });
+}
+
 void AvailableDeviceSubscription::HandleDeviceStatusChange(const std::vector<DeviceStatus> &deviceStatusList)
 {
     IAM_LOGI("HandleDeviceStatusChange start, total device count:%{public}zu, userId:%{public}d",
@@ -107,12 +123,7 @@ void AvailableDeviceSubscription::HandleDeviceStatusChange(const std::vector<Dev
     }
     cachedAvailableDeviceStatus_ = availableDeviceStatus;
 
-    std::vector<sptr<IIpcAvailableDeviceStatusCallback>> callbacks;
-    for (const auto &info : callbacks_) {
-        if (info.callback != nullptr) {
-            callbacks.push_back(info.callback);
-        }
-    }
+    auto callbacks = callbacks_;
 
     IAM_LOGI("NotifyAvailableDeviceStatus start, callback count:%{public}zu, device count:%{public}zu",
         callbacks.size(), availableDeviceStatus.size());

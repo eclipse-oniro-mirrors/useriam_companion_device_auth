@@ -18,14 +18,13 @@
 
 #include <mutex>
 
+#include "napi/native_api.h"
+#include "napi/native_common.h"
 #include "nocopyable.h"
 
 #include "common_defines.h"
-#include "companion_device_auth_napi_common.h"
 #include "companion_device_auth_napi_helper.h"
 #include "icontinuous_auth_status_callback.h"
-#include "napi/native_api.h"
-#include "napi/native_common.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -39,23 +38,24 @@ public:
 
     void OnContinuousAuthStatusChange(const bool isAuthPassed,
         const std::optional<int32_t> authTrustLevel = std::nullopt) override;
+    int32_t GetUserId() override;
+    std::optional<uint64_t> GetTemplateId() override;
 
     napi_status DoCallback(const bool isAuthPassed, const std::optional<int32_t> authTrustLevel = std::nullopt);
     ResultCode SetCallback(const std::shared_ptr<JsRefHolder> &callback);
     ResultCode ClearCallback();
     bool HasCallback();
-    uint64_t GetTemplateId();
-    void SetTemplateId(uint64_t templateId);
-    bool HasTemplateId();
     ResultCode RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback);
     bool IsCallbackExists(const std::shared_ptr<JsRefHolder> &callback);
+    void SetUserId(int32_t userId);
+    void SetTemplateId(uint64_t templateId);
 
 private:
     napi_env env_ { nullptr };
     std::recursive_mutex mutex_;
-    bool hasTemplateId_;
-    uint64_t templateId_;
     std::vector<std::shared_ptr<JsRefHolder>> callbacks_;
+    int32_t userId_;
+    std::optional<uint64_t> templateId_ { std::nullopt };
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

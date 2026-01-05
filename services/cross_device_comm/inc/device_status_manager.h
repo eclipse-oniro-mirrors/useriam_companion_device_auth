@@ -16,8 +16,6 @@
 #ifndef COMPANION_DEVICE_AUTH_DEVICE_STATUS_MANAGER_H
 #define COMPANION_DEVICE_AUTH_DEVICE_STATUS_MANAGER_H
 
-#include "local_device_status_manager.h"
-
 #include <chrono>
 #include <functional>
 #include <map>
@@ -29,17 +27,18 @@
 
 #include "nocopyable.h"
 
-#include "active_user_id_manager.h"
 #include "channel_manager.h"
 #include "connection_manager.h"
 #include "cross_device_common.h"
 #include "device_status_entry.h"
 #include "host_sync_device_status_request.h"
+#include "local_device_status_manager.h"
 #include "misc_manager.h"
 #include "request_factory.h"
 #include "request_manager.h"
 #include "service_common.h"
 #include "subscription.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {

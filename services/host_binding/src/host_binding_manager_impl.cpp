@@ -198,11 +198,12 @@ ResultCode HostBindingManagerImpl::BeginAddHostBinding(RequestId requestId, User
     return ResultCode::SUCCESS;
 }
 
-ResultCode HostBindingManagerImpl::EndAddHostBinding(RequestId requestId, ResultCode resultCode)
+ResultCode HostBindingManagerImpl::EndAddHostBinding(RequestId requestId, ResultCode resultCode,
+    const std::vector<uint8_t> &tokenData)
 {
     IAM_LOGI("end add host binding, request id %{public}d, result %{public}d", requestId, resultCode);
 
-    CompanionEndAddHostBindingInput input { .requestId = requestId, .resultCode = resultCode };
+    CompanionEndAddHostBindingInput input { .requestId = requestId, .resultCode = resultCode, .tokenData = tokenData };
     CompanionEndAddHostBindingOutput output {};
     ResultCode ret = GetSecurityAgent().CompanionEndAddHostBinding(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -216,6 +217,12 @@ ResultCode HostBindingManagerImpl::EndAddHostBinding(RequestId requestId, Result
             RemoveBindingInternal(output.bindingId);
         }
         return ResultCode::SUCCESS;
+    }
+
+    // Token data received and stored in the binding by SecurityAgent
+    if (!tokenData.empty()) {
+        IAM_LOGI("end add host binding received token data, binding id %{public}s, token size %{public}zu",
+            GET_MASKED_NUM_STRING(output.bindingId).c_str(), tokenData.size());
     }
 
     IAM_LOGI("end add host binding success, binding id %{public}s", GET_MASKED_NUM_STRING(output.bindingId).c_str());

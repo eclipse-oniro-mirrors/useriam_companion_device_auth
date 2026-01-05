@@ -15,11 +15,11 @@
 
 #include "companion_sync_device_status_handler.h"
 
-#include "error_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
 #include "common_message.h"
+#include "error_guard.h"
 #include "service_common.h"
 #include "singleton_manager.h"
 
@@ -54,13 +54,13 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
         return;
     }
 
-    LocalDeviceStatus localDeviceStatus = GetCrossDeviceCommManager().GetLocalDeviceStatus();
+    auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
 
     SyncDeviceStatusReply syncReply = {};
     syncReply.result = ResultCode::SUCCESS;
-    syncReply.protocolIdList = localDeviceStatus.protocols;
-    syncReply.capabilityList = localDeviceStatus.capabilities;
-    syncReply.secureProtocolId = localDeviceStatus.companionSecureProtocolId;
+    syncReply.protocolIdList = profile.protocols;
+    syncReply.capabilityList = profile.capabilities;
+    syncReply.secureProtocolId = profile.companionSecureProtocolId;
     syncReply.companionDeviceKey.deviceUserId = companionUserId;
     syncReply.deviceUserName = GetActiveUserIdManager().GetActiveUserName();
 
@@ -87,7 +87,7 @@ bool CompanionSyncDeviceStatusHandler::CompanionProcessCheck(const HostBindingSt
     CompanionProcessCheckInput input = {};
     input.bindingId = hostBindingStatus.bindingId;
     input.capabilityList = CapabilityConverter::ToUnderlyingVec(syncRequest.capabilityList);
-    input.secureProtocolId = GetCrossDeviceCommManager().GetLocalDeviceStatus().companionSecureProtocolId;
+    input.secureProtocolId = GetCrossDeviceCommManager().GetLocalDeviceProfile().companionSecureProtocolId;
     input.salt = syncRequest.salt;
     input.challenge = syncRequest.challenge;
 

@@ -29,11 +29,7 @@ use core::convert::TryFrom;
 // Common
 pub fn try_vec_from_array_with_len<T: Clone>(array: &[T], len: u32) -> Result<Vec<T>, ErrorCode> {
     if len as usize > array.len() {
-        log_e!(
-            "Invalid length: max {}, actual {}",
-            len as usize,
-            array.len()
-        );
+        log_e!("Invalid length: max {}, actual {}", len as usize, array.len());
         return Err(ErrorCode::BadParam);
     }
     Ok(array[..len as usize].to_vec())
@@ -51,26 +47,6 @@ pub fn try_array_from_vec<T: Default + Copy, const N: usize>(
     let mut array = [T::default(); N];
     for (i, item) in vec.into_iter().enumerate() {
         array[i] = item;
-    }
-    Ok((array, len))
-}
-
-pub fn try_convert_array_from_vec<TIn, TOut, const N: usize>(
-    vec: Vec<TIn>,
-) -> core::result::Result<([TOut; N], u32), ErrorCode>
-where
-    TOut: Default + Copy,
-    TIn: TryInto<TOut, Error = ErrorCode>,
-{
-    if vec.len() > N {
-        log_e!("Invalid length: max {}, actual {}", N, vec.len());
-        return Err(ErrorCode::BadParam);
-    }
-
-    let len = vec.len() as u32;
-    let mut array = [TOut::default(); N];
-    for (i, item) in vec.into_iter().enumerate() {
-        array[i] = item.try_into().map_err(|e| p!(e))?;
     }
     Ok((array, len))
 }
@@ -96,8 +72,7 @@ macro_rules! impl_data_array {
             type Error = ErrorCode;
 
             fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
-                let (data, len) =
-                    try_array_from_vec::<u8, $size>(value.clone()).map_err(|e| p!(e))?;
+                let (data, len) = try_array_from_vec::<u8, $size>(value.clone()).map_err(|e| p!(e))?;
                 Ok($name { data, len })
             }
         }
@@ -142,11 +117,7 @@ impl TryFrom<DeviceKey> for DeviceKeyFfi {
     fn try_from(key: DeviceKey) -> Result<Self, ErrorCode> {
         let device_id = DataArray64Ffi::try_from(key.device_id.as_bytes().to_vec())?;
 
-        Ok(DeviceKeyFfi {
-            device_id,
-            device_id_type: key.device_id_type,
-            user_id: key.user_id,
-        })
+        Ok(DeviceKeyFfi { device_id, device_id_type: key.device_id_type, user_id: key.user_id })
     }
 }
 
@@ -172,8 +143,7 @@ impl TryFrom<TemplateIdArrayFfi> for Vec<u64> {
     type Error = ErrorCode;
 
     fn try_from(value: TemplateIdArrayFfi) -> core::result::Result<Self, ErrorCode> {
-        let template_ids: Vec<u64> =
-            try_vec_from_array_with_len(&value.data, value.len).map_err(|e| p!(e))?;
+        let template_ids: Vec<u64> = try_vec_from_array_with_len(&value.data, value.len).map_err(|e| p!(e))?;
         Ok(template_ids)
     }
 }
@@ -182,8 +152,7 @@ impl TryFrom<Vec<u64>> for TemplateIdArrayFfi {
     type Error = ErrorCode;
 
     fn try_from(value: Vec<u64>) -> core::result::Result<Self, ErrorCode> {
-        let (data, len) =
-            try_array_from_vec::<u64, MAX_TEMPLATE_ID_NUM_PER_USER_FFI>(value).map_err(|e| p!(e))?;
+        let (data, len) = try_array_from_vec::<u64, MAX_TEMPLATE_ID_NUM_PER_USER_FFI>(value).map_err(|e| p!(e))?;
         Ok(TemplateIdArrayFfi { data, len })
     }
 }
@@ -193,8 +162,7 @@ impl TryFrom<Uint16Array64Ffi> for Vec<u16> {
     type Error = ErrorCode;
 
     fn try_from(value: Uint16Array64Ffi) -> core::result::Result<Self, ErrorCode> {
-        let u16_vec: Vec<u16> =
-            try_vec_from_array_with_len(&value.data, value.len).map_err(|e| p!(e))?;
+        let u16_vec: Vec<u16> = try_vec_from_array_with_len(&value.data, value.len).map_err(|e| p!(e))?;
         Ok(u16_vec)
     }
 }
@@ -213,8 +181,7 @@ impl TryFrom<Int32Array64Ffi> for Vec<i32> {
     type Error = ErrorCode;
 
     fn try_from(value: Int32Array64Ffi) -> core::result::Result<Self, ErrorCode> {
-        let i32_vec: Vec<i32> =
-            try_vec_from_array_with_len(&value.data, value.len).map_err(|e| p!(e))?;
+        let i32_vec: Vec<i32> = try_vec_from_array_with_len(&value.data, value.len).map_err(|e| p!(e))?;
         Ok(i32_vec)
     }
 }
@@ -304,9 +271,25 @@ impl TryFrom<Vec<Event>> for EventArrayFfi {
             data[i] = item.clone().try_into().map_err(|e| p!(e))?;
         }
 
-        Ok(EventArrayFfi {
-            data,
-            len: value.len() as u32,
-        })
+        Ok(EventArrayFfi { data, len: value.len() as u32 })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::vec;
+
+    use super::*;
+
+    #[test]
+    fn try_vec_from_array_with_len_test() {
+        assert_eq!(try_vec_from_array_with_len(&[1u8; 2], 4), Err(ErrorCode::BadParam));
+        assert_eq!(try_vec_from_array_with_len(&[1u8; 2], 1).unwrap(), vec![1u8]);
+    }
+
+    #[test]
+    fn try_array_from_vec_test() {
+        assert_eq!(try_array_from_vec::<u8, 1>(vec![1u8; 2]), Err(ErrorCode::BadParam));
+        assert_eq!(try_array_from_vec::<u8, 3>(vec![1u8; 2]).unwrap(), ([1u8, 1u8, 0u8], 2));
     }
 }

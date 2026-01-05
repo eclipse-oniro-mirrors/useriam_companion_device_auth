@@ -35,19 +35,13 @@ impl From<Vec<u8>> for Parcel {
 
 impl From<&[u8]> for Parcel {
     fn from(data: &[u8]) -> Self {
-        Parcel {
-            data: data.to_vec(),
-            read_pos: 0,
-        }
+        Parcel { data: data.to_vec(), read_pos: 0 }
     }
 }
 
 impl Parcel {
     pub fn new() -> Self {
-        Parcel {
-            data: Vec::with_capacity(DEFAULT_PARCEL_CAPACITY),
-            read_pos: 0,
-        }
+        Parcel { data: Vec::with_capacity(DEFAULT_PARCEL_CAPACITY), read_pos: 0 }
     }
 
     pub fn has_next(&self) -> bool {
@@ -188,11 +182,7 @@ impl Parcel {
         }
 
         if self.read_pos.checked_add(len).unwrap_or(usize::MAX) > self.data.len() {
-            log_e!(
-                "not enough data for string, need: {}, available: {}",
-                len,
-                self.data.len() - self.read_pos
-            );
+            log_e!("not enough data for string, need: {}, available: {}", len, self.data.len() - self.read_pos);
             return Err(ErrorCode::ReadParcelError);
         }
 

@@ -18,17 +18,16 @@
 
 #include <mutex>
 
-#include "nocopyable.h"
-
-#include "ability.h"
-
-#include "common_defines.h"
-#include "companion_device_auth_client.h"
-#include "companion_device_auth_napi_helper.h"
 #include "napi/native_api.h"
 #include "napi_available_device_status_callback.h"
 #include "napi_continuous_auth_status_callback.h"
 #include "napi_template_status_callback.h"
+#include "nocopyable.h"
+
+#include "ability.h"
+#include "common_defines.h"
+#include "companion_device_auth_client.h"
+#include "companion_device_auth_napi_helper.h"
 
 namespace OHOS {
 namespace UserIam {

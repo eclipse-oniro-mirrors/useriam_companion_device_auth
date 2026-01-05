@@ -37,10 +37,9 @@ pub enum AttributeKey {
     AttrScheduleId = 100014,
     AttrData = 100020,
     AttrPinSubType = 100021,
-    AttrProperyMode = 100023,
+    AttrPropertyMode = 100023,
     AttrType = 100024,
     AttrCapabilityLevel = 100029,
-    AttrNeedRootSecret = 100035,
     AttrUserId = 100041,
     AttrToken = 100042,
     AttrEsl = 100044,
@@ -49,15 +48,16 @@ pub enum AttributeKey {
     AttrAuthTrustLevel = 100089,
 
     AttrMessage = 300001,
-    AttrAlgoList = 300002,
-    AttrCapabilityList = 300003,
-    AttrDeviceId = 300004,
-    AttrSalt = 300005,
-    AttrTag = 300006,
-    AttrIv = 300007,
-    AttrEncryptData = 300008,
-    AttrTrackAbilityLevel = 300009,
-    AttrHmac = 300010,
+    AttrProtocalList = 300002,
+    AttrAlgoList = 300003,
+    AttrCapabilityList = 300004,
+    AttrDeviceId = 300005,
+    AttrSalt = 300006,
+    AttrTag = 300007,
+    AttrIv = 300008,
+    AttrEncryptData = 300009,
+    AttrTrackAbilityLevel = 300010,
+    AttrHmac = 300011,
 }
 
 impl TryFrom<i32> for AttributeKey {
@@ -74,7 +74,7 @@ impl TryFrom<i32> for AttributeKey {
             100014 => Ok(AttributeKey::AttrScheduleId),
             100020 => Ok(AttributeKey::AttrData),
             100021 => Ok(AttributeKey::AttrPinSubType),
-            100023 => Ok(AttributeKey::AttrProperyMode),
+            100023 => Ok(AttributeKey::AttrPropertyMode),
             100024 => Ok(AttributeKey::AttrType),
             100029 => Ok(AttributeKey::AttrCapabilityLevel),
             100041 => Ok(AttributeKey::AttrUserId),
@@ -82,17 +82,18 @@ impl TryFrom<i32> for AttributeKey {
             100044 => Ok(AttributeKey::AttrEsl),
             100065 => Ok(AttributeKey::AttrPublicKey),
             100066 => Ok(AttributeKey::AttrChallenge),
-            100088 => Ok(AttributeKey::AttrAuthTrustLevel),
+            100089 => Ok(AttributeKey::AttrAuthTrustLevel),
             300001 => Ok(AttributeKey::AttrMessage),
-            300002 => Ok(AttributeKey::AttrAlgoList),
-            300003 => Ok(AttributeKey::AttrCapabilityList),
-            300004 => Ok(AttributeKey::AttrDeviceId),
-            300005 => Ok(AttributeKey::AttrSalt),
-            300006 => Ok(AttributeKey::AttrTag),
-            300007 => Ok(AttributeKey::AttrIv),
-            300008 => Ok(AttributeKey::AttrEncryptData),
-            300009 => Ok(AttributeKey::AttrTrackAbilityLevel),
-            300010 => Ok(AttributeKey::AttrHmac),
+            300002 => Ok(AttributeKey::AttrProtocalList),
+            300003 => Ok(AttributeKey::AttrAlgoList),
+            300004 => Ok(AttributeKey::AttrCapabilityList),
+            300005 => Ok(AttributeKey::AttrDeviceId),
+            300006 => Ok(AttributeKey::AttrSalt),
+            300007 => Ok(AttributeKey::AttrTag),
+            300008 => Ok(AttributeKey::AttrIv),
+            300009 => Ok(AttributeKey::AttrEncryptData),
+            300010 => Ok(AttributeKey::AttrTrackAbilityLevel),
+            300011 => Ok(AttributeKey::AttrHmac),
             _ => Err(ErrorCode::GeneralError),
         }
     }
@@ -101,16 +102,14 @@ impl TryFrom<i32> for AttributeKey {
 pub const MAX_SUB_MSG_NUM: usize = 10;
 pub const MAX_EXECUTOR_MSG_LEN: usize = 2048;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attribute {
     map: BTreeMap<AttributeKey, Vec<u8>>,
 }
 
 impl Attribute {
     pub fn new() -> Self {
-        Attribute {
-            map: BTreeMap::new(),
-        }
+        Attribute { map: BTreeMap::new() }
     }
 
     pub fn try_from_bytes(msg: &[u8]) -> Result<Self, ErrorCode> {
@@ -132,10 +131,10 @@ impl Attribute {
             match AttributeKey::try_from(attr_key) {
                 Ok(key) => {
                     attribute.map.insert(key, data);
-                }
+                },
                 Err(_) => {
                     log_i!(" attribute {} not defined, skip", attr_key);
-                }
+                },
             }
         }
 
@@ -218,21 +217,13 @@ impl Attribute {
     }
 
     pub fn fill_u8_slice(&self, key: AttributeKey, buffer: &mut [u8]) -> Result<(), ErrorCode> {
-        let value = self
-            .map
-            .get(&key)
-            .map(|val| val.as_slice())
-            .ok_or_else(|| {
-                log_e!("Attribute is not set, key:{:?}", key);
-                ErrorCode::GeneralError
-            })?;
+        let value = self.map.get(&key).map(|val| val.as_slice()).ok_or_else(|| {
+            log_e!("Attribute is not set, key:{:?}", key);
+            ErrorCode::GeneralError
+        })?;
 
         if value.len() != buffer.len() {
-            log_e!(
-                "Attribute size is unexpected, expected {} actual {}",
-                buffer.len(),
-                value.len()
-            );
+            log_e!("Attribute size is unexpected, expected {} actual {}", buffer.len(), value.len());
             return Err(ErrorCode::GeneralError);
         }
 
@@ -298,12 +289,10 @@ impl Attribute {
     }
 
     pub fn get_u8_vecs(&self, key: AttributeKey) -> Result<Vec<Vec<u8>>, ErrorCode> {
-        let mut parcel = Parcel::from(self.map.get(&key).map(|val| val.as_slice()).ok_or_else(
-            || {
-                log_e!("Attribute is not set, key:{:?}", key);
-                ErrorCode::GeneralError
-            },
-        )?);
+        let mut parcel = Parcel::from(self.map.get(&key).map(|val| val.as_slice()).ok_or_else(|| {
+            log_e!("Attribute is not set, key:{:?}", key);
+            ErrorCode::GeneralError
+        })?);
         let mut u8_vecs = Vec::new();
         while parcel.has_next() {
             let length = parcel.read_u32_le().map_err(|e| p!(e))? as usize;
@@ -326,16 +315,186 @@ impl Attribute {
     pub fn get_string(&self, key: AttributeKey) -> Result<String, ErrorCode> {
         let data = self.get_u8_slice(key).map_err(|e| p!(e))?;
         String::from_utf8(data.to_vec()).map_err(|e| {
-            log_e!(
-                "Failed to convert bytes to string for key {:?}: {:?}",
-                key,
-                e
-            );
+            log_e!("Failed to convert bytes to string for key {:?}: {:?}", key, e);
             ErrorCode::GeneralError
         })
     }
 
     pub fn set_string(&mut self, key: AttributeKey, value: String) {
         self.map.insert(key, value.into_bytes());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn attribute_key_test() {
+        assert_eq!(AttributeKey::try_from(100000).unwrap(), AttributeKey::AttrRoot);
+        assert_eq!(AttributeKey::try_from(100001).unwrap(), AttributeKey::AttrResultCode);
+        assert_eq!(AttributeKey::try_from(100004).unwrap(), AttributeKey::AttrSignature);
+        assert_eq!(AttributeKey::try_from(100006).unwrap(), AttributeKey::AttrTemplateId);
+        assert_eq!(AttributeKey::try_from(100007).unwrap(), AttributeKey::AttrTemplateIdList);
+        assert_eq!(AttributeKey::try_from(100009).unwrap(), AttributeKey::AttrRemainAttempts);
+        assert_eq!(AttributeKey::try_from(100010).unwrap(), AttributeKey::AttrLockoutDuration);
+        assert_eq!(AttributeKey::try_from(100014).unwrap(), AttributeKey::AttrScheduleId);
+        assert_eq!(AttributeKey::try_from(100020).unwrap(), AttributeKey::AttrData);
+        assert_eq!(AttributeKey::try_from(100021).unwrap(), AttributeKey::AttrPinSubType);
+        assert_eq!(AttributeKey::try_from(100023).unwrap(), AttributeKey::AttrPropertyMode);
+        assert_eq!(AttributeKey::try_from(100024).unwrap(), AttributeKey::AttrType);
+        assert_eq!(AttributeKey::try_from(100029).unwrap(), AttributeKey::AttrCapabilityLevel);
+        assert_eq!(AttributeKey::try_from(100041).unwrap(), AttributeKey::AttrUserId);
+        assert_eq!(AttributeKey::try_from(100042).unwrap(), AttributeKey::AttrToken);
+        assert_eq!(AttributeKey::try_from(100044).unwrap(), AttributeKey::AttrEsl);
+        assert_eq!(AttributeKey::try_from(100065).unwrap(), AttributeKey::AttrPublicKey);
+        assert_eq!(AttributeKey::try_from(100066).unwrap(), AttributeKey::AttrChallenge);
+        assert_eq!(AttributeKey::try_from(100089).unwrap(), AttributeKey::AttrAuthTrustLevel);
+        assert_eq!(AttributeKey::try_from(300001).unwrap(), AttributeKey::AttrMessage);
+        assert_eq!(AttributeKey::try_from(300002).unwrap(), AttributeKey::AttrAlgoList);
+        assert_eq!(AttributeKey::try_from(300003).unwrap(), AttributeKey::AttrCapabilityList);
+        assert_eq!(AttributeKey::try_from(300004).unwrap(), AttributeKey::AttrDeviceId);
+        assert_eq!(AttributeKey::try_from(300005).unwrap(), AttributeKey::AttrSalt);
+        assert_eq!(AttributeKey::try_from(300006).unwrap(), AttributeKey::AttrTag);
+        assert_eq!(AttributeKey::try_from(300007).unwrap(), AttributeKey::AttrIv);
+        assert_eq!(AttributeKey::try_from(300008).unwrap(), AttributeKey::AttrEncryptData);
+        assert_eq!(AttributeKey::try_from(300009).unwrap(), AttributeKey::AttrTrackAbilityLevel);
+        assert_eq!(AttributeKey::try_from(300010).unwrap(), AttributeKey::AttrHmac);
+        assert_eq!(AttributeKey::try_from(0), Err(ErrorCode::GeneralError));
+    }
+
+    #[test]
+    fn try_from_bytes_fail_test() {
+        assert_eq!(Attribute::try_from_bytes(&[]), Err(ErrorCode::BadParam));
+        let mut parcel = Parcel::new();
+        assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::ReadParcelError));
+        parcel.write_i32_le(0);
+        assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::ReadParcelError));
+        parcel.write_u32_le(4);
+        assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::ReadParcelError));
+        parcel.write_bytes(&[1, 2, 3, 4]);
+        assert!(Attribute::try_from_bytes(parcel.as_slice()).is_ok());
+    }
+
+    #[test]
+    fn try_from_bytes_success_test() {
+        let mut parcel = Parcel::new();
+        parcel.write_i32_le(AttributeKey::AttrRoot as i32);
+        parcel.write_u32_le(4);
+        parcel.write_bytes(&[1, 2, 3, 4]);
+        assert!(Attribute::try_from_bytes(parcel.as_slice()).is_ok());
+    }
+
+    #[test]
+    fn to_bytes_test() {
+        let mut attribute = Attribute::new();
+        attribute.set_u32(AttributeKey::AttrResultCode, 0);
+        assert!(attribute.to_bytes().is_ok());
+    }
+
+    #[test]
+    fn u16_test() {
+        let mut attribute = Attribute::new();
+        assert_eq!(attribute.get_u16(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+        attribute.set_u32(AttributeKey::AttrResultCode, 0);
+        assert_eq!(attribute.get_u16(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+        attribute.set_u16(AttributeKey::AttrResultCode, 0);
+        assert!(attribute.get_u16(AttributeKey::AttrResultCode).is_ok());
+    }
+
+    #[test]
+    fn u32_test() {
+        let mut attribute = Attribute::new();
+        assert_eq!(attribute.get_u32(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+        attribute.set_u16(AttributeKey::AttrResultCode, 0);
+        assert_eq!(attribute.get_u32(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+        attribute.set_u32(AttributeKey::AttrResultCode, 0);
+        assert!(attribute.get_u32(AttributeKey::AttrResultCode).is_ok());
+    }
+
+    #[test]
+    fn i32_test() {
+        let mut attribute = Attribute::new();
+        assert_eq!(attribute.get_i32(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+        attribute.set_u16(AttributeKey::AttrResultCode, 0);
+        assert_eq!(attribute.get_i32(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+        attribute.set_i32(AttributeKey::AttrResultCode, 0);
+        assert!(attribute.get_i32(AttributeKey::AttrResultCode).is_ok());
+    }
+
+    #[test]
+    fn u64_test() {
+        let mut attribute = Attribute::new();
+        assert_eq!(attribute.get_u64(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+        attribute.set_u16(AttributeKey::AttrResultCode, 0);
+        assert_eq!(attribute.get_u64(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+        attribute.set_u64(AttributeKey::AttrResultCode, 0);
+        assert!(attribute.get_u64(AttributeKey::AttrResultCode).is_ok());
+    }
+
+    #[test]
+    fn u8_slice_test() {
+        let mut attribute: Attribute = Attribute::new();
+        assert_eq!(attribute.get_u8_slice(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+        assert_eq!(attribute.get_u8_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+
+        assert_eq!(attribute.fill_u8_slice(AttributeKey::AttrResultCode, &mut [0u8; 0]), Err(ErrorCode::GeneralError));
+        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 1]);
+        assert_eq!(attribute.fill_u8_slice(AttributeKey::AttrResultCode, &mut [0u8; 0]), Err(ErrorCode::GeneralError));
+        assert!(attribute.fill_u8_slice(AttributeKey::AttrResultCode, &mut [0u8; 1]).is_ok());
+
+        assert!(attribute.get_u8_slice(AttributeKey::AttrResultCode).is_ok());
+        assert!(attribute.get_u8_vec(AttributeKey::AttrResultCode).is_ok());
+    }
+
+    #[test]
+    fn u64_slice_test() {
+        let mut attribute: Attribute = Attribute::new();
+        assert_eq!(attribute.get_u64_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+
+        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 1]);
+        assert_eq!(attribute.get_u64_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+
+        attribute.set_u64_slice(AttributeKey::AttrResultCode, &[0u64; 1]);
+        assert!(attribute.get_u64_vec(AttributeKey::AttrResultCode).is_ok());
+    }
+
+    #[test]
+    fn u16_slice_test() {
+        let mut attribute: Attribute = Attribute::new();
+        assert_eq!(attribute.get_u16_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+
+        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 1]);
+        assert_eq!(attribute.get_u16_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+
+        attribute.set_u16_slice(AttributeKey::AttrResultCode, &[0u16; 1]);
+        assert!(attribute.get_u16_vec(AttributeKey::AttrResultCode).is_ok());
+    }
+
+    #[test]
+    fn u8_slices_test() {
+        let mut attribute: Attribute = Attribute::new();
+        assert_eq!(attribute.get_u8_vecs(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+
+        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 1]);
+        assert_eq!(attribute.get_u8_vecs(AttributeKey::AttrResultCode), Err(ErrorCode::ReadParcelError));
+        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 4]);
+        assert_eq!(attribute.get_u8_vecs(AttributeKey::AttrResultCode), Err(ErrorCode::ReadParcelError));
+
+        attribute.set_u8_slices(AttributeKey::AttrResultCode, &[&[0u8]]);
+        assert!(attribute.get_u8_vecs(AttributeKey::AttrResultCode).is_ok());
+    }
+
+    #[test]
+    fn string_test() {
+        let mut attribute: Attribute = Attribute::new();
+        assert_eq!(attribute.get_string(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+
+        let sparkle_heart = [0u8, 159u8, 146u8, 150u8];
+        attribute.set_u8_slice(AttributeKey::AttrResultCode, &sparkle_heart);
+        assert_eq!(attribute.get_string(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+
+        attribute.set_string(AttributeKey::AttrResultCode, String::from("Hello"));
+        assert!(attribute.get_string(AttributeKey::AttrResultCode).is_ok());
     }
 }

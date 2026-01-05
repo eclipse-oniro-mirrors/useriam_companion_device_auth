@@ -121,10 +121,10 @@ bool HostSyncDeviceStatusRequest::SendSyncDeviceStatusRequest(const std::vector<
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), false);
 
-    LocalDeviceStatus localDeviceStatus = GetCrossDeviceCommManager().GetLocalDeviceStatus();
+    auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
     SyncDeviceStatusRequest syncDeviceStatusRequest = {};
-    syncDeviceStatusRequest.protocolIdList = localDeviceStatus.protocols;
-    syncDeviceStatusRequest.capabilityList = localDeviceStatus.capabilities;
+    syncDeviceStatusRequest.protocolIdList = profile.protocols;
+    syncDeviceStatusRequest.capabilityList = profile.capabilities;
     syncDeviceStatusRequest.hostDeviceKey.deviceUserId = hostUserId_;
     syncDeviceStatusRequest.salt = salt;
     syncDeviceStatusRequest.challenge = challenge;
@@ -228,8 +228,9 @@ uint32_t HostSyncDeviceStatusRequest::GetMaxConcurrency() const
     return 100; // Spec: max 100 concurrent HostSyncDeviceStatusRequest (TA limited to 10 by CA)
 }
 
-bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest([[maybe_unused]] RequestType newRequestType,
+    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: not preempted by any request type
     return false;

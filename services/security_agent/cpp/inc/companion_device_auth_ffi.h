@@ -80,6 +80,9 @@ enum CommandId {
     HOST_PROCESS_PRE_OBTAIN_TOKEN = 1023,
     HOST_PROCESS_OBTAIN_TOKEN = 1024,
     HOST_CANCEL_OBTAIN_TOKEN = 1025,
+    HOST_ACTIVATE_TOKEN = 1026,
+    HOST_CHECK_TEMPLATE_ENROLLED = 1027,
+
     COMPANION_GET_PERSISTED_STATUS = 2000,
     COMPANION_PROCESS_CHECK = 2001,
     COMPANION_INIT_KEY_NEGOTIATION = 2002,
@@ -100,8 +103,6 @@ enum CommandId {
 
 typedef struct RustCommandParam {
     int32_t commandId;
-    int32_t callerType;
-    uint8_t callerUdid[UDID_LEN_FFI];
     const uint8_t *inputData;
     uint32_t inputDataLen;
     uint8_t *outputData;
@@ -135,16 +136,6 @@ typedef struct TemplateIdArrayFfi {
     uint32_t len;
 } TemplateIdArrayFfi;
 
-typedef struct Int32Array64Ffi {
-    int32_t data[MAX_DATA_LEN_64];
-    uint32_t len;
-} Int32Array64Ffi;
-
-typedef struct Uint16Array64Ffi {
-    uint16_t data[MAX_DATA_LEN_64];
-    uint32_t len;
-} Uint16Array64Ffi;
-
 typedef struct PlaceHolderFfi {
     uint8_t placeHolder;
 } PlaceHolderFfi;
@@ -173,6 +164,11 @@ typedef struct DeviceKeyFfi {
     struct DataArray64Ffi deviceId;
     int32_t userId;
 } DeviceKeyFfi;
+
+typedef struct Int32Array64Ffi {
+    int32_t data[MAX_DATA_LEN_64];
+    uint32_t len;
+} Int32Array64Ffi;
 
 typedef struct PersistedCompanionStatusFfi {
     uint64_t templateId;
@@ -232,12 +228,6 @@ typedef struct HostGetPersistedStatusOutputFfi {
     struct CompanionStatusArrayFfi companionStatusList;
 } HostGetPersistedStatusOutputFfi;
 
-typedef struct SetActiveUserInputFfi {
-    int32_t userId;
-} SetActiveUserInputFfi;
-
-typedef struct PlaceHolderFfi SetActiveUserOutputFfi;
-
 typedef struct HostBeginCompanionCheckInputFfi {
     int32_t requestId;
 } HostBeginCompanionCheckInputFfi;
@@ -247,10 +237,15 @@ typedef struct HostBeginCompanionCheckOutputFfi {
     uint8_t salt[SALT_LEN_FFI];
 } HostBeginCompanionCheckOutputFfi;
 
+typedef struct Uint16Array64Ffi {
+    uint16_t data[MAX_DATA_LEN_64];
+    uint32_t len;
+} Uint16Array64Ffi;
+
 typedef struct HostEndCompanionCheckInputFfi {
     int32_t requestId;
     uint64_t templateId;
-    struct Uint16Array64Ffi algorithmList;
+    struct Uint16Array64Ffi protocalList;
     struct Uint16Array64Ffi capabilityList;
     uint16_t secureProtocolId;
     struct DataArray1024Ffi secMessage;
@@ -296,7 +291,9 @@ typedef struct HostEndAddCompanionInputFfi {
 
 typedef struct HostEndAddCompanionOutputFfi {
     struct DataArray1024Ffi fwkMessage;
+    struct DataArray1024Ffi secMessage;
     uint64_t templateId;
+    int32_t atl;
 } HostEndAddCompanionOutputFfi;
 
 typedef struct HostCancelAddCompanionInputFfi {
@@ -350,6 +347,12 @@ typedef struct HostCancelIssueTokenInputFfi {
 
 typedef struct PlaceHolderFfi HostCancelIssueTokenOutputFfi;
 
+typedef struct HostActivateTokenInputFfi {
+    int32_t requestId;
+} HostActivateTokenInputFfi;
+
+typedef struct PlaceHolderFfi HostActivateTokenOutputFfi;
+
 typedef struct HostBeginTokenAuthInputFfi {
     int32_t requestId;
     uint64_t scheduleId;
@@ -392,6 +395,14 @@ typedef struct HostUpdateCompanionEnabledBusinessIdsInputFfi {
 } HostUpdateCompanionEnabledBusinessIdsInputFfi;
 
 typedef struct PlaceHolderFfi HostUpdateCompanionEnabledBusinessIdsOutputFfi;
+
+typedef struct HostCheckTemplateEnrolledInputFfi {
+    uint64_t templateId;
+} HostCheckTemplateEnrolledInputFfi;
+
+typedef struct HostCheckTemplateEnrolledOutputFfi {
+    uint8_t enrolled;
+} HostCheckTemplateEnrolledOutputFfi;
 
 typedef struct HostBeginDelegateAuthInputFfi {
     int32_t requestId;
@@ -498,6 +509,7 @@ typedef struct CompanionBeginAddHostBindingOutputFfi {
 typedef struct CompanionEndAddHostBindingInputFfi {
     int32_t requestId;
     int32_t result;
+    struct DataArray1024Ffi secMessage;
 } CompanionEndAddHostBindingInputFfi;
 
 typedef struct CompanionEndAddHostBindingOutputFfi {

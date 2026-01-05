@@ -1,0 +1,33 @@
+# Build and output directories
+/build/
+build_fuzz/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Compiler outputs
+*.o
+*.a
+*.so
+*.dylib
+*.out
+*.exe
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Fuzzer corpus and artifacts
+corpus/
+artifacts/
+
+# Python cache
+__pycache__/
+*.pyc

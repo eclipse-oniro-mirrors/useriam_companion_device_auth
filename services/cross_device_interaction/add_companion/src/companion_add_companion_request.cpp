@@ -15,10 +15,10 @@
 
 #include "companion_add_companion_request.h"
 
+#include <utility>
+
 #include "iam_check.h"
 #include "iam_logger.h"
-
-#include <utility>
 
 #include "add_companion_message.h"
 #include "cross_device_comm_manager_impl.h"
@@ -179,7 +179,14 @@ void CompanionAddCompanionRequest::HandleEndAddCompanion(const Attributes &attrI
     IAM_LOGI("%{public}s Get resultCode %{public}d hostUserId %{public}d companionUserId %{public}d", GetDescription(),
         requestOpt->result, requestOpt->hostDeviceKey.deviceUserId, requestOpt->companionUserId);
 
-    ResultCode ret = GetHostBindingManager().EndAddHostBinding(GetRequestId(), requestOpt->result);
+    // Extract Token data if binding was successful
+    std::vector<uint8_t> tokenData;
+    if (requestOpt->result == ResultCode::SUCCESS && !requestOpt->extraInfo.empty()) {
+        tokenData = requestOpt->extraInfo;
+        IAM_LOGI("%{public}s receive token data from host, size=%{public}zu", GetDescription(), tokenData.size());
+    }
+
+    ResultCode ret = GetHostBindingManager().EndAddHostBinding(GetRequestId(), requestOpt->result, tokenData);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionEndAddHostBinding failed ret=%{public}d", GetDescription(), ret);
         errorGuard.UpdateErrorCode(ret);
@@ -243,8 +250,9 @@ uint32_t CompanionAddCompanionRequest::GetMaxConcurrency() const
     return 1; // Spec: max 1 concurrent CompanionAddCompanionRequest
 }
 
-bool CompanionAddCompanionRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+bool CompanionAddCompanionRequest::ShouldCancelOnNewRequest([[maybe_unused]] RequestType newRequestType,
+    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new CompanionAddCompanionRequest preempts existing one
     if (newRequestType == RequestType::COMPANION_ADD_COMPANION_REQUEST) {

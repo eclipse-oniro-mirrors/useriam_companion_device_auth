@@ -21,10 +21,11 @@
 #include <string>
 #include <vector>
 
+#include "nocopyable.h"
+
 #include "cda_attributes.h"
 #include "cross_device_common.h"
 #include "irequest.h"
-#include "nocopyable.h"
 #include "service_common.h"
 
 namespace OHOS {
@@ -72,7 +73,9 @@ public:
     virtual std::shared_ptr<IRequest> CreateHostSingleMixAuthRequest(ScheduleId scheduleId, std::vector<uint8_t> fwkMsg,
         UserId hostUserId, TemplateId templateId, FwkResultCallback &&requestCallback) = 0;
 
+#ifndef ENABLE_TEST
 protected:
+#endif
     IRequestFactory() = default;
 };
 } // namespace CompanionDeviceAuth

@@ -23,11 +23,8 @@ use crate::String;
 use crate::{log_e, log_i, p, Box, Vec};
 
 fn init_aes_gcm_param(key: Vec<u8>, iv: [u8; AES_GCM_IV_SIZE]) -> Result<AesGcmParam, ErrorCode> {
-    let aes_param = AesGcmParam {
-        key,
-        iv,
-        aad: Vec::new(),
-    };
+    let aad = AES_GCM_AAD.as_bytes().to_vec();
+    let aes_param = AesGcmParam { key, iv, aad };
     Ok(aes_param)
 }
 
@@ -37,12 +34,10 @@ pub fn encrypt_sec_message(
 ) -> Result<(Vec<u8>, [u8; AES_GCM_TAG_SIZE], [u8; AES_GCM_IV_SIZE]), ErrorCode> {
     let mut tag = [0u8; AES_GCM_TAG_SIZE];
     let mut iv = [0u8; AES_GCM_IV_SIZE];
-    CryptoEngineRegistry::get()
-        .secure_random(&mut iv)
-        .map_err(|_| {
-            log_e!("secure_random fail");
-            ErrorCode::GeneralError
-        })?;
+    CryptoEngineRegistry::get().secure_random(&mut iv).map_err(|_| {
+        log_e!("secure_random fail");
+        ErrorCode::GeneralError
+    })?;
     let aes_gcm_param = init_aes_gcm_param(key.to_vec(), iv)?;
     let aes_gcm_result = CryptoEngineRegistry::get()
         .aes_gcm_encrypt(message, &aes_gcm_param)
@@ -52,19 +47,16 @@ pub fn encrypt_sec_message(
     Ok((aes_gcm_result.ciphertext.clone(), tag, iv))
 }
 
-pub fn decrypt_sec_message(
-    sec_message: &[u8],
-    key: &[u8],
-    tag: &[u8],
-    iv: &[u8],
-) -> Result<Vec<u8>, ErrorCode> {
+pub fn decrypt_sec_message(sec_message: &[u8], key: &[u8], tag: &[u8], iv: &[u8]) -> Result<Vec<u8>, ErrorCode> {
     let mut tag_array = [0u8; AES_GCM_TAG_SIZE];
     if tag.len() != AES_GCM_TAG_SIZE {
+        log_e!("tag len is not match, {}", tag.len());
         return Err(ErrorCode::GeneralError);
     }
     tag_array.copy_from_slice(tag);
     let mut iv_array = [0u8; AES_GCM_IV_SIZE];
     if iv.len() != AES_GCM_IV_SIZE {
+        log_e!("iv len is not match, {}", iv.len());
         return Err(ErrorCode::GeneralError);
     }
     iv_array.copy_from_slice(iv);
@@ -77,10 +69,7 @@ pub fn decrypt_sec_message(
     Ok(decrypted_data)
 }
 
-pub fn get_distribute_key(
-    local_device_id: &String,
-    peer_device_id: &String,
-) -> Result<Vec<u8>, ErrorCode> {
+pub fn get_distribute_key(local_device_id: &String, peer_device_id: &String) -> Result<Vec<u8>, ErrorCode> {
     let local_udid: Udid = local_device_id.clone().try_into().map_err(|e| {
         log_e!("Failed to convert device_id to Udid: {:?}", e);
         ErrorCode::GeneralError

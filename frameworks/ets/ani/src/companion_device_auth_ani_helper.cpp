@@ -15,15 +15,17 @@
 
 #include "companion_device_auth_ani_helper.h"
 
-#include "nlohmann/json.hpp"
 #include <cinttypes>
 #include <map>
 #include <string>
+
+#include "nlohmann/json.hpp"
 
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 #include "iam_ptr.h"
+
 #include "taihe/runtime.hpp"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
@@ -39,6 +41,16 @@ const int32_t ATL1 = 10000;
 const int32_t ATL2 = 20000;
 const int32_t ATL3 = 30000;
 const int32_t ATL4 = 40000;
+
+const std::map<int32_t, std::string> g_result2Str = {
+    { static_cast<int32_t>(ResultCode::GENERAL_ERROR),
+        "The system service is not working properly. Please try again later." },
+    { static_cast<int32_t>(ResultCode::NOT_ENROLLED), "The template is not found." },
+    { static_cast<int32_t>(ResultCode::USER_ID_NOT_FOUND), "The local user is not found." },
+    { static_cast<int32_t>(ResultCode::INVALID_BUSINESS_ID), "The business id is invalid." },
+    { static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED), "Permission denied." },
+    { static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED), "Not system application." }
+};
 } // namespace
 
 taihe::array<uint8_t> CompanionDeviceAuthAniHelper::ConvertTemplateId(uint64_t templateId)
@@ -133,7 +145,6 @@ ClientDeviceKey CompanionDeviceAuthAniHelper::ConvertAniDeviceKey(companionDevic
 bool CompanionDeviceAuthAniHelper::WrapDate(int64_t time, ani_object &outObj, ani_env *env)
 {
     IAM_LOGI("start");
-    ani_status status;
     if (env == nullptr || time < 0) {
         IAM_LOGE("env is nullptr or time is invalid value");
         return false;
@@ -189,6 +200,25 @@ bool CompanionDeviceAuthAniHelper::IsAuthTrustLevelValid(int32_t authTrustLevel)
 std::vector<uint8_t> CompanionDeviceAuthAniHelper::ConvertArrayToUint8Vector(const taihe::array<uint8_t> &input)
 {
     return std::vector<uint8_t>(input.begin(), input.end());
+}
+
+void CompanionDeviceAuthAniHelper::ThrowBusinessError(int32_t error)
+{
+    std::string msgStr;
+    if (error == INVALID_BUSINESS_ID) {
+        error = FRAMEWORKS_INVALID_PARAMS;
+    } else if ((error == USER_ID_NOT_FOUND) || (error == NOT_ENROLLED)) {
+        error = FRAMEWORKS_NOT_FOUND;
+    } else if (error == CHECK_PERMISSION_FAILED) {
+        error = FRAMEWORKS_CHECK_PERMISSION_FAILED;
+    } else if (error == CHECK_SYSTEM_PERMISSION_FAILED) {
+        error = FRAMEWORKS_CHECK_SYSTEM_PERMISSION_FAILED;
+    } else {
+        error = FRAMEWORKS_GENERAL_ERROR;
+    }
+    msgStr = g_result2Str.at(error);
+    IAM_LOGI("ThrowBusinessError, errorCode: %{public}d, errmsg: %{public}s", error, msgStr.c_str());
+    taihe::set_business_error(error, msgStr);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -17,6 +17,9 @@
 
 #include <new>
 
+#include "iam_check.h"
+#include "iam_logger.h"
+
 #include "companion_add_companion_request.h"
 #include "companion_auth_maintain_state_change_request.h"
 #include "companion_delegate_auth_request.h"
@@ -32,8 +35,6 @@
 #include "host_single_mix_auth_request.h"
 #include "host_sync_device_status_request.h"
 #include "host_token_auth_request.h"
-#include "iam_check.h"
-#include "iam_logger.h"
 #include "singleton_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"

@@ -30,18 +30,17 @@ class CallbackDeathRecipient : public IRemoteObject::DeathRecipient, public NoCo
 public:
     using DeathCallback = std::function<void()>;
 
-    static sptr<CallbackDeathRecipient> Create(const sptr<IRemoteObject> &remoteObj, DeathCallback &&callback);
+    static sptr<CallbackDeathRecipient> Register(const sptr<IRemoteObject> &remoteObj, DeathCallback &&callback);
 
-    ~CallbackDeathRecipient() override;
+    ~CallbackDeathRecipient() override = default;
     void OnRemoteDied(const wptr<IRemoteObject> &remote) override;
 
+#ifndef ENABLE_TEST
 private:
-    explicit CallbackDeathRecipient(const sptr<IRemoteObject> &remoteObj, DeathCallback &&callback);
-    bool Init();
+#endif
+    explicit CallbackDeathRecipient(DeathCallback &&callback);
 
     DeathCallback callback_;
-    wptr<IRemoteObject> remoteObj_;
-    bool initialized_ { false };
 };
 
 } // namespace CompanionDeviceAuth

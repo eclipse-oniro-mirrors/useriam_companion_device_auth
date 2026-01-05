@@ -17,8 +17,6 @@
  * @file continuous_auth_status_callback.h
  *
  * @brief Callback invoked when continuous authentication results change.
- * @since todo
- * @version todo
  */
 
 #ifndef ICONTINUOUS_AUTH_STATUS_CALLBACK_H
@@ -40,6 +38,20 @@ public:
      */
     virtual void OnContinuousAuthStatusChange(const bool isAuthPassed,
         const std::optional<int32_t> authTrustLevel = std::nullopt) = 0;
+
+    /**
+     * @brief Get user identifier for callback.
+     *
+     * @return user identifier.
+     */
+    virtual int32_t GetUserId() = 0;
+
+    /**
+     * @brief Get template identifier (optional) for callback.
+     *
+     * @return Template identifier (optional).
+     */
+    virtual std::optional<uint64_t> GetTemplateId() = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

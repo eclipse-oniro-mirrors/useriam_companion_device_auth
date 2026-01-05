@@ -20,13 +20,13 @@
 #include <memory>
 #include <utility>
 
-#include "cross_device_comm_manager.h"
 #include "iam_logger.h"
-#include "singleton_manager.h"
 
 #include "available_device_subscription.h"
 #include "continuous_auth_subscription.h"
+#include "cross_device_comm_manager.h"
 #include "cross_device_common.h"
+#include "singleton_manager.h"
 #include "template_status_subscription.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
@@ -44,12 +44,19 @@ std::shared_ptr<AvailableDeviceSubscription> SubscriptionManager::GetOrCreateAva
         return it->second;
     }
 
-    auto subscription = AvailableDeviceSubscription::Create(userId);
+    auto subscription = AvailableDeviceSubscription::Create(userId, weak_from_this());
     if (subscription == nullptr) {
         IAM_LOGE("create AvailableDeviceSubscription failed");
         return nullptr;
     }
     availableDeviceSubscriptions_[userId] = subscription;
+    subscription->SetDeathHandler(
+        [this, userId, subscription](const sptr<IIpcAvailableDeviceStatusCallback> &callback) {
+            if (!subscription->HasCallback()) {
+                availableDeviceSubscriptions_.erase(userId);
+                UpdateSubscribeMode();
+            }
+        });
     return subscription;
 }
 
@@ -60,12 +67,18 @@ std::shared_ptr<TemplateStatusSubscription> SubscriptionManager::GetOrCreateTemp
         return it->second;
     }
 
-    auto subscription = TemplateStatusSubscription::Create(userId);
+    auto subscription = TemplateStatusSubscription::Create(userId, weak_from_this());
     if (subscription == nullptr) {
         IAM_LOGE("create TemplateStatusSubscription failed");
         return nullptr;
     }
     templateStatusSubscriptions_[userId] = subscription;
+    subscription->SetDeathHandler([this, userId, subscription](const sptr<IIpcTemplateStatusCallback> &callback) {
+        if (!subscription->HasCallback()) {
+            templateStatusSubscriptions_.erase(userId);
+            UpdateSubscribeMode();
+        }
+    });
     return subscription;
 }
 
@@ -78,8 +91,13 @@ std::shared_ptr<ContinuousAuthSubscription> SubscriptionManager::GetOrCreateCont
         return it->second;
     }
 
-    auto subscription = std::make_shared<ContinuousAuthSubscription>(userId, templateId);
+    auto subscription = std::make_shared<ContinuousAuthSubscription>(userId, templateId, weak_from_this());
     continuousAuthSubscriptions_[key] = subscription;
+    subscription->SetDeathHandler([this, key, subscription](const sptr<IIpcContinuousAuthStatusCallback> &callback) {
+        if (!subscription->HasCallback()) {
+            continuousAuthSubscriptions_.erase(key);
+        }
+    });
     return subscription;
 }
 
@@ -167,6 +185,7 @@ void SubscriptionManager::AddContinuousAuthStatusCallback(int32_t userId, std::o
     }
 
     auto subscription = GetOrCreateContinuousAuthSubscription(userId, templateId);
+    ENSURE_OR_RETURN(subscription != nullptr);
     subscription->AddCallback(continuousAuthStatusCallback);
 }
 

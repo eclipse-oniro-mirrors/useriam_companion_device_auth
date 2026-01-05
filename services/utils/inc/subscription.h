@@ -33,7 +33,9 @@ public:
 
     void Cancel();
 
+#ifndef ENABLE_TEST
 private:
+#endif
     CleanupFunc cleanup_;
 };
 

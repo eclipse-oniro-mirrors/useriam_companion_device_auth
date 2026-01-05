@@ -24,9 +24,11 @@
 #include "iremote_object.h"
 #include "nocopyable.h"
 
-#include "callback_death_recipient.h"
 #include "iam_check.h"
 #include "iam_logger.h"
+
+#include "callback_death_recipient.h"
+#include "task_runner_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -37,15 +39,33 @@ namespace CompanionDeviceAuth {
 template <typename CallbackType, typename DerivedType>
 class CallbackSubscriptionBase : public NoCopyable, public std::enable_shared_from_this<DerivedType> {
 public:
+    using DeathHandler = std::function<void(const sptr<CallbackType> &)>;
+
+    static bool IsCallbackSame(const sptr<CallbackType> &callback1, const sptr<CallbackType> &callback2)
+    {
+        if (callback1 == nullptr && callback2 == nullptr) {
+            return true;
+        }
+        if (callback1 == nullptr || callback2 == nullptr) {
+            return false;
+        }
+        return callback1->AsObject() == callback2->AsObject();
+    }
+
     virtual ~CallbackSubscriptionBase() = default;
+
+    void SetDeathHandler(const DeathHandler &handler)
+    {
+        deathHandler_ = handler;
+    }
 
     void AddCallback(const sptr<CallbackType> &callback)
     {
-        IAM_LOGI("start AddCallback");
+        IAM_LOGI("start");
         ENSURE_OR_RETURN(callback != nullptr);
 
         auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
-            [&callback](const CallbackInfo &info) { return info.callback == callback; });
+            [&callback](const sptr<CallbackType> &item) { return IsCallbackSame(item, callback); });
         if (it != callbacks_.end()) {
             IAM_LOGI("Callback already exists");
             return;
@@ -55,35 +75,36 @@ public:
         ENSURE_OR_RETURN(obj != nullptr);
 
         sptr<IRemoteObject::DeathRecipient> deathRecipient =
-            CallbackDeathRecipient::Create(obj, [weakSelf = GetWeakPtr(), callback]() {
+            CallbackDeathRecipient::Register(obj, [weakSelf = GetWeakPtr(), callback, deathHandler = deathHandler_]() {
                 IAM_LOGI("callback died, remove callback");
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->RemoveCallback(callback);
+                if (deathHandler) {
+                    deathHandler(callback);
+                }
             });
         ENSURE_OR_RETURN(deathRecipient != nullptr);
-        callbacks_.push_back({ callback, deathRecipient });
-
-        IAM_LOGI("end AddCallback");
+        callbacks_.push_back(callback);
 
         static_cast<DerivedType *>(this)->OnCallbackAdded(callback);
     }
 
     void RemoveCallback(const sptr<CallbackType> &callback)
     {
-        IAM_LOGI("start RemoveCallback");
+        IAM_LOGI("start");
         ENSURE_OR_RETURN(callback != nullptr);
 
         auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
-            [&callback](const CallbackInfo &info) { return info.callback == callback; });
+            [&callback](const sptr<CallbackType> &item) { return IsCallbackSame(callback, callback); });
         if (it != callbacks_.end()) {
             callbacks_.erase(it);
         }
-        IAM_LOGI("end RemoveCallback");
     }
 
     bool HasCallback() const
     {
+        IAM_LOGI("remain callback count: %{public}zu", callbacks_.size());
         return !callbacks_.empty();
     }
 
@@ -91,13 +112,13 @@ public:
 
     virtual void OnCallbackAdded(const sptr<CallbackType> &callback) = 0;
 
-protected:
-    struct CallbackInfo {
-        sptr<CallbackType> callback;
-        sptr<IRemoteObject::DeathRecipient> deathRecipient;
-    };
+    virtual void OnCallbackRemoteDied(const sptr<CallbackType> &callback) {};
 
-    std::vector<CallbackInfo> callbacks_;
+#ifndef ENABLE_TEST
+protected:
+#endif
+    std::vector<sptr<CallbackType>> callbacks_;
+    DeathHandler deathHandler_;
 };
 
 } // namespace CompanionDeviceAuth

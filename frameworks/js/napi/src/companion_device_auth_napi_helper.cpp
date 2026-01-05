@@ -16,16 +16,17 @@
 #include "companion_device_auth_napi_helper.h"
 
 #include <cinttypes>
-#include <uv.h>
-
-#include "securec.h"
 
 #include "napi/native_api.h"
 #include "napi/native_common.h"
 #include "napi/native_node_api.h"
+#include "securec.h"
+#include <uv.h>
 
 #include "iam_logger.h"
 #include "iam_ptr.h"
+
+#include "common_defines.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_NAPI"
 
@@ -40,26 +41,15 @@ struct DeleteRefHolder {
     napi_ref ref { nullptr };
 };
 
-const std::map<int32_t, std::string> g_result2Str = { { static_cast<int32_t>(ResultCode::SUCCESS),
-                                                          "Authentication succeeded." },
-    { static_cast<int32_t>(ResultCode::FAIL), "Authentication failed." },
-    { static_cast<int32_t>(ResultCode::GENERAL_ERROR), "Unknown errors." },
-    { static_cast<int32_t>(ResultCode::CANCELED), "Authentication canceled." },
-    { static_cast<int32_t>(ResultCode::TIMEOUT), "Authentication timeout." },
-    { static_cast<int32_t>(ResultCode::TYPE_NOT_SUPPORT), "Unsupported authentication type." },
-    { static_cast<int32_t>(ResultCode::TRUST_LEVEL_NOT_SUPPORT), "Unsupported authentication trust level." },
-    { static_cast<int32_t>(ResultCode::BUSY), "Authentication service is busy." },
-    { static_cast<int32_t>(ResultCode::LOCKED), "Authentication is lockout." },
-    { static_cast<int32_t>(ResultCode::NOT_ENROLLED), "Authentication template has not been enrolled." },
-    { static_cast<int32_t>(ResultCode::CANCELED_FROM_WIDGET), "Authentication is canceled from widget." },
-    { static_cast<int32_t>(ResultCode::PIN_EXPIRED), "Operation failed because of PIN expired." },
-    { static_cast<int32_t>(ResultCode::AUTH_TOKEN_CHECK_FAILED),
-        "Operation failed because of authToken integrity check failed." },
-    { static_cast<int32_t>(ResultCode::AUTH_TOKEN_EXPIRED), "Operation failed because of authToken has expired." },
-    { static_cast<int32_t>(ResultCode::INVALID_PARAMETERS), "Invalid parameters." },
-    { static_cast<int32_t>(ResultCode::HARDWARE_NOT_SUPPORTED), "Hardware do not support." },
-    { static_cast<int32_t>(ResultCode::COMPLEXITY_CHECK_FAILED), "Fail to check complexity." },
-    { static_cast<int32_t>(ResultCode::COMMUNICATION_ERROR), "Communication error." } };
+const std::map<int32_t, std::string> g_result2Str = {
+    { static_cast<int32_t>(ResultCode::GENERAL_ERROR),
+        "The system service is not working properly. Please try again later." },
+    { static_cast<int32_t>(ResultCode::NOT_ENROLLED), "The template is not found." },
+    { static_cast<int32_t>(ResultCode::USER_ID_NOT_FOUND), "The local user is not found." },
+    { static_cast<int32_t>(ResultCode::INVALID_BUSINESS_ID), "The business id is invalid." },
+    { static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED), "Permission denied." },
+    { static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED), "Not system application." }
+};
 } // namespace
 
 JsRefHolder::JsRefHolder(napi_env env, napi_value value)
@@ -766,28 +756,29 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertTemplateStatusToNapiValue(napi_
     return templateStatusValue;
 }
 
-napi_value CompanionDeviceAuthNapiHelper::GenerateBusinessError(napi_env env, int32_t result)
+napi_value CompanionDeviceAuthNapiHelper::GenerateBusinessError(napi_env env, int32_t error)
 {
-    napi_value code;
     std::string msgStr;
-    auto res = g_result2Str.find(result);
-    if (res == g_result2Str.end()) {
-        IAM_LOGE("result %{public}d not found", result);
-        msgStr = g_result2Str.at(static_cast<int32_t>(GENERAL_ERROR));
-        NAPI_CALL(env, napi_create_int32(env, static_cast<int32_t>(GENERAL_ERROR), &code));
-    } else {
-        msgStr = res->second;
-        NAPI_CALL(env, napi_create_int32(env, result, &code));
-    }
-    IAM_LOGI("get msg %{public}s", msgStr.c_str());
-
+    napi_value code;
     napi_value msg;
-    NAPI_CALL(env, napi_create_string_utf8(env, msgStr.c_str(), NAPI_AUTO_LENGTH, &msg));
-
     napi_value businessError;
+    if (error == INVALID_BUSINESS_ID) {
+        error = FRAMEWORKS_INVALID_PARAMS;
+    } else if ((error == USER_ID_NOT_FOUND) || (error == NOT_ENROLLED)) {
+        error = FRAMEWORKS_NOT_FOUND;
+    } else if (error == CHECK_PERMISSION_FAILED) {
+        error = FRAMEWORKS_CHECK_PERMISSION_FAILED;
+    } else if (error == CHECK_SYSTEM_PERMISSION_FAILED) {
+        error = FRAMEWORKS_CHECK_SYSTEM_PERMISSION_FAILED;
+    } else {
+        error = FRAMEWORKS_GENERAL_ERROR;
+    }
+    msgStr = g_result2Str.at(error);
+    IAM_LOGI("ThrowBusinessError, errorCode: %{public}d, errmsg: %{public}s", error, msgStr.c_str());
+    NAPI_CALL(env, napi_create_int32(env, error, &code));
+    NAPI_CALL(env, napi_create_string_utf8(env, msgStr.c_str(), NAPI_AUTO_LENGTH, &msg));
     NAPI_CALL(env, napi_create_error(env, nullptr, msg, &businessError));
     NAPI_CALL(env, napi_set_named_property(env, businessError, "code", code));
-
     return businessError;
 }
 

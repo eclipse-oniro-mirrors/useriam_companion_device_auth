@@ -36,7 +36,9 @@ public:
     bool RegisterHandlers();
     ~IncomingMessageHandlerRegistry() = default;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     IncomingMessageHandlerRegistry() = default;
 
     std::vector<std::shared_ptr<IncomingMessageHandler>> handlers_;

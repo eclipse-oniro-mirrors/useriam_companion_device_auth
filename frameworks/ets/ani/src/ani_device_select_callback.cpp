@@ -15,12 +15,13 @@
 
 #include "ani_device_select_callback.h"
 
-#include "common_defines.h"
-#include "companion_device_auth_ani_helper.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 #include "iam_ptr.h"
+
+#include "common_defines.h"
+#include "companion_device_auth_ani_helper.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
 

@@ -17,10 +17,10 @@
 
 #include <optional>
 
-#include "error_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "error_guard.h"
 #include "host_binding_manager.h"
 #include "obtain_token_message.h"
 #include "security_agent.h"
@@ -41,20 +41,19 @@ CompanionObtainTokenRequest::CompanionObtainTokenRequest(const DeviceKey &hostDe
 
 bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
-    auto localDeviceStatus = GetCrossDeviceCommManager().GetLocalDeviceStatus();
-    if (!localDeviceStatus.isAuthMaintainActive) {
+    if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
         IAM_LOGE("%{public}s local auth maintain inactive", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
         return false;
     }
-    localDeviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeLocalDeviceStatus(
-        [weakSelf = std::weak_ptr<CompanionObtainTokenRequest>(shared_from_this())](const LocalDeviceStatus &status) {
+    localDeviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive(
+        [weakSelf = std::weak_ptr<CompanionObtainTokenRequest>(shared_from_this())](bool isActive) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->HandleLocalDeviceStatusChanged(status);
+            self->HandleAuthMaintainActiveChanged(isActive);
         });
     if (localDeviceStatusSubscription_ == nullptr) {
-        IAM_LOGE("%{public}s failed to subscribe local device status", GetDescription());
+        IAM_LOGE("%{public}s failed to subscribe auth maintain active", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
         return false;
     }
@@ -266,7 +265,7 @@ uint32_t CompanionObtainTokenRequest::GetMaxConcurrency() const
 }
 
 bool CompanionObtainTokenRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new CompanionObtainTokenRequest to same device preempts existing one
     if (newRequestType == RequestType::COMPANION_OBTAIN_TOKEN_REQUEST && GetPeerDeviceKey() == newPeerDevice) {
@@ -282,9 +281,9 @@ std::weak_ptr<OutboundRequest> CompanionObtainTokenRequest::GetWeakPtr()
     return shared_from_this();
 }
 
-void CompanionObtainTokenRequest::HandleLocalDeviceStatusChanged(const LocalDeviceStatus &status)
+void CompanionObtainTokenRequest::HandleAuthMaintainActiveChanged(bool isActive)
 {
-    if (status.isAuthMaintainActive) {
+    if (isActive) {
         return;
     }
     IAM_LOGE("%{public}s local auth maintain inactive, cancel request", GetDescription());

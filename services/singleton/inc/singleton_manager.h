@@ -20,7 +20,6 @@
 
 #include "nocopyable.h"
 
-#include "active_user_id_manager.h"
 #include "companion_manager.h"
 #include "cross_device_comm_manager.h"
 #include "host_binding_manager.h"
@@ -30,6 +29,7 @@
 #include "request_manager.h"
 #include "security_agent.h"
 #include "system_param_manager.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -53,8 +53,8 @@ public:
     virtual ISystemParamManager &GetSystemParamManager() = 0;
     virtual void SetSystemParamManager(std::shared_ptr<ISystemParamManager> systemParamManager) = 0;
 
-    virtual IActiveUserIdManager &GetActiveUserIdManager() = 0;
-    virtual void SetActiveUserIdManager(std::shared_ptr<IActiveUserIdManager> activeUserIdManager) = 0;
+    virtual IUserIdManager &GetActiveUserIdManager() = 0;
+    virtual void SetActiveUserIdManager(std::shared_ptr<IUserIdManager> activeUserIdManager) = 0;
 
     virtual ISecurityAgent &GetSecurityAgent() = 0;
     virtual void SetSecurityAgent(std::shared_ptr<ISecurityAgent> securityAgent) = 0;
@@ -74,7 +74,9 @@ public:
     virtual void Reset() = 0;
 #endif
 
+#ifndef ENABLE_TEST
 protected:
+#endif
     SingletonManager() = default;
 };
 
@@ -98,7 +100,7 @@ inline ISystemParamManager &GetSystemParamManager()
     return SingletonManager::GetInstance().GetSystemParamManager();
 }
 
-inline IActiveUserIdManager &GetActiveUserIdManager()
+inline IUserIdManager &GetActiveUserIdManager()
 {
     return SingletonManager::GetInstance().GetActiveUserIdManager();
 }

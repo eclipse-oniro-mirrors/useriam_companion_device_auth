@@ -27,6 +27,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 using namespace std;
 const int32_t TRUNCATED_WIDTH = 4;
+const int SETW_VAL = 2;
 static inline std::string GetMaskedString(uint16_t val)
 {
     std::ostringstream ss;
@@ -85,6 +86,20 @@ template <typename T>
 static inline std::string GetOptionalString(const std::optional<T> &val)
 {
     return val.has_value() ? std::to_string(val.value()) : "nullopt";
+}
+
+static inline std::string GetUint8ArrayStr(const std::vector<uint8_t> &val)
+{
+    std::ostringstream ss;
+    ss << "[";
+    for (size_t i = 0; i < val.size(); ++i) {
+        if (i > 0) {
+            ss << ", ";
+        }
+        ss << "0x" << std::setfill('0') << std::setw(SETW_VAL) << std::hex << static_cast<uint32_t>(val[i]);
+    }
+    ss << "]";
+    return ss.str();
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

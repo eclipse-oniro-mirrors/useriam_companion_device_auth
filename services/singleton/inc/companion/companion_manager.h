@@ -60,9 +60,9 @@ public:
 
     virtual ResultCode BeginAddCompanion(const BeginAddCompanionParams &params,
         std::vector<uint8_t> &outAddHostBindingRequest) = 0;
-    virtual ResultCode EndAddCompanion(RequestId requestId, const PersistedCompanionStatus &companionStatus,
-        SecureProtocolId secureProtocolId, const std::vector<uint8_t> &addHostBindingReply,
-        std::vector<uint8_t> &outFwkMsg) = 0;
+    virtual ResultCode EndAddCompanion(const EndAddCompanionInputParam &inputParam,
+        std::vector<uint8_t> &outFwkMsg, std::vector<uint8_t> &outTokenData, Atl &outAtl) = 0;
+    virtual ResultCode ActivateToken(RequestId requestId, TemplateId templateId, Atl atl) = 0;
     virtual ResultCode RemoveCompanion(TemplateId templateId) = 0;
 
     virtual ResultCode UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
@@ -70,6 +70,9 @@ public:
     virtual ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
         const std::vector<BusinessIdType> &enabledBusinessIds) = 0;
     virtual bool SetCompanionTokenAtl(TemplateId templateId, std::optional<Atl> atl) = 0;
+
+    virtual ResultCode UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg,
+        bool &needRedistribute) = 0;
 
     virtual ResultCode HandleCompanionCheckFail(TemplateId templateId) = 0;
 
@@ -79,7 +82,9 @@ public:
 
     virtual void NotifyCompanionStatusChange() = 0;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     virtual void Initialize() = 0;
 };
 } // namespace CompanionDeviceAuth

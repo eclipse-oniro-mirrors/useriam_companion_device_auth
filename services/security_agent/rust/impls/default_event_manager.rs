@@ -29,10 +29,7 @@ pub struct DefaultEventManager {
 
 impl DefaultEventManager {
     pub fn new() -> Self {
-        Self {
-            events: vec![],
-            has_fatal_error: false,
-        }
+        Self { events: vec![], has_fatal_error: false }
     }
 
     fn remove_first_event(&mut self, event_type: EventType) -> Option<Event> {
@@ -54,12 +51,7 @@ impl EventManager for DefaultEventManager {
 
         self.events.push(event.clone());
         if self.events.len() > MAX_EVENT_NUM {
-            for event_type in [
-                EventType::Command,
-                EventType::Error,
-                EventType::BigData,
-                EventType::FatalError,
-            ] {
+            for event_type in [EventType::Command, EventType::Error, EventType::BigData, EventType::FatalError] {
                 if let Some(_event) = self.remove_first_event(event_type) {
                     break;
                 }

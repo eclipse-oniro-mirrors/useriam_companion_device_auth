@@ -15,9 +15,9 @@
 
 #include "add_companion_message.h"
 
-#include "common_message.h"
 #include "iam_check.h"
 
+#include "common_message.h"
 #include "singleton_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
@@ -116,6 +116,7 @@ bool EncodeEndAddHostBindingRequest(const EndAddHostBindingRequest &request, Att
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(request.result));
+    attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
     return true;
 }
 
@@ -132,6 +133,8 @@ std::optional<EndAddHostBindingRequest> DecodeEndAddHostBindingRequest(const Att
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
     request.result = static_cast<ResultCode>(result);
+    bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
+    ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
     return request;
 }
 

@@ -22,7 +22,7 @@
 #include "companion_device_auth_all_in_one_executor.h"
 #include "singleton_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_SA"
+#define LOG_TAG "COMPANION_DEVICE_AUTH"
 
 namespace OHOS {
 namespace UserIam {

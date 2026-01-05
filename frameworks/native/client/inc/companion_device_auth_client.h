@@ -17,8 +17,6 @@
  * @file companion_device_auth_client.h
  *
  * @brief companion device auth client interfaces.
- * @since todo
- * @version todo
  */
 
 #ifndef COMPANION_DEVICE_AUTH_CLIENT_H
@@ -54,23 +52,27 @@ public:
     virtual ~CompanionDeviceAuthClient() = default;
 
     /**
-     * @brief Device selection callback signature that returns appropriate devices for the requested purpose.
+     * @brief Register the device selection callback to provide customized device selection logic.
      *
      * @param callback Selector implementation that returns device candidates.
+     * @return Return RegisterDeviceSelectCallback result(0:success; other:failed).
      */
     virtual int32_t RegisterDeviceSelectCallback(const std::shared_ptr<IDeviceSelectCallback> &callback) = 0;
 
     /**
      * @brief Unregister the currently registered device selection callback.
+     *
+     * @return Return UnregisterDeviceSelectCallback result(0:success; other:failed).
      */
     virtual int32_t UnregisterDeviceSelectCallback() = 0;
 
     /**
      * @brief Update the list of enabled business identifiers for the specified template.
+     *        The new scope becomes effective after the returned promise resolves.
      *
-     * @param localUserId Local user identifier bound to the monitor.
-     *
-     * @return Monitor for available device updates.
+     * @param templateId Identifier of the template to modify.
+     * @param enabledBusinessIds Business identifiers that should remain enabled.
+     * @return Return UpdateTemplateEnabledBusinessIds result(0:success; other:failed).
      */
     virtual int32_t UpdateTemplateEnabledBusinessIds(const uint64_t templateId,
         const std::vector<int32_t> enabledBusinessIds) = 0;
@@ -78,40 +80,50 @@ public:
     /**
      * @brief Retrieve the full list of template statuses.
      *
-     * @return Promise resolved with current template statuses.
+     * @param localUserId Local user identifier.
+     * @param templateStatusList Latest template status list.
+     * @return Return GetTemplateStatus result(0:success; other:failed).
      */
-    virtual int32_t GetTemplateStatus(std::vector<ClientTemplateStatus> &templateStatusList) = 0;
+    virtual int32_t GetTemplateStatus(const int32_t localUserId,
+        std::vector<ClientTemplateStatus> &templateStatusList) = 0;
 
     /**
      * @brief Subscribe to template status changes.
+     *        The callback receives all current templates after registration and every update.
      *
-     * @param callback The callback receives all current templates after registration and every update.
+     * @param localUserId Local user identifier.
+     * @param callback Handler that processes template status updates.
+     * @return Return SubscribeTemplateStatusChange result(0:success; other:failed).
      */
     virtual int32_t SubscribeTemplateStatusChange(const int32_t localUserId,
         const std::shared_ptr<ITemplateStatusCallback> &callback) = 0;
 
     /**
-     * @brief Cancel template status subscription. Omit the callback to remove all subscriptions created by the caller.
+     * @brief Cancel template status subscription.
      *
      * @param callback Target callback to remove.
+     * @return Return UnsubscribeTemplateStatusChange result(0:success; other:failed).
      */
     virtual int32_t UnsubscribeTemplateStatusChange(const std::shared_ptr<ITemplateStatusCallback> &callback) = 0;
 
     /**
      * @brief Subscribe to continuous authentication updates for a template.
      *
-     * @param continuousAuthParam Subscription parameters describing the template of interest.
+     * @param localUserId Local user identifier.
      * @param callback Handler for continuous authentication outcomes.
+     * @param templateId template identifier; omit the template identifier to
+     *                   subscribe to continuous authentication updates for all templates.
+     * @return Return SubscribeContinuousAuthStatusChange result(0:success; other:failed).
      */
     virtual int32_t SubscribeContinuousAuthStatusChange(const int32_t localUserId,
         const std::shared_ptr<IContinuousAuthStatusCallback> &callback,
         const std::optional<uint64_t> templateId = std::nullopt) = 0;
 
     /**
-     * @brief Cancel continuous authentication subscription; omit the callback to remove all handlers registered by the
-     * caller.
+     * @brief Cancel continuous authentication subscription;
      *
      * @param callback Target callback to remove when provided.
+     * @return Return UnsubscribeContinuousAuthStatusChange result(0:success; other:failed).
      */
     virtual int32_t UnsubscribeContinuousAuthStatusChange(
         const std::shared_ptr<IContinuousAuthStatusCallback> &callback) = 0;
@@ -119,19 +131,30 @@ public:
     /**
      * @brief Subscribe to status changes of available devices.
      *
+     * @param localUserId Local user identifier.
      * @param callback Callback executed when available device status changes.
+     * @return Return SubscribeAvailableDeviceStatus result(0:success; other:failed).
      */
     virtual int32_t SubscribeAvailableDeviceStatus(const int32_t localUserId,
         const std::shared_ptr<IAvailableDeviceStatusCallback> &callback) = 0;
 
     /**
-     * @brief Cancel available device status subscription. Omit the callback to remove all available device
-     * subscriptions created by the caller.
+     * @brief Cancel available device status subscription.
      *
      * @param callback Target callback to unsubscribe.
+     * @return Return UnsubscribeAvailableDeviceStatus result(0:success; other:failed).
      */
     virtual int32_t UnsubscribeAvailableDeviceStatus(
         const std::shared_ptr<IAvailableDeviceStatusCallback> &callback) = 0;
+
+    /**
+     * @brief Check whether input local user id valid or not.
+     *
+     * @param localUserId Local user identifier.
+     * @param isUserIdValid check result for user id valid or not.
+     * @return Return CheckLocalUserIdValid result(0:success; other:failed).
+     */
+    virtual int32_t CheckLocalUserIdValid(const int32_t localUserId, bool &isUserIdValid) = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

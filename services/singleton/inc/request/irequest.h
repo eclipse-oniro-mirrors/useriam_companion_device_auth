@@ -62,7 +62,7 @@ public:
     virtual ~IRequest() = default;
 
     virtual void Start() = 0;
-    virtual bool Cancel() = 0;
+    virtual bool Cancel(ResultCode resultCode) = 0;
     virtual RequestType GetRequestType() const = 0;
     virtual const char *GetDescription() const = 0;
     virtual RequestId GetRequestId() const = 0;

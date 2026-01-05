@@ -15,10 +15,10 @@
 
 #include "host_add_companion_request.h"
 
+#include <chrono>
+
 #include "iam_check.h"
 #include "iam_logger.h"
-
-#include <chrono>
 
 #include "add_companion_message.h"
 #include "common_defines.h"
@@ -44,7 +44,7 @@ HostAddCompanionRequest::HostAddCompanionRequest(ScheduleId scheduleId, const st
 {
 }
 
-bool HostAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
+bool HostAddCompanionRequest::OnStart([[maybe_unused]] ErrorGuard &errorGuard)
 {
     bool selectorSet = GetMiscManager().GetDeviceDeviceSelectResult(tokenId_, SelectPurpose::SELECT_ADD_DEVICE,
         [weakSelf = weak_from_this()](const std::vector<DeviceKey> &selectedDevices) {
@@ -239,13 +239,28 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
     companionStatus.deviceName = deviceStatus->deviceName;
     companionStatus.isValid = true;
 
-    ResultCode ret = GetCompanionManager().EndAddCompanion(GetRequestId(), companionStatus, secureProtocolId_,
-        reply.extraInfo, fwkMsg);
+    std::vector<uint8_t> tokenData;
+    Atl atl = 0;
+    EndAddCompanionInputParam inputParam;
+    inputParam.requestId = GetRequestId();
+    inputParam.companionStatus = companionStatus;
+    inputParam.secureProtocolId = secureProtocolId_;
+    inputParam.addHostBindingReply = reply.extraInfo;
+    ResultCode ret = GetCompanionManager().EndAddCompanion(inputParam, fwkMsg, tokenData, atl);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s EndAddCompanion failed ret=%{public}d", GetDescription(), ret);
         return false;
     }
     needCancelCompanionAdd_ = false;
+    needCancelIssueToken_ = true;
+
+    auto companionStatusOpt =
+        GetCompanionManager().GetCompanionStatus(companionStatus.hostUserId, companionStatus.companionDeviceKey);
+    ENSURE_OR_RETURN_VAL(companionStatusOpt.has_value(), false);
+    templateId_ = companionStatusOpt->templateId;
+
+    pendingTokenData_ = std::move(tokenData);
+    tokenAtl_ = atl;
     return true;
 }
 
@@ -256,7 +271,8 @@ bool HostAddCompanionRequest::SendEndAddHostBindingMsg(ResultCode result)
 
     EndAddHostBindingRequest requestMsg = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionDeviceKey->deviceUserId,
-        .result = result };
+        .result = result,
+        .extraInfo = pendingTokenData_ }; // 包含加密后的 Token 数据（仅当成功时非空）
     Attributes request = {};
     bool encodeRet = EncodeEndAddHostBindingRequest(requestMsg, request);
     ENSURE_OR_RETURN_VAL(encodeRet, false);
@@ -283,12 +299,23 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
     ENSURE_OR_RETURN(replyMsgOpt.has_value());
 
     const auto &replyMsg = *replyMsgOpt;
+
     if (replyMsg.result != ResultCode::SUCCESS) {
-        // end add host binding failed does not affect the result of the request
-        IAM_LOGE("%{public}s end add host binding failed result=%{public}d", GetDescription(),
+        IAM_LOGE("%{public}s token distribution failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(replyMsg.result));
+        errorGuard.UpdateErrorCode(replyMsg.result);
         return;
     }
+
+    ENSURE_OR_RETURN(templateId_ != 0);
+    ResultCode ret = GetCompanionManager().ActivateToken(GetRequestId(), templateId_, tokenAtl_);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s ActivateToken failed ret=%{public}d", GetDescription(), ret);
+        errorGuard.UpdateErrorCode(ret);
+        return;
+    }
+    needCancelIssueToken_ = false;
+    IAM_LOGI("%{public}s token activated successfully", GetDescription());
 
     errorGuard.Cancel();
     CompleteWithSuccess();
@@ -322,6 +349,14 @@ void HostAddCompanionRequest::CompleteWithError(ResultCode result)
         }
         needCancelCompanionAdd_ = false;
     }
+    if (needCancelIssueToken_) {
+        HostCancelIssueTokenInput cancelInput = { .requestId = GetRequestId() };
+        ResultCode ret = GetSecurityAgent().HostCancelIssueToken(cancelInput);
+        if (ret != ResultCode::SUCCESS) {
+            IAM_LOGE("%{public}s HostCancelIssueToken failed ret=%{public}d", GetDescription(), ret);
+        }
+        needCancelIssueToken_ = false;
+    }
     InvokeCallback(result, {});
     Destroy();
 }
@@ -339,8 +374,9 @@ uint32_t HostAddCompanionRequest::GetMaxConcurrency() const
     return 1; // Spec: max 1 concurrent HostAddCompanionRequest
 }
 
-bool HostAddCompanionRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+bool HostAddCompanionRequest::ShouldCancelOnNewRequest([[maybe_unused]] RequestType newRequestType,
+    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostAddCompanionRequest preempts existing one
     if (newRequestType == RequestType::HOST_ADD_COMPANION_REQUEST) {

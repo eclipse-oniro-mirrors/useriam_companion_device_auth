@@ -25,7 +25,7 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_SA"
+#define LOG_TAG "COMPANION_DEVICE_AUTH"
 
 namespace OHOS {
 namespace UserIam {
@@ -55,7 +55,8 @@ bool RequestManagerImpl::Start(const std::shared_ptr<IRequest> &request)
     std::vector<std::shared_ptr<IRequest>> requestToCancel;
 
     auto processRequests = [&subsequentSameTypeCount, &request, &requestToCancel](const auto &container) {
-        for (const auto &existingRequest : container) {
+        for (auto it = container.rbegin(); it != container.rend(); ++it) {
+            const auto &existingRequest = *it;
             ENSURE_OR_CONTINUE(existingRequest != nullptr);
             if (existingRequest->ShouldCancelOnNewRequest(request->GetRequestType(), request->GetPeerDeviceKey(), 0)) {
                 requestToCancel.push_back(existingRequest);
@@ -67,12 +68,12 @@ bool RequestManagerImpl::Start(const std::shared_ptr<IRequest> &request)
         }
     };
 
-    processRequests(runningRequests_);
     processRequests(waitingRequests_);
+    processRequests(runningRequests_);
 
     TaskRunnerManager::GetInstance().PostTaskOnResident([requestToCancel]() {
         for (auto &request : requestToCancel) {
-            request->Cancel();
+            request->Cancel(ResultCode::CANCELED);
         }
     });
 
@@ -91,7 +92,7 @@ bool RequestManagerImpl::Cancel(RequestId requestId)
 {
     auto request = Get(requestId);
     if (request != nullptr) {
-        return request->Cancel();
+        return request->Cancel(ResultCode::CANCELED);
     }
     IAM_LOGE("request not found, requestId:%{public}d", requestId);
     return false;
@@ -104,14 +105,14 @@ bool RequestManagerImpl::CancelRequestByScheduleId(ScheduleId scheduleId)
     for (const auto &request : runningRequests_) {
         ENSURE_OR_CONTINUE(request != nullptr);
         if (request->GetScheduleId() == scheduleId) {
-            return request->Cancel();
+            return request->Cancel(ResultCode::CANCELED);
         }
     }
 
     for (const auto &request : waitingRequests_) {
         ENSURE_OR_CONTINUE(request != nullptr);
         if (request->GetScheduleId() == scheduleId) {
-            return request->Cancel();
+            return request->Cancel(ResultCode::CANCELED);
         }
     }
 
@@ -126,7 +127,7 @@ void RequestManagerImpl::CancelAll()
             continue;
         }
         RequestId requestId = request->GetRequestId();
-        if (!request->Cancel()) {
+        if (!request->Cancel(ResultCode::CANCELED)) {
             IAM_LOGE("cancel request %{public}d failed", requestId);
         }
     }
@@ -136,7 +137,7 @@ void RequestManagerImpl::CancelAll()
             continue;
         }
         RequestId requestId = request->GetRequestId();
-        if (!request->Cancel()) {
+        if (!request->Cancel(ResultCode::CANCELED)) {
             IAM_LOGE("cancel request %{public}d failed", requestId);
         }
     }
@@ -196,7 +197,9 @@ void RequestManagerImpl::Remove(RequestId requestId)
         runningRequests_.push_back(requestToStart);
     }
 
-    ENSURE_OR_RETURN(requestToStart != nullptr);
+    if (requestToStart == nullptr) {
+        return;
+    }
     TaskRunnerManager::GetInstance().PostTaskOnResident([requestToStart]() { requestToStart->Start(); });
 }
 

@@ -17,8 +17,6 @@
  * @file companion_device_auth_common_defines.h
  *
  * @brief Some common defines in companion_device_auth.
- * @since todo
- * @version todo
  */
 
 #ifndef COMPANION_DEVICE_AUTH_COMMON_DEFINES_H
@@ -83,7 +81,7 @@ struct ClientTemplateStatus {
 };
 
 /**
- * @brief Result key used to identify a companion device.
+ * @brief Result returned by the device selection callback.
  */
 struct ClientDeviceSelectResult {
     /** Device keys used to identify a companion device. */

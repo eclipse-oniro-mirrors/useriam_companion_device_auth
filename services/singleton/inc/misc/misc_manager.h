@@ -49,9 +49,11 @@ public:
         DeviceSelectResultHandler &&resultHandler) = 0;
     virtual void ClearDeviceSelectCallback(uint32_t tokenId) = 0;
     virtual std::optional<std::string> GetLocalUdid() = 0;
-    virtual uint32_t GetAccessTokenId(IPCObjectStub &stub) = 0;
+    virtual bool CheckBusinessIds(const std::vector<int32_t> &businessIds) = 0;
 
+#ifndef ENABLE_TEST
 protected:
+#endif
     IMiscManager() = default;
 };
 } // namespace CompanionDeviceAuth

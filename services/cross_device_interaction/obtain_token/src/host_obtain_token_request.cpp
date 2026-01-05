@@ -17,12 +17,12 @@
 
 #include <utility>
 
-#include "error_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
 #include "companion_manager.h"
 #include "cross_device_comm_manager_impl.h"
+#include "error_guard.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 
@@ -257,7 +257,7 @@ uint32_t HostObtainTokenRequest::GetMaxConcurrency() const
 }
 
 bool HostObtainTokenRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostAddCompanionRequest preempts HostObtainTokenRequest
     if (newRequestType == RequestType::HOST_ADD_COMPANION_REQUEST) {

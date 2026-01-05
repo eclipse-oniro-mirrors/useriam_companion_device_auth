@@ -36,8 +36,7 @@ public:
      * @brief Device selection callback signature that returns appropriate devices for the requested purpose.
      *
      * @param selectPurpose Purpose value.
-     *
-     * @return Device list that satisfies the selection purpose.
+     * @param callback Set device select result callback.
      */
     virtual void OnDeviceSelect(int32_t selectPurpose,
         const std::shared_ptr<SetDeviceSelectResultCallback> &callback) = 0;

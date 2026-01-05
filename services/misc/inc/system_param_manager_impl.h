@@ -42,7 +42,9 @@ public:
 
     void OnParamChange(const std::string &key, const std::string &value);
 
+#ifndef ENABLE_TEST
 private:
+#endif
     SystemParamManagerImpl();
     void UnwatchParam(int32_t subscriptionId);
 

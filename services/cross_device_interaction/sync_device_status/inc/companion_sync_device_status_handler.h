@@ -16,11 +16,11 @@
 #ifndef COMPANION_DEVICE_AUTH_COMPANION_SYNC_DEVICE_STATUS_HANDLER_H
 #define COMPANION_DEVICE_AUTH_COMPANION_SYNC_DEVICE_STATUS_HANDLER_H
 
-#include "active_user_id_manager.h"
 #include "host_binding_manager.h"
 #include "security_agent.h"
 #include "sync_device_status_message.h"
 #include "sync_incoming_message_handler.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -35,7 +35,9 @@ protected:
 #endif
     void HandleRequest(const Attributes &request, Attributes &reply) override;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     bool CompanionProcessCheck(const HostBindingStatus &hostBindingStatus, const SyncDeviceStatusRequest &syncRequest,
         std::vector<uint8_t> &outCompanionCheckResponse);
 };

@@ -17,6 +17,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+
 #include "singleton_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"

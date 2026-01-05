@@ -40,7 +40,8 @@ interface OHOS.UserIam.CompanionDeviceAuth.ICompanionDeviceAuth {
     void UnsubscribeContinuousAuthStatusChange([in] IIpcContinuousAuthStatusCallback continuousAuthStatusCallback,
         [out] int resultCode);
 
-    void GetTemplateStatus([out] IpcTemplateStatus[] templateStatusList, [out] int resultCode);
+    void GetTemplateStatus([in] int localUserId,
+        [out] IpcTemplateStatus[] templateStatusList, [out] int resultCode);
 
     void RegisterDeviceSelectCallback([in] IIpcDeviceSelectCallback deviceSelectCallback,
         [out] int resultCode);
@@ -49,4 +50,6 @@ interface OHOS.UserIam.CompanionDeviceAuth.ICompanionDeviceAuth {
 
     void UpdateTemplateEnabledBusinessIds([in] unsigned long templateId,
         [in] int[] enabledBusinessIds, [out] int resultCode);
+    
+    void CheckLocalUserIdValid([in] int localUserId, [out] boolean isUserIdValid, [out] int resultCode);
 }

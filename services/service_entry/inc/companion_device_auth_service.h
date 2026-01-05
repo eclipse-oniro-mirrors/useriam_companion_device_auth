@@ -24,10 +24,13 @@
 #include <type_traits>
 #include <vector>
 
-#include "companion_device_auth_stub.h"
 #include "errors.h"
 #include "nocopyable.h"
 #include "system_ability.h"
+
+#include "adapter_manager.h"
+#include "common_defines.h"
+#include "companion_device_auth_stub.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -65,7 +68,7 @@ public:
     ErrCode UpdateTemplateEnabledBusinessIds(uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds,
         int32_t &companionDeviceAuthResult) override;
 
-    ErrCode GetTemplateStatus(std::vector<IpcTemplateStatus> &templateStatusArray,
+    ErrCode GetTemplateStatus(int32_t localUserId, std::vector<IpcTemplateStatus> &templateStatusArray,
         int32_t &companionDeviceAuthResult) override;
 
     ErrCode RegisterDeviceSelectCallback(const sptr<IIpcDeviceSelectCallback> &deviceSelectCallback,
@@ -73,16 +76,23 @@ public:
 
     ErrCode UnregisterDeviceSelectCallback(int32_t &companionDeviceAuthResult) override;
 
+    ErrCode CheckLocalUserIdValid(int32_t localUserId, bool &isUserIdValid,
+        int32_t &companionDeviceAuthResult) override;
+
     int32_t CallbackEnter(uint32_t code) override;
     int32_t CallbackExit(uint32_t code, int32_t result) override;
 
     class CompanionDeviceAuthServiceInner;
 
+#ifndef ENABLE_TEST
 protected:
+#endif
     void OnStart() override;
     void OnStop() override;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     template <typename Func>
     std::optional<typename std::invoke_result<Func>::type> RunOnResidentSync(Func &&func);
 

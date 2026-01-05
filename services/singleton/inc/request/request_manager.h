@@ -39,7 +39,9 @@ public:
     virtual void Remove(RequestId requestId) = 0;
     virtual std::shared_ptr<IRequest> Get(RequestId requestId) const = 0;
 
+#ifndef ENABLE_TEST
 protected:
+#endif
     IRequestManager() = default;
 };
 

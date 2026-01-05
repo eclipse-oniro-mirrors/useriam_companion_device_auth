@@ -21,12 +21,12 @@
 #include <string>
 #include <vector>
 
-#include "active_user_id_manager.h"
 #include "add_companion_message.h"
 #include "companion_manager.h"
 #include "error_guard.h"
 #include "outbound_request.h"
 #include "security_agent.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -66,7 +66,11 @@ private:
     std::vector<uint8_t> fwkMsg_;
     uint32_t tokenId_ = 0;
     std::vector<uint8_t> addCompanionFwkMsg_ {};
+    std::vector<uint8_t> pendingTokenData_ {}; // Token 数据用于 EndAddHostBinding 消息
+    TemplateId templateId_ {};                 // 绑定成功后的 templateId
+    Atl tokenAtl_ = 0;                         // Token 的 ATL 等级
     bool needCancelCompanionAdd_ = false;
+    bool needCancelIssueToken_ = false;
     FwkResultCallback requestCallback_;
     bool callbackInvoked_ = false;
     DeviceKey hostDeviceKey_ {};

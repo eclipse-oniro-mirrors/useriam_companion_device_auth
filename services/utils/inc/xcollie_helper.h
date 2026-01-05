@@ -28,7 +28,9 @@ public:
     XCollieHelper(const std::string &name, unsigned int timeout);
     ~XCollieHelper();
 
+#ifndef ENABLE_TEST
 private:
+#endif
     int id_ = -1;
 };
 } // namespace CompanionDeviceAuth

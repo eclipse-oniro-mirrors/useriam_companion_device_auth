@@ -12,18 +12,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <cinttypes>
 #include <cstdint>
 #include <memory>
 #include <utility>
 
 #include "securec.h"
 
-#include "common_defines.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
 
-#include "command_invoker.h"
+#include "common_defines.h"
 #include "companion_device_auth_ffi.h"
 #include "companion_device_auth_ffi_util.h"
 #include "security_agent_imp.h"
@@ -35,17 +35,17 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-SecurityAgentImpl::SecurityAgentImpl(std::shared_ptr<CommandInvoker> rustInvoker) : invoker_(rustInvoker)
+SecurityAgentImpl::SecurityAgentImpl(std::shared_ptr<ICommandInvoker> commandInvoker) : invoker_(commandInvoker)
 {
 }
 
 std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 {
-    auto invoker = MakeShared<CommandInvoker>();
+    auto invoker = ICommandInvoker::Create();
     ENSURE_OR_RETURN_VAL(invoker != nullptr, nullptr);
-    int32_t invokeResult = invoker->Initialize();
-    if (invokeResult != SUCCESS) {
-        IAM_LOGE("CommandInvoker Initialize failed, result: %{public}d", invokeResult);
+    ResultCode invokeResult = invoker->Initialize();
+    if (invokeResult != ResultCode::SUCCESS) {
+        IAM_LOGE("CommandInvoker Initialize failed, result: %{public}d", static_cast<int32_t>(invokeResult));
         return nullptr;
     }
     auto agent = std::shared_ptr<SecurityAgentImpl>(new SecurityAgentImpl(invoker));
@@ -373,6 +373,27 @@ ResultCode SecurityAgentImpl::HostCancelAddCompanion(const HostCancelAddCompanio
     return SUCCESS;
 }
 
+ResultCode SecurityAgentImpl::HostActivateToken(const HostActivateTokenInput &input)
+{
+    ENSURE_OR_RETURN_VAL(invoker_ != nullptr, GENERAL_ERROR);
+
+    auto ffiInput = std::make_unique<HostActivateTokenInputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
+    bool encodeRet = EncodeHostActivateTokenInput(input, *ffiInput);
+    ENSURE_OR_RETURN_VAL(encodeRet, INVALID_PARAMETERS);
+
+    auto ffiOutput = std::make_unique<HostActivateTokenOutputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
+
+    int32_t invokeResult = invoker_->InvokeCommand(CommandId::HOST_ACTIVATE_TOKEN,
+        reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostActivateTokenInputFfi),
+        reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostActivateTokenOutputFfi));
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+
+    IAM_LOGI("success");
+    return SUCCESS;
+}
+
 ResultCode SecurityAgentImpl::CompanionInitKeyNegotiation(const CompanionInitKeyNegotiationInput &input,
     CompanionInitKeyNegotiationOutput &output)
 {
@@ -687,7 +708,7 @@ ResultCode SecurityAgentImpl::HostCancelIssueToken(const HostCancelIssueTokenInp
     auto ffiOutput = std::make_unique<HostCancelIssueTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = invoker_->InvokeCommand(CommandId::HOST_END_ISSUE_TOKEN,
+    int32_t invokeResult = invoker_->InvokeCommand(CommandId::HOST_CANCEL_ISSUE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostCancelIssueTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostCancelIssueTokenOutputFfi));
     ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
@@ -946,6 +967,13 @@ ResultCode SecurityAgentImpl::HostEndTokenAuth(const HostEndTokenAuthInput &inpu
     return SUCCESS;
 }
 
+ResultCode SecurityAgentImpl::HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output)
+{
+    output.needRedistribute = true;
+    IAM_LOGI("HostUpdateToken success (temporarily returns SUCCESS)");
+    return SUCCESS;
+}
+
 ResultCode SecurityAgentImpl::CompanionProcessTokenAuth(const CompanionProcessTokenAuthInput &input,
     CompanionProcessTokenAuthOutput &output)
 {
@@ -1050,6 +1078,31 @@ ResultCode SecurityAgentImpl::HostUpdateCompanionEnabledBusinessIds(
     ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
 
     IAM_LOGI("success");
+    return SUCCESS;
+}
+
+ResultCode SecurityAgentImpl::HostCheckTemplateEnrolled(const HostCheckTemplateEnrolledInput &input,
+    HostCheckTemplateEnrolledOutput &output)
+{
+    ENSURE_OR_RETURN_VAL(invoker_ != nullptr, GENERAL_ERROR);
+
+    auto ffiInput = std::make_unique<HostCheckTemplateEnrolledInputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
+    bool encodeRet = EncodeHostCheckTemplateEnrolledInput(input, *ffiInput);
+    ENSURE_OR_RETURN_VAL(encodeRet, INVALID_PARAMETERS);
+
+    auto ffiOutput = std::make_unique<HostCheckTemplateEnrolledOutputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
+
+    int32_t invokeResult = invoker_->InvokeCommand(CommandId::HOST_CHECK_TEMPLATE_ENROLLED,
+        reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostCheckTemplateEnrolledInputFfi),
+        reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostCheckTemplateEnrolledOutputFfi));
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+
+    bool decodeRet = DecodeHostCheckTemplateEnrolledOutput(*ffiOutput, output);
+    ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);
+
+    IAM_LOGI("success, enrolled=%{public}d", output.enrolled);
     return SUCCESS;
 }
 } // namespace CompanionDeviceAuth

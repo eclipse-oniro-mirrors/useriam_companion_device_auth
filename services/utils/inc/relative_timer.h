@@ -40,9 +40,12 @@ public:
 
 #ifdef ENABLE_TEST
     void ExecuteAll();
+    void EnsureAllTaskExecuted();
 #endif
 
+#ifndef ENABLE_TEST
 private:
+#endif
     Utils::Timer timer_;
 };
 

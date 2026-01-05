@@ -82,10 +82,7 @@ pub struct AesGcmResult {
 
 impl AesGcmResult {
     pub fn new(ciphertext: crate::Vec<u8>, authentication_tag: [u8; AES_GCM_TAG_SIZE]) -> Self {
-        Self {
-            ciphertext,
-            authentication_tag,
-        }
+        Self { ciphertext, authentication_tag }
     }
 }
 
@@ -107,21 +104,9 @@ pub trait CryptoEngine {
     fn hmac_sha256(&self, hmac_key: &[u8], data: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
     fn sha256(&self, data: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
     fn secure_random(&self, out_buffer: &mut [u8]) -> Result<(), ErrorCode>;
-    fn secure_random_with_check(
-        &self,
-        _out_buffer: &mut [u8],
-        _checker: RandomChecker,
-    ) -> Result<(), ErrorCode>;
-    fn aes_gcm_encrypt(
-        &self,
-        plaintext: &[u8],
-        aes_gcm_param: &AesGcmParam,
-    ) -> Result<AesGcmResult, ErrorCode>;
-    fn aes_gcm_decrypt(
-        &self,
-        aes_gcm_param: &AesGcmParam,
-        result: &AesGcmResult,
-    ) -> Result<crate::Vec<u8>, ErrorCode>;
+    fn secure_random_with_check(&self, _out_buffer: &mut [u8], _checker: RandomChecker) -> Result<(), ErrorCode>;
+    fn aes_gcm_encrypt(&self, plaintext: &[u8], aes_gcm_param: &AesGcmParam) -> Result<AesGcmResult, ErrorCode>;
+    fn aes_gcm_decrypt(&self, aes_gcm_param: &AesGcmParam, result: &AesGcmResult) -> Result<crate::Vec<u8>, ErrorCode>;
     fn hkdf(&self, salt: &[u8], key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
     fn p256_ecdh(&self, key_pair: &KeyPair, pub_key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
     fn x25519_ecdh(&self, key_pair: &KeyPair, pub_key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
@@ -161,20 +146,12 @@ impl CryptoEngine for DummyCryptoEngine {
         Err(ErrorCode::GeneralError)
     }
 
-    fn secure_random_with_check(
-        &self,
-        _out_buffer: &mut [u8],
-        _checker: RandomChecker,
-    ) -> Result<(), ErrorCode> {
+    fn secure_random_with_check(&self, _out_buffer: &mut [u8], _checker: RandomChecker) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn aes_gcm_encrypt(
-        &self,
-        _plaintext: &[u8],
-        _aes_gcm_param: &AesGcmParam,
-    ) -> Result<AesGcmResult, ErrorCode> {
+    fn aes_gcm_encrypt(&self, _plaintext: &[u8], _aes_gcm_param: &AesGcmParam) -> Result<AesGcmResult, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
@@ -198,11 +175,7 @@ impl CryptoEngine for DummyCryptoEngine {
         Err(ErrorCode::GeneralError)
     }
 
-    fn x25519_ecdh(
-        &self,
-        _key_pair: &KeyPair,
-        _pub_key: &[u8],
-    ) -> Result<crate::Vec<u8>, ErrorCode> {
+    fn x25519_ecdh(&self, _key_pair: &KeyPair, _pub_key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
@@ -214,3 +187,43 @@ impl CryptoEngine for DummyCryptoEngine {
 }
 
 singleton_registry!(CryptoEngineRegistry, CryptoEngine, DummyCryptoEngine);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dummy_crypto_engine_test() {
+        let dummy_crypto_engine = DummyCryptoEngine;
+        let aes_gcm_param = AesGcmParam { key: Vec::<u8>::new(), iv: [0u8; AES_GCM_IV_SIZE], aad: Vec::<u8>::new() };
+
+        assert_eq!(dummy_crypto_engine.generate_ed25519_key_pair(), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_crypto_engine.ed25519_sign(&[], &[]), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_crypto_engine.ed25519_verify(&[], &[], &[]), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_crypto_engine.hmac_sha256(&[], &[]), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_crypto_engine.sha256(&[]), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_crypto_engine.secure_random(&mut []), Err(ErrorCode::GeneralError));
+        assert_eq!(
+            dummy_crypto_engine.secure_random_with_check(&mut [], Box::new(|_| true)),
+            Err(ErrorCode::GeneralError)
+        );
+        assert!(dummy_crypto_engine.aes_gcm_encrypt(&[], &aes_gcm_param).is_err());
+        assert_eq!(
+            dummy_crypto_engine.aes_gcm_decrypt(
+                &aes_gcm_param,
+                &AesGcmResult { ciphertext: Vec::<u8>::new(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] }
+            ),
+            Err(ErrorCode::GeneralError)
+        );
+        assert_eq!(dummy_crypto_engine.hkdf(&[], &[]), Err(ErrorCode::GeneralError));
+        assert_eq!(
+            dummy_crypto_engine.p256_ecdh(&KeyPair::new(Vec::<u8>::new(), Vec::<u8>::new()), &[]),
+            Err(ErrorCode::GeneralError)
+        );
+        assert_eq!(
+            dummy_crypto_engine.x25519_ecdh(&KeyPair::new(Vec::<u8>::new(), Vec::<u8>::new()), &[]),
+            Err(ErrorCode::GeneralError)
+        );
+        assert_eq!(dummy_crypto_engine.generate_x25519_key_pair(), Err(ErrorCode::GeneralError));
+    }
+}

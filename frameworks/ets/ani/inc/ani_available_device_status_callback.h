@@ -40,10 +40,13 @@ public:
     explicit AniAvailableDeviceStatusCallback();
     ~AniAvailableDeviceStatusCallback() override;
     void OnAvailableDeviceStatusChange(const std::vector<ClientDeviceStatus> deviceStatusList) override;
+    int32_t GetUserId() override;
+
     int32_t SetCallback(taihe::optional<AvailableDeviceStatusCallback> callback);
     void ClearCallback();
     bool HasCallback();
     void RemoveSingleCallback(taihe::optional<AvailableDeviceStatusCallback> callback);
+    void SetUserId(int32_t userId);
 
 private:
     void DoCallback(const std::vector<ClientDeviceStatus> deviceStatusList, AvailableDeviceStatusCallbackPtr callback);
@@ -51,6 +54,7 @@ private:
 
     std::recursive_mutex mutex_;
     std::vector<AvailableDeviceStatusCallbackPtr> callbacks_;
+    int32_t userId_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

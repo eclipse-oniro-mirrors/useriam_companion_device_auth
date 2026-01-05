@@ -22,12 +22,11 @@ pub mod test_utils {
     use crate::common::types::*;
     use crate::entry::companion_device_auth_ffi::CommandId;
     use crate::traits::{
-        command_manager::{mock::MockCommandManager, CommandHandler, CommandManager},
         crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine},
         event_manager::{Event, EventManagerRegistry, MockEventManager},
         logger::{LogLevel, Logger, LoggerRegistry},
-        misc_manager::{MiscManagerRegistry, MockMiscManager, TokenKey},
-        storage_io::{MockStorageIo, StorageIo, StorageIoRegistry, StorageType},
+        misc_manager::{MiscManagerRegistry, MockMiscManager},
+        storage_io::{MockStorageIo, StorageIo, StorageIoRegistry},
         time_keeper::{MockTimeKeeper, TimeKeeper, TimeKeeperRegistry},
     };
     use crate::{Box, Vec};
@@ -42,13 +41,7 @@ pub mod test_utils {
     }
 
     impl Logger for TestLogger {
-        fn log(
-            &self,
-            level: LogLevel,
-            file_path: &str,
-            line_num: u32,
-            args: core::fmt::Arguments<'_>,
-        ) {
+        fn log(&self, level: LogLevel, file_path: &str, line_num: u32, args: core::fmt::Arguments<'_>) {
             const MAX_LOG_LINE_LEN: usize = 256;
             let file_name = file_path.rsplit('/').last().unwrap_or(file_path);
             let prefix = format!("[LOG] [{:?}] [{}:{}] ", level, file_name, line_num);
@@ -82,8 +75,6 @@ pub mod test_utils {
             CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
             let mock_event_manager = MockEventManager::new();
             EventManagerRegistry::set(Box::new(mock_event_manager));
-
-            let mock_command_manager = MockCommandManager::new();
             Self {}
         }
     }

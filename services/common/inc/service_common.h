@@ -24,8 +24,9 @@
 #include <string>
 #include <vector>
 
-#include "common_defines.h"
 #include "iam_para2str.h"
+
+#include "common_defines.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -45,8 +46,6 @@ using Atl = int32_t;
 enum class ChannelId : int32_t {
     INVALID = 0,
     SOFTBUS = 1,
-    HEAD_PHONE_MANAGER = 10001,
-    GLASSES_MANAGER = 10002,
 };
 
 enum class Capability : uint16_t {
@@ -106,6 +105,12 @@ enum class MessageType : uint16_t {
 
     // Keep alive (0x0Bxx)
     KEEP_ALIVE = 0x0B01,
+
+    // Disconnect (0x0Cxx - auxiliary messages)
+    DISCONNECT = 0x0C01,
+
+    // Request abort notification (0x0Dxx - auxiliary messages)
+    REQUEST_ABORTED = 0x0D01,
 };
 
 class DeviceKey {
@@ -168,16 +173,15 @@ public:
     bool isAuthMaintainActive { false };
 };
 
-struct LocalDeviceStatus {
-    std::map<ChannelId, DeviceKey> channelId2DeviceKey;
+struct LocalDeviceProfile {
     std::vector<ProtocolId> protocols;
     std::vector<SecureProtocolId> hostSecureProtocols;
     SecureProtocolId companionSecureProtocolId { SecureProtocolId::INVALID };
     std::vector<Capability> capabilities;
     std::vector<ProtocolId> protocolPriorityList;
-    std::string deviceUserName;
-    std::string deviceName;
-    std::string deviceModelInfo;
+};
+
+struct LocalDeviceAuthState {
     bool isAuthMaintainActive { false };
 };
 
@@ -266,6 +270,13 @@ struct SyncDeviceStatus {
     std::vector<Capability> capabilityList;
     SecureProtocolId secureProtocolId;
     std::string deviceUserName {};
+};
+
+struct EndAddCompanionInputParam {
+    RequestId requestId;
+    PersistedCompanionStatus companionStatus;
+    SecureProtocolId secureProtocolId;
+    std::vector<uint8_t> addHostBindingReply;
 };
 
 constexpr uint32_t DEFAULT_REQUEST_TIMEOUT_MS = 60 * 1000; // 60 seconds

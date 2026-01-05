@@ -40,8 +40,9 @@ public:
 
     virtual bool Start() = 0;
 
-    virtual LocalDeviceStatus GetLocalDeviceStatus() = 0;
-    virtual std::unique_ptr<Subscription> SubscribeLocalDeviceStatus(OnLocalDeviceStatusChange &&callback) = 0;
+    virtual bool IsAuthMaintainActive() = 0;
+    virtual std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) = 0;
+    virtual LocalDeviceProfile GetLocalDeviceProfile() = 0;
 
     virtual std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey) = 0;
     virtual std::vector<DeviceStatus> GetAllDeviceStatus() = 0;
@@ -73,7 +74,9 @@ public:
     virtual std::optional<SecureProtocolId> HostGetSecureProtocolId(const DeviceKey &companionDeviceKey) = 0;
     virtual SecureProtocolId CompanionGetSecureProtocolId() = 0;
 
+#ifndef ENABLE_TEST
 protected:
+#endif
     ICrossDeviceCommManager() = default;
 };
 

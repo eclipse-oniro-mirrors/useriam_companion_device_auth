@@ -47,11 +47,11 @@ impl StorageIo for DefaultStorageIo {
                     log_e!("file is not exist: {}", file_name);
                     return Ok(Vec::new());
                 }
-            }
+            },
             Err(e) => {
                 log_e!("failed to check file exist: {:?}", e);
                 return Err(e);
-            }
+            },
         }
 
         let final_path = format!("{}{}", DEFAULT_FILE_HEAD, file_name);

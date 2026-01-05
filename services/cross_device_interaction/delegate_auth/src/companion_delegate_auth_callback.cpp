@@ -33,7 +33,7 @@ CompanionDelegateAuthCallback::CompanionDelegateAuthCallback(ResultCallback &&ca
 }
 
 void CompanionDelegateAuthCallback::OnAcquireInfo(int32_t module, uint32_t acquireInfo,
-    const UserAuth::Attributes &extraInfo)
+    [[maybe_unused]] const UserAuth::Attributes &extraInfo)
 {
     IAM_LOGI("module=%{public}d acquireInfo=%{public}u", module, acquireInfo);
 }

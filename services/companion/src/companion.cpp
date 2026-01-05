@@ -177,6 +177,26 @@ void Companion::SetCompanionTokenAtl(std::optional<Atl> tokenAtl)
     }
 }
 
+void Companion::RefreshTokenTimer()
+{
+    if (!status_.tokenAtl.has_value()) {
+        IAM_LOGE("%{public}s no token atl, skip refresh timer", description_.c_str());
+        return;
+    }
+
+    tokenTimeoutSubscription_.reset();
+    tokenTimeoutSubscription_ = RelativeTimer::GetInstance().Register(
+        [weakSelf = weak_from_this()]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            IAM_LOGI("%{public}s token timeout, revoking token", self->GetDescription().c_str());
+            self->SetCompanionTokenAtl(std::nullopt);
+        },
+        TOKEN_TIMEOUT_MS);
+    ENSURE_OR_RETURN(tokenTimeoutSubscription_ != nullptr);
+    IAM_LOGI("%{public}s refreshed token timeout timer", description_.c_str());
+}
+
 void Companion::SetDeviceNames(const std::string &deviceName, const std::string &deviceUserName)
 {
     if (status_.companionDeviceStatus.deviceName == deviceName &&

@@ -19,6 +19,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+
 #include "task_runner_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
@@ -40,8 +41,8 @@ public:
     void SetMiscManager(std::shared_ptr<IMiscManager> miscManager) override;
     ISystemParamManager &GetSystemParamManager() override;
     void SetSystemParamManager(std::shared_ptr<ISystemParamManager> systemParamManager) override;
-    IActiveUserIdManager &GetActiveUserIdManager() override;
-    void SetActiveUserIdManager(std::shared_ptr<IActiveUserIdManager> activeUserIdManager) override;
+    IUserIdManager &GetActiveUserIdManager() override;
+    void SetActiveUserIdManager(std::shared_ptr<IUserIdManager> activeUserIdManager) override;
     ISecurityAgent &GetSecurityAgent() override;
     void SetSecurityAgent(std::shared_ptr<ISecurityAgent> securityAgent) override;
     ICrossDeviceCommManager &GetCrossDeviceCommManager() override;
@@ -64,7 +65,7 @@ private:
     std::shared_ptr<IHostBindingManager> hostBindingManager_;
     std::shared_ptr<IMiscManager> miscManager_;
     std::shared_ptr<ISystemParamManager> systemParamManager_;
-    std::shared_ptr<IActiveUserIdManager> activeUserIdManager_;
+    std::shared_ptr<IUserIdManager> activeUserIdManager_;
     std::shared_ptr<ISecurityAgent> securityAgent_;
     std::shared_ptr<ICrossDeviceCommManager> crossDeviceCommManager_;
     std::shared_ptr<IRequestManager> requestManager_;
@@ -92,6 +93,7 @@ ICompanionManager &SingletonManagerImpl::GetCompanionManager()
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (companionManager_ == nullptr) {
+        IAM_LOGE("companion manager is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *companionManager_;
@@ -111,6 +113,7 @@ IHostBindingManager &SingletonManagerImpl::GetHostBindingManager()
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (hostBindingManager_ == nullptr) {
+        IAM_LOGE("host binding manager is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *hostBindingManager_;
@@ -130,6 +133,7 @@ IMiscManager &SingletonManagerImpl::GetMiscManager()
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (miscManager_ == nullptr) {
+        IAM_LOGE("misc manager is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *miscManager_;
@@ -149,6 +153,7 @@ ISystemParamManager &SingletonManagerImpl::GetSystemParamManager()
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (systemParamManager_ == nullptr) {
+        IAM_LOGE("system param manager is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *systemParamManager_;
@@ -164,16 +169,17 @@ void SingletonManagerImpl::SetSystemParamManager(std::shared_ptr<ISystemParamMan
     systemParamManager_ = systemParamManager;
 }
 
-IActiveUserIdManager &SingletonManagerImpl::GetActiveUserIdManager()
+IUserIdManager &SingletonManagerImpl::GetActiveUserIdManager()
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (activeUserIdManager_ == nullptr) {
+        IAM_LOGE("active user id manager is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *activeUserIdManager_;
 }
 
-void SingletonManagerImpl::SetActiveUserIdManager(std::shared_ptr<IActiveUserIdManager> activeUserIdManager)
+void SingletonManagerImpl::SetActiveUserIdManager(std::shared_ptr<IUserIdManager> activeUserIdManager)
 {
     ENSURE_OR_RETURN(activeUserIdManager != nullptr);
     if (activeUserIdManager_ != nullptr) {
@@ -187,6 +193,7 @@ ISecurityAgent &SingletonManagerImpl::GetSecurityAgent()
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (securityAgent_ == nullptr) {
+        IAM_LOGE("security agent is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *securityAgent_;
@@ -216,6 +223,7 @@ ICrossDeviceCommManager &SingletonManagerImpl::GetCrossDeviceCommManager()
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (crossDeviceCommManager_ == nullptr) {
+        IAM_LOGE("cross device comm manager is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *crossDeviceCommManager_;
@@ -225,6 +233,7 @@ IRequestManager &SingletonManagerImpl::GetRequestManager()
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (requestManager_ == nullptr) {
+        IAM_LOGE("request manager is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *requestManager_;
@@ -244,6 +253,7 @@ IRequestFactory &SingletonManagerImpl::GetRequestFactory()
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (requestFactory_ == nullptr) {
+        IAM_LOGE("request factory is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *requestFactory_;
@@ -263,6 +273,7 @@ IncomingMessageHandlerRegistry &SingletonManagerImpl::GetIncomingMessageHandlerR
 {
     TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
     if (incomingMessageHandlerRegistry_ == nullptr) {
+        IAM_LOGE("incoming message handler registry is not initialized");
         AbortIfSingletonUninitialized();
     }
     return *incomingMessageHandlerRegistry_;

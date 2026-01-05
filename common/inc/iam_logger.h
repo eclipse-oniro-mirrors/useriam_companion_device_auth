@@ -22,6 +22,7 @@
 #pragma GCC diagnostic ignored "-Wformat"
 #pragma GCC diagnostic ignored "-Wattributes"
 #include "hilog/log.h"
+
 #pragma GCC diagnostic pop
 
 namespace OHOS {

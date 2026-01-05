@@ -17,6 +17,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+
 #include "misc_manager.h"
 #include "relative_timer.h"
 #include "request_manager.h"
@@ -78,7 +79,7 @@ void BaseRequest::StartTimeout()
     timeoutSubscription_ = RelativeTimer::GetInstance().Register(
         [this]() {
             IAM_LOGE("%{public}s timeout", GetDescription());
-            CompleteWithError(ResultCode::TIMEOUT);
+            Cancel(ResultCode::TIMEOUT);
         },
         timeoutMs_);
     ENSURE_OR_RETURN(timeoutSubscription_ != nullptr);

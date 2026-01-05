@@ -27,10 +27,7 @@ impl DefaultTimeKeeper {
     }
 
     fn get_clock_time(&self, clock_id: u32) -> Result<u64, ErrorCode> {
-        let mut ts = libc::timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        };
+        let mut ts = libc::timespec { tv_sec: 0, tv_nsec: 0 };
 
         if unsafe { libc::clock_gettime(clock_id as i32, &mut ts) } != 0 {
             return Err(ErrorCode::GeneralError);

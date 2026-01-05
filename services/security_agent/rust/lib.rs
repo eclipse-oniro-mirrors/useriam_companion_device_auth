@@ -35,22 +35,13 @@ pub(crate) use alloc::{
 };
 
 #[cfg(any(test, feature = "test-utils"))]
-pub(crate) use std::{
-    boxed::Box, collections::BTreeMap, ffi::CString, fmt::Arguments, string::String, vec, vec::Vec,
-};
+pub(crate) use std::{boxed::Box, collections::BTreeMap, ffi::CString, fmt::Arguments, string::String, vec, vec::Vec};
 
 pub(crate) use common::*;
 
 // Re-export commonly used types and macros for tests
 #[cfg(any(test, feature = "test-utils"))]
 pub use {
-    common::constants::SHA256_DIGEST_SIZE,
-    traits::crypto_engine::MockCryptoEngine,
+    common::constants::SHA256_DIGEST_SIZE, traits::crypto_engine::MockCryptoEngine,
     traits::misc_manager::MockMiscManager,
-};
-
-// Make sure macros are accessible in tests
-#[cfg(any(test, feature = "test-utils"))]
-pub use {
-    log_d, log_e, log_i, p, ut_registry_guard,
 };

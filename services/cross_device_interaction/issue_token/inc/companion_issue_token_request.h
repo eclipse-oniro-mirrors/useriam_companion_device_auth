@@ -57,7 +57,7 @@ private:
     bool CompanionPreIssueToken(std::vector<uint8_t> &preIssueTokenReply);
     void SendPreIssueTokenReply(ResultCode result, const std::vector<uint8_t> &preIssueTokenReply);
     void SendErrorReply(ResultCode result);
-    void HandleLocalDeviceStatusChanged(const LocalDeviceStatus &status);
+    void HandleAuthMaintainActiveChanged(bool isActive);
 
     Attributes request_;
     int32_t companionUserId_ = 0;

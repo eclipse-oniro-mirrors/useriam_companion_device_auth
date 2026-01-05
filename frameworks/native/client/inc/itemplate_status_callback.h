@@ -37,6 +37,13 @@ public:
      * @param templateStatusList Latest template status list.
      */
     virtual void OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList) = 0;
+
+    /**
+     * @brief Get user identifier for callback.
+     *
+     * @return user identifier.
+     */
+    virtual int32_t GetUserId() = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

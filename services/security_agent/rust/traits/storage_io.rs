@@ -51,3 +51,18 @@ impl StorageIo for DummyStorageIo {
 }
 
 singleton_registry!(StorageIoRegistry, StorageIo, DummyStorageIo);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dummy_storage_io_test() {
+        let dummy_storage_io = DummyStorageIo;
+        let file_name = String::from("file_name");
+        assert_eq!(dummy_storage_io.exists(&file_name), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_storage_io.read(&file_name), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_storage_io.write(&file_name, &[]), Err(ErrorCode::GeneralError));
+        assert_eq!(dummy_storage_io.delete(&file_name), Err(ErrorCode::GeneralError));
+    }
+}

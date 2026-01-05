@@ -15,12 +15,13 @@
 
 #include "ani_available_device_status_callback.h"
 
-#include "common_defines.h"
-#include "companion_device_auth_ani_helper.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 #include "iam_ptr.h"
+
+#include "common_defines.h"
+#include "companion_device_auth_ani_helper.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
 
@@ -70,8 +71,8 @@ int32_t AniAvailableDeviceStatusCallback::SetCallback(taihe::optional<AvailableD
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (HasSameCallback(callback)) {
-        IAM_LOGE("has same callback");
-        return GENERAL_ERROR;
+        IAM_LOGI("has same callback");
+        return SUCCESS;
     }
     auto callbackPtr = MakeShared<taihe::optional<AvailableDeviceStatusCallback>>(callback);
     callbacks_.push_back(callbackPtr);
@@ -152,6 +153,18 @@ void AniAvailableDeviceStatusCallback::RemoveSingleCallback(taihe::optional<Avai
     } else {
         IAM_LOGI("remove success");
     }
+}
+
+int32_t AniAvailableDeviceStatusCallback::GetUserId()
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    return userId_;
+}
+
+void AniAvailableDeviceStatusCallback::SetUserId(int32_t userId)
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    userId_ = userId;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

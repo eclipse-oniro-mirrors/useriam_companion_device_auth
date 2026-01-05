@@ -17,9 +17,7 @@
 
 use crate::common::ErrorCode;
 use crate::log_e;
-use crate::traits::crypto_engine::{
-    AesGcmParam, AesGcmResult, CryptoEngine, KeyPair, RandomChecker,
-};
+use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngine, KeyPair, RandomChecker};
 use crate::vec;
 use crate::Vec;
 
@@ -152,11 +150,7 @@ impl CryptoEngine for OpenSSLCryptoEngine {
         })
     }
 
-    fn secure_random_with_check(
-        &self,
-        out_buffer: &mut [u8],
-        checker: RandomChecker,
-    ) -> Result<(), ErrorCode> {
+    fn secure_random_with_check(&self, out_buffer: &mut [u8], checker: RandomChecker) -> Result<(), ErrorCode> {
         const MAX_RETRY_TIME: u32 = 10;
         for _i in 0..MAX_RETRY_TIME {
             self.secure_random(out_buffer)?;
@@ -169,27 +163,18 @@ impl CryptoEngine for OpenSSLCryptoEngine {
         Err(ErrorCode::GeneralError)
     }
 
-    fn aes_gcm_encrypt(
-        &self,
-        plaintext: &[u8],
-        aes_gcm_param: &AesGcmParam,
-    ) -> Result<AesGcmResult, ErrorCode> {
+    fn aes_gcm_encrypt(&self, plaintext: &[u8], aes_gcm_param: &AesGcmParam) -> Result<AesGcmResult, ErrorCode> {
         if aes_gcm_param.key.len() != 32 {
             log_e!("AES-GCM key must be 256 bits (32 bytes)");
             return Err(ErrorCode::BadParam);
         }
 
         let cipher = Cipher::aes_256_gcm();
-        let mut crypter = Crypter::new(
-            cipher,
-            Mode::Encrypt,
-            &aes_gcm_param.key,
-            Some(&aes_gcm_param.iv),
-        )
-        .map_err(|e| {
-            log_e!("Failed to create encrypt crypter: {}", e);
-            ErrorCode::GeneralError
-        })?;
+        let mut crypter =
+            Crypter::new(cipher, Mode::Encrypt, &aes_gcm_param.key, Some(&aes_gcm_param.iv)).map_err(|e| {
+                log_e!("Failed to create encrypt crypter: {}", e);
+                ErrorCode::GeneralError
+            })?;
 
         crypter.aad_update(&aes_gcm_param.aad).map_err(|e| {
             log_e!("Failed to add AAD: {}", e);
@@ -218,11 +203,7 @@ impl CryptoEngine for OpenSSLCryptoEngine {
         Ok(AesGcmResult::new(ciphertext, tag))
     }
 
-    fn aes_gcm_decrypt(
-        &self,
-        aes_gcm_param: &AesGcmParam,
-        result: &AesGcmResult,
-    ) -> Result<Vec<u8>, ErrorCode> {
+    fn aes_gcm_decrypt(&self, aes_gcm_param: &AesGcmParam, result: &AesGcmResult) -> Result<Vec<u8>, ErrorCode> {
         if aes_gcm_param.key.len() != 32 {
             log_e!("AES-GCM key must be 256 bits (32 bytes)");
             return Err(ErrorCode::BadParam);
@@ -231,16 +212,11 @@ impl CryptoEngine for OpenSSLCryptoEngine {
         let tag = &result.authentication_tag;
 
         let cipher = Cipher::aes_256_gcm();
-        let mut crypter = Crypter::new(
-            cipher,
-            Mode::Decrypt,
-            &aes_gcm_param.key,
-            Some(&aes_gcm_param.iv),
-        )
-        .map_err(|e| {
-            log_e!("Failed to create decrypt crypter: {}", e);
-            ErrorCode::GeneralError
-        })?;
+        let mut crypter =
+            Crypter::new(cipher, Mode::Decrypt, &aes_gcm_param.key, Some(&aes_gcm_param.iv)).map_err(|e| {
+                log_e!("Failed to create decrypt crypter: {}", e);
+                ErrorCode::GeneralError
+            })?;
 
         crypter.aad_update(&aes_gcm_param.aad).map_err(|e| {
             log_e!("Failed to add AAD: {}", e);
@@ -286,20 +262,12 @@ impl CryptoEngine for OpenSSLCryptoEngine {
         })?;
 
         ctx.set_hkdf_key(key).map_err(|e| {
-            log_e!(
-                "Failed to set HKDF input key material (length: {} bytes): {}",
-                key.len(),
-                e
-            );
+            log_e!("Failed to set HKDF input key material (length: {} bytes): {}", key.len(), e);
             ErrorCode::GeneralError
         })?;
 
         ctx.set_hkdf_salt(salt).map_err(|e| {
-            log_e!(
-                "Failed to set HKDF salt (length: {} bytes): {}",
-                salt.len(),
-                e
-            );
+            log_e!("Failed to set HKDF salt (length: {} bytes): {}", salt.len(), e);
             ErrorCode::GeneralError
         })?;
 
@@ -333,18 +301,15 @@ impl CryptoEngine for OpenSSLCryptoEngine {
             ErrorCode::GeneralError
         })?;
 
-        public_point
-            .mul_generator(&group, &priv_bn, &mut ctx)
-            .map_err(|e| {
-                log_e!("Failed to generate public key from private key: {}", e);
-                ErrorCode::GeneralError
-            })?;
+        public_point.mul_generator(&group, &priv_bn, &mut ctx).map_err(|e| {
+            log_e!("Failed to generate public key from private key: {}", e);
+            ErrorCode::GeneralError
+        })?;
 
-        let ec_key =
-            EcKey::from_private_components(&group, &priv_bn, &public_point).map_err(|e| {
-                log_e!("Failed to create EC key from private components: {}", e);
-                ErrorCode::GeneralError
-            })?;
+        let ec_key = EcKey::from_private_components(&group, &priv_bn, &public_point).map_err(|e| {
+            log_e!("Failed to create EC key from private components: {}", e);
+            ErrorCode::GeneralError
+        })?;
 
         let private_pkey = PKey::from_ec_key(ec_key).map_err(|e| {
             log_e!("Failed to create PKey from EC key: {}", e);
@@ -385,11 +350,10 @@ impl CryptoEngine for OpenSSLCryptoEngine {
     }
 
     fn x25519_ecdh(&self, key_pair: &KeyPair, pub_key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode> {
-        let private_pkey = PKey::private_key_from_raw_bytes(&key_pair.pri_key, Id::X25519)
-            .map_err(|e| {
-                log_e!("Failed to create private PKey from raw bytes: {}", e);
-                ErrorCode::GeneralError
-            })?;
+        let private_pkey = PKey::private_key_from_raw_bytes(&key_pair.pri_key, Id::X25519).map_err(|e| {
+            log_e!("Failed to create private PKey from raw bytes: {}", e);
+            ErrorCode::GeneralError
+        })?;
 
         let peer_pkey = PKey::public_key_from_raw_bytes(pub_key, Id::X25519).map_err(|e| {
             log_e!("Failed to create peer public PKey from raw bytes: {}", e);
@@ -430,11 +394,7 @@ impl CryptoEngine for OpenSSLCryptoEngine {
         })?;
 
         if pub_key.len() != 32 || pri_key.len() != 32 {
-            log_e!(
-                "Invalid key length: pub={}, pri={}",
-                pub_key.len(),
-                pri_key.len()
-            );
+            log_e!("Invalid key length: pub={}, pri={}", pub_key.len(), pri_key.len());
             return Err(ErrorCode::GeneralError);
         }
 

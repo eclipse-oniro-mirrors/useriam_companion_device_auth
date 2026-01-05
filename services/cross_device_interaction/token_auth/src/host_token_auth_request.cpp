@@ -227,7 +227,7 @@ uint32_t HostTokenAuthRequest::GetMaxConcurrency() const
 }
 
 bool HostTokenAuthRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostTokenAuthRequest to same peer device preempts existing one
     if (newRequestType == RequestType::HOST_TOKEN_AUTH_REQUEST && GetPeerDeviceKey() == newPeerDevice) {

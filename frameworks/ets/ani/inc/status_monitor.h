@@ -20,14 +20,13 @@
 
 #include "nocopyable.h"
 
-#include "ohos.userIAM.companionDeviceAuth.proj.hpp"
-
 #include "ani_available_device_status_callback.h"
 #include "ani_continuous_auth_status_callback.h"
 #include "ani_template_status_callback.h"
 #include "common_defines.h"
 #include "companion_device_auth_client.h"
 #include "companion_device_auth_common_defines.h"
+#include "ohos.userIAM.companionDeviceAuth.proj.hpp"
 #include "taihe/runtime.hpp"
 
 namespace companionDeviceAuth = ohos::userIAM::companionDeviceAuth;

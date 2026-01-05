@@ -36,7 +36,9 @@ public:
 
     void operator()(ResultCode result, const std::vector<uint8_t> &extraInfo);
 
+#ifndef ENABLE_TEST
 private:
+#endif
     FwkResultCode ConvertResultCode(const ResultCode in);
 
     std::shared_ptr<FwkIExecuteCallback> frameworkCallback_;

@@ -15,10 +15,11 @@
 
 #include "host_single_mix_auth_request.h"
 
-#include "host_delegate_auth_request.h"
-#include "host_token_auth_request.h"
 #include "iam_check.h"
 #include "iam_logger.h"
+
+#include "host_delegate_auth_request.h"
+#include "host_token_auth_request.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -57,15 +58,20 @@ void HostSingleMixAuthRequest::Start()
     }
 }
 
-bool HostSingleMixAuthRequest::Cancel()
+bool HostSingleMixAuthRequest::Cancel(ResultCode resultCode)
 {
+    if (cancelled_) {
+        IAM_LOGI("%{public}s already cancelled, skip", GetDescription());
+        return true;
+    }
+    cancelled_ = true;
     if (tokenAuthRequest_ != nullptr) {
-        tokenAuthRequest_->Cancel();
+        tokenAuthRequest_->Cancel(resultCode);
     }
     if (delegateAuthRequest_ != nullptr) {
-        delegateAuthRequest_->Cancel();
+        delegateAuthRequest_->Cancel(resultCode);
     }
-    CompleteWithError(ResultCode::CANCELED);
+    CompleteWithError(resultCode);
     return true;
 }
 
@@ -121,7 +127,8 @@ uint32_t HostSingleMixAuthRequest::GetMaxConcurrency() const
 }
 
 bool HostSingleMixAuthRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostMixAuthRequest preempts HostSingleMixAuthRequest
     if (newRequestType == RequestType::HOST_MIX_AUTH_REQUEST) {

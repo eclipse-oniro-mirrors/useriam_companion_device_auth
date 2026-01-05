@@ -38,7 +38,7 @@ public:
     virtual ~InboundRequest() = default;
 
     void Start() override final;
-    bool Cancel() override final;
+    bool Cancel(ResultCode resultCode) override final;
 
 #ifndef ENABLE_TEST
 protected:
@@ -50,6 +50,9 @@ protected:
     std::optional<DeviceKey> GetPeerDeviceKey() const override;
     const DeviceKey &PeerDeviceKey() const;
     const std::string &GetConnectionName() const;
+
+    void SendRequestAborted(ResultCode result, const std::string &reason);
+    void CompleteWithError(ResultCode result) override;
 
 #ifndef ENABLE_TEST
 private:

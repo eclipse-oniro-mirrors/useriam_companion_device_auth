@@ -15,10 +15,10 @@
 
 #include "companion_token_auth_handler.h"
 
-#include "error_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "error_guard.h"
 #include "host_binding_manager.h"
 #include "security_agent.h"
 #include "singleton_manager.h"

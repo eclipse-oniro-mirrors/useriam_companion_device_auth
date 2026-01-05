@@ -15,11 +15,12 @@
 
 #include "ipc_available_device_status_callback_service.h"
 
-#include "common_defines.h"
-#include "companion_device_auth_common_defines.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 #include "iam_ptr.h"
+
+#include "common_defines.h"
+#include "companion_device_auth_common_defines.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_SDK"
 
@@ -70,6 +71,11 @@ int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
 
     callback_->OnAvailableDeviceStatusChange(clientDeviceStatusList);
     return SUCCESS;
+}
+
+std::shared_ptr<IAvailableDeviceStatusCallback> IpcAvailableDeviceStatusCallbackService::GetCallback()
+{
+    return callback_;
 }
 
 int32_t IpcAvailableDeviceStatusCallbackService::CallbackEnter([[maybe_unused]] uint32_t code)

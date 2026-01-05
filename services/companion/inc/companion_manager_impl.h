@@ -24,10 +24,9 @@
 #include <string>
 #include <vector>
 
-#include "singleton.h"
-
 #include "companion.h"
 #include "service_common.h"
+#include "singleton.h"
 #include "singleton_manager.h"
 #include "subscription.h"
 
@@ -53,9 +52,9 @@ public:
 
     ResultCode BeginAddCompanion(const BeginAddCompanionParams &params,
         std::vector<uint8_t> &outAddHostBindingRequest) override;
-    ResultCode EndAddCompanion(RequestId requestId, const PersistedCompanionStatus &companionStatus,
-        SecureProtocolId secureProtocolId, const std::vector<uint8_t> &addHostBindingReply,
-        std::vector<uint8_t> &outFwkMsg) override;
+    ResultCode EndAddCompanion(const EndAddCompanionInputParam &inputParam,
+        std::vector<uint8_t> &outFwkMsg, std::vector<uint8_t> &outTokenData, Atl &outAtl) override;
+    ResultCode ActivateToken(RequestId requestId, TemplateId templateId, Atl atl) override;
     ResultCode RemoveCompanion(TemplateId templateId) override;
 
     ResultCode UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
@@ -63,6 +62,7 @@ public:
     ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
         const std::vector<BusinessIdType> &enabledBusinessIds) override;
     bool SetCompanionTokenAtl(TemplateId templateId, std::optional<Atl> atl) override;
+    ResultCode UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg, bool &needRedistribute) override;
 
     ResultCode HandleCompanionCheckFail(TemplateId templateId) override;
 

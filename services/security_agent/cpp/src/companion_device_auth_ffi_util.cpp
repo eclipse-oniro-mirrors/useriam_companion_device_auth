@@ -15,8 +15,9 @@
 
 #include "companion_device_auth_ffi_util.h"
 
-#include "iam_logger.h"
 #include "securec.h"
+
+#include "iam_logger.h"
 
 #undef LOG_TAG
 #define LOG_TAG "DEVICE_AUTH"
@@ -283,7 +284,7 @@ bool EncodeHostEndCompanionCheckInput(const HostEndCompanionCheckInput &input, H
     ffi.templateId = input.templateId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
 
-    if (!VectorToFfiArray(input.protocolVersionList, ffi.algorithmList, "algorithm list") ||
+    if (!VectorToFfiArray(input.protocolVersionList, ffi.protocalList, "protocal list") ||
         !VectorToFfiArray(input.capabilityList, ffi.capabilityList, "capability list")) {
         return false;
     }
@@ -344,7 +345,12 @@ bool EncodeHostEndAddCompanionInput(const HostEndAddCompanionInput &input, HostE
 bool DecodeHostEndAddCompanionOutput(const HostEndAddCompanionOutputFfi &ffi, HostEndAddCompanionOutput &output)
 {
     output.templateId = ffi.templateId;
-    return DecodeMessageArray(ffi.fwkMessage, output.fwkMsg);
+    output.atl = ffi.atl;
+    if (!DecodeMessageArray(ffi.fwkMessage, output.fwkMsg) || !DecodeMessageArray(ffi.secMessage, output.tokenData)) {
+        return false;
+    }
+
+    return true;
 }
 
 bool EncodeHostPreIssueTokenInput(const HostPreIssueTokenInput &input, HostPreIssueTokenInputFfi &ffi)
@@ -384,6 +390,12 @@ bool EncodeHostEndIssueTokenInput(const HostEndIssueTokenInput &input, HostEndIs
 bool DecodeHostEndIssueTokenOutput(const HostEndIssueTokenOutputFfi &ffi, Atl &atl)
 {
     atl = ffi.atl;
+    return true;
+}
+
+bool EncodeHostActivateTokenInput(const HostActivateTokenInput &input, HostActivateTokenInputFfi &ffi)
+{
+    ffi.requestId = input.requestId;
     return true;
 }
 
@@ -434,6 +446,20 @@ bool EncodeHostUpdateCompanionEnabledBusinessIdsInput(const HostUpdateCompanionE
     ffi.templateId = input.templateId;
 
     return VectorToFfiArray(input.enabledBusinessIds, ffi.businessIds, "enabled business IDs");
+}
+
+bool EncodeHostCheckTemplateEnrolledInput(const HostCheckTemplateEnrolledInput &input,
+    HostCheckTemplateEnrolledInputFfi &ffi)
+{
+    ffi.templateId = input.templateId;
+    return true;
+}
+
+bool DecodeHostCheckTemplateEnrolledOutput(const HostCheckTemplateEnrolledOutputFfi &ffi,
+    HostCheckTemplateEnrolledOutput &output)
+{
+    output.enrolled = (ffi.enrolled != 0);
+    return true;
 }
 
 bool EncodeHostBeginDelegateAuthInput(const HostBeginDelegateAuthInput &input, HostBeginDelegateAuthInputFfi &ffi)
@@ -573,7 +599,8 @@ bool EncodeCompanionEndAddHostBindingInput(const CompanionEndAddHostBindingInput
 {
     ffi.requestId = input.requestId;
     ffi.result = static_cast<int32_t>(input.resultCode);
-    return true;
+    return EncodeMessageArray(input.tokenData, ffi.secMessage);
+    ;
 }
 
 bool DecodeCompanionEndAddHostBindingOutput(const CompanionEndAddHostBindingOutputFfi &ffi,

@@ -18,14 +18,12 @@
 
 #include <mutex>
 
+#include "napi/native_api.h"
+#include "napi/native_common.h"
 #include "nocopyable.h"
 
 #include "common_defines.h"
-#include "companion_device_auth_napi_common.h"
 #include "companion_device_auth_napi_helper.h"
-#include "napi/native_api.h"
-#include "napi/native_common.h"
-
 #include "companion_device_auth_types.h"
 #include "idevice_select_callback.h"
 #include "set_device_select_result_callback.h"

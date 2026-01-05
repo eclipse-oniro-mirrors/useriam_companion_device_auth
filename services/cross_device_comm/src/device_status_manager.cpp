@@ -323,6 +323,7 @@ void DeviceStatusManager::StartPeriodicSync()
         PERIODIC_SYNC_INTERVAL_MS);
     ENSURE_OR_RETURN(periodicSyncTimerSubscription_ != nullptr);
     IAM_LOGI("periodic sync started");
+    RefreshDeviceList(true);
 }
 
 void DeviceStatusManager::StopPeriodicSync()
@@ -337,12 +338,12 @@ std::optional<ProtocolId> DeviceStatusManager::NegotiateProtocol(const std::vect
 {
     ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, std::nullopt);
 
-    auto localStatus = localDeviceStatusMgr_->GetLocalDeviceStatus();
+    auto localProfile = localDeviceStatusMgr_->GetLocalDeviceProfile();
 
-    for (const auto &localProtocol : localStatus.protocolPriorityList) {
+    for (const auto &localProtocol : localProfile.protocolPriorityList) {
         if (std::find(remoteProtocols.begin(), remoteProtocols.end(), localProtocol) != remoteProtocols.end() &&
-            std::find(localStatus.protocols.begin(), localStatus.protocols.end(), localProtocol) !=
-                localStatus.protocols.end()) {
+            std::find(localProfile.protocols.begin(), localProfile.protocols.end(), localProtocol) !=
+            localProfile.protocols.end()) {
             IAM_LOGI("negotiated protocol: %{public}hu", localProtocol);
             return localProtocol;
         }
@@ -354,13 +355,13 @@ std::optional<ProtocolId> DeviceStatusManager::NegotiateProtocol(const std::vect
 
 std::vector<Capability> DeviceStatusManager::NegotiateCapabilities(const std::vector<Capability> &remoteCapabilities)
 {
-    auto localStatus = localDeviceStatusMgr_->GetLocalDeviceStatus();
+    auto localProfile = localDeviceStatusMgr_->GetLocalDeviceProfile();
 
     std::vector<Capability> intersection;
     for (const auto &remoteCap : remoteCapabilities) {
-        auto it = std::find_if(localStatus.capabilities.begin(), localStatus.capabilities.end(),
+        auto it = std::find_if(localProfile.capabilities.begin(), localProfile.capabilities.end(),
             [&remoteCap](const Capability &localCap) { return localCap == remoteCap; });
-        if (it != localStatus.capabilities.end()) {
+        if (it != localProfile.capabilities.end()) {
             intersection.push_back(remoteCap);
         }
     }

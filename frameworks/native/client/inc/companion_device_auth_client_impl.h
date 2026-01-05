@@ -20,12 +20,17 @@
 #include <optional>
 
 #include "nocopyable.h"
+#include "system_ability_listener.h"
 
 #include "common_defines.h"
 #include "companion_device_auth_client.h"
 #include "companion_device_auth_common_defines.h"
 #include "icompanion_device_auth.h"
+#include "ipc_available_device_status_callback_service.h"
 #include "ipc_client_utils.h"
+#include "ipc_continuous_auth_status_callback_service.h"
+#include "ipc_device_select_callback_service.h"
+#include "ipc_template_status_callback_service.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -37,7 +42,8 @@ public:
     int32_t UnregisterDeviceSelectCallback() override;
     int32_t UpdateTemplateEnabledBusinessIds(const uint64_t templateId,
         const std::vector<int32_t> enabledBusinessIds) override;
-    int32_t GetTemplateStatus(std::vector<ClientTemplateStatus> &templateStatusList) override;
+    int32_t GetTemplateStatus(const int32_t localUserId,
+        std::vector<ClientTemplateStatus> &templateStatusList) override;
     int32_t SubscribeTemplateStatusChange(const int32_t localUserId,
         const std::shared_ptr<ITemplateStatusCallback> &callback) override;
     int32_t UnsubscribeTemplateStatusChange(const std::shared_ptr<ITemplateStatusCallback> &callback) override;
@@ -49,10 +55,17 @@ public:
     int32_t SubscribeAvailableDeviceStatus(const int32_t localUserId,
         const std::shared_ptr<IAvailableDeviceStatusCallback> &callback) override;
     int32_t UnsubscribeAvailableDeviceStatus(const std::shared_ptr<IAvailableDeviceStatusCallback> &callback) override;
+    int32_t CheckLocalUserIdValid(const int32_t localUserId, bool &isUserIdValid) override;
+    void SubscribeCompanionDeviceAuthSaStatus();
 
 private:
     CompanionDeviceAuthClientImpl() = default;
     ~CompanionDeviceAuthClientImpl() override = default;
+
+    void ReregisterDeviceSelectCallback();
+    void ResubscribeTemplateStatusChange();
+    void ResubscribeContinuousAuthStatusChange();
+    void ResubscribeAvailableDeviceStatus();
 
     class CompanionDeviceAuthClientImplDeathRecipient : public IRemoteObject::DeathRecipient, public NoCopyable {
     public:
@@ -68,6 +81,11 @@ private:
     sptr<ICompanionDeviceAuth> proxy_ { nullptr };
     sptr<IRemoteObject::DeathRecipient> deathRecipient_ { nullptr };
     std::recursive_mutex mutex_;
+    std::shared_ptr<IDeviceSelectCallback> deviceSelectCallback_ { nullptr };
+    std::vector<sptr<IpcTemplateStatusCallbackService>> templateStatusCallbacks_;
+    std::vector<sptr<IpcContinuousAuthStatusCallbackService>> continuousAuthStatusCallbacks_;
+    std::vector<sptr<IpcAvailableDeviceStatusCallbackService>> availableDeviceStatusCallbacks_;
+    sptr<SystemAbilityListener> companionDeviceAuthSaStatusListener_ { nullptr };
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

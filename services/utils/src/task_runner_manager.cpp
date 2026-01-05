@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -25,6 +25,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
+
 #include "resident_task_runner.h"
 #include "temporary_task_runner.h"
 #include "xcollie_helper.h"
@@ -179,6 +180,11 @@ void TaskRunnerManager::PostTaskOnTemporary(const std::string &name, std::functi
 void TaskRunnerManager::ExecuteAll()
 {
     IAM_LOGI("ExecuteAll not implemented for production TaskRunnerManager");
+}
+
+void TaskRunnerManager::EnsureAllTaskExecuted()
+{
+    IAM_LOGI("EnsureAllTaskExecuted not implemented for production TaskRunnerManager");
 }
 #endif
 

@@ -52,7 +52,6 @@ std::shared_ptr<CrossDeviceCommManagerImpl> CrossDeviceCommManagerImpl::Create(
 
     auto deviceStatusMgr = DeviceStatusManager::Create(connectionMgr, channelMgr, localDeviceStatusMgr);
     ENSURE_OR_RETURN_VAL(deviceStatusMgr != nullptr, nullptr);
-    connectionMgr->OnDeviceStatusManagerReady(deviceStatusMgr);
 
     auto manager = std::shared_ptr<CrossDeviceCommManagerImpl>(new CrossDeviceCommManagerImpl(channelMgr,
         localDeviceStatusMgr, connectionMgr, messageRouter, deviceStatusMgr));
@@ -93,15 +92,20 @@ bool CrossDeviceCommManagerImpl::Start()
     return true;
 }
 
-LocalDeviceStatus CrossDeviceCommManagerImpl::GetLocalDeviceStatus()
+bool CrossDeviceCommManagerImpl::IsAuthMaintainActive()
 {
-    return localDeviceStatusMgr_->GetLocalDeviceStatus();
+    return localDeviceStatusMgr_->IsAuthMaintainActive();
 }
 
-std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeLocalDeviceStatus(
-    OnLocalDeviceStatusChange &&callback)
+std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeIsAuthMaintainActive(
+    OnAuthMaintainActiveChange &&callback)
 {
-    return localDeviceStatusMgr_->SubscribeLocalDeviceStatus(std::move(callback));
+    return localDeviceStatusMgr_->SubscribeIsAuthMaintainActive(std::move(callback));
+}
+
+LocalDeviceProfile CrossDeviceCommManagerImpl::GetLocalDeviceProfile()
+{
+    return localDeviceStatusMgr_->GetLocalDeviceProfile();
 }
 
 std::optional<DeviceStatus> CrossDeviceCommManagerImpl::GetDeviceStatus(const DeviceKey &deviceKey)
@@ -176,14 +180,7 @@ std::optional<DeviceKey> CrossDeviceCommManagerImpl::GetLocalDeviceKeyByConnecti
         return std::nullopt;
     }
 
-    LocalDeviceStatus localDeviceStatus = localDeviceStatusMgr_->GetLocalDeviceStatus();
-    auto it = localDeviceStatus.channelId2DeviceKey.find(connection->channelId);
-    if (it == localDeviceStatus.channelId2DeviceKey.end()) {
-        IAM_LOGE("device key not found for channel: %{public}d", static_cast<int32_t>(connection->channelId));
-        return std::nullopt;
-    }
-
-    return it->second;
+    return localDeviceStatusMgr_->GetLocalDeviceKey(connection->channelId);
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeConnectionStatus(const std::string &connectionName,
@@ -239,8 +236,8 @@ std::optional<SecureProtocolId> CrossDeviceCommManagerImpl::HostGetSecureProtoco
 
 SecureProtocolId CrossDeviceCommManagerImpl::CompanionGetSecureProtocolId()
 {
-    LocalDeviceStatus localDeviceStatus = GetLocalDeviceStatus();
-    return localDeviceStatus.companionSecureProtocolId;
+    LocalDeviceProfile profile = GetLocalDeviceProfile();
+    return profile.companionSecureProtocolId;
 }
 
 } // namespace CompanionDeviceAuth

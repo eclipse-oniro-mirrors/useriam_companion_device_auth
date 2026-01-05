@@ -24,7 +24,6 @@
 #include <string>
 #include <vector>
 
-#include "active_user_id_manager.h"
 #include "channel_manager.h"
 #include "companion_manager.h"
 #include "connection_manager.h"
@@ -38,6 +37,7 @@
 #include "service_common.h"
 #include "subscription.h"
 #include "system_param_manager.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -51,8 +51,9 @@ public:
     ~CrossDeviceCommManagerImpl() override = default;
 
     bool Start() override;
-    LocalDeviceStatus GetLocalDeviceStatus() override;
-    std::unique_ptr<Subscription> SubscribeLocalDeviceStatus(OnLocalDeviceStatusChange &&callback) override;
+    bool IsAuthMaintainActive() override;
+    std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) override;
+    LocalDeviceProfile GetLocalDeviceProfile() override;
     std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey) override;
     std::vector<DeviceStatus> GetAllDeviceStatus() override;
     std::unique_ptr<Subscription> SubscribeAllDeviceStatus(OnDeviceStatusChange &&onDeviceStatusChange) override;
@@ -78,7 +79,9 @@ public:
     std::optional<SecureProtocolId> HostGetSecureProtocolId(const DeviceKey &companionDeviceKey) override;
     SecureProtocolId CompanionGetSecureProtocolId() override;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     CrossDeviceCommManagerImpl(std::shared_ptr<ChannelManager> channelMgr,
         std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr,
         std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<MessageRouter> messageRouter,

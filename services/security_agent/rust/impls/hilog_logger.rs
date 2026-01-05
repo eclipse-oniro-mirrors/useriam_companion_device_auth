@@ -25,11 +25,8 @@ extern crate std;
 
 use hilog_rust::{error, hilog, info, HiLogLabel, LogType};
 
-const LOG_LABEL: HiLogLabel = HiLogLabel {
-    log_type: LogType::LogCore,
-    domain: 0xD002401,
-    tag: "COMPANION_DEVICE_AUTH",
-};
+const LOG_LABEL: HiLogLabel =
+    HiLogLabel { log_type: LogType::LogCore, domain: 0xD002401, tag: "COMPANION_DEVICE_AUTH" };
 
 pub struct HilogLogger;
 
@@ -56,13 +53,13 @@ impl Logger for HilogLogger {
         match level {
             LogLevel::DEBUG => {
                 hilog_rust::debug!(LOG_LABEL, "[{}:{}]{}", @public(file_name), @public(line_num), @public(message));
-            }
+            },
             LogLevel::INFO => {
                 hilog_rust::info!(LOG_LABEL, "[{}:{}]{}", @public(file_name), @public(line_num), @public(message));
-            }
+            },
             LogLevel::ERROR => {
                 hilog_rust::error!(LOG_LABEL, "[{}:{}]{}", @public(file_name), @public(line_num), @public(message));
-            }
+            },
         }
     }
 }

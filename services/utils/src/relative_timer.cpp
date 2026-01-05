@@ -57,7 +57,6 @@ void RelativeTimer::PostTask(TimerCallback &&callback, uint32_t ms)
 {
     (void)timer_.Register(std::move(callback), ms, true);
 }
-
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

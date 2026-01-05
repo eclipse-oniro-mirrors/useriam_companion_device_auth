@@ -15,11 +15,11 @@
 
 #include "host_auth_maintain_state_change_handler.h"
 
-#include "error_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
 #include "auth_maintain_state_change_message.h"
+#include "error_guard.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 

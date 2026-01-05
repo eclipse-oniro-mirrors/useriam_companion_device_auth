@@ -16,10 +16,11 @@
 #include "cda_attributes.h"
 
 #include <cstring>
+
+#include "securec.h"
 #include <endian.h>
 
 #include "iam_logger.h"
-#include "securec.h"
 
 namespace OHOS {
 namespace UserIam {

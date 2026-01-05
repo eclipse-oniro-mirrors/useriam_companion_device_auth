@@ -18,8 +18,8 @@ use crate::common::types::*;
 use crate::jobs::host_db_helper;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::{
-    CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk,
-    CompanionTokenInfo, DeviceKey, UserInfo,
+    CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo,
+    DeviceKey, UserInfo,
 };
 use crate::traits::host_db_manager::{CompanionDeviceFilter, HostDbManager};
 use crate::traits::storage_io::StorageIoRegistry;
@@ -37,6 +37,9 @@ pub const HOST_DEVICE_BASE_INFO: &str = "companion_device_base_info";
 pub const HOST_DEVICE_CAPABILTY_INFO: &str = "companion_device_capability_info";
 pub const HOST_DEVICE_SK: &str = "companion_device_sk";
 
+const MAX_DEVICE_NUM: usize = 5;
+const MAX_TOKEN_NUM: usize = 5;
+
 pub struct DefaultHostDbManager {
     pub companion_device_infos: Vec<CompanionDeviceInfo>,
     pub companion_token_infos: Vec<CompanionTokenInfo>,
@@ -45,40 +48,28 @@ pub struct DefaultHostDbManager {
 impl DefaultHostDbManager {
     pub fn new() -> Self {
         DefaultHostDbManager {
-            companion_device_infos: Vec::new(),
-            companion_token_infos: Vec::new(),
+            companion_device_infos: Vec::with_capacity(MAX_DEVICE_NUM),
+            companion_token_infos: Vec::with_capacity(MAX_TOKEN_NUM),
         }
     }
 
-    fn find_device_index_by_device_key(&self, device_key: &DeviceKey) -> Option<usize> {
-        self.companion_device_infos.iter().position(|device| {
-            device.device_key.device_id == device_key.device_id
-                && device.device_key.device_id_type == device_key.device_id_type
-                && device.device_key.user_id == device_key.user_id
-        })
+    fn get_device_index_by_template_id(&self, template_id: u64) -> Option<usize> {
+        self.companion_device_infos
+            .iter()
+            .position(|device_info| template_id == device_info.template_id)
     }
 
     fn find_device_index_by_filter(&self, filter: &CompanionDeviceFilter) -> Option<usize> {
-        self.companion_device_infos
-            .iter()
-            .position(|device| filter(device))
+        self.companion_device_infos.iter().position(|device| filter(device))
     }
 
-    fn find_token_index_by_template_id(
-        &self,
-        template_id: u64,
-        device_type: DeviceType,
-    ) -> Option<usize> {
+    fn get_token_index_by_template_info(&self, template_id: u64, device_type: DeviceType) -> Option<usize> {
         self.companion_token_infos
             .iter()
             .position(|token| token.template_id == template_id && token.device_type == device_type)
     }
 
-    fn generate_unique_id<'a, T, F, G>(
-        &'a self,
-        collection: F,
-        id_extractor: G,
-    ) -> Result<u64, ErrorCode>
+    fn generate_unique_id<'a, T, F, G>(&'a self, collection: F, id_extractor: G) -> Result<u64, ErrorCode>
     where
         T: 'a,
         F: Fn() -> &'a [T] + 'a,
@@ -88,12 +79,10 @@ impl DefaultHostDbManager {
         const MAX_ATTEMPTS: usize = 100;
         loop {
             let mut random_bytes = [0u8; 8];
-            CryptoEngineRegistry::get()
-                .secure_random(&mut random_bytes)
-                .map_err(|_| {
-                    log_e!("secure_random fail");
-                    ErrorCode::GeneralError
-                })?;
+            CryptoEngineRegistry::get().secure_random(&mut random_bytes).map_err(|_| {
+                log_e!("secure_random fail");
+                ErrorCode::GeneralError
+            })?;
             let random = u64::from_ne_bytes(random_bytes);
 
             let exists = collection().iter().any(|item| id_extractor(item) == random);
@@ -151,15 +140,8 @@ impl DefaultHostDbManager {
 
             let companion_device_info = CompanionDeviceInfo {
                 template_id,
-                device_key: DeviceKey {
-                    device_id,
-                    device_id_type,
-                    user_id,
-                },
-                user_info: UserInfo {
-                    user_id: user_info_user_id,
-                    user_type: user_info_user_type,
-                },
+                device_key: DeviceKey { device_id, device_id_type, user_id },
+                user_info: UserInfo { user_id: user_info_user_id, user_type: user_info_user_type },
                 added_time,
                 secure_protocol_id,
                 is_valid: is_valid_u32 != 0,
@@ -188,10 +170,7 @@ impl DefaultHostDbManager {
         Ok(())
     }
 
-    fn deserialize_device_base_info(
-        &mut self,
-        parcel: &mut Parcel,
-    ) -> Result<CompanionDeviceBaseInfo, ErrorCode> {
+    fn deserialize_device_base_info(&self, parcel: &mut Parcel) -> Result<CompanionDeviceBaseInfo, ErrorCode> {
         let _version = parcel.read_i32().map_err(|e| p!(e))?;
         let device_model = parcel.read_string().map_err(|e| p!(e))?;
         let device_name = parcel.read_string().map_err(|e| p!(e))?;
@@ -203,17 +182,12 @@ impl DefaultHostDbManager {
             business_ids.push(business_id);
         }
 
-        Ok(CompanionDeviceBaseInfo {
-            device_model,
-            device_name,
-            device_user_name,
-            business_ids,
-        })
+        Ok(CompanionDeviceBaseInfo { device_model, device_name, device_user_name, business_ids })
     }
 
     fn serialize_device_capability_info(
         &self,
-        capability_infos: Vec<CompanionDeviceCapability>,
+        capability_infos: &Vec<CompanionDeviceCapability>,
         parcel: &mut Parcel,
     ) -> Result<(), ErrorCode> {
         parcel.write_i32(CURRENT_VERSION);
@@ -228,7 +202,7 @@ impl DefaultHostDbManager {
     }
 
     fn deserialize_device_capability_info(
-        &mut self,
+        &self,
         parcel: &mut Parcel,
     ) -> Result<Vec<CompanionDeviceCapability>, ErrorCode> {
         let _version = parcel.read_i32().map_err(|e| p!(e))?;
@@ -246,11 +220,7 @@ impl DefaultHostDbManager {
             let track_ability_level = parcel.read_i32().map_err(|e| p!(e))?;
             let device_type = DeviceType::try_from(device_type_value).map_err(|e| p!(e))?;
             let esl = ExecutorSecurityLevel::try_from(esl_value).map_err(|e| p!(e))?;
-            let capability_info = CompanionDeviceCapability {
-                device_type,
-                esl,
-                track_ability_level,
-            };
+            let capability_info = CompanionDeviceCapability { device_type, esl, track_ability_level };
 
             capability_infos.push(capability_info);
         }
@@ -258,11 +228,7 @@ impl DefaultHostDbManager {
         Ok(capability_infos)
     }
 
-    fn serialize_device_sk(
-        &self,
-        sk_infos: Vec<CompanionDeviceSk>,
-        parcel: &mut Parcel,
-    ) -> Result<(), ErrorCode> {
+    fn serialize_device_sk(&self, sk_infos: &Vec<CompanionDeviceSk>, parcel: &mut Parcel) -> Result<(), ErrorCode> {
         parcel.write_i32(CURRENT_VERSION);
         parcel.write_i32(sk_infos.len() as i32);
 
@@ -275,10 +241,7 @@ impl DefaultHostDbManager {
         Ok(())
     }
 
-    fn deserialize_device_sk(
-        &mut self,
-        parcel: &mut Parcel,
-    ) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
+    fn deserialize_device_sk(&self, parcel: &mut Parcel) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
         let _version = parcel.read_i32().map_err(|e| p!(e))?;
         let count = parcel.read_i32().map_err(|e| p!(e))?;
         if count < 0 {
@@ -302,47 +265,94 @@ impl DefaultHostDbManager {
 
         Ok(sk_infos)
     }
+
+    fn write_device_db(&self) -> Result<(), ErrorCode> {
+        log_i!("write_device_db start");
+        let mut parcel = Parcel::new();
+        self.serialize_device_db(&mut parcel)?;
+        StorageIoRegistry::get()
+            .write(HOST_DEVICE_DB, parcel.as_slice())
+            .map_err(|e| p!(e))?;
+        Ok(())
+    }
+
+    fn wirte_device_extra_file(
+        &self,
+        template_id: u64,
+        base_info: &CompanionDeviceBaseInfo,
+        capability_info: &Vec<CompanionDeviceCapability>,
+        sk_info: &Vec<CompanionDeviceSk>,
+    ) -> Result<(), ErrorCode> {
+        self.write_device_base_info(template_id, base_info)?;
+        self.write_device_capability_info(template_id, capability_info)?;
+        self.write_device_sk(template_id, sk_info)
+    }
+
+    fn remove_device_extra_file(&self, template_id: u64) {
+        let _ = self.delete_device_base_info(template_id);
+        let _ = self.delete_device_capability_info(template_id);
+        let _ = self.delete_device_sk(template_id);
+    }
+
+    fn get_total_device_num(&self) -> usize {
+        self.companion_device_infos.len()
+    }
+
+    fn get_total_token_num(&self) -> usize {
+        self.companion_token_infos.len()
+    }
 }
 
 impl HostDbManager for DefaultHostDbManager {
-    fn add_device(&mut self, device_info: &CompanionDeviceInfo) -> Result<(), ErrorCode> {
+    fn add_device(
+        &mut self,
+        device_info: &CompanionDeviceInfo,
+        base_info: &CompanionDeviceBaseInfo,
+        capability_info: &Vec<CompanionDeviceCapability>,
+        sk_info: &Vec<CompanionDeviceSk>,
+    ) -> Result<(), ErrorCode> {
         log_i!("add_device start");
         if device_info.device_key.device_id.is_empty() {
             log_e!("Invalid device ID");
             return Err(ErrorCode::BadParam);
         }
-        if self
-            .find_device_index_by_device_key(&device_info.device_key)
-            .is_some()
-        {
-            log_i!(
-                "Device already exists, device_key:{:?}",
-                device_info.device_key
-            );
-            return Ok(());
+
+        if self.get_total_device_num() >= MAX_DEVICE_NUM {
+            log_e!("device num is reached limit");
+            return Err(ErrorCode::ExceedLimit);
+        }
+
+        if self.get_device_index_by_template_id(device_info.template_id).is_some() {
+            log_i!("template id already exists");
+            return Err(ErrorCode::BadParam);
+        }
+
+        if let Err(err) = self.wirte_device_extra_file(device_info.template_id, base_info, capability_info, sk_info) {
+            log_e!("write device extra file fail:{:?}", err);
+            self.remove_device_extra_file(device_info.template_id);
+            return Err(err);
         }
 
         self.companion_device_infos.push(device_info.clone());
-        log_i!(
-            "Device added successfully, template_id: {}",
-            device_info.template_id
-        );
-        Ok(())
+        let result = self.write_device_db();
+        if result.is_ok() {
+            log_i!("Device added successfully, template_id: {}", device_info.template_id);
+            return result;
+        }
+        log_e!("write_device_db fail");
+        if let Some(index) = self
+            .companion_device_infos
+            .iter()
+            .position(|d| d.template_id == device_info.template_id)
+        {
+            self.companion_device_infos.remove(index);
+        }
+        result
     }
 
-    fn get_device_by_key(&self, device_key: &DeviceKey) -> Result<CompanionDeviceInfo, ErrorCode> {
-        log_i!("get_device_by_key start");
-        self.find_device_index_by_device_key(device_key)
-            .map(|index| self.companion_device_infos[index].clone())
-            .ok_or_else(|| {
-                log_e!("Device not found");
-                ErrorCode::NotFound
-            })
-    }
-
-    fn get_device(&self, filter: CompanionDeviceFilter) -> Result<CompanionDeviceInfo, ErrorCode> {
+    fn get_device(&self, template_id: u64) -> Result<CompanionDeviceInfo, ErrorCode> {
         log_i!("get_device start");
-        self.find_device_index_by_filter(&filter)
+        self.get_device_index_by_template_id(template_id)
             .map(|index| self.companion_device_infos[index].clone())
             .ok_or_else(|| {
                 log_e!("No device matching filter found");
@@ -350,99 +360,93 @@ impl HostDbManager for DefaultHostDbManager {
             })
     }
 
-    fn remove_device_by_key(
-        &mut self,
-        device_key: &DeviceKey,
-    ) -> Result<CompanionDeviceInfo, ErrorCode> {
-        log_i!("remove_device_by_key start");
-        self.find_device_index_by_device_key(device_key)
-            .map(|index| {
-                let device = self.companion_device_infos.remove(index);
-                log_i!(
-                    "Device removed successfully, template_id: {}",
-                    device.template_id
-                );
-                device
-            })
-            .ok_or_else(|| {
-                log_i!("Device not found for removal");
-                ErrorCode::NotFound
-            })
+    fn get_device_list(&self, filter: CompanionDeviceFilter) -> Vec<CompanionDeviceInfo> {
+        log_i!("get_device_list start");
+        self.companion_device_infos
+            .iter()
+            .filter(|device_info| filter(device_info))
+            .cloned()
+            .collect()
     }
 
-    fn remove_device(
-        &mut self,
-        filter: CompanionDeviceFilter,
-    ) -> Result<CompanionDeviceInfo, ErrorCode> {
+    fn remove_device(&mut self, template_id: u64) -> Result<CompanionDeviceInfo, ErrorCode> {
         log_i!("remove_device start");
-        self.find_device_index_by_filter(&filter)
+        let device_info = self
+            .get_device_index_by_template_id(template_id)
             .map(|index| {
                 let device = self.companion_device_infos.remove(index);
-                log_i!(
-                    "Device removed successfully, template_id: {}",
-                    device.template_id
-                );
+                log_i!("Device removed successfully, template_id: {}", device.template_id);
                 device
             })
             .ok_or_else(|| {
                 log_i!("No device matching filter found for removal");
                 ErrorCode::NotFound
-            })
+            })?;
+        if let Err(err) = self.write_device_db() {
+            log_e!("write_device_db_with_fail_rollback fail:{:?}", err);
+            self.companion_device_infos.push(device_info);
+            return Err(err);
+        }
+        self.remove_device_extra_file(device_info.template_id);
+        self.companion_token_infos
+            .retain(|token| token.template_id != device_info.template_id);
+        Ok(device_info)
     }
 
     fn update_device(&mut self, device_info: &CompanionDeviceInfo) -> Result<(), ErrorCode> {
         log_i!("update_device start");
-        self.find_device_index_by_device_key(&device_info.device_key)
-            .map(|index| {
-                self.companion_device_infos[index] = device_info.clone();
-            })
-            .ok_or_else(|| {
-                log_i!("No device matching filter found for removal");
-                ErrorCode::Success
-            })
+        let index = self.get_device_index_by_template_id(device_info.template_id).ok_or_else(|| {
+            log_i!("No template id matching");
+            ErrorCode::NotFound
+        })?;
+
+        let device_info_old = self.companion_device_infos[index].clone();
+        self.companion_device_infos[index] = device_info.clone();
+        if let Err(err) = self.write_device_db() {
+            log_e!("write_device_db fail:{:?}", err);
+            self.companion_device_infos[index] = device_info_old;
+            return Err(err);
+        }
+        Ok(())
     }
 
     fn generate_unique_template_id(&self) -> Result<u64, ErrorCode> {
         log_i!("generate_unique_template_id start");
-        self.generate_unique_id(
-            move || self.companion_device_infos.as_slice(),
-            |device| device.template_id,
-        )
+        self.generate_unique_id(move || self.companion_device_infos.as_slice(), |device| device.template_id)
     }
 
     fn add_token(&mut self, token_info: &CompanionTokenInfo) -> Result<(), ErrorCode> {
         log_i!("add_token start");
-        if self
-            .find_token_index_by_template_id(token_info.template_id, token_info.device_type)
-            .is_some()
-        {
-            log_i!(
-                "Token already exists for template_id: {}",
-                token_info.template_id
-            );
-            return Ok(());
-        }
-
         if token_info.token.is_empty() {
             log_e!("Invalid token");
             return Err(ErrorCode::BadParam);
         }
+        if self.get_device_index_by_template_id(token_info.template_id).is_none() {
+            log_e!("template id not exists");
+            return Err(ErrorCode::BadParam);
+        }
 
-        self.companion_token_infos.push(token_info.clone());
-        log_i!(
-            "Token added successfully for template_id: {}",
-            token_info.template_id
-        );
+        if self.get_total_token_num() >= MAX_DEVICE_NUM {
+            log_e!("token num is reached limit");
+            return Err(ErrorCode::ExceedLimit);
+        }
+
+        match self.get_token_index_by_template_info(token_info.template_id, token_info.device_type) {
+            Some(index) => {
+                self.companion_token_infos[index] = token_info.clone();
+            },
+            None => {
+                self.companion_token_infos.push(token_info.clone());
+                log_i!("Token added successfully for template_id: {}", token_info.template_id);
+            },
+        }
+
         Ok(())
     }
 
-    fn get_token(
-        &self,
-        template_id: u64,
-        device_type: DeviceType,
-    ) -> Result<CompanionTokenInfo, ErrorCode> {
+    fn get_token(&self, template_id: u64, device_type: DeviceType) -> Result<CompanionTokenInfo, ErrorCode> {
         log_i!("get_token start");
-        self.find_token_index_by_template_id(template_id, device_type)
+        self.get_token_index_by_template_info(template_id, device_type)
             .map(|index| self.companion_token_infos[index].clone())
             .ok_or_else(|| {
                 log_e!("Token not found for template_id: {}", template_id);
@@ -450,19 +454,12 @@ impl HostDbManager for DefaultHostDbManager {
             })
     }
 
-    fn remove_token(
-        &mut self,
-        template_id: u64,
-        device_type: DeviceType,
-    ) -> Result<CompanionTokenInfo, ErrorCode> {
+    fn remove_token(&mut self, template_id: u64, device_type: DeviceType) -> Result<CompanionTokenInfo, ErrorCode> {
         log_i!("remove_token start");
-        self.find_token_index_by_template_id(template_id, device_type)
+        self.get_token_index_by_template_info(template_id, device_type)
             .map(|index| {
                 let token = self.companion_token_infos.remove(index);
-                log_i!(
-                    "Token removed successfully for template_id: {}",
-                    template_id
-                );
+                log_i!("Token removed successfully for template_id: {}", template_id);
                 token
             })
             .ok_or_else(|| {
@@ -473,9 +470,7 @@ impl HostDbManager for DefaultHostDbManager {
 
     fn update_token(&mut self, token_info: &CompanionTokenInfo) -> Result<(), ErrorCode> {
         log_i!("update_token start");
-        if let Some(index) =
-            self.find_token_index_by_template_id(token_info.template_id, token_info.device_type)
-        {
+        if let Some(index) = self.get_token_index_by_template_info(token_info.template_id, token_info.device_type) {
             self.companion_token_infos[index] = token_info.clone();
             log_i!(
                 "Token updated successfully for template_id: {}, device_type: {:?}",
@@ -495,45 +490,25 @@ impl HostDbManager for DefaultHostDbManager {
 
     fn read_device_db(&mut self) -> Result<(), ErrorCode> {
         log_i!("read_device_db start");
-        let device_data: Vec<u8> = StorageIoRegistry::get()
-            .read(HOST_DEVICE_DB)
-            .map_err(|e| p!(e))?;
+        let device_data: Vec<u8> = StorageIoRegistry::get().read(HOST_DEVICE_DB).map_err(|e| p!(e))?;
         if device_data.is_empty() {
             log_i!("device db is empty");
             return Ok(());
         }
 
         let mut parcel = Parcel::from(device_data);
-        self.deserialize_device_db(&mut parcel)?;
+        if let Err(err) = self.deserialize_device_db(&mut parcel) {
+            log_e!("deserialize_device_db fail:{:?}", err);
+            self.companion_device_infos.clear();
+            return Err(err);
+        }
         Ok(())
     }
 
-    fn write_device_db(&mut self) -> Result<(), ErrorCode> {
-        log_i!("write_device_db start");
-        let mut parcel = Parcel::new();
-        self.serialize_device_db(&mut parcel)?;
-        StorageIoRegistry::get()
-            .write(HOST_DEVICE_DB, parcel.as_slice())
-            .map_err(|e| p!(e))?;
-        Ok(())
-    }
-
-    fn clean_device_db(&mut self) -> Result<(), ErrorCode> {
-        log_i!("clean_device_db start");
-        self.companion_device_infos.clear();
-        self.companion_token_infos.clear();
-        Ok(())
-    }
-
-    fn read_device_base_info(
-        &mut self,
-        template_id: u64,
-    ) -> Result<CompanionDeviceBaseInfo, ErrorCode> {
+    fn read_device_base_info(&self, template_id: u64) -> Result<CompanionDeviceBaseInfo, ErrorCode> {
         log_i!("read_device_base_info start, template_id:{}", template_id);
         let filename = format!("{}_{}", template_id, HOST_DEVICE_BASE_INFO);
-        let base_info_data: Vec<u8> = StorageIoRegistry::get()
-            .read(&filename)
-            .map_err(|e| p!(e))?;
+        let base_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
         if base_info_data.is_empty() {
             log_i!("device base info is empty");
             return Err(ErrorCode::GeneralError);
@@ -543,11 +518,7 @@ impl HostDbManager for DefaultHostDbManager {
         self.deserialize_device_base_info(&mut parcel)
     }
 
-    fn write_device_base_info(
-        &mut self,
-        template_id: u64,
-        base_info: &CompanionDeviceBaseInfo,
-    ) -> Result<(), ErrorCode> {
+    fn write_device_base_info(&self, template_id: u64, base_info: &CompanionDeviceBaseInfo) -> Result<(), ErrorCode> {
         log_i!("write_device_base_info start, template_id:{}", template_id);
         let filename = format!("{}_{}", template_id, HOST_DEVICE_BASE_INFO);
         let mut parcel = Parcel::new();
@@ -558,27 +529,17 @@ impl HostDbManager for DefaultHostDbManager {
         Ok(())
     }
 
-    fn delete_device_base_info(&mut self, template_id: u64) -> Result<(), ErrorCode> {
+    fn delete_device_base_info(&self, template_id: u64) -> Result<(), ErrorCode> {
         log_i!("delete_device_base_info start, template_id:{}", template_id);
         let filename = format!("{}_{}", template_id, HOST_DEVICE_BASE_INFO);
-        StorageIoRegistry::get()
-            .delete(&filename)
-            .map_err(|e| p!(e))?;
+        StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))?;
         Ok(())
     }
 
-    fn read_device_capability_info(
-        &mut self,
-        template_id: u64,
-    ) -> Result<Vec<CompanionDeviceCapability>, ErrorCode> {
-        log_i!(
-            "read_device_capability_info start, template_id:{}",
-            template_id
-        );
+    fn read_device_capability_info(&self, template_id: u64) -> Result<Vec<CompanionDeviceCapability>, ErrorCode> {
+        log_i!("read_device_capability_info start, template_id:{}", template_id);
         let filename = format!("{}_{}", template_id, HOST_DEVICE_CAPABILTY_INFO);
-        let capability_info_data: Vec<u8> = StorageIoRegistry::get()
-            .read(&filename)
-            .map_err(|e| p!(e))?;
+        let capability_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
         if capability_info_data.is_empty() {
             log_i!("device capability info is empty");
             return Ok(Vec::new());
@@ -589,14 +550,11 @@ impl HostDbManager for DefaultHostDbManager {
     }
 
     fn write_device_capability_info(
-        &mut self,
+        &self,
         template_id: u64,
-        capability_info: Vec<CompanionDeviceCapability>,
+        capability_info: &Vec<CompanionDeviceCapability>,
     ) -> Result<(), ErrorCode> {
-        log_i!(
-            "write_device_capability_info start, template_id:{}",
-            template_id
-        );
+        log_i!("write_device_capability_info start, template_id:{}", template_id);
         let filename = format!("{}_{}", template_id, HOST_DEVICE_CAPABILTY_INFO);
         let mut parcel = Parcel::new();
         self.serialize_device_capability_info(capability_info, &mut parcel)?;
@@ -606,24 +564,17 @@ impl HostDbManager for DefaultHostDbManager {
         Ok(())
     }
 
-    fn delete_device_capability_info(&mut self, template_id: u64) -> Result<(), ErrorCode> {
-        log_i!(
-            "delete_device_capability_info start, template_id:{}",
-            template_id
-        );
+    fn delete_device_capability_info(&self, template_id: u64) -> Result<(), ErrorCode> {
+        log_i!("delete_device_capability_info start, template_id:{}", template_id);
         let filename = format!("{}_{}", template_id, HOST_DEVICE_CAPABILTY_INFO);
-        StorageIoRegistry::get()
-            .delete(&filename)
-            .map_err(|e| p!(e))?;
+        StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))?;
         Ok(())
     }
 
-    fn read_device_sk(&mut self, template_id: u64) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
+    fn read_device_sk(&self, template_id: u64) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
         log_i!("read_device_sk start, template_id:{}", template_id);
         let filename = format!("{}_{}", template_id, HOST_DEVICE_SK);
-        let sk_info_data: Vec<u8> = StorageIoRegistry::get()
-            .read(&filename)
-            .map_err(|e| p!(e))?;
+        let sk_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
         if sk_info_data.is_empty() {
             log_i!("device capability info is empty");
             return Err(ErrorCode::GeneralError);
@@ -633,11 +584,7 @@ impl HostDbManager for DefaultHostDbManager {
         self.deserialize_device_sk(&mut parcel)
     }
 
-    fn write_device_sk(
-        &mut self,
-        template_id: u64,
-        sk_info: Vec<CompanionDeviceSk>,
-    ) -> Result<(), ErrorCode> {
+    fn write_device_sk(&self, template_id: u64, sk_info: &Vec<CompanionDeviceSk>) -> Result<(), ErrorCode> {
         log_i!("write_device_sk start, template_id:{}", template_id);
         let filename = format!("{}_{}", template_id, HOST_DEVICE_SK);
         let mut parcel = Parcel::new();
@@ -648,37 +595,10 @@ impl HostDbManager for DefaultHostDbManager {
         Ok(())
     }
 
-    fn delete_device_sk(&mut self, template_id: u64) -> Result<(), ErrorCode> {
+    fn delete_device_sk(&self, template_id: u64) -> Result<(), ErrorCode> {
         log_i!("delete_device_sk start, template_id:{}", template_id);
         let filename = format!("{}_{}", template_id, HOST_DEVICE_SK);
-        StorageIoRegistry::get()
-            .delete(&filename)
-            .map_err(|e| p!(e))?;
+        StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))?;
         Ok(())
-    }
-
-    fn get_device_list(&mut self, user_id: i32) -> Result<Vec<CompanionDeviceInfo>, ErrorCode> {
-        log_i!("get_device_list start");
-        if self.companion_device_infos.is_empty() {
-            return Err(ErrorCode::NotFound);
-        }
-
-        let user_devices: Vec<CompanionDeviceInfo> = self
-            .companion_device_infos
-            .iter()
-            .filter(|device_info| device_info.user_info.user_id == user_id)
-            .cloned()
-            .collect();
-
-        if user_devices.is_empty() {
-            Err(ErrorCode::NotFound)
-        } else {
-            Ok(user_devices)
-        }
-    }
-
-    fn get_all_device_list(&mut self) -> Result<Vec<CompanionDeviceInfo>, ErrorCode> {
-        log_i!("get_all_device_list start");
-        Ok(self.companion_device_infos.iter().cloned().collect())
     }
 }

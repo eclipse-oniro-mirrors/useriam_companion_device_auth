@@ -20,10 +20,9 @@
 #include <optional>
 #include <vector>
 
-#include "user_auth_client_callback.h"
-
 #include "service_common.h"
 #include "task_runner_manager.h"
+#include "user_auth_client_callback.h"
 
 namespace OHOS {
 namespace UserIam {

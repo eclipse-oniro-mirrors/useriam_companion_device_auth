@@ -19,15 +19,15 @@ use crate::traits::host_request_manager::DynHostRequest;
 use crate::traits::host_request_manager::HostRequestManager;
 use crate::{log_e, log_i, p, Box, Vec};
 
+const MAX_REQUEST_NUM: usize = 50;
+
 pub struct DefaultHostRequestManager {
     requests: Vec<Box<DynHostRequest>>,
 }
 
 impl DefaultHostRequestManager {
     pub fn new() -> Self {
-        Self {
-            requests: Vec::new(),
-        }
+        Self { requests: Vec::with_capacity(MAX_REQUEST_NUM) }
     }
 }
 
@@ -36,12 +36,14 @@ impl HostRequestManager for DefaultHostRequestManager {
         log_i!("add_request start");
         let request_id = request.get_request_id();
 
-        if self
-            .requests
-            .iter()
-            .any(|req| req.get_request_id() == request_id)
-        {
+        if self.requests.iter().any(|req| req.get_request_id() == request_id) {
+            log_e!("request with id {} already exists", request_id);
             return Err(ErrorCode::IdExists);
+        }
+
+        if self.requests.len() >= MAX_REQUEST_NUM {
+            log_e!("request is reached limit");
+            self.requests.remove(0);
         }
 
         self.requests.push(request);

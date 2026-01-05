@@ -23,7 +23,7 @@
       "standard"
     ],
     "syscap":[
-      "SystemCapability.UserIAM.CompanionDeviceAuth"
+      "SystemCapability.UserIAM.UserAuth.CompanionDeviceAuth"
     ],
     "features":[
     ],
@@ -58,7 +58,8 @@
         "rust_cxx",
         "rust_libc",
         "rust_rust-openssl",
-        "json"
+        "json",
+        "bluetooth"
       ]
     },
     "build":{
@@ -66,7 +67,8 @@
         "base_group":[
         ],
         "fwk_group":[
-          "//base/useriam/companion_device_auth/frameworks/js/napi:companiondeviceauth"
+          "//base/useriam/companion_device_auth/frameworks/js/napi:companiondeviceauth",
+          "//base/useriam/companion_device_auth/frameworks/ets/ani:companion_device_auth_ani"
         ],
         "service_group":[
           "//base/useriam/companion_device_auth/sa_profile:companion_device_auth_sa_profile",
@@ -80,6 +82,7 @@
       ],
       "test":[
         "//base/useriam/companion_device_auth/test/unittest:companion_device_auth_unittest",
+        "//base/useriam/companion_device_auth/test/moduletest:companion_device_auth_moduletest",
         "//base/useriam/companion_device_auth/test/fuzztest:companion_device_auth_fuzztest"
       ]
     }

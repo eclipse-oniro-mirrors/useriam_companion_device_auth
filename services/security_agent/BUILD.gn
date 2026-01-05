@@ -38,3 +38,7 @@ ohos_rust_shared_ffi("companiondeviceauthservice_rs") {
   subsystem_name = companion_device_auth_subsystem_name
   part_name = companion_device_auth_part_name
 }
+
+ohos_rust_static_library("security_agent") {
+  sources = companion_device_auth_rust_service_relative_sources
+}

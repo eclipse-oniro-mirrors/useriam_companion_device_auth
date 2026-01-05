@@ -30,6 +30,7 @@ public:
     explicit IpcContinuousAuthStatusCallbackService(const std::shared_ptr<IContinuousAuthStatusCallback> &impl);
     ~IpcContinuousAuthStatusCallbackService() override = default;
     int32_t OnContinuousAuthStatusChange(const IpcContinuousAuthStatus &status) override;
+    std::shared_ptr<IContinuousAuthStatusCallback> GetCallback();
     int32_t CallbackEnter([[maybe_unused]] uint32_t code) override;
     int32_t CallbackExit([[maybe_unused]] uint32_t code, [[maybe_unused]] int32_t result) override;
 

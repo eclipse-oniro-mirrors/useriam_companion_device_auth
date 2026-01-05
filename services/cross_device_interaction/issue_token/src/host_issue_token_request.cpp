@@ -52,6 +52,20 @@ bool HostIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
     if (!EnsureCompanionAuthMaintainActive(companionDeviceKey, errorGuard)) {
         return false;
     }
+
+    bool needRedistribute = false;
+    ResultCode ret = GetCompanionManager().UpdateToken(templateId_, fwkUnlockMsg_, needRedistribute);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s UpdateToken failed ret=%{public}d", GetDescription(), ret);
+        errorGuard.UpdateErrorCode(ret);
+        return false;
+    }
+    if (!needRedistribute) {
+        IAM_LOGI("%{public}s UpdateToken success, no need redistribute", GetDescription());
+        CompleteWithSuccess();
+        return true;
+    }
+
     companionUserId_ = companionStatus->companionDeviceStatus.deviceKey.deviceUserId;
     auto secureProtocolOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(companionDeviceKey);
     if (!secureProtocolOpt.has_value()) {
@@ -133,7 +147,7 @@ void HostIssueTokenRequest::HandlePreIssueTokenReply(const Attributes &message)
     bool decodeRet = DecodePreIssueTokenReply(message, reply);
     ENSURE_OR_RETURN(decodeRet);
     if (reply.result != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s start delegate auth failed result=%{public}d", GetDescription(),
+        IAM_LOGE("%{public}s pre issue token failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(reply.result));
         errorGuard.UpdateErrorCode(reply.result);
         return;
@@ -300,7 +314,7 @@ uint32_t HostIssueTokenRequest::GetMaxConcurrency() const
 }
 
 bool HostIssueTokenRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostAddCompanionRequest preempts HostIssueTokenRequest
     if (newRequestType == RequestType::HOST_ADD_COMPANION_REQUEST) {

@@ -55,6 +55,7 @@ protected:
     std::string description_ = "";
     uint32_t timeoutMs_ = 0;
     std::unique_ptr<Subscription> timeoutSubscription_;
+    bool cancelled_ = false;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

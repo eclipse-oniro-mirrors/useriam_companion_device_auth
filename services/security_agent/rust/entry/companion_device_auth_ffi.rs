@@ -15,9 +15,7 @@
 
 use crate::common::constants::ErrorCode;
 use crate::ensure_or_return_val;
-use crate::entry::companion_device_auth_entry::{
-    handle_rust_command, handle_rust_env_init, handle_rust_env_uninit,
-};
+use crate::entry::companion_device_auth_entry::{handle_rust_command, handle_rust_env_init, handle_rust_env_uninit};
 use crate::{log_e, CString, Vec};
 use core::mem;
 use core::slice;
@@ -82,10 +80,7 @@ macro_rules! impl_default_data_array {
     ($name:ident, $size:expr) => {
         impl Default for $name {
             fn default() -> Self {
-                $name {
-                    data: [0; $size],
-                    len: 0,
-                }
+                $name { data: [0; $size], len: 0 }
             }
         }
     };
@@ -105,10 +100,7 @@ assert_max_size!(TemplateIdArrayFfi);
 
 impl Default for TemplateIdArrayFfi {
     fn default() -> Self {
-        TemplateIdArrayFfi {
-            data: [0; MAX_TEMPLATE_ID_NUM_PER_USER_FFI],
-            len: 0,
-        }
+        TemplateIdArrayFfi { data: [0; MAX_TEMPLATE_ID_NUM_PER_USER_FFI], len: 0 }
     }
 }
 
@@ -122,10 +114,7 @@ assert_max_size!(Int32Array64Ffi);
 
 impl Default for Int32Array64Ffi {
     fn default() -> Self {
-        Int32Array64Ffi {
-            data: [0; MAX_DATA_LEN_64],
-            len: 0,
-        }
+        Int32Array64Ffi { data: [0; MAX_DATA_LEN_64], len: 0 }
     }
 }
 
@@ -139,10 +128,7 @@ assert_max_size!(Uint16Array64Ffi);
 
 impl Default for Uint16Array64Ffi {
     fn default() -> Self {
-        Uint16Array64Ffi {
-            data: [0; MAX_DATA_LEN_64],
-            len: 0,
-        }
+        Uint16Array64Ffi { data: [0; MAX_DATA_LEN_64], len: 0 }
     }
 }
 
@@ -174,10 +160,7 @@ assert_max_size!(EventArrayFfi);
 
 impl Default for EventArrayFfi {
     fn default() -> Self {
-        EventArrayFfi {
-            data: [EventFfi::default(); MAX_EVENT_NUM_FFI],
-            len: 0,
-        }
+        EventArrayFfi { data: [EventFfi::default(); MAX_EVENT_NUM_FFI], len: 0 }
     }
 }
 
@@ -192,11 +175,7 @@ assert_max_size!(CommonOutputFfi);
 
 impl Default for CommonOutputFfi {
     fn default() -> Self {
-        CommonOutputFfi {
-            result: 0,
-            has_fatal_error: 0,
-            events: EventArrayFfi::default(),
-        }
+        CommonOutputFfi { result: 0, has_fatal_error: 0, events: EventArrayFfi::default() }
     }
 }
 
@@ -342,7 +321,7 @@ assert_max_size!(HostBeginCompanionCheckOutputFfi);
 pub struct HostEndCompanionCheckInputFfi {
     pub request_id: i32,
     pub template_id: u64,
-    pub algorithm_list: Uint16Array64Ffi,
+    pub protocal_list: Uint16Array64Ffi,
     pub capability_list: Uint16Array64Ffi,
     pub secure_protocol_id: u16,
     pub sec_message: DataArray1024Ffi, /* algorithm, capability_list, challenge*/
@@ -413,7 +392,9 @@ assert_max_size!(HostEndAddCompanionInputFfi);
 #[derive(Default, Copy, Clone)]
 pub struct HostEndAddCompanionOutputFfi {
     pub fwk_message: DataArray1024Ffi,
+    pub sec_message: DataArray1024Ffi,
     pub template_id: u64,
+    pub atl: i32,
 }
 assert_max_size!(HostEndAddCompanionOutputFfi);
 
@@ -504,6 +485,16 @@ assert_max_size!(HostCancelIssueTokenInputFfi);
 
 pub type HostCancelIssueTokenOutputFfi = PlaceHolderFfi;
 
+// HostActivateToken
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct HostActivateTokenInputFfi {
+    pub request_id: i32,
+}
+assert_max_size!(HostActivateTokenInputFfi);
+
+pub type HostActivateTokenOutputFfi = PlaceHolderFfi;
+
 // HostBeginTokenAuth
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -572,6 +563,21 @@ pub struct HostUpdateCompanionEnabledBusinessIdsInputFfi {
 assert_max_size!(HostUpdateCompanionEnabledBusinessIdsInputFfi);
 
 pub type HostUpdateCompanionEnabledBusinessIdsOutputFfi = PlaceHolderFfi;
+
+// HostCheckTemplateEnrolled
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct HostCheckTemplateEnrolledInputFfi {
+    pub template_id: u64,
+}
+assert_max_size!(HostCheckTemplateEnrolledInputFfi);
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct HostCheckTemplateEnrolledOutputFfi {
+    pub enrolled: u8,
+}
+assert_max_size!(HostCheckTemplateEnrolledOutputFfi);
 
 // HostBeginDelegateAuth
 #[repr(C)]
@@ -746,6 +752,7 @@ assert_max_size!(CompanionBeginAddHostBindingOutputFfi);
 pub struct CompanionEndAddHostBindingInputFfi {
     pub request_id: i32,
     pub result: i32,
+    pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge, token, atl) */
 }
 assert_max_size!(CompanionEndAddHostBindingInputFfi);
 
@@ -946,6 +953,8 @@ pub enum CommandId {
     HostProcessPreObtainToken = 1023,
     HostProcessObtainToken = 1024,
     HostCancelObtainToken = 1025,
+    HostActiveToken = 1026,
+    HostCheckTemplateEnrolled = 1027,
 
     // companion
     CompanionGetPersistedStatus = 2000,
@@ -991,6 +1000,7 @@ impl TryFrom<i32> for CommandId {
             1017 => Ok(CommandId::HostRevokeToken),
             1018 => Ok(CommandId::HostUpdateCompanionStatus),
             1019 => Ok(CommandId::HostUpdateCompanionEnabledBusinessIds),
+            1027 => Ok(CommandId::HostCheckTemplateEnrolled),
             1020 => Ok(CommandId::HostBeginDelegateAuth),
             1021 => Ok(CommandId::HostEndDelegateAuth),
             1022 => Ok(CommandId::HostCancelDelegateAuth),
@@ -1016,7 +1026,7 @@ impl TryFrom<i32> for CommandId {
             _ => {
                 log_e!("Invalid command id: {}", value);
                 Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
@@ -1033,8 +1043,6 @@ pub enum CallerTypeFfi {
 mod ffi {
     pub struct RustCommandParam {
         pub command_id: i32,
-        pub caller_type: i32,
-        pub caller_udid: [u8; 64],
         pub input_data: *const u8,
         pub input_data_len: u32,
         pub output_data: *mut u8,
@@ -1055,8 +1063,6 @@ pub use ffi::RustCommandParam;
 // #[repr(C)]
 // pub struct RustCommandParam {
 //     pub command_id: i32,
-//     pub caller_type: i32,
-//     pub caller_udid: [u8; UDID_LEN_FFI],
 //     pub input_data: *const u8,
 //     pub input_data_len: u32,
 //     pub output_data: *mut u8,
@@ -1093,14 +1099,9 @@ fn invoke_rust_command_inner(param: RustCommandParam) -> Result<(), ErrorCode> {
     ensure_or_return_val!(!param.common_output_data.is_null(), ErrorCode::BadParam);
 
     let input = unsafe { slice::from_raw_parts(param.input_data, param.input_data_len as usize) };
-    let output =
-        unsafe { slice::from_raw_parts_mut(param.output_data, param.output_data_len as usize) };
-    let common_output = unsafe {
-        slice::from_raw_parts_mut(
-            param.common_output_data,
-            param.common_output_data_len as usize,
-        )
-    };
+    let output = unsafe { slice::from_raw_parts_mut(param.output_data, param.output_data_len as usize) };
+    let common_output =
+        unsafe { slice::from_raw_parts_mut(param.common_output_data, param.common_output_data_len as usize) };
 
     handle_rust_command(param.command_id, input, output, common_output)
 }

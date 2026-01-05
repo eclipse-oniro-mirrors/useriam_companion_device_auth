@@ -13,8 +13,10 @@
  * limitations under the License.
  */
 
-pub mod auth;
+pub mod delegate_auth;
 pub mod enroll;
-pub mod issue_token;
-pub mod obtain_token;
-pub mod sync_status;
+pub mod jobs;
+pub mod status_sync;
+pub mod token_auth;
+pub mod token_issue;
+pub mod token_obtain;

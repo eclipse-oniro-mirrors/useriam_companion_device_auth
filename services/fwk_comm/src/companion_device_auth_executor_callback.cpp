@@ -19,9 +19,10 @@
 #include <map>
 #include <vector>
 
-#include "common_defines.h"
 #include "iam_check.h"
 #include "iam_logger.h"
+
+#include "common_defines.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 

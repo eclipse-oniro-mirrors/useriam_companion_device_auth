@@ -21,16 +21,16 @@
 #include <new>
 #include <utility>
 
-#include "ipc_skeleton.h"
-#include "parameter.h"
-
 #include "errors.h"
+#include "ipc_skeleton.h"
+
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
 #include "callback_death_recipient.h"
 #include "ipc_set_device_select_result_callback_stub.h"
+#include "parameter.h"
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner.h"
@@ -125,7 +125,7 @@ bool MiscManagerImpl::SetDeviceSelectCallback(uint32_t tokenId,
     ENSURE_OR_RETURN_VAL(obj != nullptr, false);
 
     auto weakSelf = weak_from_this();
-    sptr<IRemoteObject::DeathRecipient> deathRecipient = CallbackDeathRecipient::Create(obj, [weakSelf, tokenId]() {
+    sptr<IRemoteObject::DeathRecipient> deathRecipient = CallbackDeathRecipient::Register(obj, [weakSelf, tokenId]() {
         IAM_LOGI("device select callback died, clearing callback");
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
@@ -198,15 +198,20 @@ std::optional<std::string> MiscManagerImpl::GetLocalUdid()
     return std::nullopt;
 }
 
-uint32_t MiscManagerImpl::GetAccessTokenId(IPCObjectStub &stub)
+bool MiscManagerImpl::CheckBusinessIds(const std::vector<int32_t> &businessIds)
 {
-    uint32_t tokenId = stub.GetFirstTokenID();
-    IAM_LOGD("get first caller tokenId: %{public}s", GET_MASKED_NUM_STRING(tokenId).c_str());
-    if (tokenId == 0) {
-        tokenId = stub.GetCallingTokenID();
-        IAM_LOGD("no first caller, get direct caller tokenId: %{public}s", GET_MASKED_NUM_STRING(tokenId).c_str());
+    IAM_LOGI("Start, businessIds size:%{public}zu", businessIds.size());
+    constexpr int32_t DEFAULT_BUSINESS_ID = 1;
+
+    for (const auto &businessId : businessIds) {
+        if (businessId != DEFAULT_BUSINESS_ID) {
+            IAM_LOGE("Invalid businessId:%{public}d, only DEFAULT(1) is allowed", businessId);
+            return false;
+        }
     }
-    return tokenId;
+
+    IAM_LOGI("End, all businessIds are valid");
+    return true;
 }
 
 } // namespace CompanionDeviceAuth

@@ -21,36 +21,40 @@
 #include <optional>
 #include <vector>
 
-#include "companion_device_auth_types.h"
-#include "iipc_template_status_callback.h"
-
 #include "callback_subscription_base.h"
+#include "companion_device_auth_types.h"
 #include "companion_manager.h"
 #include "cross_device_comm_manager.h"
+#include "iipc_template_status_callback.h"
 #include "service_common.h"
 #include "subscription.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+class SubscriptionManager;
+
 class TemplateStatusSubscription
     : public CallbackSubscriptionBase<IIpcTemplateStatusCallback, TemplateStatusSubscription> {
 public:
-    static std::shared_ptr<TemplateStatusSubscription> Create(UserId userId);
+    static std::shared_ptr<TemplateStatusSubscription> Create(UserId userId,
+        std::weak_ptr<SubscriptionManager> subscriptionManager);
     ~TemplateStatusSubscription() = default;
 
     UserId GetUserId() const;
     std::weak_ptr<TemplateStatusSubscription> GetWeakPtr() override;
     void HandleCompanionStatusChange(const std::vector<CompanionStatus> &companionStatusList);
     void OnCallbackAdded(const sptr<IIpcTemplateStatusCallback> &callback) override;
+    void OnCallbackRemoteDied(const sptr<IIpcTemplateStatusCallback> &callback) override;
 
 #ifndef ENABLE_TEST
 private:
 #endif
-    explicit TemplateStatusSubscription(UserId userId);
+    TemplateStatusSubscription(UserId userId, std::weak_ptr<SubscriptionManager> subscriptionManager);
     bool Initialize();
 
     UserId userId_;
+    std::weak_ptr<SubscriptionManager> subscriptionManager_;
     std::unique_ptr<Subscription> companionStatusSubscription_;
     std::vector<IpcTemplateStatus> cachedTemplateStatus_;
 };

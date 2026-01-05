@@ -15,13 +15,13 @@
 
 #include "napi_continuous_auth_status_callback.h"
 
+#include "napi/native_node_api.h"
 #include <uv.h>
 
-#include "napi/native_node_api.h"
-
-#include "companion_device_auth_napi_helper.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
+
+#include "companion_device_auth_napi_helper.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_NAPI"
 
@@ -29,8 +29,6 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-const uint64_t INVALID_TEMPLATE_ID = -1;
-
 struct ContinuousAuthStatusCallbackHolder {
     std::shared_ptr<NapiContinuousAuthStatusCallback> callback { nullptr };
     bool isAuthPassed { false };
@@ -44,9 +42,6 @@ NapiContinuousAuthStatusCallback::NapiContinuousAuthStatusCallback(napi_env env)
     if (env_ == nullptr) {
         IAM_LOGE("NapiContinuousAuthStatusCallback get null env");
     }
-
-    templateId_ = INVALID_TEMPLATE_ID;
-    hasTemplateId_ = false;
 }
 
 NapiContinuousAuthStatusCallback::~NapiContinuousAuthStatusCallback()
@@ -68,7 +63,7 @@ ResultCode NapiContinuousAuthStatusCallback::SetCallback(const std::shared_ptr<J
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (IsCallbackExists(callback)) {
         IAM_LOGI("same callback already exist");
-        return GENERAL_ERROR;
+        return SUCCESS;
     }
 
     callbacks_.push_back(callback);
@@ -178,21 +173,6 @@ void NapiContinuousAuthStatusCallback::OnContinuousAuthStatusChange(const bool i
     // clang-format on
 }
 
-bool NapiContinuousAuthStatusCallback::HasTemplateId()
-{
-    return hasTemplateId_;
-}
-
-uint64_t NapiContinuousAuthStatusCallback::GetTemplateId()
-{
-    return templateId_;
-}
-
-void NapiContinuousAuthStatusCallback::SetTemplateId(uint64_t templateId)
-{
-    templateId_ = templateId;
-}
-
 ResultCode NapiContinuousAuthStatusCallback::RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback)
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
@@ -209,6 +189,30 @@ ResultCode NapiContinuousAuthStatusCallback::RemoveSingleCallback(const std::sha
     }
     callbacks_.erase(it);
     return SUCCESS;
+}
+
+int32_t NapiContinuousAuthStatusCallback::GetUserId()
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    return userId_;
+}
+
+void NapiContinuousAuthStatusCallback::SetUserId(int32_t userId)
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    userId_ = userId;
+}
+
+std::optional<uint64_t> NapiContinuousAuthStatusCallback::GetTemplateId()
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    return templateId_;
+}
+
+void NapiContinuousAuthStatusCallback::SetTemplateId(uint64_t templateId)
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    templateId_ = templateId;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

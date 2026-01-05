@@ -67,3 +67,24 @@ impl EventManager for DummyEventManager {
 }
 
 singleton_registry!(EventManagerRegistry, EventManager, DummyEventManager);
+
+#[cfg(test)]
+mod tests {
+    use std::hint::assert_unchecked;
+
+    use super::*;
+
+    #[test]
+    fn dummy_event_manager_test() {
+        let mut dummy_event_manager = DummyEventManager;
+        dummy_event_manager.record_event(&Event {
+            time: 0,
+            file_name: CString::default(),
+            line_number: 0,
+            event_type: EventType::BigData,
+            event_info: CString::default(),
+        });
+        assert_eq!(dummy_event_manager.has_fatal_error(), false);
+        assert!(dummy_event_manager.drain_all_events().is_empty());
+    }
+}

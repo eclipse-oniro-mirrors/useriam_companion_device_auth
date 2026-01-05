@@ -19,6 +19,7 @@
 #include "iam_logger.h"
 
 #include "relative_timer.h"
+#include "request_aborted_message.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -54,8 +55,13 @@ bool OutboundRequest::OnStart(ErrorGuard &errorGuard)
     return true;
 }
 
-bool OutboundRequest::Cancel()
+bool OutboundRequest::Cancel(ResultCode resultCode)
 {
+    if (cancelled_) {
+        IAM_LOGI("%{public}s already cancelled, skip", GetDescription());
+        return true;
+    }
+    cancelled_ = true;
     IAM_LOGI("%{public}s cancel", GetDescription());
 
     bool onCancelRet = OnCancel();
@@ -63,7 +69,7 @@ bool OutboundRequest::Cancel()
         IAM_LOGE("%{public}s cancel failed", GetDescription());
     }
 
-    CompleteWithError(ResultCode::CANCELED);
+    CompleteWithError(resultCode);
     return onCancelRet;
 }
 
@@ -103,11 +109,23 @@ bool OutboundRequest::OpenConnection()
         [weakSelf = GetWeakPtr()](const std::string &connName, ConnectionStatus status, const std::string &reason) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
+            if (self->connectionName_.empty()) {
+                return;
+            }
             ENSURE_OR_RETURN(self->connectionName_ == connName);
 
             self->HandleConnectionStatus(connName, status, reason);
         });
     ENSURE_OR_RETURN_VAL(connectionStatusSubscription_ != nullptr, false);
+
+    requestAbortedSubscription_ =
+        GetCrossDeviceCommManager().SubscribeMessage(connectionName_, MessageType::REQUEST_ABORTED,
+            [weakSelf = GetWeakPtr()](const Attributes &request, std::function<void(const Attributes &)> onReply) {
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->HandleRequestAborted(request, onReply);
+            });
+    ENSURE_OR_RETURN_VAL(requestAbortedSubscription_ != nullptr, false);
 
     if (!GetCrossDeviceCommManager().OpenConnection(*peerDeviceKey_, connectionName_)) {
         IAM_LOGE("%{public}s OpenConnection failed", GetDescription());
@@ -150,6 +168,21 @@ void OutboundRequest::HandleConnectionStatus(const std::string &connName, Connec
             IAM_LOGE("%{public}s unknown connection status: %{public}d", GetDescription(),
                 static_cast<int32_t>(status));
     }
+}
+
+void OutboundRequest::HandleRequestAborted(const Attributes &request,
+    [[maybe_unused]] std::function<void(const Attributes &)> onReply)
+{
+    ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
+    RequestAbortedRequest abortReq;
+    bool decodeRet = DecodeRequestAbortedRequest(request, abortReq);
+    ENSURE_OR_RETURN(decodeRet);
+
+    IAM_LOGI("%{public}s received RequestAborted: result=%{public}d, reason=%{public}s", GetDescription(),
+        static_cast<int32_t>(abortReq.result), abortReq.reason.c_str());
+
+    errorGuard.UpdateErrorCode(ResultCode::SUCCESS);
+    CompleteWithError(abortReq.result);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -37,7 +37,9 @@ public:
     void GetExecutorList(std::vector<std::shared_ptr<FwkIAuthExecutorHdi>> &executorList) override;
     void OnHdiDisconnect() override;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     const std::shared_ptr<CompanionAuthInterfaceAdapter> companionAuthInterfaceAdapter_;
 };
 

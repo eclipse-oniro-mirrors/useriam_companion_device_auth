@@ -15,10 +15,10 @@
 
 #include "companion_remove_host_binding_handler.h"
 
-#include "error_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "error_guard.h"
 #include "remove_host_binding_message.h"
 #include "singleton_manager.h"
 

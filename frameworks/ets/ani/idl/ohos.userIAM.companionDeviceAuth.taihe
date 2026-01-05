@@ -12,104 +12,80 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+ 
 @!namespace("@ohos.userIAM.companionDeviceAuth", "companionDeviceAuth")
 
 @!sts_inject("""
-static {
-    loadLibraryWithPermissionCheck("companiondeviceauth_ani", "@ohos.userIAM.companionDeviceAuth"); }
+static { loadLibraryWithPermissionCheck("companiondeviceauth_ani", "@ohos.userIAM.companionDeviceAuth"); }
 """)
 
 from ohos.userIAM.userAuth.userAuth use AuthTrustLevel;
 
 enum BusinessId : i32 {
-    DEFAULT = 0, VENDOR_BEGIN = 10000
+    DEFAULT = 0,
+    VENDOR_BEGIN = 10000
 }
 
 enum DeviceIdType : i32 {
-    UNIFIED_DEVICE_ID = 1, VENDOR_BEGIN = 10000
+    UNIFIED_DEVICE_ID = 1,
+    VENDOR_BEGIN = 10000
 }
 
 enum SelectPurpose : i32 {
-    SELECT_ADD_DEVICE = 1, SELECT_AUTH_DEVICE = 2, VENDOR_BEGIN = 10000
+    SELECT_ADD_DEVICE = 1,
+    SELECT_AUTH_DEVICE = 2,
+    VENDOR_BEGIN = 10000
 }
 
 struct DeviceKey {
-deviceIdType:
-    i32;
-deviceId:
-    String;
-deviceUserId:
-    i32;
+    deviceIdType: i32;
+    deviceId: String;
+    deviceUserId: i32;
 }
 
 struct DeviceStatus {
-deviceKey:
-    DeviceKey;
-deviceUserName:
-    String;
-deviceModelInfo:
-    String;
-deviceName:
-    String;
-isOnline:
-    bool;
-supportedBusinessIds:
-    Array<i32>;
+    deviceKey: DeviceKey;
+    deviceUserName: String;
+    deviceModelInfo: String;
+    deviceName: String;
+    isOnline: bool;
+    supportedBusinessIds: Array<i32>;
 }
 
 struct TemplateStatus {
-templateId:
-    @typedarray Array<u8>;
-isConfirmed:
-    bool;
-isValid:
-    bool;
-localUserId:
-    i32;
-addedTime:
-    @sts_type("Date") Opaque;
-enabledBusinessIds:
-    Array<i32>;
-deviceStatus:
-    DeviceStatus;
+    templateId: @typedarray Array<u8>;
+    isConfirmed: bool;
+    isValid: bool;
+    localUserId: i32;
+    addedTime: @sts_type("Date") Opaque;
+    enabledBusinessIds: Array<i32>;
+    deviceStatus: DeviceStatus;
 }
 
 struct ContinuousAuthParam {
-templateId:
-    Optional<@typedarray Array<u8>>;
+    templateId: Optional<@typedarray Array<u8>>;
 }
 
 struct DeviceSelectResult {
-deviceKeys:
-    Array<DeviceKey>;
-selectionContext:
-    Optional<@typedarray Array<u8>>;
+    deviceKeys : Array<DeviceKey>;
+    selectionContext: Optional<@typedarray Array<u8>>;
 }
  
 interface StatusMonitor {
-    @gen_promise("getTemplateStatus") getTemplateStatusSync() : Array<TemplateStatus>;
+    @gen_promise("getTemplateStatus")
+    getTemplateStatusSync(): Array<TemplateStatus>;
+    
+    onTemplateChange(callback: (templateStatusList: Array<TemplateStatus>) => void): void;
 
-    onTemplateChange(callback : (templateStatusList : Array<TemplateStatus>) = > void) : void;
+    offTemplateChange(callback: Optional<(templateStatusList: Array<TemplateStatus>) => void>): void;
 
-    offTemplateChange(callback : Optional<(templateStatusList : Array<TemplateStatus>) => void >) : void;
+    onContinuousAuthChange(param: ContinuousAuthParam, callback: (isAuthPassed: bool, @optional authTrustLevel: Optional<AuthTrustLevel>) => void): void;
 
-    onContinuousAuthChange(param
-                           : ContinuousAuthParam, callback
-                           : (isAuthPassed
-                                 : bool, @optional authTrustLevel
-                                 : Optional<AuthTrustLevel>) = > void)
-        : void;
+    offContinuousAuthChange(callback: Optional<(isAuthPassed: bool, @optional authTrustLevel: Optional<AuthTrustLevel>) => void>): void;
 
-    offContinuousAuthChange(callback
-                            : Optional<(isAuthPassed
-                                           : bool, @optional authTrustLevel
-                                           : Optional<AuthTrustLevel>) => void >)
-        : void;
+    onAvailableDeviceChange(callback: (deviceStatusList: Array<DeviceStatus>) => void): void;
 
-    onAvailableDeviceChange(callback : (deviceStatusList : Array<DeviceStatus>) = > void) : void;
-
-    offAvailableDeviceChange(callback : Optional<(deviceStatusList : Array<DeviceStatus>) => void >) : void;
+    offAvailableDeviceChange(callback: Optional<(deviceStatusList: Array<DeviceStatus>) => void>): void;
 }
 
 function getStatusMonitor(localUserId: i32): StatusMonitor;

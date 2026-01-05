@@ -15,32 +15,31 @@
 
 extern crate alloc;
 
+use crate::commands::common_command::{companion_status_vec_to_ffi, host_binding_status_vec_to_ffi};
 use crate::common::constants::*;
 use crate::common::types::*;
-use crate::commands::common_command::{companion_status_vec_to_ffi, host_binding_status_vec_to_ffi};
 use crate::entry::companion_device_auth_ffi::CommandId;
 use crate::entry::companion_device_auth_ffi::*;
 use crate::jobs::companion_db_helper;
 use crate::jobs::host_db_helper;
-use crate::request::auth::companion_auth::{
-    CompanionDelegateAuthRequest, CompanionTokenAuthRequest,
-};
-use crate::request::auth::host_auth::{HostDelegateAuthRequest, HostTokenAuthRequest};
+use crate::request::delegate_auth::companion_auth::CompanionDelegateAuthRequest;
+use crate::request::delegate_auth::host_auth::HostDelegateAuthRequest;
 use crate::request::enroll::companion_enroll::CompanionDeviceEnrollRequest;
 use crate::request::enroll::host_enroll::HostDeviceEnrollRequest;
-use crate::request::issue_token::companion_issue_token::CompanionDeviceIssueTokenRequest;
-use crate::request::issue_token::host_issue_token::HostDeviceIssueTokenRequest;
-use crate::request::obtain_token::companion_obtain_token::CompanionDeviceObtainTokenRequest;
-use crate::request::obtain_token::host_obtain_token::HostDeviceObtainTokenRequest;
-use crate::request::sync_status::companion_sync_status::CompanionDeviceSyncStatusRequest;
-use crate::request::sync_status::host_sync_status::HostDeviceSyncStatusRequest;
+use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;
+use crate::request::status_sync::host_sync_status::HostDeviceSyncStatusRequest;
+use crate::request::token_auth::companion_auth::CompanionTokenAuthRequest;
+use crate::request::token_auth::host_auth::HostTokenAuthRequest;
+use crate::request::token_issue::companion_issue_token::CompanionDeviceIssueTokenRequest;
+use crate::request::token_issue::host_issue_token::HostDeviceIssueTokenRequest;
+use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainTokenRequest;
+use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenRequest;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
 use crate::traits::companion_request_manager::{
-    CompanionRequest, CompanionRequestInput, CompanionRequestManagerRegistry,
-    CompanionRequestOutput,
+    CompanionRequest, CompanionRequestInput, CompanionRequestManagerRegistry, CompanionRequestOutput,
 };
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::HostDeviceInfo;
+use crate::traits::db_manager::CompanionDeviceInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::host_request_manager::{
     HostRequest, HostRequestInput, HostRequestManagerRegistry, HostRequestOutput,
@@ -55,19 +54,11 @@ static mut INIT_FLAG: bool = false;
 // Init
 pub fn init(_input: InitInputFfi, _output: &mut InitOutputFfi) -> Result<(), ErrorCode> {
     log_i!("init start");
-    let key_pair = CryptoEngineRegistry::get()
-        .generate_ed25519_key_pair()
-        .map_err(|e| p!(e))?;
-    MiscManagerRegistry::get_mut()
-        .set_local_key_pair(key_pair)
-        .map_err(|e| p!(e))?;
+    let key_pair = CryptoEngineRegistry::get().generate_ed25519_key_pair().map_err(|e| p!(e))?;
+    MiscManagerRegistry::get_mut().set_local_key_pair(key_pair).map_err(|e| p!(e))?;
 
-    CompanionDbManagerRegistry::get_mut()
-        .read_device_db()
-        .map_err(|e| p!(e))?;
-    HostDbManagerRegistry::get_mut()
-        .read_device_db()
-        .map_err(|e| p!(e))?;
+    CompanionDbManagerRegistry::get_mut().read_device_db().map_err(|e| p!(e))?;
+    HostDbManagerRegistry::get_mut().read_device_db().map_err(|e| p!(e))?;
     Ok(())
 }
 
@@ -77,9 +68,7 @@ pub fn get_executor_info(
     output: &mut GetExecutorInfoOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("get_executor_info start");
-    let key_pair = MiscManagerRegistry::get_mut()
-        .get_local_key_pair()
-        .map_err(|e| p!(e))?;
+    let key_pair = MiscManagerRegistry::get_mut().get_local_key_pair().map_err(|e| p!(e))?;
 
     output.esl = ExecutorSecurityLevel::Esl3 as i32;
     output.max_template_acl = AuthCapabilityLevel::Acl3 as i32;
@@ -93,8 +82,7 @@ pub fn host_on_register_finish(
     _output: &mut HostRegisterFinishOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_on_register_finish start");
-    MiscManagerRegistry::get_mut()
-        .set_fwk_pub_key(input.public_key.try_into().map_err(|e| p!(e))?)?;
+    MiscManagerRegistry::get_mut().set_fwk_pub_key(input.public_key.try_into().map_err(|e| p!(e))?)?;
     host_db_helper::verify_template(input.template_ids.try_into().map_err(|e| p!(e))?)?;
     Ok(())
 }
@@ -106,11 +94,11 @@ pub fn host_get_persisted_status(
 ) -> Result<(), ErrorCode> {
     log_i!("host_get_persisted_status start");
     let mut companion_status_list: Vec<PersistedCompanionStatusFfi> = Vec::new();
-    match HostDbManagerRegistry::get_mut().get_device_list(input.user_id) {
+    match host_db_helper::get_companion_device_by_user_id(input.user_id) {
         Ok(device_list) => {
             for device_info in device_list {
-                let device_base_info = HostDbManagerRegistry::get_mut()
-                    .read_device_base_info(device_info.template_id)?;
+                let device_base_info =
+                    HostDbManagerRegistry::get_mut().read_device_base_info(device_info.template_id)?;
 
                 let companion_status = PersistedCompanionStatusFfi {
                     template_id: device_info.template_id,
@@ -129,16 +117,16 @@ pub fn host_get_persisted_status(
             }
             companion_status_vec_to_ffi(companion_status_list, &mut output.companion_status_list)?;
             Ok(())
-        }
+        },
         Err(ErrorCode::NotFound) => {
             log_i!("No devices found for user {}", input.user_id);
             companion_status_vec_to_ffi(companion_status_list, &mut output.companion_status_list)?;
             Ok(())
-        }
+        },
         Err(e) => {
             log_e!("Error getting device list: {:?}", e);
             Err(e)
-        }
+        },
     }
 }
 
@@ -152,6 +140,7 @@ pub fn host_begin_companion_check(
     let sync_status_input = HostRequestInput::SyncStatusBegin(input);
     let result = sync_status_request.begin(sync_status_input)?;
     let HostRequestOutput::SyncStatusBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected SyncStatusBegin");
         return Err(ErrorCode::GeneralError);
     };
     HostRequestManagerRegistry::get_mut().add_request(Box::new(sync_status_request))?;
@@ -165,11 +154,11 @@ pub fn host_end_companion_check(
     output: &mut HostEndCompanionCheckOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_companion_check start");
-    let mut sync_status_request =
-        HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut sync_status_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let sync_status_input = HostRequestInput::SyncStatusEnd(input);
     let result = sync_status_request.end(sync_status_input)?;
     let HostRequestOutput::SyncStatusEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected SyncStatusEnd");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -196,6 +185,7 @@ pub fn host_get_init_key_negotiation(
     let key_nego_input = HostRequestInput::KeyNego(input);
     let result = enroll_request.prepare(key_nego_input)?;
     let HostRequestOutput::KeyNego(output_ffi) = result else {
+        log_e!("unexpected output type, Expected KeyNego");
         return Err(ErrorCode::GeneralError);
     };
     HostRequestManagerRegistry::get_mut().add_request(Box::new(enroll_request))?;
@@ -213,6 +203,7 @@ pub fn host_begin_add_companion(
     let enroll_input = HostRequestInput::EnrollBegin(input);
     let result = enroll_request.begin(enroll_input)?;
     let HostRequestOutput::EnrollBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected EnrollBegin");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -225,11 +216,11 @@ pub fn host_end_add_companion(
     output: &mut HostEndAddCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_add_companion start");
-    let mut enroll_request =
-        HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut enroll_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let enroll_input = HostRequestInput::EnrollEnd(input);
     let result = enroll_request.end(enroll_input)?;
     let HostRequestOutput::EnrollEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected EnrollEnd");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -239,7 +230,7 @@ pub fn host_end_add_companion(
 // HostCancelAddCompanion
 pub fn host_cancel_add_companion(
     input: HostCancelAddCompanionInputFfi,
-    output: &mut HostCancelAddCompanionOutputFfi,
+    _output: &mut HostCancelAddCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_add_companion start");
     HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
@@ -252,10 +243,10 @@ pub fn host_remove_companion(
     output: &mut HostRemoveCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_remove_companion start");
-    let device_info = host_db_helper::get_companion_device(input.template_id)?;
+    let device_info = HostDbManagerRegistry::get().get_device(input.template_id)?;
     let user_id = device_info.user_info.user_id;
     let companion_device_key = DeviceKeyFfi::try_from(device_info.device_key)?;
-    host_db_helper::delete_companion_device(input.template_id)?;
+    HostDbManagerRegistry::get_mut().remove_device(input.template_id)?;
     output.user_id = user_id;
     output.companion_device_key = companion_device_key;
     Ok(())
@@ -271,6 +262,7 @@ pub fn host_pre_issue_token(
     let issue_token_input = HostRequestInput::IssueTokenPrepare(input);
     let result = issue_token_request.prepare(issue_token_input)?;
     let HostRequestOutput::IssueTokenPrepare(output_ffi) = result else {
+        log_e!("unexpected output type, Expected IssueTokenPrepare");
         return Err(ErrorCode::GeneralError);
     };
     HostRequestManagerRegistry::get_mut().add_request(Box::new(issue_token_request))?;
@@ -289,6 +281,7 @@ pub fn host_begin_issue_token(
     let issue_token_input = HostRequestInput::IssueTokenBegin(input);
     let result = issue_token_request.begin(issue_token_input)?;
     let HostRequestOutput::IssueTokenBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected IssueTokenBegin");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -301,11 +294,11 @@ pub fn host_end_issue_token(
     output: &mut HostEndIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_issue_token start");
-    let mut issue_token_request =
-        HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut issue_token_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let issue_token_input = HostRequestInput::IssueTokenEnd(input);
     let result = issue_token_request.end(issue_token_input)?;
     let HostRequestOutput::IssueTokenEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected IssueTokenEnd");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -315,7 +308,7 @@ pub fn host_end_issue_token(
 // HostCancelIssueToken
 pub fn host_cancel_issue_token(
     input: HostCancelIssueTokenInputFfi,
-    output: &mut HostCancelIssueTokenOutputFfi,
+    _output: &mut HostCancelIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_issue_token start");
     HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
@@ -332,6 +325,7 @@ pub fn host_begin_token_auth(
     let auth_input = HostRequestInput::TokenAuthBegin(input);
     let result = token_auth_request.begin(auth_input)?;
     let HostRequestOutput::TokenAuthBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected TokenAuthBegin");
         return Err(ErrorCode::GeneralError);
     };
     HostRequestManagerRegistry::get_mut().add_request(Box::new(token_auth_request))?;
@@ -345,11 +339,11 @@ pub fn host_end_token_auth(
     output: &mut HostEndTokenAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_token_auth start");
-    let mut token_auth_request =
-        HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut token_auth_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let auth_input = HostRequestInput::TokenAuthEnd(input);
     let result = token_auth_request.end(auth_input)?;
     let HostRequestOutput::TokenAuthEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected TokenAuthEnd");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -359,7 +353,7 @@ pub fn host_end_token_auth(
 // HostRevokeToken
 pub fn host_revoke_token(
     input: HostRevokeTokenInputFfi,
-    output: &mut HostRevokeTokenOutputFfi,
+    _output: &mut HostRevokeTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_revoke_token start");
     host_db_helper::delete_companion_device_token(input.template_id)?;
@@ -369,7 +363,7 @@ pub fn host_revoke_token(
 // HostUpdateCompanionStatus
 pub fn host_update_companion_status(
     input: HostUpdateCompanionStatusInputFfi,
-    output: &mut HostUpdateCompanionStatusOutputFfi,
+    _output: &mut HostUpdateCompanionStatusOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_update_companion_status start");
     host_db_helper::update_companion_device_info(
@@ -377,13 +371,13 @@ pub fn host_update_companion_status(
         input.device_name.to_string()?,
         input.device_user_name.to_string()?,
     )?;
-    return Err(ErrorCode::GeneralError);
+    Ok(())
 }
 
 // HostUpdateCompanionEnabledBusinessIds
 pub fn host_update_companion_enabled_business_ids(
     input: HostUpdateCompanionEnabledBusinessIdsInputFfi,
-    output: &mut HostUpdateCompanionEnabledBusinessIdsOutputFfi,
+    _output: &mut HostUpdateCompanionEnabledBusinessIdsOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_update_companion_enabled_business_ids start");
     host_db_helper::update_device_business_id(
@@ -403,6 +397,7 @@ pub fn host_begin_delegate_auth(
     let auth_input = HostRequestInput::DelegateAuthBegin(input);
     let result = delegate_auth_request.begin(auth_input)?;
     let HostRequestOutput::DelegateAuthBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected DelegateAuthBegin");
         return Err(ErrorCode::GeneralError);
     };
     HostRequestManagerRegistry::get_mut().add_request(Box::new(delegate_auth_request))?;
@@ -416,11 +411,11 @@ pub fn host_end_delegate_auth(
     output: &mut HostEndDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_delegate_auth start");
-    let mut delegate_auth_request =
-        HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut delegate_auth_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let auth_input = HostRequestInput::DelegateAuthEnd(input);
     let result = delegate_auth_request.end(auth_input)?;
     let HostRequestOutput::DelegateAuthEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected DelegateAuthEnd");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -430,7 +425,7 @@ pub fn host_end_delegate_auth(
 // HostCancelDelegateAuth
 pub fn host_cancel_delegate_auth(
     input: HostCancelDelegateAuthInputFfi,
-    output: &mut HostCancelDelegateAuthOutputFfi,
+    _output: &mut HostCancelDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_delegate_auth start");
     HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
@@ -447,6 +442,7 @@ pub fn host_process_pre_obtain_token(
     let obtain_token_input = HostRequestInput::ObtainTokenBegin(input);
     let result = obtain_token_request.begin(obtain_token_input)?;
     let HostRequestOutput::ObtainTokenBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected ObtainTokenBegin");
         return Err(ErrorCode::GeneralError);
     };
     HostRequestManagerRegistry::get_mut().add_request(Box::new(obtain_token_request))?;
@@ -460,11 +456,11 @@ pub fn host_process_obtain_token(
     output: &mut HostProcessObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_process_obtain_token start");
-    let mut obtain_token_request =
-        HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut obtain_token_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let obtain_token_input = HostRequestInput::ObtainTokenEnd(input);
     let result = obtain_token_request.end(obtain_token_input)?;
     let HostRequestOutput::ObtainTokenEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected ObtainTokenEnd");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -474,11 +470,44 @@ pub fn host_process_obtain_token(
 // HostCancelObtainToken
 pub fn host_cancel_obtain_token(
     input: HostCancelObtainTokenInputFfi,
-    output: &mut HostCancelObtainTokenOutputFfi,
+    _output: &mut HostCancelObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_obtain_token start");
     HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     Ok(())
+}
+
+// HostActiveToken
+pub fn host_active_token(
+    _input: HostActivateTokenInputFfi,
+    _output: &mut HostActivateTokenOutputFfi,
+) -> Result<(), ErrorCode> {
+    log_i!("host_active_token start");
+    Ok(())
+}
+
+// HostCheckTemplateEnrolled
+pub fn host_check_template_enrolled(
+    input: HostCheckTemplateEnrolledInputFfi,
+    output: &mut HostCheckTemplateEnrolledOutputFfi,
+) -> Result<(), ErrorCode> {
+    log_i!("host_check_template_enrolled start, template_id:{}", input.template_id);
+    match HostDbManagerRegistry::get().get_device(input.template_id) {
+        Ok(_) => {
+            log_i!("template_id {} enrolled", input.template_id);
+            output.enrolled = 1;
+            Ok(())
+        },
+        Err(ErrorCode::NotFound) => {
+            log_i!("template_id {} not enrolled", input.template_id);
+            output.enrolled = 0;
+            Ok(())
+        },
+        Err(e) => {
+            log_e!("check template_id enrolled failed: {:?}", e);
+            Err(e)
+        },
+    }
 }
 
 // CompanionGetPersistedStatus
@@ -488,30 +517,17 @@ pub fn companion_get_persisted_status(
 ) -> Result<(), ErrorCode> {
     log_i!("companion_get_persisted_status start");
     let mut binding_status_list: Vec<PersistedHostBindingStatusFfi> = Vec::new();
-    match CompanionDbManagerRegistry::get_mut().get_device_list(input.user_id) {
-        Ok(device_list) => {
-            for device_info in device_list {
-                let binding_status = PersistedHostBindingStatusFfi {
-                    binding_id: device_info.binding_id,
-                    companion_user_id: device_info.user_info.user_id,
-                    host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
-                    is_token_valid: device_info.is_token_valid,
-                };
-                binding_status_list.push(binding_status);
-            }
-            host_binding_status_vec_to_ffi(binding_status_list, &mut output.binding_status_list)?;
-            Ok(())
-        }
-        Err(ErrorCode::NotFound) => {
-            log_i!("No devices found for user {}", input.user_id);
-            host_binding_status_vec_to_ffi(binding_status_list, &mut output.binding_status_list)?;
-            Ok(())
-        }
-        Err(e) => {
-            log_e!("Error getting device list: {:?}", e);
-            Err(e)
-        }
+    let device_info_list = CompanionDbManagerRegistry::get().get_device_list(input.user_id);
+    for device_info in device_info_list {
+        let binding_status = PersistedHostBindingStatusFfi {
+            binding_id: device_info.binding_id,
+            companion_user_id: device_info.user_info.user_id,
+            host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
+            is_token_valid: CompanionDbManagerRegistry::get().is_device_token_valid(device_info.binding_id)?,
+        };
+        binding_status_list.push(binding_status);
     }
+    host_binding_status_vec_to_ffi(binding_status_list, &mut output.binding_status_list)
 }
 
 // CompanionProcessCheck
@@ -524,6 +540,7 @@ pub fn companion_process_check(
     let sync_status_input = CompanionRequestInput::SyncStatus(input);
     let result = sync_status_request.begin(sync_status_input)?;
     let CompanionRequestOutput::SyncStatus(output_ffi) = result else {
+        log_e!("unexpected output type, Expected SyncStatus");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -540,6 +557,7 @@ pub fn companion_init_key_negotiation(
     let key_nego_input = CompanionRequestInput::KeyNego(input);
     let result = enroll_request.prepare(key_nego_input)?;
     let CompanionRequestOutput::KeyNego(output_ffi) = result else {
+        log_e!("unexpected output type, Expected KeyNego");
         return Err(ErrorCode::GeneralError);
     };
     CompanionRequestManagerRegistry::get_mut().add_request(Box::new(enroll_request))?;
@@ -553,11 +571,11 @@ pub fn companion_begin_add_host_binding(
     output: &mut CompanionBeginAddHostBindingOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_begin_add_host_binding start");
-    let enroll_request =
-        CompanionRequestManagerRegistry::get_mut().get_request(input.request_id)?;
+    let enroll_request = CompanionRequestManagerRegistry::get_mut().get_request(input.request_id)?;
     let enroll_input = CompanionRequestInput::EnrollBegin(input);
     let result = enroll_request.begin(enroll_input)?;
     let CompanionRequestOutput::EnrollBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected EnrollBegin");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -570,11 +588,11 @@ pub fn companion_end_add_host_binding(
     output: &mut CompanionEndAddHostBindingOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_end_add_host_binding start");
-    let mut enroll_request =
-        CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut enroll_request = CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let enroll_input = CompanionRequestInput::EnrollEnd(input);
     let result = enroll_request.end(enroll_input)?;
     let CompanionRequestOutput::EnrollEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected EnrollEnd");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -584,10 +602,10 @@ pub fn companion_end_add_host_binding(
 // CompanionRemoveHostBinding
 pub fn companion_remove_host_binding(
     input: CompanionRemoveHostBindingInputFfi,
-    output: &mut CompanionRemoveHostBindingOutputFfi,
+    _output: &mut CompanionRemoveHostBindingOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_remove_host_binding start");
-    companion_db_helper::delete_host_device(input.binding_id)?;
+    CompanionDbManagerRegistry::get_mut().remove_device(input.binding_id)?;
     Ok(())
 }
 
@@ -601,6 +619,7 @@ pub fn companion_pre_issue_token(
     let issue_token_input = CompanionRequestInput::IssueTokenBegin(input);
     let result = issue_token_request.begin(issue_token_input)?;
     let CompanionRequestOutput::IssueTokenBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected IssueTokenBegin");
         return Err(ErrorCode::GeneralError);
     };
     CompanionRequestManagerRegistry::get_mut().add_request(Box::new(issue_token_request))?;
@@ -614,11 +633,11 @@ pub fn companion_process_issue_token(
     output: &mut CompanionProcessIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_process_issue_token start");
-    let mut issue_token_request =
-        CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut issue_token_request = CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let issue_token_input = CompanionRequestInput::IssueTokenEnd(input);
     let result = issue_token_request.end(issue_token_input)?;
     let CompanionRequestOutput::IssueTokenEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected IssueTokenEnd");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -628,7 +647,7 @@ pub fn companion_process_issue_token(
 // CompanionCancelIssueToken
 pub fn companion_cancel_issue_token(
     input: CompanionCancelIssueTokenInputFfi,
-    output: &mut CompanionCancelIssueTokenOutputFfi,
+    _output: &mut CompanionCancelIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_cancel_issue_token start");
     CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
@@ -645,9 +664,9 @@ pub fn companion_process_token_auth(
     let auth_input = CompanionRequestInput::TokenAuthBegin(input);
     let result = token_auth_request.begin(auth_input)?;
     let CompanionRequestOutput::TokenAuthBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected TokenAuthBegin");
         return Err(ErrorCode::GeneralError);
     };
-    CompanionRequestManagerRegistry::get_mut().add_request(Box::new(token_auth_request))?;
     *output = output_ffi;
     Ok(())
 }
@@ -655,10 +674,10 @@ pub fn companion_process_token_auth(
 // CompanionRevokeToken
 pub fn companion_revoke_token(
     input: CompanionRevokeTokenInputFfi,
-    output: &mut CompanionRevokeTokenOutputFfi,
+    _output: &mut CompanionRevokeTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_revoke_token start");
-    CompanionDbManagerRegistry::get_mut().delete_token_db(input.binding_id)?;
+    CompanionDbManagerRegistry::get_mut().delete_device_token(input.binding_id)?;
     Ok(())
 }
 
@@ -672,6 +691,7 @@ pub fn companion_begin_delegate_auth(
     let auth_input = CompanionRequestInput::DelegateAuthBegin(input);
     let result = delagate_auth_request.begin(auth_input)?;
     let CompanionRequestOutput::DelegateAuthBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected DelegateAuthBegin");
         return Err(ErrorCode::GeneralError);
     };
     CompanionRequestManagerRegistry::get_mut().add_request(Box::new(delagate_auth_request))?;
@@ -685,11 +705,11 @@ pub fn companion_end_delegate_auth(
     output: &mut CompanionEndDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_end_delegate_auth start");
-    let mut delagate_auth_request =
-        CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut delagate_auth_request = CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let auth_input = CompanionRequestInput::DelegateAuthEnd(input);
     let result = delagate_auth_request.end(auth_input)?;
     let CompanionRequestOutput::DelegateAuthEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected DelegateAuthEnd");
         return Err(ErrorCode::GeneralError);
     };
 
@@ -707,6 +727,7 @@ pub fn companion_begin_obtain_token(
     let obtain_token_input = CompanionRequestInput::ObtainTokenBegin(input);
     let result = obtain_token_request.begin(obtain_token_input)?;
     let CompanionRequestOutput::ObtainTokenBegin(output_ffi) = result else {
+        log_e!("unexpected output type, Expected ObtainTokenBegin");
         return Err(ErrorCode::GeneralError);
     };
     CompanionRequestManagerRegistry::get_mut().add_request(Box::new(obtain_token_request))?;
@@ -720,11 +741,11 @@ pub fn companion_end_obtain_token(
     output: &mut CompanionEndObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_end_obtain_token start");
-    let mut obtain_token_request =
-        CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let mut obtain_token_request = CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     let obtain_token_input = CompanionRequestInput::ObtainTokenEnd(input);
     let result = obtain_token_request.end(obtain_token_input)?;
     let CompanionRequestOutput::ObtainTokenEnd(output_ffi) = result else {
+        log_e!("unexpected output type, Expected ObtainTokenEnd");
         return Err(ErrorCode::GeneralError);
     };
     *output = output_ffi;
@@ -734,7 +755,7 @@ pub fn companion_end_obtain_token(
 // CompanionCancelObtainToken
 pub fn companion_cancel_obtain_token(
     input: CompanionCancelObtainTokenInputFfi,
-    output: &mut CompanionCancelObtainTokenOutputFfi,
+    _output: &mut CompanionCancelObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_cancel_obtain_token start");
     CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;

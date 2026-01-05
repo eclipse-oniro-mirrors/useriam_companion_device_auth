@@ -41,10 +41,13 @@ public:
     explicit AniTemplateStatusCallback();
     ~AniTemplateStatusCallback() override;
     void OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList) override;
+    int32_t GetUserId() override;
+
     int32_t SetCallback(taihe::optional<TemplateStatusCallback> callback);
     void ClearCallback();
     bool HasCallback();
     void RemoveSingleCallback(taihe::optional<TemplateStatusCallback> callback);
+    void SetUserId(int32_t userId);
 
 private:
     void DoCallback(const std::vector<ClientTemplateStatus> templateStatusList, TemplateStatusCallbackPtr callback);
@@ -54,6 +57,7 @@ private:
     std::vector<TemplateStatusCallbackPtr> callbacks_;
     ani_env *env_ { nullptr };
     ani_vm *vm_ { nullptr };
+    int32_t userId_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

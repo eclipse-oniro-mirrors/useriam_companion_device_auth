@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -34,10 +35,12 @@ public:
     virtual bool Start() = 0;
 
     virtual ChannelId GetChannelId() const = 0;
-    virtual PhysicalDeviceKey GetLocalPhysicalDeviceKey() const = 0;
+    virtual std::optional<PhysicalDeviceKey> GetLocalPhysicalDeviceKey() const = 0;
 
     virtual bool OpenConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey) = 0;
     virtual void CloseConnection(const std::string &connectionName) = 0;
+    virtual bool RequiresDisconnectNotification() const = 0;
+    virtual void OnRemoteDisconnect(const std::string &connectionName, const std::string &reason) = 0;
     virtual bool SendMessage(const std::string &connectionName, const std::vector<uint8_t> &rawMsg) = 0;
 
     virtual std::unique_ptr<Subscription> SubscribePhysicalDeviceStatus(OnPhysicalDeviceStatusChange &&callback) = 0;
@@ -49,7 +52,7 @@ public:
     virtual bool GetAuthMaintainActive() const = 0;
     virtual std::unique_ptr<Subscription> SubscribeAuthMaintainActive(OnAuthMaintainActiveChange &&callback) = 0;
 
-    virtual SecureProtocolId GetcompanionSecureProtocolId() const = 0;
+    virtual SecureProtocolId GetCompanionSecureProtocolId() const = 0;
 
     virtual bool CheckOperationIntent(const DeviceKey &deviceKey, uint32_t tokenId,
         OnCheckOperationIntentResult &&resultCallback) = 0;

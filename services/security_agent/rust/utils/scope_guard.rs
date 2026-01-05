@@ -27,10 +27,7 @@ pub struct ScopeGuard {
 
 impl ScopeGuard {
     pub fn new(callback: Box<dyn FnOnce()>) -> Self {
-        Self {
-            callbacks: vec![callback],
-            cancelled: false,
-        }
+        Self { callbacks: vec![callback], cancelled: false }
     }
 
     pub fn add_callback(&mut self, callback: Box<dyn FnOnce()>) {
@@ -59,5 +56,42 @@ impl Drop for ScopeGuard {
             callback();
         }
         log_d!("guard trigger callbacks end");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    static mut test: i32 = 0;
+
+    #[test]
+    fn scope_guard_test() {
+        unsafe {
+            test = 0;
+            {
+                ScopeGuard::new(Box::new(|| {
+                    test += 1;
+                }));
+            }
+            assert_eq!(test, 1);
+            {
+                let mut scopeGuard = ScopeGuard::new(Box::new(|| {
+                    test += 1;
+                }));
+                scopeGuard.add_callback(Box::new(|| {
+                    test += 1;
+                }));
+            }
+            assert_eq!(test, 3);
+            {
+                let mut scopeGuard = ScopeGuard::new(Box::new(|| {
+                    test += 1;
+                }));
+                assert_eq!(scopeGuard.is_cancelled(), false);
+                scopeGuard.cancel();
+                assert_eq!(scopeGuard.is_cancelled(), true);
+            }
+        }
     }
 }

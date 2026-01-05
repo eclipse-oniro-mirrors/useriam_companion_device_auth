@@ -1,0 +1,41 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("../../companion_device_auth.gni")
+
+# Fake implementations directory
+companion_device_auth_fake_dir = "${companion_device_auth_path}/test/fake"
+
+# Fake source files for unit tests and fuzzing
+companion_device_auth_fake_sources = [
+  "${companion_device_auth_fake_dir}/device_manager/device_manager.cpp",
+  "${companion_device_auth_fake_dir}/self/relative_timer.cpp",
+  "${companion_device_auth_fake_dir}/self/request_class_stub_implementations.cpp",
+  "${companion_device_auth_fake_dir}/self/rust_ffi_stub.cpp",
+  "${companion_device_auth_fake_dir}/self/task_runner_manager.cpp",
+  "${companion_device_auth_fake_dir}/softbus/softbus.cpp",
+  "${companion_device_auth_fake_dir}/system/parameter.cpp",
+  "${companion_device_auth_fake_dir}/user_auth_framework/idriver_manager.cpp",
+  "${companion_device_auth_fake_dir}/user_auth_framework/user_auth_client.cpp",
+]
+
+# Fake include directories
+companion_device_auth_fake_include_dirs = [
+  "${companion_device_auth_fake_dir}",
+  "${companion_device_auth_fake_dir}/access_token",
+  "${companion_device_auth_fake_dir}/device_manager",
+  "${companion_device_auth_fake_dir}/self",
+  "${companion_device_auth_fake_dir}/softbus",
+  "${companion_device_auth_fake_dir}/system",
+  "${companion_device_auth_fake_dir}/user_auth_framework",
+]

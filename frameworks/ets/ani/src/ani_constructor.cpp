@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#include "ohos.userIAM.companionDeviceAuth.ani.hpp"
-
 #include "iam_logger.h"
+
+#include "ohos.userIAM.companionDeviceAuth.ani.hpp"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
 

@@ -15,10 +15,11 @@
 
 #include "ipc_device_select_callback_service.h"
 
-#include "common_defines.h"
-#include "companion_device_auth_common_defines.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
+
+#include "common_defines.h"
+#include "companion_device_auth_common_defines.h"
 #include "set_device_select_result_callback.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_SDK"

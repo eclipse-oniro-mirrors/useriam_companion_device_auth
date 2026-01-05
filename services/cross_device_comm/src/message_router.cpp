@@ -18,10 +18,10 @@
 #include <cinttypes>
 #include <utility>
 
-#include "common_defines.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "common_defines.h"
 #include "relative_timer.h"
 #include "scope_guard.h"
 #include "service_common.h"
@@ -273,6 +273,20 @@ void MessageRouter::HandleRequest(const MessageHeader &header, const Attributes 
     IAM_LOGI("handling request: seq=%{public}u, conn=%{public}s, type=%{public}u", header.messageSeq,
         header.connectionName.c_str(), static_cast<uint32_t>(header.msgType));
 
+    if (header.msgType == MessageType::DISCONNECT) {
+        std::string reason;
+        if (!payload.GetStringValue(Attributes::ATTR_CDA_SA_REASON, reason)) {
+            reason = "unknown";
+        }
+
+        IAM_LOGI("received disconnect notification: conn=%{public}s, reason=%{public}s", header.connectionName.c_str(),
+            reason.c_str());
+        auto channel = channelMgr_->GetChannelById(channelId);
+        ENSURE_OR_RETURN(channel != nullptr);
+        channel->OnRemoteDisconnect(header.connectionName, reason);
+        return;
+    }
+
     ScopeGuard scopeGuard([weakSelf = weak_from_this(), header, channelId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
@@ -284,9 +298,11 @@ void MessageRouter::HandleRequest(const MessageHeader &header, const Attributes 
 
     OnMessageReply replyCallback = [weakSelf = weak_from_this(), requestHeader = header, channelId](
                                        const Attributes &reply) {
-        auto self = weakSelf.lock();
-        ENSURE_OR_RETURN(self != nullptr);
-        self->SendReply(requestHeader, channelId, reply);
+        TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf, requestHeader, channelId, reply]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->SendReply(requestHeader, channelId, reply);
+        });
     };
 
     TaskRunnerManager::GetInstance().PostTaskOnResident(
@@ -404,7 +420,8 @@ void MessageRouter::RefreshConnectionStatusSubscription(const std::string &conne
         ENSURE_OR_RETURN(connectionMgr_ != nullptr);
         auto weakSelf = weak_from_this();
         auto subscription = connectionMgr_->SubscribeConnectionStatus(connectionName,
-            [weakSelf](const std::string &connName, ConnectionStatus status, const std::string &reason) {
+            [weakSelf](const std::string &connName, ConnectionStatus status,
+                [[maybe_unused]] const std::string &reason) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 if (status == ConnectionStatus::DISCONNECTED) {

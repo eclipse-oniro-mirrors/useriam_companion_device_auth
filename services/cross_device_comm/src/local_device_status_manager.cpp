@@ -21,6 +21,7 @@
 #include "channel_manager.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "user_id_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -43,32 +44,22 @@ std::shared_ptr<LocalDeviceStatusManager> LocalDeviceStatusManager::Create(std::
 
 LocalDeviceStatusManager::LocalDeviceStatusManager(std::shared_ptr<ChannelManager> channelMgr) : channelMgr_(channelMgr)
 {
-    localDeviceStatus_.protocols = { ProtocolId::VERSION_1 };
-    localDeviceStatus_.hostSecureProtocols = { SecureProtocolId::DEFAULT };
-    localDeviceStatus_.companionSecureProtocolId = SecureProtocolId::INVALID;
-    localDeviceStatus_.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
-    localDeviceStatus_.protocolPriorityList = { ProtocolId::VERSION_1 };
-    localDeviceStatus_.isAuthMaintainActive = false;
+    profile_.protocols = { ProtocolId::VERSION_1 };
+    profile_.hostSecureProtocols = { SecureProtocolId::DEFAULT };
+    profile_.companionSecureProtocolId = SecureProtocolId::INVALID;
+    profile_.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
+    profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
+    authState_.isAuthMaintainActive = false;
 }
 
 bool LocalDeviceStatusManager::Init()
 {
     ENSURE_OR_RETURN_VAL(channelMgr_ != nullptr, false);
-    auto weakSelf = weak_from_this();
-    auto channels = channelMgr_->GetAllChannels();
-    for (const auto &channel : channels) {
-        ENSURE_OR_RETURN_VAL(channel != nullptr, false);
-        PhysicalDeviceKey physicalKey = channel->GetLocalPhysicalDeviceKey();
-        DeviceKey deviceKey;
-        deviceKey.idType = physicalKey.idType;
-        deviceKey.deviceId = physicalKey.deviceId;
-        deviceKey.deviceUserId = GetActiveUserIdManager().GetActiveUserId();
-        localDeviceStatus_.channelId2DeviceKey[channel->GetChannelId()] = deviceKey;
-    }
 
     auto primaryChannel = channelMgr_->GetPrimaryChannel();
     ENSURE_OR_RETURN_VAL(primaryChannel != nullptr, false);
 
+    auto weakSelf = weak_from_this();
     authMaintainSubscription_ = primaryChannel->SubscribeAuthMaintainActive([weakSelf](bool isActive) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
@@ -77,10 +68,11 @@ bool LocalDeviceStatusManager::Init()
     ENSURE_OR_RETURN_VAL(authMaintainSubscription_ != nullptr, false);
     SetAuthMaintainActive(primaryChannel->GetAuthMaintainActive());
 
-    localDeviceStatus_.companionSecureProtocolId = primaryChannel->GetcompanionSecureProtocolId();
+    profile_.companionSecureProtocolId = primaryChannel->GetCompanionSecureProtocolId();
 
-    activeUserIdSubscription_ = GetActiveUserIdManager().SubscribeActiveUserId([weakSelf](UserId userId) {
-        auto self = weakSelf.lock();
+    auto weakSelf2 = weak_from_this();
+    activeUserIdSubscription_ = GetActiveUserIdManager().SubscribeActiveUserId([weakSelf2](UserId userId) {
+        auto self = weakSelf2.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->OnActiveUserIdChanged(userId);
     });
@@ -90,17 +82,26 @@ bool LocalDeviceStatusManager::Init()
     return true;
 }
 
-LocalDeviceStatus LocalDeviceStatusManager::GetLocalDeviceStatus()
+bool LocalDeviceStatusManager::IsAuthMaintainActive()
 {
-    return localDeviceStatus_;
+    return authState_.isAuthMaintainActive;
 }
 
-std::unique_ptr<Subscription> LocalDeviceStatusManager::SubscribeLocalDeviceStatus(OnLocalDeviceStatusChange &&callback)
+std::unique_ptr<Subscription> LocalDeviceStatusManager::SubscribeIsAuthMaintainActive(
+    OnAuthMaintainActiveChange &&callback)
 {
     int32_t subscriptionId = nextSubscriptionId_++;
     statusSubscribers_[subscriptionId] = std::move(callback);
 
-    IAM_LOGI("local device status subscription added: %{public}d", subscriptionId);
+    IAM_LOGI("auth maintain active subscription added: %{public}d", subscriptionId);
+
+    // Notify current status immediately
+    bool isActive = authState_.isAuthMaintainActive;
+    TaskRunnerManager::GetInstance().PostTaskOnResident([callback, isActive]() {
+        if (callback) {
+            callback(isActive);
+        }
+    });
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -110,39 +111,80 @@ std::unique_ptr<Subscription> LocalDeviceStatusManager::SubscribeLocalDeviceStat
     });
 }
 
+std::map<ChannelId, DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKeys()
+{
+    std::map<ChannelId, DeviceKey> result;
+    auto channels = channelMgr_->GetAllChannels();
+
+    for (const auto &channel : channels) {
+        if (channel == nullptr) {
+            continue;
+        }
+        auto deviceKeyOpt = GetLocalDeviceKey(channel->GetChannelId());
+        if (deviceKeyOpt.has_value()) {
+            result[channel->GetChannelId()] = deviceKeyOpt.value();
+        }
+    }
+
+    return result;
+}
+
+std::optional<DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKey(ChannelId channelId)
+{
+    auto channel = channelMgr_->GetChannelById(channelId);
+    if (channel == nullptr) {
+        IAM_LOGW("Channel not found: %{public}d", static_cast<int32_t>(channelId));
+        return std::nullopt;
+    }
+
+    auto physicalKeyOpt = channel->GetLocalPhysicalDeviceKey();
+    if (!physicalKeyOpt.has_value()) {
+        IAM_LOGW("Failed to get physical device key for channel: %{public}d", static_cast<int32_t>(channelId));
+        return std::nullopt;
+    }
+
+    const auto &physicalKey = physicalKeyOpt.value();
+    DeviceKey deviceKey;
+    deviceKey.idType = physicalKey.idType;
+    deviceKey.deviceId = physicalKey.deviceId;
+    deviceKey.deviceUserId = GetActiveUserIdManager().GetActiveUserId();
+
+    return deviceKey;
+}
+
+LocalDeviceProfile LocalDeviceStatusManager::GetLocalDeviceProfile()
+{
+    return profile_;
+}
+
 void LocalDeviceStatusManager::SetAuthMaintainActive(bool isActive)
 {
-    localDeviceStatus_.isAuthMaintainActive = isActive;
+    authState_.isAuthMaintainActive = isActive;
 
     IAM_LOGI("auth maintain changed: active=%{public}d", isActive);
 
     NotifyStatusChange();
 }
 
-bool LocalDeviceStatusManager::isAuthMaintainActive()
-{
-    return localDeviceStatus_.isAuthMaintainActive;
-}
-
 void LocalDeviceStatusManager::Unsubscribe(int32_t subscriptionId)
 {
     statusSubscribers_.erase(subscriptionId);
-    IAM_LOGI("local device status subscription removed: %{public}d", subscriptionId);
+    IAM_LOGI("auth maintain active subscription removed: %{public}d", subscriptionId);
 }
 
 void LocalDeviceStatusManager::NotifyStatusChange()
 {
-    std::vector<OnLocalDeviceStatusChange> callbacks;
+    std::vector<std::function<void(bool)>> callbacks;
     callbacks.reserve(statusSubscribers_.size());
     for (const auto &pair : statusSubscribers_) {
         callbacks.emplace_back(pair.second);
     }
-    LocalDeviceStatus status = localDeviceStatus_;
+    bool isActive = authState_.isAuthMaintainActive;
 
-    TaskRunnerManager::GetInstance().PostTaskOnResident([callbacks = std::move(callbacks), status]() mutable {
+    TaskRunnerManager::GetInstance().PostTaskOnResident([callbacks = std::move(callbacks), isActive]() mutable {
         for (auto &cb : callbacks) {
             if (cb) {
-                cb(status);
+                cb(isActive);
             }
         }
     });
@@ -150,20 +192,8 @@ void LocalDeviceStatusManager::NotifyStatusChange()
 
 void LocalDeviceStatusManager::OnActiveUserIdChanged(UserId userId)
 {
-    bool hasChanged = false;
-
-    for (auto &pair : localDeviceStatus_.channelId2DeviceKey) {
-        if (pair.second.deviceUserId != userId) {
-            pair.second.deviceUserId = userId;
-            hasChanged = true;
-            IAM_LOGI("device key userId updated: channel=%{public}d, device=%{public}s, userId=%{public}d",
-                static_cast<int32_t>(pair.first), pair.second.GetDesc().c_str(), userId);
-        }
-    }
-
-    if (hasChanged) {
-        NotifyStatusChange();
-    }
+    IAM_LOGI("active user id changed: userId=%{public}d", userId);
+    NotifyStatusChange();
 }
 
 } // namespace CompanionDeviceAuth

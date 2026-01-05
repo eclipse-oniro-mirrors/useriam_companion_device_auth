@@ -20,13 +20,12 @@
 #include <memory>
 #include <vector>
 
-#include "singleton.h"
-
-#include "active_user_id_manager.h"
 #include "host_binding.h"
 #include "host_binding_manager.h"
 #include "security_agent.h"
 #include "service_common.h"
+#include "singleton.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -45,7 +44,8 @@ public:
     ResultCode BeginAddHostBinding(RequestId requestId, UserId companionUserId, SecureProtocolId secureProtocolId,
         const std::vector<uint8_t> &addHostBindingRequest, std::vector<uint8_t> &outAddHostBindingReply) override;
 
-    ResultCode EndAddHostBinding(RequestId requestId, ResultCode resultCode) override;
+    ResultCode EndAddHostBinding(RequestId requestId, ResultCode resultCode,
+        const std::vector<uint8_t> &tokenData = {}) override;
 
     ResultCode RemoveHostBinding(UserId companionUserId, const DeviceKey &hostDeviceKey) override;
 

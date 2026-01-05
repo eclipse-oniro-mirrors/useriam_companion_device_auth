@@ -56,7 +56,7 @@ private:
     void HandleObtainTokenReply(const Attributes &reply, RequestId requestId);
     bool CompanionEndObtainToken(const ObtainTokenReply &obtainTokenReply, RequestId requestId);
     void CompleteWithSuccess();
-    void HandleLocalDeviceStatusChanged(const LocalDeviceStatus &status);
+    void HandleAuthMaintainActiveChanged(bool isActive);
 
     DeviceKey companionDeviceKey_;
     DeviceKey hostDeviceKey_;

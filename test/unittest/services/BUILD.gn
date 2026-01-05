@@ -15,6 +15,5 @@ group("services_test") {
   testonly = true
   deps = [
     "cpp:companion_device_auth_services_cpp_test",
-    "rust:companion_device_auth_services_rust_test",
   ]
 }

@@ -31,6 +31,7 @@ public:
     explicit IpcAvailableDeviceStatusCallbackService(const std::shared_ptr<IAvailableDeviceStatusCallback> &impl);
     ~IpcAvailableDeviceStatusCallbackService() override = default;
     int32_t OnAvailableDeviceStatusChange(const std::vector<IpcDeviceStatus> &deviceStatusList) override;
+    std::shared_ptr<IAvailableDeviceStatusCallback> GetCallback();
     int32_t CallbackEnter([[maybe_unused]] uint32_t code) override;
     int32_t CallbackExit([[maybe_unused]] uint32_t code, [[maybe_unused]] int32_t result) override;
 

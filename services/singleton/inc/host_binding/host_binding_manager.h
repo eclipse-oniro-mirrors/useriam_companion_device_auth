@@ -39,14 +39,17 @@ public:
     virtual ResultCode BeginAddHostBinding(RequestId requestId, UserId companionUserId,
         SecureProtocolId secureProtocolId, const std::vector<uint8_t> &addHostBindingRequest,
         std::vector<uint8_t> &outAddHostBindingReply) = 0;
-    virtual ResultCode EndAddHostBinding(RequestId requestId, ResultCode resultCode) = 0;
+    virtual ResultCode EndAddHostBinding(RequestId requestId, ResultCode resultCode,
+        const std::vector<uint8_t> &tokenData = {}) = 0;
     virtual ResultCode RemoveHostBinding(UserId companionUserId, const DeviceKey &hostDeviceKey) = 0;
     virtual bool SetHostBindingTokenValid(BindingId bindingId, bool isTokenValid) = 0;
 
     virtual void StartObtainTokenRequests(UserId userId, const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual void RevokeTokens(UserId userId) = 0;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     virtual void Initialize() = 0;
 };
 } // namespace CompanionDeviceAuth

@@ -45,21 +45,20 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
     IAM_LOGI("%{public}s", GetDescription());
 
-    auto localDeviceStatus = GetCrossDeviceCommManager().GetLocalDeviceStatus();
-    if (!localDeviceStatus.isAuthMaintainActive) {
+    if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
         IAM_LOGE("%{public}s local auth maintain inactive", GetDescription());
         SendPreIssueTokenReply(ResultCode::GENERAL_ERROR, {});
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
         return false;
     }
-    localDeviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeLocalDeviceStatus(
-        [weakSelf = std::weak_ptr<CompanionIssueTokenRequest>(shared_from_this())](const LocalDeviceStatus &status) {
+    localDeviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive(
+        [weakSelf = std::weak_ptr<CompanionIssueTokenRequest>(shared_from_this())](bool isActive) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->HandleLocalDeviceStatusChanged(status);
+            self->HandleAuthMaintainActiveChanged(isActive);
         });
     if (localDeviceStatusSubscription_ == nullptr) {
-        IAM_LOGE("%{public}s failed to subscribe local device status", GetDescription());
+        IAM_LOGE("%{public}s failed to subscribe auth maintain active", GetDescription());
         SendPreIssueTokenReply(ResultCode::GENERAL_ERROR, {});
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
         return false;
@@ -231,7 +230,7 @@ uint32_t CompanionIssueTokenRequest::GetMaxConcurrency() const
 }
 
 bool CompanionIssueTokenRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new CompanionIssueTokenRequest to same device preempts existing one
     if (newRequestType == RequestType::COMPANION_ISSUE_TOKEN_REQUEST && GetPeerDeviceKey() == newPeerDevice) {
@@ -242,9 +241,9 @@ bool CompanionIssueTokenRequest::ShouldCancelOnNewRequest(RequestType newRequest
     return false;
 }
 
-void CompanionIssueTokenRequest::HandleLocalDeviceStatusChanged(const LocalDeviceStatus &status)
+void CompanionIssueTokenRequest::HandleAuthMaintainActiveChanged(bool isActive)
 {
-    if (status.isAuthMaintainActive) {
+    if (isActive) {
         return;
     }
     IAM_LOGE("%{public}s local auth maintain inactive, cancel request", GetDescription());

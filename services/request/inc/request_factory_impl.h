@@ -16,10 +16,9 @@
 #ifndef COMPANION_DEVICE_AUTH_REQUEST_FACTORY_IMPL_H
 #define COMPANION_DEVICE_AUTH_REQUEST_FACTORY_IMPL_H
 
-#include "request_factory.h"
-
 #include "cross_device_comm_manager.h"
 #include "relative_timer.h"
+#include "request_factory.h"
 #include "request_manager.h"
 #include "task_runner_manager.h"
 
@@ -64,7 +63,9 @@ public:
     std::shared_ptr<IRequest> CreateHostSingleMixAuthRequest(ScheduleId scheduleId, std::vector<uint8_t> fwkMsg,
         UserId hostUserId, TemplateId templateId, FwkResultCallback &&requestCallback) override;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     RequestFactoryImpl() = default;
 };
 } // namespace CompanionDeviceAuth

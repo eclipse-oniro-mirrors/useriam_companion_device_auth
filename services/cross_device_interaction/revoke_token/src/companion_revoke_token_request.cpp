@@ -113,7 +113,8 @@ uint32_t CompanionRevokeTokenRequest::GetMaxConcurrency() const
 }
 
 bool CompanionRevokeTokenRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new CompanionRevokeTokenRequest preempts existing one
     if (newRequestType == RequestType::COMPANION_REVOKE_TOKEN_REQUEST) {

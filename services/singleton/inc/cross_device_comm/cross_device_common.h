@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -73,7 +74,8 @@ public:
 };
 
 using OnDeviceStatusChange = std::function<void(const std::vector<DeviceStatus> &deviceStatusList)>;
-using OnLocalDeviceStatusChange = std::function<void(const LocalDeviceStatus &status)>;
+using OnLocalDeviceStatusChange = std::function<void(const std::map<ChannelId, DeviceKey> &channelId2DeviceKey,
+    const LocalDeviceProfile &profile, const LocalDeviceAuthState &authState)>;
 using OnMessageReply = std::function<void(const Attributes &reply)>;
 using OnMessage = std::function<void(const Attributes &request, OnMessageReply &onMessageReply)>;
 
@@ -86,7 +88,7 @@ enum class ConnectionStatus : int32_t {
     DISCONNECTED = 2,
 };
 
-inline ConnectionStatus ConvertToConnectionStatus(bool isConnected, const std::string &reason)
+inline ConnectionStatus ConvertToConnectionStatus(bool isConnected, [[maybe_unused]] const std::string &reason)
 {
     if (isConnected) {
         return ConnectionStatus::CONNECTED;

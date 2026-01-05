@@ -20,10 +20,10 @@
 #include <optional>
 #include <vector>
 
-#include "active_user_id_manager.h"
 #include "companion_manager.h"
 #include "outbound_request.h"
 #include "security_agent.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {

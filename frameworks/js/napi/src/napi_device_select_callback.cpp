@@ -15,13 +15,13 @@
 
 #include "napi_device_select_callback.h"
 
+#include "napi/native_node_api.h"
 #include <uv.h>
 
-#include "napi/native_node_api.h"
-
-#include "companion_device_auth_napi_helper.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
+
+#include "companion_device_auth_napi_helper.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_NAPI"
 

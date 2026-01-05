@@ -44,7 +44,9 @@ public:
         return channels_;
     }
 
+#ifndef ENABLE_TEST
 private:
+#endif
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels_;
 };
 

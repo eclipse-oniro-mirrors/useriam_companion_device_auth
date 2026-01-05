@@ -14,6 +14,8 @@
  */
 
 use crate::log_e;
+use crate::vec;
+use crate::Vec;
 use core::ops;
 
 pub const PUBLIC_KEY_LEN: usize = 32;
@@ -26,6 +28,8 @@ pub const SHA256_DIGEST_SIZE: usize = 32;
 pub const HKDF_SALT_SIZE: usize = 32;
 pub const AES_GCM_TAG_SIZE: usize = 16;
 pub const AES_GCM_IV_SIZE: usize = 12;
+pub const AES_GCM_AAD: &str = "CDA_AES_MSG_DATA";
+pub const AES_GCM_AAD_SIZE: usize = 16;
 pub const TOKEN_KEY_LEN: usize = 32;
 pub const MAX_EVENT_NUM: usize = 20;
 pub const INVALID_USER_ID: i32 = -1;
@@ -49,6 +53,7 @@ pub enum ErrorCode {
     NotFound = 11,
     BadSign = 12,
     IdExists = 13,
+    ExceedLimit = 14,
 }
 
 impl Default for ErrorCode {
@@ -75,15 +80,17 @@ impl TryFrom<i32> for ErrorCode {
             11 => Ok(ErrorCode::NotFound),
             12 => Ok(ErrorCode::BadSign),
             13 => Ok(ErrorCode::IdExists),
+            14 => Ok(ErrorCode::ExceedLimit),
             _ => {
                 log_e!("Invalid error code: {}", value);
                 Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
+#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(i32)]
 pub enum AuthSecurityLevel {
     Asl0 = 0,
@@ -111,7 +118,7 @@ impl TryFrom<i32> for AuthSecurityLevel {
             _ => {
                 log_e!("Invalid auth security level: {}", value);
                 Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
@@ -145,7 +152,7 @@ impl TryFrom<i32> for ExecutorSecurityLevel {
             _ => {
                 log_e!("Invalid executor security level: {}", value);
                 Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
@@ -178,7 +185,7 @@ impl TryFrom<i32> for AuthCapabilityLevel {
             _ => {
                 log_e!("Invalid auth capability level: {}", value);
                 Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
@@ -214,46 +221,16 @@ impl TryFrom<i32> for AuthTrustLevel {
             _ => {
                 log_e!("Invalid auth trust level: {}", value);
                 Err(ErrorCode::BadParam)
-            }
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[repr(i32)]
-pub enum ExecutorRole {
-    Collector = 1,
-    Verifier = 2,
-    AllInOne = 3,
-}
-
-impl Default for ExecutorRole {
-    fn default() -> Self {
-        ExecutorRole::Collector
-    }
-}
-
-impl TryFrom<i32> for ExecutorRole {
-    type Error = ErrorCode;
-    fn try_from(value: i32) -> core::result::Result<Self, ErrorCode> {
-        match value {
-            1 => Ok(ExecutorRole::Collector),
-            2 => Ok(ExecutorRole::Verifier),
-            3 => Ok(ExecutorRole::AllInOne),
-            _ => {
-                log_e!("Invalid executor role: {}", value);
-                Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(i32)]
 pub enum DeviceType {
     None = 0,
-    Mcu = 1,
-    Ap = 2,
 }
 
 impl TryFrom<i32> for DeviceType {
@@ -261,12 +238,10 @@ impl TryFrom<i32> for DeviceType {
     fn try_from(value: i32) -> core::result::Result<Self, ErrorCode> {
         match value {
             0 => Ok(DeviceType::None),
-            1 => Ok(DeviceType::Mcu),
-            2 => Ok(DeviceType::Ap),
             _ => {
                 log_e!("device type: {}", value);
                 Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
@@ -283,8 +258,6 @@ pub struct DeviceCapability {
 pub enum AlgoType {
     None = 0,
     X25519 = 1,
-    P256 = 2,
-    Rsa = 3,
 }
 
 impl Default for AlgoType {
@@ -298,12 +271,10 @@ impl TryFrom<u16> for AlgoType {
     fn try_from(value: u16) -> core::result::Result<Self, ErrorCode> {
         match value {
             1 => Ok(AlgoType::X25519),
-            2 => Ok(AlgoType::P256),
-            3 => Ok(AlgoType::Rsa),
             _ => {
                 log_e!("Invalid algo type: {}", value);
                 Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
@@ -313,8 +284,6 @@ impl TryFrom<u16> for AlgoType {
 pub enum SecureProtocolId {
     Invalid = 0,
     Default = 1,
-    Mcu = 2,
-    McuAp = 3,
 }
 
 impl Default for SecureProtocolId {
@@ -329,12 +298,10 @@ impl TryFrom<u16> for SecureProtocolId {
         match value {
             0 => Ok(SecureProtocolId::Invalid),
             1 => Ok(SecureProtocolId::Default),
-            2 => Ok(SecureProtocolId::Mcu),
-            3 => Ok(SecureProtocolId::McuAp),
             _ => {
                 log_e!("Invalid secure protocol id: {}", value);
                 Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
@@ -347,6 +314,7 @@ pub enum AuthType {
     Pin = 1,
     Face = 2,
     Fingerprint = 4,
+    CompanionDevice = 64,
 }
 
 impl Default for AuthType {
@@ -359,13 +327,48 @@ impl TryFrom<u32> for AuthType {
     type Error = ErrorCode;
     fn try_from(value: u32) -> core::result::Result<Self, ErrorCode> {
         match value {
+            0 => Ok(AuthType::Default),
             1 => Ok(AuthType::Pin),
             2 => Ok(AuthType::Face),
             4 => Ok(AuthType::Fingerprint),
+            64 => Ok(AuthType::CompanionDevice),
             _ => {
                 log_e!("Invalid auth capability level: {}", value);
                 Err(ErrorCode::BadParam)
-            }
+            },
         }
     }
 }
+
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
+#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
+#[repr(u16)]
+pub enum Capability {
+    Invalid = 0,
+    DelegateAuth = 1,
+    TokenAuth = 2,
+}
+
+impl Default for Capability {
+    fn default() -> Self {
+        Capability::Invalid
+    }
+}
+
+impl TryFrom<u16> for Capability {
+    type Error = ErrorCode;
+    fn try_from(value: u16) -> core::result::Result<Self, ErrorCode> {
+        match value {
+            0 => Ok(Capability::Invalid),
+            1 => Ok(Capability::DelegateAuth),
+            2 => Ok(Capability::TokenAuth),
+            _ => {
+                log_e!("Invalid capability level: {}", value);
+                Err(ErrorCode::BadParam)
+            },
+        }
+    }
+}
+
+pub const PROTOCAL_VERSION: &[u16] = &[1];
+pub const SUPPORT_CAPABILITY: &[u16] = &[Capability::DelegateAuth as u16, Capability::TokenAuth as u16];

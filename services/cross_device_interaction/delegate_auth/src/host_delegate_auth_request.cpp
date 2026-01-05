@@ -267,7 +267,8 @@ uint32_t HostDelegateAuthRequest::GetMaxConcurrency() const
 }
 
 bool HostDelegateAuthRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, uint32_t subsequentSameTypeCount) const
+    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostAddCompanionRequest preempts HostDelegateAuthRequest
     if (newRequestType == RequestType::HOST_ADD_COMPANION_REQUEST) {

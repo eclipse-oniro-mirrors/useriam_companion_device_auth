@@ -15,14 +15,15 @@
 
 #include "companion_device_auth_napi_impl.h"
 
+#include "napi_device_select_callback.h"
 #include "securec.h"
 
-#include "companion_device_auth_client.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 #include "iam_ptr.h"
-#include "napi_device_select_callback.h"
+
+#include "companion_device_auth_client.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH_NAPI"
 
@@ -37,22 +38,30 @@ napi_value CompanionDeviceAuthNapiImpl::RegisterDeviceSelectCallback(napi_env en
     napi_status status = napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (status != napi_ok) {
         IAM_LOGE("napi_get_cb_info fail, ret:%{public}d", status);
+        napi_throw(env,
+            CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ResultCode::GENERAL_ERROR));
         return nullptr;
     }
     if (argc != ARGS_ONE) {
         IAM_LOGE("invalid param, argc:%{public}zu", argc);
+        napi_throw(env,
+            CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ResultCode::GENERAL_ERROR));
         return nullptr;
     }
 
     auto deviceSelectCallback = MakeShared<NapiDeviceSelectCallback>(env);
     if (deviceSelectCallback == nullptr) {
         IAM_LOGE("deviceSelectCallback is null");
+        napi_throw(env,
+            CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ResultCode::GENERAL_ERROR));
         return nullptr;
     }
 
     auto callbackRef = MakeShared<JsRefHolder>(env, argv[PARAM0]);
     if (callbackRef == nullptr || !callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");
+        napi_throw(env,
+            CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ResultCode::GENERAL_ERROR));
         return nullptr;
     }
 
@@ -60,6 +69,8 @@ napi_value CompanionDeviceAuthNapiImpl::RegisterDeviceSelectCallback(napi_env en
     int32_t ret = CompanionDeviceAuthClient::GetInstance().RegisterDeviceSelectCallback(deviceSelectCallback);
     if (ret != SUCCESS) {
         IAM_LOGE("RegisterDeviceSelectCallback fail, ret:%{public}d", static_cast<int32_t>(ret));
+        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+        return nullptr;
     }
     IAM_LOGI("success");
     return nullptr;
@@ -71,18 +82,17 @@ napi_value CompanionDeviceAuthNapiImpl::UnregisterDeviceSelectCallback(napi_env 
     int32_t ret = CompanionDeviceAuthClient::GetInstance().UnregisterDeviceSelectCallback();
     if (ret != SUCCESS) {
         IAM_LOGE("UnregisterDeviceSelectCallback fail, ret:%{public}d", static_cast<int32_t>(ret));
+        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+        return nullptr;
     }
     IAM_LOGI("success");
     return nullptr;
 }
 
-napi_value CompanionDeviceAuthNapiImpl::UpdateEnabledBusinessIds(napi_env env, napi_callback_info info)
+napi_value CompanionDeviceAuthNapiImpl::UpdateEnabledBusinessIds(napi_env env, napi_callback_info info,
+    napi_value voidPromise, napi_deferred promiseDeferred)
 {
     IAM_LOGI("start");
-    napi_value voidPromise = nullptr;
-    napi_deferred promiseDeferred = nullptr;
-    NAPI_CALL(env, napi_create_promise(env, &promiseDeferred, &voidPromise));
-
     napi_value argv[ARGS_TWO];
     size_t argc = ARGS_TWO;
     napi_status status = napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -124,8 +134,7 @@ napi_value CompanionDeviceAuthNapiImpl::UpdateEnabledBusinessIds(napi_env env, n
         CompanionDeviceAuthClient::GetInstance().UpdateTemplateEnabledBusinessIds(templateId, enabledBusinessIds);
     if (ret != SUCCESS) {
         IAM_LOGE("UpdateTemplateEnabledBusinessIds fail, ret:%{public}d", static_cast<int32_t>(ret));
-        napi_reject_deferred(env, promiseDeferred,
-            CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ResultCode::GENERAL_ERROR));
+        napi_reject_deferred(env, promiseDeferred, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return voidPromise;
     }
     DoPromise(env, promiseDeferred, voidPromise, ret);
@@ -138,17 +147,18 @@ void CompanionDeviceAuthNapiImpl::DoPromise(napi_env env, napi_deferred promise,
 {
     IAM_LOGI("start");
     if (promise == nullptr) {
+        napi_reject_deferred(env, promise,
+            CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ResultCode::GENERAL_ERROR));
         return;
     }
 
-    napi_status ret;
     if (result == SUCCESS) {
-        ret = napi_resolve_deferred(env, promise, promiseValue);
+        napi_status ret = napi_resolve_deferred(env, promise, promiseValue);
         if (ret != napi_ok) {
             IAM_LOGE("napi_resolve_deferred failed %{public}d", ret);
         }
     } else {
-        ret = napi_reject_deferred(env, promise, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, result));
+        napi_reject_deferred(env, promise, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, result));
     }
 }
 } // namespace CompanionDeviceAuth

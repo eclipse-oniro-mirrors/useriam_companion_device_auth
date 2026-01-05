@@ -20,6 +20,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+
 #include "service_common.h"
 #include "task_runner_manager.h"
 
@@ -29,61 +30,28 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-sptr<CallbackDeathRecipient> CallbackDeathRecipient::Create(const sptr<IRemoteObject> &remoteObj,
+sptr<CallbackDeathRecipient> CallbackDeathRecipient::Register(const sptr<IRemoteObject> &remoteObj,
     DeathCallback &&callback)
 {
     ENSURE_OR_RETURN_VAL(remoteObj != nullptr, nullptr);
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
-    sptr<CallbackDeathRecipient> recipient(new (std::nothrow) CallbackDeathRecipient(remoteObj, std::move(callback)));
+    sptr<CallbackDeathRecipient> recipient(new (std::nothrow) CallbackDeathRecipient(std::move(callback)));
     if (recipient == nullptr) {
         IAM_LOGE("failed to create CallbackDeathRecipient");
         return nullptr;
     }
 
-    if (!recipient->Init()) {
-        IAM_LOGE("failed to init CallbackDeathRecipient");
+    if (!remoteObj->AddDeathRecipient(recipient)) {
+        IAM_LOGE("AddDeathRecipient failed");
         return nullptr;
     }
 
     return recipient;
 }
 
-CallbackDeathRecipient::CallbackDeathRecipient(const sptr<IRemoteObject> &remoteObj, DeathCallback &&callback)
-    : callback_(std::move(callback)),
-      remoteObj_(remoteObj)
+CallbackDeathRecipient::CallbackDeathRecipient(DeathCallback &&callback) : callback_(std::move(callback))
 {
-}
-
-CallbackDeathRecipient::~CallbackDeathRecipient()
-{
-    if (!initialized_) {
-        return;
-    }
-
-    auto obj = remoteObj_.promote();
-    if (obj != nullptr) {
-        obj->RemoveDeathRecipient(this);
-    }
-}
-
-bool CallbackDeathRecipient::Init()
-{
-    auto obj = remoteObj_.promote();
-    ENSURE_OR_RETURN_VAL(obj != nullptr, false);
-
-    if (initialized_) {
-        IAM_LOGW("already initialized");
-        return false;
-    }
-
-    if (!obj->AddDeathRecipient(this)) {
-        IAM_LOGE("AddDeathRecipient failed");
-        return false;
-    }
-
-    initialized_ = true;
-    return true;
 }
 
 void CallbackDeathRecipient::OnRemoteDied(const wptr<IRemoteObject> &remote)

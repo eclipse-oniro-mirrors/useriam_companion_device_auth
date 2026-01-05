@@ -37,25 +37,29 @@ class AniContinuousAuthStatusCallback : public IContinuousAuthStatusCallback,
                                         public std::enable_shared_from_this<AniContinuousAuthStatusCallback>,
                                         public NoCopyable {
 public:
-    explicit AniContinuousAuthStatusCallback(std::optional<uint64_t> templateId = std::nullopt);
+    explicit AniContinuousAuthStatusCallback();
     ~AniContinuousAuthStatusCallback() override;
     void OnContinuousAuthStatusChange(const bool isAuthPassed,
         const std::optional<int32_t> authTrustLevel = std::nullopt) override;
+    int32_t GetUserId() override;
+    std::optional<uint64_t> GetTemplateId() override;
+
     int32_t SetCallback(taihe::optional<ContinuousAuthStatusCallback> callback);
     void ClearCallback();
     bool HasCallback();
     void RemoveSingleCallback(taihe::optional<ContinuousAuthStatusCallback> callback);
-    int32_t GetTemplateId(uint64_t &templateId);
-    bool HasTemplateId();
     bool HasSameCallback(taihe::optional<ContinuousAuthStatusCallback> callback);
+    void SetUserId(int32_t userId);
+    void SetTemplateId(uint64_t templateId);
 
 private:
     void DoCallback(ContinuousAuthStatusCallbackPtr callback, const bool isAuthPassed,
         const std::optional<int32_t> authTrustLevel = std::nullopt);
 
     std::recursive_mutex mutex_;
-    std::optional<uint64_t> templateId_;
     std::vector<ContinuousAuthStatusCallbackPtr> callbacks_;
+    int32_t userId_;
+    std::optional<uint64_t> templateId_ { std::nullopt };
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

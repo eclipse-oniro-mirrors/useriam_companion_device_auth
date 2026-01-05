@@ -21,29 +21,32 @@
 #include <optional>
 #include <vector>
 
+#include "callback_subscription_base.h"
 #include "companion_device_auth_types.h"
 #include "iipc_continuous_auth_status_callback.h"
-
-#include "callback_subscription_base.h"
 #include "service_common.h"
 #include "subscription.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+class SubscriptionManager;
 
 class ContinuousAuthSubscription
     : public CallbackSubscriptionBase<IIpcContinuousAuthStatusCallback, ContinuousAuthSubscription> {
 public:
-    static std::shared_ptr<ContinuousAuthSubscription> Create(UserId userId, std::optional<TemplateId> templateId);
+    static std::shared_ptr<ContinuousAuthSubscription> Create(UserId userId, std::optional<TemplateId> templateId,
+        std::weak_ptr<SubscriptionManager> subscriptionManager);
 
-    ContinuousAuthSubscription(UserId userId, std::optional<TemplateId> templateId);
+    ContinuousAuthSubscription(UserId userId, std::optional<TemplateId> templateId,
+        std::weak_ptr<SubscriptionManager> subscriptionManager);
     ~ContinuousAuthSubscription() = default;
 
     UserId GetUserId() const;
     std::optional<TemplateId> GetTemplateId() const;
     std::weak_ptr<ContinuousAuthSubscription> GetWeakPtr() override;
     void OnCallbackAdded(const sptr<IIpcContinuousAuthStatusCallback> &callback) override;
+    void OnCallbackRemoteDied(const sptr<IIpcContinuousAuthStatusCallback> &callback) override;
 
 #ifndef ENABLE_TEST
 private:
@@ -54,6 +57,7 @@ private:
 
     UserId userId_;
     std::optional<TemplateId> templateId_;
+    std::weak_ptr<SubscriptionManager> subscriptionManager_;
 
     // Subscription to CompanionManager
     std::unique_ptr<Subscription> companionStatusSubscription_;

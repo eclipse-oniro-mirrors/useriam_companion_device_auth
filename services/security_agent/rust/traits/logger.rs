@@ -39,8 +39,7 @@ pub trait Logger {
 struct DummyLogger;
 
 impl Logger for DummyLogger {
-    fn log(&self, _level: LogLevel, _file_path: &str, _line_num: u32, _args: crate::Arguments<'_>) {
-    }
+    fn log(&self, _level: LogLevel, _file_path: &str, _line_num: u32, _args: crate::Arguments<'_>) {}
 }
 
 singleton_registry!(LoggerRegistry, Logger, DummyLogger);
@@ -108,7 +107,7 @@ macro_rules! unwrap_opt_or_return {
             None => {
                 log_e!("Option is None, return");
                 return;
-            }
+            },
         }
     };
 
@@ -118,7 +117,7 @@ macro_rules! unwrap_opt_or_return {
             None => {
                 log_e!("Option is None, return {:?}", $error_code);
                 return core::result::Result::Err($error_code);
-            }
+            },
         }
     };
 }
@@ -131,7 +130,7 @@ macro_rules! unwrap_or_return {
             core::result::Result::Err(err) => {
                 log_e!("Result is Err: {:?}, return", err);
                 return;
-            }
+            },
         }
     };
 }
@@ -144,7 +143,7 @@ macro_rules! unwrap_or_return_val {
             core::result::Result::Err(err) => {
                 log_e!("Result is Err: {:?}, return {:?}", err, err);
                 return core::result::Result::Err(err);
-            }
+            },
         }
     };
 
@@ -154,7 +153,7 @@ macro_rules! unwrap_or_return_val {
             core::result::Result::Err(err) => {
                 log_e!("Result is Err: {:?}, return {:?}", err, $error_code);
                 return core::result::Result::Err($error_code);
-            }
+            },
         }
     };
 }
@@ -163,23 +162,14 @@ macro_rules! unwrap_or_return_val {
 macro_rules! ensure_or_return_val {
     ($expr1:expr) => {{
         if !$expr1 {
-            log_e!(
-                "Assertion failed: {} (value: {:?})",
-                stringify!($expr1),
-                $expr1
-            );
+            log_e!("Assertion failed: {} (value: {:?})", stringify!($expr1), $expr1);
             return;
         }
     }};
 
     ($expr1:expr, $return_val:expr) => {{
         if !$expr1 {
-            log_e!(
-                "Assertion failed: {} (value: {:?}), return {:?}",
-                stringify!($expr1),
-                $expr1,
-                $return_val
-            );
+            log_e!("Assertion failed: {} (value: {:?}), return {:?}", stringify!($expr1), $expr1, $return_val);
             return core::result::Result::Err($return_val);
         }
     }};

@@ -20,9 +20,9 @@
 #include <string>
 
 #include "nocopyable.h"
-#include "thread_pool.h"
 
 #include "task_runner.h"
+#include "thread_pool.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -35,7 +35,9 @@ public:
     void PostTask(Task &&task) override;
     void Suspend() override;
 
+#ifndef ENABLE_TEST
 private:
+#endif
     OHOS::ThreadPool pool_;
     bool canSuspend_ = false;
 

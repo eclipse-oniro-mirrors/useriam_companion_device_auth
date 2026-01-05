@@ -17,16 +17,14 @@ use crate::common::constants::*;
 use crate::common::types::*;
 use crate::entry::companion_device_auth_ffi::{
     HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi, HostBeginCompanionCheckInputFfi,
-    HostBeginCompanionCheckOutputFfi, HostBeginDelegateAuthInputFfi,
-    HostBeginDelegateAuthOutputFfi, HostBeginIssueTokenInputFfi, HostBeginIssueTokenOutputFfi,
-    HostBeginTokenAuthInputFfi, HostBeginTokenAuthOutputFfi, HostEndAddCompanionInputFfi,
-    HostEndAddCompanionOutputFfi, HostEndCompanionCheckInputFfi, HostEndCompanionCheckOutputFfi,
-    HostEndDelegateAuthInputFfi, HostEndDelegateAuthOutputFfi, HostEndIssueTokenInputFfi,
-    HostEndIssueTokenOutputFfi, HostEndTokenAuthInputFfi, HostEndTokenAuthOutputFfi,
-    HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
-    HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi, HostProcessObtainTokenInputFfi,
-    HostProcessObtainTokenOutputFfi, HostProcessPreObtainTokenInputFfi,
-    HostProcessPreObtainTokenOutputFfi,
+    HostBeginCompanionCheckOutputFfi, HostBeginDelegateAuthInputFfi, HostBeginDelegateAuthOutputFfi,
+    HostBeginIssueTokenInputFfi, HostBeginIssueTokenOutputFfi, HostBeginTokenAuthInputFfi, HostBeginTokenAuthOutputFfi,
+    HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi, HostEndCompanionCheckInputFfi,
+    HostEndCompanionCheckOutputFfi, HostEndDelegateAuthInputFfi, HostEndDelegateAuthOutputFfi,
+    HostEndIssueTokenInputFfi, HostEndIssueTokenOutputFfi, HostEndTokenAuthInputFfi, HostEndTokenAuthOutputFfi,
+    HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi, HostPreIssueTokenInputFfi,
+    HostPreIssueTokenOutputFfi, HostProcessObtainTokenInputFfi, HostProcessObtainTokenOutputFfi,
+    HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
 };
 
 use crate::String;
@@ -98,8 +96,38 @@ impl HostRequestManager for DummyHostRequestManager {
     }
 }
 
-singleton_registry!(
-    HostRequestManagerRegistry,
-    HostRequestManager,
-    DummyHostRequestManager
-);
+singleton_registry!(HostRequestManagerRegistry, HostRequestManager, DummyHostRequestManager);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct DummyHostRequest;
+
+    impl HostRequest for DummyHostRequest {
+        fn get_request_id(&self) -> i32 {
+            log_e!("not implemented");
+            0
+        }
+        fn prepare(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+            log_e!("not implemented");
+            Err(ErrorCode::GeneralError)
+        }
+        fn begin(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+            log_e!("not implemented");
+            Err(ErrorCode::GeneralError)
+        }
+        fn end(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+            log_e!("not implemented");
+            Err(ErrorCode::GeneralError)
+        }
+    }
+
+    #[test]
+    fn dummy_host_request_manager_test() {
+        let mut dummy_host_request_manager = DummyHostRequestManager;
+        assert_eq!(dummy_host_request_manager.add_request(Box::new(DummyHostRequest)), Err(ErrorCode::GeneralError));
+        assert!(dummy_host_request_manager.remove_request(0).is_err());
+        assert!(dummy_host_request_manager.get_request(0).is_err());
+    }
+}

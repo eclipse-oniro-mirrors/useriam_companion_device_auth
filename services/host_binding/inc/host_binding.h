@@ -69,12 +69,11 @@ private:
     void HandleDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
     void HandleHostDeviceStatusUpdate(const DeviceStatus &deviceStatus);
     void HandleHostDeviceOffline();
-    void HandleLocalDeviceStatusChanged(const LocalDeviceStatus &localDeviceStatus);
+    void HandleAuthMaintainActiveChanged(bool isActive);
 
     HostBindingStatus status_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
     std::unique_ptr<Subscription> localDeviceStatusSubscription_;
-    std::unique_ptr<Subscription> tokenTimeoutSubscription_;
 
     std::string description_ = "";
 };

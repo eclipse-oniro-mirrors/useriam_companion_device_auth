@@ -29,20 +29,12 @@ pub struct DefaultMiscManager {
 
 impl DefaultMiscManager {
     pub fn new() -> Self {
-        DefaultMiscManager {
-            udid: None,
-            key_pair: None,
-            fwk_pub_key: None,
-        }
+        DefaultMiscManager { udid: None, key_pair: None, fwk_pub_key: None }
     }
 }
 
 impl MiscManager for DefaultMiscManager {
-    fn get_distribute_key(
-        &self,
-        local_udid: Udid,
-        peer_udid: Udid,
-    ) -> Result<crate::Vec<u8>, ErrorCode> {
+    fn get_distribute_key(&self, local_udid: Udid, peer_udid: Udid) -> Result<crate::Vec<u8>, ErrorCode> {
         const DUMMY_DISTRIBUTE_DEVICE_KEY: &[u8; 32] = b"DEVICE_AUTH_DISTRIBUT_DEVICE_KEY";
 
         let mut salt = Vec::with_capacity(size_of::<Udid>() * 2);
@@ -54,8 +46,7 @@ impl MiscManager for DefaultMiscManager {
             salt.extend_from_slice(&local_udid.0);
         }
 
-        let mut origin_key_data =
-            Vec::with_capacity(DUMMY_DISTRIBUTE_DEVICE_KEY.len() + salt.len());
+        let mut origin_key_data = Vec::with_capacity(DUMMY_DISTRIBUTE_DEVICE_KEY.len() + salt.len());
         origin_key_data.extend_from_slice(DUMMY_DISTRIBUTE_DEVICE_KEY);
         origin_key_data.extend_from_slice(&salt);
 
@@ -74,7 +65,7 @@ impl MiscManager for DefaultMiscManager {
             None => {
                 log_e!("key pair not set");
                 Err(ErrorCode::GeneralError)
-            }
+            },
         }
     }
 

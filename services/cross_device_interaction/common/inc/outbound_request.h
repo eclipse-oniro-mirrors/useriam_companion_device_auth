@@ -39,7 +39,7 @@ public:
     virtual ~OutboundRequest() = default;
 
     void Start() override final;
-    bool Cancel() override final;
+    bool Cancel(ResultCode resultCode) override final;
 
 #ifndef ENABLE_TEST
 protected:
@@ -63,10 +63,12 @@ private:
     void CloseConnection();
 
     void HandleConnectionStatus(const std::string &connName, ConnectionStatus status, const std::string &reason);
+    void HandleRequestAborted(const Attributes &request, std::function<void(const Attributes &)> onReply);
 
     std::optional<DeviceKey> peerDeviceKey_;
     std::string connectionName_ = "";
     std::unique_ptr<Subscription> connectionStatusSubscription_;
+    std::unique_ptr<Subscription> requestAbortedSubscription_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

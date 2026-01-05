@@ -14,6 +14,7 @@
  */
 
 pub mod attribute;
+pub mod auth_token;
 pub mod message_codec;
 pub mod parcel;
 pub mod scope_guard;

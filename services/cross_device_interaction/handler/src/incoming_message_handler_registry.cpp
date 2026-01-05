@@ -18,18 +18,17 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
-#include "companion_sync_device_status_handler.h"
-#include "incoming_message_handler.h"
-#include "keep_alive_handler.h"
-#include "singleton_manager.h"
-
 #include "companion_init_key_negotiation_handler.h"
 #include "companion_pre_issue_token_handler.h"
 #include "companion_remove_host_binding_handler.h"
 #include "companion_start_delegate_auth_handler.h"
+#include "companion_sync_device_status_handler.h"
 #include "companion_token_auth_handler.h"
 #include "host_pre_obtain_token_handler.h"
 #include "host_revoke_token_handler.h"
+#include "incoming_message_handler.h"
+#include "keep_alive_handler.h"
+#include "singleton_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 

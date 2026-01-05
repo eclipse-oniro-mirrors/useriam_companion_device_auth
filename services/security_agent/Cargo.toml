@@ -23,12 +23,7 @@ crate-type = ["rlib"]  # cdylib 用于生成动态库，rlib 保留静态库功�
 
 [[test]]
 name = "unit_test"
-path = "tests/unit_test/unit_test.rs"
-required-features = ["test-utils"]
-
-[[test]]
-name = "integration_test"
-path = "tests/integration_test/integration_test.rs"
+path = "../../test/unittest/services/rust/src/unit_test.rs"
 required-features = ["test-utils"]
 
 [dependencies]
