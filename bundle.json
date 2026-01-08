@@ -27,9 +27,6 @@
     ],
     "features":[
     ],
-    "hisysevent_config":[
-      "//base/useriam/companion_device_auth/hisysevent.yaml"
-    ],
     "rom":"3380KB",
     "ram":"7271KB",
     "deps":{
