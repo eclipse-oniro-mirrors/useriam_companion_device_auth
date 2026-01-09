@@ -37,8 +37,8 @@ pub const HOST_DEVICE_BASE_INFO: &str = "companion_device_base_info";
 pub const HOST_DEVICE_CAPABILTY_INFO: &str = "companion_device_capability_info";
 pub const HOST_DEVICE_SK: &str = "companion_device_sk";
 
-const MAX_DEVICE_NUM: usize = 5;
-const MAX_TOKEN_NUM: usize = 5;
+const MAX_DEVICE_NUM: usize = 1;
+const MAX_TOKEN_NUM: usize = 1;
 
 pub struct DefaultHostDbManager {
     pub companion_device_infos: Vec<CompanionDeviceInfo>,

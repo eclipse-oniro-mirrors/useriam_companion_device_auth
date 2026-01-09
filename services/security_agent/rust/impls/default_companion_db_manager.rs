@@ -33,7 +33,7 @@ pub const COMPANION_DEVICE_DB: &str = "host_device_db";
 pub const COMPANION_DEVICE_SK: &str = "host_device_sk";
 pub const COMPANION_DEVICE_TOKEN: &str = "host_device_token";
 
-pub const MAX_DEVICE_NUM: usize = 5;
+pub const MAX_DEVICE_NUM: usize = 1;
 pub const MAX_DEVICE_NUM_PER_USER: usize = 1;
 
 pub struct DefaultCompaniomDbManager {
