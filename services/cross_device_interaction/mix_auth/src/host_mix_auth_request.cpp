@@ -15,6 +15,8 @@
 
 #include "host_mix_auth_request.h"
 
+#include <cinttypes>
+
 #include "iam_check.h"
 #include "iam_logger.h"
 
@@ -36,8 +38,30 @@ HostMixAuthRequest::HostMixAuthRequest(ScheduleId scheduleId, std::vector<uint8_
 {
 }
 
+bool HostMixAuthRequest::AnyTemplateValid() const
+{
+    for (auto templateId : templateIdList_) {
+        auto companionStatus = GetCompanionManager().GetCompanionStatus(templateId);
+        if (!companionStatus.has_value()) {
+            IAM_LOGE("%{public}s templateId:%{public}s not found", GetDescription(), GET_MASKED_NUM_CSTR(templateId));
+            continue;
+        }
+        if (!companionStatus->isValid) {
+            IAM_LOGE("%{public}s templateId:%{public}s is invalid", GetDescription(), GET_MASKED_NUM_CSTR(templateId));
+            continue;
+        }
+        return true;
+    }
+    return false;
+}
+
 void HostMixAuthRequest::Start()
 {
+    if (!AnyTemplateValid()) {
+        IAM_LOGE("%{public}s no valid templateId found", GetDescription());
+        CompleteWithError(ResultCode::NO_VALID_CREDENTIAL);
+        return;
+    }
     for (auto templateId : templateIdList_) {
         auto hostSingleMixAuthRequest =
             GetRequestFactory().CreateHostSingleMixAuthRequest(GetScheduleId(), fwkMsg_, hostUserId_, templateId,

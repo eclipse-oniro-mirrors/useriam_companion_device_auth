@@ -48,6 +48,8 @@ private:
 
     void HandleAuthResult(TemplateId templateId, ResultCode result, const std::vector<uint8_t> &extraInfo);
 
+    bool AnyTemplateValid() const;
+
     std::vector<uint8_t> fwkMsg_;
     UserId hostUserId_ = INVALID_USER_ID;
     std::vector<TemplateId> templateIdList_;

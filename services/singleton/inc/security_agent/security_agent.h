@@ -34,7 +34,7 @@ struct HostGetExecutorInfoOutput {
 };
 
 struct RegisterFinishInput {
-    std::vector<int32_t> templateIdList;
+    std::vector<TemplateId> templateIdList;
     std::vector<uint8_t> fwkPublicKey;
     std::vector<uint8_t> fwkMsg;
 };

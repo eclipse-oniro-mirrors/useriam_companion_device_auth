@@ -31,7 +31,7 @@ pub const MAX_DATA_LEN_128: usize = 128;
 pub const MAX_DATA_LEN_256: usize = 256;
 pub const MAX_DATA_LEN_1024: usize = 1024;
 pub const MAX_STRUCT_SIZE_FFI: usize = 409600;
-pub const AUTH_TOKEN_SIZE_FFI: usize = 344;
+pub const AUTH_TOKEN_SIZE_FFI: usize = 256;
 pub const PROPERTY_MODE_FREEZE: u32 = 5;
 pub const PROPERTY_MODE_UNFREEZE: u32 = 6;
 

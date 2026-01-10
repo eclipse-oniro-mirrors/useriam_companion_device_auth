@@ -31,7 +31,6 @@ pub const TOKEN_VERSION: u32 = 0;
 pub struct UserAuthToken {
     pub version: u32,
     pub token_data_plain: TokenDataPlain,
-    // #[cfg_attr(feature = "test-utils", serde(with = "serde_big_array::BigArray"))]
     pub token_data_cipher: [u8; AUTH_TOKEN_CIPHER_LEN],
     pub tag: [u8; AES_GCM_TAG_SIZE],
     pub iv: [u8; AES_GCM_IV_SIZE],
