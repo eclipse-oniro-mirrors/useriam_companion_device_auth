@@ -45,6 +45,8 @@ enum ResultCode : int32_t {
     AUTH_TOKEN_EXPIRED = 16,
     COMMUNICATION_ERROR = 17,
 
+    NO_VALID_CREDENTIAL = 18,
+
     CHECK_PERMISSION_FAILED = 20001,
     CHECK_SYSTEM_PERMISSION_FAILED = 20002,
     INVALID_BUSINESS_ID = 20003,
@@ -72,8 +74,7 @@ enum class AuthType : int32_t {
 };
 
 enum class BusinessId : int32_t {
-    INVALID = 0,
-    DEFAULT = 1,
+    DEFAULT = 0,
     VENDOR_BEGIN = 10000,
 };
 

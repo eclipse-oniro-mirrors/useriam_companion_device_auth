@@ -103,7 +103,7 @@ void CompanionRevokeTokenRequest::CompleteWithError(ResultCode result)
 
 void CompanionRevokeTokenRequest::CompleteWithSuccess()
 {
-    IAM_LOGI("%{public}s complete with success", GetDescription());
+    IAM_LOGI("%{public}s: revoke token request completed successfully", GetDescription());
     Destroy();
 }
 

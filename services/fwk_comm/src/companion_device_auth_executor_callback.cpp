@@ -67,6 +67,7 @@ FwkResultCode CompanionDeviceAuthExecutorCallback::ConvertResultCode(const Resul
         { ResultCode::AUTH_TOKEN_CHECK_FAILED, UserAuth::ResultCode::AUTH_TOKEN_CHECK_FAILED },
         { ResultCode::AUTH_TOKEN_EXPIRED, UserAuth::ResultCode::AUTH_TOKEN_EXPIRED },
         { ResultCode::COMMUNICATION_ERROR, UserAuth::ResultCode::FAIL },
+        { ResultCode::NO_VALID_CREDENTIAL, UserAuth::ResultCode::NO_VALID_CREDENTIAL },
     };
 
     UserAuth::ResultCode out;

@@ -87,6 +87,7 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
         CompleteWithSuccess(extraInfo);
         return;
     }
+    IAM_LOGE("%{public}s token auth failed, start delegate auth", GetDescription());
     delegateAuthRequest_ = GetRequestFactory().CreateHostDelegateAuthRequest(GetScheduleId(), fwkMsg_, hostUserId_,
         templateId_, [weakSelf = weak_from_this()](ResultCode result, const std::vector<uint8_t> &extraInfo) {
             auto self = weakSelf.lock();

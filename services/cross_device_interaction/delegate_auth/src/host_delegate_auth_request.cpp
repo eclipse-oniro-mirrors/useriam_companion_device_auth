@@ -160,6 +160,7 @@ void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &mes
         return;
     }
 
+    IAM_LOGI("%{public}s start delegate auth success", GetDescription());
     errorGuard.Cancel();
 }
 
@@ -240,7 +241,7 @@ void HostDelegateAuthRequest::InvokeCallback(ResultCode result, const std::vecto
 
 void HostDelegateAuthRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
+    IAM_LOGI("%{public}s: delegate auth request failed, result=%{public}d", GetDescription(), result);
     InvokeCallback(result, {});
     if (needCancelDelegateAuth_) {
         HostCancelDelegateAuthInput input = { GetRequestId() };

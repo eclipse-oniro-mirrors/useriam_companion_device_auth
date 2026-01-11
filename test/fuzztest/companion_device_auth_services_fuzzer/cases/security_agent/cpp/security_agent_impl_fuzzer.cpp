@@ -65,7 +65,7 @@ static void FuzzHostOnRegisterFinish(std::shared_ptr<SecurityAgentImpl> &agent, 
     RegisterFinishInput input;
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
     for (uint8_t i = 0; i < count; ++i) {
-        input.templateIdList.push_back(fuzzData.ConsumeIntegral<int32_t>());
+        input.templateIdList.push_back(fuzzData.ConsumeIntegral<TemplateId>());
     }
     size_t leftRange = 0;
     size_t rightRange = 32;

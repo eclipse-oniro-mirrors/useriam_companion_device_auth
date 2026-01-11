@@ -41,6 +41,7 @@ CompanionObtainTokenRequest::CompanionObtainTokenRequest(const DeviceKey &hostDe
 
 bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
+    IAM_LOGI("%{public}s start obtain token", GetDescription());
     if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
         IAM_LOGE("%{public}s local auth maintain inactive", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
@@ -239,7 +240,7 @@ bool CompanionObtainTokenRequest::CompanionEndObtainToken(const ObtainTokenReply
 
 void CompanionObtainTokenRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
+    IAM_LOGI("%{public}s: obtain token request failed, result=%{public}d", GetDescription(), result);
     localDeviceStatusSubscription_.reset();
     if (needCancelObtainToken_) {
         CompanionCancelObtainTokenInput input = { requestId_ };
@@ -254,7 +255,7 @@ void CompanionObtainTokenRequest::CompleteWithError(ResultCode result)
 
 void CompanionObtainTokenRequest::CompleteWithSuccess()
 {
-    IAM_LOGI("%{public}s complete with success", GetDescription());
+    IAM_LOGI("%{public}s: obtain token request completed successfully", GetDescription());
     localDeviceStatusSubscription_.reset();
     Destroy();
 }
