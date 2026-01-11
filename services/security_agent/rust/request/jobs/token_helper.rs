@@ -20,7 +20,6 @@ use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeviceTokenInfo {
     pub device_type: DeviceType,
     pub challenge: u64,

@@ -36,14 +36,12 @@ use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct ObtainParam {
     pub salt: [u8; HKDF_SALT_SIZE],
     pub challenge: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompanionDeviceObtainTokenRequest {
     pub request_id: i32,
     pub binding_id: i32,
@@ -175,8 +173,8 @@ impl CompanionRequest for CompanionDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice())?;
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
+        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
 
         let sec_message = self.create_begin_sec_message()?;
         Ok(CompanionRequestOutput::ObtainTokenBegin(CompanionBeginObtainTokenOutputFfi {
@@ -191,7 +189,7 @@ impl CompanionRequest for CompanionDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         self.store_token()?;
 
         Ok(CompanionRequestOutput::ObtainTokenEnd(CompanionEndObtainTokenOutputFfi::default()))

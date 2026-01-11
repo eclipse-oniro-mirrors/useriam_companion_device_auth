@@ -27,11 +27,9 @@ pub const TOKEN_VERSION: u32 = 0;
 //加密+签名后的authtoken产物
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct UserAuthToken {
     pub version: u32,
     pub token_data_plain: TokenDataPlain,
-    // #[cfg_attr(feature = "test-utils", serde(with = "serde_big_array::BigArray"))]
     pub token_data_cipher: [u8; AUTH_TOKEN_CIPHER_LEN],
     pub tag: [u8; AES_GCM_TAG_SIZE],
     pub iv: [u8; AES_GCM_IV_SIZE],
@@ -69,7 +67,6 @@ impl UserAuthToken {
 //authtoken中的明文
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct TokenDataPlain {
     pub challenge: [u8; CHALLENGE_LEN],
     pub time: u64,
@@ -83,7 +80,6 @@ pub struct TokenDataPlain {
 //authtoken中的密文
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct TokenDataToEncrypt {
     user_id: i32,
     secure_uid: u64,

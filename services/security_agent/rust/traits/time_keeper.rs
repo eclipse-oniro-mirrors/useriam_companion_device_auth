@@ -16,11 +16,8 @@
 use crate::common::constants::ErrorCode;
 use crate::log_e;
 use crate::singleton_registry;
-#[cfg(any(test, feature = "test-utils"))]
-use mockall::automock;
 
 /// 时间获取器trait
-#[cfg_attr(any(test, feature = "test-utils"), automock)]
 pub trait TimeKeeper {
     /// 获取系统时间
     fn get_system_time(&self) -> Result<u64, ErrorCode>;
@@ -54,15 +51,5 @@ impl TimeKeeper for DummyTimeKeeper {
 
 singleton_registry!(TimeKeeperRegistry, TimeKeeper, DummyTimeKeeper);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn dummy_time_keeper_test() {
-        let dummy_time_keeper = DummyTimeKeeper;
-        assert_eq!(dummy_time_keeper.get_system_time(), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_time_keeper.get_rtc_time(), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_time_keeper.get_ree_time(), Err(ErrorCode::GeneralError));
-    }
-}
+#[cfg(any(test, feature = "test-utils"))]
+pub use crate::test_utils::mock::MockTimeKeeper;

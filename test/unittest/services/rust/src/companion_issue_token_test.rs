@@ -1,0 +1,322 @@
+/*
+ * Copyright (C) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::common::constants::*;
+use crate::entry::companion_device_auth_ffi::{
+    CompanionPreIssueTokenInputFfi, CompanionProcessIssueTokenInputFfi, CompanionProcessTokenAuthInputFfi, 
+    DataArray1024Ffi,
+};
+use crate::log_i;
+use crate::request::jobs::common_message::SecIssueToken;
+use crate::request::token_issue::companion_issue_token::CompanionDeviceIssueTokenRequest;
+use crate::request::token_issue::token_issue_message::SecPreIssueRequest;
+use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
+use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestInput};
+use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
+use crate::traits::db_manager::{HostDeviceSk, HostTokenInfo};
+use crate::ut_registry_guard;
+use std::boxed::Box;
+
+fn create_valid_pre_issue_request(salt: &[u8; HKDF_SALT_SIZE]) -> Vec<u8> {
+    let request = SecPreIssueRequest { salt: *salt };
+    request.encode(DeviceType::None).unwrap()
+}
+
+fn create_valid_issue_token_message(challenge: u64, atl: i32, session_key: &[u8]) -> Vec<u8> {
+    let issue_token = SecIssueToken {
+        challenge,
+        atl,
+        token: vec![1u8; TOKEN_KEY_LEN],
+    };
+    issue_token.encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, session_key).unwrap()
+}
+
+fn mock_set_crypto_engine() {
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| Ok(AesGcmResult { ciphertext: data.to_vec(),
+        authentication_tag: [0u8; AES_GCM_TAG_SIZE],
+    }));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+}
+
+#[test]
+fn companion_issue_token_request_get_request_id_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_get_request_id_test start");
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
+
+    let request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+    assert_eq!(request.get_request_id(), 1);
+}
+
+#[test]
+fn companion_issue_token_request_prepare_test_not_implemented() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_prepare_test_not_implemented start");
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
+
+    let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+
+    let result = request.prepare(CompanionRequestInput::IssueTokenBegin(input));
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn companion_issue_token_request_begin_test_wrong_input_type() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_begin_test_wrong_input_type start");
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
+
+    let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+
+    let wrong_input = CompanionProcessTokenAuthInputFfi {
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
+
+    let result = request.begin(CompanionRequestInput::TokenAuthBegin(wrong_input));
+    assert_eq!(result, Err(ErrorCode::BadParam));
+}
+
+#[test]
+fn companion_issue_token_request_begin_test_get_session_key_fail() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_begin_test_get_session_key_fail start");
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_db_manager = MockCompanionDbManager::new();
+    mock_companion_db_manager.expect_read_device_sk().returning(|| Err(ErrorCode::NotFound));
+    CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
+
+    let salt = [1u8; HKDF_SALT_SIZE];
+    let sec_message = create_valid_pre_issue_request(&salt);
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
+    };
+    let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+
+    let result = request.begin(CompanionRequestInput::IssueTokenBegin(input));
+    assert_eq!(result, Err(ErrorCode::NotFound));
+}
+
+#[test]
+fn companion_issue_token_request_begin_test_hkdf_fail() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_begin_test_hkdf_fail start");
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_db_manager = MockCompanionDbManager::new();
+    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
+
+    let salt = [1u8; HKDF_SALT_SIZE];
+    let sec_message = create_valid_pre_issue_request(&salt);
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
+    };
+    let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+
+    let result = request.begin(CompanionRequestInput::IssueTokenBegin(input));
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn companion_issue_token_request_begin_test_aes_gcm_encrypt_fail() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_begin_test_aes_gcm_encrypt_fail start");
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Err(ErrorCode::GeneralError));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_db_manager = MockCompanionDbManager::new();
+    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
+
+    let salt = [1u8; HKDF_SALT_SIZE];
+    let sec_message = create_valid_pre_issue_request(&salt);
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
+    };
+    let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+
+    let result = request.begin(CompanionRequestInput::IssueTokenBegin(input));
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn companion_issue_token_request_end_test_wrong_input_type() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_end_test_wrong_input_type start");
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
+
+    let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+
+    let result = request.end(CompanionRequestInput::IssueTokenBegin(input));
+    assert_eq!(result, Err(ErrorCode::BadParam));
+}
+
+#[test]
+fn companion_issue_token_request_end_test_challenge_mismatch() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_end_test_challenge_mismatch start");
+
+    mock_set_crypto_engine();
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
+
+    let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+    request.pre_issue_param.challenge = 999;
+
+    let sec_message = create_valid_issue_token_message(0, AuthTrustLevel::Atl3 as i32, &request.session_key);
+    let end_input = CompanionProcessIssueTokenInputFfi {
+        request_id: 1,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let result = request.end(CompanionRequestInput::IssueTokenEnd(end_input));
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn companion_issue_token_request_end_test_atl_try_from_fail() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_end_test_atl_try_from_fail start");
+
+    mock_set_crypto_engine();
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
+
+    let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+    request.pre_issue_param.challenge = 0;
+
+    let sec_message = create_valid_issue_token_message(0, 99999, &request.session_key);
+    let end_input = CompanionProcessIssueTokenInputFfi {
+        request_id: 1,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let result = request.end(CompanionRequestInput::IssueTokenEnd(end_input));
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn companion_issue_token_request_end_test_store_token_fail() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_issue_token_request_end_test_store_token_fail start");
+
+    mock_set_crypto_engine();
+
+    let mut mock_companion_db_manager = MockCompanionDbManager::new();
+    mock_companion_db_manager.expect_write_device_token().returning(|| Err(ErrorCode::GeneralError));
+    CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
+
+    let input = CompanionPreIssueTokenInputFfi {
+        request_id: 1,
+        binding_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
+
+    let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
+    request.pre_issue_param.challenge = 0;
+
+    let sec_message = create_valid_issue_token_message(0, AuthTrustLevel::Atl3 as i32, &request.session_key);
+    let end_input = CompanionProcessIssueTokenInputFfi {
+        request_id: 1,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let result = request.end(CompanionRequestInput::IssueTokenEnd(end_input));
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}

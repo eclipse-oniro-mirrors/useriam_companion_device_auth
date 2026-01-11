@@ -33,7 +33,6 @@ use crate::vec;
 use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct HostDeviceSyncStatusRequest {
     pub request_id: i32,
     pub challenge: u64,
@@ -81,7 +80,7 @@ impl HostDeviceSyncStatusRequest {
         }
         //todo: hj
         let protocol_list = decrypt_attribute
-            .get_u16_vec(AttributeKey::AttrProtocalList)
+            .get_u16_vec(AttributeKey::AttrProtocolList)
             .map_err(|e| p!(e))?;
         if protocol_list != self.protocal_list {
             log_e!("Protocol verification failed");
@@ -150,7 +149,7 @@ impl HostRequest for HostDeviceSyncStatusRequest {
             ErrorCode::GeneralError
         })?;
 
-        if self.parse_end_sec_message(ffi_input.sec_message.as_slice()).is_ok() {
+        if self.parse_end_sec_message(ffi_input.sec_message.as_slice()?).is_ok() {
             host_db_helper::update_companion_device_valid_flag(self.template_id, true)?;
         } else {
             host_db_helper::update_companion_device_valid_flag(self.template_id, false)?;

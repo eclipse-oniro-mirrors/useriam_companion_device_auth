@@ -40,7 +40,6 @@ use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct KeyNegoParam {
     pub request_id: i32,
     pub companion_device_key: DeviceKey,
@@ -51,21 +50,18 @@ pub struct KeyNegoParam {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct BindingParam {
     pub public_key: Vec<u8>,
     pub salt: [u8; HKDF_SALT_SIZE],
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct TokenInfo {
     pub token: Vec<u8>,
     pub atl: AuthTrustLevel,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompanionDeviceEnrollRequest {
     pub key_nego_param: KeyNegoParam,
     pub binding_param: BindingParam,
@@ -235,7 +231,7 @@ impl CompanionDeviceEnrollRequest {
             message_crypto::encrypt_sec_message(&reply_info.encode()?, &self.session_key).map_err(|e| p!(e))?;
 
         let binding_reply =
-            SecBindingReply { salt: self.binding_param.salt, tag: tag, iv: iv, encrypt_data: encrypt_data };
+            SecBindingReply { tag: tag, iv: iv, encrypt_data: encrypt_data };
         let output = binding_reply.encode(DeviceType::None)?;
         Ok(output)
     }
@@ -292,7 +288,7 @@ impl CompanionRequest for CompanionDeviceEnrollRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_key_nego_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_key_nego_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_key_nego_sec_message()?;
         Ok(CompanionRequestOutput::KeyNego(CompanionInitKeyNegotiationOutputFfi {
             sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
@@ -306,7 +302,7 @@ impl CompanionRequest for CompanionDeviceEnrollRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
 
         let sec_message = self.create_begin_sec_message()?;
         let binding_id = self.store_device_info()?;
@@ -336,7 +332,7 @@ impl CompanionRequest for CompanionDeviceEnrollRequest {
             return Err(ErrorCode::GeneralError);
         }
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         self.store_token()?;
         companion_db_helper::update_host_device_last_used_time(self.binding_id)?;
         Ok(CompanionRequestOutput::EnrollEnd(CompanionEndAddHostBindingOutputFfi { binding_id: self.binding_id }))

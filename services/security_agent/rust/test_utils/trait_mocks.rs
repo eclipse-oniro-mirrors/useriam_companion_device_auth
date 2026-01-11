@@ -16,14 +16,17 @@
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils {
     use super::*;
-    use mockall::*;
 
     use crate::common::constants::*;
     use crate::common::types::*;
     use crate::entry::companion_device_auth_ffi::CommandId;
     use crate::traits::{
+        companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager},
+        companion_request_manager::{CompanionRequestManagerRegistry, MockCompanionRequestManager},
         crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine},
         event_manager::{Event, EventManagerRegistry, MockEventManager},
+        host_db_manager::{HostDbManagerRegistry, MockHostDbManager},
+        host_request_manager::{HostRequestManagerRegistry, MockHostRequestManager},
         logger::{LogLevel, Logger, LoggerRegistry},
         misc_manager::{MiscManagerRegistry, MockMiscManager},
         storage_io::{MockStorageIo, StorageIo, StorageIoRegistry},
@@ -75,6 +78,14 @@ pub mod test_utils {
             CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
             let mock_event_manager = MockEventManager::new();
             EventManagerRegistry::set(Box::new(mock_event_manager));
+            let mock_host_db_manager = MockHostDbManager::new();
+            HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
+            let mock_companion_db_manager = MockCompanionDbManager::new();
+            CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
+            let mock_host_request_manager = MockHostRequestManager::new();
+            HostRequestManagerRegistry::set(Box::new(mock_host_request_manager));
+            let mock_companion_request_manager = MockCompanionRequestManager::new();
+            CompanionRequestManagerRegistry::set(Box::new(mock_companion_request_manager));
             Self {}
         }
     }
@@ -88,6 +99,10 @@ pub mod test_utils {
             StorageIoRegistry::reset();
             TimeKeeperRegistry::reset();
             EventManagerRegistry::reset();
+            HostDbManagerRegistry::reset();
+            CompanionDbManagerRegistry::reset();
+            HostRequestManagerRegistry::reset();
+            CompanionRequestManagerRegistry::reset();
         }
     }
 }

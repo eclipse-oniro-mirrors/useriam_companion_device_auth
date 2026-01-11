@@ -21,7 +21,6 @@ use crate::String;
 use crate::{log_e, singleton_registry, Box, Vec};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeviceKey {
     pub device_id: String,
     pub device_id_type: i32,
@@ -38,13 +37,13 @@ impl TryFrom<&DeviceKeyFfi> for DeviceKey {
     type Error = ErrorCode;
 
     fn try_from(ffi_key: &DeviceKeyFfi) -> Result<Self, ErrorCode> {
-        let device_id = String::from_utf8(ffi_key.device_id.data.to_vec()).map_err(|_| ErrorCode::BadParam)?;
-
+        let device_id = ffi_key.device_id.to_string()?;
         Ok(DeviceKey { device_id, device_id_type: ffi_key.device_id_type, user_id: ffi_key.user_id })
     }
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct UserInfo {
     pub user_id: i32,
     pub user_type: i32,
@@ -52,11 +51,13 @@ pub struct UserInfo {
 
 // Companion Db
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct HostDeviceSk {
     pub sk: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct HostDeviceInfo {
     pub device_key: DeviceKey,
     pub binding_id: i32,
@@ -66,6 +67,7 @@ pub struct HostDeviceInfo {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct HostTokenInfo {
     pub token: Vec<u8>,
     pub atl: AuthTrustLevel,
@@ -73,6 +75,7 @@ pub struct HostTokenInfo {
 
 // Host Db
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct CompanionDeviceBaseInfo {
     pub device_model: String,
     pub device_name: String,
@@ -81,6 +84,7 @@ pub struct CompanionDeviceBaseInfo {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct CompanionDeviceCapability {
     pub device_type: DeviceType,
     pub esl: ExecutorSecurityLevel,
@@ -88,12 +92,14 @@ pub struct CompanionDeviceCapability {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct CompanionDeviceSk {
     pub device_type: DeviceType,
     pub sk: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct CompanionDeviceInfo {
     pub template_id: u64,
     pub device_key: DeviceKey,
@@ -104,6 +110,7 @@ pub struct CompanionDeviceInfo {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct CompanionTokenInfo {
     pub template_id: u64,
     pub device_type: DeviceType,

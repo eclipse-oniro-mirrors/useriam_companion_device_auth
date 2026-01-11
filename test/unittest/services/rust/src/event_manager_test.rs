@@ -1,0 +1,37 @@
+/*
+ * Copyright (C) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::common::constants::*;
+use crate::log_i;
+use crate::traits::event_manager::{DummyEventManager, Event, EventManager, EventType};
+use crate::ut_registry_guard;
+use std::ffi::CString;
+
+#[test]
+fn dummy_event_manager_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("dummy_event_manager_test start");
+
+    let mut dummy_event_manager = DummyEventManager;
+    dummy_event_manager.record_event(&Event {
+        time: 0,
+        file_name: CString::default(),
+        line_number: 0,
+        event_type: EventType::BigData,
+        event_info: CString::default(),
+    });
+    assert_eq!(dummy_event_manager.has_fatal_error(), false);
+    assert!(dummy_event_manager.drain_all_events().is_empty());
+}

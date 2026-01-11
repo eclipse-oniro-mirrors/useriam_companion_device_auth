@@ -56,7 +56,7 @@ pub fn update_companion_device_info(
 pub fn update_device_business_id(template_id: u64, business_ids: Vec<i32>) -> Result<(), ErrorCode> {
     // Check if templateId exists (supports cross-user query)
     let _device_info = HostDbManagerRegistry::get().get_device(template_id).map_err(|e| {
-        log_e!("get_device failed for template_id:{}, err:{:?}", template_id, e);
+        log_e!("get_device failed for template_id:{:x}, err:{:?}", template_id, e);
         e
     })?;
 

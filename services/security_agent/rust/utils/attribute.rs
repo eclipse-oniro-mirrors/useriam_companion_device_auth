@@ -20,10 +20,7 @@ use crate::utils::parcel::Parcel;
 use crate::String;
 use alloc::{collections::BTreeMap, vec};
 use core::mem;
-#[cfg(feature = "test-utils")]
-use serde::{Deserialize, Serialize};
 
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
 #[repr(i32)]
 pub enum AttributeKey {
@@ -48,7 +45,7 @@ pub enum AttributeKey {
     AttrAuthTrustLevel = 100089,
 
     AttrMessage = 300001,
-    AttrProtocalList = 300002,
+    AttrProtocolList = 300002,
     AttrAlgoList = 300003,
     AttrCapabilityList = 300004,
     AttrDeviceId = 300005,
@@ -84,7 +81,7 @@ impl TryFrom<i32> for AttributeKey {
             100066 => Ok(AttributeKey::AttrChallenge),
             100089 => Ok(AttributeKey::AttrAuthTrustLevel),
             300001 => Ok(AttributeKey::AttrMessage),
-            300002 => Ok(AttributeKey::AttrProtocalList),
+            300002 => Ok(AttributeKey::AttrProtocolList),
             300003 => Ok(AttributeKey::AttrAlgoList),
             300004 => Ok(AttributeKey::AttrCapabilityList),
             300005 => Ok(AttributeKey::AttrDeviceId),
@@ -322,179 +319,5 @@ impl Attribute {
 
     pub fn set_string(&mut self, key: AttributeKey, value: String) {
         self.map.insert(key, value.into_bytes());
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn attribute_key_test() {
-        assert_eq!(AttributeKey::try_from(100000).unwrap(), AttributeKey::AttrRoot);
-        assert_eq!(AttributeKey::try_from(100001).unwrap(), AttributeKey::AttrResultCode);
-        assert_eq!(AttributeKey::try_from(100004).unwrap(), AttributeKey::AttrSignature);
-        assert_eq!(AttributeKey::try_from(100006).unwrap(), AttributeKey::AttrTemplateId);
-        assert_eq!(AttributeKey::try_from(100007).unwrap(), AttributeKey::AttrTemplateIdList);
-        assert_eq!(AttributeKey::try_from(100009).unwrap(), AttributeKey::AttrRemainAttempts);
-        assert_eq!(AttributeKey::try_from(100010).unwrap(), AttributeKey::AttrLockoutDuration);
-        assert_eq!(AttributeKey::try_from(100014).unwrap(), AttributeKey::AttrScheduleId);
-        assert_eq!(AttributeKey::try_from(100020).unwrap(), AttributeKey::AttrData);
-        assert_eq!(AttributeKey::try_from(100021).unwrap(), AttributeKey::AttrPinSubType);
-        assert_eq!(AttributeKey::try_from(100023).unwrap(), AttributeKey::AttrPropertyMode);
-        assert_eq!(AttributeKey::try_from(100024).unwrap(), AttributeKey::AttrType);
-        assert_eq!(AttributeKey::try_from(100029).unwrap(), AttributeKey::AttrCapabilityLevel);
-        assert_eq!(AttributeKey::try_from(100041).unwrap(), AttributeKey::AttrUserId);
-        assert_eq!(AttributeKey::try_from(100042).unwrap(), AttributeKey::AttrToken);
-        assert_eq!(AttributeKey::try_from(100044).unwrap(), AttributeKey::AttrEsl);
-        assert_eq!(AttributeKey::try_from(100065).unwrap(), AttributeKey::AttrPublicKey);
-        assert_eq!(AttributeKey::try_from(100066).unwrap(), AttributeKey::AttrChallenge);
-        assert_eq!(AttributeKey::try_from(100089).unwrap(), AttributeKey::AttrAuthTrustLevel);
-        assert_eq!(AttributeKey::try_from(300001).unwrap(), AttributeKey::AttrMessage);
-        assert_eq!(AttributeKey::try_from(300002).unwrap(), AttributeKey::AttrAlgoList);
-        assert_eq!(AttributeKey::try_from(300003).unwrap(), AttributeKey::AttrCapabilityList);
-        assert_eq!(AttributeKey::try_from(300004).unwrap(), AttributeKey::AttrDeviceId);
-        assert_eq!(AttributeKey::try_from(300005).unwrap(), AttributeKey::AttrSalt);
-        assert_eq!(AttributeKey::try_from(300006).unwrap(), AttributeKey::AttrTag);
-        assert_eq!(AttributeKey::try_from(300007).unwrap(), AttributeKey::AttrIv);
-        assert_eq!(AttributeKey::try_from(300008).unwrap(), AttributeKey::AttrEncryptData);
-        assert_eq!(AttributeKey::try_from(300009).unwrap(), AttributeKey::AttrTrackAbilityLevel);
-        assert_eq!(AttributeKey::try_from(300010).unwrap(), AttributeKey::AttrHmac);
-        assert_eq!(AttributeKey::try_from(0), Err(ErrorCode::GeneralError));
-    }
-
-    #[test]
-    fn try_from_bytes_fail_test() {
-        assert_eq!(Attribute::try_from_bytes(&[]), Err(ErrorCode::BadParam));
-        let mut parcel = Parcel::new();
-        assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::ReadParcelError));
-        parcel.write_i32_le(0);
-        assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::ReadParcelError));
-        parcel.write_u32_le(4);
-        assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::ReadParcelError));
-        parcel.write_bytes(&[1, 2, 3, 4]);
-        assert!(Attribute::try_from_bytes(parcel.as_slice()).is_ok());
-    }
-
-    #[test]
-    fn try_from_bytes_success_test() {
-        let mut parcel = Parcel::new();
-        parcel.write_i32_le(AttributeKey::AttrRoot as i32);
-        parcel.write_u32_le(4);
-        parcel.write_bytes(&[1, 2, 3, 4]);
-        assert!(Attribute::try_from_bytes(parcel.as_slice()).is_ok());
-    }
-
-    #[test]
-    fn to_bytes_test() {
-        let mut attribute = Attribute::new();
-        attribute.set_u32(AttributeKey::AttrResultCode, 0);
-        assert!(attribute.to_bytes().is_ok());
-    }
-
-    #[test]
-    fn u16_test() {
-        let mut attribute = Attribute::new();
-        assert_eq!(attribute.get_u16(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-        attribute.set_u32(AttributeKey::AttrResultCode, 0);
-        assert_eq!(attribute.get_u16(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-        attribute.set_u16(AttributeKey::AttrResultCode, 0);
-        assert!(attribute.get_u16(AttributeKey::AttrResultCode).is_ok());
-    }
-
-    #[test]
-    fn u32_test() {
-        let mut attribute = Attribute::new();
-        assert_eq!(attribute.get_u32(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-        attribute.set_u16(AttributeKey::AttrResultCode, 0);
-        assert_eq!(attribute.get_u32(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-        attribute.set_u32(AttributeKey::AttrResultCode, 0);
-        assert!(attribute.get_u32(AttributeKey::AttrResultCode).is_ok());
-    }
-
-    #[test]
-    fn i32_test() {
-        let mut attribute = Attribute::new();
-        assert_eq!(attribute.get_i32(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-        attribute.set_u16(AttributeKey::AttrResultCode, 0);
-        assert_eq!(attribute.get_i32(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-        attribute.set_i32(AttributeKey::AttrResultCode, 0);
-        assert!(attribute.get_i32(AttributeKey::AttrResultCode).is_ok());
-    }
-
-    #[test]
-    fn u64_test() {
-        let mut attribute = Attribute::new();
-        assert_eq!(attribute.get_u64(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-        attribute.set_u16(AttributeKey::AttrResultCode, 0);
-        assert_eq!(attribute.get_u64(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-        attribute.set_u64(AttributeKey::AttrResultCode, 0);
-        assert!(attribute.get_u64(AttributeKey::AttrResultCode).is_ok());
-    }
-
-    #[test]
-    fn u8_slice_test() {
-        let mut attribute: Attribute = Attribute::new();
-        assert_eq!(attribute.get_u8_slice(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-        assert_eq!(attribute.get_u8_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-
-        assert_eq!(attribute.fill_u8_slice(AttributeKey::AttrResultCode, &mut [0u8; 0]), Err(ErrorCode::GeneralError));
-        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 1]);
-        assert_eq!(attribute.fill_u8_slice(AttributeKey::AttrResultCode, &mut [0u8; 0]), Err(ErrorCode::GeneralError));
-        assert!(attribute.fill_u8_slice(AttributeKey::AttrResultCode, &mut [0u8; 1]).is_ok());
-
-        assert!(attribute.get_u8_slice(AttributeKey::AttrResultCode).is_ok());
-        assert!(attribute.get_u8_vec(AttributeKey::AttrResultCode).is_ok());
-    }
-
-    #[test]
-    fn u64_slice_test() {
-        let mut attribute: Attribute = Attribute::new();
-        assert_eq!(attribute.get_u64_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-
-        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 1]);
-        assert_eq!(attribute.get_u64_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-
-        attribute.set_u64_slice(AttributeKey::AttrResultCode, &[0u64; 1]);
-        assert!(attribute.get_u64_vec(AttributeKey::AttrResultCode).is_ok());
-    }
-
-    #[test]
-    fn u16_slice_test() {
-        let mut attribute: Attribute = Attribute::new();
-        assert_eq!(attribute.get_u16_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-
-        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 1]);
-        assert_eq!(attribute.get_u16_vec(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-
-        attribute.set_u16_slice(AttributeKey::AttrResultCode, &[0u16; 1]);
-        assert!(attribute.get_u16_vec(AttributeKey::AttrResultCode).is_ok());
-    }
-
-    #[test]
-    fn u8_slices_test() {
-        let mut attribute: Attribute = Attribute::new();
-        assert_eq!(attribute.get_u8_vecs(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-
-        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 1]);
-        assert_eq!(attribute.get_u8_vecs(AttributeKey::AttrResultCode), Err(ErrorCode::ReadParcelError));
-        attribute.set_u8_slice(AttributeKey::AttrResultCode, &[0u8; 4]);
-        assert_eq!(attribute.get_u8_vecs(AttributeKey::AttrResultCode), Err(ErrorCode::ReadParcelError));
-
-        attribute.set_u8_slices(AttributeKey::AttrResultCode, &[&[0u8]]);
-        assert!(attribute.get_u8_vecs(AttributeKey::AttrResultCode).is_ok());
-    }
-
-    #[test]
-    fn string_test() {
-        let mut attribute: Attribute = Attribute::new();
-        assert_eq!(attribute.get_string(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-
-        let sparkle_heart = [0u8, 159u8, 146u8, 150u8];
-        attribute.set_u8_slice(AttributeKey::AttrResultCode, &sparkle_heart);
-        assert_eq!(attribute.get_string(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
-
-        attribute.set_string(AttributeKey::AttrResultCode, String::from("Hello"));
-        assert!(attribute.get_string(AttributeKey::AttrResultCode).is_ok());
     }
 }

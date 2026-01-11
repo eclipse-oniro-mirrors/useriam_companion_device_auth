@@ -37,14 +37,12 @@ use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct TokenIssueParam {
     pub request_id: i32,
     pub template_id: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct HostDeviceIssueTokenRequest {
     pub token_issue_param: TokenIssueParam,
     pub token_infos: Vec<DeviceTokenInfo>,
@@ -219,7 +217,7 @@ impl HostRequest for HostDeviceIssueTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice())?;
+        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.create_prepare_sec_message()?;
         Ok(HostRequestOutput::IssueTokenPrepare(HostPreIssueTokenOutputFfi {
             sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
@@ -233,7 +231,7 @@ impl HostRequest for HostDeviceIssueTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_begin_sec_message()?;
         Ok(HostRequestOutput::IssueTokenBegin(HostBeginIssueTokenOutputFfi {
             sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
@@ -247,7 +245,7 @@ impl HostRequest for HostDeviceIssueTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         self.store_token()?;
         Ok(HostRequestOutput::IssueTokenEnd(HostEndIssueTokenOutputFfi { atl: self.atl as i32 }))
     }

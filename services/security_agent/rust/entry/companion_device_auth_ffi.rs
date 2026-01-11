@@ -19,7 +19,6 @@ use crate::entry::companion_device_auth_entry::{handle_rust_command, handle_rust
 use crate::{log_e, CString, Vec};
 use core::mem;
 use core::slice;
-use serde::{Deserialize, Serialize};
 
 pub const SALT_LEN_FFI: usize = 32;
 pub const UDID_LEN_FFI: usize = 64;
@@ -46,6 +45,7 @@ macro_rules! assert_max_size {
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct DataArray64Ffi {
     pub data: [u8; MAX_DATA_LEN_64],
     pub len: u32,
@@ -54,6 +54,7 @@ assert_max_size!(DataArray64Ffi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct DataArray128Ffi {
     pub data: [u8; MAX_DATA_LEN_128],
     pub len: u32,
@@ -62,6 +63,7 @@ assert_max_size!(DataArray128Ffi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct DataArray256Ffi {
     pub data: [u8; MAX_DATA_LEN_256],
     pub len: u32,
@@ -70,6 +72,7 @@ assert_max_size!(DataArray256Ffi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct DataArray1024Ffi {
     pub data: [u8; MAX_DATA_LEN_1024],
     pub len: u32,
@@ -92,6 +95,7 @@ impl_default_data_array!(DataArray1024Ffi, MAX_DATA_LEN_1024);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct TemplateIdArrayFfi {
     pub data: [u64; MAX_TEMPLATE_ID_NUM_PER_USER_FFI],
     pub len: u32,
@@ -106,6 +110,7 @@ impl Default for TemplateIdArrayFfi {
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct Int32Array64Ffi {
     pub data: [i32; MAX_DATA_LEN_64],
     pub len: u32,
@@ -120,6 +125,7 @@ impl Default for Int32Array64Ffi {
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct Uint16Array64Ffi {
     pub data: [u16; MAX_DATA_LEN_64],
     pub len: u32,
@@ -134,6 +140,7 @@ impl Default for Uint16Array64Ffi {
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct PlaceHolderFfi {
     pub place_holder: u8,
 }
@@ -141,6 +148,7 @@ assert_max_size!(PlaceHolderFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct EventFfi {
     pub time: u64,
     pub file_name: DataArray64Ffi,
@@ -152,6 +160,7 @@ assert_max_size!(EventFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct EventArrayFfi {
     pub data: [EventFfi; MAX_EVENT_NUM_FFI],
     pub len: u32,
@@ -166,6 +175,7 @@ impl Default for EventArrayFfi {
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CommonOutputFfi {
     pub result: i32,
     pub has_fatal_error: u8,
@@ -181,6 +191,7 @@ impl Default for CommonOutputFfi {
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct PersistedCompanionStatusFfi {
     pub template_id: u64,
     pub host_user_id: i32,
@@ -197,6 +208,7 @@ assert_max_size!(PersistedCompanionStatusFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct PersistedHostBindingStatusFfi {
     pub binding_id: i32,
     pub companion_user_id: i32,
@@ -207,6 +219,7 @@ assert_max_size!(PersistedHostBindingStatusFfi);
 
 #[repr(C)]
 #[derive(Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionStatusArrayFfi {
     pub data: [PersistedCompanionStatusFfi; MAX_TEMPLATE_ID_NUM_PER_USER_FFI],
     pub len: u32,
@@ -224,6 +237,7 @@ impl Default for CompanionStatusArrayFfi {
 
 #[repr(C)]
 #[derive(Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBindingStatusArrayFfi {
     pub data: [PersistedHostBindingStatusFfi; MAX_TEMPLATE_ID_NUM_PER_USER_FFI],
     pub len: u32,
@@ -240,6 +254,7 @@ impl Default for HostBindingStatusArrayFfi {
 }
 
 #[repr(C)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 #[derive(Copy, Clone, Default)]
 pub struct DeviceKeyFfi {
     pub device_id_type: i32,
@@ -256,6 +271,7 @@ pub type GetExecutorInfoInputFfi = PlaceHolderFfi;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct GetExecutorInfoOutputFfi {
     pub esl: i32,
     pub max_template_acl: i32,
@@ -266,6 +282,7 @@ assert_max_size!(GetExecutorInfoOutputFfi);
 // OnRegisterFinish
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostRegisterFinishInputFfi {
     pub template_ids: TemplateIdArrayFfi,
     pub public_key: DataArray1024Ffi,
@@ -278,6 +295,7 @@ pub type HostRegisterFinishOutputFfi = PlaceHolderFfi;
 // HostGetPersistedStatus
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostGetPersistedStatusInputFfi {
     pub user_id: i32,
 }
@@ -285,6 +303,7 @@ assert_max_size!(HostGetPersistedStatusInputFfi);
 
 #[repr(C)]
 #[derive(Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostGetPersistedStatusOutputFfi {
     pub companion_status_list: CompanionStatusArrayFfi,
 }
@@ -292,6 +311,7 @@ assert_max_size!(HostGetPersistedStatusOutputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct SetActiveUserInputFfi {
     pub user_id: i32,
 }
@@ -302,6 +322,7 @@ pub type SetActiveUserOutputFfi = PlaceHolderFfi;
 // HostBeginCompanionCheck
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginCompanionCheckInputFfi {
     pub request_id: i32,
 }
@@ -309,6 +330,7 @@ assert_max_size!(HostBeginCompanionCheckInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginCompanionCheckOutputFfi {
     pub challenge: u64,
     pub salt: [u8; SALT_LEN_FFI],
@@ -318,6 +340,7 @@ assert_max_size!(HostBeginCompanionCheckOutputFfi);
 // HostEndCompanionCheck
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndCompanionCheckInputFfi {
     pub request_id: i32,
     pub template_id: u64,
@@ -333,6 +356,7 @@ pub type HostEndCompanionCheckOutputFfi = PlaceHolderFfi;
 // HostCancelCompanionCheck
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostCancelCompanionCheckInputFfi {
     pub request_id: i32,
 }
@@ -343,6 +367,7 @@ pub type HostCancelCompanionCheckOutputFfi = PlaceHolderFfi;
 // HostGetInitKeyNegotiation
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostGetInitKeyNegotiationInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
@@ -351,6 +376,7 @@ assert_max_size!(HostGetInitKeyNegotiationInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostGetInitKeyNegotiationOutputFfi {
     pub sec_message: DataArray1024Ffi, /* algorithm_list */
 }
@@ -359,6 +385,7 @@ assert_max_size!(HostGetInitKeyNegotiationOutputFfi);
 // HostBeginAddCompanion
 #[repr(C)]
 #[derive(Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginAddCompanionInputFfi {
     pub request_id: i32,
     pub schedule_id: u64,
@@ -372,6 +399,7 @@ assert_max_size!(HostBeginAddCompanionInputFfi);
 
 #[repr(C)]
 #[derive(Default, Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginAddCompanionOutputFfi {
     pub sec_message: DataArray1024Ffi, /* device_id, user_id, pub_key, salt, tag, iv, encrypt_data(challenge, device_id, user_id) */
 }
@@ -380,6 +408,7 @@ assert_max_size!(HostBeginAddCompanionOutputFfi);
 // HostEndAddCompanion
 #[repr(C)]
 #[derive(Default, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndAddCompanionInputFfi {
     pub request_id: i32,
     pub companion_status: PersistedCompanionStatusFfi,
@@ -390,6 +419,7 @@ assert_max_size!(HostEndAddCompanionInputFfi);
 
 #[repr(C)]
 #[derive(Default, Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndAddCompanionOutputFfi {
     pub fwk_message: DataArray1024Ffi,
     pub sec_message: DataArray1024Ffi,
@@ -401,6 +431,7 @@ assert_max_size!(HostEndAddCompanionOutputFfi);
 // HostCancelAddCompanion
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostCancelAddCompanionInputFfi {
     pub request_id: i32,
 }
@@ -411,6 +442,7 @@ pub type HostCancelAddCompanionOutputFfi = PlaceHolderFfi;
 // HostRemoveCompanion
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostRemoveCompanionInputFfi {
     pub template_id: u64,
 }
@@ -418,6 +450,7 @@ assert_max_size!(HostRemoveCompanionInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostRemoveCompanionOutputFfi {
     pub user_id: i32,
     pub companion_device_key: DeviceKeyFfi,
@@ -436,6 +469,7 @@ assert_max_size!(HostPreIssueTokenInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostPreIssueTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt */
 }
@@ -444,6 +478,7 @@ assert_max_size!(HostPreIssueTokenOutputFfi);
 // HostBeginIssueToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginIssueTokenInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
@@ -453,6 +488,7 @@ assert_max_size!(HostBeginIssueTokenInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginIssueTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge, token, atl) */
 }
@@ -461,6 +497,7 @@ assert_max_size!(HostBeginIssueTokenOutputFfi);
 // HostEndIssueToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndIssueTokenInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
@@ -470,6 +507,7 @@ assert_max_size!(HostEndIssueTokenInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndIssueTokenOutputFfi {
     pub atl: i32,
 }
@@ -478,6 +516,7 @@ assert_max_size!(HostEndIssueTokenOutputFfi);
 // HostCancelIssueToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostCancelIssueTokenInputFfi {
     pub request_id: i32,
 }
@@ -488,6 +527,7 @@ pub type HostCancelIssueTokenOutputFfi = PlaceHolderFfi;
 // HostActivateToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostActivateTokenInputFfi {
     pub request_id: i32,
 }
@@ -498,6 +538,7 @@ pub type HostActivateTokenOutputFfi = PlaceHolderFfi;
 // HostBeginTokenAuth
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginTokenAuthInputFfi {
     pub request_id: i32,
     pub schedule_id: u64,
@@ -508,6 +549,7 @@ assert_max_size!(HostBeginTokenAuthInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginTokenAuthOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, tag, iv, encrypt_data(challenge, atl) */
 }
@@ -516,6 +558,7 @@ assert_max_size!(HostBeginTokenAuthOutputFfi);
 // HostEndTokenAuth
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndTokenAuthInputFfi {
     pub request_id: i32,
     pub template_id: u64,
@@ -526,6 +569,7 @@ assert_max_size!(HostEndTokenAuthInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndTokenAuthOutputFfi {
     pub fwk_message: DataArray1024Ffi,
 }
@@ -534,6 +578,7 @@ assert_max_size!(HostEndTokenAuthOutputFfi);
 // HostRevokeToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostRevokeTokenInputFfi {
     pub template_id: u64,
 }
@@ -544,6 +589,7 @@ pub type HostRevokeTokenOutputFfi = PlaceHolderFfi;
 // HostUpdateCompanionStatus
 #[repr(C)]
 #[derive(Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostUpdateCompanionStatusInputFfi {
     pub template_id: u64,
     pub device_name: DataArray256Ffi,
@@ -556,6 +602,7 @@ pub type HostUpdateCompanionStatusOutputFfi = PlaceHolderFfi;
 // HostUpdateCompanionEnabledBusinessIds
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostUpdateCompanionEnabledBusinessIdsInputFfi {
     pub template_id: u64,
     pub business_ids: Int32Array64Ffi,
@@ -567,6 +614,7 @@ pub type HostUpdateCompanionEnabledBusinessIdsOutputFfi = PlaceHolderFfi;
 // HostCheckTemplateEnrolled
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostCheckTemplateEnrolledInputFfi {
     pub template_id: u64,
 }
@@ -574,6 +622,7 @@ assert_max_size!(HostCheckTemplateEnrolledInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostCheckTemplateEnrolledOutputFfi {
     pub enrolled: u8,
 }
@@ -582,6 +631,7 @@ assert_max_size!(HostCheckTemplateEnrolledOutputFfi);
 // HostBeginDelegateAuth
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginDelegateAuthInputFfi {
     pub request_id: i32,
     pub schedule_id: u64,
@@ -592,6 +642,7 @@ assert_max_size!(HostBeginDelegateAuthInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginDelegateAuthOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, tag, iv, encrypt_data(challenge, atl) */
 }
@@ -600,6 +651,7 @@ assert_max_size!(HostBeginDelegateAuthOutputFfi);
 // HostEndDelegateAuth
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndDelegateAuthInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
@@ -609,6 +661,7 @@ assert_max_size!(HostEndDelegateAuthInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndDelegateAuthOutputFfi {
     pub fwk_message: DataArray1024Ffi,
     pub auth_type: i32,
@@ -619,6 +672,7 @@ assert_max_size!(HostEndDelegateAuthOutputFfi);
 // HostCancelDelegateAuth
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostCancelDelegateAuthInputFfi {
     pub request_id: i32,
 }
@@ -629,6 +683,7 @@ pub type HostCancelDelegateAuthOutputFfi = PlaceHolderFfi;
 // HostProcessPreObtainTokenInput
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostProcessPreObtainTokenInputFfi {
     pub request_id: i32,
     pub template_id: u64,
@@ -638,6 +693,7 @@ assert_max_size!(HostProcessPreObtainTokenInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostProcessPreObtainTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, challenge */
 }
@@ -646,6 +702,7 @@ assert_max_size!(HostProcessPreObtainTokenOutputFfi);
 // HostProcessObtainTokenInput
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostProcessObtainTokenInputFfi {
     pub request_id: i32,
     pub template_id: u64,
@@ -656,6 +713,7 @@ assert_max_size!(HostProcessObtainTokenInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostProcessObtainTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge, token, atl) */
     pub atl: i32,
@@ -665,6 +723,7 @@ assert_max_size!(HostProcessObtainTokenOutputFfi);
 // HostCancelObtainTokenInput
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostCancelObtainTokenInputFfi {
     pub request_id: i32,
 }
@@ -672,10 +731,29 @@ assert_max_size!(HostCancelObtainTokenInputFfi);
 
 pub type HostCancelObtainTokenOutputFfi = PlaceHolderFfi;
 
+// HostUpdateToken
+#[repr(C)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct HostUpdateTokenInputFfi {
+    pub template_id: u64,
+    pub fwk_message: DataArray1024Ffi,
+}
+assert_max_size!(HostUpdateTokenInputFfi);
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct HostUpdateTokenOutputFfi {
+    pub need_redistribute: bool,
+}
+assert_max_size!(HostUpdateTokenOutputFfi);
+
 // companion
 // CompanionGetPersistedStatus
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionGetPersistedStatusInputFfi {
     pub user_id: i32,
 }
@@ -683,6 +761,7 @@ assert_max_size!(CompanionGetPersistedStatusInputFfi);
 
 #[repr(C)]
 #[derive(Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionGetPersistedStatusOutputFfi {
     pub binding_status_list: HostBindingStatusArrayFfi,
 }
@@ -691,6 +770,7 @@ assert_max_size!(CompanionGetPersistedStatusOutputFfi);
 // CompanionProcessCheck
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionProcessCheckInputFfi {
     pub binding_id: i32,
     pub capability_list: Uint16Array64Ffi,
@@ -703,6 +783,7 @@ assert_max_size!(CompanionProcessCheckInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionProcessCheckOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, tag, iv, encrypt_data(algorithm, capability_list, challenge) */
 }
@@ -711,6 +792,7 @@ assert_max_size!(CompanionProcessCheckOutputFfi);
 // CompanionInitKeyNegotiation
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionInitKeyNegotiationInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
@@ -722,6 +804,7 @@ assert_max_size!(CompanionInitKeyNegotiationInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionInitKeyNegotiationOutputFfi {
     pub sec_message: DataArray1024Ffi, /* challenge, algorithm, algorithm_data */
 }
@@ -730,6 +813,7 @@ assert_max_size!(CompanionInitKeyNegotiationOutputFfi);
 // CompanionBeginAddHostBinding
 #[repr(C)]
 #[derive(Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginAddHostBindingInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
@@ -739,6 +823,7 @@ assert_max_size!(CompanionBeginAddHostBindingInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginAddHostBindingOutputFfi {
     pub sec_message: DataArray1024Ffi, /* device_id, user_id, track_ability_level, tag, iv, encrypt_data(device_id, user_id) */
     pub binding_id: i32,
@@ -749,6 +834,7 @@ assert_max_size!(CompanionBeginAddHostBindingOutputFfi);
 // CompanionEndAddHostBinding
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionEndAddHostBindingInputFfi {
     pub request_id: i32,
     pub result: i32,
@@ -758,6 +844,7 @@ assert_max_size!(CompanionEndAddHostBindingInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionEndAddHostBindingOutputFfi {
     pub binding_id: i32,
 }
@@ -766,6 +853,7 @@ assert_max_size!(CompanionEndAddHostBindingOutputFfi);
 // CompanionRemoveHostBinding
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionRemoveHostBindingInputFfi {
     pub binding_id: i32,
 }
@@ -776,6 +864,7 @@ pub type CompanionRemoveHostBindingOutputFfi = PlaceHolderFfi;
 // CompanionPreIssueToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionPreIssueTokenInputFfi {
     pub request_id: i32,
     pub binding_id: i32,
@@ -786,6 +875,7 @@ assert_max_size!(CompanionPreIssueTokenInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionPreIssueTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge) */
 }
@@ -794,6 +884,7 @@ assert_max_size!(CompanionPreIssueTokenOutputFfi);
 // CompanionProcessIssueToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionProcessIssueTokenInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
@@ -803,6 +894,7 @@ assert_max_size!(CompanionProcessIssueTokenInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionProcessIssueTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* result */
 }
@@ -811,6 +903,7 @@ assert_max_size!(CompanionProcessIssueTokenOutputFfi);
 // CompanionCancelIssueToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionCancelIssueTokenInputFfi {
     pub request_id: i32,
 }
@@ -821,6 +914,7 @@ pub type CompanionCancelIssueTokenOutputFfi = PlaceHolderFfi;
 // CompanionProcessTokenAuth
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionProcessTokenAuthInputFfi {
     pub binding_id: i32,
     pub secure_protocol_id: u16,
@@ -830,6 +924,7 @@ assert_max_size!(CompanionProcessTokenAuthInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionProcessTokenAuthOutputFfi {
     pub sec_message: DataArray1024Ffi, /* mac */
 }
@@ -838,6 +933,7 @@ assert_max_size!(CompanionProcessTokenAuthOutputFfi);
 // CompanionRevokeToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionRevokeTokenInputFfi {
     pub binding_id: i32,
 }
@@ -848,6 +944,7 @@ pub type CompanionRevokeTokenOutputFfi = PlaceHolderFfi;
 // CompanionBeginDelegateAuth
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginDelegateAuthInputFfi {
     pub request_id: i32,
     pub binding_id: i32,
@@ -858,6 +955,7 @@ assert_max_size!(CompanionBeginDelegateAuthInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginDelegateAuthOutputFfi {
     pub challenge: u64,
     pub atl: i32,
@@ -867,6 +965,7 @@ assert_max_size!(CompanionBeginDelegateAuthOutputFfi);
 // CompanionEndDelegateAuth
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionEndDelegateAuthInputFfi {
     pub request_id: i32,
     pub result: i32,
@@ -876,6 +975,7 @@ assert_max_size!(CompanionEndDelegateAuthInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionEndDelegateAuthOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, tag, iv, encrypt_data(challenge, atl, authType)) */
 }
@@ -884,6 +984,7 @@ assert_max_size!(CompanionEndDelegateAuthOutputFfi);
 // CompanionBeginObtainToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginObtainTokenInputFfi {
     pub request_id: i32,
     pub binding_id: i32,
@@ -895,6 +996,7 @@ assert_max_size!(CompanionBeginObtainTokenInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginObtainTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge, atl) */
 }
@@ -903,6 +1005,7 @@ assert_max_size!(CompanionBeginObtainTokenOutputFfi);
 // CompanionEndObtainToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionEndObtainTokenInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
@@ -915,6 +1018,7 @@ pub type CompanionEndObtainTokenOutputFfi = PlaceHolderFfi;
 //CompanionCancelObtainToken
 #[repr(C)]
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionCancelObtainTokenInputFfi {
     pub request_id: i32,
 }
@@ -953,7 +1057,7 @@ pub enum CommandId {
     HostProcessPreObtainToken = 1023,
     HostProcessObtainToken = 1024,
     HostCancelObtainToken = 1025,
-    HostActiveToken = 1026,
+    HostActivateToken = 1026,
     HostCheckTemplateEnrolled = 1027,
 
     // companion
@@ -1000,13 +1104,14 @@ impl TryFrom<i32> for CommandId {
             1017 => Ok(CommandId::HostRevokeToken),
             1018 => Ok(CommandId::HostUpdateCompanionStatus),
             1019 => Ok(CommandId::HostUpdateCompanionEnabledBusinessIds),
-            1027 => Ok(CommandId::HostCheckTemplateEnrolled),
             1020 => Ok(CommandId::HostBeginDelegateAuth),
             1021 => Ok(CommandId::HostEndDelegateAuth),
             1022 => Ok(CommandId::HostCancelDelegateAuth),
             1023 => Ok(CommandId::HostProcessPreObtainToken),
             1024 => Ok(CommandId::HostProcessObtainToken),
             1025 => Ok(CommandId::HostCancelObtainToken),
+            1026 => Ok(CommandId::HostActivateToken),
+            1027 => Ok(CommandId::HostCheckTemplateEnrolled),
             2000 => Ok(CommandId::CompanionGetPersistedStatus),
             2001 => Ok(CommandId::CompanionProcessCheck),
             2002 => Ok(CommandId::CompanionInitKeyNegotiation),

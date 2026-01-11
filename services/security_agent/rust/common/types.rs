@@ -17,15 +17,9 @@ use crate::common::constants::*;
 use crate::log_e;
 use crate::String;
 use crate::Vec;
-// use serde_big_array::BigArray;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
-pub struct Udid(
-    // #[cfg_attr(feature = "test-utils", serde(with = "BigArray"))]
-    // #[cfg_attr(feature = "test-utils", serde(with = "serde_big_array::BigArray"))]
-    pub [u8; UDID_LEN],
-);
+pub struct Udid(pub [u8; UDID_LEN]);
 
 impl Default for Udid {
     fn default() -> Self {

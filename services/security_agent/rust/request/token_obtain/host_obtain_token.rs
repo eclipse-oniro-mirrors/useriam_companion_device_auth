@@ -37,14 +37,12 @@ use crate::vec;
 use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct TokenObtainParam {
     pub request_id: i32,
     pub template_id: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct HostDeviceObtainTokenRequest {
     pub obtain_param: TokenObtainParam,
     pub token_infos: Vec<DeviceTokenInfo>,
@@ -197,7 +195,7 @@ impl HostRequest for HostDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_begin_sec_message()?;
         self.store_token()?;
         let max_atl = self

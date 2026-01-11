@@ -42,7 +42,6 @@ use crate::String;
 use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct KeyNegotialParam {
     pub device_type: DeviceType,
     pub algorithm: u16,
@@ -52,7 +51,6 @@ pub struct KeyNegotialParam {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeviceCapability {
     pub device_type: DeviceType,
     pub esl: ExecutorSecurityLevel,
@@ -60,7 +58,6 @@ pub struct DeviceCapability {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct EnrollParam {
     pub schedule_id: u64,
     pub host_device_key: DeviceKey,
@@ -68,7 +65,6 @@ pub struct EnrollParam {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct HostDeviceEnrollRequest {
     pub request_id: i32,
     pub secure_protocol_id: u16,
@@ -423,8 +419,8 @@ impl HostRequest for HostDeviceEnrollRequest {
         self.enroll_param.companion_device_key = companion_device_key;
         self.enroll_param.schedule_id = ffi_input.schedule_id;
 
-        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice())?;
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
+        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
 
         let sec_message = self.create_begin_sec_message()?;
         Ok(HostRequestOutput::EnrollBegin(HostBeginAddCompanionOutputFfi {
@@ -439,7 +435,7 @@ impl HostRequest for HostDeviceEnrollRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         let template_id = self.store_device_info()?;
         self.store_token(template_id)?;
 

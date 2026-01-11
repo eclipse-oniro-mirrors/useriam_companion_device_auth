@@ -47,6 +47,7 @@ pub enum HostRequestInput {
     ObtainTokenEnd(HostProcessObtainTokenInputFfi),
 }
 
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub enum HostRequestOutput {
     SyncStatusBegin(HostBeginCompanionCheckOutputFfi),
     SyncStatusEnd(HostEndCompanionCheckOutputFfi),
@@ -76,7 +77,7 @@ pub type DynHostRequest = dyn HostRequest;
 pub trait HostRequestManager {
     fn add_request(&mut self, request: Box<DynHostRequest>) -> Result<(), ErrorCode>;
     fn remove_request(&mut self, request_id: i32) -> Result<Box<DynHostRequest>, ErrorCode>;
-    fn get_request(&mut self, request_id: i32) -> Result<&mut DynHostRequest, ErrorCode>;
+    fn get_request<'a>(&'a mut self, request_id: i32) -> Result<&'a mut DynHostRequest, ErrorCode>;
 }
 
 pub struct DummyHostRequestManager;
@@ -90,7 +91,7 @@ impl HostRequestManager for DummyHostRequestManager {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
-    fn get_request(&mut self, _request_id: i32) -> Result<&mut DynHostRequest, ErrorCode> {
+    fn get_request<'a>(&'a mut self, _request_id: i32) -> Result<&'a mut DynHostRequest, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
@@ -98,36 +99,5 @@ impl HostRequestManager for DummyHostRequestManager {
 
 singleton_registry!(HostRequestManagerRegistry, HostRequestManager, DummyHostRequestManager);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    struct DummyHostRequest;
-
-    impl HostRequest for DummyHostRequest {
-        fn get_request_id(&self) -> i32 {
-            log_e!("not implemented");
-            0
-        }
-        fn prepare(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
-            log_e!("not implemented");
-            Err(ErrorCode::GeneralError)
-        }
-        fn begin(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
-            log_e!("not implemented");
-            Err(ErrorCode::GeneralError)
-        }
-        fn end(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
-            log_e!("not implemented");
-            Err(ErrorCode::GeneralError)
-        }
-    }
-
-    #[test]
-    fn dummy_host_request_manager_test() {
-        let mut dummy_host_request_manager = DummyHostRequestManager;
-        assert_eq!(dummy_host_request_manager.add_request(Box::new(DummyHostRequest)), Err(ErrorCode::GeneralError));
-        assert!(dummy_host_request_manager.remove_request(0).is_err());
-        assert!(dummy_host_request_manager.get_request(0).is_err());
-    }
-}
+#[cfg(any(test, feature = "test-utils"))]
+pub use crate::test_utils::mock::MockHostRequestManager;

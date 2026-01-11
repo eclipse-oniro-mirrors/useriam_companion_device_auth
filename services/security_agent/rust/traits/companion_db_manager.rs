@@ -20,6 +20,7 @@ use crate::CString;
 use crate::{log_e, singleton_registry, Box, Vec};
 
 pub type HostDeviceFilter = Box<dyn Fn(&HostDeviceInfo) -> bool>;
+
 pub trait CompanionDbManager {
     fn add_device(&mut self, device_info: &HostDeviceInfo, sk_info: &HostDeviceSk) -> Result<(), ErrorCode>;
     fn get_device_by_binding_id(&self, binding_id: i32) -> Result<HostDeviceInfo, ErrorCode>;
@@ -43,7 +44,7 @@ pub trait CompanionDbManager {
     fn get_device_list(&self, user_id: i32) -> Vec<HostDeviceInfo>;
 }
 
-struct DummyCompanionDbManager;
+pub struct DummyCompanionDbManager;
 
 impl CompanionDbManager for DummyCompanionDbManager {
     fn add_device(&mut self, _device_info: &HostDeviceInfo, _sk_info: &HostDeviceSk) -> Result<(), ErrorCode> {
@@ -115,40 +116,5 @@ impl CompanionDbManager for DummyCompanionDbManager {
 
 singleton_registry!(CompanionDbManagerRegistry, CompanionDbManager, DummyCompanionDbManager);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::traits::db_manager::{DeviceKey, UserInfo};
-
-    #[test]
-    fn dummy_companion_db_manager_test() {
-        let mut dummy_companion_db_manager = DummyCompanionDbManager;
-        let device_info = HostDeviceInfo {
-            device_key: DeviceKey::default(),
-            binding_id: 0,
-            user_info: UserInfo { user_id: 0, user_type: 0 },
-            binding_time: 0,
-            last_used_time: 0,
-        };
-        let sk_info = HostDeviceSk { sk: Vec::<u8>::new() };
-        let token = HostTokenInfo { token: Vec::<u8>::new(), atl: AuthTrustLevel::Atl0 };
-
-        assert_eq!(dummy_companion_db_manager.add_device(&device_info, &sk_info), Err(ErrorCode::GeneralError));
-        assert!(dummy_companion_db_manager.get_device_by_binding_id(0).is_err());
-        assert!(dummy_companion_db_manager
-            .get_device_by_device_key(100, &DeviceKey::default())
-            .is_err());
-        assert!(dummy_companion_db_manager.remove_device(0).is_err());
-        assert!(dummy_companion_db_manager.update_device(&device_info).is_err());
-        assert!(dummy_companion_db_manager.generate_unique_binding_id().is_err());
-        assert!(dummy_companion_db_manager.read_device_db().is_err());
-        assert!(dummy_companion_db_manager.read_device_token(0).is_err());
-        assert!(dummy_companion_db_manager.write_device_token(0, &token).is_err());
-        assert!(dummy_companion_db_manager.delete_device_token(0).is_err());
-        assert!(dummy_companion_db_manager.is_device_token_valid(0).is_err());
-        assert!(dummy_companion_db_manager.read_device_sk(0).is_err());
-        assert!(dummy_companion_db_manager.write_device_sk(0, &sk_info).is_err());
-        assert!(dummy_companion_db_manager.delete_device_sk(0).is_err());
-        assert!(dummy_companion_db_manager.get_device_list(0).is_empty());
-    }
-}
+#[cfg(any(test, feature = "test-utils"))]
+pub use crate::test_utils::mock::MockCompanionDbManager;

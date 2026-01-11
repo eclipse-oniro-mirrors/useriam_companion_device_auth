@@ -56,33 +56,3 @@ impl Default for DefaultTimeKeeper {
         Self::new()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_time_functions() {
-        let keeper = DefaultTimeKeeper::new();
-
-        // 测试系统时间获取（单调递增）
-        let system_time = keeper.get_system_time().unwrap();
-        assert!(system_time > 0);
-
-        // 测试RTC时间获取（单调递增）
-        let rtc_time = keeper.get_rtc_time().unwrap();
-        assert!(rtc_time > 0);
-
-        // 测试REE时间获取（墙上时钟）
-        let ree_time = keeper.get_ree_time().unwrap();
-        assert!(ree_time > 0);
-
-        // 测试单调时间的递增性
-        let system_time2 = keeper.get_system_time().unwrap();
-        assert!(system_time2 >= system_time);
-
-        // 测试RTC时间的递增性
-        let rtc_time2 = keeper.get_rtc_time().unwrap();
-        assert!(rtc_time2 >= rtc_time);
-    }
-}

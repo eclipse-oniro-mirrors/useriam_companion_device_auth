@@ -15,6 +15,9 @@
 
 #![cfg_attr(not(any(test, feature = "test-utils")), no_std)]
 
+#[cfg(any(test, feature = "test-utils"))]
+extern crate self as companion_device_auth;
+
 pub mod commands;
 pub mod common;
 pub mod entry;
@@ -45,3 +48,8 @@ pub use {
     common::constants::SHA256_DIGEST_SIZE, traits::crypto_engine::MockCryptoEngine,
     traits::misc_manager::MockMiscManager,
 };
+
+// Unit tests configuration
+#[cfg(any(test, feature = "test-utils"))]
+#[path = "../../../test/unittest/services/rust/src/unit_test.rs"]
+mod unit_test;

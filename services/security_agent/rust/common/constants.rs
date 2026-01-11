@@ -36,7 +36,6 @@ pub const INVALID_USER_ID: i32 = -1;
 pub const ABANDON_PIN_VALID_PERIOD: u64 = 96 * 3600 * 1000;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(i32)]
 pub enum ErrorCode {
     Success = 0,
@@ -90,7 +89,6 @@ impl TryFrom<i32> for ErrorCode {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(i32)]
 pub enum AuthSecurityLevel {
     Asl0 = 0,
@@ -124,7 +122,6 @@ impl TryFrom<i32> for AuthSecurityLevel {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(i32)]
 pub enum ExecutorSecurityLevel {
     Esl0 = 0,
@@ -158,7 +155,6 @@ impl TryFrom<i32> for ExecutorSecurityLevel {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u32)]
 pub enum AuthCapabilityLevel {
     Acl0 = 0,
@@ -191,7 +187,6 @@ impl TryFrom<i32> for AuthCapabilityLevel {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Debug)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(i32)]
 pub enum AuthTrustLevel {
     Atl0 = 0,
@@ -227,7 +222,6 @@ impl TryFrom<i32> for AuthTrustLevel {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(i32)]
 pub enum DeviceType {
     None = 0,
@@ -307,7 +301,6 @@ impl TryFrom<u16> for SecureProtocolId {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u32)]
 pub enum AuthType {
     Default = 0,
@@ -341,7 +334,6 @@ impl TryFrom<u32> for AuthType {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u16)]
 pub enum Capability {
     Invalid = 0,

@@ -61,7 +61,7 @@ impl HostRequestManager for DefaultHostRequestManager {
         Ok(self.requests.remove(pos))
     }
 
-    fn get_request(&mut self, request_id: i32) -> Result<&mut DynHostRequest, ErrorCode> {
+    fn get_request<'a>(&'a mut self, request_id: i32) -> Result<&'a mut DynHostRequest, ErrorCode> {
         log_i!("get_request start");
         for request in &mut self.requests {
             if request.get_request_id() == request_id {
