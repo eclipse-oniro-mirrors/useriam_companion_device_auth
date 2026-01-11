@@ -88,7 +88,7 @@ int32_t CompanionDeviceAuthClientImpl::UnregisterDeviceSelectCallback()
 int32_t CompanionDeviceAuthClientImpl::UpdateTemplateEnabledBusinessIds(const uint64_t templateId,
     const std::vector<int32_t> enabledBusinessIds)
 {
-    IAM_LOGI("start, templateId:%{public}" PRIu64 ", enabledBusinessIds size:%{public}d", templateId,
+    IAM_LOGI("start, templateId:%{public}s, enabledBusinessIds size:%{public}d", GET_MASKED_NUM_CSTR(templateId),
         static_cast<int32_t>(enabledBusinessIds.size()));
     auto proxy = GetProxy();
     if (!proxy) {
@@ -124,9 +124,9 @@ void CompanionDeviceAuthClientImpl::PrintIpcTemplateStatus(const IpcTemplateStat
         static_cast<int32_t>(ipcTemplateStatus.deviceStatus.isOnline),
         static_cast<int32_t>(ipcTemplateStatus.deviceStatus.supportedBusinessIds.size()));
 
-    IAM_LOGI("templateId:%{public}d, isConfirmed:%{public}d, isValid:%{public}d, localUserId:%{public}d, "
+    IAM_LOGI("templateId:%{public}s, isConfirmed:%{public}d, isValid:%{public}d, localUserId:%{public}d, "
              "addedTime:%{public}" PRId64 ", enabledBusinessIds size:%{public}d",
-        static_cast<int32_t>(ipcTemplateStatus.templateId), static_cast<int32_t>(ipcTemplateStatus.isConfirmed),
+        GET_MASKED_NUM_CSTR(ipcTemplateStatus.templateId), static_cast<int32_t>(ipcTemplateStatus.isConfirmed),
         static_cast<int32_t>(ipcTemplateStatus.isValid), ipcTemplateStatus.localUserId, ipcTemplateStatus.addedTime,
         static_cast<int32_t>(ipcTemplateStatus.enabledBusinessIds.size()));
 }
@@ -216,7 +216,10 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChange(const int32
         IAM_LOGE("SubscribeTemplateStatusChange fail, ret:%{public}d", ret);
     }
 
-    templateStatusCallbacks_.push_back(wrapper);
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        templateStatusCallbacks_.push_back(wrapper);
+    }
     return ret;
 }
 
@@ -254,7 +257,11 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeTemplateStatusChange(
         IAM_LOGE("UnsubscribeTemplateStatusChange fail, ret:%{public}d", ret);
         return ret;
     }
-    templateStatusCallbacks_.erase(it);
+
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        templateStatusCallbacks_.erase(it);
+    }
     return ret;
 }
 
@@ -290,7 +297,10 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeAvailableDeviceStatus(const int3
         IAM_LOGE("SubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
     }
 
-    availableDeviceStatusCallbacks_.push_back(wrapper);
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        availableDeviceStatusCallbacks_.push_back(wrapper);
+    }
     return ret;
 }
 
@@ -327,7 +337,11 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeAvailableDeviceStatus(
         IAM_LOGE("UnsubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
         return ret;
     }
-    availableDeviceStatusCallbacks_.erase(it);
+
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        availableDeviceStatusCallbacks_.erase(it);
+    }
     return ret;
 }
 
@@ -355,7 +369,7 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(const
     param.localUserId = localUserId;
     param.hasTemplateId = false;
     if (templateId.has_value()) {
-        IAM_LOGI("templateId:%{public}d", static_cast<int32_t>(templateId.value()));
+        IAM_LOGI("templateId:%{public}s", GET_MASKED_NUM_CSTR(templateId.value()));
         param.hasTemplateId = true;
         param.templateId = templateId.value();
     } else {
@@ -373,7 +387,10 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(const
         IAM_LOGE("SubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
     }
 
-    continuousAuthStatusCallbacks_.push_back(wrapper);
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        continuousAuthStatusCallbacks_.push_back(wrapper);
+    }
     return ret;
 }
 
@@ -409,7 +426,11 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeContinuousAuthStatusChange(
         IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
         return ret;
     }
-    continuousAuthStatusCallbacks_.erase(it);
+
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        continuousAuthStatusCallbacks_.erase(it);
+    }
     return ret;
 }
 
@@ -490,8 +511,14 @@ void CompanionDeviceAuthClientImpl::ReregisterDeviceSelectCallback()
 void CompanionDeviceAuthClientImpl::ResubscribeTemplateStatusChange()
 {
     IAM_LOGI("start");
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    for (const auto &ipcCallback : templateStatusCallbacks_) {
+    std::vector<sptr<IpcTemplateStatusCallbackService>> callbacksCopy;
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        callbacksCopy = templateStatusCallbacks_;
+        templateStatusCallbacks_ = {};
+    }
+
+    for (const auto &ipcCallback : callbacksCopy) {
         const auto callback = ipcCallback->GetCallback();
         int32_t userId = callback->GetUserId();
         SubscribeTemplateStatusChange(userId, callback);
@@ -501,7 +528,13 @@ void CompanionDeviceAuthClientImpl::ResubscribeTemplateStatusChange()
 void CompanionDeviceAuthClientImpl::ResubscribeContinuousAuthStatusChange()
 {
     IAM_LOGI("start");
-    for (const auto &ipcCallback : continuousAuthStatusCallbacks_) {
+    std::vector<sptr<IpcContinuousAuthStatusCallbackService>> callbacksCopy;
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        callbacksCopy = continuousAuthStatusCallbacks_;
+        continuousAuthStatusCallbacks_ = {};
+    }
+    for (const auto &ipcCallback : callbacksCopy) {
         const auto callback = ipcCallback->GetCallback();
         int32_t userId = callback->GetUserId();
         std::optional<uint64_t> templateId = callback->GetTemplateId();
@@ -512,8 +545,13 @@ void CompanionDeviceAuthClientImpl::ResubscribeContinuousAuthStatusChange()
 void CompanionDeviceAuthClientImpl::ResubscribeAvailableDeviceStatus()
 {
     IAM_LOGI("start");
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    for (const auto &ipcCallback : availableDeviceStatusCallbacks_) {
+    std::vector<sptr<IpcAvailableDeviceStatusCallbackService>> callbacksCopy;
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        callbacksCopy = availableDeviceStatusCallbacks_;
+        availableDeviceStatusCallbacks_ = {};
+    }
+    for (const auto &ipcCallback : callbacksCopy) {
         const auto callback = ipcCallback->GetCallback();
         int32_t userId = callback->GetUserId();
         SubscribeAvailableDeviceStatus(userId, callback);

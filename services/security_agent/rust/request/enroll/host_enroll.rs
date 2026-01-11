@@ -243,7 +243,6 @@ impl HostDeviceEnrollRequest {
             log_e!("user_id check fail, {}, {}", self.enroll_param.companion_device_key.user_id, reply_info.user_id);
             return Err(ErrorCode::GeneralError);
         }
-        //todo: hj
         if reply_info.protocal_list != PROTOCAL_VERSION {
             log_e!("protocal version is error, {:?}", reply_info.protocal_list);
             return Err(ErrorCode::GeneralError);
@@ -268,7 +267,6 @@ impl HostDeviceEnrollRequest {
             DeviceTokenInfo { device_type, challenge: reply_info.challenge, atl: self.atl, token: token.to_vec() };
         self.token_infos.push(token_info.clone());
 
-        // todo: hj
         let acl = match esl {
             ExecutorSecurityLevel::Esl0 => AuthCapabilityLevel::Acl0,
             ExecutorSecurityLevel::Esl1 => AuthCapabilityLevel::Acl1,

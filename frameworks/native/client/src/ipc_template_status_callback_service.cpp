@@ -68,9 +68,9 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
         clientDeviceStatus.isOnline = templateStatus.deviceStatus.isOnline;
         clientDeviceStatus.supportedBusinessIds = templateStatus.deviceStatus.supportedBusinessIds;
 
-        IAM_LOGI("templateId:%{public}d, isConfirmed:%{public}d, isValid:%{public}d, localUserId:%{public}d, "
+        IAM_LOGI("templateId:%{public}s, isConfirmed:%{public}d, isValid:%{public}d, localUserId:%{public}d, "
                  "addedTime:%{public}" PRId64 ", enabledBusinessIds size:%{public}d",
-            static_cast<int32_t>(templateStatus.templateId), static_cast<int32_t>(templateStatus.isConfirmed),
+            GET_MASKED_NUM_CSTR(templateStatus.templateId), static_cast<int32_t>(templateStatus.isConfirmed),
             static_cast<int32_t>(templateStatus.isValid), templateStatus.localUserId, templateStatus.addedTime,
             static_cast<int32_t>(templateStatus.enabledBusinessIds.size()));
         ClientTemplateStatus clientTemplateStatus;

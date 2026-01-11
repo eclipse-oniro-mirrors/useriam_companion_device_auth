@@ -206,17 +206,21 @@ void CompanionDeviceAuthAniHelper::ThrowBusinessError(int32_t error)
 {
     std::string msgStr;
     if (error == INVALID_BUSINESS_ID) {
+        msgStr = g_result2Str.at(error);
         error = FRAMEWORKS_INVALID_PARAMS;
     } else if ((error == USER_ID_NOT_FOUND) || (error == NOT_ENROLLED)) {
+        msgStr = g_result2Str.at(error);
         error = FRAMEWORKS_NOT_FOUND;
     } else if (error == CHECK_PERMISSION_FAILED) {
+        msgStr = g_result2Str.at(error);
         error = FRAMEWORKS_CHECK_PERMISSION_FAILED;
     } else if (error == CHECK_SYSTEM_PERMISSION_FAILED) {
+        msgStr = g_result2Str.at(error);
         error = FRAMEWORKS_CHECK_SYSTEM_PERMISSION_FAILED;
     } else {
+        msgStr = g_result2Str.at(GENERAL_ERROR);
         error = FRAMEWORKS_GENERAL_ERROR;
     }
-    msgStr = g_result2Str.at(error);
     IAM_LOGI("ThrowBusinessError, errorCode: %{public}d, errmsg: %{public}s", error, msgStr.c_str());
     taihe::set_business_error(error, msgStr);
 }

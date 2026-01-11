@@ -78,7 +78,6 @@ impl HostDeviceSyncStatusRequest {
             log_e!("Challenge verification failed");
             return Err(ErrorCode::GeneralError);
         }
-        //todo: hj
         let protocol_list = decrypt_attribute
             .get_u16_vec(AttributeKey::AttrProtocolList)
             .map_err(|e| p!(e))?;
