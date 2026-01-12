@@ -494,15 +494,15 @@ pub fn host_check_template_enrolled(
     input: HostCheckTemplateEnrolledInputFfi,
     output: &mut HostCheckTemplateEnrolledOutputFfi,
 ) -> Result<(), ErrorCode> {
-    log_i!("host_check_template_enrolled start, template_id:{:x}", input.template_id);
+    log_i!("host_check_template_enrolled start, template_id:{:x}", input.template_id as u16);
     match HostDbManagerRegistry::get().get_device(input.template_id) {
         Ok(_) => {
-            log_i!("template_id {} enrolled", input.template_id);
+            log_i!("template_id {:x} enrolled", input.template_id as u16);
             output.enrolled = 1;
             Ok(())
         },
         Err(ErrorCode::NotFound) => {
-            log_i!("template_id {} not enrolled", input.template_id);
+            log_i!("template_id {:x} not enrolled", input.template_id as u16);
             output.enrolled = 0;
             Ok(())
         },

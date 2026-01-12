@@ -339,7 +339,7 @@ impl HostDbManager for DefaultHostDbManager {
         self.companion_device_infos.push(device_info.clone());
         let result = self.write_device_db();
         if result.is_ok() {
-            log_i!("Device added successfully, template_id: {}", device_info.template_id);
+            log_i!("Device added successfully, template_id: {:x}", device_info.template_id as u16);
             return result;
         }
         log_e!("write_device_db fail");
@@ -378,7 +378,7 @@ impl HostDbManager for DefaultHostDbManager {
             .get_device_index_by_template_id(template_id)
             .map(|index| {
                 let device = self.companion_device_infos.remove(index);
-                log_i!("Device removed successfully, template_id: {}", device.template_id);
+                log_i!("Device removed successfully, template_id: {:x}", device.template_id as u16);
                 device
             })
             .ok_or_else(|| {
@@ -429,18 +429,21 @@ impl HostDbManager for DefaultHostDbManager {
             return Err(ErrorCode::BadParam);
         }
 
-        if self.get_total_token_num() >= MAX_DEVICE_NUM {
-            log_e!("token num is reached limit");
-            return Err(ErrorCode::ExceedLimit);
-        }
-
         match self.get_token_index_by_template_info(token_info.template_id, token_info.device_type) {
             Some(index) => {
+                if self.get_total_token_num() > MAX_TOKEN_NUM {
+                    log_e!("token num is reached limit");
+                    return Err(ErrorCode::ExceedLimit);
+                }
                 self.companion_token_infos[index] = token_info.clone();
             },
             None => {
+                if self.get_total_token_num() >= MAX_TOKEN_NUM {
+                    log_e!("token num is reached limit");
+                    return Err(ErrorCode::ExceedLimit);
+                }
                 self.companion_token_infos.push(token_info.clone());
-                log_i!("Token added successfully for template_id: {}", token_info.template_id);
+                log_i!("Token added successfully for template_id: {:x}", token_info.template_id as u16);
             },
         }
 
@@ -452,7 +455,7 @@ impl HostDbManager for DefaultHostDbManager {
         self.get_token_index_by_template_info(template_id, device_type)
             .map(|index| self.companion_token_infos[index].clone())
             .ok_or_else(|| {
-                log_e!("Token not found for template_id: {}", template_id);
+                log_e!("Token not found for template_id: {:x}", template_id as u16);
                 ErrorCode::NotFound
             })
     }
@@ -462,11 +465,11 @@ impl HostDbManager for DefaultHostDbManager {
         self.get_token_index_by_template_info(template_id, device_type)
             .map(|index| {
                 let token = self.companion_token_infos.remove(index);
-                log_i!("Token removed successfully for template_id: {}", template_id);
+                log_i!("Token removed successfully for template_id: {:x}", template_id as u16);
                 token
             })
             .ok_or_else(|| {
-                log_i!("Token not found for removal, template_id: {}", template_id);
+                log_i!("Token not found for removal, template_id: {:x}", template_id as u16);
                 ErrorCode::NotFound
             })
     }
@@ -476,15 +479,15 @@ impl HostDbManager for DefaultHostDbManager {
         if let Some(index) = self.get_token_index_by_template_info(token_info.template_id, token_info.device_type) {
             self.companion_token_infos[index] = token_info.clone();
             log_i!(
-                "Token updated successfully for template_id: {}, device_type: {:?}",
-                token_info.template_id,
+                "Token updated successfully for template_id: {:x}, device_type: {:?}",
+                token_info.template_id as u16,
                 token_info.device_type
             );
             Ok(())
         } else {
             log_e!(
-                "Token not found for update, template_id: {}, device_type: {:?}",
-                token_info.template_id,
+                "Token not found for update, template_id: {:x}, device_type: {:?}",
+                token_info.template_id as u16,
                 token_info.device_type
             );
             Err(ErrorCode::NotFound)
@@ -509,7 +512,7 @@ impl HostDbManager for DefaultHostDbManager {
     }
 
     fn read_device_base_info(&self, template_id: u64) -> Result<CompanionDeviceBaseInfo, ErrorCode> {
-        log_i!("read_device_base_info start, template_id:{:x}", template_id);
+        log_i!("read_device_base_info start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_BASE_INFO);
         let base_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
         if base_info_data.is_empty() {
@@ -522,7 +525,7 @@ impl HostDbManager for DefaultHostDbManager {
     }
 
     fn write_device_base_info(&self, template_id: u64, base_info: &CompanionDeviceBaseInfo) -> Result<(), ErrorCode> {
-        log_i!("write_device_base_info start, template_id:{:x}", template_id);
+        log_i!("write_device_base_info start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_BASE_INFO);
         let mut parcel = Parcel::new();
         self.serialize_device_base_info(base_info, &mut parcel)?;
@@ -533,14 +536,14 @@ impl HostDbManager for DefaultHostDbManager {
     }
 
     fn delete_device_base_info(&self, template_id: u64) -> Result<(), ErrorCode> {
-        log_i!("delete_device_base_info start, template_id:{:x}", template_id);
+        log_i!("delete_device_base_info start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_BASE_INFO);
         StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))?;
         Ok(())
     }
 
     fn read_device_capability_info(&self, template_id: u64) -> Result<Vec<CompanionDeviceCapability>, ErrorCode> {
-        log_i!("read_device_capability_info start, template_id:{:x}", template_id);
+        log_i!("read_device_capability_info start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_CAPABILTY_INFO);
         let capability_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
         if capability_info_data.is_empty() {
@@ -557,7 +560,7 @@ impl HostDbManager for DefaultHostDbManager {
         template_id: u64,
         capability_info: &Vec<CompanionDeviceCapability>,
     ) -> Result<(), ErrorCode> {
-        log_i!("write_device_capability_info start, template_id:{:x}", template_id);
+        log_i!("write_device_capability_info start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_CAPABILTY_INFO);
         let mut parcel = Parcel::new();
         self.serialize_device_capability_info(capability_info, &mut parcel)?;
@@ -568,14 +571,14 @@ impl HostDbManager for DefaultHostDbManager {
     }
 
     fn delete_device_capability_info(&self, template_id: u64) -> Result<(), ErrorCode> {
-        log_i!("delete_device_capability_info start, template_id:{:x}", template_id);
+        log_i!("delete_device_capability_info start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_CAPABILTY_INFO);
         StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))?;
         Ok(())
     }
 
     fn read_device_sk(&self, template_id: u64) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
-        log_i!("read_device_sk start, template_id:{:x}", template_id);
+        log_i!("read_device_sk start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_SK);
         let sk_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
         if sk_info_data.is_empty() {
@@ -588,7 +591,7 @@ impl HostDbManager for DefaultHostDbManager {
     }
 
     fn write_device_sk(&self, template_id: u64, sk_info: &Vec<CompanionDeviceSk>) -> Result<(), ErrorCode> {
-        log_i!("write_device_sk start, template_id:{:x}", template_id);
+        log_i!("write_device_sk start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_SK);
         let mut parcel = Parcel::new();
         self.serialize_device_sk(sk_info, &mut parcel)?;
@@ -599,7 +602,7 @@ impl HostDbManager for DefaultHostDbManager {
     }
 
     fn delete_device_sk(&self, template_id: u64) -> Result<(), ErrorCode> {
-        log_i!("delete_device_sk start, template_id:{:x}", template_id);
+        log_i!("delete_device_sk start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_SK);
         StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))?;
         Ok(())

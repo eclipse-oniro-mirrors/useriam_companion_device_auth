@@ -271,7 +271,8 @@ impl HostDeviceEnrollRequest {
             ExecutorSecurityLevel::Esl0 => AuthCapabilityLevel::Acl0,
             ExecutorSecurityLevel::Esl1 => AuthCapabilityLevel::Acl1,
             ExecutorSecurityLevel::Esl2 => AuthCapabilityLevel::Acl2,
-            ExecutorSecurityLevel::Esl3 | ExecutorSecurityLevel::MaxEsl => {
+            ExecutorSecurityLevel::Esl3 => AuthCapabilityLevel::Acl3,
+            ExecutorSecurityLevel::MaxEsl => {
                 log_e!("esl fail, esl: {:?}", esl);
                 return Err(ErrorCode::GeneralError);
             },
