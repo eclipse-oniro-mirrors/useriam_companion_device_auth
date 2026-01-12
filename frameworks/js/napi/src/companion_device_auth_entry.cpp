@@ -88,7 +88,11 @@ void DoPromise(napi_env env, napi_deferred promise, napi_value promiseValue, int
     }
 
     if (result == SUCCESS) {
-        napi_status ret = napi_resolve_deferred(env, promise, promiseValue);
+        napi_value finalValue = promiseValue;
+        if (promiseValue == nullptr) {
+            napi_get_undefined(env, &finalValue);
+        }
+        napi_status ret = napi_resolve_deferred(env, promise, finalValue);
         if (ret != napi_ok) {
             IAM_LOGE("napi_resolve_deferred failed %{public}d", ret);
         }

@@ -137,8 +137,9 @@ napi_value CompanionDeviceAuthNapiImpl::UpdateEnabledBusinessIds(napi_env env, n
         napi_reject_deferred(env, promiseDeferred, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return voidPromise;
     }
-    napi_value voidPromise2 = nullptr;
-    DoPromise(env, promiseDeferred, voidPromise2, ret);
+
+    napi_value returnVoid = nullptr;
+    DoPromise(env, promiseDeferred, returnVoid, ret);
     IAM_LOGI("success");
     return voidPromise;
 }
@@ -154,7 +155,11 @@ void CompanionDeviceAuthNapiImpl::DoPromise(napi_env env, napi_deferred promise,
     }
 
     if (result == SUCCESS) {
-        napi_status ret = napi_resolve_deferred(env, promise, promiseValue);
+        napi_value finalValue = promiseValue;
+        if (promiseValue == nullptr) {
+            napi_get_undefined(env, &finalValue);
+        }
+        napi_status ret = napi_resolve_deferred(env, promise, finalValue);
         if (ret != napi_ok) {
             IAM_LOGE("napi_resolve_deferred failed %{public}d", ret);
         }
