@@ -806,8 +806,9 @@ HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_003, TestSize.L
     bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
+    // Use a different channelId (not SOFTBUS) so the SOFTBUS connection won't be checked/closed
     std::vector<PhysicalDeviceStatus> statusList;
-    connectionMgr_->HandlePhysicalDeviceStatusChange(ChannelId::SOFTBUS, statusList);
+    connectionMgr_->HandlePhysicalDeviceStatusChange(static_cast<ChannelId>(10001), statusList);
 
     EXPECT_TRUE(connectionMgr_->GetConnection(connectionName).has_value());
 }

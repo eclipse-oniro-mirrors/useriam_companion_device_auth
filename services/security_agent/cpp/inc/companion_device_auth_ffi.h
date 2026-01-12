@@ -50,7 +50,7 @@ extern "C" {
 
 #define MAX_STRUCT_SIZE_FFI 409600
 
-#define AUTH_TOKEN_SIZE_FFI 344
+#define AUTH_TOKEN_SIZE_FFI 280
 
 enum CommandId {
     INIT = 1,

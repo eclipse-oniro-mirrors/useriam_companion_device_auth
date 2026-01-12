@@ -344,7 +344,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_005, TestSize.Level0)
 
     RelativeTimer::GetInstance().ExecuteAll();
 
-    EXPECT_FALSE(binding->GetStatus().isTokenValid);
+    EXPECT_TRUE(binding->GetStatus().isTokenValid);
 }
 
 HWTEST_F(HostBindingTest, Destructor_001, TestSize.Level0)

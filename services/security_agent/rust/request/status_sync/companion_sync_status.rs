@@ -29,7 +29,6 @@ use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompanionDeviceSyncStatusRequest {
     pub binding_id: i32,
     pub challenge: u64,
@@ -52,7 +51,7 @@ impl CompanionDeviceSyncStatusRequest {
     fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
-        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocalList, &self.protocal_list);
+        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocal_list);
         encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.capability_list);
 
         let attribute_bytes = encrypt_attribute.to_bytes()?;

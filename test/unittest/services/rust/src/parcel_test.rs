@@ -13,14 +13,11 @@
  * limitations under the License.
  */
 
-use rust::common::constants::ErrorCode;
-use rust::String;
-use rust::Vec;
-use rust::{log_e, log_i, p};
+use crate::common::constants::ErrorCode;
+use crate::log_i;
 use core::mem::size_of;
-use rust::common::constants::ErrorCode;
-use rust::utils::parcel;
-use rust::ut_registry_guard;
+use crate::utils::parcel::Parcel;
+use crate::ut_registry_guard;
 
 #[test]
 fn test_parcel_new() {
@@ -221,7 +218,7 @@ fn test_read_error_out_of_bounds() {
     let mut buffer = vec![0u8; 4];
     let result = parcel.read_bytes(&mut buffer);
     
-    assert_eq!(result.is_err());
+    assert!(result.is_err());
     assert_eq!(result.unwrap_err(), ErrorCode::ReadParcelError);
 }
 

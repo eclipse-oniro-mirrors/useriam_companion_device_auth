@@ -13,35 +13,41 @@
  * limitations under the License.
  */
 
-extern crate alloc;
+use crate::log_i;
+use crate::utils::scope_guard::ScopeGuard;
+use crate::ut_registry_guard;
 
-use rust::{log_i, log_d};
-use rust::vec;
-use rust::Vec;
-use alloc::boxed::Box;
-use rust::utils::scope_guard;
-use rust::ut_registry_guard;
+static mut TEST: i32 = 0;
 
 #[test]
 fn scope_guard_test() {
     let _guard = ut_registry_guard!();
     log_i!("scope_guard_test start");
 
-    let callback: Box<dyn FnOnce()> = Box::new(|| {});
-    let mut scope_guard = ScopeGuard::new(callback);
-
-    let callback: Box<dyn FnOnce()> = Box::new(|| {});
-    scope_guard.add_callback(callback);
-
-    scope_guard.cancel();
-    assert_eq!(scope_guard.is_cancelled(), true);
-}
-
-#[test]
-fn scope_guard_drop_test() {
-    let _guard = ut_registry_guard!();
-    log_i!("scope_guard_drop_test start");
-
-    let callback: Box<dyn FnOnce()> = Box::new(|| {});
-    let _scope_gurad = ScopeGuard::new(callback);
+    unsafe {
+        TEST = 0;
+        {
+            ScopeGuard::new(Box::new(|| {
+                TEST += 1;
+            }));
+        }
+        assert_eq!(TEST, 1);
+        {
+            let mut scope_guard = ScopeGuard::new(Box::new(|| {
+                TEST += 1;
+            }));
+            scope_guard.add_callback(Box::new(|| {
+                TEST += 1;
+            }));
+        }
+        assert_eq!(TEST, 3);
+        {
+            let mut scope_guard = ScopeGuard::new(Box::new(|| {
+                TEST += 1;
+            }));
+            assert_eq!(scope_guard.is_cancelled(), false);
+            scope_guard.cancel();
+            assert_eq!(scope_guard.is_cancelled(), true);
+        }
+    }
 }

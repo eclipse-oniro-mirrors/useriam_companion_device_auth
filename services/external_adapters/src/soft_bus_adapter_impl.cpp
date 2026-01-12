@@ -135,6 +135,11 @@ std::optional<SocketId> SoftBusAdapterImpl::CreateServerSocket()
 
 std::optional<SocketId> SoftBusAdapterImpl::CreateClientSocket(const std::string &networkId)
 {
+    if (networkId.empty()) {
+        IAM_LOGE("networkId is empty");
+        return std::nullopt;
+    }
+
     std::string socketName = std::string(CLIENT_SOCKET_NAME_PREFIX) + "." + networkId;
 
     SocketInfo info = {

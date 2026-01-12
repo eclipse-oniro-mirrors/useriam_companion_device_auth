@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <future>
+#include <optional>
 #include <utility>
 
 #include "iam_check.h"
@@ -30,6 +31,7 @@
 #include "host_binding_manager.h"
 #include "host_remove_host_binding_request.h"
 #include "host_token_auth_request.h"
+#include "relative_timer.h"
 #include "request_factory.h"
 #include "request_manager.h"
 #include "security_agent.h"
@@ -49,13 +51,22 @@ const uint32_t ATTR_DATA = 100020;
 const uint32_t ATTR_AUTH_TYPE = 100024;
 const uint32_t ATTR_USER_ID = 100041;
 const uint32_t ATTR_LOCK_STATE_AUTH_TYPE = 100075;
+
+struct FreezeCommandParam {
+    uint32_t authTypeValue;
+    uint32_t lockStateAuthTypeValue;
+    int32_t userId;
+    std::vector<uint64_t> templateIdList;
+};
 } // namespace
 
-class CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner : public NoCopyable {
+class CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner
+    : public NoCopyable, public std::enable_shared_from_this<CompanionDeviceAuthAllInOneExecutorInner> {
 public:
     CompanionDeviceAuthAllInOneExecutorInner()
     {
         IAM_LOGI("start");
+        SubscribeToActiveUserIdChanges();
     }
 
     ~CompanionDeviceAuthAllInOneExecutorInner() = default;
@@ -73,6 +84,17 @@ public:
     FwkResultCode SendCommand(FwkPropertyMode commandId, const std::vector<uint8_t> &extraInfo,
         const std::shared_ptr<FwkIExecuteCallback> &callbackObj);
     FwkResultCode HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vector<uint8_t> &extraInfo);
+
+private:
+    void SubscribeToActiveUserIdChanges();
+    void OnActiveUserIdChanged(UserId userId);
+    void ClearUnfreezeParamCache();
+    void StartCacheTimer();
+    FwkResultCode DecodeFreezeCommandParam(const std::vector<uint8_t> &commandData, FreezeCommandParam &decoded);
+
+    std::optional<UnfreezeParam> cachedUnfreezeParam_;
+    std::unique_ptr<Subscription> activeUserIdSubscription_;
+    std::unique_ptr<Subscription> timerSubscription_;
 };
 
 FwkResultCode CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner::GetExecutorInfo(
@@ -263,52 +285,66 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneEx
     ENSURE_OR_RETURN_VAL(getRootTlvRet, FwkResultCode::GENERAL_ERROR);
 
     Attributes rootTlvAttrs(rootTlv);
-    std::vector<uint8_t> dataTlv;
-    bool getDataTlvRet = rootTlvAttrs.GetUint8ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_DATA), dataTlv);
-    ENSURE_OR_RETURN_VAL(getDataTlvRet, FwkResultCode::GENERAL_ERROR);
+    std::vector<uint8_t> commandData;
+    bool getCommandDataRet = rootTlvAttrs.GetUint8ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_DATA),
+        commandData);
+    ENSURE_OR_RETURN_VAL(getCommandDataRet, FwkResultCode::GENERAL_ERROR);
 
-    Attributes dataTlvAttrs(dataTlv);
-    uint32_t authTypeValue = 0;
-    bool getAuthTypeRet =
-        dataTlvAttrs.GetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_AUTH_TYPE), authTypeValue);
-    ENSURE_OR_RETURN_VAL(getAuthTypeRet, FwkResultCode::GENERAL_ERROR);
+    FreezeCommandParam decoded;
+    FwkResultCode decodeRet = DecodeFreezeCommandParam(commandData, decoded);
+    ENSURE_OR_RETURN_VAL(decodeRet == FwkResultCode::SUCCESS, decodeRet);
 
-    uint32_t lockStateAuthTypeValue = 0;
-    bool getLockStateAuthTypeRet = dataTlvAttrs.GetUint32Value(
-        static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE), lockStateAuthTypeValue);
-    ENSURE_OR_RETURN_VAL(getLockStateAuthTypeRet, FwkResultCode::GENERAL_ERROR);
-
-    int32_t userId = 0;
-    bool getUserIdRet = dataTlvAttrs.GetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), userId);
-    ENSURE_OR_RETURN_VAL(getUserIdRet, FwkResultCode::GENERAL_ERROR);
-
-    std::vector<uint64_t> templateIdList;
-    bool getTemplateIdListRet =
-        dataTlvAttrs.GetUint64ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), templateIdList);
-    ENSURE_OR_RETURN_VAL(getTemplateIdListRet, FwkResultCode::GENERAL_ERROR);
-
-    if (static_cast<AuthType>(authTypeValue) != AuthType::COMPANION_DEVICE) {
-        IAM_LOGI("AuthType %{public}u is not companion device", authTypeValue);
+    if (static_cast<AuthType>(decoded.authTypeValue) != AuthType::COMPANION_DEVICE) {
+        IAM_LOGI("AuthType %{public}u is not companion device", decoded.authTypeValue);
         return FwkResultCode::GENERAL_ERROR;
     }
 
-    AuthType lockStateAuthType = static_cast<AuthType>(lockStateAuthTypeValue);
+    AuthType lockStateAuthType = static_cast<AuthType>(decoded.lockStateAuthTypeValue);
     if (lockStateAuthType != AuthType::PIN && lockStateAuthType != AuthType::FACE &&
         lockStateAuthType != AuthType::FINGERPRINT) {
-        IAM_LOGI("AuthType %{public}u is ignored", lockStateAuthTypeValue);
+        IAM_LOGI("AuthType %{public}u is ignored", decoded.lockStateAuthTypeValue);
         return FwkResultCode::SUCCESS;
     }
 
     IAM_LOGI("receive commandId:%{public}d, AuthType:%{public}u, templateIdList size:%{public}zu, userId:%{public}d",
-        commandId, lockStateAuthTypeValue, templateIdList.size(), userId);
+        commandId, decoded.lockStateAuthTypeValue, decoded.templateIdList.size(), decoded.userId);
 
     if (commandId == FwkPropertyMode::PROPERTY_MODE_FREEZE && lockStateAuthType == AuthType::PIN) {
-        GetCompanionManager().RevokeTokens(templateIdList);
-        GetHostBindingManager().RevokeTokens(userId);
+        GetCompanionManager().RevokeTokens(decoded.templateIdList);
+        GetHostBindingManager().RevokeTokens(decoded.userId);
     } else if (commandId == FwkPropertyMode::PROPERTY_MODE_UNFREEZE) {
-        GetCompanionManager().StartIssueTokenRequests(templateIdList, extraInfo);
-        GetHostBindingManager().StartObtainTokenRequests(userId, extraInfo);
+        if (GetActiveUserIdManager().GetActiveUserId() != decoded.userId) {
+            IAM_LOGI("userId %{public}d is invalid, cache the unfreeze request", decoded.userId);
+            cachedUnfreezeParam_ = UnfreezeParam { decoded.templateIdList, decoded.userId, extraInfo };
+            StartCacheTimer();
+            return FwkResultCode::SUCCESS;
+        }
+        GetCompanionManager().StartIssueTokenRequests(decoded.templateIdList, extraInfo);
+        GetHostBindingManager().StartObtainTokenRequests(decoded.userId, extraInfo);
     }
+
+    return FwkResultCode::SUCCESS;
+}
+
+FwkResultCode CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner::DecodeFreezeCommandParam(
+    const std::vector<uint8_t> &commandData, FreezeCommandParam &decoded)
+{
+    Attributes commandAttrs(commandData);
+    bool getAuthTypeRet = commandAttrs.GetUint32Value(
+        static_cast<Attributes::AttributeKey>(ATTR_AUTH_TYPE), decoded.authTypeValue);
+    ENSURE_OR_RETURN_VAL(getAuthTypeRet, FwkResultCode::GENERAL_ERROR);
+
+    bool getLockStateAuthTypeRet = commandAttrs.GetUint32Value(
+        static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE), decoded.lockStateAuthTypeValue);
+    ENSURE_OR_RETURN_VAL(getLockStateAuthTypeRet, FwkResultCode::GENERAL_ERROR);
+
+    bool getUserIdRet = commandAttrs.GetInt32Value(
+        static_cast<Attributes::AttributeKey>(ATTR_USER_ID), decoded.userId);
+    ENSURE_OR_RETURN_VAL(getUserIdRet, FwkResultCode::GENERAL_ERROR);
+
+    bool getTemplateIdListRet = commandAttrs.GetUint64ArrayValue(
+        static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), decoded.templateIdList);
+    ENSURE_OR_RETURN_VAL(getTemplateIdListRet, FwkResultCode::GENERAL_ERROR);
 
     return FwkResultCode::SUCCESS;
 }
@@ -446,6 +482,73 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::RunOnResidentSync(std::functi
     }
 
     return future.get();
+}
+
+void CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner::SubscribeToActiveUserIdChanges()
+{
+    if (activeUserIdSubscription_ != nullptr) {
+        IAM_LOGI("Already subscribed to ActiveUserId changes");
+        return;
+    }
+    activeUserIdSubscription_ = GetActiveUserIdManager().SubscribeActiveUserId(
+        [weakThis = weak_from_this()](UserId userId) {
+            TaskRunnerManager::GetInstance().PostTaskOnResident([weakThis, userId]() {
+                auto thisPtr = weakThis.lock();
+                if (thisPtr != nullptr) {
+                    thisPtr->OnActiveUserIdChanged(userId);
+                }
+            });
+        });
+    ENSURE_OR_RETURN(activeUserIdSubscription_ != nullptr);
+}
+void CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner::OnActiveUserIdChanged(UserId userId)
+{
+    IAM_LOGI("ActiveUserId changed to %{public}d", userId);
+    if (!cachedUnfreezeParam_.has_value()) {
+        IAM_LOGI("No cached unfreeze request");
+        return;
+    }
+
+    if (cachedUnfreezeParam_->userId == userId) {
+        IAM_LOGI("Cached userId %{public}d matches current userId, processing cached request",
+            cachedUnfreezeParam_->userId);
+        const auto &param = cachedUnfreezeParam_.value();
+        GetCompanionManager().StartIssueTokenRequests(param.templateIdList, param.extraInfo);
+        GetHostBindingManager().StartObtainTokenRequests(param.userId, param.extraInfo);
+    } else {
+        IAM_LOGI("Cached userId %{public}d does not match current userId %{public}d, clearing cache",
+            cachedUnfreezeParam_->userId, userId);
+    }
+
+    ClearUnfreezeParamCache();
+}
+
+void CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner::ClearUnfreezeParamCache()
+{
+    IAM_LOGI("start");
+    cachedUnfreezeParam_.reset();
+    if (timerSubscription_ != nullptr) {
+        timerSubscription_->Cancel();
+        timerSubscription_ = nullptr;
+    }
+    IAM_LOGI("end");
+}
+
+void CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner::StartCacheTimer()
+{
+    IAM_LOGI("start");
+    if (timerSubscription_ != nullptr) {
+        timerSubscription_->Cancel();
+    }
+    const uint32_t CACHE_TIMEOUT_MS = 10000; // 10 seconds
+    timerSubscription_ = RelativeTimer::GetInstance().Register([this]() {
+        IAM_LOGI("timer expired, clearing cached unfreeze request");
+        ClearUnfreezeParamCache();
+    }, CACHE_TIMEOUT_MS);
+    if (timerSubscription_ == nullptr) {
+        IAM_LOGE("Failed to register cache timer");
+    }
+    IAM_LOGI("end");
 }
 
 } // namespace CompanionDeviceAuth

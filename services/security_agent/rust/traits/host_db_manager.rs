@@ -21,6 +21,7 @@ use crate::traits::db_manager::{
 };
 use crate::CString;
 use crate::{log_e, singleton_registry, Box, Vec};
+
 pub type CompanionDeviceFilter = Box<dyn Fn(&CompanionDeviceInfo) -> bool>;
 pub type CompanionTokenFilter = Box<dyn Fn(&CompanionTokenInfo) -> bool>;
 
@@ -61,7 +62,7 @@ pub trait HostDbManager {
     fn delete_device_sk(&self, template_id: u64) -> Result<(), ErrorCode>;
 }
 
-struct DummyHostDbManager;
+pub struct DummyHostDbManager;
 
 impl HostDbManager for DummyHostDbManager {
     fn add_device(
@@ -161,67 +162,5 @@ impl HostDbManager for DummyHostDbManager {
 
 singleton_registry!(HostDbManagerRegistry, HostDbManager, DummyHostDbManager);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::traits::db_manager::{DeviceKey, UserInfo};
-
-    #[test]
-    fn dummy_host_db_manager_test() {
-        let mut dummy_host_db_manager = DummyHostDbManager;
-        let device_info = CompanionDeviceInfo {
-            template_id: 0,
-            device_key: DeviceKey::default(),
-            user_info: UserInfo { user_id: 0, user_type: 0 },
-            added_time: 0,
-            secure_protocol_id: 0,
-            is_valid: false,
-        };
-        let base_info = CompanionDeviceBaseInfo {
-            device_model: String::default(),
-            device_name: String::default(),
-            device_user_name: String::default(),
-            business_ids: Vec::<i32>::new(),
-        };
-        let token = CompanionTokenInfo {
-            template_id: 0,
-            device_type: DeviceType::None,
-            token: Vec::<u8>::new(),
-            atl: AuthTrustLevel::Atl0,
-            added_time: 0,
-        };
-
-        assert_eq!(
-            dummy_host_db_manager.add_device(
-                &device_info,
-                &base_info,
-                &Vec::<CompanionDeviceCapability>::new(),
-                &Vec::<CompanionDeviceSk>::new()
-            ),
-            Err(ErrorCode::GeneralError)
-        );
-        assert!(dummy_host_db_manager.get_device(0).is_err());
-        assert!(dummy_host_db_manager.get_device_list(Box::new(|_| true)).is_empty());
-        assert!(dummy_host_db_manager.remove_device(0).is_err());
-        assert!(dummy_host_db_manager.update_device(&device_info).is_err());
-        assert!(dummy_host_db_manager.generate_unique_template_id().is_err());
-        assert!(dummy_host_db_manager.add_token(&token).is_err());
-        assert!(dummy_host_db_manager.get_token(0, DeviceType::None).is_err());
-        assert!(dummy_host_db_manager.remove_token(0, DeviceType::None).is_err());
-        assert!(dummy_host_db_manager.update_token(&token).is_err());
-        assert!(dummy_host_db_manager.read_device_db().is_err());
-        assert!(dummy_host_db_manager.read_device_base_info(0).is_err());
-        assert!(dummy_host_db_manager.write_device_base_info(0, &base_info).is_err());
-        assert!(dummy_host_db_manager.delete_device_base_info(0).is_err());
-        assert!(dummy_host_db_manager.read_device_capability_info(0).is_err());
-        assert!(dummy_host_db_manager
-            .write_device_capability_info(0, &Vec::<CompanionDeviceCapability>::new())
-            .is_err());
-        assert!(dummy_host_db_manager.delete_device_capability_info(0).is_err());
-        assert!(dummy_host_db_manager.read_device_sk(0).is_err());
-        assert!(dummy_host_db_manager
-            .write_device_sk(0, &Vec::<CompanionDeviceSk>::new())
-            .is_err());
-        assert!(dummy_host_db_manager.delete_device_sk(0).is_err());
-    }
-}
+#[cfg(any(test, feature = "test-utils"))]
+pub use crate::test_utils::mock::MockHostDbManager;

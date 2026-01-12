@@ -80,12 +80,11 @@ HWTEST_F(UserAuthAdapterTest, BeginDelegateAuthWithNullCallback, TestSize.Level0
 {
     auto adapter = std::make_shared<UserAuthAdapterImpl>();
 
-    DelegateAuthParam param;
-    param.userId = 100;
-    param.challenge = std::vector<uint8_t> { 't', 'e', 's', 't' };
-    param.authTrustLevel = 10000;
+    uint32_t userId = 100;
+    std::vector<uint8_t> challenge = { 't', 'e', 's', 't' };
+    uint32_t authTrustLevel = 10000;
 
-    uint64_t result = adapter->BeginDelegateAuth(param, nullptr);
+    uint64_t result = adapter->BeginDelegateAuth(userId, challenge, authTrustLevel, nullptr);
     EXPECT_EQ(result, 0);
 }
 
@@ -93,12 +92,11 @@ HWTEST_F(UserAuthAdapterTest, BeginDelegateAuthWithEmptyChallenge, TestSize.Leve
 {
     auto adapter = std::make_shared<UserAuthAdapterImpl>();
 
-    DelegateAuthParam param;
-    param.userId = 100;
-    param.challenge = {};
-    param.authTrustLevel = 10000;
+    uint32_t userId = 100;
+    std::vector<uint8_t> challenge = {};
+    uint32_t authTrustLevel = 10000;
 
-    uint64_t result = adapter->BeginDelegateAuth(param, nullptr);
+    uint64_t result = adapter->BeginDelegateAuth(userId, challenge, authTrustLevel, nullptr);
     EXPECT_EQ(result, 0);
 }
 

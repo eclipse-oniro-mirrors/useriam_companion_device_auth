@@ -13,4 +13,5 @@
  * limitations under the License.
  */
 
+pub mod mock;
 pub mod trait_mocks;

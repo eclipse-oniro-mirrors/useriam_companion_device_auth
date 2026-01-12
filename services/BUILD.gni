@@ -168,6 +168,9 @@ if (companion_device_auth_enable_extension) {
 companion_device_auth_service_external_deps_for_ut =
     companion_device_auth_service_external_deps
 
+# Fake implementations for unit tests
+import("../test/fake/BUILD.gni")
+
 companion_device_auth_service_flags = []
 
 if (companion_device_auth_has_account_os_account) {

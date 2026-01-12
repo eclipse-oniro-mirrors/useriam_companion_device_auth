@@ -206,7 +206,7 @@ std::weak_ptr<InboundRequest> CompanionIssueTokenRequest::GetWeakPtr()
 
 void CompanionIssueTokenRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
+    IAM_LOGI("%{public}s: receive issue token request failed, result=%{public}d", GetDescription(), result);
     localDeviceStatusSubscription_.reset();
     if (needCancelIssueToken_) {
         CompanionCancelIssueTokenInput input = { GetRequestId() };
@@ -218,7 +218,7 @@ void CompanionIssueTokenRequest::CompleteWithError(ResultCode result)
 
 void CompanionIssueTokenRequest::CompleteWithSuccess()
 {
-    IAM_LOGI("%{public}s complete with success", GetDescription());
+    IAM_LOGI("%{public}s: receive issue token request completed successfully", GetDescription());
 
     localDeviceStatusSubscription_.reset();
     Destroy();

@@ -138,6 +138,8 @@ void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCod
     const std::vector<uint8_t> &extraInfo)
 {
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
+    IAM_LOGI("%{public}s resultCode=%{public}d, extraInfo=%{public}zu", GetDescription(), resultCode,
+        extraInfo.size());
 
     IAM_LOGI("%{public}s", GetDescription());
     contextId_.reset();
@@ -151,7 +153,9 @@ void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCod
     bool result = SecurityAgentEndDelegateAuth(resultCode, authToken, delegateAuthResult);
     if (!result) {
         IAM_LOGE("%{public}s SecurityAgentEndDelegateAuth failed", GetDescription());
-        return;
+        if (resultCode == ResultCode::SUCCESS) {
+            resultCode = ResultCode::GENERAL_ERROR;
+        }
     }
 
     bool sendResult = SendDelegateAuthResult(resultCode, delegateAuthResult);

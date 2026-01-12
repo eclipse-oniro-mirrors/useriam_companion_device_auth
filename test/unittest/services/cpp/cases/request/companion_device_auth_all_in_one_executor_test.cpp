@@ -35,6 +35,7 @@
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_user_id_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -84,6 +85,9 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
+        auto activeUserIdMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserIdMgr);
+
         uint32_t maxTemplateAcl = 3;
         ON_CALL(mockSecurityAgent_, HostGetExecutorInfo(_)).WillByDefault(Invoke(
             [maxTemplateAcl](HostGetExecutorInfoOutput &output) {
@@ -96,6 +100,11 @@ public:
         ON_CALL(mockSecurityAgent_, CompanionRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
         ON_CALL(mockRequestManager_, CancelRequestByScheduleId(_)).WillByDefault(Return(true));
+        ON_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_))
+            .WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+                return std::make_unique<Subscription>([] {});
+            }));
+        ON_CALL(mockActiveUserIdManager_, IsUserIdValid(_)).WillByDefault(Return(true));
     }
 
     void TearDown() override
@@ -112,6 +121,7 @@ protected:
     NiceMock<MockCompanionManager> mockCompanionManager_;
     NiceMock<MockHostBindingManager> mockHostBindingManager_;
     NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
 };
 
 HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Constructor_001, TestSize.Level0)
@@ -811,6 +821,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_007
     info.SetUint8ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_ROOT), rootTlv);
     std::vector<uint8_t> extraInfo = info.Serialize();
 
+    EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserId()).Times(1).WillOnce(Return(100));
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
     EXPECT_CALL(mockCompanionManager_, StartIssueTokenRequests(_, _)).Times(1);
     EXPECT_CALL(mockHostBindingManager_, StartObtainTokenRequests(_, _)).Times(1);
@@ -879,6 +890,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_009
     info.SetUint8ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_ROOT), rootTlv);
     std::vector<uint8_t> extraInfo = info.Serialize();
 
+    EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserId()).Times(1).WillOnce(Return(100));
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
     EXPECT_CALL(mockCompanionManager_, StartIssueTokenRequests(_, _)).Times(1);
     EXPECT_CALL(mockHostBindingManager_, StartObtainTokenRequests(_, _)).Times(1);

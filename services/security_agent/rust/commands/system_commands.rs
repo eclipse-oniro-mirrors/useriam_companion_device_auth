@@ -46,6 +46,9 @@ use crate::traits::host_request_manager::{
 };
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
+use crate::utils::message_codec::MessageCodec;
+use crate::utils::message_codec::MessageSignParam;
+use crate::utils::AttributeKey;
 use crate::{log_e, log_i, p, Box, Vec};
 use core::convert::TryFrom;
 
@@ -82,7 +85,7 @@ pub fn host_on_register_finish(
     _output: &mut HostRegisterFinishOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_on_register_finish start");
-    MiscManagerRegistry::get_mut().set_fwk_pub_key(input.public_key.try_into().map_err(|e| p!(e))?)?;
+    MiscManagerRegistry::get_mut().set_fwk_pub_key(input.public_key.to_vec()?)?;
     host_db_helper::verify_template(input.template_ids.try_into().map_err(|e| p!(e))?)?;
     Ok(())
 }
@@ -477,7 +480,7 @@ pub fn host_cancel_obtain_token(
     Ok(())
 }
 
-// HostActiveToken
+// HostActivateToken
 pub fn host_active_token(
     _input: HostActivateTokenInputFfi,
     _output: &mut HostActivateTokenOutputFfi,
@@ -491,7 +494,7 @@ pub fn host_check_template_enrolled(
     input: HostCheckTemplateEnrolledInputFfi,
     output: &mut HostCheckTemplateEnrolledOutputFfi,
 ) -> Result<(), ErrorCode> {
-    log_i!("host_check_template_enrolled start, template_id:{}", input.template_id);
+    log_i!("host_check_template_enrolled start, template_id:{:x}", input.template_id);
     match HostDbManagerRegistry::get().get_device(input.template_id) {
         Ok(_) => {
             log_i!("template_id {} enrolled", input.template_id);
@@ -508,6 +511,35 @@ pub fn host_check_template_enrolled(
             Err(e)
         },
     }
+}
+
+pub fn host_update_token(
+    input: HostUpdateTokenInputFfi,
+    output: &mut HostUpdateTokenOutputFfi,
+) -> Result<(), ErrorCode> {
+    log_i!("host_update_token start");
+    let pub_key = MiscManagerRegistry::get_mut().get_fwk_pub_key().map_err(|e| p!(e))?;
+    let message_codec = MessageCodec::new(MessageSignParam::Framework(pub_key));
+    let attribute = message_codec.deserialize_attribute(input.fwk_message.as_slice()?).map_err(|e| p!(e))?;
+    let atl = attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
+    let device_capabilitys =
+        HostDbManagerRegistry::get_mut().read_device_capability_info(input.template_id)?;
+    for device_capability in device_capabilitys {
+        match HostDbManagerRegistry::get_mut().get_token(input.template_id, device_capability.device_type) {
+            Ok(token_info) => {
+                if token_info.atl as i32 != atl {
+                    output.need_redistribute = true;
+                    return Ok(());
+                }
+            },
+            Err(_) => {
+                output.need_redistribute = true;
+                return Ok(());
+            },
+        }
+    }
+
+    Ok(())
 }
 
 // CompanionGetPersistedStatus

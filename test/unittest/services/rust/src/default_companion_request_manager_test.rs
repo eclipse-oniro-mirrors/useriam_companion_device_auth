@@ -1,0 +1,139 @@
+/*
+ * Copyright (C) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::common::constants::*;
+use crate::entry::companion_device_auth_ffi::{
+    CompanionProcessCheckInputFfi, DataArray1024Ffi, SALT_LEN_FFI, Uint16Array64Ffi
+};
+use crate::impls::default_companion_request_manager::DefaultCompanionRequestManager;
+use crate::log_i;
+use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;
+use crate::traits::companion_request_manager::CompanionRequestManager;
+use crate::ut_registry_guard;
+use std::boxed::Box;
+
+const MAX_REQUEST_NUM: usize = 50;
+
+fn create_test_companion_process_check_input_ffi(binding_id: i32) -> CompanionProcessCheckInputFfi {
+    CompanionProcessCheckInputFfi {
+        binding_id,
+        capability_list: Uint16Array64Ffi::default(),
+        secure_protocol_id: 1,
+        salt: [0u8; SALT_LEN_FFI],
+        challenge: 12345,
+        sec_message: DataArray1024Ffi::default(),
+    }
+}
+
+#[test]
+fn default_companion_request_manager_add_request_test_success() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_request_manager_add_request_test_success start");
+
+    let mut manager = DefaultCompanionRequestManager::new();
+    let input = create_test_companion_process_check_input_ffi(1);
+    let request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
+
+    let result = manager.add_request(Box::new(request));
+    assert!(result.is_ok());
+}
+
+#[test]
+fn default_companion_request_manager_add_request_test_id_exists() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_request_manager_add_request_test_id_exists start");
+
+    let mut manager = DefaultCompanionRequestManager::new();
+    let input = create_test_companion_process_check_input_ffi(1);
+    let request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
+
+    let _ = manager.add_request(Box::new(request));
+
+    let exist_request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
+    let result = manager.add_request(Box::new(exist_request));
+    assert_eq!(result, Err(ErrorCode::IdExists));
+}
+
+#[test]
+fn default_companion_request_manager_add_request_test_reached_limit() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_request_manager_add_request_test_reached_limit start");
+
+    let mut manager = DefaultCompanionRequestManager::new();
+
+    for i in 0..MAX_REQUEST_NUM {
+        let input = create_test_companion_process_check_input_ffi(i as i32);
+        let request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
+        let _ = manager.add_request(Box::new(request));
+    }
+
+    let input = create_test_companion_process_check_input_ffi(999);
+    let request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
+
+    let result = manager.add_request(Box::new(request));
+    assert!(result.is_ok());
+}
+
+#[test]
+fn default_companion_request_manager_remove_request_test_success() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_request_manager_remove_request_test_success start");
+
+    let mut manager = DefaultCompanionRequestManager::new();
+    let input = create_test_companion_process_check_input_ffi(1);
+    let request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
+
+    let _ = manager.add_request(Box::new(request));
+
+    let result = manager.remove_request(1);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn default_companion_request_manager_remove_request_test_not_found() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_request_manager_remove_request_test_not_found start");
+
+    let mut manager = DefaultCompanionRequestManager::new();
+
+    let result = manager.remove_request(1);
+    assert!(result.is_err());
+}
+
+#[test]
+fn default_companion_request_manager_get_request_test_success() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_request_manager_get_request_test_success start");
+
+    let mut manager = DefaultCompanionRequestManager::new();
+    let input = create_test_companion_process_check_input_ffi(1);
+    let request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
+
+    let _ = manager.add_request(Box::new(request));
+
+    let result = manager.get_request(1);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn default_companion_request_manager_get_request_test_not_found() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_request_manager_get_request_test_not_found start");
+
+    let mut manager = DefaultCompanionRequestManager::new();
+
+    let result = manager.get_request(1);
+    assert!(result.is_err());
+}

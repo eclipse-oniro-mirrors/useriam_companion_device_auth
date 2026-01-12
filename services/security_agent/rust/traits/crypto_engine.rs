@@ -18,11 +18,8 @@ use crate::log_e;
 use crate::singleton_registry;
 use crate::Box;
 use crate::{AES_GCM_IV_SIZE, AES_GCM_TAG_SIZE};
-#[cfg(any(test, feature = "test-utils"))]
-use mockall::automock;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct KeyPair {
     pub pub_key: crate::Vec<u8>,
     pub pri_key: crate::Vec<u8>,
@@ -56,7 +53,6 @@ impl Drop for KeyPair {
     }
 }
 
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct AesGcmParam {
     pub key: crate::Vec<u8>,
     pub iv: [u8; AES_GCM_IV_SIZE],
@@ -73,8 +69,7 @@ impl Drop for AesGcmParam {
     }
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AesGcmResult {
     pub ciphertext: crate::Vec<u8>,
     pub authentication_tag: [u8; AES_GCM_TAG_SIZE],
@@ -96,7 +91,6 @@ impl Drop for AesGcmResult {
 
 pub type RandomChecker = Box<dyn Fn(&[u8]) -> bool>;
 
-#[cfg_attr(any(test, feature = "test-utils"), automock)]
 pub trait CryptoEngine {
     fn generate_ed25519_key_pair(&self) -> Result<KeyPair, ErrorCode>;
     fn ed25519_sign(&self, pri_key: &[u8], data: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
@@ -188,42 +182,5 @@ impl CryptoEngine for DummyCryptoEngine {
 
 singleton_registry!(CryptoEngineRegistry, CryptoEngine, DummyCryptoEngine);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn dummy_crypto_engine_test() {
-        let dummy_crypto_engine = DummyCryptoEngine;
-        let aes_gcm_param = AesGcmParam { key: Vec::<u8>::new(), iv: [0u8; AES_GCM_IV_SIZE], aad: Vec::<u8>::new() };
-
-        assert_eq!(dummy_crypto_engine.generate_ed25519_key_pair(), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_crypto_engine.ed25519_sign(&[], &[]), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_crypto_engine.ed25519_verify(&[], &[], &[]), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_crypto_engine.hmac_sha256(&[], &[]), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_crypto_engine.sha256(&[]), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_crypto_engine.secure_random(&mut []), Err(ErrorCode::GeneralError));
-        assert_eq!(
-            dummy_crypto_engine.secure_random_with_check(&mut [], Box::new(|_| true)),
-            Err(ErrorCode::GeneralError)
-        );
-        assert!(dummy_crypto_engine.aes_gcm_encrypt(&[], &aes_gcm_param).is_err());
-        assert_eq!(
-            dummy_crypto_engine.aes_gcm_decrypt(
-                &aes_gcm_param,
-                &AesGcmResult { ciphertext: Vec::<u8>::new(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] }
-            ),
-            Err(ErrorCode::GeneralError)
-        );
-        assert_eq!(dummy_crypto_engine.hkdf(&[], &[]), Err(ErrorCode::GeneralError));
-        assert_eq!(
-            dummy_crypto_engine.p256_ecdh(&KeyPair::new(Vec::<u8>::new(), Vec::<u8>::new()), &[]),
-            Err(ErrorCode::GeneralError)
-        );
-        assert_eq!(
-            dummy_crypto_engine.x25519_ecdh(&KeyPair::new(Vec::<u8>::new(), Vec::<u8>::new()), &[]),
-            Err(ErrorCode::GeneralError)
-        );
-        assert_eq!(dummy_crypto_engine.generate_x25519_key_pair(), Err(ErrorCode::GeneralError));
-    }
-}
+#[cfg(any(test, feature = "test-utils"))]
+pub use crate::test_utils::mock::MockCryptoEngine;

@@ -182,7 +182,6 @@ impl SecBindingRequest {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SecBindingReply {
-    pub salt: [u8; HKDF_SALT_SIZE],
     pub tag: [u8; AES_GCM_TAG_SIZE],
     pub iv: [u8; AES_GCM_IV_SIZE],
     pub encrypt_data: Vec<u8>,
@@ -191,7 +190,6 @@ pub struct SecBindingReply {
 impl SecBindingReply {
     pub fn encode(&self, _device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
         let mut attribute = Attribute::new();
-        attribute.set_u8_slice(AttributeKey::AttrSalt, &self.salt);
         attribute.set_u8_slice(AttributeKey::AttrTag, &self.tag);
         attribute.set_u8_slice(AttributeKey::AttrIv, &self.iv);
         attribute.set_u8_slice(AttributeKey::AttrEncryptData, &self.encrypt_data);
@@ -207,18 +205,16 @@ impl SecBindingReply {
         let message_data = attribute.get_u8_slice(AttributeKey::AttrMessage).map_err(|e| p!(e))?;
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
-        let salt_slice = message_attribute.get_u8_slice(AttributeKey::AttrSalt).map_err(|e| p!(e))?;
         let tag_slice = message_attribute.get_u8_slice(AttributeKey::AttrTag).map_err(|e| p!(e))?;
         let iv_slice = message_attribute.get_u8_slice(AttributeKey::AttrIv).map_err(|e| p!(e))?;
         let encrypt_data_slice = message_attribute
             .get_u8_slice(AttributeKey::AttrEncryptData)
             .map_err(|e| p!(e))?;
 
-        let salt: [u8; HKDF_SALT_SIZE] = salt_slice.try_into().map_err(|_| ErrorCode::GeneralError)?;
         let tag: [u8; AES_GCM_TAG_SIZE] = tag_slice.try_into().map_err(|_| ErrorCode::GeneralError)?;
         let iv: [u8; AES_GCM_IV_SIZE] = iv_slice.try_into().map_err(|_| ErrorCode::GeneralError)?;
 
-        Ok(Self { salt, tag, iv, encrypt_data: encrypt_data_slice.to_vec() })
+        Ok(Self { tag, iv, encrypt_data: encrypt_data_slice.to_vec() })
     }
 }
 
@@ -242,7 +238,7 @@ impl SecBindingReplyInfo {
         attribute.set_i32(AttributeKey::AttrEsl, ExecutorSecurityLevel::Esl2 as i32);
         attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, 0);
         attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
-        attribute.set_u16_slice(AttributeKey::AttrProtocalList, &self.protocal_list);
+        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocal_list);
         attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.capability_list);
         Ok(attribute.to_bytes()?)
     }
@@ -254,7 +250,7 @@ impl SecBindingReplyInfo {
         let esl = attribute.get_i32(AttributeKey::AttrEsl).map_err(|e| p!(e))?;
         let track_ability_level = attribute.get_i32(AttributeKey::AttrTrackAbilityLevel).map_err(|e| p!(e))?;
         let challenge = attribute.get_u64(AttributeKey::AttrChallenge).map_err(|e| p!(e))?;
-        let protocal_list = attribute.get_u16_vec(AttributeKey::AttrProtocalList).map_err(|e| p!(e))?;
+        let protocal_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
         let capability_list = attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
 
         Ok(Self { device_id, user_id, esl, track_ability_level, challenge, protocal_list, capability_list })

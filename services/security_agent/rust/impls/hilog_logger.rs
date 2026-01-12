@@ -15,10 +15,13 @@
 
 use crate::traits::logger::{LogLevel, Logger};
 use crate::String;
+#[cfg(not(any(test, feature = "test-utils")))]
 use alloc::format;
 use core::fmt;
 use core::fmt::Write;
 use std::ffi::{c_char, CStr, CString};
+#[cfg(any(test, feature = "test-utils"))]
+use std::format;
 
 #[allow(unused_extern_crates)]
 extern crate std;

@@ -17,7 +17,10 @@ use crate::common::constants::ErrorCode;
 use crate::log_e;
 use crate::traits::storage_io::StorageIo;
 use crate::Vec;
+#[cfg(not(any(test, feature = "test-utils")))]
 use alloc::format;
+#[cfg(any(test, feature = "test-utils"))]
+use std::format;
 
 #[allow(unused_extern_crates)]
 extern crate std;

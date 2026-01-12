@@ -55,16 +55,20 @@ pub fn try_array_from_vec<T: Default + Copy, const N: usize>(
 macro_rules! impl_data_array {
     ($name:ident, $size:expr) => {
         impl $name {
-            pub fn as_slice(&self) -> &[u8] {
-                &self.data[..self.len as usize]
+            pub fn as_slice(&self) -> Result<&[u8], ErrorCode> {
+                if self.len as usize > self.data.len() {
+                    log_e!("Invalid length: max {}, actual {}", self.len as usize, self.data.len());
+                    return Err(ErrorCode::BadParam);
+                }
+                Ok(&self.data[..self.len as usize])
             }
 
-            pub fn to_vec(&self) -> Vec<u8> {
-                self.as_slice().to_vec()
+            pub fn to_vec(&self) -> Result<Vec<u8>, ErrorCode> {
+                Ok(self.as_slice()?.to_vec())
             }
 
             pub fn to_string(&self) -> Result<String, ErrorCode> {
-                String::from_utf8(self.to_vec()).map_err(|_| ErrorCode::GeneralError)
+                String::from_utf8(self.to_vec()?).map_err(|_| ErrorCode::GeneralError)
             }
         }
 
@@ -92,14 +96,6 @@ macro_rules! impl_data_array {
                 let bytes = value.as_bytes();
                 let vec_bytes = bytes.to_vec();
                 Self::try_from(&vec_bytes)
-            }
-        }
-
-        impl TryFrom<$name> for Vec<u8> {
-            type Error = ErrorCode;
-
-            fn try_from(value: $name) -> Result<Self, Self::Error> {
-                try_vec_from_array_with_len(&value.data, value.len)
             }
         }
     };
@@ -229,7 +225,6 @@ pub fn host_binding_status_vec_to_ffi(
 
 // CommonOutput
 #[derive(Clone, Default)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct CommonOutput {
     pub result: ErrorCode,
     pub has_fatal_error: bool,
@@ -272,24 +267,5 @@ impl TryFrom<Vec<Event>> for EventArrayFfi {
         }
 
         Ok(EventArrayFfi { data, len: value.len() as u32 })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::vec;
-
-    use super::*;
-
-    #[test]
-    fn try_vec_from_array_with_len_test() {
-        assert_eq!(try_vec_from_array_with_len(&[1u8; 2], 4), Err(ErrorCode::BadParam));
-        assert_eq!(try_vec_from_array_with_len(&[1u8; 2], 1).unwrap(), vec![1u8]);
-    }
-
-    #[test]
-    fn try_array_from_vec_test() {
-        assert_eq!(try_array_from_vec::<u8, 1>(vec![1u8; 2]), Err(ErrorCode::BadParam));
-        assert_eq!(try_array_from_vec::<u8, 3>(vec![1u8; 2]).unwrap(), ([1u8, 1u8, 0u8], 2));
     }
 }

@@ -21,14 +21,12 @@ use crate::utils::attribute::{Attribute, AttributeKey};
 use crate::Vec;
 use crate::{log_e, p};
 
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub enum MessageSignParam {
     NoSign,
     Executor(KeyPair),
     Framework(Vec<u8>),
 }
 
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct MessageCodec {
     sign_param: MessageSignParam,
 }
@@ -90,91 +88,5 @@ impl MessageCodec {
         }
 
         Attribute::try_from_bytes(data_bytes)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::traits::crypto_engine::MockCryptoEngine;
-    use crate::ut_registry_guard;
-
-    #[test]
-    fn serialize_attribute_test() {
-        let mut attr = Attribute::new();
-        attr.set_u32(AttributeKey::AttrData, 1);
-
-        let message_codec_no_sign = MessageCodec::new(MessageSignParam::NoSign);
-        assert!(message_codec_no_sign.serialize_attribute(&attr).is_ok());
-
-        let _ = ut_registry_guard!();
-
-        let message_codec_executor = MessageCodec::new(MessageSignParam::Executor(KeyPair {
-            pub_key: Vec::<u8>::new(),
-            pri_key: Vec::<u8>::new(),
-        }));
-
-        let mut mock_crypto_engin = MockCryptoEngine::new();
-        mock_crypto_engin
-            .expect_ed25519_sign()
-            .returning(|_, _| Err(ErrorCode::BadSign));
-        CryptoEngineRegistry::set(Box::new(mock_crypto_engin));
-        assert_eq!(message_codec_executor.serialize_attribute(&attr), Err(ErrorCode::BadSign));
-
-        mock_crypto_engin = MockCryptoEngine::new();
-        mock_crypto_engin.expect_ed25519_sign().returning(|_, _| Ok(Vec::<u8>::new()));
-        CryptoEngineRegistry::set(Box::new(mock_crypto_engin));
-        assert!(message_codec_executor.serialize_attribute(&attr).is_ok());
-
-        let message_codec_fwk = MessageCodec::new(MessageSignParam::Framework(Vec::<u8>::new()));
-        assert_eq!(message_codec_fwk.serialize_attribute(&attr), Err(ErrorCode::GeneralError));
-    }
-
-    #[test]
-    fn deserialize_attribute_test() {
-        let mut attr = Attribute::new();
-
-        let message_codec_nosign = MessageCodec::new(MessageSignParam::NoSign);
-        assert_eq!(message_codec_nosign.deserialize_attribute(&[]), Err(ErrorCode::BadParam));
-        assert_eq!(message_codec_nosign.deserialize_attribute(&attr.to_bytes().unwrap()), Err(ErrorCode::GeneralError));
-        attr.set_u8_slice(AttributeKey::AttrRoot, &[0u8; 0]);
-        assert_eq!(message_codec_nosign.deserialize_attribute(&attr.to_bytes().unwrap()), Err(ErrorCode::BadParam));
-
-        let mut data_and_sign_attr = Attribute::new();
-        attr.set_u8_slice(AttributeKey::AttrRoot, &data_and_sign_attr.to_bytes().unwrap());
-        assert_eq!(message_codec_nosign.deserialize_attribute(&attr.to_bytes().unwrap()), Err(ErrorCode::GeneralError));
-
-        data_and_sign_attr.set_u8_slice(AttributeKey::AttrData, &[0u8; 32]);
-        attr.set_u8_slice(AttributeKey::AttrRoot, &data_and_sign_attr.to_bytes().unwrap());
-        assert!(message_codec_nosign.deserialize_attribute(&attr.to_bytes().unwrap()).is_ok());
-
-        let _ = ut_registry_guard!();
-
-        let message_codec_executor = MessageCodec::new(MessageSignParam::Executor(KeyPair {
-            pub_key: Vec::<u8>::new(),
-            pri_key: Vec::<u8>::new(),
-        }));
-        let message_codec_fwk = MessageCodec::new(MessageSignParam::Framework(Vec::<u8>::new()));
-        assert_eq!(
-            message_codec_executor.deserialize_attribute(&attr.to_bytes().unwrap()),
-            Err(ErrorCode::GeneralError)
-        );
-        assert_eq!(message_codec_fwk.deserialize_attribute(&attr.to_bytes().unwrap()), Err(ErrorCode::GeneralError));
-
-        data_and_sign_attr.set_u8_slice(AttributeKey::AttrSignature, &[0u8; 32]);
-        attr.set_u8_slice(AttributeKey::AttrRoot, &data_and_sign_attr.to_bytes().unwrap());
-        let mut mock_crypto_engin = MockCryptoEngine::new();
-        mock_crypto_engin
-            .expect_ed25519_verify()
-            .returning(|_, _, _| Err(ErrorCode::BadSign));
-        CryptoEngineRegistry::set(Box::new(mock_crypto_engin));
-        assert_eq!(message_codec_executor.deserialize_attribute(&attr.to_bytes().unwrap()), Err(ErrorCode::BadSign));
-        assert_eq!(message_codec_fwk.deserialize_attribute(&attr.to_bytes().unwrap()), Err(ErrorCode::BadSign));
-
-        mock_crypto_engin = MockCryptoEngine::new();
-        mock_crypto_engin.expect_ed25519_verify().returning(|_, _, _| Ok(()));
-        CryptoEngineRegistry::set(Box::new(mock_crypto_engin));
-        assert!(message_codec_executor.deserialize_attribute(&attr.to_bytes().unwrap()).is_ok());
-        assert!(message_codec_fwk.deserialize_attribute(&attr.to_bytes().unwrap()).is_ok());
     }
 }

@@ -13,8 +13,19 @@
  * limitations under the License.
  */
 
-mod attribute_test;
-mod message_codec_test;
-mod parcel_test;
-mod scope_guard_test;
-mod simple_test;
+use crate::common::constants::*;
+use crate::common::Udid;
+use crate::log_i;
+use crate::traits::time_keeper::{DummyTimeKeeper, TimeKeeper};
+use crate::ut_registry_guard;
+
+#[test]
+fn dummy_time_keeper_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("dummy_time_keeper_test start");
+
+    let dummy_time_keeper = DummyTimeKeeper;
+    assert_eq!(dummy_time_keeper.get_system_time(), Err(ErrorCode::GeneralError));
+    assert_eq!(dummy_time_keeper.get_rtc_time(), Err(ErrorCode::GeneralError));
+    assert_eq!(dummy_time_keeper.get_ree_time(), Err(ErrorCode::GeneralError));
+}

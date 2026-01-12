@@ -402,6 +402,7 @@ HWTEST_F(SoftBusChannelTest, OpenConnection_004, TestSize.Level0)
 
     PhysicalDeviceStatus status;
     status.physicalDeviceKey = key;
+    status.networkId = "test-network-id";  // Set networkId for socket creation
     channel->deviceStatusManager_->physicalDeviceStatus_.push_back(status);
 
     bool result = channel->OpenConnection("test-connection", key);

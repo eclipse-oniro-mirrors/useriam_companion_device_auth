@@ -18,24 +18,75 @@ import("../../../../services/security_agent/rust/BUILD.gni")
 ohos_rust_unittest("companion_device_auth_services_rust_test") {
   module_out_path = "companion_device_auth/services"
 
-  crate_root = "src/lib.rs"
+  crate_root = "../../../../services/security_agent/rust/lib.rs"
 
   # Local rust test source files
   sources = [
     "src/attribute_test.rs",
-    "src/lib.rs",
+    "src/auth_token_test.rs",
+    "src/common_command_test.rs",
+    "src/common_message_test.rs",
+    "src/companion_db_helper_test.rs",
+    "src/companion_db_manager_test.rs",
+    "src/companion_delegate_auth_test.rs",
+    "src/companion_device_auth_entry_test.rs",
+    "src/companion_device_auth_ffi_test.rs",
+    "src/companion_enroll_test.rs",
+    "src/companion_issue_token_test.rs",
+    "src/companion_obtain_token_test.rs",
+    "src/companion_request_manager_test.rs",
+    "src/companion_sync_status_test.rs",
+    "src/companion_token_auth_test.rs",
+    "src/constants_test.rs",
+    "src/crypto_engine_test.rs",
+    "src/delegate_auth_message_test.rs",
+    "src/default_companion_db_manager_test.rs",
+    "src/default_companion_request_manager_test.rs",
+    "src/default_event_manager_test.rs",
+    "src/default_host_db_manager_test.rs",
+    "src/default_host_request_manager_test.rs",
+    "src/default_misc_manager_test.rs",
+    "src/default_storage_io_test.rs",
+    "src/default_time_keeper_test.rs",
+    "src/enroll_message_test.rs",
+    "src/event_manager_test.rs",
+    "src/host_db_helper_test.rs",
+    "src/host_db_manager_test.rs",
+    "src/host_delegate_auth_test.rs",
+    "src/host_enroll_test.rs",
+    "src/host_issue_token_test.rs",
+    "src/host_obtain_token_test.rs",
+    "src/host_request_manager_test.rs",
+    "src/host_sync_status_test.rs",
+    "src/host_token_auth_test.rs",
     "src/message_codec_test.rs",
+    "src/message_crypto_test.rs",
+    "src/misc_manager_test.rs",
+    "src/openssl_crypto_engine_test.rs",
     "src/parcel_test.rs",
     "src/scope_guard_test.rs",
-    "src/simple_test.rs",
+    "src/storage_io_test.rs",
+    "src/system_commands_test.rs",
+    "src/time_keeper_test.rs",
+    "src/token_auth_message_test.rs",
+    "src/token_issue_message_test.rs",
+    "src/token_obtain_message_test.rs",
+    "src/types_test.rs",
+    "src/unit_test.rs",
   ]
+
+  # Add rust service sources from services/BUILD.gni
+  sources += companion_device_auth_rust_service_sources
 
   external_deps = companion_device_auth_rust_service_external_deps
 
   deps = companion_device_auth_rust_service_deps
 
-  deps += [
-    "//base/useriam/companion_device_auth/services/security_agent:companiondeviceauthservice_rs",
+  rustflags = [
+    "--cfg",
+    "feature=\"cxxbridge\"",
+    "--cfg",
+    "feature=\"test-utils\"",
   ]
 
   rustenv = []

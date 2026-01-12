@@ -201,11 +201,10 @@ std::optional<std::string> MiscManagerImpl::GetLocalUdid()
 bool MiscManagerImpl::CheckBusinessIds(const std::vector<int32_t> &businessIds)
 {
     IAM_LOGI("Start, businessIds size:%{public}zu", businessIds.size());
-    constexpr int32_t DEFAULT_BUSINESS_ID = 1;
 
     for (const auto &businessId : businessIds) {
-        if (businessId != DEFAULT_BUSINESS_ID) {
-            IAM_LOGE("Invalid businessId:%{public}d, only DEFAULT(1) is allowed", businessId);
+        if (businessId != static_cast<int32_t>(BusinessId::DEFAULT)) {
+            IAM_LOGE("Invalid businessId:%{public}d, only DEFAULT(0) is allowed", businessId);
             return false;
         }
     }

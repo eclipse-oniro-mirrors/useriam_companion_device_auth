@@ -15,10 +15,7 @@
 
 use crate::common::constants::ErrorCode;
 use crate::singleton_registry;
-#[cfg(any(test, feature = "test-utils"))]
-use mockall::automock;
 
-#[cfg_attr(any(test, feature = "test-utils"), automock)]
 pub trait StorageIo {
     fn exists(&self, file_name: &str) -> Result<bool, ErrorCode>;
     fn read(&self, file_name: &str) -> Result<crate::Vec<u8>, ErrorCode>;
@@ -52,17 +49,5 @@ impl StorageIo for DummyStorageIo {
 
 singleton_registry!(StorageIoRegistry, StorageIo, DummyStorageIo);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn dummy_storage_io_test() {
-        let dummy_storage_io = DummyStorageIo;
-        let file_name = String::from("file_name");
-        assert_eq!(dummy_storage_io.exists(&file_name), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_storage_io.read(&file_name), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_storage_io.write(&file_name, &[]), Err(ErrorCode::GeneralError));
-        assert_eq!(dummy_storage_io.delete(&file_name), Err(ErrorCode::GeneralError));
-    }
-}
+#[cfg(any(test, feature = "test-utils"))]
+pub use crate::test_utils::mock::MockStorageIo;

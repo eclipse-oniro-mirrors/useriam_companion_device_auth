@@ -36,7 +36,6 @@ use crate::{log_e, log_i, p, Box, Vec};
 pub const TOKEN_VALID_PERIOD: u64 = 4 * 60 * 60 * 1000;
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct AuthParam {
     pub request_id: i32,
     pub schedule_id: u64,
@@ -44,7 +43,6 @@ pub struct AuthParam {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct HostTokenAuthRequest {
     pub auth_param: AuthParam,
     pub challenge: u64,
@@ -199,7 +197,7 @@ impl HostRequest for HostTokenAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice())?;
+        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.create_begin_sec_message()?;
 
         Ok(HostRequestOutput::TokenAuthBegin(HostBeginTokenAuthOutputFfi {
@@ -214,7 +212,7 @@ impl HostRequest for HostTokenAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         let fwk_message = self.create_end_fwk_message()?;
 
         Ok(HostRequestOutput::TokenAuthEnd(HostEndTokenAuthOutputFfi {

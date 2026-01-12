@@ -21,6 +21,7 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
+#include "mock_companion_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
@@ -48,6 +49,9 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
+        auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
+        SingletonManager::GetInstance().SetCompanionManager(companionMgr);
+
         ON_CALL(mockRequestFactory_, CreateHostSingleMixAuthRequest(_, _, _, _, _))
             .WillByDefault(Invoke([this](ScheduleId scheduleId, std::vector<uint8_t> fwkMsg, UserId hostUserId,
                                       TemplateId templateId, FwkResultCallback &&requestCallback) {
@@ -55,6 +59,22 @@ public:
                     std::move(requestCallback));
             }));
         ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
+
+        // Set up GetCompanionStatus to return a valid companion status for the test templateId
+        ON_CALL(mockCompanionManager_, GetCompanionStatus(_)).WillByDefault(Return(std::nullopt));
+        const int32_t userId = 100;
+        CompanionStatus companionStatus;
+        companionStatus.templateId = templateId_;
+        companionStatus.hostUserId = userId;
+        companionStatus.isValid = true;
+        companionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+        companionStatus.companionDeviceStatus.deviceKey.deviceUserId = userId;
+        companionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        companionStatus.companionDeviceStatus.deviceName = "TestDevice";
+        companionStatus.companionDeviceStatus.protocolId = ProtocolId::VERSION_1;
+        companionStatus.companionDeviceStatus.secureProtocolId = SecureProtocolId::DEFAULT;
+        companionStatus.companionDeviceStatus.isOnline = true;
+        ON_CALL(mockCompanionManager_, GetCompanionStatus(templateId_)).WillByDefault(Return(companionStatus));
     }
 
     void TearDown() override
@@ -76,6 +96,7 @@ protected:
     NiceMock<MockRequestFactory> mockRequestFactory_;
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockCompanionManager> mockCompanionManager_;
 
     ScheduleId scheduleId_ = 1;
     std::vector<uint8_t> fwkMsg_ = { 1, 2, 3, 4 };
@@ -157,14 +178,18 @@ HWTEST_F(HostMixAuthRequestTest, Start_004, TestSize.Level0)
     request_->templateIdList_ = {};
     request_->requestMap_[1] = nullptr;
     bool callbackCalled = false;
-    request_->requestCallback_ = [&callbackCalled](ResultCode result, const std::vector<uint8_t> &fwkMsg) {
+    ResultCode callbackResult = ResultCode::SUCCESS;
+    request_->requestCallback_ = [&callbackCalled, &callbackResult](ResultCode result,
+                                     const std::vector<uint8_t> &fwkMsg) {
         callbackCalled = true;
+        callbackResult = result;
     };
 
     request_->Start();
 
     TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_FALSE(callbackCalled);
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(callbackResult, ResultCode::NO_VALID_CREDENTIAL);
 }
 
 HWTEST_F(HostMixAuthRequestTest, Cancel_001, TestSize.Level0)

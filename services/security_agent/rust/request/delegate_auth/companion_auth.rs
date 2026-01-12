@@ -31,7 +31,6 @@ use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "test-utils", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompanionDelegateAuthRequest {
     pub request_id: i32,
     pub binding_id: i32,
@@ -114,7 +113,7 @@ impl CompanionRequest for CompanionDelegateAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice())?;
+        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
 
         Ok(CompanionRequestOutput::DelegateAuthBegin(CompanionBeginDelegateAuthOutputFfi {
             challenge: self.challenge,

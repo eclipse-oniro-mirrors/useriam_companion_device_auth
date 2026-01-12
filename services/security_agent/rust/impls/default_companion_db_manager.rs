@@ -24,8 +24,11 @@ use crate::utils::parcel::Parcel;
 use crate::vec;
 use crate::String;
 use crate::{log_e, log_i, p, singleton_registry, Box, Vec};
+#[cfg(not(any(test, feature = "test-utils")))]
 use alloc::format;
 use core::mem;
+#[cfg(any(test, feature = "test-utils"))]
+use std::format;
 
 pub const CURRENT_VERSION: i32 = 0;
 pub const MAX_TOKEN_LENGTH: i32 = 32;
@@ -33,7 +36,7 @@ pub const COMPANION_DEVICE_DB: &str = "host_device_db";
 pub const COMPANION_DEVICE_SK: &str = "host_device_sk";
 pub const COMPANION_DEVICE_TOKEN: &str = "host_device_token";
 
-pub const MAX_DEVICE_NUM: usize = 1;
+pub const MAX_DEVICE_NUM: usize = 5;
 pub const MAX_DEVICE_NUM_PER_USER: usize = 1;
 
 pub struct DefaultCompaniomDbManager {
@@ -361,7 +364,7 @@ impl CompanionDbManager for DefaultCompaniomDbManager {
     }
 
     fn read_device_token(&self, binding_id: i32) -> Result<HostTokenInfo, ErrorCode> {
-        log_i!("read_device_token start, binding_id:{}", binding_id);
+        log_i!("read_device_token start, binding_id:{:x}", binding_id);
         let filename = format!("{:x}_{}", binding_id, COMPANION_DEVICE_TOKEN);
         let token_info: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
         if token_info.is_empty() {
@@ -373,7 +376,7 @@ impl CompanionDbManager for DefaultCompaniomDbManager {
     }
 
     fn write_device_token(&self, binding_id: i32, token: &HostTokenInfo) -> Result<(), ErrorCode> {
-        log_i!("write_device_token start, binding_id:{}", binding_id);
+        log_i!("write_device_token start, binding_id:{:x}", binding_id);
         let filename = format!("{:x}_{}", binding_id, COMPANION_DEVICE_TOKEN);
         let mut parcel = Parcel::new();
         self.serialize_token_info(token, &mut parcel)?;
@@ -382,19 +385,19 @@ impl CompanionDbManager for DefaultCompaniomDbManager {
     }
 
     fn delete_device_token(&self, binding_id: i32) -> Result<(), ErrorCode> {
-        log_i!("delete_device_token start, binding_id:{}", binding_id);
+        log_i!("delete_device_token start, binding_id:{:x}", binding_id);
         let filename = format!("{:x}_{}", binding_id, COMPANION_DEVICE_TOKEN);
         StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))
     }
 
     fn is_device_token_valid(&self, binding_id: i32) -> Result<bool, ErrorCode> {
-        log_i!("is_device_token_valid start, binding_id:{}", binding_id);
+        log_i!("is_device_token_valid start, binding_id:{:x}", binding_id);
         let filename = format!("{:x}_{}", binding_id, COMPANION_DEVICE_TOKEN);
         StorageIoRegistry::get().exists(&filename)
     }
 
     fn read_device_sk(&self, binding_id: i32) -> Result<HostDeviceSk, ErrorCode> {
-        log_i!("read_device_sk start, binding_id:{}", binding_id);
+        log_i!("read_device_sk start, binding_id:{:x}", binding_id);
         let filename = format!("{:x}_{}", binding_id, COMPANION_DEVICE_SK);
         let sk_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
         if sk_info_data.is_empty() {
@@ -407,7 +410,7 @@ impl CompanionDbManager for DefaultCompaniomDbManager {
     }
 
     fn write_device_sk(&self, binding_id: i32, sk_info: &HostDeviceSk) -> Result<(), ErrorCode> {
-        log_i!("write_device_sk start, binding_id:{}", binding_id);
+        log_i!("write_device_sk start, binding_id:{:x}", binding_id);
         let filename = format!("{:x}_{}", binding_id, COMPANION_DEVICE_SK);
         let mut parcel = Parcel::new();
         self.serialize_device_sk(sk_info, &mut parcel)?;
@@ -415,7 +418,7 @@ impl CompanionDbManager for DefaultCompaniomDbManager {
     }
 
     fn delete_device_sk(&self, binding_id: i32) -> Result<(), ErrorCode> {
-        log_i!("delete_device_sk start, binding_id:{}", binding_id);
+        log_i!("delete_device_sk start, binding_id:{:x}", binding_id);
         let filename = format!("{:x}_{}", binding_id, COMPANION_DEVICE_SK);
         StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))
     }

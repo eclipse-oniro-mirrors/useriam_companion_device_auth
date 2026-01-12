@@ -80,10 +80,9 @@ HWTEST_F(DeviceManagerAdapterTest, InitDeviceManager, TestSize.Level0)
 {
     auto adapter = std::make_shared<DeviceManagerAdapterImpl>();
 
-    // Without real DeviceManager service, this will fail
+    // Fake DeviceManager makes this succeed in test environment
     bool result = adapter->InitDeviceManager();
-    // Expected to fail in test environment
-    EXPECT_FALSE(result);
+    EXPECT_TRUE(result);
 }
 
 HWTEST_F(DeviceManagerAdapterTest, GetUdidByNetworkIdWithEmptyId, TestSize.Level0)

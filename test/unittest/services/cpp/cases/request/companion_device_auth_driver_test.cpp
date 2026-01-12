@@ -18,9 +18,20 @@
 
 #include <gtest/gtest.h>
 
+#include "attributes.h"
 #include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
 #include "fwk_common.h"
+#include "service_common.h"
+#include "singleton_manager.h"
+
+#include "mock_companion_manager.h"
+#include "mock_host_binding_manager.h"
+#include "mock_misc_manager.h"
+#include "mock_request_factory.h"
+#include "mock_request_manager.h"
+#include "mock_security_agent.h"
+#include "mock_user_id_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -33,16 +44,62 @@ class CompanionDeviceAuthDriverTest : public Test {
 public:
     void SetUp() override
     {
+        SingletonManager::GetInstance().Reset();
+
         adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
+
+        auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
+        SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
+
+        auto requestFactory = std::shared_ptr<IRequestFactory>(&mockRequestFactory_, [](IRequestFactory *) {});
+        SingletonManager::GetInstance().SetRequestFactory(requestFactory);
+
+        auto requestManager = std::shared_ptr<IRequestManager>(&mockRequestManager_, [](IRequestManager *) {});
+        SingletonManager::GetInstance().SetRequestManager(requestManager);
+
+        auto companionManager = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
+        SingletonManager::GetInstance().SetCompanionManager(companionManager);
+
+        auto hostBindingManager = std::shared_ptr<IHostBindingManager>(&mockHostBindingManager_,
+            [](IHostBindingManager *) {});
+        SingletonManager::GetInstance().SetHostBindingManager(hostBindingManager);
+
+        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
+        SingletonManager::GetInstance().SetMiscManager(miscMgr);
+
+        auto activeUserIdMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserIdMgr);
+
+        uint32_t maxTemplateAcl = 3;
+        ON_CALL(mockSecurityAgent_, HostGetExecutorInfo(_)).WillByDefault(Invoke(
+            [maxTemplateAcl](HostGetExecutorInfoOutput &output) {
+                output.executorInfo.esl = 1;
+                output.executorInfo.maxTemplateAcl = maxTemplateAcl;
+                output.executorInfo.publicKey = { 1, 2, 3 };
+                return ResultCode::SUCCESS;
+            }));
+        ON_CALL(mockSecurityAgent_, HostOnRegisterFinish(_)).WillByDefault(Return(ResultCode::SUCCESS));
+        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke(
+            [](ActiveUserIdCallback &&) {
+                return std::make_unique<Subscription>([] {});
+            }));
     }
 
     void TearDown() override
     {
+        SingletonManager::GetInstance().Reset();
         adapter_.reset();
     }
 
 protected:
     std::shared_ptr<CompanionAuthInterfaceAdapter> adapter_;
+    NiceMock<MockSecurityAgent> mockSecurityAgent_;
+    NiceMock<MockRequestFactory> mockRequestFactory_;
+    NiceMock<MockRequestManager> mockRequestManager_;
+    NiceMock<MockCompanionManager> mockCompanionManager_;
+    NiceMock<MockHostBindingManager> mockHostBindingManager_;
+    NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
 };
 
 HWTEST_F(CompanionDeviceAuthDriverTest, Constructor_001, TestSize.Level0)

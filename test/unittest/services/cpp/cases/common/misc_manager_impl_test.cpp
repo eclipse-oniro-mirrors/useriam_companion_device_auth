@@ -326,7 +326,7 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_001, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    std::vector<int32_t> businessIds = { 1 };
+    std::vector<int32_t> businessIds = { static_cast<int32_t>(BusinessId::DEFAULT) };
     bool result = manager->CheckBusinessIds(businessIds);
     EXPECT_TRUE(result);
 }
@@ -336,7 +336,9 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_002, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    std::vector<int32_t> businessIds = { 1, 1, 1 };
+    std::vector<int32_t> businessIds = { static_cast<int32_t>(BusinessId::DEFAULT),
+                                          static_cast<int32_t>(BusinessId::DEFAULT),
+                                          static_cast<int32_t>(BusinessId::DEFAULT) };
     bool result = manager->CheckBusinessIds(businessIds);
     EXPECT_TRUE(result);
 }
@@ -356,7 +358,7 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_004, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    std::vector<int32_t> businessIds = { 1, 2 };
+    std::vector<int32_t> businessIds = { static_cast<int32_t>(BusinessId::DEFAULT), 2 };
     bool result = manager->CheckBusinessIds(businessIds);
     EXPECT_FALSE(result);
 }

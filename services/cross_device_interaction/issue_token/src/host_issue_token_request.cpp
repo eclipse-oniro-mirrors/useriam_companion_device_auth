@@ -290,7 +290,7 @@ void HostIssueTokenRequest::HandlePeerDeviceStatusChanged(const std::vector<Devi
 
 void HostIssueTokenRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
+    IAM_LOGI("%{public}s: issue token request failed, result=%{public}d", GetDescription(), result);
     if (needCancelIssueToken_) {
         HostCancelIssueTokenInput input = { GetRequestId() };
         ResultCode ret = GetSecurityAgent().HostCancelIssueToken(input);
