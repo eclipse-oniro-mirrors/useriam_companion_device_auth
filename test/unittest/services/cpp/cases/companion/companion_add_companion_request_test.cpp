@@ -36,6 +36,17 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr int32_t INT32_100 = 100;
+constexpr int32_t INT32_200 = 200;
+constexpr uint32_t UINT32_1 = 1;
+constexpr uint32_t UINT32_2 = 2;
+constexpr uint32_t UINT32_4 = 4;
+constexpr uint32_t UINT32_5 = 5;
+constexpr uint32_t UINT32_9 = 9;
+constexpr uint32_t UINT32_10 = 10;
+constexpr uint32_t UINT32_12 = 12;
+constexpr uint32_t UINT32_16 = 16;
+
 std::unique_ptr<Subscription> MakeSubscription()
 {
     return std::make_unique<Subscription>([]() {});
@@ -66,7 +77,7 @@ public:
 
         InitKeyNegotiationRequest initRequest;
         initRequest.hostDeviceKey = hostDeviceKey_;
-        initRequest.extraInfo = { 1, 2, 3, 4 };
+        initRequest.extraInfo = { UINT32_1, UINT32_2, UINT32_1, UINT32_4 };
         initKeyNegoRequest_.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, initRequest.hostDeviceKey.deviceUserId);
         initKeyNegoRequest_.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
             static_cast<int32_t>(initRequest.hostDeviceKey.idType));
@@ -82,15 +93,15 @@ public:
         ON_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, MessageType::END_ADD_HOST_BINDING, _))
             .WillByDefault(Return(ByMove(MakeSubscription())));
         ON_CALL(mockSecurityAgent_, CompanionInitKeyNegotiation(_, _))
-            .WillByDefault(Invoke(
-                [](const CompanionInitKeyNegotiationInput &, CompanionInitKeyNegotiationOutput &output) {
-                    output.initKeyNegotiationReply = { 5, 6, 7, 8 };
+            .WillByDefault(
+                Invoke([](const CompanionInitKeyNegotiationInput &, CompanionInitKeyNegotiationOutput &output) {
+                    output.initKeyNegotiationReply = { UINT32_5, 6, 7, 8 };
                     return ResultCode::SUCCESS;
                 }));
         ON_CALL(mockHostBindingManager_, BeginAddHostBinding(_, _, _, _, _))
             .WillByDefault(Invoke(
                 [](int32_t, int32_t, SecureProtocolId, const std::vector<uint8_t> &, std::vector<uint8_t> &output) {
-                    output = { 9, 10, 11, 12 };
+                    output = { UINT32_9, UINT32_10, 11, UINT32_12 };
                     return ResultCode::SUCCESS;
                 }));
         ON_CALL(mockHostBindingManager_, EndAddHostBinding(_, _, _)).WillByDefault(Return(ResultCode::SUCCESS));
@@ -121,8 +132,8 @@ protected:
     std::string connectionName_ = "test_connection";
     Attributes initKeyNegoRequest_;
     OnMessageReply onMessageReply_ = [](const Attributes &) {};
-    DeviceKey hostDeviceKey_ = { .deviceId = "host_device_id", .deviceUserId = 100 };
-    DeviceKey companionDeviceKey_ = { .deviceId = "companion_device_id", .deviceUserId = 200 };
+    DeviceKey hostDeviceKey_ = { .deviceId = "host_device_id", .deviceUserId = INT32_100 };
+    DeviceKey companionDeviceKey_ = { .deviceId = "companion_device_id", .deviceUserId = INT32_200 };
 };
 
 HWTEST_F(CompanionAddCompanionRequestTest, OnStart_001, TestSize.Level0)
@@ -150,7 +161,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_001, TestSize.Level0)
         .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(mockSecurityAgent_, CompanionInitKeyNegotiation(_, _))
         .WillOnce(Invoke([](const CompanionInitKeyNegotiationInput &, CompanionInitKeyNegotiationOutput &output) {
-            output.initKeyNegotiationReply = { 5, 6, 7, 8 };
+            output.initKeyNegotiationReply = { UINT32_5, 6, 7, 8 };
             return ResultCode::SUCCESS;
         }));
 
@@ -317,7 +328,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_008, TestSize.Level0)
         .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(mockSecurityAgent_, CompanionInitKeyNegotiation(_, _))
         .WillOnce(Invoke([](const CompanionInitKeyNegotiationInput &, CompanionInitKeyNegotiationOutput &output) {
-            output.initKeyNegotiationReply = { 5, 6, 7, 8 };
+            output.initKeyNegotiationReply = { UINT32_5, 6, 7, 8 };
             return ResultCode::SUCCESS;
         }));
 
@@ -336,7 +347,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_001, TestSize
 
     BeginAddHostBindingRequest beginRequest;
     beginRequest.companionUserId = companionDeviceKey_.deviceUserId;
-    beginRequest.extraInfo = { 13, 14, 15, 16 };
+    beginRequest.extraInfo = { 13, 14, 15, UINT32_16 };
     Attributes attrInput;
     EncodeBeginAddHostBindingRequest(beginRequest, attrInput);
 
@@ -353,7 +364,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_001, TestSize
     EXPECT_CALL(mockHostBindingManager_, BeginAddHostBinding(_, _, _, _, _))
         .WillOnce(
             Invoke([](int32_t, int32_t, SecureProtocolId, const std::vector<uint8_t> &, std::vector<uint8_t> &output) {
-                output = { 9, 10, 11, 12 };
+                output = { UINT32_9, UINT32_10, 11, UINT32_12 };
                 return ResultCode::SUCCESS;
             }));
 
@@ -372,7 +383,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_002, TestSize
 
     BeginAddHostBindingRequest beginRequest;
     beginRequest.companionUserId = companionDeviceKey_.deviceUserId;
-    beginRequest.extraInfo = { 13, 14, 15, 16 };
+    beginRequest.extraInfo = { 13, 14, 15, UINT32_16 };
     Attributes attrInput;
     EncodeBeginAddHostBindingRequest(beginRequest, attrInput);
 
@@ -393,7 +404,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_003, TestSize
     ResultCode receivedResult = ResultCode::SUCCESS;
     OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        int32_t result = 0;
+        int32_t result = UINT32_1 - UINT32_1;
         reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
         receivedResult = static_cast<ResultCode>(result);
     };
@@ -412,7 +423,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_004, TestSize
 
     BeginAddHostBindingRequest beginRequest;
     beginRequest.companionUserId = companionDeviceKey_.deviceUserId;
-    beginRequest.extraInfo = { 13, 14, 15, 16 };
+    beginRequest.extraInfo = { 13, 14, 15, UINT32_16 };
     Attributes attrInput;
     EncodeBeginAddHostBindingRequest(beginRequest, attrInput);
 
@@ -420,7 +431,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_004, TestSize
     ResultCode receivedResult = ResultCode::SUCCESS;
     OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        int32_t result = 0;
+        int32_t result = UINT32_1 - UINT32_1;
         reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
         receivedResult = static_cast<ResultCode>(result);
     };
@@ -500,7 +511,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_003, TestSize.L
     ResultCode receivedResult = ResultCode::SUCCESS;
     OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        int32_t result = 0;
+        int32_t result = UINT32_1 - UINT32_1;
         reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
         receivedResult = static_cast<ResultCode>(result);
     };
@@ -531,7 +542,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_004, TestSize.L
     ResultCode receivedResult = ResultCode::SUCCESS;
     OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        int32_t result = 0;
+        int32_t result = UINT32_1 - UINT32_1;
         reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
         receivedResult = static_cast<ResultCode>(result);
     };
@@ -552,7 +563,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, CompleteWithError_001, TestSize.Level
     ResultCode receivedResult = ResultCode::SUCCESS;
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        int32_t result = 0;
+        int32_t result = UINT32_1 - UINT32_1;
         reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
         receivedResult = static_cast<ResultCode>(result);
     };
@@ -586,14 +597,15 @@ HWTEST_F(CompanionAddCompanionRequestTest, GetMaxConcurrency_001, TestSize.Level
 {
     CreateDefaultRequest();
 
-    EXPECT_EQ(request_->GetMaxConcurrency(), 1);
+    EXPECT_EQ(request_->GetMaxConcurrency(), UINT32_1);
 }
 
 HWTEST_F(CompanionAddCompanionRequestTest, ShouldCancelOnNewRequest_001, TestSize.Level0)
 {
     CreateDefaultRequest();
 
-    bool result = request_->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    bool result = request_->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt,
+        UINT32_1 - UINT32_1);
     EXPECT_TRUE(result);
 }
 
@@ -601,7 +613,8 @@ HWTEST_F(CompanionAddCompanionRequestTest, ShouldCancelOnNewRequest_002, TestSiz
 {
     CreateDefaultRequest();
 
-    bool result = request_->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    bool result =
+        request_->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, UINT32_1 - UINT32_1);
     EXPECT_FALSE(result);
 }
 

@@ -22,7 +22,7 @@
 #include "companion_device_auth_ffi_util.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -33,9 +33,9 @@ const uint32_t TEST_VAL64 = 64;
 const uint32_t TEST_VAL10 = 10;
 const uint32_t TEST_VAL16 = 16;
 const uint32_t TEST_VAL1024 = 1024;
-}
+} // namespace
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using CompanionDeviceAuthFfiUtilFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzDecodeDeviceKey(FuzzedDataProvider &fuzzData)
 {
@@ -118,7 +118,7 @@ static void FuzzEncodePersistedCompanionStatus(FuzzedDataProvider &fuzzData)
 
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, TEST_VAL16);
     for (uint8_t i = 0; i < count; ++i) {
-        status.enabledBusinessIds.push_back(fuzzData.ConsumeIntegral<uint32_t>());
+        status.enabledBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));
     }
 
     PersistedCompanionStatusFfi ffi;
@@ -472,7 +472,44 @@ static void FuzzDecodePersistedHostBindingStatusList(FuzzedDataProvider &fuzzDat
     (void)DecodePersistedHostBindingStatusList(ffi, list);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static void FuzzDecodeHostCheckTemplateEnrolledOutput(FuzzedDataProvider &fuzzData)
+{
+    HostCheckTemplateEnrolledOutputFfi ffi;
+    ffi.enrolled = fuzzData.ConsumeIntegral<uint8_t>();
+
+    HostCheckTemplateEnrolledOutput output;
+    (void)DecodeHostCheckTemplateEnrolledOutput(ffi, output);
+}
+
+static void FuzzEncodeHostCheckTemplateEnrolledInput(FuzzedDataProvider &fuzzData)
+{
+    HostCheckTemplateEnrolledInput input;
+    input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
+
+    HostCheckTemplateEnrolledInputFfi ffi;
+    (void)EncodeHostCheckTemplateEnrolledInput(input, ffi);
+}
+
+static void FuzzDecodeHostUpdateTokenOutput(FuzzedDataProvider &fuzzData)
+{
+    HostUpdateTokenOutputFfi ffi;
+    ffi.needRedistribute = fuzzData.ConsumeBool();
+
+    HostUpdateTokenOutput output;
+    (void)DecodeHostUpdateTokenOutput(ffi, output);
+}
+
+static void FuzzEncodeHostUpdateTokenInput(FuzzedDataProvider &fuzzData)
+{
+    HostUpdateTokenInput input;
+    input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
+    input.fwkMsg = GenerateFuzzVector<uint8_t>(fuzzData, TEST_VAL1024);
+
+    HostUpdateTokenInputFfi ffi;
+    (void)EncodeHostUpdateTokenInput(input, ffi);
+}
+
+static const CompanionDeviceAuthFfiUtilFuzzFunction g_fuzzFuncs[] = {
     FuzzDecodeDeviceKey,
     FuzzEncodeDeviceKey,
     FuzzDecodePersistedCompanionStatus,
@@ -504,9 +541,14 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzDecodeHostProcessPreObtainTokenOutput,
     FuzzDecodeHostProcessObtainTokenOutput,
     FuzzDecodePersistedHostBindingStatusList,
+    // Newly added uncovered methods
+    FuzzDecodeHostCheckTemplateEnrolledOutput,
+    FuzzEncodeHostCheckTemplateEnrolledInput,
+    FuzzDecodeHostUpdateTokenOutput,
+    FuzzEncodeHostUpdateTokenInput,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionDeviceAuthFfiUtilFuzzFunction);
 
 void FuzzCompanionDeviceAuthFFIUtil(FuzzedDataProvider &fuzzData)
 {
@@ -524,5 +566,8 @@ void FuzzCompanionDeviceAuthFFIUtil(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionDeviceAuthFFIUtil)
+
 } // namespace UserIam
 } // namespace OHOS

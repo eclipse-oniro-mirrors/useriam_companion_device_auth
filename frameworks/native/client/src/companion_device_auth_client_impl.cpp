@@ -16,9 +16,11 @@
 #include "companion_device_auth_client_impl.h"
 
 #include <cinttypes>
+#include <memory>
 
 #include "system_ability_definition.h"
 
+#include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
@@ -26,6 +28,19 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+
+CompanionDeviceAuthClientImpl::CompanionDeviceAuthClientImpl()
+{
+}
+
+#ifdef ENABLE_TEST
+void CompanionDeviceAuthClientImpl::SetProxy(const sptr<ICompanionDeviceAuth> &proxy)
+{
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    proxy_ = proxy;
+}
+#endif
+
 int32_t CompanionDeviceAuthClientImpl::RegisterDeviceSelectCallback(
     const std::shared_ptr<IDeviceSelectCallback> &callback)
 {
@@ -463,20 +478,19 @@ sptr<ICompanionDeviceAuth> CompanionDeviceAuthClientImpl::GetProxy()
         return proxy_;
     }
 
-    sptr<IRemoteObject> obj = IpcClientUtils::GetRemoteObject(SUBSYS_USERIAM_SYS_ABILITY_COMPANIONDEVICEAUTH);
-    if (obj == nullptr) {
-        IAM_LOGE("remote object is null");
-        return proxy_;
-    }
-    sptr<IRemoteObject::DeathRecipient> dr(new (std::nothrow) CompanionDeviceAuthClientImplDeathRecipient());
-    if ((dr == nullptr) || (obj->IsProxyObject() && !obj->AddDeathRecipient(dr))) {
-        IAM_LOGE("add death recipient fail");
-        return proxy_;
-    }
-
-    proxy_ = iface_cast<ICompanionDeviceAuth>(obj);
-    deathRecipient_ = dr;
+#ifdef ENABLE_TEST
+    IAM_LOGE("proxy is nullptr in test mode, please use SetProxy() first");
     return proxy_;
+#else
+    // Use GetInstance() to avoid capturing [this]
+    proxy_ = IpcClientFetcher::GetProxy([](const wptr<IRemoteObject> &remote) {
+        auto &client = static_cast<CompanionDeviceAuthClient &>(CompanionDeviceAuthClient::GetInstance());
+        auto &clientImpl = static_cast<CompanionDeviceAuthClientImpl &>(client);
+        clientImpl.ResetProxy(remote);
+    });
+
+    return proxy_;
+#endif
 }
 
 void CompanionDeviceAuthClientImpl::ResetProxy(const wptr<IRemoteObject> &remote)
@@ -590,27 +604,11 @@ void CompanionDeviceAuthClientImpl::SubscribeCompanionDeviceAuthSaStatus()
     }
 }
 
-void CompanionDeviceAuthClientImpl::CompanionDeviceAuthClientImplDeathRecipient::OnRemoteDied(
-    const wptr<IRemoteObject> &remote)
-{
-    IAM_LOGI("start");
-    if (remote == nullptr) {
-        IAM_LOGE("remote is nullptr");
-        return;
-    }
-    CompanionDeviceAuthClientImpl::Instance().ResetProxy(remote);
-}
-
-CompanionDeviceAuthClientImpl &CompanionDeviceAuthClientImpl::Instance()
-{
-    static CompanionDeviceAuthClientImpl impl;
-    return impl;
-}
-
 CompanionDeviceAuthClient &CompanionDeviceAuthClient::GetInstance()
 {
-    CompanionDeviceAuthClientImpl::Instance().SubscribeCompanionDeviceAuthSaStatus();
-    return CompanionDeviceAuthClientImpl::Instance();
+    static CompanionDeviceAuthClientImpl impl;
+    impl.SubscribeCompanionDeviceAuthSaStatus();
+    return impl;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

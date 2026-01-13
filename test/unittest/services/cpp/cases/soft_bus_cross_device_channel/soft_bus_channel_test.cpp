@@ -32,6 +32,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr uint64_t UINT64_1 = 1;
+
 std::unique_ptr<Subscription> MakeSubscription()
 {
     return std::make_unique<Subscription>([]() {});
@@ -64,7 +66,7 @@ public:
     }
 
 protected:
-    int32_t nextGlobalId_ = 1;
+    uint64_t nextGlobalId_ = UINT64_1;
     NiceMock<MockMiscManager> mockMiscManager_;
     NiceMock<MockSystemParamManager> mockSystemParamManager_;
 };
@@ -402,7 +404,6 @@ HWTEST_F(SoftBusChannelTest, OpenConnection_004, TestSize.Level0)
 
     PhysicalDeviceStatus status;
     status.physicalDeviceKey = key;
-    status.networkId = "test-network-id";  // Set networkId for socket creation
     channel->deviceStatusManager_->physicalDeviceStatus_.push_back(status);
 
     bool result = channel->OpenConnection("test-connection", key);

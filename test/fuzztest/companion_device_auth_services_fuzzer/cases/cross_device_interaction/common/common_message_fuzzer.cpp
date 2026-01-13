@@ -22,7 +22,7 @@
 #include "common_message.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -31,7 +31,7 @@ namespace {
 const uint32_t TEST_VAL64 = 64;
 }
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using CommonMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzDecodeHostDeviceKey(FuzzedDataProvider &fuzzData)
 {
@@ -67,14 +67,14 @@ static void FuzzEncodeCompanionDeviceKey(FuzzedDataProvider &fuzzData)
     EncodeCompanionDeviceKey(deviceKey, attr);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CommonMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzDecodeHostDeviceKey,
     FuzzDecodeCompanionDeviceKey,
     FuzzEncodeHostDeviceKey,
     FuzzEncodeCompanionDeviceKey,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CommonMessageFuzzFunction);
 
 void FuzzCommonMessage(FuzzedDataProvider &fuzzData)
 {
@@ -93,5 +93,8 @@ void FuzzCommonMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CommonMessage)
+
 } // namespace UserIam
 } // namespace OHOS

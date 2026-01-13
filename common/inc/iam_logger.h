@@ -16,14 +16,7 @@
 #ifndef COMPANION_DEVICE_AUTH_IAM_LOGGER_H
 #define COMPANION_DEVICE_AUTH_IAM_LOGGER_H
 
-// Suppress 'os_log' format attribute warning from hilog headers.
-// 'os_log' is an Apple-specific format type not recognized by GCC/Clang on non-Apple platforms.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat"
-#pragma GCC diagnostic ignored "-Wattributes"
 #include "hilog/log.h"
-
-#pragma GCC diagnostic pop
 
 namespace OHOS {
 namespace UserIam {

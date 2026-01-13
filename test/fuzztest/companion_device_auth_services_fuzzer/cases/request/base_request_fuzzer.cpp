@@ -22,14 +22,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_add_companion_request.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<IRequest> &request, FuzzedDataProvider &fuzzData);
+using BaseRequestFuzzFunction = void (*)(std::shared_ptr<IRequest> &request, FuzzedDataProvider &fuzzData);
 
 static void FuzzGetRequestType(std::shared_ptr<IRequest> &request, FuzzedDataProvider &fuzzData)
 {
@@ -112,7 +112,7 @@ static void FuzzCreateTimeoutMs(std::shared_ptr<IRequest> &request, FuzzedDataPr
     (void)timeoutMs;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const BaseRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzGetRequestType,
     FuzzGetDescription,
     FuzzGetRequestId,
@@ -126,7 +126,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCreateTimeoutMs,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(BaseRequestFuzzFunction);
 
 void FuzzBaseRequest(FuzzedDataProvider &fuzzData)
 {
@@ -160,5 +160,8 @@ void FuzzBaseRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(BaseRequest)
+
 } // namespace UserIam
 } // namespace OHOS

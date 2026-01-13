@@ -17,6 +17,7 @@
 #define COMPANION_DEVICE_AUTH_SYNC_DEVICE_STATUS_MESSAGE_H
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -50,11 +51,11 @@ struct SyncDeviceStatusReply {
 
 bool EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes);
 
-bool DecodeSyncDeviceStatusRequest(const Attributes &attributes, SyncDeviceStatusRequest &request);
+std::optional<SyncDeviceStatusRequest> DecodeSyncDeviceStatusRequest(const Attributes &attributes);
 
 bool EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes &attributes);
 
-bool DecodeSyncDeviceStatusReply(const Attributes &attributes, SyncDeviceStatusReply &reply);
+std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attributes &attributes);
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

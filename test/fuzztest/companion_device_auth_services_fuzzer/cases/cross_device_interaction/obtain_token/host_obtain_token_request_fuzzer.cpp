@@ -23,14 +23,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_obtain_token_request.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<HostObtainTokenRequest> &request, FuzzedDataProvider &fuzzData);
+using HostObtainTokenRequestFuzzFunction = void (*)(std::shared_ptr<HostObtainTokenRequest> &request,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMaxConcurrency(std::shared_ptr<HostObtainTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
@@ -40,6 +41,7 @@ static void FuzzGetMaxConcurrency(std::shared_ptr<HostObtainTokenRequest> &reque
 
 static void FuzzShouldCancelOnNewRequest(std::shared_ptr<HostObtainTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     RequestType newType = static_cast<RequestType>(fuzzData.ConsumeIntegral<uint32_t>());
     std::optional<DeviceKey> newPeer;
     if (fuzzData.ConsumeBool()) {
@@ -58,6 +60,7 @@ static void FuzzOnStart(std::shared_ptr<HostObtainTokenRequest> &request, Fuzzed
 
 static void FuzzCompleteWithError(std::shared_ptr<HostObtainTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     ResultCode result = GenerateFuzzResultCode(fuzzData);
     request->CompleteWithError(result);
 }
@@ -84,12 +87,14 @@ static void FuzzParsePreObtainTokenRequest(std::shared_ptr<HostObtainTokenReques
 
 static void FuzzProcessPreObtainToken(std::shared_ptr<HostObtainTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     std::vector<uint8_t> preObtainTokenReply;
     (void)request->ProcessPreObtainToken(preObtainTokenReply);
 }
 
 static void FuzzSendPreObtainTokenReply(std::shared_ptr<HostObtainTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     ResultCode result = GenerateFuzzResultCode(fuzzData);
     uint32_t replySize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
     std::vector<uint8_t> preObtainTokenReply = fuzzData.ConsumeBytes<uint8_t>(replySize);
@@ -104,7 +109,7 @@ static void FuzzHandlePeerDeviceStatusChanged(std::shared_ptr<HostObtainTokenReq
     request->HandlePeerDeviceStatusChanged(deviceStatusList);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const HostObtainTokenRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMaxConcurrency,
     FuzzShouldCancelOnNewRequest,
     FuzzOnStart,
@@ -117,7 +122,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzHandlePeerDeviceStatusChanged,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostObtainTokenRequestFuzzFunction);
 
 void FuzzHostObtainTokenRequest(FuzzedDataProvider &fuzzData)
 {
@@ -144,5 +149,8 @@ void FuzzHostObtainTokenRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(HostObtainTokenRequest)
+
 } // namespace UserIam
 } // namespace OHOS

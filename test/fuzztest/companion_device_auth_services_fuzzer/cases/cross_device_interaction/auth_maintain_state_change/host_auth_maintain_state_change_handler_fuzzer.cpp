@@ -21,15 +21,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_auth_maintain_state_change_handler.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<HostAuthMaintainStateChangeHandler> &handler,
-    FuzzedDataProvider &fuzzData);
+using HostAuthMaintainStateChangeHandlerFuzzFunction = void (*)(
+    std::shared_ptr<HostAuthMaintainStateChangeHandler> &handler, FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMessageType(std::shared_ptr<HostAuthMaintainStateChangeHandler> &handler,
     FuzzedDataProvider &fuzzData)
@@ -118,7 +118,7 @@ static void FuzzHandleIncomingMessageWithNullCallback(std::shared_ptr<HostAuthMa
     handler->HandleIncomingMessage(request, nullReply);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const HostAuthMaintainStateChangeHandlerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMessageType,
     FuzzRegister,
     FuzzHandleIncomingMessage,
@@ -131,7 +131,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzHandleIncomingMessageWithNullCallback,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostAuthMaintainStateChangeHandlerFuzzFunction);
 
 void FuzzHostAuthMaintainStateChangeHandler(FuzzedDataProvider &fuzzData)
 {
@@ -154,5 +154,8 @@ void FuzzHostAuthMaintainStateChangeHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(HostAuthMaintainStateChangeHandler)
+
 } // namespace UserIam
 } // namespace OHOS

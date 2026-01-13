@@ -15,7 +15,10 @@
 
 #include "request_aborted_message.h"
 
+#include <optional>
+
 #include "iam_check.h"
+#include "iam_logger.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -32,17 +35,19 @@ bool EncodeRequestAbortedRequest(const RequestAbortedRequest &request, Attribute
     return true;
 }
 
-bool DecodeRequestAbortedRequest(const Attributes &attributes, RequestAbortedRequest &request)
+std::optional<RequestAbortedRequest> DecodeRequestAbortedRequest(const Attributes &attributes)
 {
     int32_t resultCode = 0;
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, resultCode);
-    ENSURE_OR_RETURN_VAL(getResultRet, false);
+    ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
+
+    RequestAbortedRequest request;
     request.result = static_cast<ResultCode>(resultCode);
 
     // Reason is optional
     (void)attributes.GetStringValue(Attributes::ATTR_CDA_SA_REASON, request.reason);
 
-    return true;
+    return request;
 }
 
 bool EncodeRequestAbortedReply(const RequestAbortedReply &reply, Attributes &attributes)
@@ -51,13 +56,15 @@ bool EncodeRequestAbortedReply(const RequestAbortedReply &reply, Attributes &att
     return true;
 }
 
-bool DecodeRequestAbortedReply(const Attributes &attributes, RequestAbortedReply &reply)
+std::optional<RequestAbortedReply> DecodeRequestAbortedReply(const Attributes &attributes)
 {
     int32_t resultCode = 0;
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, resultCode);
-    ENSURE_OR_RETURN_VAL(getResultRet, false);
+    ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
+
+    RequestAbortedReply reply;
     reply.result = static_cast<ResultCode>(resultCode);
-    return true;
+    return reply;
 }
 
 } // namespace CompanionDeviceAuth

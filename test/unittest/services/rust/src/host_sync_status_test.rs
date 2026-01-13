@@ -15,8 +15,8 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, HostBeginCompanionCheckInputFfi, HostEndCompanionCheckInputFfi,
-    Uint16Array64Ffi,
+    DataArray1024Ffi, HostBeginCompanionCheckInputFfi, HostBeginCompanionCheckOutputFfi,
+    HostEndCompanionCheckInputFfi, HostEndCompanionCheckOutputFfi, Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::jobs::common_message::SecCommonReply;
@@ -25,7 +25,7 @@ use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCrypt
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk,
     DeviceKey, UserInfo};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
-use crate::traits::host_request_manager::{HostRequest, HostRequestInput};
+use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::ut_registry_guard;
 use crate::utils::{Attribute, AttributeKey};
 use std::boxed::Box;
@@ -129,7 +129,9 @@ fn host_sync_status_request_prepare_test_not_implemented() {
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
     let mut request = HostDeviceSyncStatusRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::SyncStatusBegin(input));
+    let mut output = HostBeginCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusBegin(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -154,7 +156,9 @@ fn host_sync_status_request_begin_test_wrong_input_type() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(HostRequestInput::SyncStatusEnd(wrong_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&wrong_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -170,7 +174,9 @@ fn host_sync_status_request_end_test_wrong_input_type() {
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
     let mut request = HostDeviceSyncStatusRequest::new(&input).unwrap();
 
-    let result = request.end(HostRequestInput::SyncStatusBegin(input));
+    let mut output = HostBeginCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusBegin(&input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -198,7 +204,9 @@ fn host_sync_status_request_end_test_protocal_list_convert_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -226,7 +234,9 @@ fn host_sync_status_request_end_test_capability_list_convert_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -257,7 +267,9 @@ fn host_sync_status_request_end_test_read_device_capability_info_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert!(result.is_ok());
 }
 
@@ -293,7 +305,9 @@ fn host_sync_status_request_end_test_decode_sec_message_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -332,7 +346,9 @@ fn host_sync_status_request_end_test_get_session_key_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -362,7 +378,9 @@ fn host_sync_status_request_end_test_decrypt_sec_message_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert!(result.is_ok());
 }
 
@@ -392,7 +410,9 @@ fn host_sync_status_request_end_test_attribute_try_from_bytes_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert!(result.is_ok());
 }
 
@@ -418,7 +438,9 @@ fn host_sync_status_request_end_test_challenge_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert!(result.is_ok());
 }
 
@@ -449,7 +471,9 @@ fn host_sync_status_request_end_test_protocol_list_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert!(result.is_ok());
 }
 
@@ -484,7 +508,9 @@ fn host_sync_status_request_end_test_capability_list_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert!(result.is_ok());
 }
 
@@ -519,6 +545,8 @@ fn host_sync_status_request_end_test_success() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::SyncStatusEnd(end_input));
+    let mut output = HostEndCompanionCheckOutputFfi::default();
+    let param = HostRequestParam::SyncStatusEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert!(result.is_ok());
 }

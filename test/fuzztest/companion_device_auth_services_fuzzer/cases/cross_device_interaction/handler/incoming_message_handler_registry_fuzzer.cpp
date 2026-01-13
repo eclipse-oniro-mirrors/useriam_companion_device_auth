@@ -21,15 +21,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "incoming_message_handler_registry.h"
-#include "service_fuzz_entry.h"
 #include "singleton_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using IncomingMessageHandlerRegistryFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreate(FuzzedDataProvider &fuzzData)
 {
@@ -127,7 +127,7 @@ static void FuzzCreateWithoutOperations(FuzzedDataProvider &fuzzData)
     (void)fuzzData;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const IncomingMessageHandlerRegistryFuzzFunction g_fuzzFuncs[] = {
     FuzzCreate,
     FuzzCreateAndInitialize,
     FuzzCreateAndRegister,
@@ -140,7 +140,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCreateWithoutOperations,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(IncomingMessageHandlerRegistryFuzzFunction);
 
 void FuzzIncomingMessageHandlerRegistry(FuzzedDataProvider &fuzzData)
 {
@@ -159,5 +159,8 @@ void FuzzIncomingMessageHandlerRegistry(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(IncomingMessageHandlerRegistry)
+
 } // namespace UserIam
 } // namespace OHOS

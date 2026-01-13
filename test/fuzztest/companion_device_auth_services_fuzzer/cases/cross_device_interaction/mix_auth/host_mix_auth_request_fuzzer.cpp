@@ -21,14 +21,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_mix_auth_request.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<HostMixAuthRequest> &request, FuzzedDataProvider &fuzzData);
+using HostMixAuthRequestFuzzFunction = void (*)(std::shared_ptr<HostMixAuthRequest> &request,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMaxConcurrency(std::shared_ptr<HostMixAuthRequest> &request, FuzzedDataProvider &fuzzData)
 {
@@ -94,7 +95,7 @@ static void FuzzGetRequestInfo(std::shared_ptr<HostMixAuthRequest> &request, Fuz
     (void)request->GetDescription();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const HostMixAuthRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMaxConcurrency,
     FuzzShouldCancelOnNewRequest,
     FuzzStart,
@@ -106,7 +107,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzGetRequestInfo,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostMixAuthRequestFuzzFunction);
 
 void FuzzHostMixAuthRequest(FuzzedDataProvider &fuzzData)
 {
@@ -145,5 +146,8 @@ void FuzzHostMixAuthRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(HostMixAuthRequest)
+
 } // namespace UserIam
 } // namespace OHOS

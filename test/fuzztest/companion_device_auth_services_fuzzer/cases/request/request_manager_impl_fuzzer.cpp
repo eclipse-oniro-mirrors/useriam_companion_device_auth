@@ -21,16 +21,16 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "request_factory_impl.h"
 #include "request_manager_impl.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<RequestManagerImpl> &mgr, std::shared_ptr<RequestFactoryImpl> &factory,
-    FuzzedDataProvider &fuzzData);
+using RequestManagerImplFuzzFunction = void (*)(std::shared_ptr<RequestManagerImpl> &mgr,
+    std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataProvider &fuzzData);
 
 static void FuzzStartHostTokenAuth(std::shared_ptr<RequestManagerImpl> &mgr,
     std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataProvider &fuzzData)
@@ -129,7 +129,7 @@ static void FuzzRemove(std::shared_ptr<RequestManagerImpl> &mgr, std::shared_ptr
     mgr->Remove(requestId);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const RequestManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzStartHostTokenAuth,
     FuzzStartHostAddCompanion,
     FuzzStartHostDelegateAuth,
@@ -140,7 +140,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzRemove,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(RequestManagerImplFuzzFunction);
 
 void FuzzRequestManagerImpl(FuzzedDataProvider &fuzzData)
 {
@@ -170,5 +170,8 @@ void FuzzRequestManagerImpl(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(RequestManagerImpl)
+
 } // namespace UserIam
 } // namespace OHOS

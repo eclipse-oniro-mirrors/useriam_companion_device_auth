@@ -41,12 +41,12 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
         (void)reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(result));
     });
 
-    SyncDeviceStatusRequest syncRequest = {};
-    bool decodeRet = DecodeSyncDeviceStatusRequest(request, syncRequest);
-    if (!decodeRet) {
+    auto syncRequestOpt = DecodeSyncDeviceStatusRequest(request);
+    if (!syncRequestOpt.has_value()) {
         IAM_LOGE("DecodeSyncDeviceStatusRequest failed");
         return;
     }
+    const auto &syncRequest = *syncRequestOpt;
 
     auto companionUserId = GetActiveUserIdManager().GetActiveUserId();
     if (companionUserId == INVALID_USER_ID) {

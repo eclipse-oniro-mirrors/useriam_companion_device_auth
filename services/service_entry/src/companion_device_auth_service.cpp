@@ -16,9 +16,9 @@
 #include "companion_device_auth_service.h"
 
 #include <cstdint>
-#include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <new>
 #include <string>
 #include <vector>
@@ -48,12 +48,14 @@
 #include "request_factory_impl.h"
 #include "request_manager_impl.h"
 #include "security_agent_imp.h"
+#include "service_common.h"
 #include "singleton_manager.h"
 #include "subscription_manager.h"
 #include "system_param_manager_impl.h"
 #include "task_runner_manager.h"
 #include "tokenid_kit.h"
 #include "user_id_manager.h"
+#include "xcollie_helper.h"
 
 #ifdef HAS_SOFT_BUS_CHANNEL
 #include "soft_bus_channel.h"
@@ -95,7 +97,8 @@ public:
     bool CheckLocalUserIdValid(int32_t localUserId);
 
 private:
-    static bool SetBasicManager();
+    static std::shared_ptr<CompanionDeviceAuthServiceInner> CreateExtend(
+        const std::shared_ptr<IncomingMessageHandlerRegistry> &registry);
 
     explicit CompanionDeviceAuthServiceInner(std::shared_ptr<SubscriptionManager> subscriptionManager)
         : subscriptionManagerHolder_(std::move(subscriptionManager)),
@@ -109,39 +112,6 @@ private:
 
 using CompanionDeviceAuthServiceInner = CompanionDeviceAuthService::CompanionDeviceAuthServiceInner;
 
-bool CompanionDeviceAuthServiceInner::SetBasicManager()
-{
-    auto &singletonManager = SingletonManager::GetInstance();
-
-    auto requestManager = RequestManagerImpl::Create();
-    ENSURE_OR_RETURN_VAL(requestManager != nullptr, false);
-    singletonManager.SetRequestManager(requestManager);
-
-    auto requestFactory = RequestFactoryImpl::Create();
-    ENSURE_OR_RETURN_VAL(requestFactory != nullptr, false);
-    singletonManager.SetRequestFactory(requestFactory);
-
-    auto miscManager = MiscManagerImpl::Create();
-    ENSURE_OR_RETURN_VAL(miscManager != nullptr, false);
-    singletonManager.SetMiscManager(miscManager);
-
-    auto systemParamManager = SystemParamManagerImpl::Create();
-    ENSURE_OR_RETURN_VAL(systemParamManager != nullptr, false);
-    singletonManager.SetSystemParamManager(systemParamManager);
-
-    auto activeUserIdManager = IUserIdManager::Create();
-    ENSURE_OR_RETURN_VAL(activeUserIdManager != nullptr, false);
-    singletonManager.SetActiveUserIdManager(activeUserIdManager);
-
-#ifndef ENABLE_TEST
-    auto securityAgent = SecurityAgentImpl::Create();
-    ENSURE_OR_RETURN_VAL(securityAgent != nullptr, false);
-    singletonManager.SetSecurityAgent(securityAgent);
-#endif
-
-    return true;
-}
-
 std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner::Create()
 {
     IAM_LOGI("Start");
@@ -149,21 +119,55 @@ std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner
     bool adaptersRegistered = AdapterManager::GetInstance().CreateAndRegisterAllAdapters();
     ENSURE_OR_RETURN_VAL(adaptersRegistered, nullptr);
 
-    bool setBasicManagerRet = SetBasicManager();
-    ENSURE_OR_RETURN_VAL(setBasicManagerRet, nullptr);
-
     auto &singletonManager = SingletonManager::GetInstance();
+
+    auto requestManager = RequestManagerImpl::Create();
+    ENSURE_OR_RETURN_VAL(requestManager != nullptr, nullptr);
+    singletonManager.SetRequestManager(requestManager);
+
+    auto requestFactory = RequestFactoryImpl::Create();
+    ENSURE_OR_RETURN_VAL(requestFactory != nullptr, nullptr);
+    singletonManager.SetRequestFactory(requestFactory);
+
+    auto miscManager = MiscManagerImpl::Create();
+    ENSURE_OR_RETURN_VAL(miscManager != nullptr, nullptr);
+    singletonManager.SetMiscManager(miscManager);
+
+    auto systemParamManager = SystemParamManagerImpl::Create();
+    ENSURE_OR_RETURN_VAL(systemParamManager != nullptr, nullptr);
+    singletonManager.SetSystemParamManager(systemParamManager);
+
+    auto activeUserIdManager = IUserIdManager::Create();
+    ENSURE_OR_RETURN_VAL(activeUserIdManager != nullptr, nullptr);
+    singletonManager.SetActiveUserIdManager(activeUserIdManager);
+
+#ifndef ENABLE_TEST
+    auto securityAgent = SecurityAgentImpl::Create();
+    ENSURE_OR_RETURN_VAL(securityAgent != nullptr, nullptr);
+    singletonManager.SetSecurityAgent(securityAgent);
+#endif
 
     auto registry = IncomingMessageHandlerRegistry::Create();
     ENSURE_OR_RETURN_VAL(registry != nullptr, nullptr);
     singletonManager.SetIncomingMessageHandlerRegistry(registry);
+
+    return CreateExtend(registry);
+}
+
+std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner::CreateExtend(
+    const std::shared_ptr<IncomingMessageHandlerRegistry> &registry)
+{
+    auto &singletonManager = SingletonManager::GetInstance();
+
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
+
 #ifdef HAS_SOFT_BUS_CHANNEL
     auto softBusChannel = SoftBusChannel::Create();
     if (softBusChannel != nullptr) {
         channels.push_back(softBusChannel);
     }
 #endif
+
     auto crossDeviceCommManager = CrossDeviceCommManagerImpl::Create(channels);
     ENSURE_OR_RETURN_VAL(crossDeviceCommManager != nullptr, nullptr);
     singletonManager.SetCrossDeviceCommManager(crossDeviceCommManager);
@@ -184,9 +188,13 @@ std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner
 
     auto subscriptionManager = std::make_shared<SubscriptionManager>();
 
+#ifdef HAS_USER_AUTH_FRAMEWORK
     if (FwkCommManager::Create() == nullptr) {
         IAM_LOGE("failed to create FwkCommManager");
+        return nullptr;
     }
+#endif
+
     auto inner = std::shared_ptr<CompanionDeviceAuthServiceInner>(
         new (std::nothrow) CompanionDeviceAuthServiceInner(subscriptionManager));
     ENSURE_OR_RETURN_VAL(inner != nullptr, nullptr);
@@ -268,7 +276,7 @@ ResultCode CompanionDeviceAuthServiceInner::SubscribeContinuousAuthStatusChange(
         ENSURE_OR_RETURN_VAL(ret == ResultCode::SUCCESS, ResultCode::GENERAL_ERROR);
         if (!checkOutput.enrolled) {
             IAM_LOGE("templateId %{public}s not enrolled",
-                GET_TRUNCATED_STRING(subscribeContinuousAuthStatusParam.templateId).c_str());
+                GET_MASKED_NUM_CSTR(subscribeContinuousAuthStatusParam.templateId));
             return ResultCode::NOT_ENROLLED;
         }
         subscriptionTemplateId = subscribeContinuousAuthStatusParam.templateId;
@@ -300,13 +308,21 @@ ResultCode CompanionDeviceAuthServiceInner::UpdateTemplateEnabledBusinessIds(uin
     const std::vector<int32_t> &enabledBusinessIds)
 {
     IAM_LOGI("Start");
-    if (!GetMiscManager().CheckBusinessIds(enabledBusinessIds)) {
+
+    // Convert int32_t to BusinessId for internal APIs
+    std::vector<BusinessId> businessIdEnums;
+    businessIdEnums.reserve(enabledBusinessIds.size());
+    for (const auto &id : enabledBusinessIds) {
+        businessIdEnums.push_back(static_cast<BusinessId>(id));
+    }
+
+    if (!GetMiscManager().CheckBusinessIds(businessIdEnums)) {
         IAM_LOGE("CheckBusinessIds failed");
         return ResultCode::INVALID_BUSINESS_ID;
     }
 
-    ResultCode ret = GetCompanionManager().UpdateCompanionEnabledBusinessIds(static_cast<TemplateId>(templateId),
-        enabledBusinessIds);
+    ResultCode ret =
+        GetCompanionManager().UpdateCompanionEnabledBusinessIds(static_cast<TemplateId>(templateId), businessIdEnums);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("UpdateCompanionEnabledBusinessIds failed ret=%{public}d", ret);
         return ResultCode::GENERAL_ERROR;
@@ -325,9 +341,10 @@ ResultCode CompanionDeviceAuthServiceInner::GetTemplateStatus(int32_t localUserI
 
     for (const auto &status : companionStatusList) {
         if (status.hostUserId != localUserId) {
-            IAM_LOGD("localUserId mismatch");
+            IAM_LOGE("localUserId mismatch");
             continue;
         }
+
         IpcTemplateStatus ipcStatus;
         ipcStatus.templateId = status.templateId;
         ipcStatus.isConfirmed =
@@ -335,7 +352,10 @@ ResultCode CompanionDeviceAuthServiceInner::GetTemplateStatus(int32_t localUserI
         ipcStatus.isValid = status.isValid;
         ipcStatus.localUserId = status.hostUserId;
         ipcStatus.addedTime = status.addedTime;
-        ipcStatus.enabledBusinessIds = status.enabledBusinessIds;
+        ipcStatus.enabledBusinessIds.reserve(status.enabledBusinessIds.size());
+        for (const auto &id : status.enabledBusinessIds) {
+            ipcStatus.enabledBusinessIds.push_back(static_cast<int>(id));
+        }
 
         IpcDeviceStatus ipcDeviceStatus;
         ipcDeviceStatus.deviceKey.deviceIdType = static_cast<int32_t>(status.companionDeviceStatus.deviceKey.idType);
@@ -345,7 +365,10 @@ ResultCode CompanionDeviceAuthServiceInner::GetTemplateStatus(int32_t localUserI
         ipcDeviceStatus.deviceModelInfo = status.companionDeviceStatus.deviceModelInfo;
         ipcDeviceStatus.deviceName = status.companionDeviceStatus.deviceName;
         ipcDeviceStatus.isOnline = status.companionDeviceStatus.isOnline;
-        ipcDeviceStatus.supportedBusinessIds = status.companionDeviceStatus.supportedBusinessIds;
+        ipcDeviceStatus.supportedBusinessIds.reserve(status.companionDeviceStatus.supportedBusinessIds.size());
+        for (const auto &id : status.companionDeviceStatus.supportedBusinessIds) {
+            ipcDeviceStatus.supportedBusinessIds.push_back(static_cast<int>(id));
+        }
         ipcStatus.deviceStatus = ipcDeviceStatus;
 
         templateStatusArray.push_back(ipcStatus);
@@ -399,28 +422,47 @@ CompanionDeviceAuthService::CompanionDeviceAuthService() : SystemAbility(COMPANI
 {
 }
 
+bool CompanionDeviceAuthService::CheckPermission(int32_t &companionDeviceAuthResult)
+{
+    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
+        IAM_LOGE("check use user idm permission failed");
+        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+        return false;
+    }
+    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
+        IAM_LOGE("check is system app permission failed");
+        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
+        return false;
+    }
+    return true;
+}
+
 void CompanionDeviceAuthService::OnStart()
 {
     IAM_LOGI("Start");
-    if (!Publish(CompanionDeviceAuthService::GetInstance())) {
-        IAM_LOGE("fail to publish companion device auth service");
+    auto innerOpt =
+        RunOnResidentSync([]() { return CompanionDeviceAuthServiceInner::Create(); }, MAX_ON_START_WAIT_TIME_SEC);
+    if (!innerOpt.has_value() || innerOpt.value() == nullptr) {
+        IAM_LOGE("failed to create inner service");
         return;
     }
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner_ = innerOpt.value();
+    }
 
-    sptr<CompanionDeviceAuthService> self = this;
-    TaskRunnerManager::GetInstance().PostTaskOnResident([self]() {
-        auto inner = CompanionDeviceAuthServiceInner::Create();
-        if (inner == nullptr) {
-            IAM_LOGE("failed to create inner");
-            return;
-        }
-        self->inner_ = inner;
-    });
+    if (!Publish(CompanionDeviceAuthService::GetInstance())) {
+        IAM_LOGE("fail to publish companion device auth service");
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner_.reset();
+        return;
+    }
     IAM_LOGI("End");
 }
 
 void CompanionDeviceAuthService::OnStop()
 {
+    IAM_LOGE("OnStop called unexpectedly - this service should remain resident");
 }
 
 ErrCode CompanionDeviceAuthService::SubscribeAvailableDeviceStatus(int32_t localUserId,
@@ -428,21 +470,17 @@ ErrCode CompanionDeviceAuthService::SubscribeAvailableDeviceStatus(int32_t local
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
-    auto callbackCopy = deviceStatusCallback;
-    auto resultOpt = RunOnResidentSync([inner, localUserId, callbackCopy]() {
-        return inner->SubscribeAvailableDeviceStatus(localUserId, callbackCopy);
+    auto resultOpt = RunOnResidentSync([inner, localUserId, deviceStatusCallback]() {
+        return inner->SubscribeAvailableDeviceStatus(localUserId, deviceStatusCallback);
     });
     if (!resultOpt.has_value()) {
         IAM_LOGE("SubscribeAvailableDeviceStatus timeout");
@@ -458,21 +496,17 @@ ErrCode CompanionDeviceAuthService::UnsubscribeAvailableDeviceStatus(
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
-    auto callbackCopy = deviceStatusCallback;
-    auto resultOpt =
-        RunOnResidentSync([inner, callbackCopy]() { return inner->UnsubscribeAvailableDeviceStatus(callbackCopy); });
+    auto resultOpt = RunOnResidentSync(
+        [inner, deviceStatusCallback]() { return inner->UnsubscribeAvailableDeviceStatus(deviceStatusCallback); });
     if (!resultOpt.has_value()) {
         IAM_LOGE("UnsubscribeAvailableDeviceStatus timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -487,21 +521,17 @@ ErrCode CompanionDeviceAuthService::SubscribeTemplateStatusChange(int32_t localU
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
-    auto callbackCopy = templateStatusCallback;
-    auto resultOpt = RunOnResidentSync([inner, localUserId, callbackCopy]() {
-        return inner->SubscribeTemplateStatusChange(localUserId, callbackCopy);
+    auto resultOpt = RunOnResidentSync([inner, localUserId, templateStatusCallback]() {
+        return inner->SubscribeTemplateStatusChange(localUserId, templateStatusCallback);
     });
     if (!resultOpt.has_value()) {
         IAM_LOGE("SubscribeTemplateStatusChange timeout");
@@ -517,21 +547,17 @@ ErrCode CompanionDeviceAuthService::UnsubscribeTemplateStatusChange(
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
-    auto callbackCopy = templateStatusCallback;
-    auto resultOpt =
-        RunOnResidentSync([inner, callbackCopy]() { return inner->UnsubscribeTemplateStatusChange(callbackCopy); });
+    auto resultOpt = RunOnResidentSync(
+        [inner, templateStatusCallback]() { return inner->UnsubscribeTemplateStatusChange(templateStatusCallback); });
     if (!resultOpt.has_value()) {
         IAM_LOGE("UnsubscribeTemplateStatusChange timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -547,22 +573,18 @@ ErrCode CompanionDeviceAuthService::SubscribeContinuousAuthStatusChange(
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
-    auto paramCopy = subscribeContinuousAuthStatusParam;
-    auto callbackCopy = continuousAuthStatusCallback;
-    auto resultOpt = RunOnResidentSync([inner, paramCopy, callbackCopy]() {
-        return inner->SubscribeContinuousAuthStatusChange(paramCopy, callbackCopy);
+    auto resultOpt = RunOnResidentSync([inner, subscribeContinuousAuthStatusParam, continuousAuthStatusCallback]() {
+        return inner->SubscribeContinuousAuthStatusChange(subscribeContinuousAuthStatusParam,
+            continuousAuthStatusCallback);
     });
     if (!resultOpt.has_value()) {
         IAM_LOGE("SubscribeContinuousAuthStatusChange timeout");
@@ -578,21 +600,18 @@ ErrCode CompanionDeviceAuthService::UnsubscribeContinuousAuthStatusChange(
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
-    auto callbackCopy = continuousAuthStatusCallback;
-    auto resultOpt = RunOnResidentSync(
-        [inner, callbackCopy]() { return inner->UnsubscribeContinuousAuthStatusChange(callbackCopy); });
+    auto resultOpt = RunOnResidentSync([inner, continuousAuthStatusCallback]() {
+        return inner->UnsubscribeContinuousAuthStatusChange(continuousAuthStatusCallback);
+    });
     if (!resultOpt.has_value()) {
         IAM_LOGE("UnsubscribeContinuousAuthStatusChange timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -607,21 +626,17 @@ ErrCode CompanionDeviceAuthService::UpdateTemplateEnabledBusinessIds(uint64_t te
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
-    auto enabledIdsCopy = enabledBusinessIds;
-    auto resultOpt = RunOnResidentSync([inner, templateId, enabledIdsCopy]() {
-        return inner->UpdateTemplateEnabledBusinessIds(templateId, enabledIdsCopy);
+    auto resultOpt = RunOnResidentSync([inner, templateId, enabledBusinessIds]() {
+        return inner->UpdateTemplateEnabledBusinessIds(templateId, enabledBusinessIds);
     });
     if (!resultOpt.has_value()) {
         IAM_LOGE("UpdateTemplateEnabledBusinessIds timeout");
@@ -637,17 +652,14 @@ ErrCode CompanionDeviceAuthService::GetTemplateStatus(int32_t localUserId,
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
     auto resultPair = RunOnResidentSync([inner, localUserId]() {
         std::vector<IpcTemplateStatus> array;
@@ -669,22 +681,19 @@ ErrCode CompanionDeviceAuthService::RegisterDeviceSelectCallback(
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
     uint32_t tokenId = GetAccessTokenKitAdapter().GetAccessTokenId(*this);
-    auto callbackCopy = deviceSelectCallback;
-    auto resultOpt = RunOnResidentSync(
-        [inner, callbackCopy, tokenId]() { return inner->RegisterDeviceSelectCallback(tokenId, callbackCopy); });
+    auto resultOpt = RunOnResidentSync([inner, deviceSelectCallback, tokenId]() {
+        return inner->RegisterDeviceSelectCallback(tokenId, deviceSelectCallback);
+    });
     if (!resultOpt.has_value()) {
         IAM_LOGE("RegisterDeviceSelectCallback timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -698,17 +707,14 @@ ErrCode CompanionDeviceAuthService::UnregisterDeviceSelectCallback(int32_t &comp
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
     uint32_t tokenId = GetAccessTokenKitAdapter().GetAccessTokenId(*this);
     auto resultOpt = RunOnResidentSync([inner, tokenId]() { return inner->UnregisterDeviceSelectCallback(tokenId); });
@@ -726,17 +732,14 @@ ErrCode CompanionDeviceAuthService::CheckLocalUserIdValid(int32_t localUserId, b
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!GetAccessTokenKitAdapter().CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
+    if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
     }
-    if (!GetAccessTokenKitAdapter().CheckSystemPermission(*this)) {
-        IAM_LOGE("check is system app permission failed");
-        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED);
-        return ERR_OK;
+    std::shared_ptr<CompanionDeviceAuthServiceInner> inner;
+    {
+        std::lock_guard<std::mutex> lock(innerMutex_);
+        inner = inner_;
     }
-    auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
     auto resultOpt = RunOnResidentSync([inner, localUserId]() { return inner->CheckLocalUserIdValid(localUserId); });
     if (!resultOpt.has_value()) {
@@ -763,7 +766,8 @@ int32_t CompanionDeviceAuthService::CallbackExit(uint32_t code, int32_t result)
 }
 
 template <typename Func>
-std::optional<typename std::invoke_result<Func>::type> CompanionDeviceAuthService::RunOnResidentSync(Func &&func)
+std::optional<typename std::invoke_result<Func>::type> CompanionDeviceAuthService::RunOnResidentSync(Func &&func,
+    uint32_t timeoutSec)
 {
     using Ret = typename std::invoke_result<Func>::type;
 
@@ -778,13 +782,13 @@ std::optional<typename std::invoke_result<Func>::type> CompanionDeviceAuthServic
     TaskRunnerManager::GetInstance().PostTaskOnResident([task = std::forward<Func>(func), promise]() mutable {
         try {
             promise->set_value(task());
-        } catch (const std::future_error &e) {
-            IAM_LOGE("RunOnResidentSync promise set_value error: %{public}s", e.what());
+        } catch (...) {
+            IAM_LOGE("RunOnResidentSync task exception");
         }
     });
 
-    if (future.wait_for(std::chrono::seconds(MAX_SYNC_WAIT_TIME_SEC)) != std::future_status::ready) {
-        IAM_LOGE("RunOnResidentSync timeout - task not completed in 1 second");
+    if (future.wait_for(std::chrono::seconds(timeoutSec)) != std::future_status::ready) {
+        IAM_LOGE("RunOnResidentSync timeout - task not completed in %{public}u second", timeoutSec);
         return std::nullopt;
     }
 

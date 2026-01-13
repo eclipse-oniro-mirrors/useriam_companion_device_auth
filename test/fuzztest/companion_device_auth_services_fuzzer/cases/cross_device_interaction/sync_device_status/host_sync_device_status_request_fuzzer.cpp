@@ -23,23 +23,26 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_sync_device_status_request.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<HostSyncDeviceStatusRequest> &, FuzzedDataProvider &);
+using HostSyncDeviceStatusRequestFuzzFunction = void (*)(std::shared_ptr<HostSyncDeviceStatusRequest> &,
+    FuzzedDataProvider &);
 
 static void FuzzOp0(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetMaxConcurrency
     (void)request->GetMaxConcurrency();
 }
 
 static void FuzzOp1(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test ShouldCancelOnNewRequest
     RequestType newRequestType = static_cast<RequestType>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, 20));
     std::optional<DeviceKey> newPeerDevice;
@@ -52,18 +55,21 @@ static void FuzzOp1(std::shared_ptr<HostSyncDeviceStatusRequest> &request, Fuzze
 
 static void FuzzOp2(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test OnConnected
     request->OnConnected();
 }
 
 static void FuzzOp3(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetWeakPtr
     (void)request->GetWeakPtr();
 }
 
 static void FuzzOp4(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test CompleteWithError
     ResultCode result = GenerateFuzzResultCode(fuzzData);
     request->CompleteWithError(result);
@@ -71,12 +77,14 @@ static void FuzzOp4(std::shared_ptr<HostSyncDeviceStatusRequest> &request, Fuzze
 
 static void FuzzOp5(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test BeginCompanionCheck (protected method)
     request->BeginCompanionCheck();
 }
 
 static void FuzzOp6(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SendSyncDeviceStatusRequest (protected method)
     uint32_t saltSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_SALT_LENGTH);
     std::vector<uint8_t> salt = fuzzData.ConsumeBytes<uint8_t>(saltSize);
@@ -86,6 +94,7 @@ static void FuzzOp6(std::shared_ptr<HostSyncDeviceStatusRequest> &request, Fuzze
 
 static void FuzzOp7(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test HandleSyncDeviceStatusReply (protected method)
     Attributes reply = GenerateFuzzAttributes(fuzzData);
     request->HandleSyncDeviceStatusReply(reply);
@@ -93,20 +102,22 @@ static void FuzzOp7(std::shared_ptr<HostSyncDeviceStatusRequest> &request, Fuzze
 
 static void FuzzOp8(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test NeedBeginCompanionCheck (protected method)
     (void)request->NeedBeginCompanionCheck();
 }
 
 static void FuzzOp9(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Cancel (base method)
     ResultCode resultCode = GenerateFuzzResultCode(fuzzData);
     (void)request->Cancel(resultCode);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7,
-    FuzzOp8, FuzzOp9 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const HostSyncDeviceStatusRequestFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4,
+    FuzzOp5, FuzzOp6, FuzzOp7, FuzzOp8, FuzzOp9 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostSyncDeviceStatusRequestFuzzFunction);
 
 void FuzzHostSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
 {
@@ -136,5 +147,8 @@ void FuzzHostSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(HostSyncDeviceStatusRequest)
+
 } // namespace UserIam
 } // namespace OHOS

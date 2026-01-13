@@ -75,14 +75,12 @@ public:
         ENSURE_OR_RETURN(obj != nullptr);
 
         sptr<IRemoteObject::DeathRecipient> deathRecipient =
-            CallbackDeathRecipient::Register(obj, [weakSelf = GetWeakPtr(), callback, deathHandler = deathHandler_]() {
-                IAM_LOGI("callback died, remove callback");
-                auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
-                self->RemoveCallback(callback);
-                if (deathHandler) {
+            CallbackDeathRecipient::Register(obj, [callback, deathHandler = deathHandler_]() {
+                IAM_LOGI("callback died, schedule remove callback");
+                TaskRunnerManager::GetInstance().PostTaskOnResident([callback, deathHandler]() {
+                    ENSURE_OR_RETURN(deathHandler != nullptr);
                     deathHandler(callback);
-                }
+                });
             });
         ENSURE_OR_RETURN(deathRecipient != nullptr);
         callbacks_.push_back(callback);
@@ -96,8 +94,9 @@ public:
         ENSURE_OR_RETURN(callback != nullptr);
 
         auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
-            [&callback](const sptr<CallbackType> &item) { return IsCallbackSame(callback, callback); });
+            [&callback](const sptr<CallbackType> &item) { return IsCallbackSame(item, callback); });
         if (it != callbacks_.end()) {
+            IAM_LOGI("Callback removed");
             callbacks_.erase(it);
         }
     }
@@ -112,7 +111,7 @@ public:
 
     virtual void OnCallbackAdded(const sptr<CallbackType> &callback) = 0;
 
-    virtual void OnCallbackRemoteDied(const sptr<CallbackType> &callback) {};
+    virtual void OnCallbackRemoteDied(const sptr<CallbackType> &callback) = 0;
 
 #ifndef ENABLE_TEST
 protected:

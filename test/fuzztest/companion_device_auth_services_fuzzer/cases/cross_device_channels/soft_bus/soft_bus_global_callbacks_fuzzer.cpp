@@ -21,7 +21,7 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "soft_bus_connection_manager.h"
 #include "soft_bus_global_callbacks.h"
 
@@ -29,10 +29,11 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(SoftBusConnectionManager *manager, FuzzedDataProvider &);
+using SoftBusGlobalCallbacksFuzzFunction = void (*)(SoftBusConnectionManager *manager, FuzzedDataProvider &);
 
 static void FuzzOp0(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzData)
 {
+    (void)manager;
     // Test SoftBusOnBind
     int32_t socket = fuzzData.ConsumeIntegral<int32_t>();
     PeerSocketInfo info;
@@ -45,6 +46,7 @@ static void FuzzOp0(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzD
 
 static void FuzzOp1(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzData)
 {
+    (void)manager;
     // Test SoftBusOnShutdown
     int32_t socket = fuzzData.ConsumeIntegral<int32_t>();
     ShutdownReason reason = static_cast<ShutdownReason>(fuzzData.ConsumeIntegral<int32_t>());
@@ -53,6 +55,7 @@ static void FuzzOp1(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzD
 
 static void FuzzOp2(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzData)
 {
+    (void)manager;
     // Test SoftBusOnBytes
     int32_t socket = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t dataLen = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
@@ -62,6 +65,7 @@ static void FuzzOp2(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzD
 
 static void FuzzOp3(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzData)
 {
+    (void)manager;
     // Test SoftBusOnError
     int32_t socket = fuzzData.ConsumeIntegral<int32_t>();
     int32_t errCode = fuzzData.ConsumeIntegral<int32_t>();
@@ -70,6 +74,7 @@ static void FuzzOp3(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzD
 
 static void FuzzOp4(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzData)
 {
+    (void)manager;
     // Test SoftBusOnNegotiate
     int32_t socket = fuzzData.ConsumeIntegral<int32_t>();
     PeerSocketInfo info;
@@ -88,8 +93,9 @@ static void FuzzOp5(SoftBusConnectionManager *manager, FuzzedDataProvider &fuzzD
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const SoftBusGlobalCallbacksFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4,
+    FuzzOp5 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SoftBusGlobalCallbacksFuzzFunction);
 
 void FuzzSoftBusGlobalCallbacks(FuzzedDataProvider &fuzzData)
 {
@@ -113,5 +119,8 @@ void FuzzSoftBusGlobalCallbacks(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SoftBusGlobalCallbacks)
+
 } // namespace UserIam
 } // namespace OHOS

@@ -17,16 +17,21 @@
 
 #include <cstdlib>
 
-#include "device_manager_adapter_impl.h"
-
 #include "iam_check.h"
 #include "iam_logger.h"
 
-#include "access_token_kit_adapter_impl.h"
+#include "common_defines.h"
+
+#ifdef HAS_USER_AUTH_FRAMEWORK
 #include "driver_manager_adapter_impl.h"
-#include "sa_manager_adapter_impl.h"
-#include "soft_bus_adapter_impl.h"
 #include "user_auth_adapter_impl.h"
+#endif
+
+#include "access_token_kit_adapter_impl.h"
+#include "sa_manager_adapter_impl.h"
+
+#include "driver_manager_adapter.h"
+#include "user_auth_adapter.h"
 
 #undef LOG_DOMAIN
 #define LOG_DOMAIN 0xD002510
@@ -37,6 +42,38 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+class UserAuthAdapterDummy : public IUserAuthAdapter {
+public:
+    UserAuthAdapterDummy() = default;
+    ~UserAuthAdapterDummy() override = default;
+
+    uint64_t BeginDelegateAuth(uint32_t userId, const std::vector<uint8_t> &challenge, uint32_t authTrustLevel,
+        AuthResultCallback callback) override
+    {
+        IAM_LOGE("UserAuth framework is not supported, BeginDelegateAuth will fail");
+        callback(ResultCode::GENERAL_ERROR, {});
+        return 0;
+    }
+
+    int32_t CancelAuthentication(uint64_t contextId) override
+    {
+        IAM_LOGE("UserAuth framework is not supported, CancelAuthentication will fail");
+        return ResultCode::GENERAL_ERROR;
+    }
+};
+
+class DriverManagerAdapterDummy : public IDriverManagerAdapter {
+public:
+    DriverManagerAdapterDummy() = default;
+    ~DriverManagerAdapterDummy() override = default;
+
+    bool Start(std::shared_ptr<CompanionDeviceAuthDriver> driver) override
+    {
+        IAM_LOGE("DriverManager framework is not supported, Start will fail");
+        return false;
+    }
+};
+
 AdapterManager &AdapterManager::GetInstance()
 {
     static AdapterManager instance;
@@ -45,76 +82,37 @@ AdapterManager &AdapterManager::GetInstance()
 
 bool AdapterManager::CreateAndRegisterAllAdapters()
 {
-    IAM_LOGI("Starting to create and register all adapters");
+    IAM_LOGI("Starting to create and register general adapters");
 
     auto saManagerAdapter = std::make_shared<SaManagerAdapterImpl>();
     ENSURE_OR_RETURN_VAL(saManagerAdapter != nullptr, false);
     SetSaManagerAdapter(saManagerAdapter);
 
-    auto deviceManagerAdapter = DeviceManagerAdapterImpl::Create();
-    ENSURE_OR_RETURN_VAL(deviceManagerAdapter != nullptr, false);
-    SetDeviceManagerAdapter(deviceManagerAdapter);
-
-    auto softBusAdapter = std::make_shared<SoftBusAdapterImpl>();
-    ENSURE_OR_RETURN_VAL(softBusAdapter != nullptr, false);
-    SetSoftBusAdapter(softBusAdapter);
-
-    auto userAuthAdapter = std::make_shared<UserAuthAdapterImpl>();
-    ENSURE_OR_RETURN_VAL(userAuthAdapter != nullptr, false);
-    SetUserAuthAdapter(userAuthAdapter);
-
-    auto driverManagerAdapter = std::make_shared<DriverManagerAdapterImpl>();
-    ENSURE_OR_RETURN_VAL(driverManagerAdapter != nullptr, false);
-    SetDriverManagerAdapter(driverManagerAdapter);
-
     auto accessTokenKitAdapter = std::make_shared<AccessTokenKitAdapterImpl>();
     ENSURE_OR_RETURN_VAL(accessTokenKitAdapter != nullptr, false);
     SetAccessTokenKitAdapter(accessTokenKitAdapter);
 
-    IAM_LOGI("All adapters created and registered successfully");
+#ifdef HAS_USER_AUTH_FRAMEWORK
+    // UserAuthAdapter
+    auto userAuthAdapter = std::make_shared<UserAuthAdapterImpl>();
+    ENSURE_OR_RETURN_VAL(userAuthAdapter != nullptr, false);
+    SetUserAuthAdapter(userAuthAdapter);
+
+    // DriverManagerAdapter
+    auto driverManagerAdapter = std::make_shared<DriverManagerAdapterImpl>();
+    ENSURE_OR_RETURN_VAL(driverManagerAdapter != nullptr, false);
+    SetDriverManagerAdapter(driverManagerAdapter);
+#else
+    // Dummy implementations
+    auto userAuthAdapter = std::make_shared<UserAuthAdapterDummy>();
+    SetUserAuthAdapter(userAuthAdapter);
+
+    auto driverManagerAdapter = std::make_shared<DriverManagerAdapterDummy>();
+    SetDriverManagerAdapter(driverManagerAdapter);
+#endif
+
+    IAM_LOGI("General adapters created and registered successfully");
     return true;
-}
-
-IDeviceManagerAdapter &AdapterManager::GetDeviceManagerAdapter()
-{
-    if (deviceManagerAdapter_ == nullptr) {
-        IAM_LOGE("DeviceManager adapter is not initialized");
-        AbortIfAdapterUninitialized("DeviceManager");
-    }
-    return *deviceManagerAdapter_;
-}
-
-void AdapterManager::SetDeviceManagerAdapter(std::shared_ptr<IDeviceManagerAdapter> adapter)
-{
-    deviceManagerAdapter_ = adapter;
-}
-
-ISoftBusAdapter &AdapterManager::GetSoftBusAdapter()
-{
-    if (softBusAdapter_ == nullptr) {
-        IAM_LOGE("SoftBus adapter is not initialized");
-        AbortIfAdapterUninitialized("SoftBus");
-    }
-    return *softBusAdapter_;
-}
-
-void AdapterManager::SetSoftBusAdapter(std::shared_ptr<ISoftBusAdapter> adapter)
-{
-    softBusAdapter_ = adapter;
-}
-
-IAccessTokenKitAdapter &AdapterManager::GetAccessTokenKitAdapter()
-{
-    if (accessTokenKitAdapter_ == nullptr) {
-        IAM_LOGE("AccessTokenKit adapter is not initialized");
-        AbortIfAdapterUninitialized("AccessTokenKit");
-    }
-    return *accessTokenKitAdapter_;
-}
-
-void AdapterManager::SetAccessTokenKitAdapter(std::shared_ptr<IAccessTokenKitAdapter> adapter)
-{
-    accessTokenKitAdapter_ = adapter;
 }
 
 IUserAuthAdapter &AdapterManager::GetUserAuthAdapter()
@@ -129,6 +127,20 @@ IUserAuthAdapter &AdapterManager::GetUserAuthAdapter()
 void AdapterManager::SetUserAuthAdapter(std::shared_ptr<IUserAuthAdapter> adapter)
 {
     userAuthAdapter_ = adapter;
+}
+
+IAccessTokenKitAdapter &AdapterManager::GetAccessTokenKitAdapter()
+{
+    if (accessTokenKitAdapter_ == nullptr) {
+        IAM_LOGE("AccessTokenKit adapter is not initialized");
+        AbortIfAdapterUninitialized("AccessTokenKit");
+    }
+    return *accessTokenKitAdapter_;
+}
+
+void AdapterManager::SetAccessTokenKitAdapter(std::shared_ptr<IAccessTokenKitAdapter> adapter)
+{
+    accessTokenKitAdapter_ = adapter;
 }
 
 IDriverManagerAdapter &AdapterManager::GetDriverManagerAdapter()
@@ -168,10 +180,8 @@ void AdapterManager::AbortIfAdapterUninitialized(const char *adapterName)
 #ifdef ENABLE_TEST
 void AdapterManager::Reset()
 {
-    deviceManagerAdapter_ = nullptr;
-    softBusAdapter_ = nullptr;
-    accessTokenKitAdapter_ = nullptr;
     userAuthAdapter_ = nullptr;
+    accessTokenKitAdapter_ = nullptr;
     driverManagerAdapter_ = nullptr;
     saManagerAdapter_ = nullptr;
 }

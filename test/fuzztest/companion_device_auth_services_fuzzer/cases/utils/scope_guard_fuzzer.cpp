@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "scope_guard.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<ScopeGuard> &guard, FuzzedDataProvider &fuzzData);
+using ScopeGuardFuzzFunction = void (*)(std::shared_ptr<ScopeGuard> &guard, FuzzedDataProvider &fuzzData);
 
 static void FuzzCancel(std::shared_ptr<ScopeGuard> &guard, FuzzedDataProvider &fuzzData)
 {
@@ -46,12 +46,12 @@ static void FuzzCreate(std::shared_ptr<ScopeGuard> &guard, FuzzedDataProvider &f
     (void)newGuard;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ScopeGuardFuzzFunction g_fuzzFuncs[] = {
     FuzzCancel,
     FuzzCreate,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ScopeGuardFuzzFunction);
 
 void FuzzScopeGuard(FuzzedDataProvider &fuzzData)
 {
@@ -75,5 +75,8 @@ void FuzzScopeGuard(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ScopeGuard)
+
 } // namespace UserIam
 } // namespace OHOS

@@ -165,10 +165,6 @@ HWTEST_F(OutboundRequestTest, OnStart_003, TestSize.Level0)
 {
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _))
-        .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, MessageType::REQUEST_ABORTED, _))
-        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(mockCrossDeviceCommManager_, OpenConnection(_, _)).WillOnce(Return(false));
 
     ResultCode errorCode = ResultCode::SUCCESS;

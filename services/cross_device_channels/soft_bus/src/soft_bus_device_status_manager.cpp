@@ -7,6 +7,7 @@
 #include "soft_bus_device_status_manager.h"
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstring>
 #include <map>
 
@@ -19,10 +20,10 @@
 #include "iam_para2str.h"
 #include "iam_ptr.h"
 
-#include "adapter_manager.h"
 #include "sa_status_listener.h"
 #include "service_common.h"
 #include "singleton_manager.h"
+#include "soft_bus_adapter_manager.h"
 #include "soft_bus_channel_common.h"
 #include "task_runner_manager.h"
 
@@ -111,18 +112,21 @@ public:
 
     void OnDeviceOffline(const DmDeviceBasicInfo &deviceBasicInfo) override
     {
+        (void)deviceBasicInfo;
         IAM_LOGI("receive device offline event");
         RefreshDeviceStatus();
     }
 
     void OnDeviceChanged(const DmDeviceBasicInfo &deviceBasicInfo) override
     {
+        (void)deviceBasicInfo;
         IAM_LOGI("receive device changed event");
         RefreshDeviceStatus();
     }
 
     void OnDeviceReady(const DmDeviceBasicInfo &deviceBasicInfo) override
     {
+        (void)deviceBasicInfo;
         IAM_LOGI("receive device ready event");
         RefreshDeviceStatus();
     }
@@ -354,10 +358,10 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribePhysicalDevic
 {
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
-    int32_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
     physicalDeviceStatusSubscribers_[subscriptionId] = std::move(callback);
 
-    IAM_LOGI("physical device status subscription added: %{public}d", subscriptionId);
+    IAM_LOGI("physical device status subscription added: %{public}" PRIu64, subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -367,10 +371,10 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribePhysicalDevic
     });
 }
 
-void SoftBusDeviceStatusManager::UnsubscribePhysicalDeviceStatus(int32_t subscriptionId)
+void SoftBusDeviceStatusManager::UnsubscribePhysicalDeviceStatus(SubscribeId subscriptionId)
 {
     physicalDeviceStatusSubscribers_.erase(subscriptionId);
-    IAM_LOGI("physical device status subscription removed: %{public}d", subscriptionId);
+    IAM_LOGI("physical device status subscription removed: %{public}" PRIu64, subscriptionId);
 }
 
 std::vector<PhysicalDeviceStatus> SoftBusDeviceStatusManager::GetAllPhysicalDevices() const
@@ -383,10 +387,10 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribeAuthMaintainA
 {
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
-    int32_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
     authMaintainActiveSubscribers_[subscriptionId] = std::move(callback);
 
-    IAM_LOGI("auth maintain active subscription added: %{public}d", subscriptionId);
+    IAM_LOGI("auth maintain active subscription added: %{public}" PRIu64, subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -396,10 +400,10 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribeAuthMaintainA
     });
 }
 
-void SoftBusDeviceStatusManager::UnsubscribeAuthMaintainActive(int32_t subscriptionId)
+void SoftBusDeviceStatusManager::UnsubscribeAuthMaintainActive(SubscribeId subscriptionId)
 {
     authMaintainActiveSubscribers_.erase(subscriptionId);
-    IAM_LOGI("auth maintain active subscription removed: %{public}d", subscriptionId);
+    IAM_LOGI("auth maintain active subscription removed: %{public}" PRIu64, subscriptionId);
 }
 
 std::optional<PhysicalDeviceStatus> SoftBusDeviceStatusManager::GetPhysicalDeviceStatus(const PhysicalDeviceKey &key)

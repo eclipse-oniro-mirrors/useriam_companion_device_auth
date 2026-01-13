@@ -21,14 +21,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_pre_obtain_token_handler.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<HostPreObtainTokenHandler> &handler, FuzzedDataProvider &fuzzData);
+using HostPreObtainTokenHandlerFuzzFunction = void (*)(std::shared_ptr<HostPreObtainTokenHandler> &handler,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMessageType(std::shared_ptr<HostPreObtainTokenHandler> &handler, FuzzedDataProvider &fuzzData)
 {
@@ -111,10 +112,11 @@ static void FuzzHandleIncomingMessageWithNullCallback(std::shared_ptr<HostPreObt
     handler->HandleIncomingMessage(request, onMessageReply);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzGetMessageType, FuzzRegister, FuzzHandleIncomingMessage,
-    FuzzHandleRequest, FuzzHandleRequestWithEmptyAttrs, FuzzHandleRequestWithLargeAttrs, FuzzMultipleHandleRequests,
-    FuzzCreateNewHandler, FuzzGetMessageTypeMultiple, FuzzHandleIncomingMessageWithNullCallback };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const HostPreObtainTokenHandlerFuzzFunction g_fuzzFuncs[] = { FuzzGetMessageType, FuzzRegister,
+    FuzzHandleIncomingMessage, FuzzHandleRequest, FuzzHandleRequestWithEmptyAttrs, FuzzHandleRequestWithLargeAttrs,
+    FuzzMultipleHandleRequests, FuzzCreateNewHandler, FuzzGetMessageTypeMultiple,
+    FuzzHandleIncomingMessageWithNullCallback };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostPreObtainTokenHandlerFuzzFunction);
 
 void FuzzHostPreObtainTokenHandler(FuzzedDataProvider &fuzzData)
 {
@@ -139,5 +141,8 @@ void FuzzHostPreObtainTokenHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(HostPreObtainTokenHandler)
+
 } // namespace UserIam
 } // namespace OHOS

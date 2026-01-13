@@ -22,14 +22,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_revoke_token_handler.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<HostRevokeTokenHandler> &handler, FuzzedDataProvider &fuzzData);
+using SyncIncomingMessageHandlerFuzzFunction = void (*)(std::shared_ptr<HostRevokeTokenHandler> &handler,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMessageType(std::shared_ptr<HostRevokeTokenHandler> &handler, FuzzedDataProvider &fuzzData)
 {
@@ -78,7 +79,7 @@ static void FuzzMultipleHandleIncomingMessages(std::shared_ptr<HostRevokeTokenHa
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const SyncIncomingMessageHandlerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMessageType,
     FuzzRegister,
     FuzzHandleIncomingMessage,
@@ -87,7 +88,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzMultipleHandleIncomingMessages,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SyncIncomingMessageHandlerFuzzFunction);
 
 void FuzzSyncIncomingMessageHandler(FuzzedDataProvider &fuzzData)
 {
@@ -109,5 +110,8 @@ void FuzzSyncIncomingMessageHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SyncIncomingMessageHandler)
+
 } // namespace UserIam
 } // namespace OHOS

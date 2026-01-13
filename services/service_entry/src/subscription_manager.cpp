@@ -15,7 +15,6 @@
 
 #include "subscription_manager.h"
 
-#include <algorithm>
 #include <map>
 #include <memory>
 #include <utility>
@@ -51,11 +50,10 @@ std::shared_ptr<AvailableDeviceSubscription> SubscriptionManager::GetOrCreateAva
     }
     availableDeviceSubscriptions_[userId] = subscription;
     subscription->SetDeathHandler(
-        [this, userId, subscription](const sptr<IIpcAvailableDeviceStatusCallback> &callback) {
-            if (!subscription->HasCallback()) {
-                availableDeviceSubscriptions_.erase(userId);
-                UpdateSubscribeMode();
-            }
+        [weakThis = weak_from_this()](const sptr<IIpcAvailableDeviceStatusCallback> &callback) {
+            auto self = weakThis.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->RemoveAvailableDeviceStatusCallback(callback);
         });
     return subscription;
 }
@@ -73,11 +71,10 @@ std::shared_ptr<TemplateStatusSubscription> SubscriptionManager::GetOrCreateTemp
         return nullptr;
     }
     templateStatusSubscriptions_[userId] = subscription;
-    subscription->SetDeathHandler([this, userId, subscription](const sptr<IIpcTemplateStatusCallback> &callback) {
-        if (!subscription->HasCallback()) {
-            templateStatusSubscriptions_.erase(userId);
-            UpdateSubscribeMode();
-        }
+    subscription->SetDeathHandler([weakThis = weak_from_this()](const sptr<IIpcTemplateStatusCallback> &callback) {
+        auto self = weakThis.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        self->RemoveTemplateStatusCallback(callback);
     });
     return subscription;
 }
@@ -93,11 +90,12 @@ std::shared_ptr<ContinuousAuthSubscription> SubscriptionManager::GetOrCreateCont
 
     auto subscription = std::make_shared<ContinuousAuthSubscription>(userId, templateId, weak_from_this());
     continuousAuthSubscriptions_[key] = subscription;
-    subscription->SetDeathHandler([this, key, subscription](const sptr<IIpcContinuousAuthStatusCallback> &callback) {
-        if (!subscription->HasCallback()) {
-            continuousAuthSubscriptions_.erase(key);
-        }
-    });
+    subscription->SetDeathHandler(
+        [weakThis = weak_from_this()](const sptr<IIpcContinuousAuthStatusCallback> &callback) {
+            auto self = weakThis.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->RemoveContinuousAuthStatusCallback(callback);
+        });
     return subscription;
 }
 

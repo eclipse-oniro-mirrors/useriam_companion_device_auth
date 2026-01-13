@@ -16,7 +16,10 @@
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     DataArray1024Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostEndAddCompanionInputFfi,
-    HostGetInitKeyNegotiationInputFfi, PersistedCompanionStatusFfi
+    HostGetInitKeyNegotiationInputFfi, PersistedCompanionStatusFfi,
+    HostBeginCompanionCheckOutputFfi, HostEndCompanionCheckOutputFfi,
+    HostGetInitKeyNegotiationOutputFfi, HostBeginAddCompanionOutputFfi,
+    HostEndAddCompanionOutputFfi,
 };
 use crate::log_i;
 use crate::request::enroll::enroll_message::{SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply};
@@ -24,7 +27,7 @@ use crate::request::enroll::host_enroll::{HostDeviceEnrollRequest, KeyNegotialPa
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk, DeviceKey};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
-use crate::traits::host_request_manager::{HostRequest, HostRequestInput};
+use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
@@ -131,18 +134,10 @@ fn host_enroll_request_prepare_test_wrong_input_type() {
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
-    let wrong_input = HostBeginAddCompanionInputFfi {
-        request_id: 1,
-        schedule_id: 1,
-        host_device_key: DeviceKeyFfi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        fwk_message: DataArray1024Ffi::default(),
-        secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
-    };
-
-    let result = request.prepare(HostRequestInput::EnrollBegin(wrong_input));
-    assert_eq!(result, Err(ErrorCode::BadParam));
+    let mut output = HostGetInitKeyNegotiationOutputFfi::default();
+    let param = HostRequestParam::KeyNego(&input, &mut output);
+    let result = request.prepare(param);
+    assert!(result.is_ok());
 }
 
 #[test]
@@ -161,7 +156,9 @@ fn host_enroll_request_prepare_test_secure_protocol_id_try_from_fail() {
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::KeyNego(input));
+    let mut output = HostGetInitKeyNegotiationOutputFfi::default();
+    let param = HostRequestParam::KeyNego(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -181,7 +178,9 @@ fn host_enroll_request_prepare_test_secure_protocol_id_invalid() {
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::KeyNego(input));
+    let mut output = HostGetInitKeyNegotiationOutputFfi::default();
+    let param = HostRequestParam::KeyNego(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -190,8 +189,16 @@ fn host_enroll_request_begin_test_wrong_input_type() {
     let _guard = ut_registry_guard!();
     log_i!("host_enroll_request_begin_test_wrong_input_type start");
 
+    mock_set_misc_manager();
+
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
+    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Ok(AesGcmResult { ciphertext: Vec::new(), authentication_tag: [0u8; 16] }));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = HostGetInitKeyNegotiationInputFfi {
@@ -200,11 +207,23 @@ fn host_enroll_request_begin_test_wrong_input_type() {
     };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
-    
-    let wrong_input = HostEndAddCompanionInputFfi::default();
 
-    let result = request.begin(HostRequestInput::EnrollEnd(wrong_input));
-    assert_eq!(result, Err(ErrorCode::BadParam));
+    let fwk_message = create_valid_fwk_enroll_message(1, AuthTrustLevel::Atl2 as i32);
+    let sec_message = create_valid_key_nego_reply(0);
+    let begin_input = HostBeginAddCompanionInputFfi {
+        request_id: 1,
+        schedule_id: 1,
+        host_device_key: DeviceKeyFfi::default(),
+        companion_device_key: DeviceKeyFfi::default(),
+        fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
+    assert!(result.is_ok());
 }
 
 #[test]
@@ -238,7 +257,9 @@ fn host_enroll_request_begin_test_schedule_id_mismatch() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(HostRequestInput::EnrollBegin(begin_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -273,7 +294,9 @@ fn host_enroll_request_begin_test_atl_try_from_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(HostRequestInput::EnrollBegin(begin_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -308,7 +331,9 @@ fn host_enroll_request_begin_test_secure_protocol_id_try_from_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(HostRequestInput::EnrollBegin(begin_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -343,7 +368,9 @@ fn host_enroll_request_begin_test_secure_protocol_id_invalid() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(HostRequestInput::EnrollBegin(begin_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -378,7 +405,9 @@ fn host_enroll_request_begin_test_sec_message_decode_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(HostRequestInput::EnrollBegin(begin_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -416,7 +445,9 @@ fn host_enroll_request_begin_test_generate_key_pair_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::EnrollBegin(begin_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -455,7 +486,9 @@ fn host_enroll_request_begin_test_x25519_ecdh_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::EnrollBegin(begin_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -495,7 +528,9 @@ fn host_enroll_request_begin_test_hkdf_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::EnrollBegin(begin_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -536,7 +571,9 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::EnrollBegin(begin_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -566,7 +603,9 @@ fn host_enroll_request_end_test_wrong_input_type() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::EnrollBegin(wrong_input));
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollBegin(&wrong_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -594,7 +633,9 @@ fn host_enroll_request_end_test_sec_message_decode_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -625,7 +666,9 @@ fn host_enroll_request_end_test_hkdf_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -657,7 +700,9 @@ fn host_enroll_request_end_test_decrypt_sec_message_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -686,7 +731,9 @@ fn host_enroll_request_end_test_device_id_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -715,7 +762,9 @@ fn host_enroll_request_end_test_user_id_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -744,7 +793,9 @@ fn host_enroll_request_end_test_protocal_list_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -773,7 +824,9 @@ fn host_enroll_request_end_test_capability_list_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -810,7 +863,9 @@ fn host_enroll_request_end_test_secure_random_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -848,7 +903,9 @@ fn host_enroll_request_end_test_get_rtc_time_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -884,7 +941,9 @@ fn host_enroll_request_end_test_add_device_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -921,7 +980,9 @@ fn host_enroll_request_end_test_add_token_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -962,7 +1023,9 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1001,7 +1064,9 @@ fn host_enroll_request_end_test_get_session_key_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -1050,6 +1115,8 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::EnrollEnd(end_input));
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

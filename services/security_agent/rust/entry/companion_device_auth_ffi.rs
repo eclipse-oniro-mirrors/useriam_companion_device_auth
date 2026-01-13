@@ -30,7 +30,7 @@ pub const MAX_DATA_LEN_128: usize = 128;
 pub const MAX_DATA_LEN_256: usize = 256;
 pub const MAX_DATA_LEN_1024: usize = 1024;
 pub const MAX_STRUCT_SIZE_FFI: usize = 409600;
-pub const AUTH_TOKEN_SIZE_FFI: usize = 280;
+pub const AUTH_TOKEN_SIZE_FFI: usize = 256;
 pub const PROPERTY_MODE_FREEZE: u32 = 5;
 pub const PROPERTY_MODE_UNFREEZE: u32 = 6;
 
@@ -329,7 +329,7 @@ pub struct HostBeginCompanionCheckInputFfi {
 assert_max_size!(HostBeginCompanionCheckInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginCompanionCheckOutputFfi {
     pub challenge: u64,
@@ -375,7 +375,7 @@ pub struct HostGetInitKeyNegotiationInputFfi {
 assert_max_size!(HostGetInitKeyNegotiationInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostGetInitKeyNegotiationOutputFfi {
     pub sec_message: DataArray1024Ffi, /* algorithm_list */
@@ -468,7 +468,7 @@ pub struct HostPreIssueTokenInputFfi {
 assert_max_size!(HostPreIssueTokenInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostPreIssueTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt */
@@ -487,7 +487,7 @@ pub struct HostBeginIssueTokenInputFfi {
 assert_max_size!(HostBeginIssueTokenInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginIssueTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge, token, atl) */
@@ -548,7 +548,7 @@ pub struct HostBeginTokenAuthInputFfi {
 assert_max_size!(HostBeginTokenAuthInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginTokenAuthOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, tag, iv, encrypt_data(challenge, atl) */
@@ -568,7 +568,7 @@ pub struct HostEndTokenAuthInputFfi {
 assert_max_size!(HostEndTokenAuthInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndTokenAuthOutputFfi {
     pub fwk_message: DataArray1024Ffi,
@@ -641,7 +641,7 @@ pub struct HostBeginDelegateAuthInputFfi {
 assert_max_size!(HostBeginDelegateAuthInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginDelegateAuthOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, tag, iv, encrypt_data(challenge, atl) */
@@ -660,7 +660,7 @@ pub struct HostEndDelegateAuthInputFfi {
 assert_max_size!(HostEndDelegateAuthInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostEndDelegateAuthOutputFfi {
     pub fwk_message: DataArray1024Ffi,
@@ -692,7 +692,7 @@ pub struct HostProcessPreObtainTokenInputFfi {
 assert_max_size!(HostProcessPreObtainTokenInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostProcessPreObtainTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, challenge */
@@ -712,7 +712,7 @@ pub struct HostProcessObtainTokenInputFfi {
 assert_max_size!(HostProcessObtainTokenInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostProcessObtainTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge, token, atl) */
@@ -782,7 +782,7 @@ pub struct CompanionProcessCheckInputFfi {
 assert_max_size!(CompanionProcessCheckInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionProcessCheckOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, tag, iv, encrypt_data(algorithm, capability_list, challenge) */
@@ -803,7 +803,7 @@ pub struct CompanionInitKeyNegotiationInputFfi {
 assert_max_size!(CompanionInitKeyNegotiationInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionInitKeyNegotiationOutputFfi {
     pub sec_message: DataArray1024Ffi, /* challenge, algorithm, algorithm_data */
@@ -822,7 +822,7 @@ pub struct CompanionBeginAddHostBindingInputFfi {
 assert_max_size!(CompanionBeginAddHostBindingInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginAddHostBindingOutputFfi {
     pub sec_message: DataArray1024Ffi, /* device_id, user_id, track_ability_level, tag, iv, encrypt_data(device_id, user_id) */
@@ -843,7 +843,7 @@ pub struct CompanionEndAddHostBindingInputFfi {
 assert_max_size!(CompanionEndAddHostBindingInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionEndAddHostBindingOutputFfi {
     pub binding_id: i32,
@@ -874,7 +874,7 @@ pub struct CompanionPreIssueTokenInputFfi {
 assert_max_size!(CompanionPreIssueTokenInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionPreIssueTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge) */
@@ -893,7 +893,7 @@ pub struct CompanionProcessIssueTokenInputFfi {
 assert_max_size!(CompanionProcessIssueTokenInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionProcessIssueTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* result */
@@ -954,7 +954,7 @@ pub struct CompanionBeginDelegateAuthInputFfi {
 assert_max_size!(CompanionBeginDelegateAuthInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginDelegateAuthOutputFfi {
     pub challenge: u64,
@@ -974,7 +974,7 @@ pub struct CompanionEndDelegateAuthInputFfi {
 assert_max_size!(CompanionEndDelegateAuthInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionEndDelegateAuthOutputFfi {
     pub sec_message: DataArray1024Ffi, /* salt, tag, iv, encrypt_data(challenge, atl, authType)) */
@@ -995,7 +995,7 @@ pub struct CompanionBeginObtainTokenInputFfi {
 assert_max_size!(CompanionBeginObtainTokenInputFfi);
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginObtainTokenOutputFfi {
     pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge, atl) */

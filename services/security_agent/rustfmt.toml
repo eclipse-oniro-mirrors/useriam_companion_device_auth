@@ -11,15 +11,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 格式化规则
-max_width = 120                    # 每行最大宽度
-use_small_heuristics = "Max"       # 紧凑风格
-match_block_trailing_comma = true  #控制 match 表达式中最后一个块的尾部逗号
-merge_derives = true               # 合并 derive
+# Format rules
+max_width = 120
+use_small_heuristics = "Max"
+match_block_trailing_comma = true
+merge_derives = true
 
-# 缩进和空格
+# Indent and spaces
 tab_spaces = 4
 use_try_shorthand = true
 
-# 链式调用
-chain_width = 80                   # 链式调用最大宽度
+# Chain calls
+chain_width = 80

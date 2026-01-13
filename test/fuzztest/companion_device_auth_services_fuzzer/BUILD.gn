@@ -16,31 +16,25 @@ import("//build/test.gni")
 import("../../../companion_device_auth.gni")
 import("../../../services/BUILD.gni")
 import("../../fake/BUILD.gni")
+import("../../test_config.gni")
 
 ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
   branch_protector_ret = "pac_ret"
   module_out_path = "companion_device_auth/services"
   fuzz_config_file = "../common_fuzzer_config"
 
-  cflags = [
-    "-DENABLE_TEST",
-    "-DDISABLE_COMPANION_DEVICE_AUTH_LOG",
-    "-g",
-    "-O0",
-    "-Wno-unused-variable",
-    "-fno-omit-frame-pointer",
-    "-Dprivate=public",
-    "-Dprotected=public",
-  ]
+  cflags = companion_device_auth_fuzzer_cflags
 
   sources = companion_device_auth_service_sources_for_test +
             companion_device_auth_fake_sources + [
               "companion_device_auth_services_fuzzer.cpp",
               "fuzz_helpers/adapter_initializer.cpp",
+              "fuzz_helpers/channel_adapter_initializer.cpp",
               "fuzz_helpers/fuzz_data_generator.cpp",
               "fuzz_helpers/singleton_initializer.cpp",
 
               # cross_device_channels/soft_bus cases
+              "cases/cross_device_channels/soft_bus/soft_bus_adapter_manager_fuzzer.cpp",
               "cases/cross_device_channels/soft_bus/soft_bus_channel_fuzzer.cpp",
               "cases/cross_device_channels/soft_bus/soft_bus_connection_manager_fuzzer.cpp",
               "cases/cross_device_channels/soft_bus/soft_bus_device_status_manager_fuzzer.cpp",
@@ -56,7 +50,6 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               "cases/cross_device_interaction/auth_maintain_state_change/companion_auth_maintain_state_change_request_fuzzer.cpp",
               "cases/cross_device_interaction/auth_maintain_state_change/host_auth_maintain_state_change_handler_fuzzer.cpp",
               "cases/cross_device_interaction/common/common_message_fuzzer.cpp",
-              "cases/cross_device_interaction/delegate_auth/companion_delegate_auth_callback_fuzzer.cpp",
               "cases/cross_device_interaction/delegate_auth/companion_delegate_auth_request_fuzzer.cpp",
               "cases/cross_device_interaction/delegate_auth/companion_start_delegate_auth_handler_fuzzer.cpp",
               "cases/cross_device_interaction/delegate_auth/delegate_auth_message_fuzzer.cpp",
@@ -128,6 +121,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
 
               # service_entry cases (excluded - depend on SystemAbility framework, same as CMakeLists.txt)
               "cases/service_entry/available_device_subscription_fuzzer.cpp",
+              "cases/service_entry/companion_device_auth_service_fuzzer.cpp",
               "cases/service_entry/continuous_auth_subscription_fuzzer.cpp",
               "cases/service_entry/subscription_manager_fuzzer.cpp",
               "cases/service_entry/subscription_util_fuzzer.cpp",
@@ -162,9 +156,14 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               "cases/companion/companion_manager_impl_fuzzer.cpp",
             ]
 
-  configs = [ "${companion_device_auth_path}/services:service_config" ]
+  configs = [
+    "${companion_device_auth_path}/services:service_config",
+    "../common_fuzzer_config:fuzz_common_config",
+  ]
 
-  include_dirs = companion_device_auth_fake_include_dirs + [ "fuzz_helpers" ]
+  include_dirs = companion_device_auth_fake_include_dirs + [
+                   "fuzz_helpers",
+                 ]
 
   deps = companion_device_auth_service_deps
 

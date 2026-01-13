@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "revoke_token_message.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using RevokeTokenMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodeRevokeTokenRequest(FuzzedDataProvider &fuzzData)
 {
@@ -46,8 +46,8 @@ static void FuzzEncodeRevokeTokenRequest(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeRevokeTokenRequest(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    RevokeTokenRequest request;
-    DecodeRevokeTokenRequest(attr, request);
+    auto result = DecodeRevokeTokenRequest(attr);
+    (void)result;
 }
 
 static void FuzzEncodeRevokeTokenReply(FuzzedDataProvider &fuzzData)
@@ -63,18 +63,18 @@ static void FuzzEncodeRevokeTokenReply(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeRevokeTokenReply(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    RevokeTokenReply reply;
-    DecodeRevokeTokenReply(attr, reply);
+    auto result = DecodeRevokeTokenReply(attr);
+    (void)result;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const RevokeTokenMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodeRevokeTokenRequest,
     FuzzDecodeRevokeTokenRequest,
     FuzzEncodeRevokeTokenReply,
     FuzzDecodeRevokeTokenReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(RevokeTokenMessageFuzzFunction);
 
 void FuzzRevokeTokenMessage(FuzzedDataProvider &fuzzData)
 {
@@ -93,5 +93,8 @@ void FuzzRevokeTokenMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(RevokeTokenMessage)
+
 } // namespace UserIam
 } // namespace OHOS

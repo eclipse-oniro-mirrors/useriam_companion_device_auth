@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+#include <memory>
+
 // Fake implementation of system parameter functions for unit tests
 
 #include "parameter.h"

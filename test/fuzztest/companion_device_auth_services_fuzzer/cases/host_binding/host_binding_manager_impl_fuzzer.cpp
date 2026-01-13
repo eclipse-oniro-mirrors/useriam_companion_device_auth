@@ -21,14 +21,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_binding_manager_impl.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData);
+using HostBindingManagerImplFuzzFunction = void (*)(std::shared_ptr<HostBindingManagerImpl> &manager,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetHostBindingStatusById(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
@@ -126,7 +127,7 @@ static void FuzzCreate(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedD
     (void)newMgr;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const HostBindingManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzGetHostBindingStatusById,
     FuzzGetHostBindingStatusByUserDevice,
     FuzzBeginAddHostBinding,
@@ -141,7 +142,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCreate,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostBindingManagerImplFuzzFunction);
 
 void FuzzHostBindingManagerImpl(FuzzedDataProvider &fuzzData)
 {
@@ -166,5 +167,8 @@ void FuzzHostBindingManagerImpl(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(HostBindingManagerImpl)
+
 } // namespace UserIam
 } // namespace OHOS

@@ -21,7 +21,7 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "singleton_manager.h"
 #include "system_param_manager.h"
 #include "system_param_manager_impl.h"
@@ -30,10 +30,11 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &);
+using SystemParamManagerImplFuzzFunction = void (*)(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &);
 
 static void FuzzOp0(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetParam
     std::string key = GenerateFuzzString(fuzzData, 64);
     std::string defaultValue = GenerateFuzzString(fuzzData, 64);
@@ -43,6 +44,7 @@ static void FuzzOp0(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 
 static void FuzzOp1(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetParam
     std::string key = GenerateFuzzString(fuzzData, 64);
     std::string value = GenerateFuzzString(fuzzData, 64);
@@ -51,6 +53,7 @@ static void FuzzOp1(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 
 static void FuzzOp2(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetParamTwice
     std::string key = GenerateFuzzString(fuzzData, 64);
     std::string value1 = GenerateFuzzString(fuzzData, 64);
@@ -60,6 +63,7 @@ static void FuzzOp2(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 
 static void FuzzOp3(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test WatchParam
     std::string key = GenerateFuzzString(fuzzData, 64);
     auto subscription = mgr->WatchParam(key, [](const std::string &value) { (void)value; });
@@ -68,6 +72,7 @@ static void FuzzOp3(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 
 static void FuzzOp4(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Create
     auto newMgr = SystemParamManagerImpl::Create();
     if (newMgr) {
@@ -80,6 +85,7 @@ static void FuzzOp4(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 
 static void FuzzOp5(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test OnParamChange (requires EnableTest)
     auto newMgr = SystemParamManagerImpl::Create();
     if (newMgr) {
@@ -93,6 +99,7 @@ static void FuzzOp5(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 
 static void FuzzOp6(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetParam followed by GetParam
     std::string key = GenerateFuzzString(fuzzData, 64);
     std::string value = GenerateFuzzString(fuzzData, 64);
@@ -103,6 +110,7 @@ static void FuzzOp6(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 
 static void FuzzOp7(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetParamTwice followed by GetParam
     std::string key = GenerateFuzzString(fuzzData, 64);
     std::string value1 = GenerateFuzzString(fuzzData, 64);
@@ -114,6 +122,7 @@ static void FuzzOp7(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 
 static void FuzzOp8(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test multiple WatchParam subscriptions
     std::string key = GenerateFuzzString(fuzzData, 64);
     auto sub1 = mgr->WatchParam(key, [](const std::string &v) { (void)v; });
@@ -124,6 +133,7 @@ static void FuzzOp8(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 
 static void FuzzOp9(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test WatchParam then SetParam (trigger callback)
     std::string key = GenerateFuzzString(fuzzData, 64);
     auto subscription = mgr->WatchParam(key, [](const std::string &v) { (void)v; });
@@ -131,9 +141,9 @@ static void FuzzOp9(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
     (void)subscription;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7,
-    FuzzOp8, FuzzOp9 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const SystemParamManagerImplFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5,
+    FuzzOp6, FuzzOp7, FuzzOp8, FuzzOp9 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SystemParamManagerImplFuzzFunction);
 
 void FuzzSystemParamManagerImpl(FuzzedDataProvider &fuzzData)
 {
@@ -158,5 +168,8 @@ void FuzzSystemParamManagerImpl(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SystemParamManagerImpl)
+
 } // namespace UserIam
 } // namespace OHOS

@@ -17,19 +17,19 @@ use crate::common::constants::ErrorCode;
 use crate::log_e;
 use crate::singleton_registry;
 
-/// 时间获取器trait
+/// Time keeper trait
 pub trait TimeKeeper {
-    /// 获取系统时间
+    /// Get system time
     fn get_system_time(&self) -> Result<u64, ErrorCode>;
 
-    /// 获取RTC时间
+    /// Get RTC time
     fn get_rtc_time(&self) -> Result<u64, ErrorCode>;
 
-    /// 获取REE时间
+    /// Get REE time
     fn get_ree_time(&self) -> Result<u64, ErrorCode>;
 }
 
-/// 默认时间获取器实现
+/// Default time keeper implementation
 pub struct DummyTimeKeeper;
 
 impl TimeKeeper for DummyTimeKeeper {

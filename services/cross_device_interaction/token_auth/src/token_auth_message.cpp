@@ -16,6 +16,7 @@
 #include "token_auth_message.h"
 
 #include "iam_check.h"
+#include "iam_logger.h"
 
 #include "common_message.h"
 

@@ -22,7 +22,7 @@
 #include "device_status_entry.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -31,7 +31,7 @@ namespace {
 const uint32_t TEST_VAL64 = 64;
 }
 
-using FuzzFunction = void (*)(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData);
+using DeviceStatusEntryFuzzFunction = void (*)(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData);
 
 static void FuzzOnUserIdChange(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
 {
@@ -169,7 +169,7 @@ static void FuzzBuildKeyThenStatus(std::shared_ptr<DeviceStatusEntry> &entry, Fu
 static void FuzzIsSameDeviceAllTypes(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
 {
     if (entry) {
-        std::vector<DeviceIdType> allTypes = { GenerateFuzzDeviceIdType(fuzzData) };
+        std::vector<DeviceIdType> allTypes = { GenerateFuzzDeviceIdType(fuzzData), DeviceIdType::UNIFIED_DEVICE_ID };
 
         for (auto idType : allTypes) {
             PhysicalDeviceKey key;
@@ -182,7 +182,7 @@ static void FuzzIsSameDeviceAllTypes(std::shared_ptr<DeviceStatusEntry> &entry, 
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const DeviceStatusEntryFuzzFunction g_fuzzFuncs[] = {
     FuzzOnUserIdChange,
     FuzzBuildDeviceKey,
     FuzzBuildDeviceStatus,
@@ -197,7 +197,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzIsSameDeviceAllTypes,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(DeviceStatusEntryFuzzFunction);
 
 void FuzzDeviceStatusEntry(FuzzedDataProvider &fuzzData)
 {
@@ -227,5 +227,8 @@ void FuzzDeviceStatusEntry(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(DeviceStatusEntry)
+
 } // namespace UserIam
 } // namespace OHOS

@@ -19,6 +19,7 @@
 #include "adapter_manager.h"
 #include "relative_timer.h"
 #include "singleton_manager.h"
+#include "soft_bus_adapter_manager.h"
 #include "soft_bus_device_status_manager.h"
 #include "task_runner_manager.h"
 
@@ -33,6 +34,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+
+constexpr uint64_t UINT64_1 = 1;
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
@@ -55,7 +58,7 @@ public:
         // Initialize DeviceManagerAdapter mock
         auto deviceManagerAdapter =
             std::shared_ptr<IDeviceManagerAdapter>(&mockDeviceManagerAdapter_, [](IDeviceManagerAdapter *) {});
-        AdapterManager::GetInstance().SetDeviceManagerAdapter(deviceManagerAdapter);
+        SoftBusAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceManagerAdapter);
         ON_CALL(mockDeviceManagerAdapter_, InitDeviceManager()).WillByDefault(Return(true));
         ON_CALL(mockDeviceManagerAdapter_, RegisterDevStatusCallback(_)).WillByDefault(Return(true));
         ON_CALL(mockDeviceManagerAdapter_, QueryTrustedDevices(_)).WillByDefault(Return(true));
@@ -77,7 +80,7 @@ public:
     }
 
 protected:
-    int32_t nextGlobalId_ = 1;
+    uint64_t nextGlobalId_ = UINT64_1;
     NiceMock<MockMiscManager> mockMiscManager_;
     NiceMock<MockSystemParamManager> mockSystemParamManager_;
     NiceMock<MockDeviceManagerAdapter> mockDeviceManagerAdapter_;

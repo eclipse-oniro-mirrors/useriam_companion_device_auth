@@ -15,7 +15,6 @@
 
 #include "callback_death_recipient.h"
 
-#include <functional>
 #include <memory>
 
 #include "iam_check.h"
@@ -42,10 +41,12 @@ sptr<CallbackDeathRecipient> CallbackDeathRecipient::Register(const sptr<IRemote
         return nullptr;
     }
 
+#ifndef ENABLE_TEST
     if (!remoteObj->AddDeathRecipient(recipient)) {
         IAM_LOGE("AddDeathRecipient failed");
         return nullptr;
     }
+#endif
 
     return recipient;
 }

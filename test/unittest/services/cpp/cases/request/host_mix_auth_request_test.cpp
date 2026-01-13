@@ -18,6 +18,7 @@
 
 #include "host_mix_auth_request.h"
 #include "host_single_mix_auth_request.h"
+#include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -61,19 +62,13 @@ public:
         ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
 
         // Set up GetCompanionStatus to return a valid companion status for the test templateId
+        // Note: In gmock, ON_CALL is evaluated in reverse order (most recent first), so the generic
+        // catch-all must be set up before the specific match to ensure proper fallback behavior
         ON_CALL(mockCompanionManager_, GetCompanionStatus(_)).WillByDefault(Return(std::nullopt));
-        const int32_t userId = 100;
         CompanionStatus companionStatus;
         companionStatus.templateId = templateId_;
-        companionStatus.hostUserId = userId;
+        companionStatus.hostUserId = hostUserId_;
         companionStatus.isValid = true;
-        companionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
-        companionStatus.companionDeviceStatus.deviceKey.deviceUserId = userId;
-        companionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        companionStatus.companionDeviceStatus.deviceName = "TestDevice";
-        companionStatus.companionDeviceStatus.protocolId = ProtocolId::VERSION_1;
-        companionStatus.companionDeviceStatus.secureProtocolId = SecureProtocolId::DEFAULT;
-        companionStatus.companionDeviceStatus.isOnline = true;
         ON_CALL(mockCompanionManager_, GetCompanionStatus(templateId_)).WillByDefault(Return(companionStatus));
     }
 
@@ -396,7 +391,7 @@ HWTEST_F(HostMixAuthRequestTest, InvokeCallback_001, TestSize.Level0)
     CreateDefaultRequest();
     request_->requestCallback_ = nullptr;
 
-    request_->InvokeCallback(ResultCode::SUCCESS, {});
+    EXPECT_NO_THROW(request_->InvokeCallback(ResultCode::SUCCESS, {}));
 }
 
 } // namespace

@@ -13,10 +13,8 @@
 
 import("../../companion_device_auth.gni")
 
-# Fake implementations directory
 companion_device_auth_fake_dir = "${companion_device_auth_path}/test/fake"
 
-# Fake source files for unit tests and fuzzing
 companion_device_auth_fake_sources = [
   "${companion_device_auth_fake_dir}/device_manager/device_manager.cpp",
   "${companion_device_auth_fake_dir}/self/relative_timer.cpp",
@@ -29,11 +27,10 @@ companion_device_auth_fake_sources = [
   "${companion_device_auth_fake_dir}/user_auth_framework/user_auth_client.cpp",
 ]
 
-# Fake include directories
 companion_device_auth_fake_include_dirs = [
   "${companion_device_auth_fake_dir}",
-  "${companion_device_auth_fake_dir}/access_token",
   "${companion_device_auth_fake_dir}/device_manager",
+  "${companion_device_auth_fake_dir}/samgr",
   "${companion_device_auth_fake_dir}/self",
   "${companion_device_auth_fake_dir}/softbus",
   "${companion_device_auth_fake_dir}/system",

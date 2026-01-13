@@ -313,12 +313,14 @@ DefaultUserIdManager::ActiveUserOsAccountSubscriber::ActiveUserOsAccountSubscrib
 
 void DefaultUserIdManager::ActiveUserOsAccountSubscriber::OnStateChanged(const AccountSA::OsAccountStateData &data)
 {
-    auto impl = impl_.lock();
-    if (impl == nullptr) {
-        IAM_LOGW("manager has been destroyed, ignore account state change");
-        return;
-    }
-    impl->OnOsAccountStateChange(data);
+    TaskRunnerManager::GetInstance().PostTaskOnResident([weakImpl = impl_, data]() {
+        auto impl = weakImpl.lock();
+        if (impl == nullptr) {
+            IAM_LOGW("manager has been destroyed, ignore account state change");
+            return;
+        }
+        impl->OnOsAccountStateChange(data);
+    });
 }
 
 #ifndef ENABLE_TEST

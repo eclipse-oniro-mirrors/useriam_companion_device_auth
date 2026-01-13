@@ -22,13 +22,13 @@
 #include "error_guard.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<ErrorGuard> &guard, FuzzedDataProvider &fuzzData);
+using ErrorGuardFuzzFunction = void (*)(std::shared_ptr<ErrorGuard> &guard, FuzzedDataProvider &fuzzData);
 
 static void FuzzUpdateErrorCode(std::shared_ptr<ErrorGuard> &guard, FuzzedDataProvider &fuzzData)
 {
@@ -54,13 +54,13 @@ static void FuzzCreate(std::shared_ptr<ErrorGuard> &guard, FuzzedDataProvider &f
     (void)newGuard;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ErrorGuardFuzzFunction g_fuzzFuncs[] = {
     FuzzUpdateErrorCode,
     FuzzCancel,
     FuzzCreate,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ErrorGuardFuzzFunction);
 
 void FuzzErrorGuard(FuzzedDataProvider &fuzzData)
 {
@@ -84,5 +84,8 @@ void FuzzErrorGuard(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ErrorGuard)
+
 } // namespace UserIam
 } // namespace OHOS

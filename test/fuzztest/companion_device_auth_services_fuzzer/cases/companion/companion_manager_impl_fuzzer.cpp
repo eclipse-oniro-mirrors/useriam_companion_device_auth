@@ -22,13 +22,14 @@
 #include "companion_manager_impl.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData);
+using CompanionManagerImplFuzzFunction = void (*)(std::shared_ptr<CompanionManagerImpl> &manager,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzReload(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
@@ -92,9 +93,9 @@ static void FuzzUpdateCompanionEnabledBusinessIds(std::shared_ptr<CompanionManag
 {
     TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_BUSINESS_IDS_COUNT);
-    std::vector<BusinessIdType> businessIds;
+    std::vector<BusinessId> businessIds;
     for (uint8_t j = 0; j < count; ++j) {
-        businessIds.push_back(fuzzData.ConsumeIntegral<int32_t>());
+        businessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));
     }
     ResultCode result = manager->UpdateCompanionEnabledBusinessIds(templateId, businessIds);
     (void)result;
@@ -175,24 +176,17 @@ static void FuzzBeginAddCompanion(std::shared_ptr<CompanionManagerImpl> &manager
 
 static void FuzzEndAddCompanion(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
-    RequestId requestId = fuzzData.ConsumeIntegral<RequestId>();
-    PersistedCompanionStatus companionStatus;
-    companionStatus.templateId = fuzzData.ConsumeIntegral<TemplateId>();
-    companionStatus.hostUserId = fuzzData.ConsumeIntegral<UserId>();
-    companionStatus.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    companionStatus.isValid = fuzzData.ConsumeBool();
-    SecureProtocolId secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint8_t>());
+    EndAddCompanionInput input;
+    input.requestId = fuzzData.ConsumeIntegral<RequestId>();
+    input.companionStatus.templateId = fuzzData.ConsumeIntegral<TemplateId>();
+    input.companionStatus.hostUserId = fuzzData.ConsumeIntegral<UserId>();
+    input.companionStatus.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
+    input.companionStatus.isValid = fuzzData.ConsumeBool();
+    input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint8_t>());
     uint32_t replySize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
-    std::vector<uint8_t> addHostBindingReply = fuzzData.ConsumeBytes<uint8_t>(replySize);
-    std::vector<uint8_t> outFwkMsg;
-    std::vector<uint8_t> outTokenData;
-    Atl outAtl;
-    EndAddCompanionInputParam inputParam;
-    inputParam.requestId = requestId;
-    inputParam.companionStatus = companionStatus;
-    inputParam.secureProtocolId = secureProtocolId;
-    inputParam.addHostBindingReply = addHostBindingReply;
-    manager->EndAddCompanion(inputParam, outFwkMsg, outTokenData, outAtl);
+    input.addHostBindingReply = fuzzData.ConsumeBytes<uint8_t>(replySize);
+    EndAddCompanionOutput output;
+    manager->EndAddCompanion(input, output);
 }
 
 static void FuzzRemoveCompanion(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
@@ -213,7 +207,7 @@ static void FuzzInitialize(std::shared_ptr<CompanionManagerImpl> &manager, Fuzze
     manager->Initialize();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CompanionManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzReload,
     FuzzGetCompanionStatusByTemplate,
     FuzzGetCompanionStatusByUserAndDevice,
@@ -234,7 +228,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzInitialize,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionManagerImplFuzzFunction);
 
 void FuzzCompanionManagerImpl(FuzzedDataProvider &fuzzData)
 {
@@ -255,5 +249,8 @@ void FuzzCompanionManagerImpl(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionManagerImpl)
+
 } // namespace UserIam
 } // namespace OHOS

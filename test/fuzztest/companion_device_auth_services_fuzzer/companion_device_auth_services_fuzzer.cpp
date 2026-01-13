@@ -20,143 +20,13 @@
 
 #include "adapter_initializer.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "singleton_initializer.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-// Define function pointer type
-using FuzzFunction = void (*)(FuzzedDataProvider &);
-
-// Array of all fuzz functions
-static const FuzzFunction g_fuzzFunctions[] = {
-    // Common Module
-    FuzzServiceCommon,
-    FuzzServiceConverter,
-
-    // Companion Module
-    FuzzCompanion,
-    FuzzCompanionManagerImpl,
-
-    // CrossDeviceComm Module
-    FuzzChannelManager,
-    FuzzConnectionManager,
-    FuzzCrossDeviceCommManagerImpl,
-    FuzzDeviceStatusEntry,
-    FuzzDeviceStatusManager,
-    FuzzLocalDeviceStatusManager,
-    FuzzMessageRouter,
-
-    // CrossDeviceInteraction Module
-    FuzzCommonMessage,
-    FuzzRequestAbortedMessage,
-    FuzzKeepAliveHandler,
-    FuzzRevokeTokenMessage,
-    FuzzHostRevokeTokenHandler,
-    FuzzAddCompanionMessage,
-    FuzzCompanionInitKeyNegotiationHandler,
-    FuzzSyncDeviceStatusMessage,
-    FuzzCompanionSyncDeviceStatusHandler,
-    FuzzHostSyncDeviceStatusRequest,
-    FuzzIssueTokenMessage,
-    FuzzCompanionPreIssueTokenHandler,
-    FuzzHostIssueTokenRequest,
-    FuzzHostPreObtainTokenHandler,
-    FuzzTokenAuthMessage,
-    FuzzCompanionTokenAuthHandler,
-    FuzzHostTokenAuthRequest,
-    FuzzDelegateAuthMessage,
-    FuzzCompanionDelegateAuthRequest,
-    FuzzCompanionDelegateAuthCallback,
-    FuzzCompanionStartDelegateAuthHandler,
-    FuzzHostDelegateAuthRequest,
-    FuzzRemoveHostBindingMessage,
-    FuzzCompanionRemoveHostBindingHandler,
-    FuzzHostRemoveHostBindingRequest,
-    FuzzObtainTokenMessage,
-    FuzzCompanionIssueTokenRequest,
-    FuzzCompanionObtainTokenRequest,
-    FuzzHostObtainTokenRequest,
-    FuzzAuthMaintainStateChangeMessage,
-    FuzzHostAuthMaintainStateChangeHandler,
-    FuzzCompanionAuthMaintainStateChangeRequest,
-    FuzzHostMixAuthRequest,
-    FuzzHostSingleMixAuthRequest,
-    FuzzHostAddCompanionRequest,
-    FuzzCompanionAddCompanionRequest,
-    FuzzCompanionRevokeTokenRequest,
-
-    // Incoming Message Handler
-    FuzzAsyncIncomingMessageHandler,
-    FuzzSyncIncomingMessageHandler,
-    FuzzIncomingMessageHandlerRegistry,
-
-    // FwkComm Module
-    FuzzFwkCommManager,
-    FuzzCompanionDeviceAuthAllInOneExecutor,
-    FuzzCompanionDeviceAuthDriver,
-    FuzzCompanionDeviceAuthExecutorCallback,
-    FuzzCompanionAuthInterfaceAdapter,
-    FuzzAllInOneExecutor,
-    FuzzDriver,
-    FuzzExecutorCallback,
-
-    // ExternalAdapters Module
-    FuzzDeviceManagerAdapter,
-    FuzzSoftBusAdapter,
-    FuzzUserAuthAdapter,
-    FuzzPermissionAdapter,
-    FuzzExecutorDriverManagerAdapter,
-    FuzzSaManagerAdapter,
-
-    // SoftBusCrossDeviceChannel Module
-    FuzzSoftBusChannel,
-    FuzzSoftBusConnectionManager,
-    FuzzSoftBusDeviceStatusManager,
-    FuzzSoftBusGlobalCallbacks,
-    FuzzSoftBusSocket,
-
-    // Host Binding Module
-    FuzzHostBinding,
-    FuzzHostBindingManager,
-    FuzzHostBindingManagerImpl,
-
-    // Misc Module
-    FuzzAttributes,
-    FuzzSystemParamManagerImpl,
-    FuzzConstantUserIdManager,
-    FuzzDefaultUserIdManager,
-    FuzzMiscManagerImpl,
-
-    // Request Module
-    FuzzRequest,
-    FuzzBaseRequest,
-    FuzzRequestFactoryImpl,
-    FuzzRequestManagerImpl,
-
-    // SecurityAgent Module
-    FuzzSecurityAgentImpl,
-    FuzzCompanionDeviceAuthFFIUtil,
-    FuzzCommandInvoker,
-    FuzzFfiUtil,
-
-    // Utils Module
-    FuzzSubscription,
-    FuzzSaStatusListener,
-    FuzzErrorGuard,
-    FuzzScopeGuard,
-
-    // ServiceEntry Module
-    FuzzSubscriptionManager,
-    FuzzSubscriptionUtil,
-    FuzzTemplateStatusSubscription,
-    FuzzAvailableDeviceSubscription,
-    FuzzContinuousAuthSubscription,
-};
-
-static constexpr size_t g_fuzzFunctionCount = sizeof(g_fuzzFunctions) / sizeof(g_fuzzFunctions[0]);
 extern "C" int32_t LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     if (data == nullptr || size == 0) {
@@ -173,11 +43,15 @@ extern "C" int32_t LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
 
+    // Get all registered fuzz functions
+    const auto &fuzzFunctions = FuzzRegistry::GetAllFunctions();
+    size_t fuzzFunctionCount = FuzzRegistry::GetCount();
+
     // Read function index from fuzz data
     uint32_t functionIndex = fuzzData.ConsumeIntegral<uint32_t>();
     // Call the selected fuzz function if index is valid
-    if (functionIndex < g_fuzzFunctionCount) {
-        g_fuzzFunctions[functionIndex](fuzzData);
+    if (fuzzFunctionCount > 0 && functionIndex < fuzzFunctionCount) {
+        fuzzFunctions[functionIndex](fuzzData);
     }
 
     EnsureAllTaskExecuted();

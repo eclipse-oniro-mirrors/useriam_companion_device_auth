@@ -16,11 +16,16 @@
 #include "cda_attributes.h"
 
 #include <cstring>
+#include <limits>
 
 #include "securec.h"
 #include <endian.h>
 
+#include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_safe_arithmetic.h"
+
+#include "service_common.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -154,9 +159,12 @@ template <typename T>
 bool EncodeNumericArrayValue(const std::vector<T> &src, std::vector<uint8_t> &dst)
 {
     using Traits = EncodingTraits<T>;
-    auto outSize = src.size() * Traits::size;
 
-    std::vector<uint8_t> out(outSize);
+    // Use safe multiplication to prevent overflow
+    auto outSize = safe_multiply(src.size(), Traits::size);
+    ENSURE_OR_RETURN_VAL(outSize.has_value(), false);
+
+    std::vector<uint8_t> out(outSize.value());
     using LEType = decltype(Traits::toLE(T()));
 
     LEType *outPtr = reinterpret_cast<LEType *>(out.data());
@@ -181,11 +189,16 @@ bool DecodeNumericArrayValue(const std::vector<uint8_t> &src, std::vector<T> &ds
 
     using LEType = decltype(Traits::toLE(T()));
     size_t count = src.size() / Traits::size;
+
     std::vector<T> out(count);
 
     for (size_t i = 0; i < count; i++) {
+        // Use safe multiplication for offset calculation
+        auto offset = safe_multiply(i, sizeof(LEType));
+        ENSURE_OR_RETURN_VAL(offset.has_value() && offset.value() <= src.size() - sizeof(LEType), false);
+
         LEType temp;
-        if (memcpy_s(&temp, sizeof(temp), src.data() + i * sizeof(LEType), sizeof(LEType)) != EOK) {
+        if (memcpy_s(&temp, sizeof(temp), src.data() + offset.value(), sizeof(LEType)) != EOK) {
             IAM_LOGE("DecodeNumericArrayValue memcpy_s failed at index %{public}zu, element_size: %{public}zu", i,
                 sizeof(LEType));
             return false;
@@ -205,6 +218,11 @@ Attributes::Attributes(const std::vector<uint8_t> &raw)
     constexpr size_t headerSize = sizeof(uint32_t) + sizeof(uint32_t);
 
     if (raw.empty()) {
+        return;
+    }
+
+    if (raw.size() > MAX_MESSAGE_SIZE) {
+        IAM_LOGE("message size exceeds limit: %{public}zu > %{public}zu", raw.size(), MAX_MESSAGE_SIZE);
         return;
     }
 
@@ -328,7 +346,11 @@ void Attributes::SetInt64Value(AttributeKey key, int64_t value)
 void Attributes::SetStringValue(AttributeKey key, const std::string &value)
 {
     std::vector<uint8_t> dest;
-    dest.reserve(value.size() + 1);
+    // Check overflow before reserving
+    auto newCapacity = safe_add(value.size(), static_cast<size_t>(1));
+    ENSURE_OR_RETURN(newCapacity.has_value());
+
+    dest.reserve(newCapacity.value());
     dest.assign(value.begin(), value.end());
     dest.push_back(0);
     map_[key] = std::move(dest);
@@ -385,15 +407,25 @@ void Attributes::SetAttributesArrayValue(AttributeKey key, const std::vector<Att
         serializedArray.push_back(item.Serialize());
     }
 
-    uint32_t dataLen = 0;
+    size_t dataLen = 0;
     for (const auto &arr : serializedArray) {
-        dataLen += (sizeof(uint32_t) + arr.size());
+        auto sum = safe_add(dataLen, sizeof(uint32_t));
+        ENSURE_OR_RETURN(sum.has_value());
+        dataLen = sum.value();
+        sum = safe_add(dataLen, arr.size());
+        ENSURE_OR_RETURN(sum.has_value());
+        dataLen = sum.value();
     }
 
     std::vector<uint8_t> data;
     data.reserve(dataLen);
 
     for (const auto &arr : serializedArray) {
+        // Check if arr size fits in uint32_t
+        if (arr.size() > std::numeric_limits<uint32_t>::max()) {
+            IAM_LOGE("SetAttributesArrayValue array element size exceeds uint32_t max: %{public}zu", arr.size());
+            return;
+        }
         uint32_t arrSize = static_cast<uint32_t>(arr.size());
         uint32_t arrSizeLE = htole32(arrSize);
         const uint8_t *sizePtr = reinterpret_cast<const uint8_t *>(&arrSizeLE);
@@ -474,9 +506,14 @@ bool Attributes::GetStringValue(AttributeKey key, std::string &value) const
     if (iter == map_.end()) {
         return false;
     }
-    if (iter->second.empty() || iter->second.back() != 0) {
-        IAM_LOGE("GetStringValue invalid format, empty: %{public}d, has_null_terminator: %{public}d",
-            iter->second.empty(), (!iter->second.empty() && iter->second.back() == 0));
+
+    if (iter->second.empty()) {
+        value.clear();
+        return true;
+    }
+
+    if (iter->second.back() != 0) {
+        IAM_LOGE("GetStringValue invalid format, has_null_terminator: %{public}d", iter->second.back() == 0);
         return false;
     }
     value.assign(iter->second.begin(), iter->second.end() - 1);
@@ -549,7 +586,7 @@ bool Attributes::GetAttributesArrayValue(AttributeKey key, std::vector<Attribute
     const std::vector<uint8_t> &data = iter->second;
     array.clear();
 
-    uint32_t i = 0;
+    size_t i = 0;
     while (i < data.size()) {
         if (data.size() - i < sizeof(uint32_t)) {
             IAM_LOGE("GetAttributesArrayValue insufficient data for length, remaining: %{public}zu, need: %{public}zu",
@@ -559,12 +596,15 @@ bool Attributes::GetAttributesArrayValue(AttributeKey key, std::vector<Attribute
 
         uint32_t arrayLenLE;
         if (memcpy_s(&arrayLenLE, sizeof(arrayLenLE), data.data() + i, sizeof(uint32_t)) != EOK) {
-            IAM_LOGE("GetAttributesArrayValue memcpy_s failed for array length at offset %{public}u", i);
+            IAM_LOGE("GetAttributesArrayValue memcpy_s failed for array length at offset %{public}zu", i);
             return false;
         }
         uint32_t arrayLen = le32toh(arrayLenLE);
-        i += sizeof(uint32_t);
 
+        // Use safe addition to update position
+        auto newI = safe_add(i, sizeof(uint32_t));
+        ENSURE_OR_RETURN_VAL(newI.has_value(), false);
+        i = newI.value();
         if (data.size() - i < arrayLen) {
             IAM_LOGE("GetAttributesArrayValue insufficient data for array, remaining: %{public}zu, need: %{public}u",
                 data.size() - i, arrayLen);
@@ -572,7 +612,11 @@ bool Attributes::GetAttributesArrayValue(AttributeKey key, std::vector<Attribute
         }
 
         array.emplace_back(std::vector<uint8_t>(data.begin() + i, data.begin() + i + arrayLen));
-        i += arrayLen;
+
+        // Use safe addition to update position
+        newI = safe_add(i, static_cast<size_t>(arrayLen));
+        ENSURE_OR_RETURN_VAL(newI.has_value(), false);
+        i = newI.value();
     }
 
     return true;
@@ -580,9 +624,17 @@ bool Attributes::GetAttributesArrayValue(AttributeKey key, std::vector<Attribute
 
 std::vector<uint8_t> Attributes::Serialize() const
 {
-    uint32_t size = 0;
+    size_t size = 0;
     for (const auto &[key, value] : map_) {
-        size += sizeof(uint32_t) + sizeof(uint32_t) + value.size();
+        auto sum = safe_add(size, sizeof(uint32_t));
+        ENSURE_OR_RETURN_VAL(sum.has_value(), std::vector<uint8_t> {});
+        size = sum.value();
+        sum = safe_add(size, sizeof(uint32_t));
+        ENSURE_OR_RETURN_VAL(sum.has_value(), std::vector<uint8_t> {});
+        size = sum.value();
+        sum = safe_add(size, value.size());
+        ENSURE_OR_RETURN_VAL(sum.has_value(), std::vector<uint8_t> {});
+        size = sum.value();
     }
 
     std::vector<uint8_t> buffer;
@@ -594,6 +646,11 @@ std::vector<uint8_t> Attributes::Serialize() const
 
         if (!EncodeNumericValue(key, type)) {
             IAM_LOGE("EncodeNumericValue key error");
+            return {};
+        }
+        // Check if value size fits in uint32_t
+        if (value.size() > std::numeric_limits<uint32_t>::max()) {
+            IAM_LOGE("Serialize value size exceeds uint32_t max: %{public}zu", value.size());
             return {};
         }
         if (!EncodeNumericValue(static_cast<uint32_t>(value.size()), length)) {

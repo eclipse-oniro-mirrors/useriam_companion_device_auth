@@ -15,7 +15,10 @@
 
 #include "sync_device_status_message.h"
 
+#include <optional>
+
 #include "iam_check.h"
+#include "iam_logger.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -35,24 +38,26 @@ bool EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attri
     return true;
 }
 
-bool DecodeSyncDeviceStatusRequest(const Attributes &attributes, SyncDeviceStatusRequest &request)
+std::optional<SyncDeviceStatusRequest> DecodeSyncDeviceStatusRequest(const Attributes &attributes)
 {
     std::vector<uint16_t> protocolList;
     bool getProtocolListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocolList);
-    ENSURE_OR_RETURN_VAL(getProtocolListRet, false);
+    ENSURE_OR_RETURN_VAL(getProtocolListRet, std::nullopt);
     std::vector<uint16_t> capabilityList;
     bool getCapabilityListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
-    ENSURE_OR_RETURN_VAL(getCapabilityListRet, false);
+    ENSURE_OR_RETURN_VAL(getCapabilityListRet, std::nullopt);
     auto hostDeviceKey = DecodeHostDeviceKey(attributes);
-    ENSURE_OR_RETURN_VAL(hostDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_VAL(hostDeviceKey.has_value(), std::nullopt);
+
+    SyncDeviceStatusRequest request;
     request.hostDeviceKey = *hostDeviceKey;
     bool getSaltRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_SALT, request.salt);
-    ENSURE_OR_RETURN_VAL(getSaltRet, false);
+    ENSURE_OR_RETURN_VAL(getSaltRet, std::nullopt);
     bool getChallengeRet = attributes.GetUint64Value(Attributes::ATTR_CDA_SA_CHALLENGE, request.challenge);
-    ENSURE_OR_RETURN_VAL(getChallengeRet, false);
+    ENSURE_OR_RETURN_VAL(getChallengeRet, std::nullopt);
     request.protocolIdList = ProtocolIdConverter::FromUnderlyingVec(protocolList);
     request.capabilityList = CapabilityConverter::FromUnderlyingVec(capabilityList);
-    return true;
+    return request;
 }
 
 bool EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes &attributes)
@@ -70,38 +75,40 @@ bool EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
     return true;
 }
 
-bool DecodeSyncDeviceStatusReply(const Attributes &attributes, SyncDeviceStatusReply &reply)
+std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attributes &attributes)
 {
     int32_t resultCode = 0;
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, resultCode);
-    ENSURE_OR_RETURN_VAL(getResultRet, false);
+    ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
+
+    SyncDeviceStatusReply reply;
     reply.result = static_cast<ResultCode>(resultCode);
     if (reply.result != ResultCode::SUCCESS) {
-        return true;
+        return reply;
     }
 
     std::vector<uint16_t> protocolList;
     bool getProtocolListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocolList);
-    ENSURE_OR_RETURN_VAL(getProtocolListRet, false);
+    ENSURE_OR_RETURN_VAL(getProtocolListRet, std::nullopt);
     std::vector<uint16_t> capabilityList;
     bool getCapabilityListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
-    ENSURE_OR_RETURN_VAL(getCapabilityListRet, false);
+    ENSURE_OR_RETURN_VAL(getCapabilityListRet, std::nullopt);
     auto companionDeviceKey = DecodeCompanionDeviceKey(attributes);
-    ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), std::nullopt);
     reply.companionDeviceKey = *companionDeviceKey;
     uint16_t secureProtocolId = 0;
     bool getSecureProtocolIdRet =
         attributes.GetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, secureProtocolId);
-    ENSURE_OR_RETURN_VAL(getSecureProtocolIdRet, false);
+    ENSURE_OR_RETURN_VAL(getSecureProtocolIdRet, std::nullopt);
     bool getUserNameRet = attributes.GetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, reply.deviceUserName);
-    ENSURE_OR_RETURN_VAL(getUserNameRet, false);
+    ENSURE_OR_RETURN_VAL(getUserNameRet, std::nullopt);
     bool getExtraInfoRet =
         attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
-    ENSURE_OR_RETURN_VAL(getExtraInfoRet, false);
+    ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
     reply.protocolIdList = ProtocolIdConverter::FromUnderlyingVec(protocolList);
     reply.capabilityList = CapabilityConverter::FromUnderlyingVec(capabilityList);
     reply.secureProtocolId = SecureProtocolIdConverter::FromUnderlying(secureProtocolId);
-    return true;
+    return reply;
 }
 
 } // namespace CompanionDeviceAuth

@@ -130,7 +130,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_001, TestSize.Level0)
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         PreObtainTokenReply preObtainTokenReply;
-        EXPECT_TRUE(DecodePreObtainTokenReply(reply, preObtainTokenReply));
+        auto result = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        preObtainTokenReply = result.value();
         receivedResult = preObtainTokenReply.result;
     };
 
@@ -159,7 +161,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_002, TestSize.Level0)
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         PreObtainTokenReply preObtainTokenReply;
-        EXPECT_TRUE(DecodePreObtainTokenReply(reply, preObtainTokenReply));
+        auto result = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        preObtainTokenReply = result.value();
         receivedResult = preObtainTokenReply.result;
     };
 
@@ -182,14 +186,16 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_003, TestSize.Level0)
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         PreObtainTokenReply preObtainTokenReply;
-        EXPECT_TRUE(DecodePreObtainTokenReply(reply, preObtainTokenReply));
+        auto result = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        preObtainTokenReply = result.value();
         receivedResult = preObtainTokenReply.result;
     };
 
     request_ = std::make_shared<HostObtainTokenRequest>(connectionName_, preObtainTokenRequest_, onMessageReply_,
         companionDeviceKey_);
 
-    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request_->OnStart(errorGuard);
@@ -207,7 +213,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_004, TestSize.Level0)
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         PreObtainTokenReply preObtainTokenReply;
-        EXPECT_TRUE(DecodePreObtainTokenReply(reply, preObtainTokenReply));
+        auto result = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        preObtainTokenReply = result.value();
         receivedResult = preObtainTokenReply.result;
     };
 
@@ -215,7 +223,7 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_004, TestSize.Level0)
         companionDeviceKey_);
 
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_)).WillOnce(Return(std::nullopt));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request_->OnStart(errorGuard);
@@ -233,7 +241,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_005, TestSize.Level0)
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         PreObtainTokenReply preObtainTokenReply;
-        EXPECT_TRUE(DecodePreObtainTokenReply(reply, preObtainTokenReply));
+        auto result = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        preObtainTokenReply = result.value();
         receivedResult = preObtainTokenReply.result;
     };
 
@@ -261,7 +271,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_006, TestSize.Level0)
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         PreObtainTokenReply preObtainTokenReply;
-        EXPECT_TRUE(DecodePreObtainTokenReply(reply, preObtainTokenReply));
+        auto result = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        preObtainTokenReply = result.value();
         receivedResult = preObtainTokenReply.result;
     };
 
@@ -291,7 +303,6 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_001, TestSize.Leve
 
     Attributes request;
     ObtainTokenRequest obtainTokenRequest = { .hostUserId = 100,
-        .requestId = 0,
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = companionDeviceKey_ };
     EncodeObtainTokenRequest(obtainTokenRequest, request);
@@ -307,6 +318,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_001, TestSize.Leve
     };
 
     EXPECT_CALL(mockSecurityAgent_, HostProcessObtainToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, _)).WillOnce(Return(true));
 
     request_->HandleObtainTokenMessage(request, onMessageReply);
 
@@ -352,7 +364,6 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_004, TestSize.Leve
 
     Attributes request;
     ObtainTokenRequest obtainTokenRequest = { .hostUserId = 101,
-        .requestId = 0,
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = companionDeviceKey_ };
     EncodeObtainTokenRequest(obtainTokenRequest, request);
@@ -382,7 +393,6 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_005, TestSize.Leve
 
     Attributes request;
     ObtainTokenRequest obtainTokenRequest = { .hostUserId = 100,
-        .requestId = 0,
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = companionDeviceKey_ };
     obtainTokenRequest.companionDeviceKey.deviceId = "mismatch_device_id";
@@ -414,7 +424,6 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_006, TestSize.Leve
 
     Attributes request;
     ObtainTokenRequest obtainTokenRequest = { .hostUserId = 100,
-        .requestId = 1,
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = companionDeviceKey_ };
     EncodeObtainTokenRequest(obtainTokenRequest, request);
@@ -444,7 +453,6 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_007, TestSize.Leve
 
     Attributes request;
     ObtainTokenRequest obtainTokenRequest = { .hostUserId = 100,
-        .requestId = 0,
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = companionDeviceKey_ };
     EncodeObtainTokenRequest(obtainTokenRequest, request);
@@ -501,10 +509,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_001, TestSize.
 {
     CreateDefaultRequest();
 
-    ObtainTokenRequest request = { .hostUserId = 100,
-        .requestId = 999,
-        .extraInfo = {},
-        .companionDeviceKey = companionDeviceKey_ };
+    ObtainTokenRequest request = { .hostUserId = 100, .extraInfo = {}, .companionDeviceKey = companionDeviceKey_ };
     std::vector<uint8_t> obtainTokenReply;
 
     bool result = request_->HandleHostProcessObtainToken(request, obtainTokenReply);
@@ -516,10 +521,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_002, TestSize.
 {
     CreateDefaultRequest();
 
-    ObtainTokenRequest request = { .hostUserId = 100,
-        .requestId = request_->requestId_,
-        .extraInfo = {},
-        .companionDeviceKey = companionDeviceKey_ };
+    ObtainTokenRequest request = { .hostUserId = 100, .extraInfo = {}, .companionDeviceKey = companionDeviceKey_ };
     std::vector<uint8_t> obtainTokenReply;
 
     EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, _)).WillOnce(Return(true));

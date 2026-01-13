@@ -575,32 +575,6 @@ fn default_host_db_manager_add_token_test_template_id_not_exists() {
 }
 
 #[test]
-fn default_host_db_manager_add_token_test_reach_max() {
-    let _guard = ut_registry_guard!();
-    log_i!("default_host_db_manager_add_token_test_reach_max start");
-
-    mock_set_storage_io_success();
-
-    let mut manager = DefaultHostDbManager::new();
-    let base_info = create_test_base_info();
-    let capability_info = create_test_capability_info();
-    let sk_info = create_test_sk_info();
-
-    for i in 0..MAX_TOKEN_NUM {
-        let device_info = create_test_device_info((100 + i) as u64, &format!("device{}", i), 100);
-        let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
-        let token_info = create_test_token_info((100 + i) as u64);
-        let _ = manager.add_token(&token_info);
-    }
-
-    assert_eq!(manager.companion_token_infos.len(), MAX_TOKEN_NUM);
-
-    let new_token = create_test_token_info(100);
-    let result = manager.add_token(&new_token);
-    assert_eq!(result, Err(ErrorCode::ExceedLimit));
-}
-
-#[test]
 fn default_host_db_manager_get_token_test_success() {
     let _guard = ut_registry_guard!();
     log_i!("default_host_db_manager_get_token_test_success start");

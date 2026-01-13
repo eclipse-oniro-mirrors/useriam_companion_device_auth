@@ -121,7 +121,7 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_003, TestSize.Level0)
         static_cast<int32_t>(revokeTokenRequest.companionDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, revokeTokenRequest.companionDeviceKey.deviceId);
 
-    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
 
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {

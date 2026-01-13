@@ -23,29 +23,33 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "soft_bus_device_status_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<SoftBusDeviceStatusManager> &, FuzzedDataProvider &);
+using SoftBusDeviceStatusManagerFuzzFunction = void (*)(std::shared_ptr<SoftBusDeviceStatusManager> &,
+    FuzzedDataProvider &);
 
 static void FuzzOp0(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Start
     manager->Start();
 }
 
 static void FuzzOp1(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetAuthMaintainActive
     (void)manager->GetAuthMaintainActive();
 }
 
 static void FuzzOp2(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetPhysicalDeviceStatus
     PhysicalDeviceKey key;
     uint32_t testVal64 = 64;
@@ -56,12 +60,14 @@ static void FuzzOp2(std::shared_ptr<SoftBusDeviceStatusManager> &manager, Fuzzed
 
 static void FuzzOp3(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetAllPhysicalDevices
     (void)manager->GetAllPhysicalDevices();
 }
 
 static void FuzzOp4(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetLocalPhysicalDeviceKey
     auto localKey = manager->GetLocalPhysicalDeviceKey();
     (void)localKey;
@@ -69,6 +75,7 @@ static void FuzzOp4(std::shared_ptr<SoftBusDeviceStatusManager> &manager, Fuzzed
 
 static void FuzzOp5(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test RefreshDeviceStatus
     // This indirectly tests QueryTrustedDevices and ConvertToPhysicalDevices
     manager->RefreshDeviceStatus();
@@ -76,6 +83,7 @@ static void FuzzOp5(std::shared_ptr<SoftBusDeviceStatusManager> &manager, Fuzzed
 
 static void FuzzOp6(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test HandleLocalIsAuthMaintainActiveChange
     // This indirectly tests NotifyAuthMaintainActiveChange
     bool isActive = fuzzData.ConsumeBool();
@@ -84,6 +92,7 @@ static void FuzzOp6(std::shared_ptr<SoftBusDeviceStatusManager> &manager, Fuzzed
 
 static void FuzzOp7(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribePhysicalDeviceStatus
     auto subscription =
         manager->SubscribePhysicalDeviceStatus([](const std::vector<PhysicalDeviceStatus> &deviceStatus) {
@@ -95,6 +104,7 @@ static void FuzzOp7(std::shared_ptr<SoftBusDeviceStatusManager> &manager, Fuzzed
 
 static void FuzzOp8(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribeAuthMaintainActive
     auto subscription = manager->SubscribeAuthMaintainActive([](bool isActive) {
         // Callback - intentionally does nothing
@@ -105,6 +115,7 @@ static void FuzzOp8(std::shared_ptr<SoftBusDeviceStatusManager> &manager, Fuzzed
 
 static void FuzzOp9(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test IsDeviceTypeIdSupport
     auto deviceTypeId = static_cast<DistributedHardware::DmDeviceType>(fuzzData.ConsumeIntegral<uint32_t>());
     (void)manager->IsDeviceTypeIdSupport(deviceTypeId);
@@ -112,37 +123,42 @@ static void FuzzOp9(std::shared_ptr<SoftBusDeviceStatusManager> &manager, Fuzzed
 
 static void FuzzOp10(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test InitDeviceManager
     (void)manager->InitDeviceManager();
 }
 
 static void FuzzOp11(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test RegisterDeviceStatusCallback
     (void)manager->RegisterDeviceStatusCallback();
 }
 
 static void FuzzOp12(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test NotifyDeviceStatusChange
     manager->NotifyDeviceStatusChange();
 }
 
 static void FuzzOp13(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test HandleDeviceManagerServiceReady
     manager->HandleDeviceManagerServiceReady();
 }
 
 static void FuzzOp14(std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test HandleDeviceManagerServiceUnavailable
     manager->HandleDeviceManagerServiceUnavailable();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7,
-    FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11, FuzzOp12, FuzzOp13, FuzzOp14 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const SoftBusDeviceStatusManagerFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4,
+    FuzzOp5, FuzzOp6, FuzzOp7, FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11, FuzzOp12, FuzzOp13, FuzzOp14 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SoftBusDeviceStatusManagerFuzzFunction);
 
 void FuzzSoftBusDeviceStatusManager(FuzzedDataProvider &fuzzData)
 {
@@ -165,5 +181,8 @@ void FuzzSoftBusDeviceStatusManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SoftBusDeviceStatusManager)
+
 } // namespace UserIam
 } // namespace OHOS

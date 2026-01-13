@@ -23,10 +23,12 @@
 #include "fuzzer/FuzzedDataProvider.h"
 
 #include "adapter_initializer.h"
+#include "channel_adapter_initializer.h"
 #include "companion_manager.h"
 #include "cross_device_comm_manager.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_binding_manager.h"
 #include "incoming_message_handler_registry.h"
 #include "misc_manager.h"
@@ -119,17 +121,16 @@ public:
         return ResultCode::SUCCESS;
     }
 
-    ResultCode EndAddCompanion(const EndAddCompanionInputParam &inputParam,
-        std::vector<uint8_t> &outFwkMsg, std::vector<uint8_t> &outTokenData, Atl &outAtl) override
+    ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) override
     {
-        (void)inputParam;
+        (void)input;
         ResultCode result = static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
         if (result == ResultCode::SUCCESS) {
             size_t fwkMsgSize = fuzzData_.ConsumeIntegralInRange<size_t>(64, FUZZ_MAX_FWK_MESSAGE_LENGTH);
-            outFwkMsg = fuzzData_.ConsumeBytes<uint8_t>(fwkMsgSize);
+            output.fwkMsg = fuzzData_.ConsumeBytes<uint8_t>(fwkMsgSize);
             size_t tokenSize = fuzzData_.ConsumeIntegralInRange<size_t>(32, FUZZ_MAX_TOKEN_LENGTH);
-            outTokenData = fuzzData_.ConsumeBytes<uint8_t>(tokenSize);
-            outAtl = fuzzData_.ConsumeIntegral<Atl>();
+            output.tokenData = fuzzData_.ConsumeBytes<uint8_t>(tokenSize);
+            output.atl = fuzzData_.ConsumeIntegral<Atl>();
         }
         return result;
     }
@@ -158,7 +159,7 @@ public:
     }
 
     ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
-        const std::vector<BusinessIdType> &enabledBusinessIds) override
+        const std::vector<BusinessId> &enabledBusinessIds) override
     {
         (void)templateId;
         (void)enabledBusinessIds;
@@ -303,9 +304,9 @@ public:
     {
     }
 
-    int32_t GetNextGlobalId() override
+    uint64_t GetNextGlobalId() override
     {
-        return static_cast<int32_t>(fuzzData_.ConsumeIntegral<uint32_t>());
+        return fuzzData_.ConsumeIntegral<uint64_t>();
     }
 
     bool SetDeviceSelectCallback(uint32_t tokenId, const sptr<IIpcDeviceSelectCallback> &deviceSelectCallback) override
@@ -338,7 +339,7 @@ public:
         return std::optional<std::string>();
     }
 
-    bool CheckBusinessIds(const std::vector<int32_t> &) override
+    bool CheckBusinessIds(const std::vector<BusinessId> &) override
     {
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0;
     }
@@ -1409,48 +1410,115 @@ private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };
 
+// Singleton initializer functions
+static bool InitCompanionManager(FuzzedDataProvider &fuzzData)
+{
+    auto companionMgr = std::make_shared<MockCompanionManager>(fuzzData);
+    SingletonManager::GetInstance().SetCompanionManager(companionMgr);
+    return true;
+}
+
+static bool InitHostBindingManager(FuzzedDataProvider &fuzzData)
+{
+    auto hostBindingMgr = std::make_shared<MockHostBindingManager>(fuzzData);
+    SingletonManager::GetInstance().SetHostBindingManager(hostBindingMgr);
+    return true;
+}
+
+static bool InitMiscManager(FuzzedDataProvider &fuzzData)
+{
+    auto miscMgr = std::make_shared<MockMiscManager>(fuzzData);
+    SingletonManager::GetInstance().SetMiscManager(miscMgr);
+    return true;
+}
+
+static bool InitSystemParamManager(FuzzedDataProvider &fuzzData)
+{
+    auto systemParamMgr = std::make_shared<MockSystemParamManager>(fuzzData);
+    SingletonManager::GetInstance().SetSystemParamManager(systemParamMgr);
+    return true;
+}
+
+static bool InitActiveUserIdManager(FuzzedDataProvider &fuzzData)
+{
+    auto activeUserIdMgr = std::make_shared<MockUserIdManager>(fuzzData);
+    SingletonManager::GetInstance().SetActiveUserIdManager(activeUserIdMgr);
+    return true;
+}
+
+static bool InitSecurityAgent(FuzzedDataProvider &fuzzData)
+{
+    auto securityAgent = std::make_shared<MockSecurityAgent>(fuzzData);
+    SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
+    return true;
+}
+
+static bool InitCrossDeviceCommManager(FuzzedDataProvider &fuzzData)
+{
+    auto crossDeviceCommMgr = std::make_shared<MockCrossDeviceCommManager>(fuzzData);
+    SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
+    return true;
+}
+
+static bool InitRequestManager(FuzzedDataProvider &fuzzData)
+{
+    auto requestMgr = std::make_shared<MockRequestManager>(fuzzData);
+    SingletonManager::GetInstance().SetRequestManager(requestMgr);
+    return true;
+}
+
+static bool InitRequestFactory(FuzzedDataProvider &fuzzData)
+{
+    auto requestFactory = std::make_shared<MockRequestFactory>(fuzzData);
+    SingletonManager::GetInstance().SetRequestFactory(requestFactory);
+    return true;
+}
+
+static bool InitIncomingMessageHandlerRegistry(FuzzedDataProvider &fuzzData)
+{
+    auto messageHandlerRegistry = std::make_shared<MockIncomingMessageHandlerRegistry>(fuzzData);
+    SingletonManager::GetInstance().SetIncomingMessageHandlerRegistry(messageHandlerRegistry);
+    return true;
+}
+
+// Singleton cleanup functions
+static void ResetSingletonManagerRegistry()
+{
+    SingletonManager::GetInstance().Reset();
+}
+
 bool InitializeSingletonManager(FuzzedDataProvider &fuzzData)
 {
-    // Note: AdapterManager must be initialized before calling this function
-    SingletonManager &singletonMgr = SingletonManager::GetInstance();
-
-    auto companionMgr = std::make_shared<MockCompanionManager>(fuzzData);
-    singletonMgr.SetCompanionManager(companionMgr);
-
-    auto hostBindingMgr = std::make_shared<MockHostBindingManager>(fuzzData);
-    singletonMgr.SetHostBindingManager(hostBindingMgr);
-
-    auto miscMgr = std::make_shared<MockMiscManager>(fuzzData);
-    singletonMgr.SetMiscManager(miscMgr);
-
-    auto systemParamMgr = std::make_shared<MockSystemParamManager>(fuzzData);
-    singletonMgr.SetSystemParamManager(systemParamMgr);
-
-    auto activeUserIdMgr = std::make_shared<MockUserIdManager>(fuzzData);
-    singletonMgr.SetActiveUserIdManager(activeUserIdMgr);
-
-    auto securityAgent = std::make_shared<MockSecurityAgent>(fuzzData);
-    singletonMgr.SetSecurityAgent(securityAgent);
-
-    auto crossDeviceCommMgr = std::make_shared<MockCrossDeviceCommManager>(fuzzData);
-    singletonMgr.SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-    auto requestMgr = std::make_shared<MockRequestManager>(fuzzData);
-    singletonMgr.SetRequestManager(requestMgr);
-
-    auto requestFactory = std::make_shared<MockRequestFactory>(fuzzData);
-    singletonMgr.SetRequestFactory(requestFactory);
-
-    auto messageHandlerRegistry = std::make_shared<MockIncomingMessageHandlerRegistry>(fuzzData);
-    singletonMgr.SetIncomingMessageHandlerRegistry(messageHandlerRegistry);
-
-    return true;
+    // Use registry to initialize all singletons
+    return SingletonInitRegistry::InitializeAll(fuzzData);
 }
 
 void CleanupSingletonManager()
 {
-    SingletonManager::GetInstance().Reset();
+    // Use registry to cleanup all singletons (in reverse order)
+    SingletonCleanupRegistry::CleanupAll();
 }
+
+// Auto-register all singleton initializers and cleanup functions
+namespace {
+static const bool g_singletonInitializersRegistered = []() {
+    // Register initializers in order
+    REGISTER_SINGLETON_INIT(CompanionManager);
+    REGISTER_SINGLETON_INIT(HostBindingManager);
+    REGISTER_SINGLETON_INIT(MiscManager);
+    REGISTER_SINGLETON_INIT(SystemParamManager);
+    REGISTER_SINGLETON_INIT(ActiveUserIdManager);
+    REGISTER_SINGLETON_INIT(SecurityAgent);
+    REGISTER_SINGLETON_INIT(CrossDeviceCommManager);
+    REGISTER_SINGLETON_INIT(RequestManager);
+    REGISTER_SINGLETON_INIT(RequestFactory);
+    REGISTER_SINGLETON_INIT(IncomingMessageHandlerRegistry);
+
+    SingletonCleanupRegistry::Register(ResetSingletonManagerRegistry);
+
+    return true;
+}();
+} // namespace
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

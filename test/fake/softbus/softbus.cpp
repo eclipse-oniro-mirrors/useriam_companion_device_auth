@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-// Fake implementation of SoftBus socket functions for unit tests
+#include <memory>
 
 #include "socket.h"
 

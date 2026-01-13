@@ -147,7 +147,6 @@ void NapiAvailableDeviceStatusCallback::OnAvailableDeviceStatusChange(
     availableDeviceStatusCallbackHolder->deviceStatusList = deviceStatusList;
     availableDeviceStatusCallbackHolder->env = env_;
     auto task = [availableDeviceStatusCallbackHolder]() {
-        IAM_LOGD("start");
         if (availableDeviceStatusCallbackHolder == nullptr ||
             availableDeviceStatusCallbackHolder->callback == nullptr) {
             IAM_LOGE("availableDeviceStatusCallbackHolder is invalid");

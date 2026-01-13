@@ -82,9 +82,10 @@ void CompanionRevokeTokenRequest::HandleRevokeTokenReply(const Attributes &messa
 {
     IAM_LOGI("%{public}s", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
-    RevokeTokenReply reply = {};
-    bool decodeRet = DecodeRevokeTokenReply(message, reply);
-    ENSURE_OR_RETURN(decodeRet);
+
+    auto replyOpt = DecodeRevokeTokenReply(message);
+    ENSURE_OR_RETURN(replyOpt.has_value());
+    const auto &reply = *replyOpt;
     if (reply.result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s revoke token failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(reply.result));
@@ -97,13 +98,13 @@ void CompanionRevokeTokenRequest::HandleRevokeTokenReply(const Attributes &messa
 
 void CompanionRevokeTokenRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
+    IAM_LOGI("%{public}s: revoke token request failed, result=%{public}d", GetDescription(), result);
     Destroy();
 }
 
 void CompanionRevokeTokenRequest::CompleteWithSuccess()
 {
-    IAM_LOGI("%{public}s: revoke token request completed successfully", GetDescription());
+    IAM_LOGI("%{public}s complete with success", GetDescription());
     Destroy();
 }
 

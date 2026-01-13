@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "subscription_util.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using SubscriptionUtilFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzConvertToIpcDeviceStatus(FuzzedDataProvider &fuzzData)
 {
@@ -78,7 +78,7 @@ static void FuzzConvertToIpcTemplateStatusWithEmptyStatus(FuzzedDataProvider &fu
     (void)ipcStatus;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const SubscriptionUtilFuzzFunction g_fuzzFuncs[] = {
     FuzzConvertToIpcDeviceStatus,
     FuzzConvertToIpcDeviceStatusWithEmptyFields,
     FuzzConvertToIpcDeviceStatusWithLargeDeviceId,
@@ -87,7 +87,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzConvertToIpcTemplateStatusWithEmptyStatus,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SubscriptionUtilFuzzFunction);
 
 void FuzzSubscriptionUtil(FuzzedDataProvider &fuzzData)
 {
@@ -105,5 +105,8 @@ void FuzzSubscriptionUtil(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SubscriptionUtil)
+
 } // namespace UserIam
 } // namespace OHOS

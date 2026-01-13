@@ -16,8 +16,7 @@
 use crate::common::constants::*;
 use crate::{log_e, log_i};
 use crate::traits::companion_request_manager::{
-    CompanionRequest, CompanionRequestInput, CompanionRequestManager, DummyCompanionRequestManager,
-    CompanionRequestOutput
+    CompanionRequest, CompanionRequestParam, CompanionRequestManager, DummyCompanionRequestManager,
 };
 use crate::ut_registry_guard;
 
@@ -27,18 +26,6 @@ impl CompanionRequest for DummyCompanionRequest {
     fn get_request_id(&self) -> i32 {
         log_e!("not implemented");
         0
-    }
-    fn prepare(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
-        log_e!("not implemented");
-        Err(ErrorCode::GeneralError)
-    }
-    fn begin(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
-        log_e!("not implemented");
-        Err(ErrorCode::GeneralError)
-    }
-    fn end(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
-        log_e!("not implemented");
-        Err(ErrorCode::GeneralError)
     }
 }
 

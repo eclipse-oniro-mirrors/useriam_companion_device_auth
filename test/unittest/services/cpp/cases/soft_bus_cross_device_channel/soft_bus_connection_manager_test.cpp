@@ -18,12 +18,15 @@
 
 #include "relative_timer.h"
 #include "singleton_manager.h"
+#include "soft_bus_adapter.h"
+#include "soft_bus_adapter_manager.h"
 #include "soft_bus_connection_manager.h"
 #include "soft_bus_global_callbacks.h"
 #include "soft_bus_socket.h"
 #include "task_runner_manager.h"
 
 #include "mock_misc_manager.h"
+#include "mock_soft_bus_adapter.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -32,6 +35,10 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+
+constexpr int32_t INT32_1 = 1;
+constexpr int32_t INT32_2 = 2;
+constexpr uint64_t UINT64_1 = 1;
 
 class SoftBusConnectionManagerTest : public Test {
 public:
@@ -43,6 +50,14 @@ public:
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
         ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+        // Set up mock SoftBusAdapter
+        ON_CALL(mockSoftBusAdapter_, CreateServerSocket()).WillByDefault(Return(std::optional<int32_t>(INT32_1)));
+        ON_CALL(mockSoftBusAdapter_, CreateClientSocket(_)).WillByDefault(Return(std::optional<int32_t>(INT32_2)));
+        ON_CALL(mockSoftBusAdapter_, SendBytes(_, _)).WillByDefault(Return(true));
+
+        auto softBusAdapter = std::shared_ptr<ISoftBusAdapter>(&mockSoftBusAdapter_, [](ISoftBusAdapter *) {});
+        SoftBusAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
     }
 
     void TearDown() override
@@ -50,11 +65,13 @@ public:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        SoftBusAdapterManager::GetInstance().SetSoftBusAdapter(nullptr);
     }
 
 protected:
-    int32_t nextGlobalId_ = 1;
+    uint64_t nextGlobalId_ = UINT64_1;
     NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockSoftBusAdapter> mockSoftBusAdapter_;
 };
 
 HWTEST_F(SoftBusConnectionManagerTest, Create_001, TestSize.Level0)
@@ -187,7 +204,7 @@ HWTEST_F(SoftBusConnectionManagerTest, SendMessage_003, TestSize.Level0)
 
     std::vector<uint8_t> message = { 1, 2, 3, 4 };
     bool result = manager->SendMessage("test-connection", message);
-    EXPECT_FALSE(result);
+    EXPECT_TRUE(result);
 }
 
 HWTEST_F(SoftBusConnectionManagerTest, SendMessage_004, TestSize.Level0)

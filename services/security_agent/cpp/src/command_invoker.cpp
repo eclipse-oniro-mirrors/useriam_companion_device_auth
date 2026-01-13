@@ -90,6 +90,16 @@ std::shared_ptr<ICommandInvoker> ICommandInvoker::Create()
     return std::make_shared<CommandInvoker>();
 }
 
+CommandInvoker::CommandInvoker()
+{
+    init_rust_env();
+}
+
+CommandInvoker::~CommandInvoker()
+{
+    uninit_rust_env();
+}
+
 ResultCode CommandInvoker::Initialize()
 {
     if (inited_) {

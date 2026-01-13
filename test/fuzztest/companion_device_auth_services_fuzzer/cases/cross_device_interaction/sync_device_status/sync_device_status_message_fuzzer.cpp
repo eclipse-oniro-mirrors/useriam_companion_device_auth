@@ -21,7 +21,7 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "sync_device_status_message.h"
 
 namespace OHOS {
@@ -31,7 +31,7 @@ namespace {
 const uint32_t TEST_VAL64 = 64;
 }
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using SyncDeviceStatusMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodeSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
 {
@@ -60,8 +60,8 @@ static void FuzzEncodeSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    SyncDeviceStatusRequest request;
-    DecodeSyncDeviceStatusRequest(attr, request);
+    auto requestOpt = DecodeSyncDeviceStatusRequest(attr);
+    (void)requestOpt;
 }
 
 static void FuzzEncodeSyncDeviceStatusReply(FuzzedDataProvider &fuzzData)
@@ -94,18 +94,18 @@ static void FuzzEncodeSyncDeviceStatusReply(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeSyncDeviceStatusReply(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    SyncDeviceStatusReply reply;
-    DecodeSyncDeviceStatusReply(attr, reply);
+    auto replyOpt = DecodeSyncDeviceStatusReply(attr);
+    (void)replyOpt;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const SyncDeviceStatusMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodeSyncDeviceStatusRequest,
     FuzzDecodeSyncDeviceStatusRequest,
     FuzzEncodeSyncDeviceStatusReply,
     FuzzDecodeSyncDeviceStatusReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SyncDeviceStatusMessageFuzzFunction);
 
 void FuzzSyncDeviceStatusMessage(FuzzedDataProvider &fuzzData)
 {
@@ -124,5 +124,8 @@ void FuzzSyncDeviceStatusMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SyncDeviceStatusMessage)
+
 } // namespace UserIam
 } // namespace OHOS

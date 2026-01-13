@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "service_converter.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using ServiceConverterFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCapabilityToUnderlying(FuzzedDataProvider &fuzzData)
 {
@@ -84,7 +84,7 @@ static void FuzzCapabilityToUnderlyingVecEmpty(FuzzedDataProvider &fuzzData)
     (void)underlyingVec;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ServiceConverterFuzzFunction g_fuzzFuncs[] = {
     FuzzCapabilityToUnderlying,
     FuzzCapabilityFromUnderlying,
     FuzzProtocolIdToUnderlying,
@@ -94,7 +94,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCapabilityToUnderlyingVecEmpty,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ServiceConverterFuzzFunction);
 
 void FuzzServiceConverter(FuzzedDataProvider &fuzzData)
 {
@@ -112,5 +112,8 @@ void FuzzServiceConverter(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ServiceConverter)
+
 } // namespace UserIam
 } // namespace OHOS

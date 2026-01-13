@@ -16,5 +16,8 @@ import("//build/test.gni")
 
 group("companion_device_auth_unittest") {
   testonly = true
-  deps = [ "services:services_test" ]
+  deps = [
+    "client:client_test",
+    "services:services_test",
+  ]
 }

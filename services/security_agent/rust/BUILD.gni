@@ -13,7 +13,6 @@
 
 import("../../../companion_device_auth.gni")
 
-# Rust service source files
 companion_device_auth_rust_service_local_sources = [
   "commands/common_command.rs",
   "commands/mod.rs",

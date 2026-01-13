@@ -15,6 +15,9 @@
 
 #include "subscription_util.h"
 
+#include "iam_logger.h"
+
+#define LOG_TAG "COMPANION_DEVICE_AUTH"
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
@@ -29,7 +32,11 @@ IpcDeviceStatus ConvertToIpcDeviceStatus(const DeviceStatus &status)
     ipcStatus.deviceModelInfo = status.deviceModelInfo;
     ipcStatus.deviceName = status.deviceName;
     ipcStatus.isOnline = status.isOnline;
-    ipcStatus.supportedBusinessIds = status.supportedBusinessIds;
+    // Convert BusinessId vector to int vector for IPC
+    ipcStatus.supportedBusinessIds.reserve(status.supportedBusinessIds.size());
+    for (const auto &id : status.supportedBusinessIds) {
+        ipcStatus.supportedBusinessIds.push_back(static_cast<int>(id));
+    }
     return ipcStatus;
 }
 
@@ -43,7 +50,11 @@ IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionSta
     ipcStatus.isValid = companionStatus.isValid;
     ipcStatus.localUserId = companionStatus.hostUserId;
     ipcStatus.addedTime = companionStatus.addedTime;
-    ipcStatus.enabledBusinessIds = companionStatus.enabledBusinessIds;
+    // Convert BusinessId vector to int vector for IPC
+    ipcStatus.enabledBusinessIds.reserve(companionStatus.enabledBusinessIds.size());
+    for (const auto &id : companionStatus.enabledBusinessIds) {
+        ipcStatus.enabledBusinessIds.push_back(static_cast<int>(id));
+    }
     ipcStatus.deviceStatus = ConvertToIpcDeviceStatus(companionStatus.companionDeviceStatus);
     return ipcStatus;
 }

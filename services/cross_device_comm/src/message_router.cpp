@@ -15,12 +15,12 @@
 
 #include "message_router.h"
 
-#include <cinttypes>
 #include <utility>
 
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "cda_attributes.h"
 #include "common_defines.h"
 #include "relative_timer.h"
 #include "scope_guard.h"
@@ -93,8 +93,8 @@ std::unique_ptr<Subscription> MessageRouter::SubscribeIncomingConnection(Message
     key.connectionName = "";
     key.msgType = msgType;
 
-    RegisterSubscription(key, std::move(onMessage),
-        "incoming connection subscription added: type=" + std::to_string(static_cast<uint32_t>(msgType)));
+    IAM_LOGI("incoming connection subscription added: type=0x%{public}04x", static_cast<uint16_t>(msgType));
+    RegisterSubscription(key, std::move(onMessage), "incoming connection subscription added: type=0x%{public}04x");
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, key]() {
@@ -111,9 +111,10 @@ std::unique_ptr<Subscription> MessageRouter::SubscribeMessage(const std::string 
     key.connectionName = connectionName;
     key.msgType = msgType;
 
+    IAM_LOGI("message subscription added: conn=%{public}s, type=0x%{public}04x", connectionName.c_str(),
+        static_cast<uint16_t>(msgType));
     RegisterSubscription(key, std::move(onMessage),
-        "message subscription added: conn=" + connectionName +
-            ", type=" + std::to_string(static_cast<uint32_t>(msgType)));
+        "message subscription added: conn=" + connectionName + ", type=0x%{public}04x");
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, key]() {
@@ -166,10 +167,16 @@ OnMessage MessageRouter::FindMessageSubscriber(const std::string &connectionName
 bool MessageRouter::SendMessage(const std::string &connectionName, MessageType msgType, Attributes &request,
     OnMessageReply &&onMessageReply)
 {
+    if (pendingReplyMessages_.size() >= MAX_PENDING_MESSAGES) {
+        IAM_LOGE("pending messages limit reached: %{public}zu >= %{public}zu", pendingReplyMessages_.size(),
+            MAX_PENDING_MESSAGES);
+        return false;
+    }
+
     uint32_t messageSeq = static_cast<uint32_t>(GetMiscManager().GetNextGlobalId());
 
-    IAM_LOGI("sending message: seq=%{public}u, conn=%{public}s, type=%{public}u", messageSeq, connectionName.c_str(),
-        static_cast<uint32_t>(msgType));
+    IAM_LOGI("sending message: seq=%{public}u, conn=%{public}s, type=0x%{public}04x", messageSeq,
+        connectionName.c_str(), static_cast<uint16_t>(msgType));
 
     MessageHeader header;
     header.connectionName = connectionName;
@@ -191,7 +198,13 @@ bool MessageRouter::SendMessage(const std::string &connectionName, MessageType m
     bool success = channel->SendMessage(connectionName, rawMsg);
     if (!success) {
         IAM_LOGE("send failed, connection down");
-        connectionMgr_->CloseConnection(connectionName, "send_failed");
+        if (msgType != MessageType::DISCONNECT) {
+            TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this(), connectionName]() {
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->connectionMgr_->CloseConnection(connectionName, "send_msg_failed");
+            });
+        }
         return false;
     }
 
@@ -214,6 +227,11 @@ bool MessageRouter::SendMessage(const std::string &connectionName, MessageType m
 void MessageRouter::HandleRawMessage(const std::string &connectionName, const std::vector<uint8_t> &rawMsg)
 {
     IAM_LOGI("received message: conn=%{public}s, size=%{public}zu", connectionName.c_str(), rawMsg.size());
+
+    if (rawMsg.size() > MAX_MESSAGE_SIZE) {
+        IAM_LOGE("message size exceeds limit: %{public}zu > %{public}zu", rawMsg.size(), MAX_MESSAGE_SIZE);
+        return;
+    }
 
     MessageHeader header;
     Attributes payload;
@@ -270,8 +288,8 @@ void MessageRouter::HandleReply(const MessageHeader &header, const Attributes &p
 
 void MessageRouter::HandleRequest(const MessageHeader &header, const Attributes &payload, ChannelId channelId)
 {
-    IAM_LOGI("handling request: seq=%{public}u, conn=%{public}s, type=%{public}u", header.messageSeq,
-        header.connectionName.c_str(), static_cast<uint32_t>(header.msgType));
+    IAM_LOGI("handling request: seq=%{public}u, conn=%{public}s, type=0x%{public}04x", header.messageSeq,
+        header.connectionName.c_str(), static_cast<uint16_t>(header.msgType));
 
     if (header.msgType == MessageType::DISCONNECT) {
         std::string reason;
@@ -339,8 +357,8 @@ void MessageRouter::SendReply(const MessageHeader &requestHeader, ChannelId chan
     ENSURE_OR_RETURN(channel != nullptr);
 
     channel->SendMessage(requestHeader.connectionName, rawMsg);
-    IAM_LOGI("reply sent: seq=%{public}u, type=%{public}u", requestHeader.messageSeq,
-        static_cast<uint32_t>(requestHeader.msgType));
+    IAM_LOGI("reply sent: seq=%{public}u, type=0x%{public}04x", requestHeader.messageSeq,
+        static_cast<uint16_t>(requestHeader.msgType));
 }
 
 void MessageRouter::HandleConnectionDown(const std::string &connectionName)
@@ -497,8 +515,8 @@ bool MessageRouter::DecodeMessage(const std::vector<uint8_t> &rawMsg, MessageHea
     bool getIsReplyRet = attributes.GetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, header.isReply);
     ENSURE_OR_RETURN_VAL(getIsReplyRet, false);
 
-    uint32_t msgTypeValue = 0;
-    bool getMsgTypeRet = attributes.GetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, msgTypeValue);
+    uint16_t msgTypeValue = 0;
+    bool getMsgTypeRet = attributes.GetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, msgTypeValue);
     ENSURE_OR_RETURN_VAL(getMsgTypeRet, false);
     header.msgType = static_cast<MessageType>(msgTypeValue);
 
@@ -512,7 +530,7 @@ std::vector<uint8_t> MessageRouter::EncodeMessage(const MessageHeader &header, c
     message.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, header.connectionName);
     message.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, static_cast<uint32_t>(header.messageSeq));
     message.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, header.isReply);
-    message.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(header.msgType));
+    message.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(header.msgType));
 
     return message.Serialize();
 }

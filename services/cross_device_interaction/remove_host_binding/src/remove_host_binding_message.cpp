@@ -16,6 +16,7 @@
 #include "remove_host_binding_message.h"
 
 #include "iam_check.h"
+#include "iam_logger.h"
 
 #include "common_message.h"
 

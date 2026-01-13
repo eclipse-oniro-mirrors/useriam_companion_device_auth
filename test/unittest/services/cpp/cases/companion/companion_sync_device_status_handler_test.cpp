@@ -191,7 +191,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_004, TestSize.Level
     EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillOnce(Return(100));
     EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserName()).WillOnce(Return("TestUser"));
     EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillOnce(Return(profile_));
-    EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
 
     Attributes reply;
     ErrorGuard errorGuard([](ResultCode) {});

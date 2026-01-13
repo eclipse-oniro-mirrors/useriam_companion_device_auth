@@ -99,7 +99,7 @@ where
 
     unsafe {
         let ptr = output.as_mut_ptr() as *mut R;
-        // 初始化输出缓冲区为零值，然后传给函数让它填充
+        // Initialize output buffer to zero, then pass to function to fill
         ptr.write_bytes(0, 1);
         let output_ref = &mut *ptr;
         f(input_val, output_ref)

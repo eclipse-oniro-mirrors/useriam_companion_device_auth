@@ -22,14 +22,14 @@
 #include "companion_init_key_negotiation_handler.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionInitKeyNegotiationHandler> &handler,
-    FuzzedDataProvider &fuzzData);
+using CompanionInitKeyNegotiationHandlerFuzzFunction = void (*)(
+    std::shared_ptr<CompanionInitKeyNegotiationHandler> &handler, FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMessageType(std::shared_ptr<CompanionInitKeyNegotiationHandler> &handler,
     FuzzedDataProvider &fuzzData)
@@ -121,7 +121,7 @@ static void FuzzHandleIncomingMessageWithNullCallback(std::shared_ptr<CompanionI
     handler->HandleIncomingMessage(request, nullReply);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CompanionInitKeyNegotiationHandlerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMessageType,
     FuzzRegister,
     FuzzHandleIncomingMessage,
@@ -134,7 +134,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzHandleIncomingMessageWithNullCallback,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionInitKeyNegotiationHandlerFuzzFunction);
 
 void FuzzCompanionInitKeyNegotiationHandler(FuzzedDataProvider &fuzzData)
 {
@@ -156,5 +156,8 @@ void FuzzCompanionInitKeyNegotiationHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionInitKeyNegotiationHandler)
+
 } // namespace UserIam
 } // namespace OHOS

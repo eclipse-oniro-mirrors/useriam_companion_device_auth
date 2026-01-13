@@ -25,7 +25,7 @@ use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::{HostRequest, HostRequestInput, HostRequestOutput};
+use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
 use crate::utils::{Attribute, AttributeKey};
@@ -113,26 +113,25 @@ impl HostRequest for HostDeviceSyncStatusRequest {
         self.request_id
     }
 
-    fn prepare(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn prepare(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
         log_e!("HostDeviceSyncStatusRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceSyncStatusRequest begin start");
-        let HostRequestInput::SyncStatusBegin(_ffi_input) = input else {
+        let HostRequestParam::SyncStatusBegin(_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
-        Ok(HostRequestOutput::SyncStatusBegin(HostBeginCompanionCheckOutputFfi {
-            challenge: self.challenge,
-            salt: self.salt,
-        }))
+        ffi_output.challenge = self.challenge;
+        ffi_output.salt = self.salt;
+        Ok(())
     }
 
-    fn end(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceSyncStatusRequest end start");
-        let HostRequestInput::SyncStatusEnd(ffi_input) = input else {
+        let HostRequestParam::SyncStatusEnd(ffi_input, _ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -154,6 +153,6 @@ impl HostRequest for HostDeviceSyncStatusRequest {
             host_db_helper::update_companion_device_valid_flag(self.template_id, false)?;
         }
 
-        Ok(HostRequestOutput::SyncStatusEnd(HostEndCompanionCheckOutputFfi::default()))
+        Ok(())
     }
 }

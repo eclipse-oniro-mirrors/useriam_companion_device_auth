@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "request_aborted_message.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using RequestAbortedMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodeRequestAbortedRequest(FuzzedDataProvider &fuzzData)
 {
@@ -45,8 +45,8 @@ static void FuzzEncodeRequestAbortedRequest(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeRequestAbortedRequest(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    RequestAbortedRequest request;
-    DecodeRequestAbortedRequest(attr, request);
+    auto requestOpt = DecodeRequestAbortedRequest(attr);
+    (void)requestOpt;
 }
 
 static void FuzzEncodeRequestAbortedReply(FuzzedDataProvider &fuzzData)
@@ -62,18 +62,18 @@ static void FuzzEncodeRequestAbortedReply(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeRequestAbortedReply(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    RequestAbortedReply reply;
-    DecodeRequestAbortedReply(attr, reply);
+    auto replyOpt = DecodeRequestAbortedReply(attr);
+    (void)replyOpt;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const RequestAbortedMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodeRequestAbortedRequest,
     FuzzDecodeRequestAbortedRequest,
     FuzzEncodeRequestAbortedReply,
     FuzzDecodeRequestAbortedReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(RequestAbortedMessageFuzzFunction);
 
 void FuzzRequestAbortedMessage(FuzzedDataProvider &fuzzData)
 {
@@ -92,5 +92,8 @@ void FuzzRequestAbortedMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(RequestAbortedMessage)
+
 } // namespace UserIam
 } // namespace OHOS

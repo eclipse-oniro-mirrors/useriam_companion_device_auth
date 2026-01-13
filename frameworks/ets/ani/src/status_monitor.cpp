@@ -272,7 +272,8 @@ int32_t StatusMonitor::UpdateContinuousAuthStatusCallback(companionDeviceAuth::C
 }
 
 int32_t StatusMonitor::OffContinuousAuthChange(::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
-    ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> callback)
+        ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
+        callback)
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (!callback.has_value()) {

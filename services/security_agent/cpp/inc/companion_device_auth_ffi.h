@@ -52,6 +52,10 @@ extern "C" {
 
 #define AUTH_TOKEN_SIZE_FFI 280
 
+#define PROPERTY_MODE_FREEZE 5
+
+#define PROPERTY_MODE_UNFREEZE 6
+
 enum CommandId {
     INIT = 1,
     GET_EXECUTOR_INFO = 2,
@@ -82,7 +86,6 @@ enum CommandId {
     HOST_CANCEL_OBTAIN_TOKEN = 1025,
     HOST_ACTIVATE_TOKEN = 1026,
     HOST_CHECK_TEMPLATE_ENROLLED = 1027,
-
     COMPANION_GET_PERSISTED_STATUS = 2000,
     COMPANION_PROCESS_CHECK = 2001,
     COMPANION_INIT_KEY_NEGOTIATION = 2002,
@@ -461,6 +464,15 @@ typedef struct HostCancelObtainTokenInputFfi {
 
 typedef struct PlaceHolderFfi HostCancelObtainTokenOutputFfi;
 
+typedef struct HostUpdateTokenInputFfi {
+    uint64_t templateId;
+    struct DataArray1024Ffi fwkMessage;
+} HostUpdateTokenInputFfi;
+
+typedef struct HostUpdateTokenOutputFfi {
+    bool needRedistribute;
+} HostUpdateTokenOutputFfi;
+
 typedef struct CompanionGetPersistedStatusInputFfi {
     int32_t userId;
 } CompanionGetPersistedStatusInputFfi;
@@ -617,7 +629,7 @@ int32_t init_rust_env(void);
 
 int32_t uninit_rust_env(void);
 
-int32_t invoke_rust_command(struct RustCommandParam Param);
+int32_t invoke_rust_command(struct RustCommandParam param);
 
 #ifdef __cplusplus
 }

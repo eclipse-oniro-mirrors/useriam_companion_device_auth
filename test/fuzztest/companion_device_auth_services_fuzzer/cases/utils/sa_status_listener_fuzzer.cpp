@@ -22,14 +22,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "sa_status_listener.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using SaStatusListenerFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreateWithDefaultParams(FuzzedDataProvider &fuzzData)
 {
@@ -90,7 +90,7 @@ static void FuzzCreateWithLambdaCaptures(FuzzedDataProvider &fuzzData)
     (void)callCount;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const SaStatusListenerFuzzFunction g_fuzzFuncs[] = {
     FuzzCreateWithDefaultParams,
     FuzzCreateWithFuzzedParams,
     FuzzCreateWithEmptyName,
@@ -99,7 +99,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCreateWithLambdaCaptures,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SaStatusListenerFuzzFunction);
 
 void FuzzSaStatusListener(FuzzedDataProvider &fuzzData)
 {
@@ -117,5 +117,8 @@ void FuzzSaStatusListener(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SaStatusListener)
+
 } // namespace UserIam
 } // namespace OHOS

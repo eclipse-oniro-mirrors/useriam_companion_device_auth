@@ -24,8 +24,8 @@
 #include "companion_device_auth_executor_callback.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "fwk_common.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -57,7 +57,7 @@ public:
     }
 };
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using CompanionDeviceAuthExecutorCallbackFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCallbackWithResult(FuzzedDataProvider &fuzzData)
 {
@@ -118,7 +118,7 @@ static void FuzzMultipleCallbackInvocations(FuzzedDataProvider &fuzzData)
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CompanionDeviceAuthExecutorCallbackFuzzFunction g_fuzzFuncs[] = {
     FuzzCallbackWithResult,
     FuzzCallbackWithNullFramework,
     FuzzCallbackWithEmptyExtraInfo,
@@ -126,7 +126,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzMultipleCallbackInvocations,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionDeviceAuthExecutorCallbackFuzzFunction);
 
 void FuzzCompanionDeviceAuthExecutorCallback(FuzzedDataProvider &fuzzData)
 {
@@ -143,5 +143,8 @@ void FuzzCompanionDeviceAuthExecutorCallback(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionDeviceAuthExecutorCallback)
+
 } // namespace UserIam
 } // namespace OHOS

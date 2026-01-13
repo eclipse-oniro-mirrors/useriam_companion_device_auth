@@ -32,6 +32,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr uint64_t UINT64_1 = 1;
+
 class SoftBusSocketTest : public Test {
 public:
     void SetUp() override
@@ -56,7 +58,7 @@ public:
     }
 
 protected:
-    int32_t nextGlobalId_ = 1;
+    uint64_t nextGlobalId_ = UINT64_1;
     NiceMock<MockMiscManager> mockMiscManager_;
     std::shared_ptr<SoftBusConnectionManager> manager_;
 };

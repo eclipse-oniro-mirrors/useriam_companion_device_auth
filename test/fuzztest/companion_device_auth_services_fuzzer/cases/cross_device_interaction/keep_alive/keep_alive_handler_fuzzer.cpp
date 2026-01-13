@@ -22,14 +22,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "keep_alive_handler.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<KeepAliveHandler> &handler, FuzzedDataProvider &fuzzData);
+using KeepAliveHandlerFuzzFunction = void (*)(std::shared_ptr<KeepAliveHandler> &handler, FuzzedDataProvider &fuzzData);
 
 static void FuzzHandleRequest(std::shared_ptr<KeepAliveHandler> &handler, FuzzedDataProvider &fuzzData)
 {
@@ -91,7 +91,7 @@ static void FuzzRegister(std::shared_ptr<KeepAliveHandler> &handler, FuzzedDataP
     handler->Register();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const KeepAliveHandlerFuzzFunction g_fuzzFuncs[] = {
     FuzzHandleRequest,
     FuzzHandleRequestWithEmptyAttrs,
     FuzzHandleRequestWithLargeAttrs,
@@ -102,7 +102,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzRegister,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(KeepAliveHandlerFuzzFunction);
 
 void FuzzKeepAliveHandler(FuzzedDataProvider &fuzzData)
 {
@@ -123,5 +123,8 @@ void FuzzKeepAliveHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(KeepAliveHandler)
+
 } // namespace UserIam
 } // namespace OHOS

@@ -55,9 +55,9 @@ HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenRequest_001, TestSize.Le
         static_cast<int32_t>(request.companionDeviceKey.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.companionDeviceKey.deviceId);
 
-    RevokeTokenRequest decoded;
-    bool decodeResult = DecodeRevokeTokenRequest(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeRevokeTokenRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    RevokeTokenRequest decoded = result.value();
 
     EXPECT_EQ(decoded.hostUserId, request.hostUserId);
     EXPECT_EQ(decoded.companionDeviceKey.idType, request.companionDeviceKey.idType);
@@ -69,9 +69,8 @@ HWTEST_F(RevokeTokenMessageTest, DecodeRevokeTokenRequest_001, TestSize.Level0)
 {
     Attributes attributes;
 
-    RevokeTokenRequest decoded;
-    bool decodeResult = DecodeRevokeTokenRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeRevokeTokenRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(RevokeTokenMessageTest, DecodeRevokeTokenRequest_002, TestSize.Level0)
@@ -79,9 +78,8 @@ HWTEST_F(RevokeTokenMessageTest, DecodeRevokeTokenRequest_002, TestSize.Level0)
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostUserId_);
 
-    RevokeTokenRequest decoded;
-    bool decodeResult = DecodeRevokeTokenRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeRevokeTokenRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(RevokeTokenMessageTest, DecodeRevokeTokenRequest_003, TestSize.Level0)
@@ -92,9 +90,8 @@ HWTEST_F(RevokeTokenMessageTest, DecodeRevokeTokenRequest_003, TestSize.Level0)
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(companionDeviceKey_.idType));
 
-    RevokeTokenRequest decoded;
-    bool decodeResult = DecodeRevokeTokenRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeRevokeTokenRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenReply_001, TestSize.Level0)
@@ -105,9 +102,9 @@ HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenReply_001, TestSize.Leve
     bool encodeResult = EncodeRevokeTokenReply(reply, attributes);
     EXPECT_TRUE(encodeResult);
 
-    RevokeTokenReply decoded;
-    bool decodeResult = DecodeRevokeTokenReply(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeRevokeTokenReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    RevokeTokenReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
 }
@@ -120,9 +117,9 @@ HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenReply_002, TestSize.Leve
     bool encodeResult = EncodeRevokeTokenReply(reply, attributes);
     EXPECT_TRUE(encodeResult);
 
-    RevokeTokenReply decoded;
-    bool decodeResult = DecodeRevokeTokenReply(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeRevokeTokenReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    RevokeTokenReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
 }
@@ -131,9 +128,8 @@ HWTEST_F(RevokeTokenMessageTest, DecodeRevokeTokenReply_001, TestSize.Level0)
 {
     Attributes attributes;
 
-    RevokeTokenReply decoded;
-    bool decodeResult = DecodeRevokeTokenReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeRevokeTokenReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 } // namespace

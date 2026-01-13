@@ -26,14 +26,14 @@ namespace CompanionDeviceAuth {
 
 class MockMiscManager : public IMiscManager {
 public:
-    MOCK_METHOD(int32_t, GetNextGlobalId, (), (override));
+    MOCK_METHOD(uint64_t, GetNextGlobalId, (), (override));
     MOCK_METHOD(bool, SetDeviceSelectCallback,
         (uint32_t tokenId, const sptr<IIpcDeviceSelectCallback> &deviceSelectCallback), (override));
     MOCK_METHOD(bool, GetDeviceDeviceSelectResult,
         (uint32_t tokenId, SelectPurpose selectPurpose, DeviceSelectResultHandler &&resultHandler), (override));
     MOCK_METHOD(void, ClearDeviceSelectCallback, (uint32_t tokenId), (override));
     MOCK_METHOD(std::optional<std::string>, GetLocalUdid, (), (override));
-    MOCK_METHOD(bool, CheckBusinessIds, (const std::vector<int32_t> &businessIds), (override));
+    MOCK_METHOD(bool, CheckBusinessIds, (const std::vector<BusinessId> &businessIds), (override));
 };
 
 } // namespace CompanionDeviceAuth

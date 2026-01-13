@@ -22,13 +22,14 @@
 #include "companion_delegate_auth_request.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionDelegateAuthRequest> &request, FuzzedDataProvider &fuzzData);
+using CompanionDelegateAuthRequestFuzzFunction = void (*)(std::shared_ptr<CompanionDelegateAuthRequest> &request,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzCompanionBeginDelegateAuth(std::shared_ptr<CompanionDelegateAuthRequest> &request,
     FuzzedDataProvider &fuzzData)
@@ -101,7 +102,7 @@ static void FuzzGetRequestId(std::shared_ptr<CompanionDelegateAuthRequest> &requ
     (void)request->GetRequestId();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CompanionDelegateAuthRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzCompanionBeginDelegateAuth,
     FuzzGetMaxConcurrency,
     FuzzShouldCancelOnNewRequest,
@@ -114,7 +115,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzGetRequestId,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionDelegateAuthRequestFuzzFunction);
 
 void FuzzCompanionDelegateAuthRequest(FuzzedDataProvider &fuzzData)
 {
@@ -142,5 +143,8 @@ void FuzzCompanionDelegateAuthRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionDelegateAuthRequest)
+
 } // namespace UserIam
 } // namespace OHOS

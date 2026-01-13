@@ -22,13 +22,13 @@
 #include "add_companion_message.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using AddCompanionMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodeInitKeyNegotiationRequest(FuzzedDataProvider &fuzzData)
 {
@@ -132,7 +132,7 @@ static void FuzzDecodeEndAddHostBindingReply(FuzzedDataProvider &fuzzData)
     (void)result;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const AddCompanionMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodeInitKeyNegotiationRequest,
     FuzzDecodeInitKeyNegotiationRequest,
     FuzzEncodeInitKeyNegotiationReply,
@@ -147,7 +147,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzDecodeEndAddHostBindingReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(AddCompanionMessageFuzzFunction);
 
 void FuzzAddCompanionMessage(FuzzedDataProvider &fuzzData)
 {
@@ -166,5 +166,8 @@ void FuzzAddCompanionMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(AddCompanionMessage)
+
 } // namespace UserIam
 } // namespace OHOS

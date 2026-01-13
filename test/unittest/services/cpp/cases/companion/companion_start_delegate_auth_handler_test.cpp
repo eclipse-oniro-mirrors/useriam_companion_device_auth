@@ -22,11 +22,13 @@
 #include "relative_timer.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "adapter_manager.h"
 
 #include "mock_cross_device_comm_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
+#include "mock_user_auth_adapter.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -35,6 +37,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+constexpr uint64_t UINT64_12345 = 12345;
 
 class CompanionStartDelegateAuthHandlerTest : public Test {
 public:
@@ -55,7 +58,15 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
+        // Initialize UserAuthAdapter to prevent crash
+        auto userAuthAdapter = std::shared_ptr<IUserAuthAdapter>(&mockUserAuthAdapter_, [](IUserAuthAdapter *) {});
+        AdapterManager::GetInstance().SetUserAuthAdapter(userAuthAdapter);
+
         ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
+        ON_CALL(mockUserAuthAdapter_, BeginDelegateAuth(_, _, _, _))
+            .WillByDefault(Return(UINT64_12345));
+        ON_CALL(mockUserAuthAdapter_, CancelAuthentication(_))
+            .WillByDefault(Return(ResultCode::SUCCESS));
 
         handler_ = std::make_unique<CompanionStartDelegateAuthHandler>();
     }
@@ -64,6 +75,7 @@ public:
     {
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();
+        AdapterManager::GetInstance().Reset();
         SingletonManager::GetInstance().Reset();
     }
 
@@ -73,6 +85,7 @@ protected:
     NiceMock<MockRequestFactory> mockRequestFactory_;
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockUserAuthAdapter> mockUserAuthAdapter_;
 
     std::string connectionName_ = "test_connection";
     int32_t companionUserId_ = 200;

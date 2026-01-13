@@ -32,6 +32,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr uint64_t UINT64_1 = 1;
+
 class SoftBusGlobalCallbacksTest : public Test {
 public:
     void SetUp() override
@@ -52,7 +54,7 @@ public:
     }
 
 protected:
-    int32_t nextGlobalId_ = 1;
+    uint64_t nextGlobalId_ = UINT64_1;
     NiceMock<MockMiscManager> mockMiscManager_;
 };
 
@@ -67,7 +69,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, SetGlobalSoftBusConnectionManager_001, Test
 HWTEST_F(SoftBusGlobalCallbacksTest, SetGlobalSoftBusConnectionManager_002, TestSize.Level0)
 {
     std::weak_ptr<SoftBusConnectionManager> weakManager;
-    SetGlobalSoftBusConnectionManager(weakManager);
+    EXPECT_NO_THROW(SetGlobalSoftBusConnectionManager(weakManager));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, ClearGlobalSoftBusConnectionManager_001, TestSize.Level0)
@@ -81,7 +83,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, ClearGlobalSoftBusConnectionManager_001, Te
 
 HWTEST_F(SoftBusGlobalCallbacksTest, ClearGlobalSoftBusConnectionManager_002, TestSize.Level0)
 {
-    ClearGlobalSoftBusConnectionManager(nullptr);
+    EXPECT_NO_THROW(ClearGlobalSoftBusConnectionManager(nullptr));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, ClearGlobalSoftBusConnectionManager_003, TestSize.Level0)
@@ -115,7 +117,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBind_002, TestSize.Level0)
     info.pkgName = pkgName;
     info.networkId = networkId;
 
-    SoftBusOnBind(-1, info);
+    EXPECT_NO_THROW(SoftBusOnBind(-1, info));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBind_003, TestSize.Level0)
@@ -125,7 +127,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBind_003, TestSize.Level0)
     info.pkgName = pkgName;
     info.networkId = nullptr;
 
-    SoftBusOnBind(100, info);
+    EXPECT_NO_THROW(SoftBusOnBind(100, info));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBind_004, TestSize.Level0)
@@ -135,7 +137,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBind_004, TestSize.Level0)
     info.pkgName = nullptr;
     info.networkId = networkId;
 
-    SoftBusOnBind(100, info);
+    EXPECT_NO_THROW(SoftBusOnBind(100, info));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBind_005, TestSize.Level0)
@@ -146,7 +148,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBind_005, TestSize.Level0)
     info.pkgName = pkgName;
     info.networkId = networkId;
 
-    SoftBusOnBind(100, info);
+    EXPECT_NO_THROW(SoftBusOnBind(100, info));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBind_006, TestSize.Level0)
@@ -158,7 +160,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBind_006, TestSize.Level0)
     info.pkgName = pkgName;
     info.networkId = networkId;
 
-    SoftBusOnBind(100, info);
+    EXPECT_NO_THROW(SoftBusOnBind(100, info));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnShutdown_001, TestSize.Level0)
@@ -174,7 +176,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnShutdown_001, TestSize.Level0)
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnShutdown_002, TestSize.Level0)
 {
-    SoftBusOnShutdown(-1, SHUTDOWN_REASON_LOCAL);
+    EXPECT_NO_THROW(SoftBusOnShutdown(-1, SHUTDOWN_REASON_LOCAL));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnShutdown_003, TestSize.Level0)
@@ -198,7 +200,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBytes_001, TestSize.Level0)
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBytes_002, TestSize.Level0)
 {
     std::vector<uint8_t> data = { 1, 2, 3, 4 };
-    SoftBusOnBytes(-1, data.data(), data.size());
+    EXPECT_NO_THROW(SoftBusOnBytes(-1, data.data(), data.size()));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnBytes_003, TestSize.Level0)
@@ -242,7 +244,7 @@ HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnError_001, TestSize.Level0)
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnError_002, TestSize.Level0)
 {
-    SoftBusOnError(-1, 0);
+    EXPECT_NO_THROW(SoftBusOnError(-1, 0));
 }
 
 HWTEST_F(SoftBusGlobalCallbacksTest, SoftBusOnError_003, TestSize.Level0)

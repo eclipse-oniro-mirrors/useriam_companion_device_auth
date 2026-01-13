@@ -28,7 +28,7 @@ use crate::request::token_obtain::token_obtain_message::{FwkObtainTokenRequest, 
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::{HostRequest, HostRequestInput, HostRequestOutput};
+use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -169,28 +169,26 @@ impl HostRequest for HostDeviceObtainTokenRequest {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn prepare(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
         log_e!("HostDeviceObtainTokenRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceObtainTokenRequest begin start");
-        let HostRequestInput::ObtainTokenBegin(_ffi_input) = input else {
+        let HostRequestParam::ObtainTokenBegin(_ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         let sec_message = self.create_prepare_sec_message()?;
-
-        Ok(HostRequestOutput::ObtainTokenBegin(HostProcessPreObtainTokenOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        Ok(())
     }
 
-    fn end(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceObtainTokenRequest end start");
-        let HostRequestInput::ObtainTokenEnd(ffi_input) = input else {
+        let HostRequestParam::ObtainTokenEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -204,9 +202,8 @@ impl HostRequest for HostDeviceObtainTokenRequest {
             .map(|info| info.atl as i32)
             .max()
             .unwrap_or(AuthTrustLevel::Atl0 as i32);
-        Ok(HostRequestOutput::ObtainTokenEnd(HostProcessObtainTokenOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-            atl: max_atl,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.atl = max_atl;
+        Ok(())
     }
 }

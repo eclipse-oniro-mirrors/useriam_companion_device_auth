@@ -22,18 +22,19 @@
 #include "cda_attributes.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &);
+using CdaAttributesFuzzFunction = void (*)(FuzzedDataProvider &);
 
 static Attributes::AttributeKey g_fuzzKey = static_cast<Attributes::AttributeKey>(0);
 
 static void FuzzOp0(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetBoolValue / GetBoolValue
     Attributes attr;
     bool boolValue = fuzzData.ConsumeBool();
@@ -44,6 +45,7 @@ static void FuzzOp0(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp1(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetUint64Value / GetUint64Value
     Attributes attr;
     uint64_t uint64Value = fuzzData.ConsumeIntegral<uint64_t>();
@@ -54,6 +56,7 @@ static void FuzzOp1(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp2(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetUint32Value / GetUint32Value
     Attributes attr;
     uint32_t uint32Value = fuzzData.ConsumeIntegral<uint32_t>();
@@ -64,6 +67,7 @@ static void FuzzOp2(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp3(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetUint16Value / GetUint16Value
     Attributes attr;
     uint16_t uint16Value = fuzzData.ConsumeIntegral<uint16_t>();
@@ -74,6 +78,7 @@ static void FuzzOp3(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp4(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetUint8Value / GetUint8Value
     Attributes attr;
     uint8_t uint8Value = fuzzData.ConsumeIntegral<uint8_t>();
@@ -84,6 +89,7 @@ static void FuzzOp4(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp5(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetInt32Value / GetInt32Value
     Attributes attr;
     int32_t int32Value = fuzzData.ConsumeIntegral<int32_t>();
@@ -94,6 +100,7 @@ static void FuzzOp5(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp6(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetInt64Value / GetInt64Value
     Attributes attr;
     int64_t int64Value = fuzzData.ConsumeIntegral<int64_t>();
@@ -104,6 +111,7 @@ static void FuzzOp6(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp7(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetStringValue / GetStringValue
     Attributes attr;
     std::string strValue = GenerateFuzzString(fuzzData, 64);
@@ -114,6 +122,7 @@ static void FuzzOp7(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp8(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetAttributesValue / GetAttributesValue
     Attributes attr;
     Attributes innerAttr;
@@ -124,6 +133,7 @@ static void FuzzOp8(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp9(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetAttributesArrayValue / GetAttributesArrayValue
     Attributes attr;
     std::vector<Attributes> attrArray;
@@ -138,6 +148,7 @@ static void FuzzOp9(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp10(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetUint64ArrayValue / GetUint64ArrayValue
     Attributes attr;
     std::vector<uint64_t> array;
@@ -152,6 +163,7 @@ static void FuzzOp10(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp11(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetUint32ArrayValue / GetUint32ArrayValue
     Attributes attr;
     std::vector<uint32_t> array;
@@ -166,6 +178,7 @@ static void FuzzOp11(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp12(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetInt32ArrayValue / GetInt32ArrayValue
     Attributes attr;
     std::vector<int32_t> array;
@@ -180,6 +193,7 @@ static void FuzzOp12(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp13(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetUint16ArrayValue / GetUint16ArrayValue
     Attributes attr;
     std::vector<uint16_t> array;
@@ -194,6 +208,7 @@ static void FuzzOp13(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp14(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetUint8ArrayValue / GetUint8ArrayValue
     Attributes attr;
     std::vector<uint8_t> array;
@@ -208,6 +223,7 @@ static void FuzzOp14(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp15(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Serialize
     Attributes attr = GenerateFuzzAttributes(fuzzData);
     std::vector<uint8_t> serialized = attr.Serialize();
@@ -216,6 +232,7 @@ static void FuzzOp15(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp16(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetKeys
     Attributes attr = GenerateFuzzAttributes(fuzzData);
     auto keys = attr.GetKeys();
@@ -224,6 +241,7 @@ static void FuzzOp16(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp17(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test HasAttribute
     Attributes attr = GenerateFuzzAttributes(fuzzData);
     bool has = attr.HasAttribute(g_fuzzKey);
@@ -232,6 +250,7 @@ static void FuzzOp17(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp18(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test copy constructor
     Attributes attr1 = GenerateFuzzAttributes(fuzzData);
     Attributes attr2(attr1);
@@ -240,6 +259,7 @@ static void FuzzOp18(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp19(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test copy assignment
     Attributes attr1 = GenerateFuzzAttributes(fuzzData);
     Attributes attr2 = attr1;
@@ -248,6 +268,7 @@ static void FuzzOp19(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp20(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test move constructor
     Attributes attr1 = GenerateFuzzAttributes(fuzzData);
     Attributes attr2(std::move(attr1));
@@ -256,6 +277,7 @@ static void FuzzOp20(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp21(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test move assignment
     Attributes attr1 = GenerateFuzzAttributes(fuzzData);
     Attributes attr2 = std::move(attr1);
@@ -264,6 +286,7 @@ static void FuzzOp21(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp22(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test constructor with raw data
     size_t leftRange = 0;
     size_t rightRange = 1024;
@@ -275,15 +298,16 @@ static void FuzzOp22(FuzzedDataProvider &fuzzData)
 
 static void FuzzOp23(FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test default constructor
     Attributes attr;
     (void)attr;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7,
-    FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11, FuzzOp12, FuzzOp13, FuzzOp14, FuzzOp15, FuzzOp16, FuzzOp17, FuzzOp18,
+static const CdaAttributesFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6,
+    FuzzOp7, FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11, FuzzOp12, FuzzOp13, FuzzOp14, FuzzOp15, FuzzOp16, FuzzOp17, FuzzOp18,
     FuzzOp19, FuzzOp20, FuzzOp21, FuzzOp22, FuzzOp23 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CdaAttributesFuzzFunction);
 
 void FuzzAttributes(FuzzedDataProvider &fuzzData)
 {
@@ -303,5 +327,8 @@ void FuzzAttributes(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(Attributes)
+
 } // namespace UserIam
 } // namespace OHOS

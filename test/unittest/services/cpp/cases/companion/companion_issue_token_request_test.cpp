@@ -124,9 +124,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_001, TestSize.Level0)
     int32_t receivedResult = -1;
     replyCallback_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreIssueTokenReply preIssueTokenReply;
-        EXPECT_TRUE(DecodePreIssueTokenReply(reply, preIssueTokenReply));
-        receivedResult = static_cast<int32_t>(preIssueTokenReply.result);
+        auto result = DecodePreIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     request_ = std::make_shared<CompanionIssueTokenRequest>(connectionName_, preIssueTokenRequest_, replyCallback_,
@@ -156,9 +156,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_002, TestSize.Level0)
     int32_t receivedResult = -1;
     replyCallback_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreIssueTokenReply preIssueTokenReply;
-        EXPECT_TRUE(DecodePreIssueTokenReply(reply, preIssueTokenReply));
-        receivedResult = static_cast<int32_t>(preIssueTokenReply.result);
+        auto result = DecodePreIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     Attributes emptyRequest;
@@ -183,9 +183,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_003, TestSize.Level0)
     int32_t receivedResult = -1;
     replyCallback_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreIssueTokenReply preIssueTokenReply;
-        EXPECT_TRUE(DecodePreIssueTokenReply(reply, preIssueTokenReply));
-        receivedResult = static_cast<int32_t>(preIssueTokenReply.result);
+        auto result = DecodePreIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     request_ = std::make_shared<CompanionIssueTokenRequest>(connectionName_, preIssueTokenRequest_, replyCallback_,
@@ -211,9 +211,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_004, TestSize.Level0)
     int32_t receivedResult = -1;
     replyCallback_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreIssueTokenReply preIssueTokenReply;
-        EXPECT_TRUE(DecodePreIssueTokenReply(reply, preIssueTokenReply));
-        receivedResult = static_cast<int32_t>(preIssueTokenReply.result);
+        auto result = DecodePreIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     request_ = std::make_shared<CompanionIssueTokenRequest>(connectionName_, preIssueTokenRequest_, replyCallback_,
@@ -242,9 +242,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_005, TestSize.Level0)
     int32_t receivedResult = -1;
     replyCallback_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreIssueTokenReply preIssueTokenReply;
-        EXPECT_TRUE(DecodePreIssueTokenReply(reply, preIssueTokenReply));
-        receivedResult = static_cast<int32_t>(preIssueTokenReply.result);
+        auto result = DecodePreIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     request_ = std::make_shared<CompanionIssueTokenRequest>(connectionName_, preIssueTokenRequest_, replyCallback_,
@@ -266,9 +266,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_006, TestSize.Level0)
     int32_t receivedResult = -1;
     replyCallback_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreIssueTokenReply preIssueTokenReply;
-        EXPECT_TRUE(DecodePreIssueTokenReply(reply, preIssueTokenReply));
-        receivedResult = static_cast<int32_t>(preIssueTokenReply.result);
+        auto result = DecodePreIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     request_ = std::make_shared<CompanionIssueTokenRequest>(connectionName_, preIssueTokenRequest_, replyCallback_,
@@ -330,7 +330,7 @@ HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_004, TestSize.Le
 
     EXPECT_CALL(mockCrossDeviceCommManager_, CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::DEFAULT));
-    EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
 
     std::vector<uint8_t> preIssueTokenReply;
     bool result = request_->CompanionPreIssueToken(preIssueTokenReply);
@@ -374,9 +374,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_001, TestSize.L
     int32_t receivedResult = -1;
     OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        IssueTokenReply issueTokenReply;
-        EXPECT_TRUE(DecodeIssueTokenReply(reply, issueTokenReply));
-        receivedResult = static_cast<int32_t>(issueTokenReply.result);
+        auto result = DecodeIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     EXPECT_CALL(mockSecurityAgent_, CompanionProcessIssueToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
@@ -399,9 +399,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_002, TestSize.L
     int32_t receivedResult = -1;
     OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        IssueTokenReply issueTokenReply;
-        EXPECT_TRUE(DecodeIssueTokenReply(reply, issueTokenReply));
-        receivedResult = static_cast<int32_t>(issueTokenReply.result);
+        auto result = DecodeIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     Attributes badRequest;
@@ -431,9 +431,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_003, TestSize.L
     int32_t receivedResult = -1;
     OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        IssueTokenReply issueTokenReply;
-        EXPECT_TRUE(DecodeIssueTokenReply(reply, issueTokenReply));
-        receivedResult = static_cast<int32_t>(issueTokenReply.result);
+        auto result = DecodeIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     EXPECT_CALL(mockSecurityAgent_, CompanionProcessIssueToken(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
@@ -464,9 +464,9 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_004, TestSize.L
     int32_t receivedResult = -1;
     OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        IssueTokenReply issueTokenReply;
-        EXPECT_TRUE(DecodeIssueTokenReply(reply, issueTokenReply));
-        receivedResult = static_cast<int32_t>(issueTokenReply.result);
+        auto result = DecodeIssueTokenReply(reply);
+        EXPECT_TRUE(result.has_value());
+        receivedResult = static_cast<int32_t>(result.value().result);
     };
 
     EXPECT_CALL(mockSecurityAgent_, CompanionProcessIssueToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));

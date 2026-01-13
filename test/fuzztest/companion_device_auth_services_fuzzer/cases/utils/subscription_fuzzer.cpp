@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "subscription.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<Subscription> &sub, FuzzedDataProvider &fuzzData);
+using SubscriptionFuzzFunction = void (*)(std::shared_ptr<Subscription> &sub, FuzzedDataProvider &fuzzData);
 
 static void FuzzCancel(std::shared_ptr<Subscription> &sub, FuzzedDataProvider &fuzzData)
 {
@@ -46,12 +46,12 @@ static void FuzzCreate(std::shared_ptr<Subscription> &sub, FuzzedDataProvider &f
     (void)newSub;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const SubscriptionFuzzFunction g_fuzzFuncs[] = {
     FuzzCancel,
     FuzzCreate,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SubscriptionFuzzFunction);
 
 void FuzzSubscription(FuzzedDataProvider &fuzzData)
 {
@@ -75,5 +75,8 @@ void FuzzSubscription(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(Subscription)
+
 } // namespace UserIam
 } // namespace OHOS

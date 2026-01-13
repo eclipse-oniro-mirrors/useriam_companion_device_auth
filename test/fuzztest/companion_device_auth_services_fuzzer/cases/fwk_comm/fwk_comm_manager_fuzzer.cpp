@@ -22,14 +22,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "fwk_comm_manager.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using FwkCommManagerFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreate(FuzzedDataProvider &fuzzData)
 {
@@ -97,7 +97,7 @@ static void FuzzGenerateAttributesWithLimit(FuzzedDataProvider &fuzzData)
     (void)attributes;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const FwkCommManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzCreate,
     FuzzCreateMultiple,
     FuzzCreateUserId,
@@ -108,7 +108,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzGenerateAttributesWithLimit,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FwkCommManagerFuzzFunction);
 
 void FuzzFwkCommManager(FuzzedDataProvider &fuzzData)
 {
@@ -126,5 +126,8 @@ void FuzzFwkCommManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(FwkCommManager)
+
 } // namespace UserIam
 } // namespace OHOS

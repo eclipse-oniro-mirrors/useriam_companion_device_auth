@@ -100,7 +100,7 @@ public:
     }
 
 protected:
-    int32_t nextGlobalId_ = 1;
+    uint64_t nextGlobalId_ = 1;
     NiceMock<MockMiscManager> mockMiscManager_;
     NiceMock<MockUserIdManager> mockActiveUserIdManager_;
     std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel_;
@@ -197,7 +197,7 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_003, TestSize.Level0)
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::INVALID, connectionName);
+    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
 
     EXPECT_FALSE(result);
 }
@@ -806,9 +806,8 @@ HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_003, TestSize.L
     bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
-    // Use a different channelId (not SOFTBUS) so the SOFTBUS connection won't be checked/closed
     std::vector<PhysicalDeviceStatus> statusList;
-    connectionMgr_->HandlePhysicalDeviceStatusChange(static_cast<ChannelId>(10001), statusList);
+    connectionMgr_->HandlePhysicalDeviceStatusChange(ChannelId::SOFTBUS, statusList);
 
     EXPECT_TRUE(connectionMgr_->GetConnection(connectionName).has_value());
 }

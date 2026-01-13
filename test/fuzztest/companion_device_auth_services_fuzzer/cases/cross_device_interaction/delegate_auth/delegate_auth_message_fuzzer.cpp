@@ -22,13 +22,13 @@
 #include "delegate_auth_message.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using DelegateAuthMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodeStartDelegateAuthRequest(FuzzedDataProvider &fuzzData)
 {
@@ -95,7 +95,7 @@ static void FuzzDecodeSendDelegateAuthResultReply(FuzzedDataProvider &fuzzData)
     (void)result;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const DelegateAuthMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodeStartDelegateAuthRequest,
     FuzzDecodeStartDelegateAuthRequest,
     FuzzEncodeStartDelegateAuthReply,
@@ -106,7 +106,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzDecodeSendDelegateAuthResultReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(DelegateAuthMessageFuzzFunction);
 
 void FuzzDelegateAuthMessage(FuzzedDataProvider &fuzzData)
 {
@@ -125,5 +125,8 @@ void FuzzDelegateAuthMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(DelegateAuthMessage)
+
 } // namespace UserIam
 } // namespace OHOS

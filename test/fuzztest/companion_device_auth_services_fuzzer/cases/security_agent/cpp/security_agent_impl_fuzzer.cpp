@@ -22,8 +22,8 @@
 #include "command_invoker.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "security_agent_imp.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -32,7 +32,7 @@ namespace {
 const size_t TEST_VAL1024 = 1024;
 }
 
-using FuzzFunction = void (*)(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData);
+using SecurityAgentFuzzFunction = void (*)(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData);
 
 static void FuzzInit(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
 {
@@ -464,12 +464,12 @@ static void FuzzHostUpdateCompanionEnabledBusinessIds(std::shared_ptr<SecurityAg
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
     for (uint8_t i = 0; i < count; ++i) {
-        input.enabledBusinessIds.push_back(fuzzData.ConsumeIntegral<uint32_t>());
+        input.enabledBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<uint32_t>()));
     }
     agent->HostUpdateCompanionEnabledBusinessIds(input);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const SecurityAgentFuzzFunction g_fuzzFuncs[] = {
     FuzzInit,
     FuzzInitialize,
     FuzzSetActiveUser,
@@ -543,3 +543,6 @@ void FuzzSecurityAgentImpl(FuzzedDataProvider &fuzzData)
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
+
+// Register the fuzzer with the global registry
+FUZZ_REGISTER(SecurityAgentImpl)

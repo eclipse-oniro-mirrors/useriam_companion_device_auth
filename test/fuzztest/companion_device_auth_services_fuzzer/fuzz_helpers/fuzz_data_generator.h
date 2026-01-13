@@ -51,7 +51,7 @@ CompanionStatus GenerateFuzzCompanionStatus(FuzzedDataProvider &fuzzData);
 
 void GenerateFuzzCapabilities(FuzzedDataProvider &fuzzData, std::vector<Capability> &capabilities,
     uint8_t maxCount = 2);
-void GenerateFuzzBusinessIds(FuzzedDataProvider &fuzzData, std::vector<int32_t> &businessIds, uint8_t maxCount = 3);
+void GenerateFuzzBusinessIds(FuzzedDataProvider &fuzzData, std::vector<BusinessId> &businessIds, uint8_t maxCount = 3);
 void GenerateFuzzProtocols(FuzzedDataProvider &fuzzData, std::vector<ProtocolId> &protocols, uint8_t maxCount = 2);
 void GenerateFuzzSecureProtocols(FuzzedDataProvider &fuzzData, std::vector<SecureProtocolId> &secureProtocols,
     uint8_t maxCount = 3);

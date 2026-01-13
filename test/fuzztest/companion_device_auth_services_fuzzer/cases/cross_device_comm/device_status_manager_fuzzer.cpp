@@ -25,14 +25,15 @@
 #include "fuzz_constants.h"
 #include "fuzz_cross_device_channel.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "local_device_status_manager.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData);
+using DeviceStatusManagerFuzzFunction = void (*)(std::shared_ptr<DeviceStatusManager> &mgr,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetDeviceStatus(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
@@ -220,7 +221,7 @@ static void FuzzNotifySubscribers(std::shared_ptr<DeviceStatusManager> &mgr, Fuz
     mgr->NotifySubscribers();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const DeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetDeviceStatus,
     FuzzGetAllDeviceStatus,
     FuzzSubscribeDeviceStatus,
@@ -246,7 +247,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzNotifySubscribers,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(DeviceStatusManagerFuzzFunction);
 
 void FuzzDeviceStatusManager(FuzzedDataProvider &fuzzData)
 {
@@ -287,5 +288,8 @@ void FuzzDeviceStatusManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(DeviceStatusManager)
+
 } // namespace UserIam
 } // namespace OHOS

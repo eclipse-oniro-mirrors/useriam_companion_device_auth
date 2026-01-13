@@ -92,7 +92,7 @@ HWTEST_F(CompanionRevokeTokenRequestTest, OnConnected_001, TestSize.Level0)
 HWTEST_F(CompanionRevokeTokenRequestTest, SendRevokeTokenRequest_001, TestSize.Level0)
 {
     CreateDefaultRequest();
-    request_->peerDeviceKey_ = nullopt;
+    request_->peerDeviceKey_ = std::nullopt;
     request_->SendRevokeTokenRequest();
 }
 
@@ -100,7 +100,7 @@ HWTEST_F(CompanionRevokeTokenRequestTest, SendRevokeTokenRequest_002, TestSize.L
 {
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
     EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillOnce(Return(false));
 
     request_->SendRevokeTokenRequest();

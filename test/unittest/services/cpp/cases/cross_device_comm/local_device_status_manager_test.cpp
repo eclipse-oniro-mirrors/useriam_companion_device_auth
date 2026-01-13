@@ -251,7 +251,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_002, TestSize.Level0)
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
     ASSERT_NE(manager, nullptr);
 
-    auto deviceKeyOpt = manager->GetLocalDeviceKey(ChannelId::INVALID);
+    auto deviceKeyOpt = manager->GetLocalDeviceKey(ChannelId::SOFTBUS);
     EXPECT_FALSE(deviceKeyOpt.has_value());
 }
 
@@ -312,11 +312,15 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKeys_002, TestSize.Level0)
     ASSERT_NE(manager, nullptr);
 
     auto deviceKeys = manager->GetLocalDeviceKeys();
-    EXPECT_EQ(deviceKeys.size(), 1);
+    EXPECT_EQ(deviceKeys.size(), 2);
 
     auto it1 = deviceKeys.find(ChannelId::SOFTBUS);
     ASSERT_NE(it1, deviceKeys.end());
     EXPECT_EQ(it1->second.deviceId, "local-device-id");
+
+    auto it2 = deviceKeys.find(ChannelId::SOFTBUS);
+    ASSERT_NE(it2, deviceKeys.end());
+    EXPECT_EQ(it2->second.deviceId, "local-device-id-2");
 }
 
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKeys_003, TestSize.Level0)

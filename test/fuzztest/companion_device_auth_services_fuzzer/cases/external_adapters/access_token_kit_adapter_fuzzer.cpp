@@ -21,13 +21,13 @@
 #include "access_token_kit_adapter.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using AccessTokenKitAdapterFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzVerifyPermission(FuzzedDataProvider &fuzzData)
 {
@@ -92,7 +92,7 @@ static void FuzzSpecialPermissionNames(FuzzedDataProvider &fuzzData)
     (void)permissionName3;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const AccessTokenKitAdapterFuzzFunction g_fuzzFuncs[] = {
     FuzzVerifyPermission,
     FuzzPermissionOperations,
     FuzzMultiplePermissionChecks,
@@ -101,7 +101,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzSpecialPermissionNames,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(AccessTokenKitAdapterFuzzFunction);
 
 void FuzzPermissionAdapter(FuzzedDataProvider &fuzzData)
 {
@@ -119,5 +119,8 @@ void FuzzPermissionAdapter(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(PermissionAdapter)
+
 } // namespace UserIam
 } // namespace OHOS

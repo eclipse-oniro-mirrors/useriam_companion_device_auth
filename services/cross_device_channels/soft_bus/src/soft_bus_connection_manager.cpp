@@ -7,6 +7,7 @@
 #include "soft_bus_connection_manager.h"
 
 #include <algorithm>
+#include <cinttypes>
 #include <utility>
 
 #include "system_ability_definition.h"
@@ -14,12 +15,12 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
-#include "adapter_manager.h"
 #include "cda_attributes.h"
 #include "sa_status_listener.h"
 #include "scope_guard.h"
 #include "service_common.h"
 #include "singleton_manager.h"
+#include "soft_bus_adapter_manager.h"
 #include "soft_bus_channel_common.h"
 #include "soft_bus_global_callbacks.h"
 #include "soft_bus_socket.h"
@@ -74,7 +75,9 @@ bool SoftBusConnectionManager::Start()
     }
 
     // Register callback with SoftBusAdapter
-    GetSoftBusAdapter().RegisterCallback(shared_from_this());
+    {
+        GetSoftBusAdapter().RegisterCallback(shared_from_this());
+    }
 
     std::weak_ptr<SoftBusConnectionManager> weakSelf = weak_from_this();
     saStatusListener_ = SaStatusListener::Create(
@@ -270,10 +273,10 @@ std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeRawMessage(OnRa
 {
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
-    int32_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
     rawMessageSubscribers_.push_back({ subscriptionId, "", std::move(callback) });
 
-    IAM_LOGI("raw message subscription added: %{public}d", subscriptionId);
+    IAM_LOGI("raw message subscription added: %{public}" PRIu64, subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -283,13 +286,13 @@ std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeRawMessage(OnRa
     });
 }
 
-void SoftBusConnectionManager::UnsubscribeRawMessage(int32_t subscriptionId)
+void SoftBusConnectionManager::UnsubscribeRawMessage(SubscribeId subscriptionId)
 {
     auto it = std::remove_if(rawMessageSubscribers_.begin(), rawMessageSubscribers_.end(),
         [subscriptionId](const RawMessageSubscription &sub) { return sub.subscriptionId == subscriptionId; });
     if (it != rawMessageSubscribers_.end()) {
         rawMessageSubscribers_.erase(it);
-        IAM_LOGI("raw message subscription removed: %{public}d", subscriptionId);
+        IAM_LOGI("raw message subscription removed: %{public}" PRIu64, subscriptionId);
     }
 }
 
@@ -297,10 +300,10 @@ std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeConnectionStatu
 {
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
-    int32_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
     connectionStatusSubscribers_[subscriptionId] = std::move(callback);
 
-    IAM_LOGI("connection status subscription added: %{public}d", subscriptionId);
+    IAM_LOGI("connection status subscription added: %{public}" PRIu64, subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -310,20 +313,20 @@ std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeConnectionStatu
     });
 }
 
-void SoftBusConnectionManager::UnsubscribeConnectionStatus(int32_t subscriptionId)
+void SoftBusConnectionManager::UnsubscribeConnectionStatus(SubscribeId subscriptionId)
 {
     connectionStatusSubscribers_.erase(subscriptionId);
-    IAM_LOGI("connection status subscription removed: %{public}d", subscriptionId);
+    IAM_LOGI("connection status subscription removed: %{public}" PRIu64, subscriptionId);
 }
 
 std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeIncomingConnection(OnIncomingConnection &&callback)
 {
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
-    int32_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
     incomingConnectionSubscribers_[subscriptionId] = std::move(callback);
 
-    IAM_LOGI("incoming connection subscription added: %{public}d", subscriptionId);
+    IAM_LOGI("incoming connection subscription added: %{public}" PRIu64, subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -333,10 +336,10 @@ std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeIncomingConnect
     });
 }
 
-void SoftBusConnectionManager::UnsubscribeIncomingConnection(int32_t subscriptionId)
+void SoftBusConnectionManager::UnsubscribeIncomingConnection(SubscribeId subscriptionId)
 {
     incomingConnectionSubscribers_.erase(subscriptionId);
-    IAM_LOGI("incoming connection subscription removed: %{public}d", subscriptionId);
+    IAM_LOGI("incoming connection subscription removed: %{public}" PRIu64, subscriptionId);
 }
 
 void SoftBusConnectionManager::NotifyIncomingConnection(const std::string &connectionName,

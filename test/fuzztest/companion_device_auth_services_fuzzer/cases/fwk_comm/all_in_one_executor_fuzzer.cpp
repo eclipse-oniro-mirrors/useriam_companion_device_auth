@@ -22,13 +22,13 @@
 #include "companion_device_auth_all_in_one_executor.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &executor,
+using AllInOneExecutorFuzzFunction = void (*)(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &executor,
     FuzzedDataProvider &fuzzData);
 
 static void FuzzGetExecutorInfo(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &executor,
@@ -255,7 +255,7 @@ static void FuzzHandleFreezeRelatedCommand(std::shared_ptr<CompanionDeviceAuthAl
     (void)executor->SendCommand(commandId, extraInfo, callback);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const AllInOneExecutorFuzzFunction g_fuzzFuncs[] = {
     FuzzGetExecutorInfo,
     FuzzOnRegisterFinish,
     FuzzSendMessage,
@@ -269,7 +269,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzHandleFreezeRelatedCommand,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(AllInOneExecutorFuzzFunction);
 
 void FuzzAllInOneExecutor(FuzzedDataProvider &fuzzData)
 {
@@ -291,5 +291,8 @@ void FuzzAllInOneExecutor(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(AllInOneExecutor)
+
 } // namespace UserIam
 } // namespace OHOS

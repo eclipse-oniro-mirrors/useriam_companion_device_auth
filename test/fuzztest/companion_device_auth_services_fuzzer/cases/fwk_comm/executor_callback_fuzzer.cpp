@@ -22,13 +22,13 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using ExecutorCallbackFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreateRequestCallback(FuzzedDataProvider &fuzzData)
 {
@@ -87,7 +87,7 @@ static void FuzzCreateMultipleCallbacks(FuzzedDataProvider &fuzzData)
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ExecutorCallbackFuzzFunction g_fuzzFuncs[] = {
     FuzzCreateRequestCallback,
     FuzzInvokeCallbackWithSuccess,
     FuzzInvokeCallbackWithFailure,
@@ -95,7 +95,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCreateMultipleCallbacks,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ExecutorCallbackFuzzFunction);
 
 void FuzzExecutorCallback(FuzzedDataProvider &fuzzData)
 {
@@ -113,5 +113,8 @@ void FuzzExecutorCallback(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ExecutorCallback)
+
 } // namespace UserIam
 } // namespace OHOS

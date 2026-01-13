@@ -151,6 +151,7 @@ impl DefaultHostDbManager {
             };
 
             self.companion_device_infos.push(companion_device_info);
+            log_i!("companion_device_infos: {:?}", self.companion_device_infos);
         }
 
         Ok(())
@@ -296,14 +297,6 @@ impl DefaultHostDbManager {
         let _ = self.delete_device_capability_info(template_id);
         let _ = self.delete_device_sk(template_id);
     }
-
-    fn get_total_device_num(&self) -> usize {
-        self.companion_device_infos.len()
-    }
-
-    fn get_total_token_num(&self) -> usize {
-        self.companion_token_infos.len()
-    }
 }
 
 impl HostDbManager for DefaultHostDbManager {
@@ -320,7 +313,7 @@ impl HostDbManager for DefaultHostDbManager {
             return Err(ErrorCode::BadParam);
         }
 
-        if self.get_total_device_num() >= MAX_DEVICE_NUM {
+        if self.companion_device_infos.len() >= MAX_DEVICE_NUM {
             log_e!("device num is reached limit");
             return Err(ErrorCode::ExceedLimit);
         }
@@ -431,14 +424,10 @@ impl HostDbManager for DefaultHostDbManager {
 
         match self.get_token_index_by_template_info(token_info.template_id, token_info.device_type) {
             Some(index) => {
-                if self.get_total_token_num() > MAX_TOKEN_NUM {
-                    log_e!("token num is reached limit");
-                    return Err(ErrorCode::ExceedLimit);
-                }
                 self.companion_token_infos[index] = token_info.clone();
             },
             None => {
-                if self.get_total_token_num() >= MAX_TOKEN_NUM {
+                if self.companion_token_infos.len() >= MAX_TOKEN_NUM {
                     log_e!("token num is reached limit");
                     return Err(ErrorCode::ExceedLimit);
                 }

@@ -62,7 +62,7 @@ public:
         return description_;
     }
 
-    void SetEnabledBusinessIds(const std::vector<int32_t> &enabledBusinessIds);
+    void SetEnabledBusinessIds(const std::vector<BusinessId> &enabledBusinessIds);
     void SetCompanionValid(bool isValid);
     void SetCompanionTokenAtl(std::optional<Atl> tokenAtl);
     void SetDeviceNames(const std::string &deviceName, const std::string &deviceUserName);

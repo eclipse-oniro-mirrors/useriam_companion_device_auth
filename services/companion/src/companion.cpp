@@ -126,7 +126,7 @@ void Companion::HandleDeviceOffline()
     NotifySubscribers();
 }
 
-void Companion::SetEnabledBusinessIds(const std::vector<int32_t> &enabledBusinessIds)
+void Companion::SetEnabledBusinessIds(const std::vector<BusinessId> &enabledBusinessIds)
 {
     if (status_.enabledBusinessIds == enabledBusinessIds) {
         return;

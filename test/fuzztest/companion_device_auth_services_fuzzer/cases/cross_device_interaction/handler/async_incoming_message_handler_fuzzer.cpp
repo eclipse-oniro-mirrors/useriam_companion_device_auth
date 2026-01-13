@@ -23,7 +23,7 @@
 #include "async_incoming_message_handler.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -48,7 +48,8 @@ public:
     }
 };
 
-using FuzzFunction = void (*)(std::shared_ptr<MockAsyncIncomingMessageHandler> &handler, FuzzedDataProvider &fuzzData);
+using AsyncIncomingMessageHandlerFuzzFunction = void (*)(std::shared_ptr<MockAsyncIncomingMessageHandler> &handler,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMessageType(std::shared_ptr<MockAsyncIncomingMessageHandler> &handler, FuzzedDataProvider &fuzzData)
 {
@@ -182,7 +183,7 @@ static void FuzzGetTypeAfterRegister(std::shared_ptr<MockAsyncIncomingMessageHan
     (void)type;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const AsyncIncomingMessageHandlerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMessageType,
     FuzzRegister,
     FuzzHandleIncomingMessage,
@@ -198,7 +199,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzGetTypeAfterRegister,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(AsyncIncomingMessageHandlerFuzzFunction);
 
 void FuzzAsyncIncomingMessageHandler(FuzzedDataProvider &fuzzData)
 {
@@ -220,5 +221,8 @@ void FuzzAsyncIncomingMessageHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(AsyncIncomingMessageHandler)
+
 } // namespace UserIam
 } // namespace OHOS

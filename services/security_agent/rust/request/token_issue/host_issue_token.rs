@@ -29,7 +29,7 @@ use crate::request::token_issue::token_issue_message::{FwkIssueTokenRequest, Sec
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::{HostRequest, HostRequestInput, HostRequestOutput};
+use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -210,43 +210,42 @@ impl HostRequest for HostDeviceIssueTokenRequest {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn prepare(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceIssueTokenRequest prepare start");
-        let HostRequestInput::IssueTokenPrepare(ffi_input) = input else {
+        let HostRequestParam::IssueTokenPrepare(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.create_prepare_sec_message()?;
-        Ok(HostRequestOutput::IssueTokenPrepare(HostPreIssueTokenOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        Ok(())
     }
 
-    fn begin(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceIssueTokenRequest begin start");
-        let HostRequestInput::IssueTokenBegin(ffi_input) = input else {
+        let HostRequestParam::IssueTokenBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_begin_sec_message()?;
-        Ok(HostRequestOutput::IssueTokenBegin(HostBeginIssueTokenOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        Ok(())
     }
 
-    fn end(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceIssueTokenRequest end start");
-        let HostRequestInput::IssueTokenEnd(ffi_input) = input else {
+        let HostRequestParam::IssueTokenEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         self.store_token()?;
-        Ok(HostRequestOutput::IssueTokenEnd(HostEndIssueTokenOutputFfi { atl: self.atl as i32 }))
+        ffi_output.atl = self.atl as i32;
+        Ok(())
     }
 }

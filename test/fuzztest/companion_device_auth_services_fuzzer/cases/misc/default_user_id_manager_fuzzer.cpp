@@ -18,7 +18,7 @@
 #include "fuzzer/FuzzedDataProvider.h"
 
 #include "fuzz_constants.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -33,5 +33,8 @@ void FuzzDefaultUserIdManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(DefaultUserIdManager)
+
 } // namespace UserIam
 } // namespace OHOS

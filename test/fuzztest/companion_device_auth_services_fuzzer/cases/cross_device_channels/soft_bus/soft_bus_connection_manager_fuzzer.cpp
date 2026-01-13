@@ -21,7 +21,7 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "soft_bus_connection_manager.h"
 
 namespace OHOS {
@@ -31,16 +31,19 @@ namespace {
 const uint32_t TEST_VAL64 = 64;
 }
 
-using FuzzFunction = void (*)(std::shared_ptr<SoftBusConnectionManager> &, FuzzedDataProvider &);
+using SoftBusConnectionManagerFuzzFunction = void (*)(std::shared_ptr<SoftBusConnectionManager> &,
+    FuzzedDataProvider &);
 
 static void FuzzOp0(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Start
     manager->Start();
 }
 
 static void FuzzOp1(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test OpenConnection
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
     PhysicalDeviceKey physicalKey;
@@ -52,6 +55,7 @@ static void FuzzOp1(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
 
 static void FuzzOp2(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test CloseConnection
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
     manager->CloseConnection(connectionName);
@@ -59,6 +63,7 @@ static void FuzzOp2(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
 
 static void FuzzOp3(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SendMessage
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
     std::vector<uint8_t> rawMsg =
@@ -68,6 +73,7 @@ static void FuzzOp3(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
 
 static void FuzzOp4(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test HandleBind
     int32_t socketId = fuzzData.ConsumeIntegral<int32_t>();
     std::string peerNetworkId = GenerateFuzzString(fuzzData, TEST_VAL64);
@@ -76,6 +82,7 @@ static void FuzzOp4(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
 
 static void FuzzOp5(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test HandleBytes
     int32_t socketId = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t dataLen = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
@@ -85,6 +92,7 @@ static void FuzzOp5(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
 
 static void FuzzOp6(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test HandleError
     int32_t socketId = fuzzData.ConsumeIntegral<int32_t>();
     int32_t errCode = fuzzData.ConsumeIntegral<int32_t>();
@@ -93,6 +101,7 @@ static void FuzzOp6(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
 
 static void FuzzOp7(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test HandleShutdown
     int32_t socketId = fuzzData.ConsumeIntegral<int32_t>();
     int32_t reason = fuzzData.ConsumeIntegral<int32_t>();
@@ -101,6 +110,7 @@ static void FuzzOp7(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
 
 static void FuzzOp8(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test ReportConnectionEstablished and ReportConnectionClosed
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
     manager->ReportConnectionEstablished(connectionName);
@@ -110,6 +120,7 @@ static void FuzzOp8(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
 
 static void FuzzOp9(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribeConnectionStatus
     auto subscription = manager->SubscribeConnectionStatus(
         [](const std::string &connectionName, ConnectionStatus status, const std::string &reason) {
@@ -123,6 +134,7 @@ static void FuzzOp9(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
 
 static void FuzzOp10(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribeRawMessage
     auto subscription =
         manager->SubscribeRawMessage([](const std::string &connectionName, const std::vector<uint8_t> &message) {
@@ -135,6 +147,7 @@ static void FuzzOp10(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedD
 
 static void FuzzOp11(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribeIncomingConnection
     auto subscription = manager->SubscribeIncomingConnection(
         [](const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey) {
@@ -147,6 +160,7 @@ static void FuzzOp11(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedD
 
 static void FuzzOp12(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test NotifyIncomingConnection
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
     PhysicalDeviceKey physicalKey;
@@ -157,6 +171,7 @@ static void FuzzOp12(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedD
 
 static void FuzzOp13(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test StartServerSocket
     // This indirectly tests HandleSoftBusServiceReady
     manager->StartServerSocket();
@@ -164,6 +179,7 @@ static void FuzzOp13(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedD
 
 static void FuzzOp14(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test CloseAllSockets
     std::string reason = GenerateFuzzString(fuzzData, 128);
     // CloseAllSockets is private, but can be triggered through destructor
@@ -172,9 +188,9 @@ static void FuzzOp14(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedD
     manager->CloseConnection(connectionName);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7,
-    FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11, FuzzOp12, FuzzOp13, FuzzOp14 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const SoftBusConnectionManagerFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4,
+    FuzzOp5, FuzzOp6, FuzzOp7, FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11, FuzzOp12, FuzzOp13, FuzzOp14 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SoftBusConnectionManagerFuzzFunction);
 
 void FuzzSoftBusConnectionManager(FuzzedDataProvider &fuzzData)
 {
@@ -197,5 +213,8 @@ void FuzzSoftBusConnectionManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SoftBusConnectionManager)
+
 } // namespace UserIam
 } // namespace OHOS

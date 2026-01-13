@@ -16,6 +16,8 @@
 #ifndef COMPANION_DEVICE_AUTH_ISSUE_TOKEN_MESSAGE_H
 #define COMPANION_DEVICE_AUTH_ISSUE_TOKEN_MESSAGE_H
 
+#include <optional>
+
 #include "cda_attributes.h"
 #include "common_defines.h"
 #include "service_common.h"
@@ -50,14 +52,14 @@ struct IssueTokenReply {
 };
 
 bool EncodePreIssueTokenRequest(const PreIssueTokenRequest &request, Attributes &attributes);
-bool DecodePreIssueTokenRequest(const Attributes &attributes, PreIssueTokenRequest &request);
+std::optional<PreIssueTokenRequest> DecodePreIssueTokenRequest(const Attributes &attributes);
 bool EncodePreIssueTokenReply(const PreIssueTokenReply &reply, Attributes &attributes);
-bool DecodePreIssueTokenReply(const Attributes &attributes, PreIssueTokenReply &reply);
+std::optional<PreIssueTokenReply> DecodePreIssueTokenReply(const Attributes &attributes);
 
 bool EncodeIssueTokenRequest(const IssueTokenRequest &request, Attributes &attributes);
-bool DecodeIssueTokenRequest(const Attributes &attributes, IssueTokenRequest &request);
+std::optional<IssueTokenRequest> DecodeIssueTokenRequest(const Attributes &attributes);
 bool EncodeIssueTokenReply(const IssueTokenReply &reply, Attributes &attributes);
-bool DecodeIssueTokenReply(const Attributes &attributes, IssueTokenReply &reply);
+std::optional<IssueTokenReply> DecodeIssueTokenReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

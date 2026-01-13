@@ -151,9 +151,9 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     IAM_LOGI("%{public}s", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
-    SyncDeviceStatusReply replyData = {};
-    bool decodeRet = DecodeSyncDeviceStatusReply(reply, replyData);
-    ENSURE_OR_RETURN(decodeRet);
+    auto replyDataOpt = DecodeSyncDeviceStatusReply(reply);
+    ENSURE_OR_RETURN(replyDataOpt.has_value());
+    const auto &replyData = *replyDataOpt;
 
     bool handleRet = EndCompanionCheck(replyData);
     ENSURE_OR_RETURN(handleRet);

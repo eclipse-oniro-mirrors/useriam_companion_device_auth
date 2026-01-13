@@ -16,6 +16,7 @@
 #include "ipc_template_status_callback_service.h"
 
 #include <cinttypes>
+#include <memory>
 
 #include "iam_logger.h"
 #include "iam_para2str.h"

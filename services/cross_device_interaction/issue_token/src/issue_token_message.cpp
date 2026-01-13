@@ -15,7 +15,10 @@
 
 #include "issue_token_message.h"
 
+#include <optional>
+
 #include "iam_check.h"
+#include "iam_logger.h"
 
 #include "common_message.h"
 
@@ -32,17 +35,19 @@ bool EncodePreIssueTokenRequest(const PreIssueTokenRequest &request, Attributes 
     return true;
 }
 
-bool DecodePreIssueTokenRequest(const Attributes &attributes, PreIssueTokenRequest &request)
+std::optional<PreIssueTokenRequest> DecodePreIssueTokenRequest(const Attributes &attributes)
 {
     auto hostKeyOpt = DecodeHostDeviceKey(attributes);
-    ENSURE_OR_RETURN_VAL(hostKeyOpt.has_value(), false);
+    ENSURE_OR_RETURN_VAL(hostKeyOpt.has_value(), std::nullopt);
+
+    PreIssueTokenRequest request;
     request.hostDeviceKey = *hostKeyOpt;
     bool getCompanionUserIdRet =
         attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
-    ENSURE_OR_RETURN_VAL(getCompanionUserIdRet, false);
+    ENSURE_OR_RETURN_VAL(getCompanionUserIdRet, std::nullopt);
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    ENSURE_OR_RETURN_VAL(getExtraInfoRet, false);
-    return true;
+    ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
+    return request;
 }
 
 bool EncodePreIssueTokenReply(const PreIssueTokenReply &reply, Attributes &attributes)
@@ -55,18 +60,20 @@ bool EncodePreIssueTokenReply(const PreIssueTokenReply &reply, Attributes &attri
     return true;
 }
 
-bool DecodePreIssueTokenReply(const Attributes &attributes, PreIssueTokenReply &reply)
+std::optional<PreIssueTokenReply> DecodePreIssueTokenReply(const Attributes &attributes)
 {
     int32_t result = 0;
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
-    ENSURE_OR_RETURN_VAL(getResultRet, false);
+    ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
+
+    PreIssueTokenReply reply;
     reply.result = static_cast<ResultCode>(result);
     if (reply.result != ResultCode::SUCCESS) {
-        return true;
+        return reply;
     }
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.extraInfo);
-    ENSURE_OR_RETURN_VAL(getExtraInfoRet, false);
-    return true;
+    ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
+    return reply;
 }
 
 bool EncodeIssueTokenRequest(const IssueTokenRequest &request, Attributes &attributes)
@@ -77,17 +84,19 @@ bool EncodeIssueTokenRequest(const IssueTokenRequest &request, Attributes &attri
     return true;
 }
 
-bool DecodeIssueTokenRequest(const Attributes &attributes, IssueTokenRequest &request)
+std::optional<IssueTokenRequest> DecodeIssueTokenRequest(const Attributes &attributes)
 {
     auto hostKeyOpt = DecodeHostDeviceKey(attributes);
-    ENSURE_OR_RETURN_VAL(hostKeyOpt.has_value(), false);
+    ENSURE_OR_RETURN_VAL(hostKeyOpt.has_value(), std::nullopt);
+
+    IssueTokenRequest request;
     request.hostDeviceKey = *hostKeyOpt;
     bool getCompanionUserIdRet =
         attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
-    ENSURE_OR_RETURN_VAL(getCompanionUserIdRet, false);
+    ENSURE_OR_RETURN_VAL(getCompanionUserIdRet, std::nullopt);
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    ENSURE_OR_RETURN_VAL(getExtraInfoRet, false);
-    return true;
+    ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
+    return request;
 }
 
 bool EncodeIssueTokenReply(const IssueTokenReply &reply, Attributes &attributes)
@@ -100,18 +109,20 @@ bool EncodeIssueTokenReply(const IssueTokenReply &reply, Attributes &attributes)
     return true;
 }
 
-bool DecodeIssueTokenReply(const Attributes &attributes, IssueTokenReply &reply)
+std::optional<IssueTokenReply> DecodeIssueTokenReply(const Attributes &attributes)
 {
     int32_t result = 0;
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
-    ENSURE_OR_RETURN_VAL(getResultRet, false);
+    ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
+
+    IssueTokenReply reply;
     reply.result = static_cast<ResultCode>(result);
     if (reply.result != ResultCode::SUCCESS) {
-        return true;
+        return reply;
     }
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.extraInfo);
-    ENSURE_OR_RETURN_VAL(getExtraInfoRet, false);
-    return true;
+    ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
+    return reply;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

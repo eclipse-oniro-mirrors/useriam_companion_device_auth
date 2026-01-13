@@ -17,6 +17,8 @@
 
 #include <algorithm>
 
+#include <cinttypes>
+
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
@@ -148,7 +150,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(OnDevic
     info.callback = std::move(callback);
     subscriptions_.push_back(info);
 
-    IAM_LOGI("device status subscription added: id=%{public}d (all devices)", subscriptionId);
+    IAM_LOGI("device status subscription added: id=%{public}" PRIu64 " (all devices)", subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -197,6 +199,7 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     deviceStatus.protocolId = negotiatedProtocol.value();
     deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
     deviceStatus.capabilities = negotiatedCapabilities;
+    deviceStatus.supportedBusinessIds = { BusinessId::DEFAULT };
 
     guard.Cancel();
     deviceStatus.isSynced = true;
@@ -242,7 +245,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(const D
     info.callback = std::move(callback);
     subscriptions_.push_back(info);
 
-    IAM_LOGI("device status subscription added: id=%{public}d for device %{public}s", subscriptionId,
+    IAM_LOGI("device status subscription added: id=%{public}" PRIu64 " for device %{public}s", subscriptionId,
         deviceKey.GetDesc().c_str());
     RefreshDeviceList(false);
 
@@ -261,13 +264,13 @@ bool DeviceStatusManager::UnsubscribeDeviceStatus(SubscribeId subscriptionId)
     if (it != subscriptions_.end()) {
         bool wasSpecificDevice = it->deviceKey.has_value();
         subscriptions_.erase(it);
-        IAM_LOGI("device status subscription removed: id=%{public}d", subscriptionId);
+        IAM_LOGI("device status subscription removed: id=%{public}" PRIu64, subscriptionId);
         if (wasSpecificDevice) {
             RefreshDeviceList(false);
         }
         return true;
     }
-    IAM_LOGW("device status subscription not found: id=%{public}d", subscriptionId);
+    IAM_LOGW("device status subscription not found: id=%{public}" PRIu64, subscriptionId);
     return false;
 }
 
@@ -279,7 +282,7 @@ void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey
     }
 
     if (it->second.isSyncInProgress) {
-        IAM_LOGD("device already syncing");
+        IAM_LOGI("device already syncing");
         return;
     }
 
@@ -339,11 +342,11 @@ std::optional<ProtocolId> DeviceStatusManager::NegotiateProtocol(const std::vect
     ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, std::nullopt);
 
     auto localProfile = localDeviceStatusMgr_->GetLocalDeviceProfile();
+    const auto &localProtocols = localProfile.protocols;
 
     for (const auto &localProtocol : localProfile.protocolPriorityList) {
         if (std::find(remoteProtocols.begin(), remoteProtocols.end(), localProtocol) != remoteProtocols.end() &&
-            std::find(localProfile.protocols.begin(), localProfile.protocols.end(), localProtocol) !=
-            localProfile.protocols.end()) {
+            std::find(localProtocols.begin(), localProtocols.end(), localProtocol) != localProtocols.end()) {
             IAM_LOGI("negotiated protocol: %{public}hu", localProtocol);
             return localProtocol;
         }
@@ -515,7 +518,6 @@ bool DeviceStatusManager::AddOrUpdateDevices(
             deviceStatus.channelId = status.channelId;
             deviceStatus.deviceName = status.deviceName;
             deviceStatus.deviceModelInfo = status.deviceModelInfo;
-            deviceStatus.networkId = status.networkId;
             deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
             deviceChanged = true;
             if (resync) {

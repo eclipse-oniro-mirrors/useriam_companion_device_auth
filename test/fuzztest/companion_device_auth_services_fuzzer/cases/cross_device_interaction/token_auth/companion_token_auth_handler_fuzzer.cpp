@@ -23,13 +23,14 @@
 #include "companion_token_auth_handler.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionTokenAuthHandler> &handler, FuzzedDataProvider &fuzzData);
+using CompanionTokenAuthHandlerFuzzFunction = void (*)(std::shared_ptr<CompanionTokenAuthHandler> &handler,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzHandleRequest(std::shared_ptr<CompanionTokenAuthHandler> &handler, FuzzedDataProvider &fuzzData)
 {
@@ -94,7 +95,7 @@ static void FuzzRegister(std::shared_ptr<CompanionTokenAuthHandler> &handler, Fu
     handler->Register();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CompanionTokenAuthHandlerFuzzFunction g_fuzzFuncs[] = {
     FuzzHandleRequest,
     FuzzHandleRequestWithEmptyAttrs,
     FuzzHandleRequestWithLargeAttrs,
@@ -105,7 +106,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzRegister,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionTokenAuthHandlerFuzzFunction);
 
 void FuzzCompanionTokenAuthHandler(FuzzedDataProvider &fuzzData)
 {
@@ -126,5 +127,8 @@ void FuzzCompanionTokenAuthHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionTokenAuthHandler)
+
 } // namespace UserIam
 } // namespace OHOS

@@ -42,9 +42,9 @@ void HostRevokeTokenHandler::HandleRequest(const Attributes &request, Attributes
         (void)reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(result));
     });
 
-    RevokeTokenRequest requestMsg = {};
-    bool decodeReqRet = DecodeRevokeTokenRequest(request, requestMsg);
-    ENSURE_OR_RETURN(decodeReqRet);
+    auto requestMsgOpt = DecodeRevokeTokenRequest(request);
+    ENSURE_OR_RETURN(requestMsgOpt.has_value());
+    const auto &requestMsg = *requestMsgOpt;
 
     auto companionStatus =
         GetCompanionManager().GetCompanionStatus(requestMsg.hostUserId, requestMsg.companionDeviceKey);

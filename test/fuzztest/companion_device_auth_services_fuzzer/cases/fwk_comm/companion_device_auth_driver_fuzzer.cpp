@@ -23,16 +23,18 @@
 #include "companion_device_auth_driver.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionDeviceAuthDriver> &drv, FuzzedDataProvider &);
+using CompanionDeviceAuthDriverFuzzFunction = void (*)(std::shared_ptr<CompanionDeviceAuthDriver> &drv,
+    FuzzedDataProvider &);
 
 static void FuzzOp0(std::shared_ptr<CompanionDeviceAuthDriver> &drv, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetExecutorList
     std::vector<std::shared_ptr<FwkIAuthExecutorHdi>> executorList;
     drv->GetExecutorList(executorList);
@@ -40,12 +42,13 @@ static void FuzzOp0(std::shared_ptr<CompanionDeviceAuthDriver> &drv, FuzzedDataP
 
 static void FuzzOp1(std::shared_ptr<CompanionDeviceAuthDriver> &drv, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test OnHdiDisconnect
     drv->OnHdiDisconnect();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const CompanionDeviceAuthDriverFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionDeviceAuthDriverFuzzFunction);
 
 void FuzzCompanionDeviceAuthDriver(FuzzedDataProvider &fuzzData)
 {
@@ -70,5 +73,8 @@ void FuzzCompanionDeviceAuthDriver(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionDeviceAuthDriver)
+
 } // namespace UserIam
 } // namespace OHOS

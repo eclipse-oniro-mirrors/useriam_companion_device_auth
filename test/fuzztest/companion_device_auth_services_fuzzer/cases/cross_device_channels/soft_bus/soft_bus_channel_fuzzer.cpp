@@ -19,9 +19,10 @@
 
 #include "fuzzer/FuzzedDataProvider.h"
 
+#include "cross_device_common.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "soft_bus_channel.h"
 
 namespace OHOS {
@@ -31,34 +32,39 @@ namespace {
 const uint32_t TEST_VAL64 = 64;
 }
 
-using FuzzFunction = void (*)(std::shared_ptr<SoftBusChannel> &, FuzzedDataProvider &);
+using SoftBusChannelFuzzFunction = void (*)(std::shared_ptr<SoftBusChannel> &, FuzzedDataProvider &);
 
 static void FuzzOp0(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetChannelId
     (void)channel->GetChannelId();
 }
 
 static void FuzzOp1(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetCompanionSecureProtocolId
     (void)channel->GetCompanionSecureProtocolId();
 }
 
 static void FuzzOp2(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetAuthMaintainActive
     (void)channel->GetAuthMaintainActive();
 }
 
 static void FuzzOp3(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Start
     channel->Start();
 }
 
 static void FuzzOp4(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test OpenConnection
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
     PhysicalDeviceKey physicalKey;
@@ -69,6 +75,7 @@ static void FuzzOp4(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider
 
 static void FuzzOp5(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test CloseConnection
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
     channel->CloseConnection(connectionName);
@@ -76,6 +83,7 @@ static void FuzzOp5(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider
 
 static void FuzzOp6(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SendMessage
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
     std::vector<uint8_t> rawMsg =
@@ -85,6 +93,7 @@ static void FuzzOp6(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider
 
 static void FuzzOp7(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test CheckOperationIntent
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
     uint32_t tokenId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -94,12 +103,14 @@ static void FuzzOp7(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider
 
 static void FuzzOp8(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test RequiresDisconnectNotification
     (void)channel->RequiresDisconnectNotification();
 }
 
 static void FuzzOp9(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test OnRemoteDisconnect
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
     std::string reason = GenerateFuzzString(fuzzData, 128);
@@ -108,18 +119,21 @@ static void FuzzOp9(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider
 
 static void FuzzOp10(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetLocalPhysicalDeviceKey
     (void)channel->GetLocalPhysicalDeviceKey();
 }
 
 static void FuzzOp11(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetAllPhysicalDevices
     (void)channel->GetAllPhysicalDevices();
 }
 
 static void FuzzOp12(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribePhysicalDeviceStatus
     auto subscription =
         channel->SubscribePhysicalDeviceStatus([](const std::vector<PhysicalDeviceStatus> &deviceStatus) {
@@ -131,6 +145,7 @@ static void FuzzOp12(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvide
 
 static void FuzzOp13(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribeRawMessage
     auto subscription =
         channel->SubscribeRawMessage([](const std::string &connectionName, const std::vector<uint8_t> &message) {
@@ -143,6 +158,7 @@ static void FuzzOp13(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvide
 
 static void FuzzOp14(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribeConnectionStatus
     auto subscription = channel->SubscribeConnectionStatus(
         [](const std::string &connectionName, ConnectionStatus status, const std::string &reason) {
@@ -156,6 +172,7 @@ static void FuzzOp14(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvide
 
 static void FuzzOp15(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribeIncomingConnection
     auto subscription = channel->SubscribeIncomingConnection(
         [](const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey) {
@@ -168,6 +185,7 @@ static void FuzzOp15(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvide
 
 static void FuzzOp16(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SubscribeAuthMaintainActive
     auto subscription = channel->SubscribeAuthMaintainActive([](bool isActive) {
         // Callback - intentionally does nothing
@@ -176,9 +194,20 @@ static void FuzzOp16(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvide
     // Subscription will be automatically cleaned up
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7,
-    FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11, FuzzOp12, FuzzOp13, FuzzOp14, FuzzOp15, FuzzOp16 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static void FuzzOp17(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
+{
+    (void)fuzzData;
+    // Test ConvertToConnectionStatus (inline function from cross_device_common.h)
+    (void)channel; // Unused in this test
+    bool isConnected = fuzzData.ConsumeBool();
+    std::string reason = GenerateFuzzString(fuzzData, 128);
+    ConnectionStatus status = ConvertToConnectionStatus(isConnected, reason);
+    (void)status;
+}
+
+static const SoftBusChannelFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6,
+    FuzzOp7, FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11, FuzzOp12, FuzzOp13, FuzzOp14, FuzzOp15, FuzzOp16, FuzzOp17 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SoftBusChannelFuzzFunction);
 
 void FuzzSoftBusChannel(FuzzedDataProvider &fuzzData)
 {
@@ -203,3 +232,5 @@ void FuzzSoftBusChannel(FuzzedDataProvider &fuzzData)
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
+
+FUZZ_REGISTER(SoftBusChannel)

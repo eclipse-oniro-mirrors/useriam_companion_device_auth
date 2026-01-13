@@ -22,7 +22,7 @@
 #include "companion_device_auth_ffi_util.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -30,9 +30,9 @@ namespace CompanionDeviceAuth {
 namespace {
 const uint32_t TEST_VAL64 = 64;
 const uint32_t TEST_VAL256 = 256;
-}
+} // namespace
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using FfiUtilFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzDecodeDeviceKey(FuzzedDataProvider &fuzzData)
 {
@@ -96,14 +96,14 @@ static void FuzzDecodeCommonOutput(FuzzedDataProvider &fuzzData)
     (void)DecodeCommonOutput(ffi, output);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const FfiUtilFuzzFunction g_fuzzFuncs[] = {
     FuzzDecodeDeviceKey,
     FuzzEncodeDeviceKey,
     FuzzDecodeEvent,
     FuzzDecodeCommonOutput,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FfiUtilFuzzFunction);
 
 void FuzzFfiUtil(FuzzedDataProvider &fuzzData)
 {
@@ -121,5 +121,8 @@ void FuzzFfiUtil(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(FfiUtil)
+
 } // namespace UserIam
 } // namespace OHOS

@@ -18,7 +18,6 @@ import("../../../companion_device_auth.gni")
 config("companion_device_auth_native_ipc_config") {
   include_dirs = [
     "${companion_device_auth_path}/interfaces/inner_api",
-    "${companion_device_auth_path}/frameworks/native/idl",
     "${target_gen_dir}",
   ]
 }

@@ -33,7 +33,7 @@ use crate::traits::db_manager::{
     DeviceKey, UserInfo,
 };
 use crate::traits::host_db_manager::{CompanionDeviceFilter, HostDbManagerRegistry};
-use crate::traits::host_request_manager::{HostRequest, HostRequestInput, HostRequestOutput};
+use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -391,23 +391,21 @@ impl HostRequest for HostDeviceEnrollRequest {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
-        log_e!("HostDeviceEnrollRequest prepare not implemented");
-        let HostRequestInput::KeyNego(_ffi_input) = input else {
+    fn prepare(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+        log_i!("HostDeviceEnrollRequest prepare start");
+        let HostRequestParam::KeyNego(_ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         let sec_message = self.create_prepare_sec_message()?;
-
-        Ok(HostRequestOutput::KeyNego(HostGetInitKeyNegotiationOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        Ok(())
     }
 
-    fn begin(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceEnrollRequest begin start");
-        let HostRequestInput::EnrollBegin(ffi_input) = input else {
+        let HostRequestParam::EnrollBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -422,14 +420,13 @@ impl HostRequest for HostDeviceEnrollRequest {
         self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
 
         let sec_message = self.create_begin_sec_message()?;
-        Ok(HostRequestOutput::EnrollBegin(HostBeginAddCompanionOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        Ok(())
     }
 
-    fn end(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceEnrollRequest end start");
-        let HostRequestInput::EnrollEnd(ffi_input) = input else {
+        let HostRequestParam::EnrollEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -440,11 +437,10 @@ impl HostRequest for HostDeviceEnrollRequest {
 
         let fwk_message = self.create_end_fwk_message(0, template_id)?;
         let sec_message = self.create_end_sec_message(template_id)?;
-        Ok(HostRequestOutput::EnrollEnd(HostEndAddCompanionOutputFfi {
-            fwk_message: DataArray1024Ffi::try_from(fwk_message).map_err(|e| p!(e))?,
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-            template_id: template_id,
-            atl: self.atl as i32,
-        }))
+        ffi_output.fwk_message = DataArray1024Ffi::try_from(fwk_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.template_id = template_id;
+        ffi_output.atl = self.atl as i32;
+        Ok(())
     }
 }

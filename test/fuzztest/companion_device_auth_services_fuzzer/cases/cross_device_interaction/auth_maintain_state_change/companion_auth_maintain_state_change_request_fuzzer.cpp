@@ -22,14 +22,14 @@
 #include "companion_auth_maintain_state_change_request.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionAuthMaintainStateChangeRequest> &request,
-    FuzzedDataProvider &fuzzData);
+using CompanionAuthMaintainStateChangeRequestFuzzFunction = void (*)(
+    std::shared_ptr<CompanionAuthMaintainStateChangeRequest> &request, FuzzedDataProvider &fuzzData);
 
 static void FuzzOp0(std::shared_ptr<CompanionAuthMaintainStateChangeRequest> &request, FuzzedDataProvider &fuzzData)
 {
@@ -108,10 +108,11 @@ static void FuzzOp11(std::shared_ptr<CompanionAuthMaintainStateChangeRequest> &r
     request->OnConnected();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7,
-    FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11 };
+static const CompanionAuthMaintainStateChangeRequestFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3,
+    FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7, FuzzOp8, FuzzOp9, FuzzOp10, FuzzOp11 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS =
+    sizeof(g_fuzzFuncs) / sizeof(CompanionAuthMaintainStateChangeRequestFuzzFunction);
 
 void FuzzCompanionAuthMaintainStateChangeRequest(FuzzedDataProvider &fuzzData)
 {
@@ -136,5 +137,8 @@ void FuzzCompanionAuthMaintainStateChangeRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionAuthMaintainStateChangeRequest)
+
 } // namespace UserIam
 } // namespace OHOS

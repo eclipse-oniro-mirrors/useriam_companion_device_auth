@@ -1,0 +1,62 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/config/features.gni")
+import("//build/test.gni")
+import("../../../companion_device_auth.gni")
+import("../../../frameworks/native/client/BUILD.gni")
+import("../../fake/BUILD.gni")
+import("../../test_config.gni")
+
+ohos_fuzztest("CompanionDeviceAuthClientFuzzer") {
+  branch_protector_ret = "pac_ret"
+  module_out_path = "companion_device_auth/client"
+  fuzz_config_file = "../common_fuzzer_config"
+
+  cflags = companion_device_auth_fuzzer_cflags
+
+  sources = companion_device_auth_client_full_sources + [
+              "cases/companion_device_auth_client_impl_fuzzer.cpp",
+              "companion_device_auth_client_fuzzer.cpp",
+            ]
+  sources += companion_device_auth_fake_sources
+
+  configs = [
+    "${companion_device_auth_path}/services:service_config",
+    "../common_fuzzer_config:fuzz_common_config",
+  ]
+
+  include_dirs = companion_device_auth_fake_include_dirs + [
+                   "${companion_device_auth_path}/frameworks/native/client/inc",
+                   "${companion_device_auth_path}/services/utils/inc",
+                   "${companion_device_auth_path}/services/common/inc",
+
+                   ".",
+                   "cases",
+                 ]
+
+  deps = companion_device_auth_client_deps
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  remove_configs = [ "//build/config/compiler:no_exceptions" ]
+
+  subsystem_name = companion_device_auth_subsystem_name
+  part_name = companion_device_auth_part_name
+}

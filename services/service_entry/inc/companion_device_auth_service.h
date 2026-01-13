@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <future>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <type_traits>
 #include <vector>
@@ -31,6 +32,7 @@
 #include "adapter_manager.h"
 #include "common_defines.h"
 #include "companion_device_auth_stub.h"
+#include "service_common.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -93,10 +95,14 @@ protected:
 #ifndef ENABLE_TEST
 private:
 #endif
+    bool CheckPermission(int32_t &companionDeviceAuthResult);
+
     template <typename Func>
-    std::optional<typename std::invoke_result<Func>::type> RunOnResidentSync(Func &&func);
+    std::optional<typename std::invoke_result<Func>::type> RunOnResidentSync(Func &&func,
+        uint32_t timeoutSec = MAX_SYNC_WAIT_TIME_SEC);
 
     std::shared_ptr<CompanionDeviceAuthServiceInner> inner_;
+    std::mutex innerMutex_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

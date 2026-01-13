@@ -22,13 +22,14 @@
 #include "companion_revoke_token_request.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionRevokeTokenRequest> &request, FuzzedDataProvider &fuzzData);
+using CompanionRevokeTokenRequestFuzzFunction = void (*)(std::shared_ptr<CompanionRevokeTokenRequest> &request,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMaxConcurrency(std::shared_ptr<CompanionRevokeTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
@@ -100,7 +101,7 @@ static void FuzzHandleRevokeTokenReply(std::shared_ptr<CompanionRevokeTokenReque
     request->HandleRevokeTokenReply(message);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CompanionRevokeTokenRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMaxConcurrency,
     FuzzShouldCancelOnNewRequest,
     FuzzOnConnected,
@@ -113,7 +114,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzHandleRevokeTokenReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionRevokeTokenRequestFuzzFunction);
 
 void FuzzCompanionRevokeTokenRequest(FuzzedDataProvider &fuzzData)
 {
@@ -137,5 +138,8 @@ void FuzzCompanionRevokeTokenRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionRevokeTokenRequest)
+
 } // namespace UserIam
 } // namespace OHOS
