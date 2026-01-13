@@ -197,8 +197,15 @@ void SubscriptionManager::RemoveContinuousAuthStatusCallback(
         return;
     }
 
-    for (auto &pair : continuousAuthSubscriptions_) {
-        pair.second->RemoveCallback(continuousAuthStatusCallback);
+    for (auto it = continuousAuthSubscriptions_.begin(); it != continuousAuthSubscriptions_.end();) {
+        if (it->second != nullptr) {
+            it->second->RemoveCallback(continuousAuthStatusCallback);
+            if (!it->second->HasCallback()) {
+                it = continuousAuthSubscriptions_.erase(it);
+                continue;
+            }
+        }
+        ++it;
     }
 }
 

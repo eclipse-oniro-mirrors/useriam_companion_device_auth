@@ -272,8 +272,7 @@ int32_t StatusMonitor::UpdateContinuousAuthStatusCallback(companionDeviceAuth::C
 }
 
 int32_t StatusMonitor::OffContinuousAuthChange(::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
-        ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
-        callback)
+    ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> callback)
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (!callback.has_value()) {
@@ -295,21 +294,22 @@ int32_t StatusMonitor::OffContinuousAuthChange(::taihe::optional_view<::taihe::c
                     std::in_place_t {}, callback.value()
                 })) {
                 ++it;
+                continue;
             }
             // clang-format on
             (*it)->RemoveSingleCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
                     ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
                 std::in_place_t {}, callback.value() });
             if ((*it)->HasCallback()) {
-                break;
+                ++it;
+                continue;
             }
             int32_t ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(*it);
             if (ret != SUCCESS) {
                 IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail");
                 return ret;
             }
-            continuousAuthStatusCallbacks_.erase(it);
-            break;
+            it = continuousAuthStatusCallbacks_.erase(it);
         }
     }
     return SUCCESS;

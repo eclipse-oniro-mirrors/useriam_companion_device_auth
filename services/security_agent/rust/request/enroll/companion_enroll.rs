@@ -221,7 +221,7 @@ impl CompanionDeviceEnrollRequest {
         let reply_info = SecBindingReplyInfo {
             device_id: self.key_nego_param.companion_device_key.device_id.clone(),
             user_id: self.key_nego_param.companion_device_key.user_id,
-            esl: ExecutorSecurityLevel::Esl2 as i32,
+            esl: ExecutorSecurityLevel::Esl3 as i32,
             track_ability_level: 0,
             challenge: self.get_challenge(),
             protocal_list: PROTOCAL_VERSION.to_vec(),

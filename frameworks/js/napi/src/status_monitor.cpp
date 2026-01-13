@@ -394,25 +394,27 @@ int32_t StatusMonitor::RemoveSingleContinuousAuthStatusCallback(napi_env env, na
         return INVALID_PARAMETERS;
     }
 
-    int32_t ret;
-    for (auto &callback : continuousAuthStatusCallbacks_) {
-        if (!callback->IsCallbackExists(callbackRef)) {
+    int32_t ret = GENERAL_ERROR;
+    for (auto it = continuousAuthStatusCallbacks_.begin(); it != continuousAuthStatusCallbacks_.end();) {
+        if (!(*it)->IsCallbackExists(callbackRef)) {
+            it++;
             continue;
         }
-        ret = callback->RemoveSingleCallback(callbackRef);
+        ret = (*it)->RemoveSingleCallback(callbackRef);
         if (ret != SUCCESS) {
             IAM_LOGE("RemoveSingleContinuousAuthStatusCallback fail, ret:%{public}d", ret);
             return GENERAL_ERROR;
         }
-        if (callback->HasCallback()) {
-            break;
+        if ((*it)->HasCallback()) {
+            it++;
+            continue;
         }
-        ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(callback);
+        ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(*it);
         if (ret != SUCCESS) {
             IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
             return GENERAL_ERROR;
         }
-        break;
+        it = continuousAuthStatusCallbacks_.erase(it);
     }
 
     if (ret != SUCCESS) {
