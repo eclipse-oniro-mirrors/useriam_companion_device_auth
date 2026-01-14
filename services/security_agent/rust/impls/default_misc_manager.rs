@@ -49,8 +49,6 @@ impl MiscManager for DefaultMiscManager {
         let mut origin_key_data = Vec::with_capacity(DUMMY_DISTRIBUTE_DEVICE_KEY.len() + salt.len());
         origin_key_data.extend_from_slice(DUMMY_DISTRIBUTE_DEVICE_KEY);
         origin_key_data.extend_from_slice(&salt);
-
-        // Calculate SHA256 hash
         CryptoEngineRegistry::get().sha256(&origin_key_data)
     }
 

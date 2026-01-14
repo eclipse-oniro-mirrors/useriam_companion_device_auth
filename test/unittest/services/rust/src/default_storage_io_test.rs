@@ -39,7 +39,7 @@ fn default_storage_io_write_test_success() {
     let data = vec![1u8, 2, 3, 4, 5];
 
     let result = storage.write("non_existence_file.txt", &data);
-    assert_eq!(result, Err(ErrorCode::GeneralError));
+    assert!(result.is_ok(), "write operation should succeed");
 }
 
 #[test]

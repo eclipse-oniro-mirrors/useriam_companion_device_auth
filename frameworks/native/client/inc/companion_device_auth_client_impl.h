@@ -64,7 +64,7 @@ public:
 private:
 #endif
     CompanionDeviceAuthClientImpl();
-    ~CompanionDeviceAuthClientImpl() override = default;
+    ~CompanionDeviceAuthClientImpl() override;
 
 #ifdef ENABLE_TEST
     void SetProxy(const sptr<ICompanionDeviceAuth> &proxy);

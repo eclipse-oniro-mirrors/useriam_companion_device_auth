@@ -28,10 +28,7 @@ fn create_test_udid(id: u8) -> Udid {
 }
 
 fn create_test_key_pair() -> KeyPair {
-    KeyPair {
-        pub_key: vec![1u8, 2, 3, 4],
-        pri_key: vec![5u8, 6, 7, 8],
-    }
+    KeyPair { pub_key: vec![1u8, 2, 3, 4], pri_key: vec![5u8, 6, 7, 8] }
 }
 
 fn mock_set_crypto_engine_success() {

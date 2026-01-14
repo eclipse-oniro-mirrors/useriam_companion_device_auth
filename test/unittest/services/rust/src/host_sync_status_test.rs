@@ -15,15 +15,16 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, HostBeginCompanionCheckInputFfi, HostBeginCompanionCheckOutputFfi,
-    HostEndCompanionCheckInputFfi, HostEndCompanionCheckOutputFfi, Uint16Array64Ffi,
+    DataArray1024Ffi, HostBeginCompanionCheckInputFfi, HostBeginCompanionCheckOutputFfi, HostEndCompanionCheckInputFfi,
+    HostEndCompanionCheckOutputFfi, Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::jobs::common_message::SecCommonReply;
 use crate::request::status_sync::host_sync_status::HostDeviceSyncStatusRequest;
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
-use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk,
-    DeviceKey, UserInfo};
+use crate::traits::db_manager::{
+    CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, DeviceKey, UserInfo,
+};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
 use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::ut_registry_guard;
@@ -47,11 +48,7 @@ fn create_valid_sync_reply_message(challenge: u64, protocol_list: &[u16], capabi
 fn create_mock_companion_device_info() -> CompanionDeviceInfo {
     CompanionDeviceInfo {
         template_id: 123,
-        device_key: DeviceKey {
-            device_id: String::from("test_device"),
-            device_id_type: 1,
-            user_id: 100,
-        },
+        device_key: DeviceKey { device_id: String::from("test_device"), device_id_type: 1, user_id: 100 },
         user_info: UserInfo { user_id: 100, user_type: 0 },
         added_time: 123456,
         secure_protocol_id: 1,
@@ -63,7 +60,9 @@ fn mock_set_crypto_engine() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 }
 
@@ -76,11 +75,12 @@ fn mock_set_host_db_manager() {
             track_ability_level: 1,
         }])
     });
-    mock_host_db_manager.expect_read_device_sk().returning(|| Ok(vec![CompanionDeviceSk {
-        device_type: DeviceType::None,
-        sk: Vec::new(),
-    }]));
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info()));
+    mock_host_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info()));
     mock_host_db_manager.expect_update_device().returning(|| Ok(()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 }
@@ -109,7 +109,9 @@ fn host_sync_status_request_new_test_secure_random_salt_fail() {
     log_i!("host_sync_status_request_new_test_secure_random_salt_fail start");
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_secure_random().returning(|_| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_secure_random()
+        .returning(|_| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
@@ -250,8 +252,12 @@ fn host_sync_status_request_end_test_read_device_capability_info_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_read_device_capability_info().returning(|| Err(ErrorCode::NotFound));
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info()));
+    mock_host_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Err(ErrorCode::NotFound));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info()));
     mock_host_db_manager.expect_update_device().returning(|| Ok(()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
@@ -328,9 +334,15 @@ fn host_sync_status_request_end_test_get_session_key_fail() {
             track_ability_level: 1,
         }])
     });
-    mock_host_db_manager.expect_read_device_sk().returning(|| Err(ErrorCode::NotFound));
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info()));
-    mock_host_db_manager.expect_update_device().returning(|| Err(ErrorCode::GeneralError));
+    mock_host_db_manager
+        .expect_read_device_sk()
+        .returning(|| Err(ErrorCode::NotFound));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info()));
+    mock_host_db_manager
+        .expect_update_device()
+        .returning(|| Err(ErrorCode::GeneralError));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
@@ -362,7 +374,9 @@ fn host_sync_status_request_end_test_decrypt_sec_message_fail() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
@@ -394,7 +408,9 @@ fn host_sync_status_request_end_test_attribute_try_from_bytes_fail() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };

@@ -16,13 +16,13 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "adapter_manager.h"
 #include "companion_delegate_auth_request.h"
 #include "companion_start_delegate_auth_handler.h"
 #include "delegate_auth_message.h"
 #include "relative_timer.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
-#include "adapter_manager.h"
 
 #include "mock_cross_device_comm_manager.h"
 #include "mock_misc_manager.h"
@@ -63,10 +63,8 @@ public:
         AdapterManager::GetInstance().SetUserAuthAdapter(userAuthAdapter);
 
         ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
-        ON_CALL(mockUserAuthAdapter_, BeginDelegateAuth(_, _, _, _))
-            .WillByDefault(Return(UINT64_12345));
-        ON_CALL(mockUserAuthAdapter_, CancelAuthentication(_))
-            .WillByDefault(Return(ResultCode::SUCCESS));
+        ON_CALL(mockUserAuthAdapter_, BeginDelegateAuth(_, _, _, _)).WillByDefault(Return(UINT64_12345));
+        ON_CALL(mockUserAuthAdapter_, CancelAuthentication(_)).WillByDefault(Return(ResultCode::SUCCESS));
 
         handler_ = std::make_unique<CompanionStartDelegateAuthHandler>();
     }

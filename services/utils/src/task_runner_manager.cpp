@@ -61,7 +61,6 @@ void TaskRunnerManager::AssertRunningOnResidentThread() const
 {
     if (!RunningOnDefaultTaskRunner()) {
         IAM_LOGF("FATAL: Not running on resident thread! This violates the design principle");
-        // std::abort();
     }
 }
 

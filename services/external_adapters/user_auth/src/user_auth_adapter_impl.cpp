@@ -21,9 +21,10 @@
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "xcollie_helper.h"
+
 #include "user_auth_client.h"
 #include "user_auth_client_callback.h"
-#include "xcollie_helper.h"
 
 #undef LOG_DOMAIN
 #define LOG_DOMAIN 0xD002510
@@ -37,9 +38,6 @@ namespace CompanionDeviceAuth {
 using UserAuth::UserAuthClient;
 
 namespace {
-constexpr uint32_t DEFAULT_AUTH_TYPE = 2; // Face authentication
-constexpr const char *WIDGET_TITLE = "Companion Device Auth";
-
 class AuthCallbackBridge : public UserAuth::AuthenticationCallback {
 public:
     explicit AuthCallbackBridge(AuthResultCallback callback) : callback_(std::move(callback))
@@ -84,23 +82,22 @@ uint64_t UserAuthAdapterImpl::BeginDelegateAuth(uint32_t userId, const std::vect
         return 0;
     }
 
-    // Build UserAuth::WidgetAuthParam with default settings (internal use only)
     UserAuth::WidgetAuthParam authParam;
     authParam.userId = userId;
     authParam.challenge = challenge;
     authParam.authTrustLevel = static_cast<UserAuth::AuthTrustLevel>(authTrustLevel);
-    authParam.authTypes = std::vector<UserAuth::AuthType> { static_cast<UserAuth::AuthType>(DEFAULT_AUTH_TYPE) };
+    authParam.authTypes = std::vector<UserAuth::AuthType> { UserAuth::AuthType::PIN, UserAuth::AuthType::FACE,
+        UserAuth::AuthType::FINGERPRINT };
 
-    // Build UserAuth::WidgetParam with default settings (internal use only)
-    UserAuth::WidgetParam widgetParam;
-    widgetParam.title = WIDGET_TITLE;
+    UserAuth::WidgetParam widgetParam = {};
+    widgetParam.title = "Delegate Authentication";
+    widgetParam.navigationButtonText = "";
+    widgetParam.windowMode = UserAuth::WindowModeType::UNKNOWN_WINDOW_MODE;
 
     // Create bridge callback
-    auto bridgeCallback = std::make_shared<AuthCallbackBridge>(std::move(callback));
-
-    // Call UserAuthClient directly with provided parameters
+    auto authCallback = std::make_shared<AuthCallbackBridge>(std::move(callback));
     XCollieHelper xcollie("UserAuthAdapterImpl-BeginDelegateAuth", API_CALL_TIMEOUT);
-    uint64_t contextId = UserAuthClient::GetInstance().BeginWidgetAuth(authParam, widgetParam, bridgeCallback);
+    uint64_t contextId = UserAuthClient::GetInstance().BeginWidgetAuth(authParam, widgetParam, authCallback);
     if (contextId == 0) {
         IAM_LOGE("BeginWidgetAuth failed");
         return 0;

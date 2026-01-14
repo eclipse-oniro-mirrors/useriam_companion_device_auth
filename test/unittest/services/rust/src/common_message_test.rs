@@ -15,7 +15,7 @@
 
 use crate::common::constants::*;
 use crate::log_i;
-use crate::request::jobs::common_message::{SecCommonRequest, SecCommonReply, SecIssueToken};
+use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest, SecIssueToken};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::ut_registry_guard;

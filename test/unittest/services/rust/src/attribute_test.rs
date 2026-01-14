@@ -15,8 +15,8 @@
 
 use crate::common::constants::ErrorCode;
 use crate::log_i;
-use crate::utils::parcel::Parcel;
 use crate::ut_registry_guard;
+use crate::utils::parcel::Parcel;
 use crate::utils::{Attribute, AttributeKey};
 
 #[test]

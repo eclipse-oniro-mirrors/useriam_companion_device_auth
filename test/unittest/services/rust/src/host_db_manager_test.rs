@@ -16,13 +16,13 @@
 use crate::common::constants::*;
 use crate::log_i;
 use crate::traits::db_manager::{
-    CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk,
-    CompanionTokenInfo, DeviceKey, UserInfo
+    CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo,
+    DeviceKey, UserInfo,
 };
 use crate::traits::host_db_manager::{DummyHostDbManager, HostDbManager};
 use crate::ut_registry_guard;
 
-fn create_mock_companion_device_info() ->CompanionDeviceInfo {
+fn create_mock_companion_device_info() -> CompanionDeviceInfo {
     CompanionDeviceInfo {
         template_id: 0,
         device_key: DeviceKey::default(),

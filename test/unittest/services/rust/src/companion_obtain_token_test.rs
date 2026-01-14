@@ -47,25 +47,22 @@ fn create_valid_fwk_obtain_token_request(property_mode: u32, auth_type: u32, atl
 }
 
 fn create_valid_pre_obtain_token_request(salt: &[u8; HKDF_SALT_SIZE], challenge: u64) -> Vec<u8> {
-    let request = SecPreObtainTokenRequest {
-        salt: *salt,
-        challenge,
-    };
+    let request = SecPreObtainTokenRequest { salt: *salt, challenge };
     request.encode(DeviceType::None).unwrap()
 }
 
 fn create_valid_obtain_token_reply(challenge: u64, atl: i32, session_key: &[u8]) -> Vec<u8> {
-    let issue_token = SecIssueToken {
-        challenge,
-        atl,
-        token: vec![1u8; TOKEN_KEY_LEN],
-    };
-    issue_token.encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, session_key).unwrap()
+    let issue_token = SecIssueToken { challenge, atl, token: vec![1u8; TOKEN_KEY_LEN] };
+    issue_token
+        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, session_key)
+        .unwrap()
 }
 
 fn mock_set_crypto_engine_for_begin() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 }
@@ -73,16 +70,20 @@ fn mock_set_crypto_engine_for_begin() {
 fn mock_set_crypto_engine_for_end() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
-    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| Ok(AesGcmResult { ciphertext: data.to_vec(),
-        authentication_tag: [0u8; AES_GCM_TAG_SIZE],
-    }));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
+        Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
+    });
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 }
 
 fn mock_set_misc_manager() {
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 }
 
@@ -159,11 +160,8 @@ fn companion_obtain_token_request_begin_test_property_mode_not_unfreeze() {
     mock_set_misc_manager();
     mock_set_crypto_engine_for_begin();
 
-    let fwk_message = create_valid_fwk_obtain_token_request(
-        999,
-        AuthType::CompanionDevice as u32,
-        AuthTrustLevel::Atl3 as i32,
-    );
+    let fwk_message =
+        create_valid_fwk_obtain_token_request(999, AuthType::CompanionDevice as u32, AuthTrustLevel::Atl3 as i32);
 
     let input = CompanionBeginObtainTokenInputFfi {
         request_id: 1,
@@ -189,11 +187,7 @@ fn companion_obtain_token_request_begin_test_auth_type_not_companion_device() {
     mock_set_misc_manager();
     mock_set_crypto_engine_for_begin();
 
-    let fwk_message = create_valid_fwk_obtain_token_request(
-        PROPERTY_MODE_UNFREEZE,
-        999,
-        AuthTrustLevel::Atl3 as i32,
-    );
+    let fwk_message = create_valid_fwk_obtain_token_request(PROPERTY_MODE_UNFREEZE, 999, AuthTrustLevel::Atl3 as i32);
 
     let input = CompanionBeginObtainTokenInputFfi {
         request_id: 1,
@@ -219,11 +213,8 @@ fn companion_obtain_token_request_begin_test_atl_try_from_fail() {
     mock_set_misc_manager();
     mock_set_crypto_engine_for_begin();
 
-    let fwk_message = create_valid_fwk_obtain_token_request(
-        PROPERTY_MODE_UNFREEZE,
-        AuthType::CompanionDevice as u32,
-        99999,
-    );
+    let fwk_message =
+        create_valid_fwk_obtain_token_request(PROPERTY_MODE_UNFREEZE, AuthType::CompanionDevice as u32, 99999);
 
     let input = CompanionBeginObtainTokenInputFfi {
         request_id: 1,
@@ -280,7 +271,9 @@ fn companion_obtain_token_request_begin_test_get_session_key_fail() {
     mock_set_crypto_engine_for_begin();
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Err(ErrorCode::NotFound));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Err(ErrorCode::NotFound));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let fwk_message = create_valid_fwk_obtain_token_request(
@@ -316,15 +309,21 @@ fn companion_obtain_token_request_begin_test_aes_gcm_encrypt_fail() {
     mock_set_misc_manager();
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let fwk_message = create_valid_fwk_obtain_token_request(
@@ -443,7 +442,9 @@ fn companion_obtain_token_request_end_test_store_token_fail() {
     mock_set_crypto_engine_for_end();
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_write_device_token().returning(|| Err(ErrorCode::GeneralError));
+    mock_companion_db_manager
+        .expect_write_device_token()
+        .returning(|| Err(ErrorCode::GeneralError));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let input = CompanionBeginObtainTokenInputFfi {

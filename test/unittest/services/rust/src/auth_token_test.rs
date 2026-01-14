@@ -16,8 +16,8 @@
 use crate::common::constants::*;
 use crate::common::Udid;
 use crate::log_i;
-use crate::utils::auth_token::{AUTH_TOKEN_CIPHER_LEN, TokenDataPlain, UserAuthToken};
 use crate::ut_registry_guard;
+use crate::utils::auth_token::{TokenDataPlain, UserAuthToken, AUTH_TOKEN_CIPHER_LEN};
 
 #[test]
 fn user_auth_token_test() {

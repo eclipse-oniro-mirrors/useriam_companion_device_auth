@@ -15,7 +15,7 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionPreIssueTokenInputFfi, CompanionProcessIssueTokenInputFfi, CompanionProcessTokenAuthInputFfi, 
+    CompanionPreIssueTokenInputFfi, CompanionProcessIssueTokenInputFfi, CompanionProcessTokenAuthInputFfi,
     DataArray1024Ffi,
 };
 use crate::log_i;
@@ -35,22 +35,22 @@ fn create_valid_pre_issue_request(salt: &[u8; HKDF_SALT_SIZE]) -> Vec<u8> {
 }
 
 fn create_valid_issue_token_message(challenge: u64, atl: i32, session_key: &[u8]) -> Vec<u8> {
-    let issue_token = SecIssueToken {
-        challenge,
-        atl,
-        token: vec![1u8; TOKEN_KEY_LEN],
-    };
-    issue_token.encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, session_key).unwrap()
+    let issue_token = SecIssueToken { challenge, atl, token: vec![1u8; TOKEN_KEY_LEN] };
+    issue_token
+        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, session_key)
+        .unwrap()
 }
 
 fn mock_set_crypto_engine() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
-    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| Ok(AesGcmResult { ciphertext: data.to_vec(),
-        authentication_tag: [0u8; AES_GCM_TAG_SIZE],
-    }));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
+        Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
+    });
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 }
 
@@ -138,7 +138,9 @@ fn companion_issue_token_request_begin_test_get_session_key_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Err(ErrorCode::NotFound));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Err(ErrorCode::NotFound));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let salt = [1u8; HKDF_SALT_SIZE];
@@ -169,7 +171,9 @@ fn companion_issue_token_request_begin_test_hkdf_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let salt = [1u8; HKDF_SALT_SIZE];
@@ -197,11 +201,15 @@ fn companion_issue_token_request_begin_test_aes_gcm_encrypt_fail() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let salt = [1u8; HKDF_SALT_SIZE];
@@ -313,7 +321,9 @@ fn companion_issue_token_request_end_test_store_token_fail() {
     mock_set_crypto_engine();
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_write_device_token().returning(|| Err(ErrorCode::GeneralError));
+    mock_companion_db_manager
+        .expect_write_device_token()
+        .returning(|| Err(ErrorCode::GeneralError));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let input = CompanionPreIssueTokenInputFfi {

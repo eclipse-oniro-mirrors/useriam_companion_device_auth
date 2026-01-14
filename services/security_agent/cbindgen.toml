@@ -30,15 +30,15 @@ header = """
 #include <stdint.h>
 #include <stdbool.h>
 
-namespace OHOS {
-namespace UserIam {
-namespace CompanionDeviceAuth {
+#ifdef __cplusplus
+extern "C" {
+#endif
 """
 
 trailer = """
-} // namespace CompanionDeviceAuth
-} // namespace UserIam
-} // namespace OHOS
+#ifdef __cplusplus
+}
+#endif
 """
 
 include_guard = "COMPANION_DEVICE_AUTH_FFI_H"

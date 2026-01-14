@@ -15,9 +15,9 @@
 
 use crate::common::constants::ErrorCode;
 use crate::log_i;
-use core::mem::size_of;
-use crate::utils::parcel::Parcel;
 use crate::ut_registry_guard;
+use crate::utils::parcel::Parcel;
+use core::mem::size_of;
 
 #[test]
 fn test_parcel_new() {
@@ -33,7 +33,6 @@ fn test_parcel_new() {
 fn test_parcel_from_vec() {
     let _guard = ut_registry_guard!();
     log_i!("test_parcel_from_vec start");
-
 
     let data = vec![1, 2, 3, 4, 5];
     let parcel = Parcel::from(data.clone());
@@ -217,7 +216,7 @@ fn test_read_error_out_of_bounds() {
 
     let mut buffer = vec![0u8; 4];
     let result = parcel.read_bytes(&mut buffer);
-    
+
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), ErrorCode::ReadParcelError);
 }

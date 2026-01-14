@@ -34,15 +34,8 @@ const MAX_TOKEN_NUM: usize = 1;
 fn create_test_device_info(template_id: u64, device_id: &str, user_id: i32) -> CompanionDeviceInfo {
     CompanionDeviceInfo {
         template_id,
-        device_key: DeviceKey {
-            device_id: device_id.to_string(),
-            device_id_type: 1,
-            user_id,
-        },
-        user_info: UserInfo {
-            user_id,
-            user_type: 1,
-        },
+        device_key: DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id },
+        user_info: UserInfo { user_id, user_type: 1 },
         added_time: 1000,
         secure_protocol_id: 1,
         is_valid: true,
@@ -67,10 +60,7 @@ fn create_test_capability_info() -> Vec<CompanionDeviceCapability> {
 }
 
 fn create_test_sk_info() -> Vec<CompanionDeviceSk> {
-    vec![CompanionDeviceSk {
-        device_type: DeviceType::None,
-        sk: vec![1u8, 2, 3, 4],
-    }]
+    vec![CompanionDeviceSk { device_type: DeviceType::None, sk: vec![1u8, 2, 3, 4] }]
 }
 
 fn create_test_token_info(template_id: u64) -> CompanionTokenInfo {
@@ -331,7 +321,9 @@ fn default_host_db_manager_remove_device_test_write_db_fail() {
 
     // Set up mock to fail on write
     let mut mock_storage_io_fail = MockStorageIo::new();
-    mock_storage_io_fail.expect_write().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_storage_io_fail
+        .expect_write()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     mock_storage_io_fail.expect_delete().returning(|| Ok(()));
     mock_storage_io_fail.expect_read().returning(|| Ok(Vec::new()));
     mock_storage_io_fail.expect_exists().returning(|| Ok(true));
@@ -400,7 +392,9 @@ fn default_host_db_manager_update_device_test_write_db_fail() {
 
     // Set up mock to fail on write
     let mut mock_storage_io_fail = MockStorageIo::new();
-    mock_storage_io_fail.expect_write().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_storage_io_fail
+        .expect_write()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     mock_storage_io_fail.expect_delete().returning(|| Ok(()));
     mock_storage_io_fail.expect_read().returning(|| Ok(Vec::new()));
     mock_storage_io_fail.expect_exists().returning(|| Ok(true));
@@ -436,7 +430,9 @@ fn default_host_db_manager_generate_unique_template_id_test_crypto_fail() {
     log_i!("default_host_db_manager_generate_unique_template_id_test_crypto_fail start");
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_secure_random().returning(|_buf| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_secure_random()
+        .returning(|_buf| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let manager = DefaultHostDbManager::new();

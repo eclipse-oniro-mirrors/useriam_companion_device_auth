@@ -15,9 +15,7 @@
 
 use crate::common::constants::*;
 use crate::log_i;
-use crate::request::token_issue::token_issue_message::{
-    FwkIssueTokenRequest, SecPreIssueRequest, SecIssueTokenReply
-};
+use crate::request::token_issue::token_issue_message::{FwkIssueTokenRequest, SecIssueTokenReply, SecPreIssueRequest};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::ut_registry_guard;
@@ -35,7 +33,9 @@ fn fwk_issue_token_request_decode_test_invalid_message() {
     log_i!("fwk_issue_token_request_decode_test_invalid_message start");
 
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let invalid_message = vec![1, 2, 3];
@@ -49,11 +49,15 @@ fn fwk_issue_token_request_decode_test_missing_property_mode() {
     log_i!("fwk_issue_token_request_decode_test_missing_property_mode start");
 
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
@@ -73,11 +77,15 @@ fn fwk_issue_token_request_decode_test_missing_type() {
     log_i!("fwk_issue_token_request_decode_test_missing_type start");
 
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
@@ -97,11 +105,15 @@ fn fwk_issue_token_request_decode_test_missing_atl() {
     log_i!("fwk_issue_token_request_decode_test_missing_atl start");
 
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
@@ -122,11 +134,15 @@ fn fwk_issue_token_request_decode_test_missing_template_id_list() {
     log_i!("fwk_issue_token_request_decode_test_missing_template_id_list start");
 
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 

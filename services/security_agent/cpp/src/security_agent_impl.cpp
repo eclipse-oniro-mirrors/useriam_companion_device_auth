@@ -978,7 +978,7 @@ ResultCode SecurityAgentImpl::HostUpdateToken(const HostUpdateTokenInput &input,
     auto ffiOutput = std::make_unique<HostUpdateTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = invoker_->InvokeCommand(CommandId::HOST_ACTIVATE_TOKEN,
+    int32_t invokeResult = invoker_->InvokeCommand(CommandId::HOST_UPDATE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostUpdateTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostUpdateTokenOutputFfi));
     ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);

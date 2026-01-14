@@ -159,9 +159,7 @@ fn openssl_crypto_engine_secure_random_with_check_test_success() {
     let engine = OpenSSLCryptoEngine::new();
     let mut buffer = [0u8; 32];
 
-    let checker = |buf: &[u8]| -> bool {
-        buf.iter().any(|&b| b != 0)
-    };
+    let checker = |buf: &[u8]| -> bool { buf.iter().any(|&b| b != 0) };
 
     let result = engine.secure_random_with_check(&mut buffer, Box::new(checker));
     assert!(result.is_ok());
@@ -175,9 +173,7 @@ fn openssl_crypto_engine_secure_random_with_check_test_fail() {
     let engine = OpenSSLCryptoEngine::new();
     let mut buffer = [0u8; 4];
 
-    let checker = |_buf: &[u8]| -> bool {
-        false
-    };
+    let checker = |_buf: &[u8]| -> bool { false };
 
     let result = engine.secure_random_with_check(&mut buffer, Box::new(checker));
     assert_eq!(result, Err(ErrorCode::GeneralError));
@@ -190,11 +186,7 @@ fn openssl_crypto_engine_aes_gcm_encrypt_test_success() {
 
     let engine = OpenSSLCryptoEngine::new();
     let plaintext = b"test plaintext data";
-    let param = AesGcmParam {
-        key: vec![0u8; 32],
-        iv: [0u8; AES_GCM_IV_SIZE],
-        aad: vec![0u8; 16],
-    };
+    let param = AesGcmParam { key: vec![0u8; 32], iv: [0u8; AES_GCM_IV_SIZE], aad: vec![0u8; 16] };
 
     let result = engine.aes_gcm_encrypt(plaintext, &param);
     assert!(result.is_ok());
@@ -207,11 +199,7 @@ fn openssl_crypto_engine_aes_gcm_encrypt_test_invalid_key_length() {
 
     let engine = OpenSSLCryptoEngine::new();
     let plaintext = b"test plaintext";
-    let param = AesGcmParam {
-        key: vec![0u8; 16],
-        iv: [0u8; AES_GCM_IV_SIZE],
-        aad: vec![0u8; 16],
-    };
+    let param = AesGcmParam { key: vec![0u8; 16], iv: [0u8; AES_GCM_IV_SIZE], aad: vec![0u8; 16] };
 
     let result = engine.aes_gcm_encrypt(plaintext, &param);
     assert_eq!(result, Err(ErrorCode::BadParam));
@@ -224,11 +212,7 @@ fn openssl_crypto_engine_aes_gcm_decrypt_test_success() {
 
     let engine = OpenSSLCryptoEngine::new();
     let plaintext = b"test plaintext data";
-    let param = AesGcmParam {
-        key: vec![0u8; 32],
-        iv: [0u8; AES_GCM_IV_SIZE],
-        aad: vec![0u8; 16],
-    };
+    let param = AesGcmParam { key: vec![0u8; 32], iv: [0u8; AES_GCM_IV_SIZE], aad: vec![0u8; 16] };
 
     let gcm_result = engine.aes_gcm_encrypt(plaintext, &param).unwrap();
     let decrypted = engine.aes_gcm_decrypt(&param, &gcm_result);
@@ -243,15 +227,8 @@ fn openssl_crypto_engine_aes_gcm_decrypt_test_invalid_key_length() {
     log_i!("openssl_crypto_engine_aes_gcm_decrypt_test_invalid_key_length start");
 
     let engine = OpenSSLCryptoEngine::new();
-    let param = AesGcmParam {
-        key: vec![0u8; 16],
-        iv: [0u8; AES_GCM_IV_SIZE],
-        aad: vec![0u8; 16],
-    };
-    let gcm_result = AesGcmResult {
-        ciphertext: vec![0u8; 32],
-        authentication_tag: [0u8; 16],
-    };
+    let param = AesGcmParam { key: vec![0u8; 16], iv: [0u8; AES_GCM_IV_SIZE], aad: vec![0u8; 16] };
+    let gcm_result = AesGcmResult { ciphertext: vec![0u8; 32], authentication_tag: [0u8; 16] };
 
     let result = engine.aes_gcm_decrypt(&param, &gcm_result);
     assert_eq!(result, Err(ErrorCode::BadParam));
@@ -264,11 +241,7 @@ fn openssl_crypto_engine_aes_gcm_decrypt_test_wrong_tag() {
 
     let engine = OpenSSLCryptoEngine::new();
     let plaintext = b"test plaintext";
-    let param = AesGcmParam {
-        key: vec![0u8; 32],
-        iv: [0u8; AES_GCM_IV_SIZE],
-        aad: vec![0u8; 16],
-    };
+    let param = AesGcmParam { key: vec![0u8; 32], iv: [0u8; AES_GCM_IV_SIZE], aad: vec![0u8; 16] };
 
     let mut gcm_result = engine.aes_gcm_encrypt(plaintext, &param).unwrap();
     gcm_result.authentication_tag = [0xFFu8; 16];
@@ -284,19 +257,11 @@ fn openssl_crypto_engine_aes_gcm_decrypt_test_wrong_key() {
 
     let engine = OpenSSLCryptoEngine::new();
     let plaintext = b"test plaintext";
-    let param = AesGcmParam {
-        key: vec![0u8; 32],
-        iv: [0u8; AES_GCM_IV_SIZE],
-        aad: vec![0u8; 16],
-    };
+    let param = AesGcmParam { key: vec![0u8; 32], iv: [0u8; AES_GCM_IV_SIZE], aad: vec![0u8; 16] };
 
     let gcm_result = engine.aes_gcm_encrypt(plaintext, &param).unwrap();
 
-    let wrong_param = AesGcmParam {
-        key: vec![1u8; 32],
-        iv: [0u8; AES_GCM_IV_SIZE],
-        aad: vec![0u8; 16],
-    };
+    let wrong_param = AesGcmParam { key: vec![1u8; 32], iv: [0u8; AES_GCM_IV_SIZE], aad: vec![0u8; 16] };
 
     let result = engine.aes_gcm_decrypt(&wrong_param, &gcm_result);
     assert_eq!(result, Err(ErrorCode::GeneralError));

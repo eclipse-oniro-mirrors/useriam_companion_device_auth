@@ -26,10 +26,7 @@ fn dummy_misc_manager_test() {
     log_i!("dummy_misc_manager_test start");
 
     let mut dummy_misc_manager = DummyMiscManager;
-    assert_eq!(
-        dummy_misc_manager.get_distribute_key(Udid::default(), Udid::default()),
-        Err(ErrorCode::GeneralError)
-    );
+    assert_eq!(dummy_misc_manager.get_distribute_key(Udid::default(), Udid::default()), Err(ErrorCode::GeneralError));
     assert_eq!(
         dummy_misc_manager.set_local_key_pair(KeyPair::new(Vec::<u8>::new(), Vec::<u8>::new())),
         Err(ErrorCode::GeneralError)

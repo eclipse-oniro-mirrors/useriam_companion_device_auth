@@ -63,6 +63,10 @@ public:
             .WillByDefault(Invoke([](OnCompanionDeviceStatusChange &&callback) { return MakeSubscription(); }));
         ON_CALL(mockCompanionManager_, GetAllCompanionStatus()).WillByDefault(Return(std::vector<CompanionStatus> {}));
 
+        // Set default behaviors for callback mock methods that are called internally
+        ON_CALL(MockIIpcContinuousAuthStatusCallback(), OnContinuousAuthStatusChange(_)).WillByDefault(Return(0));
+        ON_CALL(MockIIpcContinuousAuthStatusCallback(), AsObject()).WillByDefault(Return(nullptr));
+
         subscriptionManager_ = std::make_shared<SubscriptionManager>();
     }
 

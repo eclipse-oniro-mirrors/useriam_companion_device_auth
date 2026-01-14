@@ -16,11 +16,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "adapter_manager.h"
 #include "companion_delegate_auth_request.h"
 #include "delegate_auth_message.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
-#include "adapter_manager.h"
 
 #include "mock_cross_device_comm_manager.h"
 #include "mock_host_binding_manager.h"
@@ -74,10 +74,8 @@ public:
         ON_CALL(mockSecurityAgent_, CompanionBeginDelegateAuth(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, CompanionEndDelegateAuth(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
-        ON_CALL(mockUserAuthAdapter_, BeginDelegateAuth(_, _, _, _))
-            .WillByDefault(Return(UINT64_12345));
-        ON_CALL(mockUserAuthAdapter_, CancelAuthentication(_))
-            .WillByDefault(Return(ResultCode::SUCCESS));
+        ON_CALL(mockUserAuthAdapter_, BeginDelegateAuth(_, _, _, _)).WillByDefault(Return(UINT64_12345));
+        ON_CALL(mockUserAuthAdapter_, CancelAuthentication(_)).WillByDefault(Return(ResultCode::SUCCESS));
     }
 
     void TearDown() override

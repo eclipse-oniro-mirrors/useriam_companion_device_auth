@@ -72,7 +72,10 @@ int32_t CompanionDeviceAuthClientImpl::RegisterDeviceSelectCallback(
         IAM_LOGE("RegisterDeviceSelectCallback fail, ret:%{public}d", ret);
     }
 
-    deviceSelectCallback_ = callback;
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        deviceSelectCallback_ = callback;
+    }
     return ret;
 }
 
@@ -96,7 +99,10 @@ int32_t CompanionDeviceAuthClientImpl::UnregisterDeviceSelectCallback()
         IAM_LOGE("UnregisterDeviceSelectCallback fail, ret:%{public}d", ret);
     }
 
-    deviceSelectCallback_ = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        deviceSelectCallback_ = nullptr;
+    }
     return ret;
 }
 
@@ -601,6 +607,18 @@ void CompanionDeviceAuthClientImpl::SubscribeCompanionDeviceAuthSaStatus()
             IAM_LOGE("Subscribe CompanionDeviceAuthService fail");
             return;
         }
+    }
+}
+
+CompanionDeviceAuthClientImpl::~CompanionDeviceAuthClientImpl()
+{
+    IAM_LOGI("start");
+    // Unsubscribe from system ability status changes to prevent callback from being invoked
+    // after the client is destroyed
+    if (companionDeviceAuthSaStatusListener_ != nullptr) {
+        SystemAbilityListener::UnSubscribe(SUBSYS_USERIAM_SYS_ABILITY_COMPANIONDEVICEAUTH,
+            companionDeviceAuthSaStatusListener_);
+        companionDeviceAuthSaStatusListener_ = nullptr;
     }
 }
 

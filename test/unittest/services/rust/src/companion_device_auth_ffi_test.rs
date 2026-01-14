@@ -128,7 +128,9 @@ fn invoke_rust_command_test_success() {
     log_i!("invoke_rust_command_test_success start");
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_generate_ed25519_key_pair().returning(|| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_generate_ed25519_key_pair()
+        .returning(|| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input_data = Box::new([1u8; size_of::<InitInputFfi>()]);
@@ -136,9 +138,12 @@ fn invoke_rust_command_test_success() {
     let mut common_output_buffer = Box::new([0u8; size_of::<CommonOutputFfi>()]);
 
     let param = create_rust_command_param(
-        Some(input_data.as_ptr()), Some(input_data.len() as u32),
-        Some(output_buffer.as_mut_ptr()), Some(output_buffer.len() as u32),
-        Some(common_output_buffer.as_mut_ptr()), Some(common_output_buffer.len() as u32),
+        Some(input_data.as_ptr()),
+        Some(input_data.len() as u32),
+        Some(output_buffer.as_mut_ptr()),
+        Some(output_buffer.len() as u32),
+        Some(common_output_buffer.as_mut_ptr()),
+        Some(common_output_buffer.len() as u32),
     );
 
     assert_eq!(invoke_rust_command(param), 0);
@@ -159,40 +164,58 @@ fn invoke_rust_command_test_fail() {
     let param = create_rust_command_param(None, Some(input_data.len() as u32), None, None, None, None);
     assert_eq!(invoke_rust_command(param), ErrorCode::BadParam as i32);
 
+    let param =
+        create_rust_command_param(Some(input_data.as_ptr()), Some(input_data.len() as u32), None, None, None, None);
+    assert_eq!(invoke_rust_command(param), ErrorCode::BadParam as i32);
+
     let param = create_rust_command_param(
-        Some(input_data.as_ptr()), Some(input_data.len() as u32), None, None, None, None
+        Some(input_data.as_ptr()),
+        Some(input_data.len() as u32),
+        None,
+        Some(output_buffer.len() as u32),
+        None,
+        None,
     );
     assert_eq!(invoke_rust_command(param), ErrorCode::BadParam as i32);
 
     let param = create_rust_command_param(
-        Some(input_data.as_ptr()), Some(input_data.len() as u32), None, Some(output_buffer.len() as u32), None, None
+        Some(input_data.as_ptr()),
+        Some(input_data.len() as u32),
+        Some(output_buffer.as_mut_ptr()),
+        Some(output_buffer.len() as u32),
+        None,
+        None,
     );
     assert_eq!(invoke_rust_command(param), ErrorCode::BadParam as i32);
 
     let param = create_rust_command_param(
-        Some(input_data.as_ptr()), Some(input_data.len() as u32), Some(output_buffer.as_mut_ptr()),
-        Some(output_buffer.len() as u32), None, None
+        Some(input_data.as_ptr()),
+        Some(input_data.len() as u32),
+        Some(output_buffer.as_mut_ptr()),
+        Some(output_buffer.len() as u32),
+        None,
+        Some(common_output_buffer.len() as u32),
     );
     assert_eq!(invoke_rust_command(param), ErrorCode::BadParam as i32);
 
     let param = create_rust_command_param(
-        Some(input_data.as_ptr()), Some(input_data.len() as u32), Some(output_buffer.as_mut_ptr()),
-        Some(output_buffer.len() as u32), None, Some(common_output_buffer.len() as u32)
-    );
-    assert_eq!(invoke_rust_command(param), ErrorCode::BadParam as i32);
-
-    let param = create_rust_command_param(
-        Some(input_data.as_ptr()), Some(input_data.len() as u32),
-        Some(output_buffer.as_mut_ptr()), Some(output_buffer.len() as u32),
-        Some(common_output_buffer.as_mut_ptr()), Some(common_output_buffer.len() as u32),
+        Some(input_data.as_ptr()),
+        Some(input_data.len() as u32),
+        Some(output_buffer.as_mut_ptr()),
+        Some(output_buffer.len() as u32),
+        Some(common_output_buffer.as_mut_ptr()),
+        Some(common_output_buffer.len() as u32),
     );
     assert_eq!(invoke_rust_command(param), 0);
 
     let input_data = Box::new([1u8; size_of::<InitInputFfi>()]);
     let param = create_rust_command_param(
-        Some(input_data.as_ptr()), Some(input_data.len() as u32),
-        Some(output_buffer.as_mut_ptr()), Some(output_buffer.len() as u32),
-        Some(common_output_buffer.as_mut_ptr()), Some(common_output_buffer.len() as u32),
+        Some(input_data.as_ptr()),
+        Some(input_data.len() as u32),
+        Some(output_buffer.as_mut_ptr()),
+        Some(output_buffer.len() as u32),
+        Some(common_output_buffer.as_mut_ptr()),
+        Some(common_output_buffer.len() as u32),
     );
     assert_eq!(invoke_rust_command(param), 0);
 }

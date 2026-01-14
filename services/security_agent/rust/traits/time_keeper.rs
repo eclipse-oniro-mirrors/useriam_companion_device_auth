@@ -17,19 +17,12 @@ use crate::common::constants::ErrorCode;
 use crate::log_e;
 use crate::singleton_registry;
 
-/// Time keeper trait
 pub trait TimeKeeper {
-    /// Get system time
     fn get_system_time(&self) -> Result<u64, ErrorCode>;
-
-    /// Get RTC time
     fn get_rtc_time(&self) -> Result<u64, ErrorCode>;
-
-    /// Get REE time
     fn get_ree_time(&self) -> Result<u64, ErrorCode>;
 }
 
-/// Default time keeper implementation
 pub struct DummyTimeKeeper;
 
 impl TimeKeeper for DummyTimeKeeper {

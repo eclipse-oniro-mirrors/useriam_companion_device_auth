@@ -26,10 +26,7 @@ use std::boxed::Box;
 const MAX_REQUEST_NUM: usize = 50;
 
 fn create_test_host_get_init_key_negotiation_input_ffi(request_id: i32) -> HostGetInitKeyNegotiationInputFfi {
-    HostGetInitKeyNegotiationInputFfi {
-        request_id,
-        secure_protocol_id: 1,
-    }
+    HostGetInitKeyNegotiationInputFfi { request_id, secure_protocol_id: 1 }
 }
 
 fn mock_set_crypto_engine() {
