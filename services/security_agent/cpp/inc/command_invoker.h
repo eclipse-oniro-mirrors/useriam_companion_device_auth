@@ -26,8 +26,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class CommandInvoker : public ICommandInvoker {
 public:
-    CommandInvoker() = default;
-    ~CommandInvoker() = default;
+    CommandInvoker();
+    ~CommandInvoker();
 
     ResultCode Initialize() override;
     void Finalize() override;

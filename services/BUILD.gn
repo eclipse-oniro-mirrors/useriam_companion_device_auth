@@ -16,50 +16,8 @@ import("//build/templates/rust/rust_cxx.gni")
 import("../companion_device_auth.gni")
 import("BUILD.gni")
 
-# Configuration for include directories
 config("service_config") {
-  include_dirs = [
-    "common/inc",
-    "companion/inc",
-    "cross_device_comm/inc",
-    "cross_device_interaction",
-    "cross_device_interaction/add_companion/inc",
-    "cross_device_interaction/auth_maintain_state_change/inc",
-    "cross_device_interaction/common/inc",
-    "cross_device_interaction/handler/inc",
-    "request/inc",
-    "cross_device_interaction/delegate_auth/inc",
-    "cross_device_interaction/issue_token/inc",
-    "cross_device_interaction/keep_alive/inc",
-    "cross_device_interaction/obtain_token/inc",
-    "cross_device_interaction/request_aborted/inc",
-    "cross_device_interaction/remove_host_binding/inc",
-    "cross_device_interaction/revoke_token/inc",
-    "cross_device_interaction/sync_device_status/inc",
-    "cross_device_interaction/token_auth/inc",
-    "cross_device_interaction/mix_auth/inc",
-    "external_adapters/inc",
-    "fwk_comm/inc",
-    "cross_device_channels/native_channel/inc",
-    "host_binding/inc",
-    "misc/inc",
-    "security_agent/cpp/inc",
-    "service_entry/inc",
-    "service_entry/src",
-    "singleton/inc",
-    "singleton/inc/companion",
-    "singleton/inc/cross_device_comm",
-    "singleton/inc/cross_device_interaction",
-    "singleton/inc/host_binding",
-    "singleton/inc/misc",
-    "singleton/inc/request",
-    "singleton/inc/security_agent",
-    "cross_device_channels/soft_bus/inc",
-    "cross_device_channels/common/inc",
-    "utils/inc",
-    "${companion_device_auth_path}/common/inc",
-    "${companion_device_auth_path}/frameworks/native/ipc/idl",
-  ]
+  include_dirs = companion_device_auth_service_include_dirs
 
   cflags = companion_device_auth_service_flags
 }

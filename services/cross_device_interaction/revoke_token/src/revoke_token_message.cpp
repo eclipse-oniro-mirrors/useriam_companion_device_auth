@@ -15,7 +15,10 @@
 
 #include "revoke_token_message.h"
 
+#include <optional>
+
 #include "iam_check.h"
+#include "iam_logger.h"
 
 #include "common_message.h"
 
@@ -31,14 +34,15 @@ bool EncodeRevokeTokenRequest(const RevokeTokenRequest &request, Attributes &att
     return true;
 }
 
-bool DecodeRevokeTokenRequest(const Attributes &attributes, RevokeTokenRequest &request)
+std::optional<RevokeTokenRequest> DecodeRevokeTokenRequest(const Attributes &attributes)
 {
+    RevokeTokenRequest request;
     bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
-    ENSURE_OR_RETURN_VAL(getHostUserIdRet, false);
+    ENSURE_OR_RETURN_VAL(getHostUserIdRet, std::nullopt);
     auto companionKeyOpt = DecodeCompanionDeviceKey(attributes);
-    ENSURE_OR_RETURN_VAL(companionKeyOpt.has_value(), false);
+    ENSURE_OR_RETURN_VAL(companionKeyOpt.has_value(), std::nullopt);
     request.companionDeviceKey = *companionKeyOpt;
-    return true;
+    return request;
 }
 
 bool EncodeRevokeTokenReply(const RevokeTokenReply &reply, Attributes &attributes)
@@ -47,13 +51,15 @@ bool EncodeRevokeTokenReply(const RevokeTokenReply &reply, Attributes &attribute
     return true;
 }
 
-bool DecodeRevokeTokenReply(const Attributes &attributes, RevokeTokenReply &reply)
+std::optional<RevokeTokenReply> DecodeRevokeTokenReply(const Attributes &attributes)
 {
     int32_t result = 0;
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
-    ENSURE_OR_RETURN_VAL(getResultRet, false);
+    ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
+
+    RevokeTokenReply reply;
     reply.result = static_cast<ResultCode>(result);
-    return true;
+    return reply;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

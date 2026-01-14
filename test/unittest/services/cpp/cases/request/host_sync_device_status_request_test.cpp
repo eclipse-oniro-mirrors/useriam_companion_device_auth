@@ -152,7 +152,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_002, TestSize.Leve
         std::move(syncDeviceStatusCallback_));
 
     EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
 
     request_->BeginCompanionCheck();
 
@@ -173,7 +173,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_003, TestSize.Leve
         std::move(syncDeviceStatusCallback_));
 
     EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
     EXPECT_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     request_->BeginCompanionCheck();
@@ -267,7 +267,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_003, TestS
 
     request_ = std::make_shared<HostSyncDeviceStatusRequest>(hostUserId_, companionDeviceKey_, companionDeviceName_,
         std::move(syncDeviceStatusCallback_));
-    request_->peerDeviceKey_ = nullopt;
+    request_->peerDeviceKey_ = std::nullopt;
 
     Attributes reply;
     SyncDeviceStatusReply syncDeviceStatusReply_ = {
@@ -345,7 +345,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_002, TestSize.Level0
     CreateDefaultRequest();
     SyncDeviceStatusReply syncDeviceStatusReply_ = { .result = ResultCode::SUCCESS };
 
-    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
     bool result = request_->EndCompanionCheck(syncDeviceStatusReply_);
 
     EXPECT_TRUE(result);

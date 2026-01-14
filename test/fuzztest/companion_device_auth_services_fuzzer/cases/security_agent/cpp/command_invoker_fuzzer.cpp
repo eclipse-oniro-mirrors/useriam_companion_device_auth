@@ -22,13 +22,13 @@
 #include "command_invoker.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData);
+using CommandInvokerFuzzFunction = void (*)(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData);
 
 static void FuzzInitialize(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData)
 {
@@ -88,7 +88,7 @@ static void FuzzInitializeFinalizeSequence(std::shared_ptr<CommandInvoker> &invo
     (void)invoker->Initialize();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CommandInvokerFuzzFunction g_fuzzFuncs[] = {
     FuzzInitialize,
     FuzzFinalize,
     FuzzInvokeCommand,
@@ -98,7 +98,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzInitializeFinalizeSequence,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CommandInvokerFuzzFunction);
 
 void FuzzCommandInvoker(FuzzedDataProvider &fuzzData)
 {
@@ -120,5 +120,8 @@ void FuzzCommandInvoker(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CommandInvoker)
+
 } // namespace UserIam
 } // namespace OHOS

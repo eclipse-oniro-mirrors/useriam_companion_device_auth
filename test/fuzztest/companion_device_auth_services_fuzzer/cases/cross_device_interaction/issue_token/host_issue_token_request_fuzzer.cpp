@@ -22,14 +22,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_issue_token_request.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<HostIssueTokenRequest> &request, FuzzedDataProvider &fuzzData);
+using HostIssueTokenRequestFuzzFunction = void (*)(std::shared_ptr<HostIssueTokenRequest> &request,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMaxConcurrency(std::shared_ptr<HostIssueTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
@@ -119,7 +120,7 @@ static void FuzzHandlePeerDeviceStatusChanged(std::shared_ptr<HostIssueTokenRequ
     request->HandlePeerDeviceStatusChanged(deviceStatusList);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const HostIssueTokenRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMaxConcurrency,
     FuzzShouldCancelOnNewRequest,
     FuzzOnStart,
@@ -135,7 +136,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzHandlePeerDeviceStatusChanged,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostIssueTokenRequestFuzzFunction);
 
 void FuzzHostIssueTokenRequest(FuzzedDataProvider &fuzzData)
 {
@@ -162,5 +163,8 @@ void FuzzHostIssueTokenRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(HostIssueTokenRequest)
+
 } // namespace UserIam
 } // namespace OHOS

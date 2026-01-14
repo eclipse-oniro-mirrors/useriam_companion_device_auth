@@ -21,6 +21,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+
 std::string GenerateFuzzString(FuzzedDataProvider &fuzzData, uint32_t maxSize)
 {
     return fuzzData.ConsumeRandomLengthString(maxSize);
@@ -119,11 +120,11 @@ void GenerateFuzzCapabilities(FuzzedDataProvider &fuzzData, std::vector<Capabili
     }
 }
 
-void GenerateFuzzBusinessIds(FuzzedDataProvider &fuzzData, std::vector<int32_t> &businessIds, uint8_t maxCount)
+void GenerateFuzzBusinessIds(FuzzedDataProvider &fuzzData, std::vector<BusinessId> &businessIds, uint8_t maxCount)
 {
     uint8_t bizIdCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, maxCount);
     for (uint8_t i = 0; i < bizIdCount; ++i) {
-        businessIds.push_back(fuzzData.ConsumeIntegral<int32_t>());
+        businessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));
     }
 }
 
@@ -209,7 +210,7 @@ CompanionStatus GenerateFuzzCompanionStatus(FuzzedDataProvider &fuzzData)
     // Generate enabledBusinessIds
     uint8_t businessIdCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
     for (uint8_t i = 0; i < businessIdCount; ++i) {
-        status.enabledBusinessIds.push_back(fuzzData.ConsumeIntegral<uint32_t>());
+        status.enabledBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));
     }
 
     return status;

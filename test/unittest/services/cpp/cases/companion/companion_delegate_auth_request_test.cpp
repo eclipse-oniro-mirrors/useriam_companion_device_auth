@@ -20,12 +20,14 @@
 #include "delegate_auth_message.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "adapter_manager.h"
 
 #include "mock_cross_device_comm_manager.h"
 #include "mock_host_binding_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_user_auth_adapter.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -34,6 +36,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+constexpr uint64_t UINT64_12345 = 12345;
 
 class CompanionDelegateAuthRequestTest : public Test {
 public:
@@ -58,6 +61,10 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
+        // Initialize UserAuthAdapter to prevent crash
+        auto userAuthAdapter = std::shared_ptr<IUserAuthAdapter>(&mockUserAuthAdapter_, [](IUserAuthAdapter *) {});
+        AdapterManager::GetInstance().SetUserAuthAdapter(userAuthAdapter);
+
         ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
             .WillByDefault(Return(std::make_optional(companionDeviceKey_)));
         ON_CALL(mockCrossDeviceCommManager_, CompanionGetSecureProtocolId())
@@ -67,6 +74,10 @@ public:
         ON_CALL(mockSecurityAgent_, CompanionBeginDelegateAuth(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, CompanionEndDelegateAuth(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
+        ON_CALL(mockUserAuthAdapter_, BeginDelegateAuth(_, _, _, _))
+            .WillByDefault(Return(UINT64_12345));
+        ON_CALL(mockUserAuthAdapter_, CancelAuthentication(_))
+            .WillByDefault(Return(ResultCode::SUCCESS));
     }
 
     void TearDown() override
@@ -74,6 +85,7 @@ public:
         request_.reset();
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();
+        AdapterManager::GetInstance().Reset();
         SingletonManager::GetInstance().Reset();
     }
 
@@ -90,6 +102,7 @@ protected:
     NiceMock<MockHostBindingManager> mockHostBindingManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
     NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockUserAuthAdapter> mockUserAuthAdapter_;
 
     std::string connectionName_ = "test_connection";
     int32_t companionUserId_ = 200;

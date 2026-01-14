@@ -22,13 +22,14 @@
 #include "companion_sync_device_status_handler.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionSyncDeviceStatusHandler> &handler, FuzzedDataProvider &fuzzData);
+using CompanionSyncDeviceStatusHandlerFuzzFunction = void (*)(
+    std::shared_ptr<CompanionSyncDeviceStatusHandler> &handler, FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMessageType(std::shared_ptr<CompanionSyncDeviceStatusHandler> &handler, FuzzedDataProvider &fuzzData)
 {
@@ -115,10 +116,11 @@ static void FuzzHandleIncomingMessageWithNullCallback(std::shared_ptr<CompanionS
     handler->HandleIncomingMessage(request, onMessageReply);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzGetMessageType, FuzzRegister, FuzzHandleIncomingMessage,
-    FuzzHandleRequest, FuzzHandleRequestWithEmptyAttrs, FuzzHandleRequestWithLargeAttrs, FuzzMultipleHandleRequests,
-    FuzzCreateNewHandler, FuzzGetMessageTypeMultiple, FuzzHandleIncomingMessageWithNullCallback };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const CompanionSyncDeviceStatusHandlerFuzzFunction g_fuzzFuncs[] = { FuzzGetMessageType, FuzzRegister,
+    FuzzHandleIncomingMessage, FuzzHandleRequest, FuzzHandleRequestWithEmptyAttrs, FuzzHandleRequestWithLargeAttrs,
+    FuzzMultipleHandleRequests, FuzzCreateNewHandler, FuzzGetMessageTypeMultiple,
+    FuzzHandleIncomingMessageWithNullCallback };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionSyncDeviceStatusHandlerFuzzFunction);
 
 void FuzzCompanionSyncDeviceStatusHandler(FuzzedDataProvider &fuzzData)
 {
@@ -143,5 +145,8 @@ void FuzzCompanionSyncDeviceStatusHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionSyncDeviceStatusHandler)
+
 } // namespace UserIam
 } // namespace OHOS

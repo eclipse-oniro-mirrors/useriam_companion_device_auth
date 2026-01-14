@@ -68,9 +68,9 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_001, TestSiz
         static_cast<int32_t>(request.hostDeviceKey.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
 
-    SyncDeviceStatusRequest decoded;
-    bool decodeResult = DecodeSyncDeviceStatusRequest(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    SyncDeviceStatusRequest decoded = result.value();
 
     EXPECT_EQ(decoded.protocolIdList, request.protocolIdList);
     EXPECT_EQ(decoded.capabilityList, request.capabilityList);
@@ -97,9 +97,9 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_002, TestSiz
         static_cast<int32_t>(request.hostDeviceKey.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
 
-    SyncDeviceStatusRequest decoded;
-    bool decodeResult = DecodeSyncDeviceStatusRequest(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    SyncDeviceStatusRequest decoded = result.value();
 
     EXPECT_TRUE(decoded.protocolIdList.empty());
     EXPECT_TRUE(decoded.capabilityList.empty());
@@ -111,9 +111,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_001, TestSiz
 {
     Attributes attributes;
 
-    SyncDeviceStatusRequest decoded;
-    bool decodeResult = DecodeSyncDeviceStatusRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_002, TestSize.Level0)
@@ -122,9 +121,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_002, TestSiz
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
         ProtocolIdConverter::ToUnderlyingVec(protocolIdList_));
 
-    SyncDeviceStatusRequest decoded;
-    bool decodeResult = DecodeSyncDeviceStatusRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_003, TestSize.Level0)
@@ -135,9 +133,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_003, TestSiz
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
         CapabilityConverter::ToUnderlyingVec(capabilityList_));
 
-    SyncDeviceStatusRequest decoded;
-    bool decodeResult = DecodeSyncDeviceStatusRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_004, TestSize.Level0)
@@ -151,9 +148,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_004, TestSiz
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
 
-    SyncDeviceStatusRequest decoded;
-    bool decodeResult = DecodeSyncDeviceStatusRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_005, TestSize.Level0)
@@ -168,9 +164,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_005, TestSiz
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_SALT, salt_);
 
-    SyncDeviceStatusRequest decoded;
-    bool decodeResult = DecodeSyncDeviceStatusRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.Level0)
@@ -191,9 +186,9 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.
         static_cast<int32_t>(reply.companionDeviceKey.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
     EXPECT_EQ(decoded.protocolIdList, reply.protocolIdList);
@@ -220,9 +215,9 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_002, TestSize.
     bool encodeResult = EncodeSyncDeviceStatusReply(reply, attributes);
     EXPECT_TRUE(encodeResult);
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
 }
@@ -245,9 +240,9 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.
         static_cast<int32_t>(reply.companionDeviceKey.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
     EXPECT_TRUE(decoded.protocolIdList.empty());
@@ -261,9 +256,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_001, TestSize.
 {
     Attributes attributes;
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_002, TestSize.Level0)
@@ -271,9 +265,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_002, TestSize.
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_003, TestSize.Level0)
@@ -283,9 +276,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_003, TestSize.
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
         ProtocolIdConverter::ToUnderlyingVec(protocolIdList_));
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_004, TestSize.Level0)
@@ -297,9 +289,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_004, TestSize.
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
         CapabilityConverter::ToUnderlyingVec(capabilityList_));
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_005, TestSize.Level0)
@@ -315,9 +306,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_005, TestSize.
         static_cast<int32_t>(companionDeviceKey_.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey_.deviceId);
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_006, TestSize.Level0)
@@ -335,9 +325,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_006, TestSize.
     attributes.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID,
         SecureProtocolIdConverter::ToUnderlying(secureProtocolId_));
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_007, TestSize.Level0)
@@ -356,9 +345,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_007, TestSize.
         SecureProtocolIdConverter::ToUnderlying(secureProtocolId_));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, deviceUserName_);
 
-    SyncDeviceStatusReply decoded;
-    bool decodeResult = DecodeSyncDeviceStatusReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 } // namespace

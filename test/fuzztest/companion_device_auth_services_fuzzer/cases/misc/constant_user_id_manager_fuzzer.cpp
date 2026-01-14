@@ -20,14 +20,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using ConstantUserIdManagerFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreate(FuzzedDataProvider &fuzzData)
 {
@@ -103,7 +103,7 @@ static void FuzzCreateAndTestAll(FuzzedDataProvider &fuzzData)
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ConstantUserIdManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzCreate,
     FuzzGetActiveUserId,
     FuzzGetActiveUserName,
@@ -113,7 +113,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCreateAndTestAll,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ConstantUserIdManagerFuzzFunction);
 
 void FuzzConstantUserIdManager(FuzzedDataProvider &fuzzData)
 {
@@ -132,5 +132,8 @@ void FuzzConstantUserIdManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ConstantUserIdManager)
+
 } // namespace UserIam
 } // namespace OHOS

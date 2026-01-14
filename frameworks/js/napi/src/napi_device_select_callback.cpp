@@ -38,7 +38,6 @@ struct DeviceSelectCallbackHolder {
 
 void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSelectCallbackHolder)
 {
-    IAM_LOGD("start");
     if (deviceSelectCallbackHolder == nullptr || deviceSelectCallbackHolder->callback == nullptr) {
         IAM_LOGE("deviceSelectCallbackHolder is invalid");
         return;

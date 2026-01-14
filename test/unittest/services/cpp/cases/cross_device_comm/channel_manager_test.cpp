@@ -130,7 +130,7 @@ HWTEST_F(ChannelManagerTest, GetChannelById_002, TestSize.Level0)
 
     auto manager = std::make_shared<ChannelManager>(channels);
 
-    auto channel = manager->GetChannelById(ChannelId::INVALID);
+    auto channel = manager->GetChannelById(ChannelId::SOFTBUS);
     EXPECT_EQ(channel, nullptr);
 }
 

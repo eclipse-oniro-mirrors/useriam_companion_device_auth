@@ -23,13 +23,14 @@
 #include "continuous_auth_subscription.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<ContinuousAuthSubscription> &subscription, FuzzedDataProvider &fuzzData);
+using ContinuousAuthSubscriptionFuzzFunction = void (*)(std::shared_ptr<ContinuousAuthSubscription> &subscription,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetUserId(std::shared_ptr<ContinuousAuthSubscription> &subscription, FuzzedDataProvider &fuzzData)
 {
@@ -125,7 +126,7 @@ static void FuzzOnCallbackRemoteDied(std::shared_ptr<ContinuousAuthSubscription>
     subscription->OnCallbackRemoteDied(callback);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ContinuousAuthSubscriptionFuzzFunction g_fuzzFuncs[] = {
     FuzzGetUserId,
     FuzzGetTemplateId,
     FuzzGetWeakPtr,
@@ -136,7 +137,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzOnCallbackRemoteDied,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ContinuousAuthSubscriptionFuzzFunction);
 
 void FuzzContinuousAuthSubscription(FuzzedDataProvider &fuzzData)
 {
@@ -167,5 +168,8 @@ void FuzzContinuousAuthSubscription(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ContinuousAuthSubscription)
+
 } // namespace UserIam
 } // namespace OHOS

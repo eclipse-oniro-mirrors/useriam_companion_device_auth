@@ -21,14 +21,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "request_factory_impl.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataProvider &fuzzData);
+using RequestFactoryImplFuzzFunction = void (*)(std::shared_ptr<RequestFactoryImpl> &factory,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzCreateHostAddCompanionRequest(std::shared_ptr<RequestFactoryImpl> &factory,
     FuzzedDataProvider &fuzzData)
@@ -47,6 +48,7 @@ static void FuzzCreateHostAddCompanionRequest(std::shared_ptr<RequestFactoryImpl
 
 static void FuzzCreateHostTokenAuthRequest(std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     ScheduleId scheduleId = fuzzData.ConsumeIntegral<ScheduleId>();
     std::vector<uint8_t> fwkMsg =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
@@ -86,6 +88,7 @@ static void FuzzCreateHostSyncDeviceStatusRequest(std::shared_ptr<RequestFactory
 
 static void FuzzCreateHostIssueTokenRequest(std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     UserId hostUserId = fuzzData.ConsumeIntegral<UserId>();
     TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
     std::vector<uint8_t> msg =
@@ -136,6 +139,7 @@ static void FuzzCreateCompanionIssueTokenRequest(std::shared_ptr<RequestFactoryI
 
 static void FuzzCreateHostObtainTokenRequest(std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     std::string connectionName = GenerateFuzzString(fuzzData, 64);
     Attributes attr = GenerateFuzzAttributes(fuzzData);
     OnMessageReply callback = [](const Attributes &reply) { (void)reply; };
@@ -187,6 +191,7 @@ static void FuzzCreateCompanionAuthMaintainStateChangeRequest(std::shared_ptr<Re
 
 static void FuzzCreateHostMixAuthRequest(std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     ScheduleId scheduleId = fuzzData.ConsumeIntegral<ScheduleId>();
     std::vector<uint8_t> fwkMsg =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
@@ -229,7 +234,7 @@ static void FuzzCreate(std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataP
     (void)newFactory;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const RequestFactoryImplFuzzFunction g_fuzzFuncs[] = {
     FuzzCreateHostAddCompanionRequest,
     FuzzCreateHostTokenAuthRequest,
     FuzzCreateHostRemoveHostBindingRequest,
@@ -248,7 +253,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCreate,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(RequestFactoryImplFuzzFunction);
 
 void FuzzRequestFactoryImpl(FuzzedDataProvider &fuzzData)
 {
@@ -271,5 +276,8 @@ void FuzzRequestFactoryImpl(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(RequestFactoryImpl)
+
 } // namespace UserIam
 } // namespace OHOS

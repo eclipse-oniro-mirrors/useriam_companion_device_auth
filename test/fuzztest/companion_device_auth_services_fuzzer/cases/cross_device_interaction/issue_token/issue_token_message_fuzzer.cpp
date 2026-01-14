@@ -21,8 +21,8 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "issue_token_message.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -31,7 +31,7 @@ namespace {
 const uint32_t TEST_VAL64 = 64;
 }
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using IssueTokenMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodePreIssueTokenRequest(FuzzedDataProvider &fuzzData)
 {
@@ -50,8 +50,8 @@ static void FuzzEncodePreIssueTokenRequest(FuzzedDataProvider &fuzzData)
 static void FuzzDecodePreIssueTokenRequest(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    PreIssueTokenRequest request;
-    DecodePreIssueTokenRequest(attr, request);
+    auto result = DecodePreIssueTokenRequest(attr);
+    (void)result;
 }
 
 static void FuzzEncodePreIssueTokenReply(FuzzedDataProvider &fuzzData)
@@ -69,8 +69,8 @@ static void FuzzEncodePreIssueTokenReply(FuzzedDataProvider &fuzzData)
 static void FuzzDecodePreIssueTokenReply(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    PreIssueTokenReply reply;
-    DecodePreIssueTokenReply(attr, reply);
+    auto result = DecodePreIssueTokenReply(attr);
+    (void)result;
 }
 
 static void FuzzEncodeIssueTokenRequest(FuzzedDataProvider &fuzzData)
@@ -90,8 +90,8 @@ static void FuzzEncodeIssueTokenRequest(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeIssueTokenRequest(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    IssueTokenRequest request;
-    DecodeIssueTokenRequest(attr, request);
+    auto result = DecodeIssueTokenRequest(attr);
+    (void)result;
 }
 
 static void FuzzEncodeIssueTokenReply(FuzzedDataProvider &fuzzData)
@@ -109,11 +109,11 @@ static void FuzzEncodeIssueTokenReply(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeIssueTokenReply(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    IssueTokenReply reply;
-    DecodeIssueTokenReply(attr, reply);
+    auto result = DecodeIssueTokenReply(attr);
+    (void)result;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const IssueTokenMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodePreIssueTokenRequest,
     FuzzDecodePreIssueTokenRequest,
     FuzzEncodePreIssueTokenReply,
@@ -124,7 +124,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzDecodeIssueTokenReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(IssueTokenMessageFuzzFunction);
 
 void FuzzIssueTokenMessage(FuzzedDataProvider &fuzzData)
 {
@@ -143,5 +143,8 @@ void FuzzIssueTokenMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(IssueTokenMessage)
+
 } // namespace UserIam
 } // namespace OHOS

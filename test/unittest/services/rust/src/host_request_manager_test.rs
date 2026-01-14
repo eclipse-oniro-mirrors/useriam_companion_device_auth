@@ -16,7 +16,7 @@
 use crate::common::constants::*;
 use crate::{log_e, log_i};
 use crate::traits::host_request_manager::{
-    DummyHostRequestManager, HostRequest, HostRequestManager, HostRequestInput, HostRequestOutput
+    DummyHostRequestManager, HostRequest, HostRequestManager, HostRequestParam
 };
 use crate::ut_registry_guard;
 
@@ -27,15 +27,15 @@ impl HostRequest for DummyHostRequest {
         log_e!("not implemented");
         0
     }
-    fn prepare(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn prepare(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
-    fn begin(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn begin(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
-    fn end(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn end(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }

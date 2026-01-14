@@ -22,14 +22,15 @@
 #include "companion_obtain_token_request.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "obtain_token_message.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionObtainTokenRequest> &request, FuzzedDataProvider &fuzzData);
+using CompanionObtainTokenRequestFuzzFunction = void (*)(std::shared_ptr<CompanionObtainTokenRequest> &request,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMaxConcurrency(std::shared_ptr<CompanionObtainTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
@@ -114,7 +115,6 @@ static void FuzzCompanionBeginObtainToken(std::shared_ptr<CompanionObtainTokenRe
     (void)fuzzData;
     PreObtainTokenReply reply = {};
     reply.result = fuzzData.ConsumeIntegral<int32_t>();
-    reply.requestId = fuzzData.ConsumeIntegral<uint64_t>();
     reply.extraInfo =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
     (void)request->CompanionBeginObtainToken(reply);
@@ -124,18 +124,16 @@ static void FuzzSendObtainTokenRequest(std::shared_ptr<CompanionObtainTokenReque
     FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    RequestId requestId = fuzzData.ConsumeIntegral<uint64_t>();
     std::vector<uint8_t> obtainTokenRequest =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
-    (void)request->SendObtainTokenRequest(requestId, obtainTokenRequest);
+    (void)request->SendObtainTokenRequest(obtainTokenRequest);
 }
 
 static void FuzzHandleObtainTokenReply(std::shared_ptr<CompanionObtainTokenRequest> &request,
     FuzzedDataProvider &fuzzData)
 {
     Attributes reply = GenerateFuzzAttributes(fuzzData);
-    RequestId requestId = fuzzData.ConsumeIntegral<uint64_t>();
-    request->HandleObtainTokenReply(reply, requestId);
+    request->HandleObtainTokenReply(reply);
 }
 
 static void FuzzCompanionEndObtainToken(std::shared_ptr<CompanionObtainTokenRequest> &request,
@@ -150,7 +148,7 @@ static void FuzzCompanionEndObtainToken(std::shared_ptr<CompanionObtainTokenRequ
     (void)request->CompanionEndObtainToken(obtainTokenReply, requestId);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CompanionObtainTokenRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMaxConcurrency,
     FuzzShouldCancelOnNewRequest,
     FuzzOnStart,
@@ -168,7 +166,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCompanionEndObtainToken,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionObtainTokenRequestFuzzFunction);
 
 void FuzzCompanionObtainTokenRequest(FuzzedDataProvider &fuzzData)
 {
@@ -193,5 +191,8 @@ void FuzzCompanionObtainTokenRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionObtainTokenRequest)
+
 } // namespace UserIam
 } // namespace OHOS

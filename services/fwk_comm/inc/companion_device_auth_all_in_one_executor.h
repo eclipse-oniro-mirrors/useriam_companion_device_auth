@@ -19,7 +19,6 @@
 #include <functional>
 #include <future>
 #include <memory>
-#include <optional>
 #include <vector>
 
 #include "nocopyable.h"
@@ -27,8 +26,8 @@
 #include "iam_executor_iauth_executor_hdi.h"
 
 #include "fwk_common.h"
+#include "service_common.h"
 #include "singleton_manager.h"
-#include "subscription.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -62,13 +61,7 @@ public:
 #ifndef ENABLE_TEST
 private:
 #endif
-    struct UnfreezeParam {
-        std::vector<uint64_t> templateIdList;
-        int32_t userId;
-        std::vector<uint8_t> extraInfo;
-    };
-
-    FwkResultCode RunOnResidentSync(std::function<FwkResultCode()> func);
+    FwkResultCode RunOnResidentSync(std::function<FwkResultCode()> func, uint32_t timeoutSec = MAX_SYNC_WAIT_TIME_SEC);
 
     std::shared_ptr<CompanionDeviceAuthAllInOneExecutorInner> inner_;
 };

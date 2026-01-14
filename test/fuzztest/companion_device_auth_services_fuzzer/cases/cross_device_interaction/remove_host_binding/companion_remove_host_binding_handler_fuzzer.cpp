@@ -22,14 +22,14 @@
 #include "companion_remove_host_binding_handler.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionRemoveHostBindingHandler> &handler,
-    FuzzedDataProvider &fuzzData);
+using CompanionRemoveHostBindingHandlerFuzzFunction = void (*)(
+    std::shared_ptr<CompanionRemoveHostBindingHandler> &handler, FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMessageType(std::shared_ptr<CompanionRemoveHostBindingHandler> &handler,
     FuzzedDataProvider &fuzzData)
@@ -117,10 +117,11 @@ static void FuzzHandleIncomingMessageWithNullCallback(std::shared_ptr<CompanionR
     handler->HandleIncomingMessage(request, onMessageReply);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzGetMessageType, FuzzRegister, FuzzHandleIncomingMessage,
-    FuzzHandleRequest, FuzzHandleRequestWithEmptyAttrs, FuzzHandleRequestWithLargeAttrs, FuzzMultipleHandleRequests,
-    FuzzCreateNewHandler, FuzzGetMessageTypeMultiple, FuzzHandleIncomingMessageWithNullCallback };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const CompanionRemoveHostBindingHandlerFuzzFunction g_fuzzFuncs[] = { FuzzGetMessageType, FuzzRegister,
+    FuzzHandleIncomingMessage, FuzzHandleRequest, FuzzHandleRequestWithEmptyAttrs, FuzzHandleRequestWithLargeAttrs,
+    FuzzMultipleHandleRequests, FuzzCreateNewHandler, FuzzGetMessageTypeMultiple,
+    FuzzHandleIncomingMessageWithNullCallback };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionRemoveHostBindingHandlerFuzzFunction);
 
 void FuzzCompanionRemoveHostBindingHandler(FuzzedDataProvider &fuzzData)
 {
@@ -145,5 +146,8 @@ void FuzzCompanionRemoveHostBindingHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionRemoveHostBindingHandler)
+
 } // namespace UserIam
 } // namespace OHOS

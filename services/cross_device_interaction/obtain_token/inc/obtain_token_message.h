@@ -17,6 +17,7 @@
 #define COMPANION_DEVICE_AUTH_OBTAIN_TOKEN_MESSAGE_H
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -37,14 +38,12 @@ struct PreObtainTokenRequest {
 // Host -> Companion
 struct PreObtainTokenReply {
     int32_t result;
-    RequestId requestId;
     std::vector<uint8_t> extraInfo;
 };
 
 // Companion -> Host
 struct ObtainTokenRequest {
     UserId hostUserId;
-    RequestId requestId;
     std::vector<uint8_t> extraInfo;
     DeviceKey companionDeviceKey;
 };
@@ -56,16 +55,16 @@ struct ObtainTokenReply {
 };
 
 bool EncodePreObtainTokenRequest(const PreObtainTokenRequest &request, Attributes &attributes);
-bool DecodePreObtainTokenRequest(const Attributes &attributes, PreObtainTokenRequest &request);
+std::optional<PreObtainTokenRequest> DecodePreObtainTokenRequest(const Attributes &attributes);
 
 bool EncodePreObtainTokenReply(const PreObtainTokenReply &reply, Attributes &attributes);
-bool DecodePreObtainTokenReply(const Attributes &attributes, PreObtainTokenReply &reply);
+std::optional<PreObtainTokenReply> DecodePreObtainTokenReply(const Attributes &attributes);
 
 bool EncodeObtainTokenRequest(const ObtainTokenRequest &request, Attributes &attributes);
-bool DecodeObtainTokenRequest(const Attributes &attributes, ObtainTokenRequest &request);
+std::optional<ObtainTokenRequest> DecodeObtainTokenRequest(const Attributes &attributes);
 
 bool EncodeObtainTokenReply(const ObtainTokenReply &reply, Attributes &attributes);
-bool DecodeObtainTokenReply(const Attributes &attributes, ObtainTokenReply &reply);
+std::optional<ObtainTokenReply> DecodeObtainTokenReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

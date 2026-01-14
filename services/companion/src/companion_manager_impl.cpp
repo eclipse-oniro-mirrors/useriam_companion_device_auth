@@ -16,6 +16,7 @@
 #include "companion_manager_impl.h"
 
 #include <algorithm>
+#include <cinttypes>
 #include <utility>
 
 #include "iam_check.h"
@@ -78,14 +79,14 @@ void CompanionManagerImpl::Reload(const std::vector<PersistedCompanionStatus> &p
         auto companion = Companion::Create(persistedStatus, weak_from_this());
         if (companion == nullptr) {
             IAM_LOGE("failed to create companion template id %{public}s",
-                GET_TRUNCATED_STRING(persistedStatus.templateId).c_str());
+                GET_MASKED_NUM_CSTR(persistedStatus.templateId));
             continue;
         }
 
         ResultCode ret = AddCompanionInternal(companion);
         if (ret != ResultCode::SUCCESS) {
             IAM_LOGE("failed to add companion template id %{public}s, ret %{public}d",
-                GET_TRUNCATED_STRING(persistedStatus.templateId).c_str(), ret);
+                GET_MASKED_NUM_CSTR(persistedStatus.templateId), ret);
         }
     }
     IAM_LOGI("reloaded %{public}zu companions for user %{public}d", companions_.size(), hostUserId_);
@@ -95,7 +96,7 @@ std::optional<CompanionStatus> CompanionManagerImpl::GetCompanionStatus(Template
 {
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion == nullptr) {
-        IAM_LOGD("template id %{public}s not found", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGE("template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
         return std::nullopt;
     }
     return companion->GetStatus();
@@ -106,7 +107,7 @@ std::optional<CompanionStatus> CompanionManagerImpl::GetCompanionStatus(UserId h
 {
     auto companion = FindCompanionByDeviceUser(hostUserId, companionDeviceKey);
     if (companion == nullptr) {
-        IAM_LOGD("companion not found for device-user combination");
+        IAM_LOGE("companion not found for device-user combination");
         return std::nullopt;
     }
     return companion->GetStatus();
@@ -127,11 +128,11 @@ std::vector<CompanionStatus> CompanionManagerImpl::GetAllCompanionStatus()
 std::unique_ptr<Subscription> CompanionManagerImpl::SubscribeCompanionDeviceStatusChange(
     OnCompanionDeviceStatusChange &&callback)
 {
-    int32_t subscriptionId = nextSubscriptionId_.fetch_add(1);
+    SubscribeId subscriptionId = nextSubscriptionId_.fetch_add(1);
     auto weakSelf = weak_from_this();
     statusSubscribers_[subscriptionId] = std::move(callback);
 
-    IAM_LOGI("Companion device status subscription added: %d", subscriptionId);
+    IAM_LOGI("Companion device status subscription added: %{public}" PRIu64, subscriptionId);
 
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
         auto self = weakSelf.lock();
@@ -140,16 +141,16 @@ std::unique_ptr<Subscription> CompanionManagerImpl::SubscribeCompanionDeviceStat
     });
 }
 
-void CompanionManagerImpl::UnsubscribeCompanionDeviceStatusChange(int32_t subscriptionId)
+void CompanionManagerImpl::UnsubscribeCompanionDeviceStatusChange(SubscribeId subscriptionId)
 {
     statusSubscribers_.erase(subscriptionId);
-    IAM_LOGI("Companion device status subscription removed: %d", subscriptionId);
+    IAM_LOGI("Companion device status subscription removed: %{public}" PRIu64, subscriptionId);
 }
 
 ResultCode CompanionManagerImpl::BeginAddCompanion(const BeginAddCompanionParams &params,
     std::vector<uint8_t> &outAddHostBindingRequest)
 {
-    IAM_LOGI("begin add companion, request id %{public}d", params.requestId);
+    IAM_LOGI("begin add companion, request id %{public}" PRIu64, params.requestId);
 
     if (hostUserId_ == INVALID_USER_ID) {
         IAM_LOGE("no active user");
@@ -184,44 +185,43 @@ ResultCode CompanionManagerImpl::BeginAddCompanion(const BeginAddCompanionParams
 
     outAddHostBindingRequest.swap(output.addHostBindingRequest);
 
-    IAM_LOGI("begin add companion success, request id %{public}d", params.requestId);
+    IAM_LOGI("begin add companion success, request id %{public}" PRIu64, params.requestId);
     return ResultCode::SUCCESS;
 }
 
-ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInputParam &inputParam,
-    std::vector<uint8_t> &outFwkMsg, std::vector<uint8_t> &outTokenData, Atl &outAtl)
+ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output)
 {
-    IAM_LOGI("end add companion, request id %{public}d", inputParam.requestId);
+    IAM_LOGI("end add companion, request id %{public}" PRIu64, input.requestId);
 
     if (hostUserId_ == INVALID_USER_ID) {
         IAM_LOGE("no active user");
         return ResultCode::GENERAL_ERROR;
     }
 
-    if (hostUserId_ != inputParam.companionStatus.hostUserId) {
+    if (hostUserId_ != input.companionStatus.hostUserId) {
         IAM_LOGE("host user id mismatch, expected %{public}d, actual %{public}d", hostUserId_,
-            inputParam.companionStatus.hostUserId);
+            input.companionStatus.hostUserId);
         return ResultCode::GENERAL_ERROR;
     }
 
-    HostEndAddCompanionInput input { .requestId = inputParam.requestId,
-        .companionStatus = inputParam.companionStatus,
-        .secureProtocolId = inputParam.secureProtocolId,
-        .addHostBindingReply = inputParam.addHostBindingReply };
+    HostEndAddCompanionInput secInput { .requestId = input.requestId,
+        .companionStatus = input.companionStatus,
+        .secureProtocolId = input.secureProtocolId,
+        .addHostBindingReply = input.addHostBindingReply };
 
-    HostEndAddCompanionOutput output {};
-    ResultCode ret = GetSecurityAgent().HostEndAddCompanion(input, output);
+    HostEndAddCompanionOutput secOutput {};
+    ResultCode ret = GetSecurityAgent().HostEndAddCompanion(secInput, secOutput);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("security agent failed to end add companion, ret %{public}d", ret);
         return ret;
     }
 
-    PersistedCompanionStatus updatedStatus = inputParam.companionStatus;
-    updatedStatus.templateId = output.templateId;
+    PersistedCompanionStatus updatedStatus = input.companionStatus;
+    updatedStatus.templateId = secOutput.templateId;
 
     auto companion = Companion::Create(updatedStatus, weak_from_this());
     if (companion == nullptr) {
-        IAM_LOGE("failed to create Companion for %{public}s", GET_TRUNCATED_STRING(output.templateId).c_str());
+        IAM_LOGE("failed to create Companion for %{public}s", GET_MASKED_NUM_CSTR(secOutput.templateId));
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -232,24 +232,24 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInputParam
         return ret;
     }
 
-    outFwkMsg.swap(output.fwkMsg);
-    outTokenData.swap(output.tokenData);
-    outAtl = output.atl;
+    output.fwkMsg.swap(secOutput.fwkMsg);
+    output.tokenData.swap(secOutput.tokenData);
+    output.atl = secOutput.atl;
 
     NotifyCompanionStatusChange();
 
-    IAM_LOGI("end add companion success, request id %{public}d", inputParam.requestId);
+    IAM_LOGI("end add companion success, request id %{public}" PRIu64, input.requestId);
     return ResultCode::SUCCESS;
 }
 
 ResultCode CompanionManagerImpl::ActivateToken(RequestId requestId, TemplateId templateId, Atl atl)
 {
-    IAM_LOGI("activate token, request id %{public}d, template id %{public}llu, atl %{public}d", requestId,
-        static_cast<unsigned long long>(templateId), atl);
+    IAM_LOGI("activate token, request id %{public}" PRIu64 ", template id %{public}s, atl %{public}d", requestId,
+        GET_MASKED_NUM_CSTR(templateId), atl);
 
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -263,8 +263,8 @@ ResultCode CompanionManagerImpl::ActivateToken(RequestId requestId, TemplateId t
     // Set token ATL to start timeout timer and notify status change
     SetCompanionTokenAtl(templateId, atl);
 
-    IAM_LOGI("activate token success, request id %{public}d, template id %{public}llu", requestId,
-        static_cast<unsigned long long>(templateId));
+    IAM_LOGI("activate token success, request id %{public}" PRIu64 ", template id %{public}s", requestId,
+        GET_MASKED_NUM_CSTR(templateId));
     return ResultCode::SUCCESS;
 }
 
@@ -275,13 +275,13 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId)
     ResultCode ret = GetSecurityAgent().HostRemoveCompanion(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("security agent failed to remove companion %{public}s, ret %{public}d",
-            GET_TRUNCATED_STRING(templateId).c_str(), ret);
+            GET_MASKED_NUM_CSTR(templateId), ret);
         return ret;
     }
 
     ResultCode removeRet = RemoveCompanionInternal(templateId);
     if (removeRet != ResultCode::SUCCESS) {
-        IAM_LOGW("companion template id %{public}s not cached locally", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGW("companion template id %{public}s not cached locally", GET_MASKED_NUM_CSTR(templateId));
     }
 
     NotifyCompanionStatusChange();
@@ -289,17 +289,17 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId)
     auto request = GetRequestFactory().CreateHostRemoveHostBindingRequest(output.userId, output.companionDeviceKey);
     if (request == nullptr) {
         IAM_LOGE("CreateHostRemoveHostBindingRequest failed for templateId %{public}s",
-            GET_TRUNCATED_STRING(templateId).c_str());
+            GET_MASKED_NUM_CSTR(templateId));
         return ResultCode::SUCCESS;
     }
 
     bool result = GetRequestManager().Start(request);
     if (!result) {
-        IAM_LOGE("request Start failed for templateId %{public}s", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGE("request Start failed for templateId %{public}s", GET_MASKED_NUM_CSTR(templateId));
         return ResultCode::SUCCESS;
     }
 
-    IAM_LOGI("remove companion success, template id %{public}s", GET_TRUNCATED_STRING(templateId).c_str());
+    IAM_LOGI("remove companion success, template id %{public}s", GET_MASKED_NUM_CSTR(templateId));
     return ResultCode::SUCCESS;
 }
 
@@ -308,7 +308,7 @@ ResultCode CompanionManagerImpl::UpdateCompanionStatus(TemplateId templateId, co
 {
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -323,16 +323,16 @@ ResultCode CompanionManagerImpl::UpdateCompanionStatus(TemplateId templateId, co
 
     companion->SetDeviceNames(deviceName, deviceUserName);
 
-    IAM_LOGI("update companion status success, template id %{public}s", GET_TRUNCATED_STRING(templateId).c_str());
+    IAM_LOGI("update companion status success, template id %{public}s", GET_MASKED_NUM_CSTR(templateId));
     return ResultCode::SUCCESS;
 }
 
 ResultCode CompanionManagerImpl::UpdateCompanionEnabledBusinessIds(TemplateId templateId,
-    const std::vector<int32_t> &enabledBusinessIds)
+    const std::vector<BusinessId> &enabledBusinessIds)
 {
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
         return ResultCode::NOT_ENROLLED;
     }
 
@@ -346,8 +346,7 @@ ResultCode CompanionManagerImpl::UpdateCompanionEnabledBusinessIds(TemplateId te
 
     companion->SetEnabledBusinessIds(enabledBusinessIds);
 
-    IAM_LOGI("update companion enabled business ids success, template id %{public}s",
-        GET_TRUNCATED_STRING(templateId).c_str());
+    IAM_LOGI("update companion enabled business ids success, template id %{public}s", GET_MASKED_NUM_CSTR(templateId));
     return ResultCode::SUCCESS;
 }
 
@@ -355,7 +354,7 @@ bool CompanionManagerImpl::SetCompanionTokenAtl(TemplateId templateId, std::opti
 {
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
         return false;
     }
 
@@ -370,7 +369,7 @@ ResultCode CompanionManagerImpl::UpdateToken(TemplateId templateId, const std::v
 
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -394,14 +393,14 @@ ResultCode CompanionManagerImpl::HandleCompanionCheckFail(TemplateId templateId)
 {
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
         return ResultCode::GENERAL_ERROR;
     }
 
     companion->SetCompanionValid(false);
 
     IAM_LOGI("handle companion check fail success, template id %{public}s set to invalid",
-        GET_TRUNCATED_STRING(templateId).c_str());
+        GET_MASKED_NUM_CSTR(templateId));
     return ResultCode::SUCCESS;
 }
 
@@ -484,7 +483,7 @@ ResultCode CompanionManagerImpl::AddCompanionInternal(const std::shared_ptr<Comp
     const DeviceKey &deviceKey = companion->GetCompanionDeviceKey();
 
     if (FindCompanionByTemplateId(templateId) != nullptr) {
-        IAM_LOGE("companion template id %{public}s already exists", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGE("companion template id %{public}s already exists", GET_MASKED_NUM_CSTR(templateId));
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -496,7 +495,7 @@ ResultCode CompanionManagerImpl::AddCompanionInternal(const std::shared_ptr<Comp
     companions_.push_back(companion);
 
     IAM_LOGI("added companion template id %{public}s, companionDeviceKey %{public}s, host user %{public}d",
-        GET_TRUNCATED_STRING(templateId).c_str(), deviceKey.GetDesc().c_str(), userId);
+        GET_MASKED_NUM_CSTR(templateId), deviceKey.GetDesc().c_str(), userId);
     return ResultCode::SUCCESS;
 }
 
@@ -517,7 +516,7 @@ void CompanionManagerImpl::StartIssueTokenRequests(const std::vector<uint64_t> &
 {
     IAM_LOGI("start, templateIds size=%{public}zu", templateIds.size());
     for (const auto &templateId : templateIds) {
-        IAM_LOGI("templateId %{public}s", GET_TRUNCATED_STRING(templateId).c_str());
+        IAM_LOGI("templateId %{public}s", GET_MASKED_NUM_CSTR(templateId));
     }
 
     for (const auto &companion : companions_) {

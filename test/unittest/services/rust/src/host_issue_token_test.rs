@@ -17,6 +17,7 @@ use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     DataArray1024Ffi, HostBeginIssueTokenInputFfi, HostEndIssueTokenInputFfi,
     HostPreIssueTokenInputFfi, PROPERTY_MODE_UNFREEZE,
+    HostPreIssueTokenOutputFfi, HostBeginIssueTokenOutputFfi, HostEndIssueTokenOutputFfi,
 };
 use crate::log_i;
 use crate::request::jobs::common_message::{SecCommonReply, SecIssueToken};
@@ -25,7 +26,7 @@ use crate::request::token_issue::token_issue_message::SecIssueTokenReply;
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
-use crate::traits::host_request_manager::{HostRequest, HostRequestInput};
+use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
@@ -119,7 +120,9 @@ fn host_issue_token_request_prepare_test_wrong_input_type() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.prepare(HostRequestInput::IssueTokenBegin(wrong_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&wrong_input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -145,7 +148,9 @@ fn host_issue_token_request_prepare_test_property_mode_not_unfreeze() {
     };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::IssueTokenPrepare(input));
+    let mut output = HostPreIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenPrepare(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -171,7 +176,9 @@ fn host_issue_token_request_prepare_test_auth_type_not_companion_device() {
     };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::IssueTokenPrepare(input));
+    let mut output = HostPreIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenPrepare(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -197,7 +204,9 @@ fn host_issue_token_request_prepare_test_template_id_not_found() {
     };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::IssueTokenPrepare(input));
+    let mut output = HostPreIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenPrepare(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -223,7 +232,9 @@ fn host_issue_token_request_prepare_test_atl_try_from_fail() {
     };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::IssueTokenPrepare(input));
+    let mut output = HostPreIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenPrepare(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -253,7 +264,9 @@ fn host_issue_token_request_prepare_test_read_device_capability_info_fail() {
     };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::IssueTokenPrepare(input));
+    let mut output = HostPreIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenPrepare(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -280,7 +293,9 @@ fn host_issue_token_request_prepare_test_success() {
     };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::IssueTokenPrepare(input));
+    let mut output = HostPreIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenPrepare(&input, &mut output);
+    let result = request.prepare(param);
     assert!(result.is_ok());
 }
 
@@ -307,7 +322,9 @@ fn host_issue_token_request_begin_test_wrong_input_type() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenEnd(wrong_input));
+    let mut output = HostEndIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenEnd(&wrong_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -335,7 +352,9 @@ fn host_issue_token_request_begin_test_decode_sec_message_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -365,7 +384,9 @@ fn host_issue_token_request_begin_test_get_session_key_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -396,7 +417,9 @@ fn host_issue_token_request_begin_test_decrypt_sec_message_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -434,7 +457,9 @@ fn host_issue_token_request_begin_test_try_from_bytes_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -474,7 +499,9 @@ fn host_issue_token_request_begin_test_miss_challenge() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -506,7 +533,9 @@ fn host_issue_token_request_begin_test_secure_random_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -538,7 +567,9 @@ fn host_issue_token_request_begin_test_generate_token_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -569,7 +600,9 @@ fn host_issue_token_request_begin_test_token_infos_empty() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -601,7 +634,9 @@ fn host_issue_token_request_begin_test_sec_message_get_session_key_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -633,7 +668,9 @@ fn host_issue_token_request_begin_test_sec_message_encrypt_issue_token_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(HostRequestInput::IssueTokenBegin(begin_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -659,7 +696,9 @@ fn host_issue_token_request_end_test_wrong_input_type() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::IssueTokenBegin(wrong_input));
+    let mut output = HostBeginIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenBegin(&wrong_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -692,7 +731,9 @@ fn host_issue_token_request_end_test_decode_sec_message_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::IssueTokenEnd(end_input));
+    let mut output = HostEndIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -731,7 +772,9 @@ fn host_issue_token_request_end_test_result_not_zero() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::IssueTokenEnd(end_input));
+    let mut output = HostEndIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -769,7 +812,9 @@ fn host_issue_token_request_end_test_get_rtc_time_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::IssueTokenEnd(end_input));
+    let mut output = HostEndIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -811,7 +856,9 @@ fn host_issue_token_request_end_test_add_token_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::IssueTokenEnd(end_input));
+    let mut output = HostEndIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -852,6 +899,8 @@ fn host_issue_token_request_end_test_success() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::IssueTokenEnd(end_input));
+    let mut output = HostEndIssueTokenOutputFfi::default();
+    let param = HostRequestParam::IssueTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert!(result.is_ok());
 }

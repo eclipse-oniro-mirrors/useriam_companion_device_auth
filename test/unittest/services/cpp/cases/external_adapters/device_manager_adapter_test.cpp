@@ -25,6 +25,7 @@
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
+#include "soft_bus_adapter_manager.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -53,12 +54,12 @@ void DeviceManagerAdapterTest::TearDownTestCase()
 
 void DeviceManagerAdapterTest::SetUp()
 {
-    AdapterManager::GetInstance().SetDeviceManagerAdapter(nullptr);
+    SoftBusAdapterManager::GetInstance().SetDeviceManagerAdapter(nullptr);
 }
 
 void DeviceManagerAdapterTest::TearDown()
 {
-    AdapterManager::GetInstance().SetDeviceManagerAdapter(nullptr);
+    SoftBusAdapterManager::GetInstance().SetDeviceManagerAdapter(nullptr);
 }
 
 HWTEST_F(DeviceManagerAdapterTest, CreateDefaultAdapter, TestSize.Level0)
@@ -70,17 +71,18 @@ HWTEST_F(DeviceManagerAdapterTest, CreateDefaultAdapter, TestSize.Level0)
 HWTEST_F(DeviceManagerAdapterTest, RegisterToSingleton, TestSize.Level0)
 {
     auto adapter = std::make_shared<DeviceManagerAdapterImpl>();
-    AdapterManager::GetInstance().SetDeviceManagerAdapter(adapter);
+    SoftBusAdapterManager::GetInstance().SetDeviceManagerAdapter(adapter);
 
-    IDeviceManagerAdapter &retrieved = GetDeviceManagerAdapter();
+    IDeviceManagerAdapter &retrieved = SoftBusAdapterManager::GetInstance().GetDeviceManagerAdapter();
     EXPECT_EQ(&retrieved, adapter.get());
 }
 
 HWTEST_F(DeviceManagerAdapterTest, InitDeviceManager, TestSize.Level0)
 {
+    // Test InitDeviceManager functionality
     auto adapter = std::make_shared<DeviceManagerAdapterImpl>();
 
-    // Fake DeviceManager makes this succeed in test environment
+    // In test environment, InitDeviceManager should succeed due to fake implementation
     bool result = adapter->InitDeviceManager();
     EXPECT_TRUE(result);
 }
@@ -140,9 +142,9 @@ HWTEST_F(DeviceManagerAdapterTest, MockAdapterInjection, TestSize.Level0)
     };
 
     auto mockAdapter = std::make_shared<MockDeviceManagerAdapter>();
-    AdapterManager::GetInstance().SetDeviceManagerAdapter(mockAdapter);
+    SoftBusAdapterManager::GetInstance().SetDeviceManagerAdapter(mockAdapter);
 
-    IDeviceManagerAdapter &adapter = GetDeviceManagerAdapter();
+    IDeviceManagerAdapter &adapter = SoftBusAdapterManager::GetInstance().GetDeviceManagerAdapter();
     auto result = adapter.GetUdidByNetworkId("test_network_id");
 
     EXPECT_TRUE(result.has_value());

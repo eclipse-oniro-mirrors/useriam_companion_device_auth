@@ -183,7 +183,6 @@ HWTEST_F(CompanionObtainTokenRequestTest, HandlePreObtainTokenReply_001, TestSiz
 
     Attributes reply;
     PreObtainTokenReply preObtainTokenReply = { .result = static_cast<int32_t>(ResultCode::SUCCESS),
-        .requestId = 0,
         .extraInfo = { 1, 2, 3 } };
     EncodePreObtainTokenReply(preObtainTokenReply, reply);
 
@@ -209,7 +208,6 @@ HWTEST_F(CompanionObtainTokenRequestTest, HandlePreObtainTokenReply_003, TestSiz
 
     Attributes reply;
     PreObtainTokenReply preObtainTokenReply = { .result = static_cast<int32_t>(ResultCode::GENERAL_ERROR),
-        .requestId = 0,
         .extraInfo = { 1, 2, 3 } };
     EncodePreObtainTokenReply(preObtainTokenReply, reply);
 
@@ -222,11 +220,10 @@ HWTEST_F(CompanionObtainTokenRequestTest, HandlePreObtainTokenReply_004, TestSiz
 
     Attributes reply;
     PreObtainTokenReply preObtainTokenReply = { .result = static_cast<int32_t>(ResultCode::SUCCESS),
-        .requestId = 0,
         .extraInfo = { 1, 2, 3 } };
     EncodePreObtainTokenReply(preObtainTokenReply, reply);
 
-    EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
 
     request_->HandlePreObtainTokenReply(reply);
 }
@@ -236,7 +233,6 @@ HWTEST_F(CompanionObtainTokenRequestTest, CompanionBeginObtainToken_001, TestSiz
     CreateDefaultRequest();
 
     PreObtainTokenReply preObtainTokenReply = { .result = static_cast<int32_t>(ResultCode::SUCCESS),
-        .requestId = 0,
         .extraInfo = { 1, 2, 3 } };
 
     EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _))
@@ -253,7 +249,6 @@ HWTEST_F(CompanionObtainTokenRequestTest, CompanionBeginObtainToken_002, TestSiz
     CreateDefaultRequest();
 
     PreObtainTokenReply preObtainTokenReply = { .result = static_cast<int32_t>(ResultCode::SUCCESS),
-        .requestId = 0,
         .extraInfo = { 1, 2, 3 } };
 
     EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _))
@@ -277,7 +272,7 @@ HWTEST_F(CompanionObtainTokenRequestTest, HandleObtainTokenReply_001, TestSize.L
 
     EXPECT_CALL(mockSecurityAgent_, CompanionEndObtainToken(_)).WillOnce(Return(ResultCode::SUCCESS));
 
-    request_->HandleObtainTokenReply(reply, request_->requestId_);
+    request_->HandleObtainTokenReply(reply);
 }
 
 HWTEST_F(CompanionObtainTokenRequestTest, HandleObtainTokenReply_002, TestSize.Level0)
@@ -285,7 +280,7 @@ HWTEST_F(CompanionObtainTokenRequestTest, HandleObtainTokenReply_002, TestSize.L
     CreateDefaultRequest();
 
     Attributes reply;
-    request_->HandleObtainTokenReply(reply, request_->requestId_);
+    request_->HandleObtainTokenReply(reply);
 }
 
 HWTEST_F(CompanionObtainTokenRequestTest, HandleObtainTokenReply_003, TestSize.Level0)
@@ -297,7 +292,7 @@ HWTEST_F(CompanionObtainTokenRequestTest, HandleObtainTokenReply_003, TestSize.L
         .extraInfo = { 1, 2, 3 } };
     EncodeObtainTokenReply(obtainTokenReply, reply);
 
-    request_->HandleObtainTokenReply(reply, request_->requestId_);
+    request_->HandleObtainTokenReply(reply);
 }
 
 HWTEST_F(CompanionObtainTokenRequestTest, HandleObtainTokenReply_004, TestSize.Level0)
@@ -311,7 +306,7 @@ HWTEST_F(CompanionObtainTokenRequestTest, HandleObtainTokenReply_004, TestSize.L
 
     EXPECT_CALL(mockSecurityAgent_, CompanionEndObtainToken(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
-    request_->HandleObtainTokenReply(reply, request_->requestId_);
+    request_->HandleObtainTokenReply(reply);
 }
 
 HWTEST_F(CompanionObtainTokenRequestTest, CompleteWithError_001, TestSize.Level0)

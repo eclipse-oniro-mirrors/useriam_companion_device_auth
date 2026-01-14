@@ -30,46 +30,40 @@ use crate::entry::companion_device_auth_ffi::{
 use crate::String;
 use crate::{log_e, singleton_registry, Box, Vec};
 
-pub enum HostRequestInput {
-    SyncStatusBegin(HostBeginCompanionCheckInputFfi),
-    SyncStatusEnd(HostEndCompanionCheckInputFfi),
-    KeyNego(HostGetInitKeyNegotiationInputFfi),
-    EnrollBegin(HostBeginAddCompanionInputFfi),
-    EnrollEnd(HostEndAddCompanionInputFfi),
-    TokenAuthBegin(HostBeginTokenAuthInputFfi),
-    TokenAuthEnd(HostEndTokenAuthInputFfi),
-    DelegateAuthBegin(HostBeginDelegateAuthInputFfi),
-    DelegateAuthEnd(HostEndDelegateAuthInputFfi),
-    IssueTokenPrepare(HostPreIssueTokenInputFfi),
-    IssueTokenBegin(HostBeginIssueTokenInputFfi),
-    IssueTokenEnd(HostEndIssueTokenInputFfi),
-    ObtainTokenBegin(HostProcessPreObtainTokenInputFfi),
-    ObtainTokenEnd(HostProcessObtainTokenInputFfi),
-}
-
-#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
-pub enum HostRequestOutput {
-    SyncStatusBegin(HostBeginCompanionCheckOutputFfi),
-    SyncStatusEnd(HostEndCompanionCheckOutputFfi),
-    KeyNego(HostGetInitKeyNegotiationOutputFfi),
-    EnrollBegin(HostBeginAddCompanionOutputFfi),
-    EnrollEnd(HostEndAddCompanionOutputFfi),
-    TokenAuthBegin(HostBeginTokenAuthOutputFfi),
-    TokenAuthEnd(HostEndTokenAuthOutputFfi),
-    DelegateAuthBegin(HostBeginDelegateAuthOutputFfi),
-    DelegateAuthEnd(HostEndDelegateAuthOutputFfi),
-    IssueTokenPrepare(HostPreIssueTokenOutputFfi),
-    IssueTokenBegin(HostBeginIssueTokenOutputFfi),
-    IssueTokenEnd(HostEndIssueTokenOutputFfi),
-    ObtainTokenBegin(HostProcessPreObtainTokenOutputFfi),
-    ObtainTokenEnd(HostProcessObtainTokenOutputFfi),
+pub enum HostRequestParam<'a> {
+    SyncStatusBegin(&'a HostBeginCompanionCheckInputFfi, &'a mut HostBeginCompanionCheckOutputFfi),
+    SyncStatusEnd(&'a HostEndCompanionCheckInputFfi, &'a mut HostEndCompanionCheckOutputFfi),
+    KeyNego(&'a HostGetInitKeyNegotiationInputFfi, &'a mut HostGetInitKeyNegotiationOutputFfi),
+    EnrollBegin(&'a HostBeginAddCompanionInputFfi, &'a mut HostBeginAddCompanionOutputFfi),
+    EnrollEnd(&'a HostEndAddCompanionInputFfi, &'a mut HostEndAddCompanionOutputFfi),
+    TokenAuthBegin(&'a HostBeginTokenAuthInputFfi, &'a mut HostBeginTokenAuthOutputFfi),
+    TokenAuthEnd(&'a HostEndTokenAuthInputFfi, &'a mut HostEndTokenAuthOutputFfi),
+    DelegateAuthBegin(&'a HostBeginDelegateAuthInputFfi, &'a mut HostBeginDelegateAuthOutputFfi),
+    DelegateAuthEnd(&'a HostEndDelegateAuthInputFfi, &'a mut HostEndDelegateAuthOutputFfi),
+    IssueTokenPrepare(&'a HostPreIssueTokenInputFfi, &'a mut HostPreIssueTokenOutputFfi),
+    IssueTokenBegin(&'a HostBeginIssueTokenInputFfi, &'a mut HostBeginIssueTokenOutputFfi),
+    IssueTokenEnd(&'a HostEndIssueTokenInputFfi, &'a mut HostEndIssueTokenOutputFfi),
+    ObtainTokenBegin(&'a HostProcessPreObtainTokenInputFfi, &'a mut HostProcessPreObtainTokenOutputFfi),
+    ObtainTokenEnd(&'a HostProcessObtainTokenInputFfi, &'a mut HostProcessObtainTokenOutputFfi),
 }
 
 pub trait HostRequest {
     fn get_request_id(&self) -> i32;
-    fn prepare(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode>;
-    fn begin(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode>;
-    fn end(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode>;
+
+    fn prepare(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
+        log_e!("prepare not implemented");
+        Err(ErrorCode::GeneralError)
+    }
+
+    fn begin(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
+        log_e!("begin not implemented");
+        Err(ErrorCode::GeneralError)
+    }
+
+    fn end(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
+        log_e!("end not implemented");
+        Err(ErrorCode::GeneralError)
+    }
 }
 
 pub type DynHostRequest = dyn HostRequest;

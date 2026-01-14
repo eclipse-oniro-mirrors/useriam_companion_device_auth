@@ -15,6 +15,8 @@
 
 #include "base_request.h"
 
+#include <cinttypes>
+
 #include "iam_check.h"
 #include "iam_logger.h"
 
@@ -100,7 +102,7 @@ void BaseRequest::Destroy()
     auto requestId = requestId_;
     TaskRunnerManager::GetInstance().PostTaskOnResident([requestId]() {
         GetRequestManager().Remove(requestId);
-        IAM_LOGI("request %{public}u removed", requestId);
+        IAM_LOGI("request %{public}" PRIu64 " removed", requestId);
     });
 }
 } // namespace CompanionDeviceAuth

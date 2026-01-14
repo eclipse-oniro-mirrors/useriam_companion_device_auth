@@ -15,6 +15,8 @@
 
 #include "ipc_available_device_status_callback_service.h"
 
+#include <memory>
+
 #include "iam_logger.h"
 #include "iam_para2str.h"
 #include "iam_ptr.h"

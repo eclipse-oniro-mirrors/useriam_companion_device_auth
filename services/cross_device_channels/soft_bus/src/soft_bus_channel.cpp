@@ -17,6 +17,7 @@
 #include "companion_device_auth_types.h"
 #include "service_common.h"
 #include "singleton_manager.h"
+#include "soft_bus_adapter_manager.h"
 #include "soft_bus_channel_common.h"
 #include "task_runner_manager.h"
 
@@ -45,6 +46,11 @@ SoftBusChannel::SoftBusChannel()
 
 bool SoftBusChannel::Initialize()
 {
+    if (!SoftBusAdapterManager::GetInstance().CreateAndRegisterAdapters()) {
+        IAM_LOGE("Failed to initialize SoftBus adapter manager");
+        return false;
+    }
+
     connectionManager_ = SoftBusConnectionManager::Create();
     ENSURE_OR_RETURN_VAL(connectionManager_ != nullptr, false);
 

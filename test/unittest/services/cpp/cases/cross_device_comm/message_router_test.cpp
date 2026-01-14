@@ -42,7 +42,7 @@ namespace {
 
 class FakeMiscManager : public IMiscManager {
 public:
-    int32_t GetNextGlobalId() override
+    uint64_t GetNextGlobalId() override
     {
         return nextGlobalId_++;
     }
@@ -66,13 +66,13 @@ public:
         return std::string("local-udid");
     }
 
-    bool CheckBusinessIds(const std::vector<int32_t> &) override
+    bool CheckBusinessIds(const std::vector<BusinessId> &) override
     {
         return true;
     }
 
 private:
-    int32_t nextGlobalId_ { 1 };
+    uint64_t nextGlobalId_ { 1 };
 };
 
 class FakeUserIdManager : public IUserIdManager {
@@ -295,14 +295,14 @@ HWTEST_F(MessageRouterTest, SendMessage_001, TestSize.Level1)
     bool isReply = true;
     ASSERT_TRUE(sentMessage.GetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, isReply));
     EXPECT_FALSE(isReply);
-    uint32_t msgTypeValue = 0;
-    ASSERT_TRUE(sentMessage.GetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, msgTypeValue));
+    uint16_t msgTypeValue = 0;
+    ASSERT_TRUE(sentMessage.GetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, msgTypeValue));
 
     Attributes reply;
     reply.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     reply.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, messageSeq);
     reply.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, true);
-    reply.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, msgTypeValue);
+    reply.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, msgTypeValue);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
 
     channel_->TriggerRawMessage(connectionName_, reply.Serialize());
@@ -345,7 +345,7 @@ HWTEST_F(MessageRouterTest, SendMessage_004, TestSize.Level0)
     reply.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     reply.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 99999);
     reply.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, true);
-    reply.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::KEEP_ALIVE));
+    reply.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::KEEP_ALIVE));
 
     channel_->TriggerRawMessage(connectionName_, reply.Serialize());
 
@@ -364,7 +364,7 @@ HWTEST_F(MessageRouterTest, SubscribeMessage_001, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::TOKEN_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::TOKEN_AUTH));
 
     channel_->TriggerRawMessage(connectionName_, msg.Serialize());
 
@@ -385,7 +385,7 @@ HWTEST_F(MessageRouterTest, SubscribeMessage_002, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::TOKEN_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::TOKEN_AUTH));
 
     channel_->TriggerRawMessage(connectionName_, msg.Serialize());
 
@@ -408,7 +408,7 @@ HWTEST_F(MessageRouterTest, SubscribeMessage_003, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::TOKEN_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::TOKEN_AUTH));
 
     channel_->TriggerRawMessage(connectionName_, msg.Serialize());
 
@@ -434,7 +434,7 @@ HWTEST_F(MessageRouterTest, SubscribeIncomingConnection_001, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, newConnectionName);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::START_DELEGATE_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::START_DELEGATE_AUTH));
 
     channel_->TriggerRawMessage(newConnectionName, msg.Serialize());
 
@@ -461,7 +461,7 @@ HWTEST_F(MessageRouterTest, SubscribeIncomingConnection_002, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, newConnectionName);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::START_DELEGATE_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::START_DELEGATE_AUTH));
 
     channel_->TriggerRawMessage(newConnectionName, msg.Serialize());
 
@@ -485,7 +485,7 @@ HWTEST_F(MessageRouterTest, SubscribeIncomingConnection_003, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, newConnectionName);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::START_DELEGATE_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::START_DELEGATE_AUTH));
 
     channel_->TriggerRawMessage(newConnectionName, msg.Serialize());
 
@@ -517,7 +517,7 @@ HWTEST_F(MessageRouterTest, HandleRawMessage_001, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 999);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::TOKEN_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::TOKEN_AUTH));
 
     router_->HandleRawMessage(connectionName_, msg.Serialize());
 }
@@ -534,7 +534,7 @@ HWTEST_F(MessageRouterTest, HandleRawMessage_003, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "non-existent-connection");
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::TOKEN_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::TOKEN_AUTH));
 
     channel_->TriggerRawMessage("non-existent-connection", msg.Serialize());
 }
@@ -545,7 +545,7 @@ HWTEST_F(MessageRouterTest, HandleRequest_001, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::DISCONNECT));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::DISCONNECT));
     msg.SetStringValue(Attributes::ATTR_CDA_SA_REASON, "test_disconnect");
 
     channel_->TriggerRawMessage(connectionName_, msg.Serialize());
@@ -558,7 +558,7 @@ HWTEST_F(MessageRouterTest, HandleRequest_002, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::DISCONNECT));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::DISCONNECT));
 
     channel_->TriggerRawMessage(connectionName_, msg.Serialize());
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -570,7 +570,7 @@ HWTEST_F(MessageRouterTest, HandleRequest_003, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::TOKEN_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::TOKEN_AUTH));
 
     channel_->TriggerRawMessage(connectionName_, msg.Serialize());
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -597,7 +597,7 @@ HWTEST_F(MessageRouterTest, HandleRequest_004, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::TOKEN_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::TOKEN_AUTH));
 
     channel_->TriggerRawMessage(connectionName_, msg.Serialize());
 
@@ -621,7 +621,7 @@ HWTEST_F(MessageRouterTest, FindMessageSubscriber_001, TestSize.Level0)
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::TOKEN_AUTH));
+    msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::TOKEN_AUTH));
 
     channel_->TriggerRawMessage(connectionName_, msg.Serialize());
 
@@ -645,7 +645,7 @@ HWTEST_F(MessageRouterTest, HandleReply_001, TestSize.Level0)
     reply.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     reply.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, messageSeq);
     reply.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, true);
-    reply.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint32_t>(MessageType::KEEP_ALIVE));
+    reply.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::KEEP_ALIVE));
 
     channel_->TriggerRawMessage(connectionName_, reply.Serialize());
     TaskRunnerManager::GetInstance().ExecuteAll();

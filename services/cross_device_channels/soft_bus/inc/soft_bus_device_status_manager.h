@@ -67,8 +67,8 @@ private:
         std::vector<PhysicalDeviceStatus> &statuses);
     void NotifyDeviceStatusChange();
     void NotifyAuthMaintainActiveChange();
-    void UnsubscribePhysicalDeviceStatus(int32_t subscriptionId);
-    void UnsubscribeAuthMaintainActive(int32_t subscriptionId);
+    void UnsubscribePhysicalDeviceStatus(SubscribeId subscriptionId);
+    void UnsubscribeAuthMaintainActive(SubscribeId subscriptionId);
 
     std::unique_ptr<SaStatusListener> saStatusListener_;
     std::shared_ptr<DistributedHardware::DmInitCallback> dmInitCallback_;

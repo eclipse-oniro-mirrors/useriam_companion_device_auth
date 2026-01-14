@@ -70,6 +70,7 @@ constexpr uint8_t FUZZ_BASE_OPERATIONS = 6;
 
 // Maximum list/vector sizes for various data structures
 constexpr uint8_t FUZZ_MAX_DEVICE_STATUS_COUNT = 10;
+constexpr uint8_t FUZZ_MAX_DEVICE_COUNT = 10;
 constexpr uint8_t FUZZ_MAX_DEVICE_KEY_COUNT = 5;
 constexpr uint8_t FUZZ_MAX_CAPABILITIES_COUNT = 8;
 constexpr uint8_t FUZZ_MAX_BUSINESS_IDS_COUNT = 10;

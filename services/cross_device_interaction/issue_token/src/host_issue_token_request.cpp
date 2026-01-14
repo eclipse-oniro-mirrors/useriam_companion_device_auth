@@ -143,9 +143,9 @@ void HostIssueTokenRequest::HandlePreIssueTokenReply(const Attributes &message)
     IAM_LOGI("%{public}s", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
-    PreIssueTokenReply reply = {};
-    bool decodeRet = DecodePreIssueTokenReply(message, reply);
-    ENSURE_OR_RETURN(decodeRet);
+    auto replyOpt = DecodePreIssueTokenReply(message);
+    ENSURE_OR_RETURN(replyOpt.has_value());
+    const auto &reply = *replyOpt;
     if (reply.result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s pre issue token failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(reply.result));
@@ -209,9 +209,9 @@ void HostIssueTokenRequest::HandleIssueTokenReply(const Attributes &message)
     IAM_LOGI("%{public}s", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
-    IssueTokenReply reply = {};
-    bool decodeRet = DecodeIssueTokenReply(message, reply);
-    ENSURE_OR_RETURN(decodeRet);
+    auto replyOpt = DecodeIssueTokenReply(message);
+    ENSURE_OR_RETURN(replyOpt.has_value());
+    const auto &reply = *replyOpt;
     if (reply.result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s issue token failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(reply.result));

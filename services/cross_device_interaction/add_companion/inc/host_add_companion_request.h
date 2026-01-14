@@ -66,9 +66,9 @@ private:
     std::vector<uint8_t> fwkMsg_;
     uint32_t tokenId_ = 0;
     std::vector<uint8_t> addCompanionFwkMsg_ {};
-    std::vector<uint8_t> pendingTokenData_ {}; // Token 数据用于 EndAddHostBinding 消息
-    TemplateId templateId_ {};                 // 绑定成功后的 templateId
-    Atl tokenAtl_ = 0;                         // Token 的 ATL 等级
+    std::vector<uint8_t> pendingTokenData_ {}; // Token data for EndAddHostBinding message
+    TemplateId templateId_ {};                 // TemplateId after successful binding
+    Atl tokenAtl_ = 0;                         // ATL level of token
     bool needCancelCompanionAdd_ = false;
     bool needCancelIssueToken_ = false;
     FwkResultCallback requestCallback_;

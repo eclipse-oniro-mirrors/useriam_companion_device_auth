@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "token_auth_message.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using TokenAuthMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodeTokenAuthRequest(FuzzedDataProvider &fuzzData)
 {
@@ -71,14 +71,14 @@ static void FuzzDecodeTokenAuthReply(FuzzedDataProvider &fuzzData)
     (void)result;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const TokenAuthMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodeTokenAuthRequest,
     FuzzDecodeTokenAuthRequest,
     FuzzEncodeTokenAuthReply,
     FuzzDecodeTokenAuthReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(TokenAuthMessageFuzzFunction);
 
 void FuzzTokenAuthMessage(FuzzedDataProvider &fuzzData)
 {
@@ -97,5 +97,8 @@ void FuzzTokenAuthMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(TokenAuthMessage)
+
 } // namespace UserIam
 } // namespace OHOS

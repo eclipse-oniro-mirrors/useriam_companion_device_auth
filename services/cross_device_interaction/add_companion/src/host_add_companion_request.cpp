@@ -15,8 +15,6 @@
 
 #include "host_add_companion_request.h"
 
-#include <chrono>
-
 #include "iam_check.h"
 #include "iam_logger.h"
 
@@ -239,14 +237,12 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
     companionStatus.deviceName = deviceStatus->deviceName;
     companionStatus.isValid = true;
 
-    std::vector<uint8_t> tokenData;
-    Atl atl = 0;
-    EndAddCompanionInputParam inputParam;
-    inputParam.requestId = GetRequestId();
-    inputParam.companionStatus = companionStatus;
-    inputParam.secureProtocolId = secureProtocolId_;
-    inputParam.addHostBindingReply = reply.extraInfo;
-    ResultCode ret = GetCompanionManager().EndAddCompanion(inputParam, fwkMsg, tokenData, atl);
+    EndAddCompanionInput input = { .requestId = GetRequestId(),
+        .companionStatus = companionStatus,
+        .secureProtocolId = secureProtocolId_,
+        .addHostBindingReply = reply.extraInfo };
+    EndAddCompanionOutput output = {};
+    ResultCode ret = GetCompanionManager().EndAddCompanion(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s EndAddCompanion failed ret=%{public}d", GetDescription(), ret);
         return false;
@@ -259,8 +255,9 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
     ENSURE_OR_RETURN_VAL(companionStatusOpt.has_value(), false);
     templateId_ = companionStatusOpt->templateId;
 
-    pendingTokenData_ = std::move(tokenData);
-    tokenAtl_ = atl;
+    fwkMsg.swap(output.fwkMsg);
+    pendingTokenData_ = std::move(output.tokenData);
+    tokenAtl_ = output.atl;
     return true;
 }
 
@@ -272,7 +269,7 @@ bool HostAddCompanionRequest::SendEndAddHostBindingMsg(ResultCode result)
     EndAddHostBindingRequest requestMsg = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionDeviceKey->deviceUserId,
         .result = result,
-        .extraInfo = pendingTokenData_ }; // 包含加密后的 Token 数据（仅当成功时非空）
+        .extraInfo = pendingTokenData_ }; // Contains encrypted token data (non-empty only when successful)
     Attributes request = {};
     bool encodeRet = EncodeEndAddHostBindingRequest(requestMsg, request);
     ENSURE_OR_RETURN_VAL(encodeRet, false);

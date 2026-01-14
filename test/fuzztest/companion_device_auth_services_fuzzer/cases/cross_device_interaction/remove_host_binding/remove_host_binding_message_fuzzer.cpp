@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "remove_host_binding_message.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using RemoveHostBindingMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodeRemoveHostBindingRequest(FuzzedDataProvider &fuzzData)
 {
@@ -69,14 +69,14 @@ static void FuzzDecodeRemoveHostBindingReply(FuzzedDataProvider &fuzzData)
     (void)result;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const RemoveHostBindingMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodeRemoveHostBindingRequest,
     FuzzDecodeRemoveHostBindingRequest,
     FuzzEncodeRemoveHostBindingReply,
     FuzzDecodeRemoveHostBindingReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(RemoveHostBindingMessageFuzzFunction);
 
 void FuzzRemoveHostBindingMessage(FuzzedDataProvider &fuzzData)
 {
@@ -95,5 +95,8 @@ void FuzzRemoveHostBindingMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(RemoveHostBindingMessage)
+
 } // namespace UserIam
 } // namespace OHOS

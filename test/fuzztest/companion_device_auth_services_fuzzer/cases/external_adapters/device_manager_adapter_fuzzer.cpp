@@ -24,13 +24,13 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using DeviceManagerAdapterFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzInitDeviceManager(FuzzedDataProvider &fuzzData)
 {
@@ -79,7 +79,7 @@ static void FuzzMultipleNetworkIds(FuzzedDataProvider &fuzzData)
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const DeviceManagerAdapterFuzzFunction g_fuzzFuncs[] = {
     FuzzInitDeviceManager,
     FuzzGetUdidByNetworkId,
     FuzzQueryTrustedDevices,
@@ -89,7 +89,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzMultipleNetworkIds,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(DeviceManagerAdapterFuzzFunction);
 
 void FuzzDeviceManagerAdapter(FuzzedDataProvider &fuzzData)
 {
@@ -107,5 +107,8 @@ void FuzzDeviceManagerAdapter(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(DeviceManagerAdapter)
+
 } // namespace UserIam
 } // namespace OHOS

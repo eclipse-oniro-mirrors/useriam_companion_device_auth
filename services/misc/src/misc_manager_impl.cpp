@@ -15,8 +15,6 @@
 
 #include "misc_manager_impl.h"
 
-#include <cinttypes>
-#include <cstring>
 #include <limits>
 #include <new>
 #include <utility>
@@ -108,11 +106,8 @@ std::shared_ptr<MiscManagerImpl> MiscManagerImpl::Create()
     return manager;
 }
 
-int32_t MiscManagerImpl::GetNextGlobalId()
+uint64_t MiscManagerImpl::GetNextGlobalId()
 {
-    if (globalIdCounter_ < 0 || globalIdCounter_ == std::numeric_limits<int32_t>::max()) {
-        globalIdCounter_ = 1;
-    }
     return globalIdCounter_++;
 }
 
@@ -198,13 +193,13 @@ std::optional<std::string> MiscManagerImpl::GetLocalUdid()
     return std::nullopt;
 }
 
-bool MiscManagerImpl::CheckBusinessIds(const std::vector<int32_t> &businessIds)
+bool MiscManagerImpl::CheckBusinessIds(const std::vector<BusinessId> &businessIds)
 {
     IAM_LOGI("Start, businessIds size:%{public}zu", businessIds.size());
 
     for (const auto &businessId : businessIds) {
-        if (businessId != static_cast<int32_t>(BusinessId::DEFAULT)) {
-            IAM_LOGE("Invalid businessId:%{public}d, only DEFAULT(0) is allowed", businessId);
+        if (businessId != BusinessId::DEFAULT) {
+            IAM_LOGE("Invalid businessId:%{public}d", businessId);
             return false;
         }
     }

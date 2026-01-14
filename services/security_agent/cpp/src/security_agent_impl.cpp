@@ -57,7 +57,6 @@ std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 
 void SecurityAgentImpl::Initialize()
 {
-    init_rust_env();
     auto &activeUserIdManager = SingletonManager::GetInstance().GetActiveUserIdManager();
     UserId currentUserId = activeUserIdManager.GetActiveUserId();
     auto subscription = activeUserIdManager.SubscribeActiveUserId([this](UserId userId) {
@@ -969,8 +968,24 @@ ResultCode SecurityAgentImpl::HostEndTokenAuth(const HostEndTokenAuthInput &inpu
 
 ResultCode SecurityAgentImpl::HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output)
 {
-    output.needRedistribute = true;
-    IAM_LOGI("HostUpdateToken success (temporarily returns SUCCESS)");
+    ENSURE_OR_RETURN_VAL(invoker_ != nullptr, GENERAL_ERROR);
+
+    auto ffiInput = std::make_unique<HostUpdateTokenInputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
+    bool encodeRet = EncodeHostUpdateTokenInput(input, *ffiInput);
+    ENSURE_OR_RETURN_VAL(encodeRet, INVALID_PARAMETERS);
+
+    auto ffiOutput = std::make_unique<HostUpdateTokenOutputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
+
+    int32_t invokeResult = invoker_->InvokeCommand(CommandId::HOST_ACTIVATE_TOKEN,
+        reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostUpdateTokenInputFfi),
+        reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostUpdateTokenOutputFfi));
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+
+    bool decodeRet = DecodeHostUpdateTokenOutput(*ffiOutput, output);
+    ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
+    IAM_LOGI("success");
     return SUCCESS;
 }
 

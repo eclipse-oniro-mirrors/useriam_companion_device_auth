@@ -23,7 +23,7 @@ use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::auth_message::SecAuthReply;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestInput, CompanionRequestOutput};
+use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostTokenInfo;
 use crate::utils::{Attribute, AttributeKey};
@@ -94,14 +94,14 @@ impl CompanionRequest for CompanionTokenAuthRequest {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionTokenAuthRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionTokenAuthRequest begin start");
-        let CompanionRequestInput::TokenAuthBegin(ffi_input) = input else {
+        let CompanionRequestParam::TokenAuthBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -109,15 +109,14 @@ impl CompanionRequest for CompanionTokenAuthRequest {
         self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_begin_sec_message()?;
 
-        Ok(CompanionRequestOutput::TokenAuthBegin(CompanionProcessTokenAuthOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|_| {
-                log_e!("sec_message try from fail");
-                ErrorCode::GeneralError
-            })?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|_| {
+            log_e!("sec_message try from fail");
+            ErrorCode::GeneralError
+        })?;
+        Ok(())
     }
 
-    fn end(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn end(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionTokenAuthRequest end not implemented");
         Err(ErrorCode::GeneralError)
     }

@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "host_binding.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<HostBinding> &hostBinding, FuzzedDataProvider &fuzzData);
+using HostBindingFuzzFunction = void (*)(std::shared_ptr<HostBinding> &hostBinding, FuzzedDataProvider &fuzzData);
 
 static void FuzzSetTokenValid(std::shared_ptr<HostBinding> &hostBinding, FuzzedDataProvider &fuzzData)
 {
@@ -71,7 +71,7 @@ static void FuzzGetAllMethods(std::shared_ptr<HostBinding> &hostBinding, FuzzedD
     (void)hostBinding->GetDescription();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const HostBindingFuzzFunction g_fuzzFuncs[] = {
     FuzzSetTokenValid,
     FuzzHandleDeviceStatusChanged,
     FuzzHandleHostDeviceStatusUpdate,
@@ -80,7 +80,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzGetAllMethods,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostBindingFuzzFunction);
 
 void FuzzHostBinding(FuzzedDataProvider &fuzzData)
 {
@@ -104,5 +104,8 @@ void FuzzHostBinding(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(HostBinding)
+
 } // namespace UserIam
 } // namespace OHOS

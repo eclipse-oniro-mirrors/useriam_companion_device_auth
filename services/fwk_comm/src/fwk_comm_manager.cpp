@@ -15,8 +15,6 @@
 
 #include "fwk_comm_manager.h"
 
-#include <map>
-
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
@@ -24,6 +22,8 @@
 #include "adapter_manager.h"
 #include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
+#include "service_common.h"
+#include "xcollie_helper.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -58,6 +58,7 @@ bool FwkCommManager::Initialize()
         return false;
     }
 
+    XCollieHelper xcollie("FwkCommManager-StartDriver", ADAPTER_CALL_TIMEOUT_SEC);
     return GetDriverManagerAdapter().Start(driver);
 }
 

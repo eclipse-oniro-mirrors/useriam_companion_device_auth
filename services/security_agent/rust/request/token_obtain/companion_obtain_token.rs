@@ -25,7 +25,7 @@ use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest, SecIssueToken};
 use crate::request::token_obtain::token_obtain_message::{FwkObtainTokenRequest, SecPreObtainTokenRequest};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestInput, CompanionRequestOutput};
+use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostTokenInfo;
 use crate::traits::misc_manager::MiscManagerRegistry;
@@ -161,14 +161,14 @@ impl CompanionRequest for CompanionDeviceObtainTokenRequest {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionDeviceObtainTokenRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceObtainTokenRequest begin start");
-        let CompanionRequestInput::ObtainTokenBegin(ffi_input) = input else {
+        let CompanionRequestParam::ObtainTokenBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -177,14 +177,13 @@ impl CompanionRequest for CompanionDeviceObtainTokenRequest {
         self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
 
         let sec_message = self.create_begin_sec_message()?;
-        Ok(CompanionRequestOutput::ObtainTokenBegin(CompanionBeginObtainTokenOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        Ok(())
     }
 
-    fn end(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn end(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceObtainTokenRequest end start");
-        let CompanionRequestInput::ObtainTokenEnd(ffi_input) = input else {
+        let CompanionRequestParam::ObtainTokenEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -192,6 +191,7 @@ impl CompanionRequest for CompanionDeviceObtainTokenRequest {
         self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         self.store_token()?;
 
-        Ok(CompanionRequestOutput::ObtainTokenEnd(CompanionEndObtainTokenOutputFfi::default()))
+        *ffi_output = CompanionEndObtainTokenOutputFfi::default();
+        Ok(())
     }
 }

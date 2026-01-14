@@ -24,7 +24,7 @@ pub const AUTH_TOKEN_CIPHER_LEN: usize = core::mem::size_of::<TokenDataToEncrypt
 pub const TOKEN_VALIDITY_PERIOD: u64 = 10 * 60 * 100;
 pub const TOKEN_VERSION: u32 = 0;
 
-//加密+签名后的authtoken产物
+// Encrypted+signed auth token product
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct UserAuthToken {
@@ -48,12 +48,12 @@ impl UserAuthToken {
         Self { version, token_data_plain, token_data_cipher, tag, iv, sign }
     }
 
-    //结构体序列化
+    // Struct serialization
     pub fn serialize(&self) -> &[u8] {
         unsafe { core::slice::from_raw_parts(self as *const Self as *const u8, core::mem::size_of::<Self>()) }
     }
 
-    //结构体反序列化
+    // Struct deserialization
     pub fn deserialize(bytes: &[u8]) -> Result<Self, ErrorCode> {
         let expected_len = core::mem::size_of::<Self>();
         if bytes.len() != expected_len {
@@ -64,7 +64,7 @@ impl UserAuthToken {
     }
 }
 
-//authtoken中的明文
+// Plaintext in auth token
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TokenDataPlain {
@@ -77,7 +77,7 @@ pub struct TokenDataPlain {
     pub token_type: i32,
 }
 
-//authtoken中的密文
+// Ciphertext in auth token
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TokenDataToEncrypt {

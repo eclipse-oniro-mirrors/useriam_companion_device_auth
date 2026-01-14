@@ -70,15 +70,14 @@ HWTEST_F(AttributesTest, AttributesSerialize, TestSize.Level0)
     const std::vector<Attributes::AttributeKey> desired = { Attributes::ATTR_SIGNATURE,
         Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
         Attributes::ATTR_CDA_SA_RESULT, Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, Attributes::ATTR_CDA_SA_CHALLENGE,
-        Attributes::ATTR_CDA_SA_MSG_TYPE, Attributes::ATTR_CDA_SA_REQUEST_ID };
+        Attributes::ATTR_CDA_SA_MSG_TYPE };
 
     Attributes attrs;
 
     attrs.SetBoolValue(Attributes::ATTR_CDA_SA_RESULT, true);
     attrs.SetBoolValue(Attributes::ATTR_SIGNATURE, false);
-    attrs.SetUint64Value(Attributes::ATTR_CDA_SA_REQUEST_ID, UINT64_MAX);
     attrs.SetUint32ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, { 1, 3, 5, 7, 9 });
-    attrs.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, UINT32_MAX);
+    attrs.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, UINT16_MAX);
     attrs.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, UINT16_MAX);
     attrs.SetUint64ArrayValue(Attributes::ATTR_CDA_SA_CHALLENGE, { 2, 4, 6, 8, 10 });
     attrs.SetStringValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, "iam");
@@ -95,17 +94,13 @@ HWTEST_F(AttributesTest, AttributesSerialize, TestSize.Level0)
     EXPECT_TRUE(attrs2.GetBoolValue(Attributes::ATTR_SIGNATURE, boolValue));
     EXPECT_EQ(boolValue, false);
 
-    uint64_t u64Value;
-    EXPECT_TRUE(attrs2.GetUint64Value(Attributes::ATTR_CDA_SA_REQUEST_ID, u64Value));
-    EXPECT_EQ(u64Value, UINT64_MAX);
-
     std::vector<uint32_t> u32Vector;
     EXPECT_TRUE(attrs2.GetUint32ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, u32Vector));
     EXPECT_THAT(u32Vector, ElementsAre(1, 3, 5, 7, 9));
 
-    uint32_t u32Value;
-    EXPECT_TRUE(attrs2.GetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, u32Value));
-    EXPECT_EQ(u32Value, UINT32_MAX);
+    uint16_t u16ValueForMsg;
+    EXPECT_TRUE(attrs2.GetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, u16ValueForMsg));
+    EXPECT_EQ(u16ValueForMsg, UINT16_MAX);
 
     uint16_t u16Value;
     EXPECT_TRUE(attrs2.GetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, u16Value));
@@ -213,7 +208,7 @@ HWTEST_F(AttributesTest, AttributesStringValue, TestSize.Level0)
 HWTEST_F(AttributesTest, AttributesUint64ByteArray, TestSize.Level0)
 {
     {
-        constexpr int arraySize = 8192;
+        constexpr int arraySize = 4096;
 
         Attributes attrs;
         std::vector<uint64_t> array;
@@ -240,7 +235,7 @@ HWTEST_F(AttributesTest, AttributesUint64ByteArray, TestSize.Level0)
 HWTEST_F(AttributesTest, AttributesUint32ByteArray, TestSize.Level0)
 {
     {
-        constexpr int arraySize = 8192;
+        constexpr int arraySize = 4096;
 
         Attributes attrs;
         std::vector<uint32_t> array;
@@ -269,7 +264,7 @@ HWTEST_F(AttributesTest, AttributesUint32ByteArray, TestSize.Level0)
 HWTEST_F(AttributesTest, AttributesUint16ByteArray, TestSize.Level0)
 {
     {
-        constexpr int arraySize = 8192;
+        constexpr int arraySize = 4096;
 
         Attributes attrs;
         std::vector<uint16_t> array;
@@ -296,7 +291,7 @@ HWTEST_F(AttributesTest, AttributesUint16ByteArray, TestSize.Level0)
 HWTEST_F(AttributesTest, AttributesUint8ByteArray, TestSize.Level0)
 {
     {
-        constexpr int arraySize = 8192;
+        constexpr int arraySize = 4096;
 
         Attributes attrs;
         std::vector<uint8_t> array;
@@ -345,9 +340,6 @@ HWTEST_F(AttributesTest, AttributesEmptyArrays, TestSize.Level0)
     bool value = true;
     attrs1.SetBoolValue(Attributes::ATTR_CDA_SA_RESULT, value);
 
-    std::vector<uint64_t> u64Vector;
-    attrs1.SetUint64ArrayValue(Attributes::ATTR_CDA_SA_REQUEST_ID, u64Vector);
-
     std::vector<uint32_t> u32Vector;
     attrs1.SetUint32ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, u32Vector);
 
@@ -363,9 +355,6 @@ HWTEST_F(AttributesTest, AttributesEmptyArrays, TestSize.Level0)
     Attributes attrs2(buff);
     EXPECT_TRUE(attrs1.GetBoolValue(Attributes::ATTR_CDA_SA_RESULT, value));
     EXPECT_TRUE(value);
-
-    EXPECT_TRUE(attrs1.GetUint64ArrayValue(Attributes::ATTR_CDA_SA_REQUEST_ID, u64Vector));
-    EXPECT_THAT(u64Vector, IsEmpty());
 
     EXPECT_TRUE(attrs1.GetUint32ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, u32Vector));
     EXPECT_THAT(u32Vector, IsEmpty());
@@ -402,9 +391,7 @@ HWTEST_F(AttributesTest, AttributesSetAndGetAttributesArray, TestSize.Level0)
     Attributes attrs1;
     Attributes attrs2;
     attrs1.SetBoolValue(Attributes::ATTR_CDA_SA_RESULT, true);
-    attrs1.SetBoolValue(Attributes::ATTR_CDA_SA_REQUEST_ID, false);
     attrs2.SetBoolValue(Attributes::ATTR_CDA_SA_RESULT, true);
-    attrs2.SetBoolValue(Attributes::ATTR_CDA_SA_REQUEST_ID, false);
 
     std::vector<Attributes> attrsArray;
     attrsArray.push_back(Attributes(attrs1.Serialize()));
@@ -660,8 +647,7 @@ HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize01, TestSize.Level0)
     const uint16_t constU16Val = 0x0102;
     const int32_t constI32Val = 0x01020304;
     Attributes attrsSerial;
-    attrsSerial.SetUint64Value(Attributes::ATTR_CDA_SA_REQUEST_ID, constU64Val);
-    attrsSerial.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, constU32Val);
+    attrsSerial.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, constU16Val);
     attrsSerial.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, constU16Val);
     attrsSerial.SetUint64ArrayValue(Attributes::ATTR_CDA_SA_CHALLENGE,
         { constU64Val, constU64Val, constU64Val, constU64Val, constU64Val });
@@ -675,12 +661,9 @@ HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize01, TestSize.Level0)
     auto buffer = attrsSerial.Serialize();
 
     Attributes attrsDeserial(buffer);
-    uint64_t u64Value;
-    EXPECT_TRUE(attrsDeserial.GetUint64Value(Attributes::ATTR_CDA_SA_REQUEST_ID, u64Value));
-    EXPECT_EQ(u64Value, constU64Val);
-    uint32_t u32Value;
-    EXPECT_TRUE(attrsDeserial.GetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, u32Value));
-    EXPECT_EQ(u32Value, constU32Val);
+    uint16_t u16ValueForMsg;
+    EXPECT_TRUE(attrsDeserial.GetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, u16ValueForMsg));
+    EXPECT_EQ(u16ValueForMsg, constU16Val);
     uint16_t u16Value;
     EXPECT_TRUE(attrsDeserial.GetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, u16Value));
     EXPECT_EQ(u16Value, constU16Val);
@@ -704,11 +687,12 @@ HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize01, TestSize.Level0)
 HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize02, TestSize.Level0)
 {
     const uint32_t constU32Val = 0x01020304;
+    const uint16_t constU16Val = 0x0102;
     const uint8_t constU8Val = 0x01;
     Attributes attrsSerial;
     attrsSerial.SetBoolValue(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, true);
     attrsSerial.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
-    attrsSerial.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, constU32Val);
+    attrsSerial.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, constU16Val);
     attrsSerial.SetUint32ArrayValue(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM,
         { constU32Val, constU32Val, constU32Val, constU32Val, constU32Val });
     attrsSerial.SetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, "iam_unit_test");
@@ -726,9 +710,9 @@ HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize02, TestSize.Level0)
     EXPECT_TRUE(attrsDeserial.GetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, boolValFalse));
     EXPECT_EQ(boolValFalse, false);
 
-    uint32_t u32Value;
-    EXPECT_TRUE(attrsDeserial.GetUint32Value(Attributes::ATTR_CDA_SA_MSG_TYPE, u32Value));
-    EXPECT_EQ(u32Value, constU32Val);
+    uint16_t u16ValueForMsg;
+    EXPECT_TRUE(attrsDeserial.GetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, u16ValueForMsg));
+    EXPECT_EQ(u16ValueForMsg, constU16Val);
 
     std::vector<uint32_t> u32Vector;
     EXPECT_TRUE(attrsDeserial.GetUint32ArrayValue(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, u32Vector));

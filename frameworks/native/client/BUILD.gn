@@ -13,25 +13,23 @@
 
 import("//build/ohos.gni")
 import("../../../companion_device_auth.gni")
+import("BUILD.gni")
+
+# Export config for tests to use
+config("client_config") {
+  include_dirs = companion_device_auth_client_include_dirs
+  cflags = [
+    "-Dprivate=public",
+    "-Dprotected=public",
+  ]
+}
 
 ohos_shared_library("companion_device_auth_client") {
   sanitize = companion_device_auth_sanitize
   branch_protector_ret = "pac_ret"
-  include_dirs = [
-    "inc",
-    "${companion_device_auth_path}/common/inc",
-  ]
+  include_dirs = companion_device_auth_client_include_dirs
 
-  sources = [
-    "src/companion_device_auth_client_impl.cpp",
-    "src/ipc_available_device_status_callback_service.cpp",
-    "src/ipc_client_utils.cpp",
-    "src/ipc_continuous_auth_status_callback_service.cpp",
-    "src/ipc_device_select_callback_service.cpp",
-    "src/ipc_template_status_callback_service.cpp",
-    "src/set_device_select_result_callback.cpp",
-    "src/system_ability_listener.cpp",
-  ]
+  sources = companion_device_auth_client_sources
 
   configs = [
     "${companion_device_auth_path}/common:companion_device_auth_common_config",
@@ -39,26 +37,20 @@ ohos_shared_library("companion_device_auth_client") {
 
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
 
-  public_configs = [ "${companion_device_auth_path}/frameworks/native/ipc:companion_device_auth_native_ipc_config" ]
+  public_configs = [
+    "${companion_device_auth_path}/frameworks/native/ipc:companion_device_auth_native_ipc_config",
+    ":client_config",
+  ]
 
   innerapi_tags = [ "platformsdk" ]
 
-  deps = [ "${companion_device_auth_path}/frameworks/native/ipc:companion_device_auth_proxy" ]
+  deps = companion_device_auth_client_deps
 
   # if (use_musl) {
   #   version_script = "companion_device_auth_client_map"
   # }
 
-  external_deps = [
-    "access_token:libaccesstoken_sdk",
-    "c_utils:utils",
-    "hilog:libhilog",
-    "init:libbeget_proxy",
-    "init:libbegetutil",
-    "ipc:ipc_single",
-    "napi:ace_napi",
-    "samgr:samgr_proxy",
-  ]
+  external_deps = companion_device_auth_client_external_deps
 
   subsystem_name = companion_device_auth_subsystem_name
   part_name = companion_device_auth_part_name

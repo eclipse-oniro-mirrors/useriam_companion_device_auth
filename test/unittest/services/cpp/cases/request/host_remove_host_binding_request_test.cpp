@@ -117,8 +117,6 @@ HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_002, TestSize.Level0)
 {
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _))
-        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(mockCrossDeviceCommManager_, OpenConnection(_, _)).WillOnce(Return(false));
 
     ErrorGuard errorGuard([](ResultCode) {});
@@ -162,7 +160,7 @@ HWTEST_F(HostRemoveHostBindingRequestTest, SendRemoveHostBindingRequest_002, Tes
     CreateDefaultRequest();
     request_->SetPeerDeviceKey(hostDeviceKey_);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(nullopt));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
     EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillOnce(Return(false));
 
     request_->SendRemoveHostBindingRequest();

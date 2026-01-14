@@ -123,7 +123,7 @@ public:
 
 protected:
     int32_t activeUserId_ { 100 };
-    int32_t nextSubscriptionId_ { 1 };
+    uint64_t nextSubscriptionId_ { 1 };
     NiceMock<MockMiscManager> miscManager_;
     NiceMock<MockUserIdManager> activeUserIdManager_;
     NiceMock<MockRequestFactory> requestFactory_;

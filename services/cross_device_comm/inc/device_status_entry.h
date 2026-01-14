@@ -37,14 +37,13 @@ public:
 
     PhysicalDeviceKey physicalDeviceKey;
     ChannelId channelId { ChannelId::INVALID };
-    std::string networkId {};
     std::string deviceModelInfo {};
     std::string deviceUserName {};
     std::string deviceName {};
     ProtocolId protocolId { ProtocolId::INVALID };
     SecureProtocolId secureProtocolId { SecureProtocolId::INVALID };
     std::vector<Capability> capabilities {};
-    std::vector<int32_t> supportedBusinessIds {};
+    std::vector<BusinessId> supportedBusinessIds {};
     bool isAuthMaintainActive { false };
     bool isSynced { false };
     bool isSyncInProgress { false };

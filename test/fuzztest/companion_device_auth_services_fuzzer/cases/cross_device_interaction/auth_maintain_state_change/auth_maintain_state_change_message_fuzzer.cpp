@@ -22,13 +22,13 @@
 #include "auth_maintain_state_change_message.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using AuthMaintainStateChangeMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodeAuthMaintainStateChangeRequest(FuzzedDataProvider &fuzzData)
 {
@@ -63,14 +63,14 @@ static void FuzzDecodeAuthMaintainStateChangeReply(FuzzedDataProvider &fuzzData)
     (void)result;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const AuthMaintainStateChangeMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodeAuthMaintainStateChangeRequest,
     FuzzDecodeAuthMaintainStateChangeRequest,
     FuzzEncodeAuthMaintainStateChangeReply,
     FuzzDecodeAuthMaintainStateChangeReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(AuthMaintainStateChangeMessageFuzzFunction);
 
 void FuzzAuthMaintainStateChangeMessage(FuzzedDataProvider &fuzzData)
 {
@@ -89,5 +89,8 @@ void FuzzAuthMaintainStateChangeMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(AuthMaintainStateChangeMessage)
+
 } // namespace UserIam
 } // namespace OHOS

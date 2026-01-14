@@ -147,7 +147,6 @@ void NapiTemplateStatusCallback::OnTemplateStatusChange(const std::vector<Client
     templateStatusCallbackHolder->templateStatusList = templateStatusList;
     templateStatusCallbackHolder->env = env_;
     auto task = [templateStatusCallbackHolder]() {
-        IAM_LOGD("start");
         if (templateStatusCallbackHolder == nullptr || templateStatusCallbackHolder->callback == nullptr) {
             IAM_LOGE("templateStatusCallbackHolder is invalid");
             return;

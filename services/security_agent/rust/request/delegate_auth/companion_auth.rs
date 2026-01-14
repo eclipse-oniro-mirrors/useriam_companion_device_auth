@@ -23,7 +23,7 @@ use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestInput, CompanionRequestOutput};
+use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostTokenInfo;
 use crate::utils::auth_token::UserAuthToken;
@@ -101,29 +101,28 @@ impl CompanionRequest for CompanionDelegateAuthRequest {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionDelegateAuthRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDelegateAuthRequest begin start");
-        let CompanionRequestInput::DelegateAuthBegin(ffi_input) = input else {
+        let CompanionRequestParam::DelegateAuthBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
 
-        Ok(CompanionRequestOutput::DelegateAuthBegin(CompanionBeginDelegateAuthOutputFfi {
-            challenge: self.challenge,
-            atl: self.atl as i32,
-        }))
+        ffi_output.challenge = self.challenge;
+        ffi_output.atl = self.atl as i32;
+        Ok(())
     }
 
-    fn end(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn end(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDelegateAuthRequest end start");
-        let CompanionRequestInput::DelegateAuthEnd(ffi_input) = input else {
+        let CompanionRequestParam::DelegateAuthEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -139,11 +138,10 @@ impl CompanionRequest for CompanionDelegateAuthRequest {
         let sec_message = self.create_end_sec_message()?;
         companion_db_helper::update_host_device_last_used_time(self.binding_id)?;
 
-        Ok(CompanionRequestOutput::DelegateAuthEnd(CompanionEndDelegateAuthOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|_| {
-                log_e!("sec_message try from fail");
-                ErrorCode::GeneralError
-            })?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|_| {
+            log_e!("sec_message try from fail");
+            ErrorCode::GeneralError
+        })?;
+        Ok(())
     }
 }

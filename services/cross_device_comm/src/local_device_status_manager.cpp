@@ -15,6 +15,8 @@
 
 #include "local_device_status_manager.h"
 
+#include <cinttypes>
+
 #include "iam_check.h"
 #include "iam_logger.h"
 
@@ -90,10 +92,10 @@ bool LocalDeviceStatusManager::IsAuthMaintainActive()
 std::unique_ptr<Subscription> LocalDeviceStatusManager::SubscribeIsAuthMaintainActive(
     OnAuthMaintainActiveChange &&callback)
 {
-    int32_t subscriptionId = nextSubscriptionId_++;
+    SubscribeId subscriptionId = nextSubscriptionId_++;
     statusSubscribers_[subscriptionId] = std::move(callback);
 
-    IAM_LOGI("auth maintain active subscription added: %{public}d", subscriptionId);
+    IAM_LOGI("auth maintain active subscription added: %{public}" PRIu64, subscriptionId);
 
     // Notify current status immediately
     bool isActive = authState_.isAuthMaintainActive;
@@ -166,10 +168,10 @@ void LocalDeviceStatusManager::SetAuthMaintainActive(bool isActive)
     NotifyStatusChange();
 }
 
-void LocalDeviceStatusManager::Unsubscribe(int32_t subscriptionId)
+void LocalDeviceStatusManager::Unsubscribe(SubscribeId subscriptionId)
 {
     statusSubscribers_.erase(subscriptionId);
-    IAM_LOGI("auth maintain active subscription removed: %{public}d", subscriptionId);
+    IAM_LOGI("auth maintain active subscription removed: %{public}" PRIu64, subscriptionId);
 }
 
 void LocalDeviceStatusManager::NotifyStatusChange()

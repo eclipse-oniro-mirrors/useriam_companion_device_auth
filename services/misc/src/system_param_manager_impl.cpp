@@ -16,6 +16,7 @@
 #include "system_param_manager_impl.h"
 
 #include <algorithm>
+#include <cinttypes>
 #include <utility>
 
 #include "iam_check.h"
@@ -98,7 +99,7 @@ std::unique_ptr<Subscription> SystemParamManagerImpl::WatchParam(const std::stri
 {
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
-    int32_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
     bool isFirstSubscriptionForKey = false;
 
     isFirstSubscriptionForKey = keyToSubscriptionIds_.find(key) == keyToSubscriptionIds_.end();
@@ -113,18 +114,18 @@ std::unique_ptr<Subscription> SystemParamManagerImpl::WatchParam(const std::stri
     subscriptions_[subscriptionId] = std::move(callback);
     keyToSubscriptionIds_[key].push_back(subscriptionId);
 
-    IAM_LOGI("watch key %{public}s, subscription id %{public}d", key.c_str(), subscriptionId);
+    IAM_LOGI("watch key %{public}s, subscription id %{public}" PRIu64, key.c_str(), subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnwatchParam(subscriptionId);
-        IAM_LOGI("system param subscription removed: %{public}d", subscriptionId);
+        IAM_LOGI("system param subscription removed: %{public}" PRIu64, subscriptionId);
     });
 }
 
-void SystemParamManagerImpl::UnwatchParam(int32_t subscriptionId)
+void SystemParamManagerImpl::UnwatchParam(SubscribeId subscriptionId)
 {
     auto subscriptionIt = subscriptions_.find(subscriptionId);
     if (subscriptionIt == subscriptions_.end()) {
@@ -150,7 +151,7 @@ void SystemParamManagerImpl::UnwatchParam(int32_t subscriptionId)
     }
 
     subscriptions_.erase(subscriptionIt);
-    IAM_LOGI("unwatch subscription id %{public}d, key %{public}s", subscriptionId, keyToRemove.c_str());
+    IAM_LOGI("unwatch subscription id %{public}" PRIu64 ", key %{public}s", subscriptionId, keyToRemove.c_str());
 }
 
 void SystemParamManagerImpl::OnParamChange(const std::string &key, const std::string &value)
@@ -160,7 +161,7 @@ void SystemParamManagerImpl::OnParamChange(const std::string &key, const std::st
     auto keyIt = keyToSubscriptionIds_.find(key);
     if (keyIt != keyToSubscriptionIds_.end()) {
         callbacks.reserve(keyIt->second.size());
-        for (int32_t subscriptionId : keyIt->second) {
+        for (SubscribeId subscriptionId : keyIt->second) {
             auto subscriptionIt = subscriptions_.find(subscriptionId);
             if (subscriptionIt != subscriptions_.end() && subscriptionIt->second != nullptr) {
                 callbacks.push_back(subscriptionIt->second);

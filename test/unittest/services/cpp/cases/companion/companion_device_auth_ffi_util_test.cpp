@@ -206,7 +206,8 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
         status.hostUserId = 321;
         status.secureProtocolId = SecureProtocolId::DEFAULT;
         status.isValid = true;
-        status.enabledBusinessIds = { 1, 3, 5 };
+        status.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(3),
+            static_cast<BusinessId>(5) };
         status.deviceModelInfo = "Model X";
 
         PersistedCompanionStatusFfi ffi = {};
@@ -223,7 +224,7 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
         status.secureProtocolId = SecureProtocolId::DEFAULT;
 
         for (int i = 0; i < 100; ++i) {
-            status.enabledBusinessIds.push_back(i);
+            status.enabledBusinessIds.push_back(static_cast<BusinessId>(i));
         }
 
         PersistedCompanionStatusFfi ffi = {};
@@ -565,11 +566,11 @@ HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
     originalStatus.addedTime = 1000;
     originalStatus.secureProtocolId = SecureProtocolId::DEFAULT;
     originalStatus.isValid = true;
-    originalStatus.enabledBusinessIds = { 1, 2 };
+    originalStatus.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2) };
     originalStatus.deviceModelInfo = "Test Device";
 
     DeviceKey key;
-    key.idType = DeviceIdType::VENDOR_BEGIN;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceUserId = 50;
     key.deviceId = "AA:BB:CC:DD:EE:FF";
     originalStatus.companionDeviceKey = key;
@@ -864,7 +865,8 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_001, Test
 {
     HostUpdateCompanionEnabledBusinessIdsInput input;
     input.templateId = 8888;
-    input.enabledBusinessIds = { 1, 2, 3, 4 };
+    input.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2), static_cast<BusinessId>(3),
+        static_cast<BusinessId>(4) };
 
     HostUpdateCompanionEnabledBusinessIdsInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostUpdateCompanionEnabledBusinessIdsInput(input, ffi));
@@ -1304,6 +1306,121 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusList_001, TestSize.Level0)
     EXPECT_EQ(list.size(), 2U);
     EXPECT_EQ(list[0].bindingId, 555U);
     EXPECT_EQ(list[1].bindingId, 888U);
+}
+
+// ============================================================================
+// Additional Overflow Tests for Missing Coverage
+// ============================================================================
+
+HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_002, TestSize.Level1)
+{
+    // Invalid: enabledBusinessIds exceeds max (64)
+    HostUpdateCompanionEnabledBusinessIdsInput input;
+    input.templateId = 1;
+    for (int i = 0; i < 65; ++i) {
+        input.enabledBusinessIds.push_back(static_cast<BusinessId>(i));
+    }
+
+    HostUpdateCompanionEnabledBusinessIdsInputFfi ffi = {};
+    EXPECT_FALSE(EncodeHostUpdateCompanionEnabledBusinessIdsInput(input, ffi));
+}
+
+HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow, TestSize.Level1)
+{
+    // Invalid: fwkMsg exceeds max (1024)
+    {
+        HostBeginAddCompanionInput input;
+        input.requestId = 1;
+        input.scheduleId = 1;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.hostDeviceKey.deviceUserId = 100;
+        input.hostDeviceKey.deviceId = "host";
+        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.companionDeviceKey.deviceUserId = 200;
+        input.companionDeviceKey.deviceId = "companion";
+        input.fwkMsg.resize(MAX_DATA_LEN_1024 + 1, 0xBB);
+
+        HostBeginAddCompanionInputFfi ffi = {};
+        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
+    }
+
+    // Invalid: initKeyNegotiationReply exceeds max (1024)
+    {
+        HostBeginAddCompanionInput input;
+        input.requestId = 1;
+        input.scheduleId = 1;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.hostDeviceKey.deviceUserId = 100;
+        input.hostDeviceKey.deviceId = "host";
+        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.companionDeviceKey.deviceUserId = 200;
+        input.companionDeviceKey.deviceId = "companion";
+        input.initKeyNegotiationReply.resize(MAX_DATA_LEN_1024 + 1, 0xCC);
+
+        HostBeginAddCompanionInputFfi ffi = {};
+        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
+    }
+}
+
+HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_002, TestSize.Level1)
+{
+    // Invalid: enabledBusinessIds exceeds max (64)
+    HostEndAddCompanionInput input;
+    input.requestId = 1;
+    input.secureProtocolId = SecureProtocolId::DEFAULT;
+    input.companionStatus.templateId = 1;
+    input.companionStatus.hostUserId = 1;
+    for (int i = 0; i < 65; ++i) {
+        input.companionStatus.enabledBusinessIds.push_back(static_cast<BusinessId>(i));
+    }
+
+    HostEndAddCompanionInputFfi ffi = {};
+    EXPECT_FALSE(EncodeHostEndAddCompanionInput(input, ffi));
+}
+
+HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_Overflow, TestSize.Level1)
+{
+    // Invalid: protocolVersionList exceeds max (64)
+    {
+        HostEndCompanionCheckInput input;
+        input.requestId = 1;
+        input.templateId = 1;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        for (int i = 0; i < 65; ++i) {
+            input.protocolVersionList.push_back(i);
+        }
+
+        HostEndCompanionCheckInputFfi ffi = {};
+        EXPECT_FALSE(EncodeHostEndCompanionCheckInput(input, ffi));
+    }
+
+    // Invalid: capabilityList exceeds max (64)
+    {
+        HostEndCompanionCheckInput input;
+        input.requestId = 1;
+        input.templateId = 1;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        for (int i = 0; i < 65; ++i) {
+            input.capabilityList.push_back(static_cast<uint16_t>(i));
+        }
+
+        HostEndCompanionCheckInputFfi ffi = {};
+        EXPECT_FALSE(EncodeHostEndCompanionCheckInput(input, ffi));
+    }
+
+    // Invalid: companionCheckResponse exceeds max (1024)
+    {
+        HostEndCompanionCheckInput input;
+        input.requestId = 1;
+        input.templateId = 1;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.companionCheckResponse.resize(MAX_DATA_LEN_1024 + 1, 0xAA);
+
+        HostEndCompanionCheckInputFfi ffi = {};
+        EXPECT_FALSE(EncodeHostEndCompanionCheckInput(input, ffi));
+    }
 }
 
 } // namespace CompanionDeviceAuth

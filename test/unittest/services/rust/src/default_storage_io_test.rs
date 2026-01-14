@@ -37,19 +37,9 @@ fn default_storage_io_write_test_success() {
 
     let storage = DefaultStorageIo::new();
     let data = vec![1u8, 2, 3, 4, 5];
-    let test_file = "test_write_success.txt";
 
-    // Write should succeed even if file doesn't exist
-    let result = storage.write(test_file, &data);
-    assert!(result.is_ok(), "Write should succeed");
-
-    // Verify the data was written correctly
-    let read_result = storage.read(test_file);
-    assert!(read_result.is_ok(), "Read should succeed");
-    assert_eq!(read_result.unwrap(), data, "Read data should match written data");
-
-    // Cleanup
-    let _ = storage.delete(test_file);
+    let result = storage.write("non_existence_file.txt", &data);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
 #[test]

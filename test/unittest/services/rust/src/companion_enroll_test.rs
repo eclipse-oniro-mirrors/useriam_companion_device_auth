@@ -23,7 +23,7 @@ use crate::request::enroll::companion_enroll::CompanionDeviceEnrollRequest;
 use crate::request::enroll::enroll_message::{SecBindingRequest, SecKeyNegoRequest};
 use crate::request::jobs::common_message::SecIssueToken;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestInput};
+use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, UserInfo};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
@@ -113,7 +113,9 @@ fn companion_enroll_request_prepare_test_wrong_input_type() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.prepare(CompanionRequestInput::EnrollBegin(wrong_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&wrong_input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -140,7 +142,9 @@ fn companion_enroll_request_prepare_test_algorithm_not_supported() {
     };
     let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();
 
-    let result = request.prepare(CompanionRequestInput::KeyNego(input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionInitKeyNegotiationOutputFfi::default();
+    let param = CompanionRequestParam::KeyNego(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -164,7 +168,9 @@ fn companion_enroll_request_prepare_test_generate_key_pair_fail() {
     };
     let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();
 
-    let result = request.prepare(CompanionRequestInput::KeyNego(input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionInitKeyNegotiationOutputFfi::default();
+    let param = CompanionRequestParam::KeyNego(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -186,7 +192,9 @@ fn companion_enroll_request_begin_test_wrong_input_type() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollEnd(wrong_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionEndAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollEnd(&wrong_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -211,7 +219,9 @@ fn companion_enroll_request_begin_test_get_key_pair_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -237,7 +247,9 @@ fn companion_enroll_request_begin_test_x25519_ecdh_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -264,7 +276,9 @@ fn companion_enroll_request_begin_test_hkdf_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -292,7 +306,9 @@ fn companion_enroll_request_begin_test_decrypt_sec_message_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -316,7 +332,9 @@ fn companion_enroll_request_begin_test_device_id_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -341,7 +359,9 @@ fn companion_enroll_request_begin_test_user_id_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -367,7 +387,9 @@ fn companion_enroll_request_begin_test_challenge_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -399,7 +421,9 @@ fn companion_enroll_request_begin_test_encrypt_sec_message_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -429,7 +453,9 @@ fn companion_enroll_request_begin_test_generate_unique_binding_id_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -463,7 +489,9 @@ fn companion_enroll_request_begin_test_get_rtc_time_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -499,7 +527,9 @@ fn companion_enroll_request_begin_test_add_host_device_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -536,7 +566,9 @@ fn companion_enroll_request_begin_test_get_device_by_binding_id_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.begin(CompanionRequestInput::EnrollBegin(begin_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -559,7 +591,9 @@ fn companion_enroll_request_end_test_wrong_input_type() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(CompanionRequestInput::EnrollBegin(wrong_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollBegin(&wrong_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -582,7 +616,9 @@ fn companion_enroll_request_end_test_challenge_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(CompanionRequestInput::EnrollEnd(end_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionEndAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -605,7 +641,9 @@ fn companion_enroll_request_end_test_atl_try_from_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(CompanionRequestInput::EnrollEnd(end_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionEndAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -632,6 +670,8 @@ fn companion_enroll_request_end_test_store_token_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(CompanionRequestInput::EnrollEnd(end_input));
+    let mut output = crate::entry::companion_device_auth_ffi::CompanionEndAddHostBindingOutputFfi::default();
+    let param = CompanionRequestParam::EnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

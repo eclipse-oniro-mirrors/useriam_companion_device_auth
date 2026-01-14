@@ -50,7 +50,7 @@ impl MiscManager for DefaultMiscManager {
         origin_key_data.extend_from_slice(DUMMY_DISTRIBUTE_DEVICE_KEY);
         origin_key_data.extend_from_slice(&salt);
 
-        // 计算SHA256哈希
+        // Calculate SHA256 hash
         CryptoEngineRegistry::get().sha256(&origin_key_data)
     }
 

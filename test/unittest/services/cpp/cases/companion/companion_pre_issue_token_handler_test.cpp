@@ -67,8 +67,8 @@ public:
         ON_CALL(mockRequestFactory_, CreateCompanionIssueTokenRequest(_, _, _, _))
             .WillByDefault(Invoke([this](const std::string &connectionName, const Attributes &request,
                                       OnMessageReply replyCallback, const DeviceKey &) {
-                PreIssueTokenRequest preRequest = {};
-                DecodePreIssueTokenRequest(request, preRequest);
+                auto result = DecodePreIssueTokenRequest(request);
+                PreIssueTokenRequest preRequest = result.value_or(PreIssueTokenRequest {});
                 return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
                     preRequest.hostDeviceKey);
             }));
@@ -108,8 +108,8 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_001, TestSize.Level0)
     EXPECT_CALL(mockRequestFactory_, CreateCompanionIssueTokenRequest(_, _, _, _))
         .WillOnce(Invoke([this](const std::string &connectionName, const Attributes &request,
                              OnMessageReply replyCallback, const DeviceKey &) {
-            PreIssueTokenRequest preRequest = {};
-            DecodePreIssueTokenRequest(request, preRequest);
+            auto result = DecodePreIssueTokenRequest(request);
+            PreIssueTokenRequest preRequest = result.value_or(PreIssueTokenRequest {});
             return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
                 preRequest.hostDeviceKey);
         }));
@@ -197,8 +197,8 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_005, TestSize.Level0)
     EXPECT_CALL(mockRequestFactory_, CreateCompanionIssueTokenRequest(_, _, _, _))
         .WillOnce(Invoke([this](const std::string &connectionName, const Attributes &request,
                              OnMessageReply replyCallback, const DeviceKey &) {
-            PreIssueTokenRequest preRequest = {};
-            DecodePreIssueTokenRequest(request, preRequest);
+            auto result = DecodePreIssueTokenRequest(request);
+            PreIssueTokenRequest preRequest = result.value_or(PreIssueTokenRequest {});
             return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
                 preRequest.hostDeviceKey);
         }));

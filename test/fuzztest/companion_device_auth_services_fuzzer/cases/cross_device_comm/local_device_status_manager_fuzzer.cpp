@@ -23,14 +23,15 @@
 #include "fuzz_constants.h"
 #include "fuzz_cross_device_channel.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "local_device_status_manager.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<LocalDeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData);
+using LocalDeviceStatusManagerFuzzFunction = void (*)(std::shared_ptr<LocalDeviceStatusManager> &mgr,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetLocalDeviceProfile(std::shared_ptr<LocalDeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
@@ -98,7 +99,7 @@ static void FuzzOnActiveUserIdChanged(std::shared_ptr<LocalDeviceStatusManager> 
     mgr->OnActiveUserIdChanged(userId);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const LocalDeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetLocalDeviceProfile,
     FuzzGetLocalDeviceKey,
     FuzzGetLocalDeviceKeys,
@@ -111,7 +112,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzOnActiveUserIdChanged,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(LocalDeviceStatusManagerFuzzFunction);
 
 void FuzzLocalDeviceStatusManager(FuzzedDataProvider &fuzzData)
 {
@@ -142,5 +143,8 @@ void FuzzLocalDeviceStatusManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(LocalDeviceStatusManager)
+
 } // namespace UserIam
 } // namespace OHOS

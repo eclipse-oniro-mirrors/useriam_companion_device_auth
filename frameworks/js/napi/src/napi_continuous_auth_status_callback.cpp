@@ -144,7 +144,6 @@ void NapiContinuousAuthStatusCallback::OnContinuousAuthStatusChange(const bool i
     continuousAuthStatusCallbackHolder->authTrustLevel = authTrustLevel;
     continuousAuthStatusCallbackHolder->env = env_;
     auto task = [continuousAuthStatusCallbackHolder]() {
-        IAM_LOGD("start");
         if (continuousAuthStatusCallbackHolder == nullptr || continuousAuthStatusCallbackHolder->callback == nullptr) {
             IAM_LOGE("continuousAuthStatusCallbackHolder is invalid");
             return;

@@ -105,6 +105,13 @@ bool OutboundRequest::OpenConnection()
 
     ENSURE_OR_RETURN_VAL(peerDeviceKey_.has_value(), false);
 
+    if (!GetCrossDeviceCommManager().OpenConnection(*peerDeviceKey_, connectionName_)) {
+        IAM_LOGE("%{public}s OpenConnection failed", GetDescription());
+        return false;
+    }
+
+    IAM_LOGI("%{public}s open connection %{public}s success", GetDescription(), connectionName_.c_str());
+
     connectionStatusSubscription_ = GetCrossDeviceCommManager().SubscribeConnectionStatus(connectionName_,
         [weakSelf = GetWeakPtr()](const std::string &connName, ConnectionStatus status, const std::string &reason) {
             auto self = weakSelf.lock();
@@ -127,12 +134,6 @@ bool OutboundRequest::OpenConnection()
             });
     ENSURE_OR_RETURN_VAL(requestAbortedSubscription_ != nullptr, false);
 
-    if (!GetCrossDeviceCommManager().OpenConnection(*peerDeviceKey_, connectionName_)) {
-        IAM_LOGE("%{public}s OpenConnection failed", GetDescription());
-        return false;
-    }
-
-    IAM_LOGI("%{public}s open connection %{public}s success", GetDescription(), connectionName_.c_str());
     return true;
 }
 
@@ -174,9 +175,10 @@ void OutboundRequest::HandleRequestAborted(const Attributes &request,
     [[maybe_unused]] std::function<void(const Attributes &)> onReply)
 {
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
-    RequestAbortedRequest abortReq;
-    bool decodeRet = DecodeRequestAbortedRequest(request, abortReq);
-    ENSURE_OR_RETURN(decodeRet);
+
+    auto abortReqOpt = DecodeRequestAbortedRequest(request);
+    ENSURE_OR_RETURN(abortReqOpt.has_value());
+    const auto &abortReq = *abortReqOpt;
 
     IAM_LOGI("%{public}s received RequestAborted: result=%{public}d, reason=%{public}s", GetDescription(),
         static_cast<int32_t>(abortReq.result), abortReq.reason.c_str());

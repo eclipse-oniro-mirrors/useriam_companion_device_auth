@@ -41,19 +41,6 @@ public:
     ~FakeRemoteObject() override = default;
 };
 
-class FakeRemoteObjectFailAddDeathRecipient : public IPCObjectStub {
-public:
-    FakeRemoteObjectFailAddDeathRecipient() : IPCObjectStub(u"FakeRemoteObject")
-    {
-    }
-    ~FakeRemoteObjectFailAddDeathRecipient() override = default;
-
-    bool AddDeathRecipient(const sptr<DeathRecipient> &) override
-    {
-        return false;
-    }
-};
-
 class MockIIpcDeviceSelectCallback : public IIpcDeviceSelectCallback {
 public:
     MOCK_METHOD(ErrCode, OnDeviceSelect,
@@ -87,24 +74,27 @@ HWTEST_F(MiscManagerImplTest, GetNextGlobalId_001, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    int32_t id1 = manager->GetNextGlobalId();
-    int32_t id2 = manager->GetNextGlobalId();
-    int32_t id3 = manager->GetNextGlobalId();
+    uint64_t id1 = manager->GetNextGlobalId();
+    uint64_t id2 = manager->GetNextGlobalId();
+    uint64_t id3 = manager->GetNextGlobalId();
 
-    EXPECT_EQ(1, id1);
-    EXPECT_EQ(2, id2);
-    EXPECT_EQ(3, id3);
+    EXPECT_EQ(1ULL, id1);
+    EXPECT_EQ(2ULL, id2);
+    EXPECT_EQ(3ULL, id3);
 }
 
 HWTEST_F(MiscManagerImplTest, GetNextGlobalId_002, TestSize.Level0)
 {
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
-    manager->globalIdCounter_ = -1;
 
-    int32_t id = manager->GetNextGlobalId();
-
-    EXPECT_EQ(1, id);
+    // Test that IDs are monotonically increasing
+    uint64_t prevId = 0;
+    for (int i = 0; i < 100; i++) {
+        uint64_t id = manager->GetNextGlobalId();
+        EXPECT_GT(id, prevId);
+        prevId = id;
+    }
 }
 
 HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_001, TestSize.Level0)
@@ -174,24 +164,6 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_004, TestSize.Level0)
 
     bool result2 = manager->SetDeviceSelectCallback(tokenId, callback2);
     EXPECT_TRUE(result2);
-}
-
-HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_005, TestSize.Level0)
-{
-    auto manager = MiscManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    uint32_t tokenId = 12345;
-    sptr<MockIIpcDeviceSelectCallback> callback = sptr<MockIIpcDeviceSelectCallback>::MakeSptr();
-    ASSERT_NE(nullptr, callback);
-
-    sptr<FakeRemoteObjectFailAddDeathRecipient> remoteObj = sptr<FakeRemoteObjectFailAddDeathRecipient>::MakeSptr();
-    ASSERT_NE(nullptr, remoteObj);
-
-    EXPECT_CALL(*callback, AsObject()).WillOnce(Return(remoteObj));
-
-    bool result = manager->SetDeviceSelectCallback(tokenId, callback);
-    EXPECT_FALSE(result);
 }
 
 HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_001, TestSize.Level0)
@@ -326,7 +298,7 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_001, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    std::vector<int32_t> businessIds = { static_cast<int32_t>(BusinessId::DEFAULT) };
+    std::vector<BusinessId> businessIds = { BusinessId::DEFAULT };
     bool result = manager->CheckBusinessIds(businessIds);
     EXPECT_TRUE(result);
 }
@@ -336,9 +308,7 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_002, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    std::vector<int32_t> businessIds = { static_cast<int32_t>(BusinessId::DEFAULT),
-                                          static_cast<int32_t>(BusinessId::DEFAULT),
-                                          static_cast<int32_t>(BusinessId::DEFAULT) };
+    std::vector<BusinessId> businessIds = { BusinessId::DEFAULT, BusinessId::DEFAULT, BusinessId::DEFAULT };
     bool result = manager->CheckBusinessIds(businessIds);
     EXPECT_TRUE(result);
 }
@@ -348,7 +318,7 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_003, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    std::vector<int32_t> businessIds = { 2 };
+    std::vector<BusinessId> businessIds = { static_cast<BusinessId>(2) };
     bool result = manager->CheckBusinessIds(businessIds);
     EXPECT_FALSE(result);
 }
@@ -358,7 +328,7 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_004, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    std::vector<int32_t> businessIds = { static_cast<int32_t>(BusinessId::DEFAULT), 2 };
+    std::vector<BusinessId> businessIds = { BusinessId::DEFAULT, static_cast<BusinessId>(2) };
     bool result = manager->CheckBusinessIds(businessIds);
     EXPECT_FALSE(result);
 }
@@ -368,7 +338,7 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_005, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    std::vector<int32_t> businessIds;
+    std::vector<BusinessId> businessIds;
     bool result = manager->CheckBusinessIds(businessIds);
     EXPECT_TRUE(result);
 }

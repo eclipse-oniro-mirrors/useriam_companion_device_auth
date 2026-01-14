@@ -36,16 +36,14 @@ public:
     MOCK_METHOD(void, UnsubscribeCompanionDeviceStatusChange, (SubscribeId subscriptionId), (override));
     MOCK_METHOD(ResultCode, BeginAddCompanion,
         (const BeginAddCompanionParams &params, std::vector<uint8_t> &outAddHostBindingRequest), (override));
-    MOCK_METHOD(ResultCode, EndAddCompanion,
-        (const EndAddCompanionInputParam &inputParam, std::vector<uint8_t> &outFwkMsg,
-            std::vector<uint8_t> &outTokenData, Atl &outAtl),
+    MOCK_METHOD(ResultCode, EndAddCompanion, (const EndAddCompanionInput &input, EndAddCompanionOutput &output),
         (override));
     MOCK_METHOD(ResultCode, ActivateToken, (RequestId requestId, TemplateId templateId, Atl atl), (override));
     MOCK_METHOD(ResultCode, RemoveCompanion, (TemplateId templateId), (override));
     MOCK_METHOD(ResultCode, UpdateCompanionStatus,
         (TemplateId templateId, const std::string &deviceName, const std::string &deviceUserName), (override));
     MOCK_METHOD(ResultCode, UpdateCompanionEnabledBusinessIds,
-        (TemplateId templateId, const std::vector<BusinessIdType> &enabledBusinessIds), (override));
+        (TemplateId templateId, const std::vector<BusinessId> &enabledBusinessIds), (override));
     MOCK_METHOD(bool, SetCompanionTokenAtl, (TemplateId templateId, std::optional<Atl> atl), (override));
     MOCK_METHOD(ResultCode, UpdateToken,
         (TemplateId templateId, const std::vector<uint8_t> &fwkMsg, bool &needRedistribute), (override));

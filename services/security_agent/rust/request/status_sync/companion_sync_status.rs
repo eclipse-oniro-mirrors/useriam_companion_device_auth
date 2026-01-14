@@ -22,7 +22,7 @@ use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestInput, CompanionRequestOutput};
+use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
 use crate::utils::{Attribute, AttributeKey};
@@ -71,26 +71,24 @@ impl CompanionRequest for CompanionDeviceSyncStatusRequest {
         self.binding_id
     }
 
-    fn prepare(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionDeviceSyncStatusRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceSyncStatusRequest begin start");
-        let CompanionRequestInput::SyncStatus(_ffi_input) = input else {
+        let CompanionRequestParam::SyncStatus(_ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         let reply_sec_message = self.create_begin_sec_message()?;
-
-        Ok(CompanionRequestOutput::SyncStatus(CompanionProcessCheckOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(reply_sec_message).map_err(|e| p!(e))?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(reply_sec_message).map_err(|e| p!(e))?;
+        Ok(())
     }
 
-    fn end(&mut self, _input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn end(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionDeviceSyncStatusRequest end not implemented");
         Err(ErrorCode::GeneralError)
     }

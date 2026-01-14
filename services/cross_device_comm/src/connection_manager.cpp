@@ -15,7 +15,7 @@
 
 #include "connection_manager.h"
 
-#include <algorithm>
+#include <cinttypes>
 #include <iomanip>
 #include <sstream>
 #include <utility>
@@ -163,7 +163,6 @@ void ConnectionManager::CloseConnection(const std::string &connectionName, const
 
     Connection connection = it->second;
     ChannelId channelId = connection.channelId;
-    connectionMap_.erase(it);
 
     auto channel = channelManager_->GetChannelById(channelId);
     ENSURE_OR_RETURN(channel != nullptr);
@@ -183,6 +182,8 @@ void ConnectionManager::CloseConnection(const std::string &connectionName, const
             IAM_LOGE("failed to send disconnect request for: %{public}s", connectionName.c_str());
         }
     }
+
+    connectionMap_.erase(connectionName);
 
     if (channel != nullptr) {
         if (connection.isInbound) {
@@ -279,7 +280,7 @@ std::unique_ptr<Subscription> ConnectionManager::SubscribeConnectionStatus(const
     subscription.callback = std::move(callback);
     connectionStatusSubscribers_[subscriptionId] = std::move(subscription);
 
-    IAM_LOGI("connection status subscription added: id=%{public}d, connection=%{public}s", subscriptionId,
+    IAM_LOGI("connection status subscription added: id=%{public}" PRIu64 ", connection=%{public}s", subscriptionId,
         connectionName.empty() ? "all" : connectionName.c_str());
 
     auto weakSelf = weak_from_this();
@@ -337,25 +338,15 @@ void ConnectionManager::HandleChannelConnectionClosed(const std::string &connect
 std::string ConnectionManager::GenerateConnectionName(const PhysicalDeviceKey &localPhysicalKey,
     const PhysicalDeviceKey &remotePhysicalKey)
 {
-    // Remove '_' and ':' from deviceId before extracting short form
-    std::string localDeviceId = localPhysicalKey.deviceId;
-    localDeviceId.erase(std::remove(localDeviceId.begin(), localDeviceId.end(), '_'), localDeviceId.end());
-    localDeviceId.erase(std::remove(localDeviceId.begin(), localDeviceId.end(), ':'), localDeviceId.end());
-    std::transform(localDeviceId.begin(), localDeviceId.end(), localDeviceId.begin(), ::tolower);
-    std::string localShort = GetTruncatedString(localDeviceId);
+    constexpr int connectionIdWidth = 8;
+    std::string localShort = GetTruncatedString(localPhysicalKey.deviceId);
+    std::string remoteShort = GetTruncatedString(remotePhysicalKey.deviceId);
 
-    std::string remoteDeviceId = remotePhysicalKey.deviceId;
-    remoteDeviceId.erase(std::remove(remoteDeviceId.begin(), remoteDeviceId.end(), '_'), remoteDeviceId.end());
-    remoteDeviceId.erase(std::remove(remoteDeviceId.begin(), remoteDeviceId.end(), ':'), remoteDeviceId.end());
-    std::transform(remoteDeviceId.begin(), remoteDeviceId.end(), remoteDeviceId.begin(), ::tolower);
-    std::string remoteShort = GetTruncatedString(remoteDeviceId);
+    uint32_t id = static_cast<uint32_t>(GetMiscManager().GetNextGlobalId());
 
-    int32_t id = GetMiscManager().GetNextGlobalId();
-
-    const int idWidth = 8;
     std::ostringstream oss;
     oss << "conn" << ":" << localShort << ":" << remoteShort << ":" << std::hex << std::setfill('0')
-        << std::setw(idWidth) << id;
+        << std::setw(connectionIdWidth) << id;
 
     return oss.str();
 }
@@ -492,7 +483,7 @@ void ConnectionManager::NotifyConnectionStatus(const std::string &connectionName
 void ConnectionManager::UnsubscribeConnectionStatus(SubscribeId subscriptionId)
 {
     connectionStatusSubscribers_.erase(subscriptionId);
-    IAM_LOGI("connection status subscription removed: id=%{public}d", subscriptionId);
+    IAM_LOGI("connection status subscription removed: id=%{public}" PRIu64, subscriptionId);
 }
 
 void ConnectionManager::HandlePhysicalDeviceStatusChange(ChannelId channelId,

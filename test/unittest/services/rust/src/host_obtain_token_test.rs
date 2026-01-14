@@ -16,6 +16,7 @@
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     DataArray1024Ffi, HostProcessObtainTokenInputFfi, HostProcessPreObtainTokenInputFfi,
+    HostProcessPreObtainTokenOutputFfi, HostProcessObtainTokenOutputFfi,
 };
 use crate::log_i;
 use crate::request::jobs::common_message::SecCommonRequest;
@@ -23,7 +24,7 @@ use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenReques
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
-use crate::traits::host_request_manager::{HostRequest, HostRequestInput};
+use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
 use crate::utils::{Attribute, AttributeKey};
@@ -141,7 +142,9 @@ fn host_obtain_token_request_prepare_test_not_implemented() {
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
-    let result = request.prepare(HostRequestInput::ObtainTokenBegin(input));
+    let mut output = HostProcessPreObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenBegin(&input, &mut output);
+    let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -169,7 +172,9 @@ fn host_obtain_token_request_begin_test_wrong_input_type() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.begin(HostRequestInput::ObtainTokenEnd(wrong_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&wrong_input, &mut output);
+    let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -202,7 +207,9 @@ fn host_obtain_token_request_begin_test_success() {
         secure_protocol_id: 1,
     };
 
-    let result = request.begin(HostRequestInput::ObtainTokenBegin(begin_input));
+    let mut output = HostProcessPreObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenBegin(&begin_input, &mut output);
+    let result = request.begin(param);
     assert!(result.is_ok());
 }
 
@@ -223,7 +230,9 @@ fn host_obtain_token_request_end_test_wrong_input_type() {
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
-    let result = request.end(HostRequestInput::ObtainTokenBegin(input));
+    let mut output = HostProcessPreObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenBegin(&input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -255,7 +264,9 @@ fn host_obtain_token_request_end_test_read_device_capability_info_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -289,7 +300,9 @@ fn host_obtain_token_request_end_test_decode_sec_message_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -325,7 +338,9 @@ fn host_obtain_token_request_end_test_get_session_key_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -358,7 +373,9 @@ fn host_obtain_token_request_end_test_decrypt_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -387,7 +404,9 @@ fn host_obtain_token_request_end_test_challenge_mismatch() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -416,7 +435,9 @@ fn host_obtain_token_request_end_test_atl_try_from_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -452,7 +473,9 @@ fn host_obtain_token_request_end_test_secure_random_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -488,7 +511,9 @@ fn host_obtain_token_request_end_test_generate_token_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -523,7 +548,9 @@ fn host_obtain_token_request_end_test_sec_message_get_session_key_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -558,7 +585,9 @@ fn host_obtain_token_request_end_test_sec_message_encrypt_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -591,7 +620,9 @@ fn host_obtain_token_request_end_test_get_rtc_time_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -630,7 +661,9 @@ fn host_obtain_token_request_end_test_add_token_fail() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -659,6 +692,8 @@ fn host_obtain_token_request_end_test_success() {
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
-    let result = request.end(HostRequestInput::ObtainTokenEnd(end_input));
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = HostRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
     assert!(result.is_ok());
 }

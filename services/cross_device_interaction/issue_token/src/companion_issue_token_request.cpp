@@ -95,9 +95,9 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &preIssueTokenReply)
 {
     IAM_LOGI("%{public}s", GetDescription());
-    PreIssueTokenRequest preIssueRequest = {};
-    bool decodeReqRet = DecodePreIssueTokenRequest(request_, preIssueRequest);
-    ENSURE_OR_RETURN_VAL(decodeReqRet, false);
+    auto preIssueRequestOpt = DecodePreIssueTokenRequest(request_);
+    ENSURE_OR_RETURN_VAL(preIssueRequestOpt.has_value(), false);
+    const auto &preIssueRequest = *preIssueRequestOpt;
     if (preIssueRequest.hostDeviceKey != PeerDeviceKey()) {
         IAM_LOGE("%{public}s host device key mismatch", GetDescription());
         return false;
@@ -156,9 +156,9 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
         CompleteWithError(code);
     });
 
-    IssueTokenRequest issueRequest = {};
-    bool decodeReqRet = DecodeIssueTokenRequest(request, issueRequest);
-    ENSURE_OR_RETURN(decodeReqRet);
+    auto issueRequestOpt = DecodeIssueTokenRequest(request);
+    ENSURE_OR_RETURN(issueRequestOpt.has_value());
+    const auto &issueRequest = *issueRequestOpt;
 
     std::vector<uint8_t> issueTokenReply;
     bool result = SecureAgentCompanionIssueToken(issueRequest.extraInfo, issueTokenReply);

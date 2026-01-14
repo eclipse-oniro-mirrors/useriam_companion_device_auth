@@ -77,10 +77,12 @@ class CoverageAnalyzer:
         """Run llvm-cov report and parse output."""
         try:
             # First collect all source files from services directory
+            # Only include files under token-device-auth-design/code/companion_device_auth
             source_files = []
             services_path = Path(self.services_dir)
             if services_path.exists():
                 source_files = list(services_path.glob('**/*.cpp'))
+                # Filter to only include actual service files, not test/fake files
                 source_files = [str(f) for f in source_files
                                if '/test/' not in str(f) and '/fake/' not in str(f)]
 
@@ -92,6 +94,7 @@ class CoverageAnalyzer:
             ]
 
             # Add source files to command
+            # This limits coverage reporting to only the specified service files
             cmd.extend(str(f) for f in source_files)
 
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -166,8 +169,20 @@ class CoverageAnalyzer:
         excluded_info = []
 
         for file_path, methods in self.file_methods.items():
-            # Check if this is a services file
-            if 'companion_device_auth' not in file_path:
+            # Only include files under token-device-auth-design/code/companion_device_auth
+            # This ensures we don't include files from OpenHarmony or other paths
+            valid_patterns = [
+                'token-device-auth-design/code/companion_device_auth',
+                'token-device-auth-design2/code/companion_device_auth',
+            ]
+
+            is_valid_path = False
+            for pattern in valid_patterns:
+                if pattern in file_path:
+                    is_valid_path = True
+                    break
+
+            if not is_valid_path:
                 continue
 
             # Exclude test, fake, out, unittest directories
@@ -179,16 +194,23 @@ class CoverageAnalyzer:
                 rel_path = str(Path(file_path).relative_to(self.services_dir.parent))
             except ValueError:
                 # If not under services_dir, try to extract from the path
-                match = re.search(r'(token-device-auth-design2/code/companion_device_auth/services/.+)', file_path)
+                match = None
+                for pattern in valid_patterns:
+                    match = re.search(rf'{pattern}/(services/.+)', file_path)
+                    if match:
+                        break
+
                 if match:
-                    rel_path = match.group(1)
+                    rel_path = 'code/companion_device_auth/' + match.group(1)
                 else:
                     continue
 
             # Normalize the path for comparison (remove repo prefix if present)
             normalized_path = rel_path
-            if 'token-device-auth-design2/code/companion_device_auth/' in normalized_path:
-                normalized_path = normalized_path.split('token-device-auth-design2/code/companion_device_auth/')[1]
+            for pattern in ['token-device-auth-design2/code/companion_device_auth/', 'token-device-auth-design/code/companion_device_auth/']:
+                if pattern in normalized_path:
+                    normalized_path = normalized_path.split(pattern)[1]
+                    break
 
             # Check if this file is in the exclusion list
             if normalized_path in self.EXCLUDED_FILES:
@@ -241,7 +263,19 @@ class CoverageAnalyzer:
             for file_path, methods in sorted_files:
                 # Extract file name
                 file_name = Path(file_path).name
-                file_dir = str(Path(file_path).parent).replace('token-device-auth-design2/code/companion_device_auth/', '')
+
+                # Normalize directory path - remove any repo prefixes
+                file_dir = str(Path(file_path).parent)
+                for repo_prefix in ['token-device-auth-design2/code/companion_device_auth/',
+                                    'token-device-auth-design/code/companion_device_auth/',
+                                    'code/companion_device_auth/']:
+                    if file_dir.startswith(repo_prefix):
+                        file_dir = file_dir[len(repo_prefix):]
+                        break
+                    # Also handle case where path contains the prefix in the middle
+                    if repo_prefix in file_dir:
+                        file_dir = file_dir.split(repo_prefix)[1]
+                        break
 
                 f.write(f"## {file_dir}/{file_name}\n\n")
 

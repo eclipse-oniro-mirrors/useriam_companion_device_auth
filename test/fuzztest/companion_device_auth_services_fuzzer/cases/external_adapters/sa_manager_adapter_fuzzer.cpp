@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "sa_manager_adapter.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using SaManagerAdapterFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzAddSAStatusListener(FuzzedDataProvider &fuzzData)
 {
@@ -79,7 +79,7 @@ static void FuzzSAManagement(FuzzedDataProvider &fuzzData)
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const SaManagerAdapterFuzzFunction g_fuzzFuncs[] = {
     FuzzAddSAStatusListener,
     FuzzRemoveSAStatusListener,
     FuzzSAManagerOperations,
@@ -88,7 +88,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzSAManagement,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SaManagerAdapterFuzzFunction);
 
 void FuzzSaManagerAdapter(FuzzedDataProvider &fuzzData)
 {
@@ -106,5 +106,8 @@ void FuzzSaManagerAdapter(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SaManagerAdapter)
+
 } // namespace UserIam
 } // namespace OHOS

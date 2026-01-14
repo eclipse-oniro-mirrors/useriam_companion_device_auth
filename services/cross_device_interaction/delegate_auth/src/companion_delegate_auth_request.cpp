@@ -22,15 +22,16 @@
 
 #include "adapter_manager.h"
 #include "common_message.h"
-#include "companion_delegate_auth_callback.h"
 #include "cross_device_comm_manager_impl.h"
 #include "delegate_auth_message.h"
 #include "error_guard.h"
 #include "host_binding_manager.h"
 #include "security_agent.h"
+#include "service_common.h"
 #include "service_converter.h"
 #include "singleton_manager.h"
 #include "token_setproc.h"
+#include "user_auth_adapter.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -84,29 +85,18 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), false);
 
-    UserAuth::WidgetAuthParam authParam = {};
-    authParam.userId = localDeviceKey->deviceUserId;
-    authParam.challenge = ConvertUint64ToUint8Vec(challenge);
-    authParam.authTypes = { UserAuth::AuthType::PIN, UserAuth::AuthType::FACE, UserAuth::AuthType::FINGERPRINT };
-    authParam.authTrustLevel = static_cast<UserAuth::AuthTrustLevel>(atl);
-    authParam.reuseUnlockResult.isReuse = false;
-
-    UserAuth::WidgetParam widgetParam = {};
-    widgetParam.title = "Delegate Authentication";
-    widgetParam.navigationButtonText = "";
-    widgetParam.windowMode = UserAuth::WindowModeType::UNKNOWN_WINDOW_MODE;
-
     auto weakSelf = std::weak_ptr<CompanionDelegateAuthRequest>(shared_from_this());
-    std::shared_ptr<UserAuth::AuthenticationCallback> callback = std::make_shared<CompanionDelegateAuthCallback>(
-        [weakSelf](ResultCode result, const std::vector<uint8_t> &extraInfo) {
-            auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            self->HandleDelegateAuthResult(result, extraInfo);
-        });
+    AuthResultCallback callback = [weakSelf](int32_t result, const std::vector<uint8_t> &token) {
+        auto self = weakSelf.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        ResultCode resultCode = (result == 0) ? ResultCode::SUCCESS : ResultCode::GENERAL_ERROR;
+        self->HandleDelegateAuthResult(resultCode, token);
+    };
 
     auto callerTokenId = IPCSkeleton::GetCallingTokenID();
     SetFirstCallerTokenID(callerTokenId);
-    uint64_t contextId = GetUserAuthAdapter().BeginWidgetAuth(authParam, widgetParam, callback);
+    uint64_t contextId = GetUserAuthAdapter().BeginDelegateAuth(localDeviceKey->deviceUserId,
+        ConvertUint64ToUint8Vec(challenge), static_cast<uint32_t>(atl), callback);
     ENSURE_OR_RETURN_VAL(contextId != 0, false);
     contextId_ = contextId;
     return true;
@@ -138,8 +128,6 @@ void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCod
     const std::vector<uint8_t> &extraInfo)
 {
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
-    IAM_LOGI("%{public}s resultCode=%{public}d, extraInfo=%{public}zu", GetDescription(), resultCode,
-        extraInfo.size());
 
     IAM_LOGI("%{public}s", GetDescription());
     contextId_.reset();

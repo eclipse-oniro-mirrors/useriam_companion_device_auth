@@ -16,6 +16,7 @@
 #include "auth_maintain_state_change_message.h"
 
 #include "iam_check.h"
+#include "iam_logger.h"
 
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 

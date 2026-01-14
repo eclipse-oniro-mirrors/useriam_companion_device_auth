@@ -43,6 +43,19 @@ struct BeginAddCompanionParams {
     std::vector<uint8_t> initKeyNegotiationReply;
 };
 
+struct EndAddCompanionInput {
+    RequestId requestId;
+    PersistedCompanionStatus companionStatus;
+    SecureProtocolId secureProtocolId;
+    std::vector<uint8_t> addHostBindingReply;
+};
+
+struct EndAddCompanionOutput {
+    std::vector<uint8_t> fwkMsg;
+    std::vector<uint8_t> tokenData;
+    Atl atl;
+};
+
 class ICompanionManager : public NoCopyable {
 public:
     virtual ~ICompanionManager() = default;
@@ -60,15 +73,14 @@ public:
 
     virtual ResultCode BeginAddCompanion(const BeginAddCompanionParams &params,
         std::vector<uint8_t> &outAddHostBindingRequest) = 0;
-    virtual ResultCode EndAddCompanion(const EndAddCompanionInputParam &inputParam,
-        std::vector<uint8_t> &outFwkMsg, std::vector<uint8_t> &outTokenData, Atl &outAtl) = 0;
+    virtual ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) = 0;
     virtual ResultCode ActivateToken(RequestId requestId, TemplateId templateId, Atl atl) = 0;
     virtual ResultCode RemoveCompanion(TemplateId templateId) = 0;
 
     virtual ResultCode UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
         const std::string &deviceUserName) = 0;
     virtual ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
-        const std::vector<BusinessIdType> &enabledBusinessIds) = 0;
+        const std::vector<BusinessId> &enabledBusinessIds) = 0;
     virtual bool SetCompanionTokenAtl(TemplateId templateId, std::optional<Atl> atl) = 0;
 
     virtual ResultCode UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg,

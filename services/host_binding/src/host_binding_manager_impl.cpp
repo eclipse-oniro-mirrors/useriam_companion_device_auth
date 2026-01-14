@@ -16,6 +16,7 @@
 #include "host_binding_manager_impl.h"
 
 #include <algorithm>
+#include <cinttypes>
 
 #include "iam_check.h"
 #include "iam_logger.h"
@@ -106,7 +107,7 @@ std::optional<HostBindingStatus> HostBindingManagerImpl::GetHostBindingStatus(Bi
 {
     auto binding = FindBindingById(bindingId);
     if (binding == nullptr) {
-        IAM_LOGD("binding id %{public}s not found", GET_MASKED_NUM_STRING(bindingId).c_str());
+        IAM_LOGE("binding id %{public}s not found", GET_MASKED_NUM_STRING(bindingId).c_str());
         return std::nullopt;
     }
 
@@ -118,7 +119,7 @@ std::optional<HostBindingStatus> HostBindingManagerImpl::GetHostBindingStatus(Us
 {
     auto binding = FindBindingByDeviceUser(companionUserId, hostDeviceKey);
     if (binding == nullptr) {
-        IAM_LOGD("binding not found for device-user combination");
+        IAM_LOGE("binding not found for device-user combination");
         return std::nullopt;
     }
 
@@ -136,7 +137,7 @@ std::vector<HostBindingStatus> HostBindingManagerImpl::GetAllHostBindingStatus()
         }
     }
 
-    IAM_LOGD("returning %{public}zu host binding statuses", result.size());
+    IAM_LOGE("returning %{public}zu host binding statuses", result.size());
     return result;
 }
 
@@ -144,7 +145,7 @@ ResultCode HostBindingManagerImpl::BeginAddHostBinding(RequestId requestId, User
     SecureProtocolId secureProtocolId, const std::vector<uint8_t> &addHostBindingRequest,
     std::vector<uint8_t> &outAddHostBindingReply)
 {
-    IAM_LOGI("begin add host binding, request id %{public}d", requestId);
+    IAM_LOGI("begin add host binding, request id %{public}" PRIu64, requestId);
 
     ENSURE_OR_RETURN_VAL(companionUserId == activeUserId_, ResultCode::GENERAL_ERROR);
     if (activeUserId_ != companionUserId) {
@@ -194,14 +195,14 @@ ResultCode HostBindingManagerImpl::BeginAddHostBinding(RequestId requestId, User
 
     outAddHostBindingReply.swap(output.addHostBindingReply);
 
-    IAM_LOGI("begin add host binding success, request id %{public}d", requestId);
+    IAM_LOGI("begin add host binding success, request id %{public}" PRIu64, requestId);
     return ResultCode::SUCCESS;
 }
 
 ResultCode HostBindingManagerImpl::EndAddHostBinding(RequestId requestId, ResultCode resultCode,
     const std::vector<uint8_t> &tokenData)
 {
-    IAM_LOGI("end add host binding, request id %{public}d, result %{public}d", requestId, resultCode);
+    IAM_LOGI("end add host binding, request id %{public}" PRIu64 ", result %{public}d", requestId, resultCode);
 
     CompanionEndAddHostBindingInput input { .requestId = requestId, .resultCode = resultCode, .tokenData = tokenData };
     CompanionEndAddHostBindingOutput output {};

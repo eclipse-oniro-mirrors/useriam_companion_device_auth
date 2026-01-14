@@ -16,7 +16,6 @@
 #include "resident_task_runner.h"
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <utility>
 

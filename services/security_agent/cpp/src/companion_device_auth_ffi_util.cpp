@@ -15,9 +15,13 @@
 
 #include "companion_device_auth_ffi_util.h"
 
-#include "securec.h"
+#include <type_traits>
 
+#include <securec.h>
+
+#include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_safe_arithmetic.h"
 
 #undef LOG_TAG
 #define LOG_TAG "DEVICE_AUTH"
@@ -40,7 +44,10 @@ bool VectorToFixedArray(const std::vector<T> &vec, T (&arr)[N], const char *name
         IAM_LOGE("Vector size mismatch for %{public}s: %{public}zu != %{public}zu", name, vec.size(), N);
         return false;
     }
-    if (memcpy_s(arr, sizeof(arr), vec.data(), vec.size() * sizeof(T)) != EOK) {
+    auto copySizeOpt = safe_multiply(N, sizeof(T));
+    ENSURE_OR_RETURN_VAL(copySizeOpt.has_value(), false);
+
+    if (memcpy_s(arr, sizeof(arr), vec.data(), copySizeOpt.value()) != EOK) {
         IAM_LOGE("Failed to copy %{public}s", name);
         return false;
     }
@@ -55,10 +62,27 @@ bool FfiArrayToVector(const FfiArrayType &ffiArr, std::vector<T> &vec)
         IAM_LOGE("FFI array length exceeds maximum: %{public}u > %{public}zu", ffiArr.len, maxSize);
         return false;
     }
-    vec.clear();
-    vec.reserve(ffiArr.len);
-    for (uint32_t i = 0; i < ffiArr.len; ++i) {
-        vec.push_back(ffiArr.data[i]);
+
+    using ElementType = typename std::remove_reference<decltype(ffiArr.data[0])>::type;
+
+    if constexpr (std::is_same_v<T, uint8_t>) {
+        vec.assign(ffiArr.data, ffiArr.data + ffiArr.len);
+    } else {
+        static_assert(sizeof(T) == sizeof(ElementType),
+            "Type size mismatch: FFI array element type and target vector element type must have the same size");
+
+        vec.clear();
+        if (ffiArr.len > 0) {
+            try {
+                vec.reserve(ffiArr.len);
+            } catch (...) {
+                IAM_LOGE("Failed to reserve memory for vector conversion");
+                return false;
+            }
+            for (uint32_t i = 0; i < ffiArr.len; ++i) {
+                vec.push_back(static_cast<T>(ffiArr.data[i]));
+            }
+        }
     }
     return true;
 }
@@ -71,9 +95,31 @@ bool VectorToFfiArray(const std::vector<T> &vec, FfiArrayType &ffiArr, const cha
         IAM_LOGE("%{public}s size exceeds maximum: %{public}zu > %{public}zu", name, vec.size(), maxSize);
         return false;
     }
+    if (vec.size() > UINT32_MAX) {
+        IAM_LOGE("%{public}s size exceeds uint32_t maximum: %{public}zu > %{public}u", name, vec.size(), UINT32_MAX);
+        return false;
+    }
     ffiArr.len = static_cast<uint32_t>(vec.size());
-    for (size_t i = 0; i < vec.size(); ++i) {
-        ffiArr.data[i] = vec[i];
+
+    using ElementType = typename std::remove_reference<decltype(ffiArr.data[0])>::type;
+    if constexpr (std::is_same_v<T, ElementType> && (std::is_integral_v<T> || std::is_enum_v<T>)) {
+        if (ffiArr.len > 0) {
+            auto copySizeOpt = safe_multiply(ffiArr.len, static_cast<uint32_t>(sizeof(ElementType)));
+            ENSURE_OR_RETURN_VAL(copySizeOpt.has_value(), false);
+
+            auto bufferSizeOpt =
+                safe_multiply(static_cast<uint32_t>(maxSize), static_cast<uint32_t>(sizeof(ElementType)));
+            ENSURE_OR_RETURN_VAL(bufferSizeOpt.has_value(), false);
+
+            if (memcpy_s(ffiArr.data, bufferSizeOpt.value(), vec.data(), copySizeOpt.value()) != EOK) {
+                IAM_LOGE("Failed to copy %{public}s", name);
+                return false;
+            }
+        }
+    } else {
+        for (size_t i = 0; i < vec.size(); ++i) {
+            ffiArr.data[i] = static_cast<ElementType>(vec[i]);
+        }
     }
     return true;
 }
@@ -88,42 +134,21 @@ bool FfiArrayToVectorWithConvert(const FfiArrayType &ffiArr, std::vector<ItemTyp
         return false;
     }
     vec.clear();
-    vec.reserve(ffiArr.len);
-    for (uint32_t i = 0; i < ffiArr.len; ++i) {
-        ItemType item;
-        if (!convertFunc(ffiArr.data[i], item)) {
-            IAM_LOGE("Failed to convert %{public}s at index %{public}u", name, i);
+    if (ffiArr.len > 0) {
+        try {
+            vec.reserve(ffiArr.len);
+        } catch (...) {
+            IAM_LOGE("Failed to reserve memory for %{public}s conversion", name);
             return false;
         }
-        vec.push_back(std::move(item));
-    }
-    return true;
-}
-
-template <typename DataArrayType>
-bool DecodeDataArray(const DataArrayType &ffi, std::vector<uint8_t> &vec)
-{
-    constexpr size_t maxSize = sizeof(ffi.data) / sizeof(ffi.data[0]);
-    if (ffi.len > maxSize) {
-        IAM_LOGE("FFI data array length exceeds maximum: %{public}u > %{public}zu", ffi.len, maxSize);
-        return false;
-    }
-    vec.assign(ffi.data, ffi.data + ffi.len);
-    return true;
-}
-
-template <typename DataArrayType>
-bool EncodeDataArray(const std::vector<uint8_t> &vec, DataArrayType &ffi, const char *name)
-{
-    constexpr size_t maxSize = sizeof(ffi.data) / sizeof(ffi.data[0]);
-    if (vec.size() > maxSize) {
-        IAM_LOGE("%{public}s size exceeds maximum: %{public}zu > %{public}zu", name, vec.size(), maxSize);
-        return false;
-    }
-    ffi.len = static_cast<uint32_t>(vec.size());
-    if (ffi.len > 0 && memcpy_s(ffi.data, maxSize, vec.data(), ffi.len) != EOK) {
-        IAM_LOGE("Failed to copy %{public}s", name);
-        return false;
+        for (uint32_t i = 0; i < ffiArr.len; ++i) {
+            ItemType item;
+            if (!convertFunc(ffiArr.data[i], item)) {
+                IAM_LOGE("Failed to convert %{public}s at index %{public}u", name, i);
+                return false;
+            }
+            vec.push_back(std::move(item));
+        }
     }
     return true;
 }
@@ -132,38 +157,34 @@ template <typename DataArrayType>
 bool DecodeDataArrayToString(const DataArrayType &ffi, std::string &str)
 {
     std::vector<uint8_t> vec;
-    if (!DecodeDataArray(ffi, vec)) {
+    if (!FfiArrayToVector(ffi, vec)) {
         return false;
     }
+
+    if (vec.empty()) {
+        str.clear();
+        return true;
+    }
+
     str = std::string(reinterpret_cast<const char *>(vec.data()), vec.size());
     return true;
+}
+
+inline bool DecodeMessageArray(const DataArray1024Ffi &ffi, std::vector<uint8_t> &vec)
+{
+    return FfiArrayToVector(ffi, vec);
+}
+
+inline bool EncodeMessageArray(const std::vector<uint8_t> &vec, DataArray1024Ffi &ffi)
+{
+    return VectorToFfiArray(vec, ffi, "message array");
 }
 
 template <typename DataArrayType>
 bool EncodeStringToDataArray(const std::string &str, DataArrayType &ffi, const char *name)
 {
     std::vector<uint8_t> vec(str.begin(), str.end());
-    return EncodeDataArray(vec, ffi, name);
-}
-
-inline bool DecodeDataArray1024(const DataArray1024Ffi &ffi, std::vector<uint8_t> &vec)
-{
-    return DecodeDataArray(ffi, vec);
-}
-
-inline bool EncodeDataArray1024(const std::vector<uint8_t> &vec, DataArray1024Ffi &ffi)
-{
-    return EncodeDataArray(vec, ffi, "data array");
-}
-
-inline bool DecodeMessageArray(const DataArray1024Ffi &ffi, std::vector<uint8_t> &vec)
-{
-    return DecodeDataArray1024(ffi, vec);
-}
-
-inline bool EncodeMessageArray(const std::vector<uint8_t> &vec, DataArray1024Ffi &ffi)
-{
-    return EncodeDataArray1024(vec, ffi);
+    return VectorToFfiArray(vec, ffi, name);
 }
 } // namespace
 bool DecodeDeviceKey(const DeviceKeyFfi &ffi, DeviceKey &key)
@@ -520,6 +541,18 @@ bool DecodeHostProcessObtainTokenOutput(const HostProcessObtainTokenOutputFfi &f
 {
     atl = ffi.atl;
     return DecodeMessageArray(ffi.secMessage, reply);
+}
+
+bool EncodeHostUpdateTokenInput(const HostUpdateTokenInput &input, HostUpdateTokenInputFfi &ffi)
+{
+    ffi.templateId = input.templateId;
+    return EncodeMessageArray(input.fwkMsg, ffi.fwkMessage);
+}
+
+bool DecodeHostUpdateTokenOutput(const HostUpdateTokenOutputFfi &ffi, HostUpdateTokenOutput &output)
+{
+    output.needRedistribute = ffi.needRedistribute;
+    return true;
 }
 
 bool EncodeCompanionProcessCheckInput(const CompanionProcessCheckInput &input, CompanionProcessCheckInputFfi &ffi)

@@ -24,15 +24,15 @@
 #include "fuzz_constants.h"
 #include "fuzz_cross_device_channel.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "local_device_status_manager.h"
 #include "message_router.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<ConnectionManager> &conn, FuzzedDataProvider &fuzzData);
+using ConnectionManagerFuzzFunction = void (*)(std::shared_ptr<ConnectionManager> &conn, FuzzedDataProvider &fuzzData);
 
 static void FuzzGetConnection(std::shared_ptr<ConnectionManager> &conn, FuzzedDataProvider &fuzzData)
 {
@@ -196,7 +196,7 @@ static void FuzzUnsubscribeConnectionStatus(std::shared_ptr<ConnectionManager> &
     conn->UnsubscribeConnectionStatus(subscriptionId);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ConnectionManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetConnection,
     FuzzGetConnectionStatus,
     FuzzOpenConnection,
@@ -218,7 +218,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzUnsubscribeConnectionStatus,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ConnectionManagerFuzzFunction);
 
 void FuzzConnectionManager(FuzzedDataProvider &fuzzData)
 {
@@ -254,5 +254,8 @@ void FuzzConnectionManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ConnectionManager)
+
 } // namespace UserIam
 } // namespace OHOS

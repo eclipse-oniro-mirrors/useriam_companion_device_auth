@@ -16,6 +16,7 @@
 #include "add_companion_message.h"
 
 #include "iam_check.h"
+#include "iam_logger.h"
 
 #include "common_message.h"
 #include "singleton_manager.h"

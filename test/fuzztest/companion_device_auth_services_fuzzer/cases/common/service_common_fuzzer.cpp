@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "service_common.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using ServiceCommonFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzDeviceKeyEquality(FuzzedDataProvider &fuzzData)
 {
@@ -89,7 +89,7 @@ static void FuzzDeviceKeyWithSameParams(FuzzedDataProvider &fuzzData)
     (void)equal;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ServiceCommonFuzzFunction g_fuzzFuncs[] = {
     FuzzDeviceKeyEquality,
     FuzzDeviceKeyInequality,
     FuzzDeviceKeyLessThan,
@@ -99,7 +99,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzDeviceKeyWithSameParams,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ServiceCommonFuzzFunction);
 
 void FuzzServiceCommon(FuzzedDataProvider &fuzzData)
 {
@@ -119,3 +119,5 @@ void FuzzServiceCommon(FuzzedDataProvider &fuzzData)
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
+
+FUZZ_REGISTER(ServiceCommon)

@@ -52,8 +52,8 @@ private:
     bool SendPreObtainTokenRequest();
     void HandlePreObtainTokenReply(const Attributes &reply);
     bool CompanionBeginObtainToken(const PreObtainTokenReply &preObtainTokenReply);
-    bool SendObtainTokenRequest(RequestId requestId, const std::vector<uint8_t> &obtainTokenRequest);
-    void HandleObtainTokenReply(const Attributes &reply, RequestId requestId);
+    bool SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest);
+    void HandleObtainTokenReply(const Attributes &reply);
     bool CompanionEndObtainToken(const ObtainTokenReply &obtainTokenReply, RequestId requestId);
     void CompleteWithSuccess();
     void HandleAuthMaintainActiveChanged(bool isActive);

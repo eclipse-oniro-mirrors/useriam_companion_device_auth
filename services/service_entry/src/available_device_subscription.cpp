@@ -115,10 +115,6 @@ void AvailableDeviceSubscription::HandleDeviceStatusChange(const std::vector<Dev
         if (GetCompanionManager().GetCompanionStatus(activeUserId, deviceStatus.deviceKey).has_value()) {
             continue;
         }
-        IAM_LOGI("deviceStatus DeviceKey: %{public}s, channelId: %{public}d, deviceModelInfo: %{public}s, "
-                 "deviceUserName: %{public}s, deviceName: %{public}s",
-            deviceStatus.deviceKey.GetDesc().c_str(), static_cast<int32_t>(deviceStatus.channelId),
-            deviceStatus.deviceModelInfo.c_str(), deviceStatus.deviceUserName.c_str(), deviceStatus.deviceName.c_str());
         availableDeviceStatus.push_back(ConvertToIpcDeviceStatus(deviceStatus));
     }
     cachedAvailableDeviceStatus_ = availableDeviceStatus;

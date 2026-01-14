@@ -16,6 +16,8 @@
 #ifndef COMPANION_DEVICE_AUTH_REVOKE_TOKEN_MESSAGE_H
 #define COMPANION_DEVICE_AUTH_REVOKE_TOKEN_MESSAGE_H
 
+#include <optional>
+
 #include "cda_attributes.h"
 #include "common_defines.h"
 #include "service_common.h"
@@ -35,9 +37,9 @@ struct RevokeTokenReply {
 };
 
 bool EncodeRevokeTokenRequest(const RevokeTokenRequest &request, Attributes &attributes);
-bool DecodeRevokeTokenRequest(const Attributes &attributes, RevokeTokenRequest &request);
+std::optional<RevokeTokenRequest> DecodeRevokeTokenRequest(const Attributes &attributes);
 bool EncodeRevokeTokenReply(const RevokeTokenReply &reply, Attributes &attributes);
-bool DecodeRevokeTokenReply(const Attributes &attributes, RevokeTokenReply &reply);
+std::optional<RevokeTokenReply> DecodeRevokeTokenReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

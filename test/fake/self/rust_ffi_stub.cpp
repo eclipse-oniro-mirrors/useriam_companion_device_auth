@@ -13,33 +13,33 @@
  * limitations under the License.
  */
 
+#include <memory>
+
 #include "securec.h"
 
 #include "companion_device_auth_ffi.h"
 
-namespace OHOS {
-namespace UserIam {
-namespace CompanionDeviceAuth {
 extern "C" {
 // Stub implementation for Rust FFI functions
-int32_t init_rust_env()
+int32_t init_rust_env(void)
 {
     return 0;
 }
 
-int32_t destroy_rust_env()
+int32_t uninit_rust_env(void)
 {
     return 0;
 }
 
-int32_t invoke_rust_command(RustCommandParam param)
+int32_t destroy_rust_env(void)
+{
+    return 0;
+}
+
+int32_t invoke_rust_command(struct RustCommandParam param)
 {
     (void)param;
     return 0;
 }
 
 } // extern "C"
-
-} // namespace CompanionDeviceAuth
-} // namespace UserIam
-} // namespace OHOS

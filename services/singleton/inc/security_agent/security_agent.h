@@ -169,7 +169,7 @@ struct CompanionBeginAddHostBindingOutput {
 struct CompanionEndAddHostBindingInput {
     RequestId requestId;
     ResultCode resultCode;
-    std::vector<uint8_t> tokenData; // Host 发送的加密后的 Token 数据（可选，仅当成功时）
+    std::vector<uint8_t> tokenData; // Encrypted token data sent by Host (optional, only when successful)
 };
 
 struct CompanionEndAddHostBindingOutput {
@@ -400,7 +400,7 @@ struct HostUpdateCompanionStatusInput {
 
 struct HostUpdateCompanionEnabledBusinessIdsInput {
     TemplateId templateId;
-    std::vector<BusinessIdType> enabledBusinessIds;
+    std::vector<BusinessId> enabledBusinessIds;
 };
 
 struct HostCheckTemplateEnrolledInput {

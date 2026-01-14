@@ -14,7 +14,6 @@
 import("//build/ohos.gni")
 import("../companion_device_auth.gni")
 
-# Install companion_device_auth.para and its DAC file under /system/etc/param.
 group("param_files") {
   deps = [
     ":companion_device_auth.para",

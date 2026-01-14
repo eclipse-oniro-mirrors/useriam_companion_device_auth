@@ -21,13 +21,13 @@
 #include "driver_manager_adapter.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using DriverManagerAdapterFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzStartDriver(FuzzedDataProvider &fuzzData)
 {
@@ -72,7 +72,7 @@ static void FuzzExecutorManager(FuzzedDataProvider &fuzzData)
     (void)fuzzData;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const DriverManagerAdapterFuzzFunction g_fuzzFuncs[] = {
     FuzzStartDriver,
     FuzzDriverOperations,
     FuzzMultipleStartAttempts,
@@ -80,7 +80,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzExecutorManager,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(DriverManagerAdapterFuzzFunction);
 
 void FuzzExecutorDriverManagerAdapter(FuzzedDataProvider &fuzzData)
 {
@@ -98,5 +98,8 @@ void FuzzExecutorDriverManagerAdapter(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ExecutorDriverManagerAdapter)
+
 } // namespace UserIam
 } // namespace OHOS

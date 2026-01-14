@@ -13,6 +13,8 @@
 #include <vector>
 
 #include "iam_check.h"
+#include "iam_logger.h"
+#include "iam_para2str.h"
 
 #include "service_common.h"
 #include "soft_bus_channel_common.h"
@@ -73,7 +75,8 @@ void SoftBusOnBind(int32_t socket, PeerSocketInfo info)
     std::string peerNetworkId(info.networkId, networkIdLen);
 
     std::lock_guard<std::mutex> lock(g_adapterMutex);
-    IAM_LOGI("SoftBusOnBind: socket=%{public}d", socket);
+    IAM_LOGI("=> [SoftBus] SoftBusOnBind callback received, socket=%{public}d, networkId=%{public}s", socket,
+        GET_MASKED_STR_CSTR(peerNetworkId));
 
     TaskRunnerManager::GetInstance().PostTaskOnResident(
         [weakAdapter = g_softBusConnectionManager, socket, peerNetworkId = std::move(peerNetworkId)]() {
@@ -89,7 +92,8 @@ void SoftBusOnShutdown(int32_t socket, ShutdownReason reason)
     ENSURE_OR_RETURN(socket > INVALID_SOCKET_ID);
 
     std::lock_guard<std::mutex> lock(g_adapterMutex);
-    IAM_LOGI("SoftBusOnShutdown: socket=%{public}d, reason=%{public}d", socket, static_cast<int32_t>(reason));
+    IAM_LOGI("=> [SoftBus] SoftBusOnShutdown callback received, socket=%{public}d, reason=%{public}d", socket,
+        static_cast<int32_t>(reason));
 
     TaskRunnerManager::GetInstance().PostTaskOnResident([weakAdapter = g_softBusConnectionManager, socket, reason]() {
         auto adapter = weakAdapter.lock();
@@ -108,7 +112,7 @@ void SoftBusOnBytes(int32_t socket, const void *data, uint32_t dataLen)
     std::vector<uint8_t> dataCopy(static_cast<const uint8_t *>(data), static_cast<const uint8_t *>(data) + dataLen);
 
     std::lock_guard<std::mutex> lock(g_adapterMutex);
-    IAM_LOGI("SoftBusOnBytes: socket=%{public}d, dataLen=%{public}u", socket, dataLen);
+    IAM_LOGI("=> [SoftBus] SoftBusOnBytes callback received, socket=%{public}d, dataLen=%{public}u", socket, dataLen);
 
     TaskRunnerManager::GetInstance().PostTaskOnResident(
         [weakAdapter = g_softBusConnectionManager, socket, dataCopy = std::move(dataCopy)]() {
@@ -124,7 +128,7 @@ void SoftBusOnError(int32_t socket, int32_t errCode)
     ENSURE_OR_RETURN(socket > INVALID_SOCKET_ID);
 
     std::lock_guard<std::mutex> lock(g_adapterMutex);
-    IAM_LOGE("SoftBusOnError: socket=%{public}d, errCode=%{public}d", socket, errCode);
+    IAM_LOGE("=> [SoftBus] SoftBusOnError callback received, socket=%{public}d, errCode=%{public}d", socket, errCode);
 
     TaskRunnerManager::GetInstance().PostTaskOnResident([weakAdapter = g_softBusConnectionManager, socket, errCode]() {
         auto adapter = weakAdapter.lock();
@@ -144,7 +148,7 @@ bool SoftBusOnNegotiate(int32_t socket, PeerSocketInfo info)
     std::string peerPkgName(info.pkgName, pkgNameLen);
     ENSURE_OR_RETURN_VAL(peerPkgName == PKG_NAME, false);
 
-    IAM_LOGI("SoftBusOnNegotiate: socket=%{public}d", socket);
+    IAM_LOGI("=> [SoftBus] SoftBusOnNegotiate callback received, socket=%{public}d", socket);
 
     return true;
 }

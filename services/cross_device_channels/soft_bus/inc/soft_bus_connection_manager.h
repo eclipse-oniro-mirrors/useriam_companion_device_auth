@@ -69,15 +69,15 @@ private:
     void CloseAllSockets(const std::string &reason = "");
     void HandleSoftBusServiceReady();
     void HandleSoftBusServiceUnavailable();
-    void UnsubscribeRawMessage(int32_t subscriptionId);
-    void UnsubscribeConnectionStatus(int32_t subscriptionId);
-    void UnsubscribeIncomingConnection(int32_t subscriptionId);
+    void UnsubscribeRawMessage(SubscribeId subscriptionId);
+    void UnsubscribeConnectionStatus(SubscribeId subscriptionId);
+    void UnsubscribeIncomingConnection(SubscribeId subscriptionId);
     void NotifyIncomingConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey);
 
     friend class SoftBusSocket;
 
     struct RawMessageSubscription {
-        int32_t subscriptionId;
+        SubscribeId subscriptionId;
         std::string connectionName;
         OnRawMessage callback;
     };

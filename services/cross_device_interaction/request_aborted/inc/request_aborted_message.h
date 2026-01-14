@@ -17,6 +17,7 @@
 #define COMPANION_DEVICE_AUTH_REQUEST_ABORTED_MESSAGE_H
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -39,11 +40,11 @@ struct RequestAbortedReply {
 
 bool EncodeRequestAbortedRequest(const RequestAbortedRequest &request, Attributes &attributes);
 
-bool DecodeRequestAbortedRequest(const Attributes &attributes, RequestAbortedRequest &request);
+std::optional<RequestAbortedRequest> DecodeRequestAbortedRequest(const Attributes &attributes);
 
 bool EncodeRequestAbortedReply(const RequestAbortedReply &reply, Attributes &attributes);
 
-bool DecodeRequestAbortedReply(const Attributes &attributes, RequestAbortedReply &reply);
+std::optional<RequestAbortedReply> DecodeRequestAbortedReply(const Attributes &attributes);
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

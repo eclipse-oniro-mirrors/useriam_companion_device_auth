@@ -54,7 +54,8 @@ struct EndAddHostBindingRequest {
     DeviceKey hostDeviceKey {};
     int32_t companionUserId { INVALID_USER_ID };
     ResultCode result { ResultCode::GENERAL_ERROR };
-    std::vector<uint8_t> extraInfo; // 当绑定成功时包含加密后的 Token 数据 (Challenge + Token + ATL)
+    std::vector<uint8_t>
+        extraInfo; // Contains encrypted token data when binding is successful (Challenge + Token + ATL)
 };
 
 // Companion -> Host

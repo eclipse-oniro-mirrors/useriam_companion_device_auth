@@ -94,7 +94,7 @@ public:
     }
 
 protected:
-    int32_t nextGlobalId_ = 1;
+    uint64_t nextGlobalId_ = 1;
     NiceMock<MockMiscManager> mockMiscManager_;
     NiceMock<MockUserIdManager> mockActiveUserIdManager_;
     std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel_;

@@ -32,7 +32,6 @@ public:
         physicalStatus_.physicalDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
         physicalStatus_.physicalDeviceKey.deviceId = "test-device-id";
         physicalStatus_.channelId = ChannelId::SOFTBUS;
-        physicalStatus_.networkId = "network-id";
         physicalStatus_.deviceModelInfo = "TestModel";
         physicalStatus_.deviceName = "TestDevice";
         physicalStatus_.isAuthMaintainActive = true;
@@ -53,7 +52,6 @@ HWTEST_F(DeviceStatusEntryTest, Constructor_001, TestSize.Level0)
     EXPECT_EQ(entry.physicalDeviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(entry.physicalDeviceKey.deviceId, "test-device-id");
     EXPECT_EQ(entry.channelId, ChannelId::SOFTBUS);
-    EXPECT_EQ(entry.networkId, "network-id");
     EXPECT_EQ(entry.deviceModelInfo, "TestModel");
     EXPECT_EQ(entry.deviceName, "TestDevice");
     EXPECT_TRUE(entry.isAuthMaintainActive);
@@ -73,7 +71,6 @@ HWTEST_F(DeviceStatusEntryTest, OnUserIdChange_001, TestSize.Level0)
     EXPECT_FALSE(entry.isSynced);
     EXPECT_FALSE(entry.isSyncInProgress);
     EXPECT_TRUE(entry.deviceName.empty());
-    EXPECT_TRUE(entry.networkId.empty());
 }
 
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceKey_001, TestSize.Level0)
@@ -95,7 +92,7 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
     entry.protocolId = ProtocolId::VERSION_1;
     entry.secureProtocolId = SecureProtocolId::DEFAULT;
     entry.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
-    entry.supportedBusinessIds = { 1, 2, 3 };
+    entry.supportedBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2), static_cast<BusinessId>(3) };
     entry.isSynced = true;
 
     UserId userId = 100;
@@ -147,7 +144,7 @@ HWTEST_F(DeviceStatusEntryTest, IsSameDevice_003, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device-id";
 
-    bool result = entry.IsSameDevice(key, ChannelId::INVALID);
+    bool result = entry.IsSameDevice(key, ChannelId::SOFTBUS);
     EXPECT_FALSE(result);
 }
 

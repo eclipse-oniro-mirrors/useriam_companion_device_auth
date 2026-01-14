@@ -25,6 +25,8 @@
 #include "sa_manager_adapter.h"
 #include "sa_manager_adapter_impl.h"
 
+#include "mock_sa_manager_adapter.h"
+
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
 namespace OHOS {
@@ -95,22 +97,7 @@ HWTEST_F(SaManagerAdapterTest, UnSubscribeSystemAbilityWithNullListener, TestSiz
 
 HWTEST_F(SaManagerAdapterTest, MockAdapterInjection, TestSize.Level0)
 {
-    // Create mock adapter
-    class MockSaManagerAdapter : public ISaManagerAdapter {
-    public:
-        bool SubscribeSystemAbility(int32_t systemAbilityId,
-            const sptr<SystemAbilityStatusChangeStub> &listener) override
-        {
-            return true;
-        }
-        bool UnSubscribeSystemAbility(int32_t systemAbilityId,
-            const sptr<SystemAbilityStatusChangeStub> &listener) override
-        {
-            return true;
-        }
-    };
-
-    auto mockAdapter = std::make_shared<MockSaManagerAdapter>();
+    auto mockAdapter = std::make_shared<MockSAManagerAdapter>();
     AdapterManager::GetInstance().SetSaManagerAdapter(mockAdapter);
 
     ISaManagerAdapter &adapter = GetSaManagerAdapter();

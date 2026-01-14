@@ -21,14 +21,14 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "misc_manager_impl.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using MiscManagerImplFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreate(FuzzedDataProvider &fuzzData)
 {
@@ -92,8 +92,15 @@ static void FuzzGetDeviceSelectResult(FuzzedDataProvider &fuzzData)
 
 static void FuzzCheckBusinessIds(FuzzedDataProvider &fuzzData)
 {
-    uint32_t testVal100 = 100;
-    std::vector<int32_t> businessIds = GenerateFuzzVector<int32_t>(fuzzData, testVal100);
+    // Generate vector of int32_t first, then convert to BusinessId
+    constexpr size_t SIZE_100 = 100;
+    std::vector<int32_t> intIds = GenerateFuzzVector<int32_t>(fuzzData, SIZE_100);
+    std::vector<BusinessId> businessIds;
+    businessIds.reserve(intIds.size());
+    for (const auto &id : intIds) {
+        businessIds.push_back(static_cast<BusinessId>(id));
+    }
+
     auto manager = MiscManagerImpl::Create();
     if (manager) {
         (void)manager->CheckBusinessIds(businessIds);
@@ -107,7 +114,7 @@ static void FuzzMiscManagerImplConstructor(FuzzedDataProvider &fuzzData)
     (void)manager;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const MiscManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzCreate,
     FuzzGetNextGlobalId,
     FuzzGetLocalUdid,
@@ -118,7 +125,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzMiscManagerImplConstructor,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(MiscManagerImplFuzzFunction);
 
 void FuzzMiscManagerImpl(FuzzedDataProvider &fuzzData)
 {
@@ -138,5 +145,8 @@ void FuzzMiscManagerImpl(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(MiscManagerImpl)
+
 } // namespace UserIam
 } // namespace OHOS

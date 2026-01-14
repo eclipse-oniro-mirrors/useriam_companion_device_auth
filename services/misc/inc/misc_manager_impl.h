@@ -35,14 +35,14 @@ public:
 
     ~MiscManagerImpl() override = default;
 
-    int32_t GetNextGlobalId() override;
+    uint64_t GetNextGlobalId() override;
 
     bool SetDeviceSelectCallback(uint32_t tokenId, const sptr<IIpcDeviceSelectCallback> &deviceSelectCallback) override;
     bool GetDeviceDeviceSelectResult(uint32_t tokenId, SelectPurpose selectPurpose,
         DeviceSelectResultHandler &&resultHandler) override;
     void ClearDeviceSelectCallback(uint32_t tokenId) override;
     std::optional<std::string> GetLocalUdid() override;
-    bool CheckBusinessIds(const std::vector<int32_t> &businessIds) override;
+    bool CheckBusinessIds(const std::vector<BusinessId> &businessIds) override;
 
 #ifndef ENABLE_TEST
 private:
@@ -53,7 +53,7 @@ private:
         sptr<IRemoteObject::DeathRecipient> deathRecipient;
     };
 
-    int32_t globalIdCounter_ { 1 };
+    uint64_t globalIdCounter_ { 1 };
     std::map<uint32_t, CallbackInfo> callbacks_;
 };
 

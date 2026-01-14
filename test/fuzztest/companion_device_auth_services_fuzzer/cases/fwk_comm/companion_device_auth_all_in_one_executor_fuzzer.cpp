@@ -22,8 +22,8 @@
 #include "companion_device_auth_all_in_one_executor.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "fwk_common.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -57,10 +57,12 @@ public:
     }
 };
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &);
+using CompanionDeviceAuthAllInOneExecutorFuzzFunction = void (*)(
+    std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &);
 
 static void FuzzOp0(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetExecutorInfo
     FwkExecutorInfo info;
     (void)exec->GetExecutorInfo(info);
@@ -68,6 +70,7 @@ static void FuzzOp0(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
 
 static void FuzzOp1(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test OnRegisterFinish
     uint8_t templateCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
     std::vector<uint64_t> templateIdList;
@@ -83,6 +86,7 @@ static void FuzzOp1(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
 
 static void FuzzOp2(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SendMessage
     uint64_t scheduleId = fuzzData.ConsumeIntegral<uint64_t>();
     int32_t srcRole = fuzzData.ConsumeIntegral<int32_t>();
@@ -93,6 +97,7 @@ static void FuzzOp2(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
 
 static void FuzzOp3(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Enroll
     uint64_t scheduleId = fuzzData.ConsumeIntegral<uint64_t>();
     FwkEnrollParam param;
@@ -104,6 +109,7 @@ static void FuzzOp3(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
 
 static void FuzzOp4(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Authenticate
     uint64_t scheduleId = fuzzData.ConsumeIntegral<uint64_t>();
     FwkAuthenticateParam param;
@@ -119,6 +125,7 @@ static void FuzzOp4(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
 
 static void FuzzOp5(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Delete
     uint8_t templateCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
     std::vector<uint64_t> templateIdList;
@@ -130,6 +137,7 @@ static void FuzzOp5(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
 
 static void FuzzOp6(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test Cancel
     uint64_t scheduleId = fuzzData.ConsumeIntegral<uint64_t>();
     (void)exec->Cancel(scheduleId);
@@ -137,6 +145,7 @@ static void FuzzOp6(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
 
 static void FuzzOp7(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SendCommand
     FwkPropertyMode commandId = static_cast<FwkPropertyMode>(fuzzData.ConsumeIntegral<int32_t>());
     uint32_t extraInfoSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
@@ -147,6 +156,7 @@ static void FuzzOp7(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
 
 static void FuzzOp8(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetProperty
     uint8_t templateCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
     std::vector<uint64_t> templateIdList;
@@ -164,6 +174,7 @@ static void FuzzOp8(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
 
 static void FuzzOp9(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test SetCachedTemplates
     uint8_t templateCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
     std::vector<uint64_t> templateIdList;
@@ -173,9 +184,9 @@ static void FuzzOp9(std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> &exec, 
     (void)exec->SetCachedTemplates(templateIdList);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7,
-    FuzzOp8, FuzzOp9 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const CompanionDeviceAuthAllInOneExecutorFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3,
+    FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7, FuzzOp8, FuzzOp9 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionDeviceAuthAllInOneExecutorFuzzFunction);
 
 void FuzzCompanionDeviceAuthAllInOneExecutor(FuzzedDataProvider &fuzzData)
 {
@@ -199,5 +210,8 @@ void FuzzCompanionDeviceAuthAllInOneExecutor(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionDeviceAuthAllInOneExecutor)
+
 } // namespace UserIam
 } // namespace OHOS

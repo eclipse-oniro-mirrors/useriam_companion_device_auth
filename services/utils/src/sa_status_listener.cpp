@@ -90,6 +90,10 @@ std::unique_ptr<SaStatusListener> SaStatusListener::Create(const std::string &na
     }
     return listener;
 #else
+    (void)name;
+    (void)systemAbilityId;
+    (void)addFunc;
+    (void)removeFunc;
     return nullptr;
 #endif
 }

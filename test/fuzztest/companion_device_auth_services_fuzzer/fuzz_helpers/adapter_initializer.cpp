@@ -30,6 +30,7 @@
 #include "fuzz_data_generator.h"
 #include "sa_manager_adapter.h"
 #include "soft_bus_adapter.h"
+#include "soft_bus_adapter_manager.h"
 #include "user_auth_adapter.h"
 
 namespace OHOS {
@@ -48,51 +49,6 @@ public:
     {
         (void)driver;
         return fuzzData_.ConsumeBool();
-    }
-
-private:
-    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
-};
-
-class MockDeviceManagerAdapter : public IDeviceManagerAdapter {
-public:
-    explicit MockDeviceManagerAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
-    {
-    }
-
-    bool InitDeviceManager() override
-    {
-        return fuzzData_.ConsumeBool();
-    }
-
-    void UnInitDeviceManager() override
-    {
-    }
-
-    std::optional<std::string> GetUdidByNetworkId(const std::string &networkId) override
-    {
-        (void)networkId;
-        if (fuzzData_.ConsumeBool()) {
-            return GenerateRandomString(fuzzData_);
-        }
-        return std::optional<std::string>();
-    }
-
-    bool QueryTrustedDevices(std::vector<DmDeviceInfo> &deviceList) override
-    {
-        (void)deviceList;
-        return fuzzData_.ConsumeBool();
-    }
-
-    bool RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
-    {
-        (void)callback;
-        return fuzzData_.ConsumeBool();
-    }
-
-    void UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
-    {
-        (void)callback;
     }
 
 private:
@@ -179,20 +135,11 @@ public:
     }
 
     uint64_t BeginDelegateAuth(uint32_t userId, const std::vector<uint8_t> &challenge, uint32_t authTrustLevel,
-        const std::shared_ptr<UserAuth::AuthenticationCallback> &callback) override
+        AuthResultCallback callback) override
     {
         (void)userId;
         (void)challenge;
         (void)authTrustLevel;
-        (void)callback;
-        return fuzzData_.ConsumeIntegral<uint64_t>();
-    }
-
-    uint64_t BeginWidgetAuth(const UserAuth::WidgetAuthParam &authParam, const UserAuth::WidgetParam &widgetParam,
-        const std::shared_ptr<UserAuth::AuthenticationCallback> &callback) override
-    {
-        (void)authParam;
-        (void)widgetParam;
         (void)callback;
         return fuzzData_.ConsumeIntegral<uint64_t>();
     }
@@ -231,6 +178,51 @@ private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };
 
+class MockDeviceManagerAdapter : public IDeviceManagerAdapter {
+public:
+    explicit MockDeviceManagerAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    bool InitDeviceManager() override
+    {
+        return fuzzData_.ConsumeBool();
+    }
+
+    void UnInitDeviceManager() override
+    {
+    }
+
+    std::optional<std::string> GetUdidByNetworkId(const std::string &networkId) override
+    {
+        (void)networkId;
+        if (fuzzData_.ConsumeBool()) {
+            return GenerateRandomString(fuzzData_);
+        }
+        return std::optional<std::string>();
+    }
+
+    bool QueryTrustedDevices(std::vector<DmDeviceInfo> &deviceList) override
+    {
+        (void)deviceList;
+        return fuzzData_.ConsumeBool();
+    }
+
+    bool RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
+    {
+        (void)callback;
+        return fuzzData_.ConsumeBool();
+    }
+
+    void UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
+    {
+        (void)callback;
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
 bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 {
     AdapterManager &adapterMgr = AdapterManager::GetInstance();
@@ -238,11 +230,12 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
     auto driverMgr = std::make_shared<MockDriverManagerAdapter>(fuzzData);
     adapterMgr.SetDriverManagerAdapter(driverMgr);
 
-    auto deviceMgr = std::make_shared<MockDeviceManagerAdapter>(fuzzData);
-    adapterMgr.SetDeviceManagerAdapter(deviceMgr);
-
+    // Note: DeviceManagerAdapter and SoftBusAdapter are managed by SoftBusAdapterManager
     auto softBusAdapter = std::make_shared<MockSoftBusAdapter>(fuzzData);
-    adapterMgr.SetSoftBusAdapter(softBusAdapter);
+    SoftBusAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
+
+    auto deviceMgrAdapter = std::make_shared<MockDeviceManagerAdapter>(fuzzData);
+    SoftBusAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceMgrAdapter);
 
     auto accessTokenAdapter = std::make_shared<MockAccessTokenKitAdapter>(fuzzData);
     adapterMgr.SetAccessTokenKitAdapter(accessTokenAdapter);
@@ -259,6 +252,7 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 void CleanupAdapterManager()
 {
     AdapterManager::GetInstance().Reset();
+    SoftBusAdapterManager::GetInstance().Reset();
 }
 
 } // namespace CompanionDeviceAuth

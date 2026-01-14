@@ -12,7 +12,24 @@
 # limitations under the License.
 
 import("//build/ohos.gni")
+import("../companion_device_auth.gni")
 
 config("companion_device_auth_common_config") {
   include_dirs = [ "inc" ]
+}
+
+ohos_source_set("companion_device_auth_common") {
+  sources = [ "src/iam_para2str.cpp" ]
+
+  configs = [ ":companion_device_auth_common_config" ]
+
+  public_configs = [ ":companion_device_auth_common_config" ]
+
+  external_deps = [
+    "hilog:libhilog",
+    "ipc:ipc_single",
+  ]
+
+  subsystem_name = companion_device_auth_subsystem_name
+  part_name = companion_device_auth_part_name
 }

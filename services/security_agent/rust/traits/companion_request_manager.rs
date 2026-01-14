@@ -31,42 +31,38 @@ use crate::traits::db_manager::DeviceKey;
 use crate::String;
 use crate::{log_e, singleton_registry, Box, Vec};
 
-pub enum CompanionRequestInput {
-    SyncStatus(CompanionProcessCheckInputFfi),
-    KeyNego(CompanionInitKeyNegotiationInputFfi),
-    EnrollBegin(CompanionBeginAddHostBindingInputFfi),
-    EnrollEnd(CompanionEndAddHostBindingInputFfi),
-    TokenAuthBegin(CompanionProcessTokenAuthInputFfi),
-    TokenAuthEnd(CompanionProcessTokenAuthInputFfi),
-    DelegateAuthBegin(CompanionBeginDelegateAuthInputFfi),
-    DelegateAuthEnd(CompanionEndDelegateAuthInputFfi),
-    IssueTokenBegin(CompanionPreIssueTokenInputFfi),
-    IssueTokenEnd(CompanionProcessIssueTokenInputFfi),
-    ObtainTokenBegin(CompanionBeginObtainTokenInputFfi),
-    ObtainTokenEnd(CompanionEndObtainTokenInputFfi),
-}
-
-#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
-pub enum CompanionRequestOutput {
-    SyncStatus(CompanionProcessCheckOutputFfi),
-    KeyNego(CompanionInitKeyNegotiationOutputFfi),
-    EnrollBegin(CompanionBeginAddHostBindingOutputFfi),
-    EnrollEnd(CompanionEndAddHostBindingOutputFfi),
-    TokenAuthBegin(CompanionProcessTokenAuthOutputFfi),
-    TokenAuthEnd(CompanionProcessTokenAuthOutputFfi),
-    DelegateAuthBegin(CompanionBeginDelegateAuthOutputFfi),
-    DelegateAuthEnd(CompanionEndDelegateAuthOutputFfi),
-    IssueTokenBegin(CompanionPreIssueTokenOutputFfi),
-    IssueTokenEnd(CompanionProcessIssueTokenOutputFfi),
-    ObtainTokenBegin(CompanionBeginObtainTokenOutputFfi),
-    ObtainTokenEnd(CompanionEndObtainTokenOutputFfi),
+pub enum CompanionRequestParam<'a> {
+    SyncStatus(&'a CompanionProcessCheckInputFfi, &'a mut CompanionProcessCheckOutputFfi),
+    KeyNego(&'a CompanionInitKeyNegotiationInputFfi, &'a mut CompanionInitKeyNegotiationOutputFfi),
+    EnrollBegin(&'a CompanionBeginAddHostBindingInputFfi, &'a mut CompanionBeginAddHostBindingOutputFfi),
+    EnrollEnd(&'a CompanionEndAddHostBindingInputFfi, &'a mut CompanionEndAddHostBindingOutputFfi),
+    TokenAuthBegin(&'a CompanionProcessTokenAuthInputFfi, &'a mut CompanionProcessTokenAuthOutputFfi),
+    TokenAuthEnd(&'a CompanionProcessTokenAuthInputFfi, &'a mut CompanionProcessTokenAuthOutputFfi),
+    DelegateAuthBegin(&'a CompanionBeginDelegateAuthInputFfi, &'a mut CompanionBeginDelegateAuthOutputFfi),
+    DelegateAuthEnd(&'a CompanionEndDelegateAuthInputFfi, &'a mut CompanionEndDelegateAuthOutputFfi),
+    IssueTokenBegin(&'a CompanionPreIssueTokenInputFfi, &'a mut CompanionPreIssueTokenOutputFfi),
+    IssueTokenEnd(&'a CompanionProcessIssueTokenInputFfi, &'a mut CompanionProcessIssueTokenOutputFfi),
+    ObtainTokenBegin(&'a CompanionBeginObtainTokenInputFfi, &'a mut CompanionBeginObtainTokenOutputFfi),
+    ObtainTokenEnd(&'a CompanionEndObtainTokenInputFfi, &'a mut CompanionEndObtainTokenOutputFfi),
 }
 
 pub trait CompanionRequest {
     fn get_request_id(&self) -> i32;
-    fn prepare(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode>;
-    fn begin(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode>;
-    fn end(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode>;
+
+    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+        log_e!("prepare not implemented");
+        Err(ErrorCode::GeneralError)
+    }
+
+    fn begin(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+        log_e!("begin not implemented");
+        Err(ErrorCode::GeneralError)
+    }
+
+    fn end(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+        log_e!("end not implemented");
+        Err(ErrorCode::GeneralError)
+    }
 }
 
 pub type DynCompanionRequest = dyn CompanionRequest;

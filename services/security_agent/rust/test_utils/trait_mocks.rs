@@ -92,7 +92,7 @@ pub mod test_utils {
 
     impl Drop for UtRegistryGuard {
         fn drop(&mut self) {
-            // 重置所有 registry 为默认实现
+            // Reset all registries to default implementation
             LoggerRegistry::reset();
             MiscManagerRegistry::reset();
             CryptoEngineRegistry::reset();

@@ -15,6 +15,9 @@
 
 #include "subscription.h"
 
+#include "iam_logger.h"
+
+#define LOG_TAG "COMPANION_DEVICE_AUTH"
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {

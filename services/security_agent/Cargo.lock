@@ -86,6 +86,7 @@ dependencies = [
  "hilog_rust",
  "libc",
  "openssl",
+ "serde",
 ]
 
 [[package]]

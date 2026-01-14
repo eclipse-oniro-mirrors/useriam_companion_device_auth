@@ -23,13 +23,13 @@
 #include "fuzz_constants.h"
 #include "fuzz_cross_device_channel.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData);
+using CrossDeviceCommManagerImplFuzzFunction = void (*)(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData);
 
 static void FuzzStart(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
@@ -207,7 +207,7 @@ static void FuzzCompanionGetSecureProtocolId(ICrossDeviceCommManager &manager, F
     (void)protocolId;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CrossDeviceCommManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzStart,
     FuzzIsAuthMaintainActive,
     FuzzGetLocalDeviceProfile,
@@ -232,7 +232,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzCompanionGetSecureProtocolId,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CrossDeviceCommManagerImplFuzzFunction);
 
 void FuzzCrossDeviceCommManagerImpl(FuzzedDataProvider &fuzzData)
 {
@@ -265,5 +265,8 @@ void FuzzCrossDeviceCommManagerImpl(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CrossDeviceCommManagerImpl)
+
 } // namespace UserIam
 } // namespace OHOS

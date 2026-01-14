@@ -29,7 +29,7 @@ use crate::request::enroll::enroll_message::{
 use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
 use crate::traits::companion_request_manager::{
-    CompanionRequest, CompanionRequestInput, CompanionRequestManagerRegistry, CompanionRequestOutput,
+    CompanionRequest, CompanionRequestManagerRegistry, CompanionRequestParam,
 };
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::crypto_engine::KeyPair;
@@ -281,23 +281,22 @@ impl CompanionRequest for CompanionDeviceEnrollRequest {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn prepare(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceEnrollRequest prepare start");
-        let CompanionRequestInput::KeyNego(ffi_input) = input else {
+        let CompanionRequestParam::KeyNego(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         self.parse_key_nego_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_key_nego_sec_message()?;
-        Ok(CompanionRequestOutput::KeyNego(CompanionInitKeyNegotiationOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        Ok(())
     }
 
-    fn begin(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceEnrollRequest begin start");
-        let CompanionRequestInput::EnrollBegin(ffi_input) = input else {
+        let CompanionRequestParam::EnrollBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -308,21 +307,20 @@ impl CompanionRequest for CompanionDeviceEnrollRequest {
         let binding_id = self.store_device_info()?;
         let device_info = CompanionDbManagerRegistry::get().get_device_by_binding_id(binding_id)?;
         self.binding_id = binding_id;
-        Ok(CompanionRequestOutput::EnrollBegin(CompanionBeginAddHostBindingOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.binding_id = binding_id;
+        ffi_output.binding_status = PersistedHostBindingStatusFfi {
             binding_id: binding_id,
-            binding_status: PersistedHostBindingStatusFfi {
-                binding_id: binding_id,
-                companion_user_id: device_info.user_info.user_id,
-                host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
-                is_token_valid: false,
-            },
-        }))
+            companion_user_id: device_info.user_info.user_id,
+            host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
+            is_token_valid: false,
+        };
+        Ok(())
     }
 
-    fn end(&mut self, input: CompanionRequestInput) -> Result<CompanionRequestOutput, ErrorCode> {
+    fn end(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceEnrollRequest end start");
-        let CompanionRequestInput::EnrollEnd(ffi_input) = input else {
+        let CompanionRequestParam::EnrollEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -335,6 +333,7 @@ impl CompanionRequest for CompanionDeviceEnrollRequest {
         self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         self.store_token()?;
         companion_db_helper::update_host_device_last_used_time(self.binding_id)?;
-        Ok(CompanionRequestOutput::EnrollEnd(CompanionEndAddHostBindingOutputFfi { binding_id: self.binding_id }))
+        ffi_output.binding_id = self.binding_id;
+        Ok(())
     }
 }

@@ -15,6 +15,8 @@
 
 #include "ipc_device_select_callback_service.h"
 
+#include <memory>
+
 #include "iam_logger.h"
 #include "iam_ptr.h"
 

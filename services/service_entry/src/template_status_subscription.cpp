@@ -121,13 +121,6 @@ void TemplateStatusSubscription::HandleCompanionStatusChange(const std::vector<C
         if (status.hostUserId != userId_) {
             continue;
         }
-        IAM_LOGI("companionStatus templateId: %{public}s, hostUserId: %{public}d, DeviceKey: %{public}s, channelId: "
-                 "%{public}d, deviceModelInfo: %{public}s, deviceUserName: %{public}s, deviceName: %{public}s",
-            GET_TRUNCATED_STRING(status.templateId).c_str(), status.hostUserId,
-            status.companionDeviceStatus.deviceKey.GetDesc().c_str(),
-            static_cast<int32_t>(status.companionDeviceStatus.channelId),
-            status.companionDeviceStatus.deviceModelInfo.c_str(), status.companionDeviceStatus.deviceUserName.c_str(),
-            status.companionDeviceStatus.deviceName.c_str());
         templateStatusList.push_back(ConvertToIpcTemplateStatus(status, manageSubscribeTime));
     }
 

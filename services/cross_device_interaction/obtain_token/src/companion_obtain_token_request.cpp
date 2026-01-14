@@ -41,7 +41,6 @@ CompanionObtainTokenRequest::CompanionObtainTokenRequest(const DeviceKey &hostDe
 
 bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
-    IAM_LOGI("%{public}s start obtain token", GetDescription());
     if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
         IAM_LOGE("%{public}s local auth maintain inactive", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
@@ -118,9 +117,9 @@ void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &re
     IAM_LOGI("%{public}s", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
-    PreObtainTokenReply preObtainTokenReply = {};
-    bool decodeRet = DecodePreObtainTokenReply(reply, preObtainTokenReply);
-    ENSURE_OR_RETURN(decodeRet);
+    auto preObtainTokenReplyOpt = DecodePreObtainTokenReply(reply);
+    ENSURE_OR_RETURN(preObtainTokenReplyOpt.has_value());
+    const auto &preObtainTokenReply = *preObtainTokenReplyOpt;
 
     ResultCode result = static_cast<ResultCode>(preObtainTokenReply.result);
     if (result != ResultCode::SUCCESS) {
@@ -140,7 +139,6 @@ void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &re
 
 bool CompanionObtainTokenRequest::CompanionBeginObtainToken(const PreObtainTokenReply &preObtainTokenReply)
 {
-    requestId_ = static_cast<int32_t>(preObtainTokenReply.requestId);
     auto hostBindingStatus =
         GetHostBindingManager().GetHostBindingStatus(companionDeviceKey_.deviceUserId, hostDeviceKey_);
     if (!hostBindingStatus.has_value()) {
@@ -163,16 +161,14 @@ bool CompanionObtainTokenRequest::CompanionBeginObtainToken(const PreObtainToken
         return false;
     }
     needCancelObtainToken_ = true;
-    return SendObtainTokenRequest(preObtainTokenReply.requestId, output.obtainTokenRequest);
+    return SendObtainTokenRequest(output.obtainTokenRequest);
 }
 
-bool CompanionObtainTokenRequest::SendObtainTokenRequest(RequestId requestId,
-    const std::vector<uint8_t> &obtainTokenRequest)
+bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest)
 {
     Attributes request = {};
     ObtainTokenRequest obtainRequest = {
         .hostUserId = hostDeviceKey_.deviceUserId,
-        .requestId = requestId,
         .extraInfo = obtainTokenRequest,
         .companionDeviceKey = companionDeviceKey_,
     };
@@ -181,10 +177,10 @@ bool CompanionObtainTokenRequest::SendObtainTokenRequest(RequestId requestId,
 
     auto weakSelf = std::weak_ptr<CompanionObtainTokenRequest>(shared_from_this());
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::OBTAIN_TOKEN, request,
-        [weakSelf, requestId](const Attributes &reply) {
+        [weakSelf](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->HandleObtainTokenReply(reply, requestId);
+            self->HandleObtainTokenReply(reply);
         });
     if (!sendRet) {
         IAM_LOGE("%{public}s SendMessage failed", GetDescription());
@@ -193,14 +189,14 @@ bool CompanionObtainTokenRequest::SendObtainTokenRequest(RequestId requestId,
     return true;
 }
 
-void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply, RequestId requestId)
+void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply)
 {
     IAM_LOGI("%{public}s", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
-    ObtainTokenReply obtainTokenReply = {};
-    bool decodeRet = DecodeObtainTokenReply(reply, obtainTokenReply);
-    ENSURE_OR_RETURN(decodeRet);
+    auto obtainTokenReplyOpt = DecodeObtainTokenReply(reply);
+    ENSURE_OR_RETURN(obtainTokenReplyOpt.has_value());
+    const auto &obtainTokenReply = *obtainTokenReplyOpt;
 
     ResultCode result = static_cast<ResultCode>(obtainTokenReply.result);
     if (result != ResultCode::SUCCESS) {
@@ -209,7 +205,7 @@ void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply
         return;
     }
 
-    bool endRet = CompanionEndObtainToken(obtainTokenReply, requestId);
+    bool endRet = CompanionEndObtainToken(obtainTokenReply, requestId_);
     if (!endRet) {
         IAM_LOGE("%{public}s CompanionEndObtainToken failed", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
@@ -240,7 +236,7 @@ bool CompanionObtainTokenRequest::CompanionEndObtainToken(const ObtainTokenReply
 
 void CompanionObtainTokenRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s: obtain token request failed, result=%{public}d", GetDescription(), result);
+    IAM_LOGI("%{public}s: receive obtain token request failed, result=%{public}d", GetDescription(), result);
     localDeviceStatusSubscription_.reset();
     if (needCancelObtainToken_) {
         CompanionCancelObtainTokenInput input = { requestId_ };
@@ -255,7 +251,7 @@ void CompanionObtainTokenRequest::CompleteWithError(ResultCode result)
 
 void CompanionObtainTokenRequest::CompleteWithSuccess()
 {
-    IAM_LOGI("%{public}s: obtain token request completed successfully", GetDescription());
+    IAM_LOGI("%{public}s complete with success", GetDescription());
     localDeviceStatusSubscription_.reset();
     Destroy();
 }

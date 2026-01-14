@@ -16,13 +16,14 @@
 #ifndef COMPANION_DEVICE_AUTH_ADAPTER_MANAGER_H
 #define COMPANION_DEVICE_AUTH_ADAPTER_MANAGER_H
 
-#include "device_manager_adapter.h"
+#include <memory>
+
 #include "nocopyable.h"
 
+// External adapters
 #include "access_token_kit_adapter.h"
 #include "driver_manager_adapter.h"
 #include "sa_manager_adapter.h"
-#include "soft_bus_adapter.h"
 #include "user_auth_adapter.h"
 
 namespace OHOS {
@@ -35,17 +36,11 @@ public:
 
     bool CreateAndRegisterAllAdapters();
 
-    IDeviceManagerAdapter &GetDeviceManagerAdapter();
-    void SetDeviceManagerAdapter(std::shared_ptr<IDeviceManagerAdapter> adapter);
-
-    ISoftBusAdapter &GetSoftBusAdapter();
-    void SetSoftBusAdapter(std::shared_ptr<ISoftBusAdapter> adapter);
+    IUserAuthAdapter &GetUserAuthAdapter();
+    void SetUserAuthAdapter(std::shared_ptr<IUserAuthAdapter> adapter);
 
     IAccessTokenKitAdapter &GetAccessTokenKitAdapter();
     void SetAccessTokenKitAdapter(std::shared_ptr<IAccessTokenKitAdapter> adapter);
-
-    IUserAuthAdapter &GetUserAuthAdapter();
-    void SetUserAuthAdapter(std::shared_ptr<IUserAuthAdapter> adapter);
 
     IDriverManagerAdapter &GetDriverManagerAdapter();
     void SetDriverManagerAdapter(std::shared_ptr<IDriverManagerAdapter> adapter);
@@ -63,33 +58,20 @@ private:
 
     void AbortIfAdapterUninitialized(const char *adapterName);
 
-    std::shared_ptr<IDeviceManagerAdapter> deviceManagerAdapter_;
-    std::shared_ptr<ISoftBusAdapter> softBusAdapter_;
-    std::shared_ptr<IAccessTokenKitAdapter> accessTokenKitAdapter_;
     std::shared_ptr<IUserAuthAdapter> userAuthAdapter_;
+    std::shared_ptr<IAccessTokenKitAdapter> accessTokenKitAdapter_;
     std::shared_ptr<IDriverManagerAdapter> driverManagerAdapter_;
     std::shared_ptr<ISaManagerAdapter> saManagerAdapter_;
 };
 
-// Convenience accessor functions
-inline IDeviceManagerAdapter &GetDeviceManagerAdapter()
+inline IUserAuthAdapter &GetUserAuthAdapter()
 {
-    return AdapterManager::GetInstance().GetDeviceManagerAdapter();
-}
-
-inline ISoftBusAdapter &GetSoftBusAdapter()
-{
-    return AdapterManager::GetInstance().GetSoftBusAdapter();
+    return AdapterManager::GetInstance().GetUserAuthAdapter();
 }
 
 inline IAccessTokenKitAdapter &GetAccessTokenKitAdapter()
 {
     return AdapterManager::GetInstance().GetAccessTokenKitAdapter();
-}
-
-inline IUserAuthAdapter &GetUserAuthAdapter()
-{
-    return AdapterManager::GetInstance().GetUserAuthAdapter();
 }
 
 inline IDriverManagerAdapter &GetDriverManagerAdapter()

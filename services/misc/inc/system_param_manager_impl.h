@@ -46,7 +46,7 @@ public:
 private:
 #endif
     SystemParamManagerImpl();
-    void UnwatchParam(int32_t subscriptionId);
+    void UnwatchParam(SubscribeId subscriptionId);
 
     std::map<int32_t, SystemParamCallback> subscriptions_;
     std::map<std::string, std::vector<int32_t>> keyToSubscriptionIds_;

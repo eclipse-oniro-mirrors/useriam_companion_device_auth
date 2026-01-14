@@ -23,7 +23,7 @@
 #include "companion_manager_impl.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -32,14 +32,14 @@ namespace {
 const uint32_t TEST_VAL64 = 64;
 }
 
-using FuzzFunction = void (*)(std::shared_ptr<Companion> &companion, FuzzedDataProvider &fuzzData);
+using CompanionFuzzFunction = void (*)(std::shared_ptr<Companion> &companion, FuzzedDataProvider &fuzzData);
 
 static void FuzzSetEnabledBusinessIds(std::shared_ptr<Companion> &companion, FuzzedDataProvider &fuzzData)
 {
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_BUSINESS_IDS_COUNT);
-    std::vector<int32_t> businessIds;
+    std::vector<BusinessId> businessIds;
     for (uint8_t j = 0; j < count; ++j) {
-        businessIds.push_back(fuzzData.ConsumeIntegral<int32_t>());
+        businessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));
     }
     companion->SetEnabledBusinessIds(businessIds);
 }
@@ -103,7 +103,7 @@ static void FuzzDeviceStatusHandling(std::shared_ptr<Companion> &companion, Fuzz
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CompanionFuzzFunction g_fuzzFuncs[] = {
     FuzzSetEnabledBusinessIds,
     FuzzSetCompanionValid,
     FuzzSetCompanionTokenAtl,
@@ -113,7 +113,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzDeviceStatusHandling,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionFuzzFunction);
 
 void FuzzCompanion(FuzzedDataProvider &fuzzData)
 {
@@ -145,3 +145,5 @@ void FuzzCompanion(FuzzedDataProvider &fuzzData)
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
+
+FUZZ_REGISTER(Companion)

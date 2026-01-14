@@ -22,7 +22,7 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "soft_bus_adapter.h"
 
 namespace OHOS {
@@ -32,7 +32,7 @@ namespace {
 const size_t TEST_VAL1024 = 1024;
 }
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using SoftBusAdapterFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreateServerSocket(FuzzedDataProvider &fuzzData)
 {
@@ -94,7 +94,7 @@ static void FuzzSocketDataTransfer(FuzzedDataProvider &fuzzData)
     (void)socketId;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const SoftBusAdapterFuzzFunction g_fuzzFuncs[] = {
     FuzzCreateServerSocket,
     FuzzCreateClientSocket,
     FuzzSendBytes,
@@ -104,7 +104,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzSocketDataTransfer,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SoftBusAdapterFuzzFunction);
 
 void FuzzSoftBusAdapter(FuzzedDataProvider &fuzzData)
 {
@@ -122,5 +122,8 @@ void FuzzSoftBusAdapter(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SoftBusAdapter)
+
 } // namespace UserIam
 } // namespace OHOS

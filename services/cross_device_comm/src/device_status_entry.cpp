@@ -15,6 +15,9 @@
 
 #include "device_status_entry.h"
 
+#include "iam_logger.h"
+
+#define LOG_TAG "COMPANION_DEVICE_AUTH"
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
@@ -22,7 +25,6 @@ namespace CompanionDeviceAuth {
 DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus)
     : physicalDeviceKey(physicalStatus.physicalDeviceKey),
       channelId(physicalStatus.channelId),
-      networkId(physicalStatus.networkId),
       deviceModelInfo(physicalStatus.deviceModelInfo),
       deviceName(physicalStatus.deviceName),
       isAuthMaintainActive(physicalStatus.isAuthMaintainActive),
@@ -36,7 +38,6 @@ void DeviceStatusEntry::OnUserIdChange()
     isSynced = false;
     isSyncInProgress = false;
     deviceName.clear();
-    networkId.clear();
 }
 
 DeviceKey DeviceStatusEntry::BuildDeviceKey(UserId userId) const

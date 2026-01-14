@@ -21,15 +21,15 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "request_factory_impl.h"
 #include "request_manager_impl.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<RequestManagerImpl> &manager, FuzzedDataProvider &fuzzData);
+using RequestFuzzFunction = void (*)(std::shared_ptr<RequestManagerImpl> &manager, FuzzedDataProvider &fuzzData);
 
 static void FuzzCreateRequestManager(std::shared_ptr<RequestManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
@@ -121,7 +121,7 @@ static void FuzzGenerateDeviceStatus(std::shared_ptr<RequestManagerImpl> &manage
     (void)status;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const RequestFuzzFunction g_fuzzFuncs[] = {
     FuzzCreateRequestManager,
     FuzzGetRequest,
     FuzzCancelByRequestId,
@@ -137,7 +137,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzGenerateDeviceStatus,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(RequestFuzzFunction);
 
 void FuzzRequest(FuzzedDataProvider &fuzzData)
 {
@@ -159,5 +159,8 @@ void FuzzRequest(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(Request)
+
 } // namespace UserIam
 } // namespace OHOS

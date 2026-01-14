@@ -34,22 +34,20 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-constexpr int32_t INVALID_GLBOBAL_ID = -1;
-
 using DeviceSelectResultHandler = std::function<void(const std::vector<DeviceKey> &)>;
 
 class IMiscManager : public NoCopyable {
 public:
     virtual ~IMiscManager() = default;
 
-    virtual int32_t GetNextGlobalId() = 0;
+    virtual uint64_t GetNextGlobalId() = 0;
     virtual bool SetDeviceSelectCallback(uint32_t tokenId,
         const sptr<IIpcDeviceSelectCallback> &deviceSelectCallback) = 0;
     virtual bool GetDeviceDeviceSelectResult(uint32_t tokenId, SelectPurpose selectPurpose,
         DeviceSelectResultHandler &&resultHandler) = 0;
     virtual void ClearDeviceSelectCallback(uint32_t tokenId) = 0;
     virtual std::optional<std::string> GetLocalUdid() = 0;
-    virtual bool CheckBusinessIds(const std::vector<int32_t> &businessIds) = 0;
+    virtual bool CheckBusinessIds(const std::vector<BusinessId> &businessIds) = 0;
 
 #ifndef ENABLE_TEST
 protected:

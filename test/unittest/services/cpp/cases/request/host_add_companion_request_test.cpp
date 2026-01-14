@@ -37,6 +37,13 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+// Test constants
+constexpr ScheduleId SCHEDULE_ID_1 = 1;
+constexpr uint32_t NUM_123 = 123;
+constexpr uint32_t NUM_2 = 2;
+constexpr uint32_t NUM_3 = 3;
+constexpr uint32_t NUM_4 = 4;
+
 std::unique_ptr<Subscription> MakeSubscription()
 {
     return std::make_unique<Subscription>([]() {});
@@ -91,14 +98,11 @@ public:
                 out = { 4, 5, 6 };
                 return ResultCode::SUCCESS;
             }));
-        ON_CALL(mockCompanionManager_, EndAddCompanion(_, _, _, _))
-            .WillByDefault(Invoke(
-                [](const EndAddCompanionInputParam &,
-                std::vector<uint8_t> &out, std::vector<uint8_t> &,
-                Atl &) {
-                    out = { 7, 8, 9 };
-                    return ResultCode::SUCCESS;
-                }));
+        ON_CALL(mockCompanionManager_, EndAddCompanion(_, _))
+            .WillByDefault(Invoke([](const EndAddCompanionInput &, EndAddCompanionOutput &output) {
+                output.fwkMsg = { 7, 8, 9 };
+                return ResultCode::SUCCESS;
+            }));
     }
 
     void TearDown() override
@@ -124,9 +128,9 @@ protected:
     NiceMock<MockUserIdManager> mockActiveUserIdManager_;
     NiceMock<MockMiscManager> mockMiscManager_;
 
-    ScheduleId scheduleId_ = 1;
-    std::vector<uint8_t> fwkMsg_ = { 1, 2, 3, 4 };
-    uint32_t tokenId_ = 123;
+    ScheduleId scheduleId_ = SCHEDULE_ID_1;
+    std::vector<uint8_t> fwkMsg_ = { SCHEDULE_ID_1, NUM_2, NUM_3, NUM_4 };
+    uint32_t tokenId_ = NUM_123;
     FwkResultCallback fwkResultCallback_ = [](ResultCode, const std::vector<uint8_t> &) {};
     DeviceKey companionDeviceKey_ = { .deviceId = "companion_device_id", .deviceUserId = 100 };
     DeviceKey hostDeviceKey_ = { .deviceId = "host_device_id", .deviceUserId = 100 };
@@ -440,10 +444,9 @@ HWTEST_F(HostAddCompanionRequestTest, HandleBeginAddHostBindingReply_001, TestSi
     EncodeBeginAddHostBindingReply(replyMsg, reply);
 
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus_)));
-    EXPECT_CALL(mockCompanionManager_, EndAddCompanion(_, _, _, _))
-        .WillOnce(Invoke([](const EndAddCompanionInputParam &,
-                             std::vector<uint8_t> &out, std::vector<uint8_t> &, Atl &) {
-            out = { 7, 8, 9 };
+    EXPECT_CALL(mockCompanionManager_, EndAddCompanion(_, _))
+        .WillOnce(Invoke([](const EndAddCompanionInput &, EndAddCompanionOutput &output) {
+            output.fwkMsg = { 7, 8, 9 };
             return ResultCode::SUCCESS;
         }));
     CompanionStatus status;
@@ -513,8 +516,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleBeginAddHostBindingReply_004, TestSi
     EncodeBeginAddHostBindingReply(replyMsg, reply);
 
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus_)));
-    EXPECT_CALL(mockCompanionManager_, EndAddCompanion(_, _, _, _))
-        .WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(mockCompanionManager_, EndAddCompanion(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     request_->HandleBeginAddHostBindingReply(reply);
 
@@ -532,10 +534,9 @@ HWTEST_F(HostAddCompanionRequestTest, HandleBeginAddHostBindingReply_005, TestSi
     EncodeBeginAddHostBindingReply(replyMsg, reply);
 
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus_)));
-    EXPECT_CALL(mockCompanionManager_, EndAddCompanion(_, _, _, _))
-        .WillOnce(Invoke([](const EndAddCompanionInputParam &,
-                             std::vector<uint8_t> &out, std::vector<uint8_t> &, Atl &) {
-            out = { 7, 8, 9 };
+    EXPECT_CALL(mockCompanionManager_, EndAddCompanion(_, _))
+        .WillOnce(Invoke([](const EndAddCompanionInput &, EndAddCompanionOutput &output) {
+            output.fwkMsg = { 7, 8, 9 };
             return ResultCode::SUCCESS;
         }));
     CompanionStatus status;

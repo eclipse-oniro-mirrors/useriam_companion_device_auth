@@ -21,17 +21,18 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 #include "subscription_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<SubscriptionManager> &, FuzzedDataProvider &);
+using SubscriptionManagerFuzzFunction = void (*)(std::shared_ptr<SubscriptionManager> &, FuzzedDataProvider &);
 
 static void FuzzOp0(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetOrCreateAvailableDeviceSubscription
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
     auto subscription = manager->GetOrCreateAvailableDeviceSubscription(userId);
@@ -40,6 +41,7 @@ static void FuzzOp0(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataPro
 
 static void FuzzOp1(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetOrCreateTemplateStatusSubscription
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
     auto subscription = manager->GetOrCreateTemplateStatusSubscription(userId);
@@ -48,6 +50,7 @@ static void FuzzOp1(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataPro
 
 static void FuzzOp2(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test GetOrCreateContinuousAuthSubscription
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
     std::optional<uint64_t> templateId;
@@ -60,6 +63,7 @@ static void FuzzOp2(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataPro
 
 static void FuzzOp3(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test AddAvailableDeviceStatusCallback with nullptr
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
     manager->AddAvailableDeviceStatusCallback(userId, nullptr);
@@ -67,12 +71,14 @@ static void FuzzOp3(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataPro
 
 static void FuzzOp4(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test RemoveAvailableDeviceStatusCallback with nullptr
     manager->RemoveAvailableDeviceStatusCallback(nullptr);
 }
 
 static void FuzzOp5(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test AddTemplateStatusCallback with nullptr
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
     manager->AddTemplateStatusCallback(userId, nullptr);
@@ -80,12 +86,14 @@ static void FuzzOp5(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataPro
 
 static void FuzzOp6(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test RemoveTemplateStatusCallback with nullptr
     manager->RemoveTemplateStatusCallback(nullptr);
 }
 
 static void FuzzOp7(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test AddContinuousAuthStatusCallback with nullptr
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
     std::optional<uint64_t> templateId;
@@ -97,19 +105,21 @@ static void FuzzOp7(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataPro
 
 static void FuzzOp8(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test RemoveContinuousAuthStatusCallback with nullptr
     manager->RemoveContinuousAuthStatusCallback(nullptr);
 }
 
 static void FuzzOp9(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
 {
+    (void)fuzzData;
     // Test UpdateSubscribeMode
     manager->UpdateSubscribeMode();
 }
 
-static const FuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6, FuzzOp7,
-    FuzzOp8, FuzzOp9 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+static const SubscriptionManagerFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5,
+    FuzzOp6, FuzzOp7, FuzzOp8, FuzzOp9 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SubscriptionManagerFuzzFunction);
 
 void FuzzSubscriptionManager(FuzzedDataProvider &fuzzData)
 {
@@ -133,5 +143,8 @@ void FuzzSubscriptionManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(SubscriptionManager)
+
 } // namespace UserIam
 } // namespace OHOS

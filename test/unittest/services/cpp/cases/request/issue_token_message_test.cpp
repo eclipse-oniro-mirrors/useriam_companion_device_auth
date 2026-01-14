@@ -57,9 +57,9 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenRequest_001, TestSize.L
         static_cast<int32_t>(request.hostDeviceKey.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
 
-    PreIssueTokenRequest decoded;
-    bool decodeResult = DecodePreIssueTokenRequest(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodePreIssueTokenRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    PreIssueTokenRequest decoded = result.value();
 
     EXPECT_EQ(decoded.hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
     EXPECT_EQ(decoded.companionUserId, request.companionUserId);
@@ -70,9 +70,8 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_001, TestSize.Level0)
 {
     Attributes attributes;
 
-    PreIssueTokenRequest decoded;
-    bool decodeResult = DecodePreIssueTokenRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodePreIssueTokenRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_002, TestSize.Level0)
@@ -82,9 +81,8 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_002, TestSize.Level0)
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, 1);
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, "test");
 
-    PreIssueTokenRequest decoded;
-    bool decodeResult = DecodePreIssueTokenRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodePreIssueTokenRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_003, TestSize.Level0)
@@ -95,9 +93,8 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_003, TestSize.Level0)
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, "test");
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, 200);
 
-    PreIssueTokenRequest decoded;
-    bool decodeResult = DecodePreIssueTokenRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodePreIssueTokenRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenReply_001, TestSize.Level0)
@@ -108,9 +105,9 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenReply_001, TestSize.Lev
     bool encodeResult = EncodePreIssueTokenReply(reply, attributes);
     EXPECT_TRUE(encodeResult);
 
-    PreIssueTokenReply decoded;
-    bool decodeResult = DecodePreIssueTokenReply(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodePreIssueTokenReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    PreIssueTokenReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
     EXPECT_EQ(decoded.extraInfo, reply.extraInfo);
@@ -124,9 +121,9 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenReply_002, TestSize.Lev
     bool encodeResult = EncodePreIssueTokenReply(reply, attributes);
     EXPECT_TRUE(encodeResult);
 
-    PreIssueTokenReply decoded;
-    bool decodeResult = DecodePreIssueTokenReply(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodePreIssueTokenReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    PreIssueTokenReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
     EXPECT_TRUE(decoded.extraInfo.empty());
@@ -136,9 +133,8 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenReply_001, TestSize.Level0)
 {
     Attributes attributes;
 
-    PreIssueTokenReply decoded;
-    bool decodeResult = DecodePreIssueTokenReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodePreIssueTokenReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenReply_002, TestSize.Level0)
@@ -146,9 +142,8 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenReply_002, TestSize.Level0)
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, 0);
 
-    PreIssueTokenReply decoded;
-    bool decodeResult = DecodePreIssueTokenReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodePreIssueTokenReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_001, TestSize.Level0)
@@ -165,9 +160,9 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_001, TestSize.Leve
         static_cast<int32_t>(request.hostDeviceKey.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
 
-    IssueTokenRequest decoded;
-    bool decodeResult = DecodeIssueTokenRequest(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeIssueTokenRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    IssueTokenRequest decoded = result.value();
 
     EXPECT_EQ(decoded.hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
     EXPECT_EQ(decoded.companionUserId, request.companionUserId);
@@ -178,9 +173,8 @@ HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_001, TestSize.Level0)
 {
     Attributes attributes;
 
-    IssueTokenRequest decoded;
-    bool decodeResult = DecodeIssueTokenRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeIssueTokenRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_002, TestSize.Level0)
@@ -190,9 +184,8 @@ HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_002, TestSize.Level0)
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, 1);
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, "test");
 
-    IssueTokenRequest decoded;
-    bool decodeResult = DecodeIssueTokenRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeIssueTokenRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_003, TestSize.Level0)
@@ -203,9 +196,8 @@ HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_003, TestSize.Level0)
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, "test");
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, 200);
 
-    IssueTokenRequest decoded;
-    bool decodeResult = DecodeIssueTokenRequest(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeIssueTokenRequest(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenReply_001, TestSize.Level0)
@@ -216,9 +208,9 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenReply_001, TestSize.Level0
     bool encodeResult = EncodeIssueTokenReply(reply, attributes);
     EXPECT_TRUE(encodeResult);
 
-    IssueTokenReply decoded;
-    bool decodeResult = DecodeIssueTokenReply(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeIssueTokenReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    IssueTokenReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
     EXPECT_EQ(decoded.extraInfo, reply.extraInfo);
@@ -232,9 +224,9 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenReply_Error_002, TestSize.
     bool encodeResult = EncodeIssueTokenReply(reply, attributes);
     EXPECT_TRUE(encodeResult);
 
-    IssueTokenReply decoded;
-    bool decodeResult = DecodeIssueTokenReply(attributes, decoded);
-    EXPECT_TRUE(decodeResult);
+    auto result = DecodeIssueTokenReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    IssueTokenReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
     EXPECT_TRUE(decoded.extraInfo.empty());
@@ -244,9 +236,8 @@ HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenReply_001, TestSize.Level0)
 {
     Attributes attributes;
 
-    IssueTokenReply decoded;
-    bool decodeResult = DecodeIssueTokenReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeIssueTokenReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenReply_002, TestSize.Level0)
@@ -254,9 +245,8 @@ HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenReply_002, TestSize.Level0)
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, 0);
 
-    IssueTokenReply decoded;
-    bool decodeResult = DecodeIssueTokenReply(attributes, decoded);
-    EXPECT_FALSE(decodeResult);
+    auto result = DecodeIssueTokenReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 } // namespace

@@ -26,7 +26,7 @@ use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::{HostRequest, HostRequestInput, HostRequestOutput};
+use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -175,40 +175,36 @@ impl HostRequest for HostDelegateAuthRequest {
         self.auth_param.request_id
     }
 
-    fn prepare(&mut self, _input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn prepare(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
         log_e!("HostDelegateAuthRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDelegateAuthRequest begin start");
-        let HostRequestInput::DelegateAuthBegin(ffi_input) = input else {
+        let HostRequestParam::DelegateAuthBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.create_begin_sec_message()?;
-
-        Ok(HostRequestOutput::DelegateAuthBegin(HostBeginDelegateAuthOutputFfi {
-            sec_message: DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?,
-        }))
+        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        Ok(())
     }
 
-    fn end(&mut self, input: HostRequestInput) -> Result<HostRequestOutput, ErrorCode> {
+    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDelegateAuthRequest end start");
-        let HostRequestInput::DelegateAuthEnd(ffi_input) = input else {
+        let HostRequestParam::DelegateAuthEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         let fwk_message = self.create_end_fwk_message()?;
-
-        Ok(HostRequestOutput::DelegateAuthEnd(HostEndDelegateAuthOutputFfi {
-            fwk_message: DataArray1024Ffi::try_from(fwk_message).map_err(|e| p!(e))?,
-            auth_type: self.auth_type,
-            atl: self.atl as i32,
-        }))
+        ffi_output.fwk_message = DataArray1024Ffi::try_from(fwk_message).map_err(|e| p!(e))?;
+        ffi_output.auth_type = self.auth_type;
+        ffi_output.atl = self.atl as i32;
+        Ok(())
     }
 }

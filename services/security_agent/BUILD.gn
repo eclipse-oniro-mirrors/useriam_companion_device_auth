@@ -16,7 +16,7 @@ import("//build/templates/rust/rust_cxx.gni")
 import("../../companion_device_auth.gni")
 import("rust/BUILD.gni")
 
-rust_cxx("lib_companiondeviceauthservice_rs_cpp_if") {
+rust_cxx("companiondeviceauthservice_rs_cpp_if") {
   sources = [ "rust/entry/companion_device_auth_ffi.rs" ]
 }
 

@@ -65,7 +65,7 @@ private:
     std::unique_ptr<Subscription> activeUserIdSubscription_;
 
     void NotifyStatusChange();
-    void Unsubscribe(int32_t subscriptionId);
+    void Unsubscribe(SubscribeId subscriptionId);
     void OnActiveUserIdChanged(UserId userId);
 };
 

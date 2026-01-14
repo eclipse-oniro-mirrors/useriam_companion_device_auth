@@ -41,12 +41,12 @@ HostObtainTokenRequest::HostObtainTokenRequest(const std::string &connectionName
 
 bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
 {
-    PreObtainTokenRequest preRequest = {};
-    bool decodeRet = DecodePreObtainTokenRequest(request_, preRequest);
-    if (!decodeRet) {
+    auto preRequestOpt = DecodePreObtainTokenRequest(request_);
+    if (!preRequestOpt.has_value()) {
         IAM_LOGE("%{public}s DecodePreObtainTokenRequest failed", GetDescription());
         return false;
     }
+    const auto &preRequest = *preRequestOpt;
 
     hostUserId_ = preRequest.hostUserId;
     companionUserId_ = preRequest.companionDeviceKey.deviceUserId;
@@ -133,7 +133,6 @@ void HostObtainTokenRequest::SendPreObtainTokenReply(ResultCode result, const st
     Attributes reply = {};
     PreObtainTokenReply preReply = {};
     preReply.result = result;
-    preReply.requestId = GetRequestId();
     preReply.extraInfo = preObtainTokenReply;
     bool encodeRet = EncodePreObtainTokenReply(preReply, reply);
     ENSURE_OR_RETURN(encodeRet);
@@ -152,13 +151,13 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
         CompleteWithError(code);
     });
 
-    ObtainTokenRequest obtainTokenRequest = {};
-    bool decodeRet = DecodeObtainTokenRequest(request, obtainTokenRequest);
-    if (!decodeRet) {
+    auto obtainTokenRequestOpt = DecodeObtainTokenRequest(request);
+    if (!obtainTokenRequestOpt.has_value()) {
         IAM_LOGE("%{public}s DecodeObtainTokenRequest failed", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::INVALID_PARAMETERS);
         return;
     }
+    const auto &obtainTokenRequest = *obtainTokenRequestOpt;
 
     if (obtainTokenRequest.hostUserId != hostUserId_ ||
         obtainTokenRequest.companionDeviceKey.deviceUserId != companionUserId_) {
@@ -197,13 +196,7 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
 bool HostObtainTokenRequest::HandleHostProcessObtainToken(const ObtainTokenRequest &request,
     std::vector<uint8_t> &obtainTokenReply)
 {
-    if (request.requestId != GetRequestId()) {
-        IAM_LOGE("%{public}s request id mismatch", GetDescription());
-        return false;
-    }
-
     HostProcessObtainTokenInput input = {};
-    input.requestId = request.requestId;
     input.templateId = templateId_;
     input.secureProtocolId = secureProtocolId_;
     input.obtainTokenRequest = request.extraInfo;
@@ -222,12 +215,12 @@ bool HostObtainTokenRequest::HandleHostProcessObtainToken(const ObtainTokenReque
         IAM_LOGE("%{public}s SetCompanionTokenAtl failed", GetDescription());
     }
     needCancelObtainToken_ = false;
-    return true;
+    return setTokenAtlRet;
 }
 
 void HostObtainTokenRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s: host obtain token request failed, result=%{public}d", GetDescription(), result);
+    IAM_LOGI("%{public}s: obtain token request failed, result=%{public}d", GetDescription(), result);
     if (needCancelObtainToken_) {
         HostCancelObtainTokenInput input = { GetRequestId() };
         ResultCode cancelRet = GetSecurityAgent().HostCancelObtainToken(input);
@@ -241,7 +234,7 @@ void HostObtainTokenRequest::CompleteWithError(ResultCode result)
 
 void HostObtainTokenRequest::CompleteWithSuccess()
 {
-    IAM_LOGI("%{public}s: host obtain token request completed successfully", GetDescription());
+    IAM_LOGI("%{public}s complete with success", GetDescription());
     needCancelObtainToken_ = false;
     Destroy();
 }

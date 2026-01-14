@@ -15,6 +15,9 @@
 
 #include "companion_auth_interface_adapter.h"
 
+#include "iam_logger.h"
+
+#define LOG_TAG "COMPANION_DEVICE_AUTH"
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {

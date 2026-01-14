@@ -22,8 +22,8 @@
 #include "channel_manager.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "message_router.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -32,7 +32,7 @@ namespace {
 const uint32_t TEST_VAL64 = 64;
 }
 
-using FuzzFunction = void (*)(std::shared_ptr<MessageRouter> &router, FuzzedDataProvider &fuzzData);
+using MessageRouterFuzzFunction = void (*)(std::shared_ptr<MessageRouter> &router, FuzzedDataProvider &fuzzData);
 
 static void FuzzSubscribeIncomingConnection(std::shared_ptr<MessageRouter> &router, FuzzedDataProvider &fuzzData)
 {
@@ -164,7 +164,7 @@ static void FuzzSendReply(std::shared_ptr<MessageRouter> &router, FuzzedDataProv
     router->SendReply(requestHeader, channelId, reply);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const MessageRouterFuzzFunction g_fuzzFuncs[] = {
     FuzzSubscribeIncomingConnection,
     FuzzSubscribeMessage,
     FuzzSendMessage,
@@ -181,7 +181,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzSendReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(MessageRouterFuzzFunction);
 
 void FuzzMessageRouter(FuzzedDataProvider &fuzzData)
 {
@@ -213,5 +213,8 @@ void FuzzMessageRouter(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(MessageRouter)
+
 } // namespace UserIam
 } // namespace OHOS

@@ -22,13 +22,13 @@
 #include "channel_manager.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<ChannelManager> &mgr, FuzzedDataProvider &fuzzData);
+using ChannelManagerFuzzFunction = void (*)(std::shared_ptr<ChannelManager> &mgr, FuzzedDataProvider &fuzzData);
 
 static void FuzzGetPrimaryChannel(std::shared_ptr<ChannelManager> &mgr, FuzzedDataProvider &fuzzData)
 {
@@ -162,7 +162,7 @@ static void FuzzSequentialChannelAccess(std::shared_ptr<ChannelManager> &mgr, Fu
     }
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ChannelManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetPrimaryChannel,
     FuzzGetChannelById,
     FuzzGetAllChannels,
@@ -175,7 +175,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzSequentialChannelAccess,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ChannelManagerFuzzFunction);
 
 void FuzzChannelManager(FuzzedDataProvider &fuzzData)
 {
@@ -200,5 +200,8 @@ void FuzzChannelManager(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ChannelManager)
+
 } // namespace UserIam
 } // namespace OHOS

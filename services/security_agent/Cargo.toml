@@ -19,7 +19,7 @@ edition = "2021"
 [lib]
 name = "companion_device_auth"
 path = "rust/lib.rs"
-crate-type = ["rlib"]  # cdylib 用于生成动态库，rlib 保留静态库功能
+crate-type = ["rlib"]
 
 [dependencies]
 libc = { version = "0.2", default-features = false }
@@ -28,11 +28,12 @@ cxx = { version = "1.0", features = ["c++14"], optional = true }
 hilog_rust = { git = "https://gitcode.com/openharmony/hiviewdfx_hilog.git" }
 
 [features]
-default = ["cxxbridge"]
+default = []
 cxxbridge = ["cxx"]
 test-utils = []
 
 [dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
 
 [profile.dev]
 panic = "abort"
@@ -41,11 +42,11 @@ panic = "abort"
 panic = "unwind"
 
 [profile.release]
-opt-level = 'z'     # 优化大小而不是速度
-lto = true          # 启用链接时优化
-codegen-units = 1   # 降低并行度以提高优化
-strip = true        # 自动剥离符号
-panic = "abort"     # 使用 abort 而不是展开堆栈
+opt-level = 'z'
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
 
 [lints.rust]
 dead_code = "allow"

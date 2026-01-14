@@ -22,13 +22,14 @@
 #include "companion_pre_issue_token_handler.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
-#include "service_fuzz_entry.h"
+#include "fuzz_registry.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using FuzzFunction = void (*)(std::shared_ptr<CompanionPreIssueTokenHandler> &handler, FuzzedDataProvider &fuzzData);
+using CompanionPreIssueTokenHandlerFuzzFunction = void (*)(std::shared_ptr<CompanionPreIssueTokenHandler> &handler,
+    FuzzedDataProvider &fuzzData);
 
 static void FuzzGetMessageType(std::shared_ptr<CompanionPreIssueTokenHandler> &handler, FuzzedDataProvider &fuzzData)
 {
@@ -117,7 +118,7 @@ static void FuzzHandleIncomingMessageWithNullCallback(std::shared_ptr<CompanionP
     handler->HandleIncomingMessage(request, nullReply);
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const CompanionPreIssueTokenHandlerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetMessageType,
     FuzzRegister,
     FuzzHandleIncomingMessage,
@@ -130,7 +131,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzHandleIncomingMessageWithNullCallback,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionPreIssueTokenHandlerFuzzFunction);
 
 void FuzzCompanionPreIssueTokenHandler(FuzzedDataProvider &fuzzData)
 {
@@ -152,5 +153,8 @@ void FuzzCompanionPreIssueTokenHandler(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(CompanionPreIssueTokenHandler)
+
 } // namespace UserIam
 } // namespace OHOS

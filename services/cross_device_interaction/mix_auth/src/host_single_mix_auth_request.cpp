@@ -15,6 +15,8 @@
 
 #include "host_single_mix_auth_request.h"
 
+#include <cinttypes>
+
 #include "iam_check.h"
 #include "iam_logger.h"
 
@@ -52,7 +54,7 @@ void HostSingleMixAuthRequest::Start()
         return;
     }
     if (!GetRequestManager().Start(tokenAuthRequest_)) {
-        IAM_LOGE("tokenAuthRequest_ Start failed for templateId %{public}s", GET_TRUNCATED_STRING(templateId_).c_str());
+        IAM_LOGE("tokenAuthRequest_ Start failed for templateId %{public}s", GET_MASKED_NUM_CSTR(templateId_));
         CompleteWithError(ResultCode::GENERAL_ERROR);
         return;
     }
@@ -87,7 +89,6 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
         CompleteWithSuccess(extraInfo);
         return;
     }
-    IAM_LOGE("%{public}s token auth failed, start delegate auth", GetDescription());
     delegateAuthRequest_ = GetRequestFactory().CreateHostDelegateAuthRequest(GetScheduleId(), fwkMsg_, hostUserId_,
         templateId_, [weakSelf = weak_from_this()](ResultCode result, const std::vector<uint8_t> &extraInfo) {
             auto self = weakSelf.lock();
@@ -100,8 +101,7 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
         return;
     }
     if (!GetRequestManager().Start(delegateAuthRequest_)) {
-        IAM_LOGE("delegateAuthRequest_ Start failed for templateId %{public}s",
-            GET_TRUNCATED_STRING(templateId_).c_str());
+        IAM_LOGE("delegateAuthRequest_ Start failed for templateId %{public}s", GET_MASKED_NUM_CSTR(templateId_));
         CompleteWithError(ResultCode::GENERAL_ERROR);
         return;
     }
@@ -185,7 +185,7 @@ void HostSingleMixAuthRequest::Destroy()
     auto requestId = GetRequestId();
     TaskRunnerManager::GetInstance().PostTaskOnResident([requestId]() {
         GetRequestManager().Remove(requestId);
-        IAM_LOGI("request %{public}u removed", requestId);
+        IAM_LOGI("request %{public}" PRIu64 " removed", requestId);
     });
 }
 } // namespace CompanionDeviceAuth

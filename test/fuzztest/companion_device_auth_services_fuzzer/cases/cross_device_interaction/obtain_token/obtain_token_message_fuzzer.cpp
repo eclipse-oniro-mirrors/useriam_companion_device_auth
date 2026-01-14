@@ -21,8 +21,8 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_registry.h"
 #include "obtain_token_message.h"
-#include "service_fuzz_entry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -31,7 +31,7 @@ namespace {
 const uint32_t TEST_VAL64 = 64;
 }
 
-using FuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
+using ObtainTokenMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzEncodePreObtainTokenRequest(FuzzedDataProvider &fuzzData)
 {
@@ -50,15 +50,14 @@ static void FuzzEncodePreObtainTokenRequest(FuzzedDataProvider &fuzzData)
 static void FuzzDecodePreObtainTokenRequest(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    PreObtainTokenRequest request;
-    DecodePreObtainTokenRequest(attr, request);
+    auto result = DecodePreObtainTokenRequest(attr);
+    (void)result;
 }
 
 static void FuzzEncodePreObtainTokenReply(FuzzedDataProvider &fuzzData)
 {
     PreObtainTokenReply reply;
     reply.result = fuzzData.ConsumeIntegral<int32_t>();
-    reply.requestId = fuzzData.ConsumeIntegral<uint64_t>();
     reply.extraInfo =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
 
@@ -69,15 +68,14 @@ static void FuzzEncodePreObtainTokenReply(FuzzedDataProvider &fuzzData)
 static void FuzzDecodePreObtainTokenReply(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    PreObtainTokenReply reply;
-    DecodePreObtainTokenReply(attr, reply);
+    auto result = DecodePreObtainTokenReply(attr);
+    (void)result;
 }
 
 static void FuzzEncodeObtainTokenRequest(FuzzedDataProvider &fuzzData)
 {
     ObtainTokenRequest request;
     request.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
-    request.requestId = fuzzData.ConsumeIntegral<uint64_t>();
     request.companionDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     request.companionDeviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     request.companionDeviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
@@ -91,8 +89,8 @@ static void FuzzEncodeObtainTokenRequest(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeObtainTokenRequest(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    ObtainTokenRequest request;
-    DecodeObtainTokenRequest(attr, request);
+    auto result = DecodeObtainTokenRequest(attr);
+    (void)result;
 }
 
 static void FuzzEncodeObtainTokenReply(FuzzedDataProvider &fuzzData)
@@ -109,11 +107,11 @@ static void FuzzEncodeObtainTokenReply(FuzzedDataProvider &fuzzData)
 static void FuzzDecodeObtainTokenReply(FuzzedDataProvider &fuzzData)
 {
     Attributes attr = GenerateFuzzAttributes(fuzzData);
-    ObtainTokenReply reply;
-    DecodeObtainTokenReply(attr, reply);
+    auto result = DecodeObtainTokenReply(attr);
+    (void)result;
 }
 
-static const FuzzFunction g_fuzzFuncs[] = {
+static const ObtainTokenMessageFuzzFunction g_fuzzFuncs[] = {
     FuzzEncodePreObtainTokenRequest,
     FuzzDecodePreObtainTokenRequest,
     FuzzEncodePreObtainTokenReply,
@@ -124,7 +122,7 @@ static const FuzzFunction g_fuzzFuncs[] = {
     FuzzDecodeObtainTokenReply,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ObtainTokenMessageFuzzFunction);
 
 void FuzzObtainTokenMessage(FuzzedDataProvider &fuzzData)
 {
@@ -143,5 +141,8 @@ void FuzzObtainTokenMessage(FuzzedDataProvider &fuzzData)
 }
 
 } // namespace CompanionDeviceAuth
+
+FUZZ_REGISTER(ObtainTokenMessage)
+
 } // namespace UserIam
 } // namespace OHOS

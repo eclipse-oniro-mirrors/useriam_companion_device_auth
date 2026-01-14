@@ -41,7 +41,7 @@ public:
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
         ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([]() {
-            static int32_t id = 1;
+            static uint64_t id = 1;
             return id++;
         });
     }

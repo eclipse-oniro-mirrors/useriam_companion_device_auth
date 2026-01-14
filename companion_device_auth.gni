@@ -13,8 +13,7 @@
 
 declare_args() {
   companion_device_auth_enable_auth_state_maintain_simulation = true
-  companion_device_auth_deploy_mode = "client+server"
-  companion_device_auth_cross_device_channels = [ "softbus" ]
+  companion_device_auth_deploy_mode = "standard"
   companion_device_auth_path = "//base/useriam/companion_device_auth"
   companion_device_auth_enable_extension = false
 }
@@ -27,6 +26,9 @@ companion_device_auth_has_account_os_account =
 companion_device_auth_has_soft_bus_channel =
     defined(global_parts_info) &&
     defined(global_parts_info.communication_dsoftbus)
+companion_device_auth_has_user_auth_framework =
+    defined(global_parts_info) &&
+    defined(global_parts_info.useriam_user_auth_framework)
 
 companion_device_auth_sanitize = {
   integer_overflow = true
