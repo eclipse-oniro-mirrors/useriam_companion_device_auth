@@ -14,11 +14,11 @@
  */
 
 use crate::common::constants::*;
-use crate::{log_e, log_i};
 use crate::traits::companion_request_manager::{
-    CompanionRequest, CompanionRequestParam, CompanionRequestManager, DummyCompanionRequestManager,
+    CompanionRequest, CompanionRequestManager, CompanionRequestParam, DummyCompanionRequestManager,
 };
 use crate::ut_registry_guard;
+use crate::{log_e, log_i};
 
 struct DummyCompanionRequest;
 

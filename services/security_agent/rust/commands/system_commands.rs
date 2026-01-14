@@ -448,10 +448,11 @@ pub fn host_update_token(
     log_i!("host_update_token start");
     let pub_key = MiscManagerRegistry::get_mut().get_fwk_pub_key().map_err(|e| p!(e))?;
     let message_codec = MessageCodec::new(MessageSignParam::Framework(pub_key));
-    let attribute = message_codec.deserialize_attribute(input.fwk_message.as_slice()?).map_err(|e| p!(e))?;
+    let attribute = message_codec
+        .deserialize_attribute(input.fwk_message.as_slice()?)
+        .map_err(|e| p!(e))?;
     let atl = attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
-    let device_capabilitys =
-        HostDbManagerRegistry::get_mut().read_device_capability_info(input.template_id)?;
+    let device_capabilitys = HostDbManagerRegistry::get_mut().read_device_capability_info(input.template_id)?;
     for device_capability in device_capabilitys {
         match HostDbManagerRegistry::get_mut().get_token(input.template_id, device_capability.device_type) {
             Ok(token_info) => {

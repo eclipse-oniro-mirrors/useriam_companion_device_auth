@@ -36,9 +36,7 @@ pub struct Expectation0<R> {
 
 impl<R> Expectation0<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -76,9 +74,7 @@ pub struct Expectation1<R, A: Copy + 'static> {
 
 impl<R, A: Copy + 'static> Expectation1<R, A> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -115,9 +111,7 @@ pub struct Expectation2<R, A: Copy + 'static, B: Copy + 'static> {
 
 impl<R, A: Copy + 'static, B: Copy + 'static> Expectation2<R, A, B> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -155,9 +149,7 @@ pub struct ExpectationSlice1<R> {
 
 impl<R> ExpectationSlice1<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -195,9 +187,7 @@ pub struct ExpectationSlice2<R> {
 
 impl<R> ExpectationSlice2<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -213,16 +203,14 @@ impl<R> ExpectationSlice2<R> {
             panic!("No expectation set for this method call");
         }
         if expectations.len() == 1 {
-            (expectations[0])(
-                unsafe { std::mem::transmute::<&'a [u8], &'static [u8]>(arg1) },
-                unsafe { std::mem::transmute::<&'b [u8], &'static [u8]>(arg2) },
-            )
+            (expectations[0])(unsafe { std::mem::transmute::<&'a [u8], &'static [u8]>(arg1) }, unsafe {
+                std::mem::transmute::<&'b [u8], &'static [u8]>(arg2)
+            })
         } else {
             let mut f = expectations.remove(0);
-            f(
-                unsafe { std::mem::transmute::<&'a [u8], &'static [u8]>(arg1) },
-                unsafe { std::mem::transmute::<&'b [u8], &'static [u8]>(arg2) },
-            )
+            f(unsafe { std::mem::transmute::<&'a [u8], &'static [u8]>(arg1) }, unsafe {
+                std::mem::transmute::<&'b [u8], &'static [u8]>(arg2)
+            })
         }
     }
 }
@@ -240,9 +228,7 @@ pub struct ExpectationStr1<R> {
 
 impl<R> ExpectationStr1<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -279,9 +265,7 @@ pub struct ExpectationStrSlice2<R> {
 
 impl<R> ExpectationStrSlice2<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -297,16 +281,14 @@ impl<R> ExpectationStrSlice2<R> {
             panic!("No expectation set for this method call");
         }
         if expectations.len() == 1 {
-            (expectations[0])(
-                unsafe { std::mem::transmute::<&'a str, &'static str>(arg1) },
-                unsafe { std::mem::transmute::<&'b [u8], &'static [u8]>(arg2) },
-            )
+            (expectations[0])(unsafe { std::mem::transmute::<&'a str, &'static str>(arg1) }, unsafe {
+                std::mem::transmute::<&'b [u8], &'static [u8]>(arg2)
+            })
         } else {
             let mut f = expectations.remove(0);
-            f(
-                unsafe { std::mem::transmute::<&'a str, &'static str>(arg1) },
-                unsafe { std::mem::transmute::<&'b [u8], &'static [u8]>(arg2) },
-            )
+            f(unsafe { std::mem::transmute::<&'a str, &'static str>(arg1) }, unsafe {
+                std::mem::transmute::<&'b [u8], &'static [u8]>(arg2)
+            })
         }
     }
 }
@@ -325,9 +307,7 @@ pub struct ExpectationMutSlice1<R> {
 
 impl<R> ExpectationMutSlice1<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -366,9 +346,7 @@ pub struct ExpectationMutSlice1Seq<R> {
 
 impl<R> ExpectationMutSlice1Seq<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -403,9 +381,7 @@ pub struct ExpectationAesGcmResult<R> {
 
 impl<R> ExpectationAesGcmResult<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -442,9 +418,7 @@ pub struct ExpectationAesGcmParam<R> {
 
 impl<R> ExpectationAesGcmParam<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -482,9 +456,7 @@ pub struct ExpectationSliceAesGcmParam<R> {
 
 impl<R> ExpectationSliceAesGcmParam<R> {
     pub fn new() -> Self {
-        Self {
-            expectations: RefCell::new(Vec::new()),
-        }
+        Self { expectations: RefCell::new(Vec::new()) }
     }
 
     pub fn returning<F>(&self, f: F)
@@ -500,16 +472,14 @@ impl<R> ExpectationSliceAesGcmParam<R> {
             panic!("No expectation set for this method call");
         }
         if expectations.len() == 1 {
-            (expectations[0])(
-                unsafe { std::mem::transmute::<&'a [u8], &'static [u8]>(arg1) },
-                unsafe { std::mem::transmute::<&'b AesGcmParam, &'static AesGcmParam>(arg2) }
-            )
+            (expectations[0])(unsafe { std::mem::transmute::<&'a [u8], &'static [u8]>(arg1) }, unsafe {
+                std::mem::transmute::<&'b AesGcmParam, &'static AesGcmParam>(arg2)
+            })
         } else {
             let mut f = expectations.remove(0);
-            f(
-                unsafe { std::mem::transmute::<&'a [u8], &'static [u8]>(arg1) },
-                unsafe { std::mem::transmute::<&'b AesGcmParam, &'static AesGcmParam>(arg2) }
-            )
+            f(unsafe { std::mem::transmute::<&'a [u8], &'static [u8]>(arg1) }, unsafe {
+                std::mem::transmute::<&'b AesGcmParam, &'static AesGcmParam>(arg2)
+            })
         }
     }
 }
@@ -519,7 +489,6 @@ impl<R> Default for ExpectationSliceAesGcmParam<R> {
         Self::new()
     }
 }
-
 
 // ============== Mock implementations ==============
 
@@ -692,7 +661,6 @@ impl crate::traits::misc_manager::MiscManager for MockMiscManager {
         self.get_fwk_pub_key.call()
     }
 }
-
 
 /// Mock implementation for CryptoEngine trait
 #[cfg(any(test, feature = "test-utils"))]
@@ -906,7 +874,8 @@ pub struct MockHostDbManager {
     read_device_base_info: Expectation0<Result<crate::traits::db_manager::CompanionDeviceBaseInfo, ErrorCode>>,
     write_device_base_info: Expectation0<Result<(), ErrorCode>>,
     delete_device_base_info: Expectation0<Result<(), ErrorCode>>,
-    read_device_capability_info: Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceCapability>, ErrorCode>>,
+    read_device_capability_info:
+        Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceCapability>, ErrorCode>>,
     write_device_capability_info: Expectation0<Result<(), ErrorCode>>,
     delete_device_capability_info: Expectation0<Result<(), ErrorCode>>,
     read_device_sk: Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode>>,
@@ -941,43 +910,112 @@ impl MockHostDbManager {
         }
     }
 
-    pub fn expect_add_device(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.add_device }
-    pub fn expect_get_device(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionDeviceInfo, ErrorCode>> { &mut self.get_device }
-    pub fn expect_get_device_list(&mut self) -> &mut Expectation0<Vec<crate::traits::db_manager::CompanionDeviceInfo>> { &mut self.get_device_list }
-    pub fn expect_remove_device(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionDeviceInfo, ErrorCode>> { &mut self.remove_device }
-    pub fn expect_update_device(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.update_device }
-    pub fn expect_generate_unique_template_id(&mut self) -> &mut Expectation0<Result<u64, ErrorCode>> { &mut self.generate_unique_template_id }
-    pub fn expect_add_token(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.add_token }
-    pub fn expect_get_token(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionTokenInfo, ErrorCode>> { &mut self.get_token }
-    pub fn expect_remove_token(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionTokenInfo, ErrorCode>> { &mut self.remove_token }
-    pub fn expect_update_token(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.update_token }
-    pub fn expect_read_device_db(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.read_device_db }
-    pub fn expect_read_device_base_info(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionDeviceBaseInfo, ErrorCode>> { &mut self.read_device_base_info }
-    pub fn expect_write_device_base_info(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.write_device_base_info }
-    pub fn expect_delete_device_base_info(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.delete_device_base_info }
-    pub fn expect_read_device_capability_info(&mut self) -> &mut Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceCapability>, ErrorCode>> { &mut self.read_device_capability_info }
-    pub fn expect_write_device_capability_info(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.write_device_capability_info }
-    pub fn expect_delete_device_capability_info(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.delete_device_capability_info }
-    pub fn expect_read_device_sk(&mut self) -> &mut Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode>> { &mut self.read_device_sk }
-    pub fn expect_write_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.write_device_sk }
-    pub fn expect_delete_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.delete_device_sk }
+    pub fn expect_add_device(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.add_device
+    }
+    pub fn expect_get_device(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionDeviceInfo, ErrorCode>> {
+        &mut self.get_device
+    }
+    pub fn expect_get_device_list(&mut self) -> &mut Expectation0<Vec<crate::traits::db_manager::CompanionDeviceInfo>> {
+        &mut self.get_device_list
+    }
+    pub fn expect_remove_device(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionDeviceInfo, ErrorCode>> {
+        &mut self.remove_device
+    }
+    pub fn expect_update_device(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.update_device
+    }
+    pub fn expect_generate_unique_template_id(&mut self) -> &mut Expectation0<Result<u64, ErrorCode>> {
+        &mut self.generate_unique_template_id
+    }
+    pub fn expect_add_token(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.add_token
+    }
+    pub fn expect_get_token(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionTokenInfo, ErrorCode>> {
+        &mut self.get_token
+    }
+    pub fn expect_remove_token(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionTokenInfo, ErrorCode>> {
+        &mut self.remove_token
+    }
+    pub fn expect_update_token(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.update_token
+    }
+    pub fn expect_read_device_db(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.read_device_db
+    }
+    pub fn expect_read_device_base_info(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionDeviceBaseInfo, ErrorCode>> {
+        &mut self.read_device_base_info
+    }
+    pub fn expect_write_device_base_info(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.write_device_base_info
+    }
+    pub fn expect_delete_device_base_info(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.delete_device_base_info
+    }
+    pub fn expect_read_device_capability_info(
+        &mut self,
+    ) -> &mut Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceCapability>, ErrorCode>> {
+        &mut self.read_device_capability_info
+    }
+    pub fn expect_write_device_capability_info(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.write_device_capability_info
+    }
+    pub fn expect_delete_device_capability_info(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.delete_device_capability_info
+    }
+    pub fn expect_read_device_sk(
+        &mut self,
+    ) -> &mut Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode>> {
+        &mut self.read_device_sk
+    }
+    pub fn expect_write_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.write_device_sk
+    }
+    pub fn expect_delete_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.delete_device_sk
+    }
 }
 
 #[cfg(any(test, feature = "test-utils"))]
 impl crate::traits::host_db_manager::HostDbManager for MockHostDbManager {
-    fn add_device(&mut self, _device_info: &crate::traits::db_manager::CompanionDeviceInfo, _base_info: &crate::traits::db_manager::CompanionDeviceBaseInfo, _capability_info: &Vec<crate::traits::db_manager::CompanionDeviceCapability>, _sk_info: &Vec<crate::traits::db_manager::CompanionDeviceSk>) -> Result<(), ErrorCode> {
+    fn add_device(
+        &mut self,
+        _device_info: &crate::traits::db_manager::CompanionDeviceInfo,
+        _base_info: &crate::traits::db_manager::CompanionDeviceBaseInfo,
+        _capability_info: &Vec<crate::traits::db_manager::CompanionDeviceCapability>,
+        _sk_info: &Vec<crate::traits::db_manager::CompanionDeviceSk>,
+    ) -> Result<(), ErrorCode> {
         self.add_device.call()
     }
     fn get_device(&self, _template_id: u64) -> Result<crate::traits::db_manager::CompanionDeviceInfo, ErrorCode> {
         self.get_device.call()
     }
-    fn get_device_list(&self, _filter: crate::traits::host_db_manager::CompanionDeviceFilter) -> Vec<crate::traits::db_manager::CompanionDeviceInfo> {
+    fn get_device_list(
+        &self,
+        _filter: crate::traits::host_db_manager::CompanionDeviceFilter,
+    ) -> Vec<crate::traits::db_manager::CompanionDeviceInfo> {
         self.get_device_list.call()
     }
-    fn remove_device(&mut self, _template_id: u64) -> Result<crate::traits::db_manager::CompanionDeviceInfo, ErrorCode> {
+    fn remove_device(
+        &mut self,
+        _template_id: u64,
+    ) -> Result<crate::traits::db_manager::CompanionDeviceInfo, ErrorCode> {
         self.remove_device.call()
     }
-    fn update_device(&mut self, _device_info: &crate::traits::db_manager::CompanionDeviceInfo) -> Result<(), ErrorCode> {
+    fn update_device(
+        &mut self,
+        _device_info: &crate::traits::db_manager::CompanionDeviceInfo,
+    ) -> Result<(), ErrorCode> {
         self.update_device.call()
     }
     fn generate_unique_template_id(&self) -> Result<u64, ErrorCode> {
@@ -986,10 +1024,18 @@ impl crate::traits::host_db_manager::HostDbManager for MockHostDbManager {
     fn add_token(&mut self, _token: &crate::traits::db_manager::CompanionTokenInfo) -> Result<(), ErrorCode> {
         self.add_token.call()
     }
-    fn get_token(&self, _template_id: u64, _device_type: DeviceType) -> Result<crate::traits::db_manager::CompanionTokenInfo, ErrorCode> {
+    fn get_token(
+        &self,
+        _template_id: u64,
+        _device_type: DeviceType,
+    ) -> Result<crate::traits::db_manager::CompanionTokenInfo, ErrorCode> {
         self.get_token.call()
     }
-    fn remove_token(&mut self, _template_id: u64, _device_type: DeviceType) -> Result<crate::traits::db_manager::CompanionTokenInfo, ErrorCode> {
+    fn remove_token(
+        &mut self,
+        _template_id: u64,
+        _device_type: DeviceType,
+    ) -> Result<crate::traits::db_manager::CompanionTokenInfo, ErrorCode> {
         self.remove_token.call()
     }
     fn update_token(&mut self, _device_info: &crate::traits::db_manager::CompanionTokenInfo) -> Result<(), ErrorCode> {
@@ -998,28 +1044,49 @@ impl crate::traits::host_db_manager::HostDbManager for MockHostDbManager {
     fn read_device_db(&mut self) -> Result<(), ErrorCode> {
         self.read_device_db.call()
     }
-    fn read_device_base_info(&self, _template_id: u64) -> Result<crate::traits::db_manager::CompanionDeviceBaseInfo, ErrorCode> {
+    fn read_device_base_info(
+        &self,
+        _template_id: u64,
+    ) -> Result<crate::traits::db_manager::CompanionDeviceBaseInfo, ErrorCode> {
         self.read_device_base_info.call()
     }
-    fn write_device_base_info(&self, _template_id: u64, _base_info: &crate::traits::db_manager::CompanionDeviceBaseInfo) -> Result<(), ErrorCode> {
+    fn write_device_base_info(
+        &self,
+        _template_id: u64,
+        _base_info: &crate::traits::db_manager::CompanionDeviceBaseInfo,
+    ) -> Result<(), ErrorCode> {
         self.write_device_base_info.call()
     }
     fn delete_device_base_info(&self, _template_id: u64) -> Result<(), ErrorCode> {
         self.delete_device_base_info.call()
     }
-    fn read_device_capability_info(&self, _template_id: u64) -> Result<Vec<crate::traits::db_manager::CompanionDeviceCapability>, ErrorCode> {
+    fn read_device_capability_info(
+        &self,
+        _template_id: u64,
+    ) -> Result<Vec<crate::traits::db_manager::CompanionDeviceCapability>, ErrorCode> {
         self.read_device_capability_info.call()
     }
-    fn write_device_capability_info(&self, _template_id: u64, _capability_info: &Vec<crate::traits::db_manager::CompanionDeviceCapability>) -> Result<(), ErrorCode> {
+    fn write_device_capability_info(
+        &self,
+        _template_id: u64,
+        _capability_info: &Vec<crate::traits::db_manager::CompanionDeviceCapability>,
+    ) -> Result<(), ErrorCode> {
         self.write_device_capability_info.call()
     }
     fn delete_device_capability_info(&self, _template_id: u64) -> Result<(), ErrorCode> {
         self.delete_device_capability_info.call()
     }
-    fn read_device_sk(&self, _template_id: u64) -> Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode> {
+    fn read_device_sk(
+        &self,
+        _template_id: u64,
+    ) -> Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode> {
         self.read_device_sk.call()
     }
-    fn write_device_sk(&self, _template_id: u64, _sk_info: &Vec<crate::traits::db_manager::CompanionDeviceSk>) -> Result<(), ErrorCode> {
+    fn write_device_sk(
+        &self,
+        _template_id: u64,
+        _sk_info: &Vec<crate::traits::db_manager::CompanionDeviceSk>,
+    ) -> Result<(), ErrorCode> {
         self.write_device_sk.call()
     }
     fn delete_device_sk(&self, _template_id: u64) -> Result<(), ErrorCode> {
@@ -1069,32 +1136,83 @@ impl MockCompanionDbManager {
         }
     }
 
-    pub fn expect_add_device(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.add_device }
-    pub fn expect_get_device_by_binding_id(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode>> { &mut self.get_device_by_binding_id }
-    pub fn expect_get_device_by_device_key(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode>> { &mut self.get_device_by_device_key }
-    pub fn expect_remove_device(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode>> { &mut self.remove_device }
-    pub fn expect_update_device(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.update_device }
-    pub fn expect_generate_unique_binding_id(&mut self) -> &mut Expectation0<Result<i32, ErrorCode>> { &mut self.generate_unique_binding_id }
-    pub fn expect_read_device_db(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.read_device_db }
-    pub fn expect_read_device_token(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::HostTokenInfo, ErrorCode>> { &mut self.read_device_token }
-    pub fn expect_write_device_token(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.write_device_token }
-    pub fn expect_delete_device_token(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.delete_device_token }
-    pub fn expect_is_device_token_valid(&mut self) -> &mut Expectation0<Result<bool, ErrorCode>> { &mut self.is_device_token_valid }
-    pub fn expect_read_device_sk(&mut self) -> &mut Expectation0<Result<crate::traits::db_manager::HostDeviceSk, ErrorCode>> { &mut self.read_device_sk }
-    pub fn expect_write_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.write_device_sk }
-    pub fn expect_delete_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> { &mut self.delete_device_sk }
-    pub fn expect_get_device_list(&mut self) -> &mut Expectation0<Vec<crate::traits::db_manager::HostDeviceInfo>> { &mut self.get_device_list }
+    pub fn expect_add_device(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.add_device
+    }
+    pub fn expect_get_device_by_binding_id(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode>> {
+        &mut self.get_device_by_binding_id
+    }
+    pub fn expect_get_device_by_device_key(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode>> {
+        &mut self.get_device_by_device_key
+    }
+    pub fn expect_remove_device(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode>> {
+        &mut self.remove_device
+    }
+    pub fn expect_update_device(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.update_device
+    }
+    pub fn expect_generate_unique_binding_id(&mut self) -> &mut Expectation0<Result<i32, ErrorCode>> {
+        &mut self.generate_unique_binding_id
+    }
+    pub fn expect_read_device_db(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.read_device_db
+    }
+    pub fn expect_read_device_token(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostTokenInfo, ErrorCode>> {
+        &mut self.read_device_token
+    }
+    pub fn expect_write_device_token(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.write_device_token
+    }
+    pub fn expect_delete_device_token(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.delete_device_token
+    }
+    pub fn expect_is_device_token_valid(&mut self) -> &mut Expectation0<Result<bool, ErrorCode>> {
+        &mut self.is_device_token_valid
+    }
+    pub fn expect_read_device_sk(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostDeviceSk, ErrorCode>> {
+        &mut self.read_device_sk
+    }
+    pub fn expect_write_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.write_device_sk
+    }
+    pub fn expect_delete_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.delete_device_sk
+    }
+    pub fn expect_get_device_list(&mut self) -> &mut Expectation0<Vec<crate::traits::db_manager::HostDeviceInfo>> {
+        &mut self.get_device_list
+    }
 }
 
 #[cfg(any(test, feature = "test-utils"))]
 impl crate::traits::companion_db_manager::CompanionDbManager for MockCompanionDbManager {
-    fn add_device(&mut self, _device_info: &crate::traits::db_manager::HostDeviceInfo, _sk_info: &crate::traits::db_manager::HostDeviceSk) -> Result<(), ErrorCode> {
+    fn add_device(
+        &mut self,
+        _device_info: &crate::traits::db_manager::HostDeviceInfo,
+        _sk_info: &crate::traits::db_manager::HostDeviceSk,
+    ) -> Result<(), ErrorCode> {
         self.add_device.call()
     }
-    fn get_device_by_binding_id(&self, _binding_id: i32) -> Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode> {
+    fn get_device_by_binding_id(
+        &self,
+        _binding_id: i32,
+    ) -> Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode> {
         self.get_device_by_binding_id.call()
     }
-    fn get_device_by_device_key(&self, _user_id: i32, _device_key: &crate::traits::db_manager::DeviceKey) -> Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode> {
+    fn get_device_by_device_key(
+        &self,
+        _user_id: i32,
+        _device_key: &crate::traits::db_manager::DeviceKey,
+    ) -> Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode> {
         self.get_device_by_device_key.call()
     }
     fn remove_device(&mut self, _binding_id: i32) -> Result<crate::traits::db_manager::HostDeviceInfo, ErrorCode> {
@@ -1112,7 +1230,11 @@ impl crate::traits::companion_db_manager::CompanionDbManager for MockCompanionDb
     fn read_device_token(&self, _binding_id: i32) -> Result<crate::traits::db_manager::HostTokenInfo, ErrorCode> {
         self.read_device_token.call()
     }
-    fn write_device_token(&self, _binding_id: i32, _token: &crate::traits::db_manager::HostTokenInfo) -> Result<(), ErrorCode> {
+    fn write_device_token(
+        &self,
+        _binding_id: i32,
+        _token: &crate::traits::db_manager::HostTokenInfo,
+    ) -> Result<(), ErrorCode> {
         self.write_device_token.call()
     }
     fn delete_device_token(&self, _binding_id: i32) -> Result<(), ErrorCode> {
@@ -1124,7 +1246,11 @@ impl crate::traits::companion_db_manager::CompanionDbManager for MockCompanionDb
     fn read_device_sk(&self, _binding_id: i32) -> Result<crate::traits::db_manager::HostDeviceSk, ErrorCode> {
         self.read_device_sk.call()
     }
-    fn write_device_sk(&self, _binding_id: i32, _sk_info: &crate::traits::db_manager::HostDeviceSk) -> Result<(), ErrorCode> {
+    fn write_device_sk(
+        &self,
+        _binding_id: i32,
+        _sk_info: &crate::traits::db_manager::HostDeviceSk,
+    ) -> Result<(), ErrorCode> {
         self.write_device_sk.call()
     }
     fn delete_device_sk(&self, _binding_id: i32) -> Result<(), ErrorCode> {
@@ -1162,7 +1288,9 @@ impl MockHostRequestManager {
         &mut self.add_request
     }
 
-    pub fn expect_remove_request(&mut self) -> &mut Expectation0<Result<Box<crate::traits::host_request_manager::DynHostRequest>, ErrorCode>> {
+    pub fn expect_remove_request(
+        &mut self,
+    ) -> &mut Expectation0<Result<Box<crate::traits::host_request_manager::DynHostRequest>, ErrorCode>> {
         &mut self.remove_request
     }
 
@@ -1173,35 +1301,48 @@ impl MockHostRequestManager {
     }
 
     /// Set a specific request to be returned by get_request
-    pub fn set_get_request_return(&mut self, request: Option<Box<crate::traits::host_request_manager::DynHostRequest>>) {
+    pub fn set_get_request_return(
+        &mut self,
+        request: Option<Box<crate::traits::host_request_manager::DynHostRequest>>,
+    ) {
         *self.stored_request.borrow_mut() = request;
     }
 }
 
 #[cfg(any(test, feature = "test-utils"))]
 impl crate::traits::host_request_manager::HostRequestManager for MockHostRequestManager {
-    fn add_request(&mut self, _request: Box<crate::traits::host_request_manager::DynHostRequest>) -> Result<(), ErrorCode> {
+    fn add_request(
+        &mut self,
+        _request: Box<crate::traits::host_request_manager::DynHostRequest>,
+    ) -> Result<(), ErrorCode> {
         self.add_request.call()
     }
 
-    fn remove_request(&mut self, _request_id: i32) -> Result<Box<crate::traits::host_request_manager::DynHostRequest>, ErrorCode> {
+    fn remove_request(
+        &mut self,
+        _request_id: i32,
+    ) -> Result<Box<crate::traits::host_request_manager::DynHostRequest>, ErrorCode> {
         self.remove_request.call()
     }
 
-    fn get_request<'a>(&'a mut self, _request_id: i32) -> Result<&'a mut crate::traits::host_request_manager::DynHostRequest, ErrorCode> {
+    fn get_request<'a>(
+        &'a mut self,
+        _request_id: i32,
+    ) -> Result<&'a mut crate::traits::host_request_manager::DynHostRequest, ErrorCode> {
         // Check if we should return error
         self.get_request_result.get()?;
 
         // Get raw pointer to stored request
         // SAFETY: In test context, we assume single-threaded usage and proper lifecycle.
         // The Mock object outlives the returned reference.
-        let raw_ptr = self.stored_request.borrow().as_ref()
-            .map(|r| r.as_ref() as *const crate::traits::host_request_manager::DynHostRequest)
-            .ok_or(ErrorCode::NotFound)? as *mut crate::traits::host_request_manager::DynHostRequest;
+        let raw_ptr =
+            self.stored_request
+                .borrow()
+                .as_ref()
+                .map(|r| r.as_ref() as *const crate::traits::host_request_manager::DynHostRequest)
+                .ok_or(ErrorCode::NotFound)? as *mut crate::traits::host_request_manager::DynHostRequest;
 
-        unsafe {
-            Ok(&mut *raw_ptr)
-        }
+        unsafe { Ok(&mut *raw_ptr) }
     }
 }
 
@@ -1230,7 +1371,9 @@ impl MockCompanionRequestManager {
         &mut self.add_request
     }
 
-    pub fn expect_remove_request(&mut self) -> &mut Expectation0<Result<Box<crate::traits::companion_request_manager::DynCompanionRequest>, ErrorCode>> {
+    pub fn expect_remove_request(
+        &mut self,
+    ) -> &mut Expectation0<Result<Box<crate::traits::companion_request_manager::DynCompanionRequest>, ErrorCode>> {
         &mut self.remove_request
     }
 
@@ -1241,34 +1384,48 @@ impl MockCompanionRequestManager {
     }
 
     /// Set a specific request to be returned by get_request
-    pub fn set_get_request_return(&mut self, request: Option<Box<crate::traits::companion_request_manager::DynCompanionRequest>>) {
+    pub fn set_get_request_return(
+        &mut self,
+        request: Option<Box<crate::traits::companion_request_manager::DynCompanionRequest>>,
+    ) {
         *self.stored_request.borrow_mut() = request;
     }
 }
 
 #[cfg(any(test, feature = "test-utils"))]
 impl crate::traits::companion_request_manager::CompanionRequestManager for MockCompanionRequestManager {
-    fn add_request(&mut self, _request: Box<crate::traits::companion_request_manager::DynCompanionRequest>) -> Result<(), ErrorCode> {
+    fn add_request(
+        &mut self,
+        _request: Box<crate::traits::companion_request_manager::DynCompanionRequest>,
+    ) -> Result<(), ErrorCode> {
         self.add_request.call()
     }
 
-    fn remove_request(&mut self, _request_id: i32) -> Result<Box<crate::traits::companion_request_manager::DynCompanionRequest>, ErrorCode> {
+    fn remove_request(
+        &mut self,
+        _request_id: i32,
+    ) -> Result<Box<crate::traits::companion_request_manager::DynCompanionRequest>, ErrorCode> {
         self.remove_request.call()
     }
 
-    fn get_request<'a>(&'a mut self, _request_id: i32) -> Result<&'a mut crate::traits::companion_request_manager::DynCompanionRequest, ErrorCode> {
+    fn get_request<'a>(
+        &'a mut self,
+        _request_id: i32,
+    ) -> Result<&'a mut crate::traits::companion_request_manager::DynCompanionRequest, ErrorCode> {
         // Check if we should return error
         self.get_request_result.get()?;
 
         // Get raw pointer to stored request
         // SAFETY: In test context, we assume single-threaded usage and proper lifecycle.
         // The Mock object outlives the returned reference.
-        let raw_ptr = self.stored_request.borrow().as_ref()
+        let raw_ptr = self
+            .stored_request
+            .borrow()
+            .as_ref()
             .map(|r| r.as_ref() as *const crate::traits::companion_request_manager::DynCompanionRequest)
-            .ok_or(ErrorCode::NotFound)? as *mut crate::traits::companion_request_manager::DynCompanionRequest;
+            .ok_or(ErrorCode::NotFound)?
+            as *mut crate::traits::companion_request_manager::DynCompanionRequest;
 
-        unsafe {
-            Ok(&mut *raw_ptr)
-        }
+        unsafe { Ok(&mut *raw_ptr) }
     }
 }

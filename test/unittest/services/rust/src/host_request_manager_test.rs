@@ -14,11 +14,9 @@
  */
 
 use crate::common::constants::*;
-use crate::{log_e, log_i};
-use crate::traits::host_request_manager::{
-    DummyHostRequestManager, HostRequest, HostRequestManager, HostRequestParam
-};
+use crate::traits::host_request_manager::{DummyHostRequestManager, HostRequest, HostRequestManager, HostRequestParam};
 use crate::ut_registry_guard;
+use crate::{log_e, log_i};
 
 struct DummyHostRequest;
 

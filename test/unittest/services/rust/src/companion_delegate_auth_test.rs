@@ -15,8 +15,7 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionBeginDelegateAuthInputFfi, CompanionEndDelegateAuthInputFfi, DataArray1024Ffi,
-    AUTH_TOKEN_SIZE_FFI
+    CompanionBeginDelegateAuthInputFfi, CompanionEndDelegateAuthInputFfi, DataArray1024Ffi, AUTH_TOKEN_SIZE_FFI,
 };
 use crate::log_i;
 use crate::request::delegate_auth::companion_auth::CompanionDelegateAuthRequest;
@@ -86,12 +85,9 @@ fn companion_delegate_auth_request_begin_test_wrong_input_type() {
     };
 
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
-    
-    let wrong_input = CompanionEndDelegateAuthInputFfi {
-        request_id: 1,
-        result: 0,
-        auth_token: [0u8; AUTH_TOKEN_SIZE_FFI],
-    };
+
+    let wrong_input =
+        CompanionEndDelegateAuthInputFfi { request_id: 1, result: 0, auth_token: [0u8; AUTH_TOKEN_SIZE_FFI] };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionEndDelegateAuthOutputFfi::default();
     let param = CompanionRequestParam::DelegateAuthEnd(&wrong_input, &mut output);
@@ -112,7 +108,7 @@ fn companion_delegate_auth_request_end_test_wrong_input_type() {
     };
 
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
-    
+
     let wrong_input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,
         binding_id: 123,
@@ -140,11 +136,8 @@ fn companion_delegate_auth_request_end_test_wrong_auth_token_len() {
 
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
 
-    let end_input = CompanionEndDelegateAuthInputFfi {
-        request_id: 1,
-        result: 0,
-        auth_token: [0u8; AUTH_TOKEN_SIZE_FFI],
-    };
+    let end_input =
+        CompanionEndDelegateAuthInputFfi { request_id: 1, result: 0, auth_token: [0u8; AUTH_TOKEN_SIZE_FFI] };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionEndDelegateAuthOutputFfi::default();
     let param = CompanionRequestParam::DelegateAuthEnd(&end_input, &mut output);
@@ -158,7 +151,9 @@ fn parse_begin_sec_message_test_get_session_key_fail() {
     log_i!("parse_begin_sec_message_test_get_session_key_fail start");
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Err(ErrorCode::NotFound));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Err(ErrorCode::NotFound));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut attr = Attribute::new();
@@ -194,12 +189,16 @@ fn parse_begin_sec_message_test_decrypt_sec_message_fail() {
     log_i!("parse_begin_sec_message_test_decrypt_sec_message_fail start");
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut attr = Attribute::new();
@@ -235,12 +234,16 @@ fn parse_begin_sec_message_test_try_from_bytes_fail() {
     log_i!("parse_begin_sec_message_test_try_from_bytes_fail start");
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let sec_common_request = SecCommonRequest {
@@ -272,12 +275,16 @@ fn parse_begin_sec_message_test_get_challenge_fail() {
     log_i!("parse_begin_sec_message_test_get_challenge_fail start");
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut attr = Attribute::new();
@@ -312,12 +319,16 @@ fn parse_begin_sec_message_test_get_atl_fail() {
     log_i!("parse_begin_sec_message_test_get_atl_fail start");
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut attr = Attribute::new();
@@ -352,12 +363,16 @@ fn parse_begin_sec_message_test_atl_try_from_fail() {
     log_i!("parse_begin_sec_message_test_atl_try_from_fail start");
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut attr = Attribute::new();

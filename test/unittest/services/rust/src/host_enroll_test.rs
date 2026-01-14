@@ -15,11 +15,10 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostEndAddCompanionInputFfi,
-    HostGetInitKeyNegotiationInputFfi, PersistedCompanionStatusFfi,
-    HostBeginCompanionCheckOutputFfi, HostEndCompanionCheckOutputFfi,
-    HostGetInitKeyNegotiationOutputFfi, HostBeginAddCompanionOutputFfi,
-    HostEndAddCompanionOutputFfi,
+    DataArray1024Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
+    HostBeginCompanionCheckOutputFfi, HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi,
+    HostEndCompanionCheckOutputFfi, HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
+    PersistedCompanionStatusFfi,
 };
 use crate::log_i;
 use crate::request::enroll::enroll_message::{SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply};
@@ -43,39 +42,36 @@ fn create_valid_fwk_enroll_message(schedule_id: u64, atl: i32) -> Vec<u8> {
     let mut attribute = Attribute::new();
     attribute.set_u64(AttributeKey::AttrScheduleId, schedule_id);
     attribute.set_i32(AttributeKey::AttrAuthTrustLevel, atl);
-    
+
     let message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
     message_codec.serialize_attribute(&attribute).unwrap()
 }
 
 fn create_valid_key_nego_reply(challenge: u64) -> Vec<u8> {
-    let reply = SecKeyNegoReply {
-        algorithm: AlgoType::X25519 as u16,
-        challenge,
-        pub_key: vec![1u8, 2, 3, 4, 5],
-    };
+    let reply = SecKeyNegoReply { algorithm: AlgoType::X25519 as u16, challenge, pub_key: vec![1u8, 2, 3, 4, 5] };
     reply.encode(DeviceType::None).unwrap()
 }
 
-fn create_valid_binding_reply(device_id: &str, user_id: i32, protocal: &[u16],
-    capability: &[u16], esl: i32) -> Vec<u8> {
-        let reply_info = SecBindingReplyInfo {
-            device_id: device_id.to_string(),
-            user_id,
-            esl,
-            track_ability_level: 0,
-            challenge: 0,
-            protocal_list: protocal.to_vec(),
-            capability_list: capability.to_vec(),
-        };
-        
-        let encrypt_data = reply_info.encode().unwrap();
-        let reply = SecBindingReply {
-            tag: [2u8; AES_GCM_TAG_SIZE],
-            iv: [3u8; AES_GCM_IV_SIZE],
-            encrypt_data,
-        };
-        reply.encode(DeviceType::None).unwrap()
+fn create_valid_binding_reply(
+    device_id: &str,
+    user_id: i32,
+    protocal: &[u16],
+    capability: &[u16],
+    esl: i32,
+) -> Vec<u8> {
+    let reply_info = SecBindingReplyInfo {
+        device_id: device_id.to_string(),
+        user_id,
+        esl,
+        track_ability_level: 0,
+        challenge: 0,
+        protocal_list: protocal.to_vec(),
+        capability_list: capability.to_vec(),
+    };
+
+    let encrypt_data = reply_info.encode().unwrap();
+    let reply = SecBindingReply { tag: [2u8; AES_GCM_TAG_SIZE], iv: [3u8; AES_GCM_IV_SIZE], encrypt_data };
+    reply.encode(DeviceType::None).unwrap()
 }
 
 fn create_key_negotial_param() -> KeyNegotialParam {
@@ -89,19 +85,19 @@ fn create_key_negotial_param() -> KeyNegotialParam {
 }
 
 fn create_device_key(device_id: &str, user_id: i32) -> DeviceKey {
-    DeviceKey {
-        device_id: device_id.to_string(),
-        device_id_type: 1,
-        user_id,
-    }
+    DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id }
 }
 
 fn mock_set_crypto_engine() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 }
 
@@ -113,8 +109,12 @@ fn mock_set_time_keeper() {
 
 fn mock_set_misc_manager() {
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
-    mock_misc_manager.expect_get_local_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_local_key_pair()
+        .returning(|| Ok(create_mock_key_pair()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 }
 
@@ -127,10 +127,7 @@ fn host_enroll_request_prepare_test_wrong_input_type() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -149,10 +146,7 @@ fn host_enroll_request_prepare_test_secure_protocol_id_try_from_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 100,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 100 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -171,10 +165,7 @@ fn host_enroll_request_prepare_test_secure_protocol_id_invalid() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 0,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 0 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -193,18 +184,21 @@ fn host_enroll_request_begin_test_wrong_input_type() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
-    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine
+        .expect_generate_x25519_key_pair()
+        .returning(|| Ok(create_mock_key_pair()));
     mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Ok(AesGcmResult { ciphertext: Vec::new(), authentication_tag: [0u8; 16] }));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|_, _| Ok(AesGcmResult { ciphertext: Vec::new(), authentication_tag: [0u8; 16] }));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -235,14 +229,13 @@ fn host_enroll_request_begin_test_schedule_id_mismatch() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -272,14 +265,13 @@ fn host_enroll_request_begin_test_atl_try_from_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -309,14 +301,13 @@ fn host_enroll_request_begin_test_secure_protocol_id_try_from_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 100,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 100 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -346,14 +337,13 @@ fn host_enroll_request_begin_test_secure_protocol_id_invalid() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 0,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 0 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -383,14 +373,13 @@ fn host_enroll_request_begin_test_sec_message_decode_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -420,15 +409,16 @@ fn host_enroll_request_begin_test_generate_key_pair_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
-    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_generate_x25519_key_pair()
+        .returning(|| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -460,16 +450,19 @@ fn host_enroll_request_begin_test_x25519_ecdh_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
-    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_generate_x25519_key_pair()
+        .returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -501,17 +494,18 @@ fn host_enroll_request_begin_test_hkdf_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
-    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine
+        .expect_generate_x25519_key_pair()
+        .returning(|| Ok(create_mock_key_pair()));
     mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -543,18 +537,21 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
-    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine
+        .expect_generate_x25519_key_pair()
+        .returning(|| Ok(create_mock_key_pair()));
     mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -586,10 +583,7 @@ fn host_enroll_request_end_test_wrong_input_type() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -618,10 +612,7 @@ fn host_enroll_request_end_test_sec_message_decode_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.key_negotial_param.push(create_key_negotial_param());
@@ -649,16 +640,18 @@ fn host_enroll_request_end_test_hkdf_fail() {
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.key_negotial_param.push(create_key_negotial_param());
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -680,19 +673,23 @@ fn host_enroll_request_end_test_decrypt_sec_message_fail() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.key_negotial_param.push(create_key_negotial_param());
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -713,17 +710,19 @@ fn host_enroll_request_end_test_device_id_mismatch() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
 
-    let sec_message = create_valid_binding_reply("wrong_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "wrong_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -744,17 +743,19 @@ fn host_enroll_request_end_test_user_id_mismatch() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
 
-    let sec_message = create_valid_binding_reply("companion_device", -1, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        -1,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -775,17 +776,19 @@ fn host_enroll_request_end_test_protocal_list_mismatch() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, &[],
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        &[],
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -806,17 +809,14 @@ fn host_enroll_request_end_test_capability_list_mismatch() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        &[], ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message =
+        create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION, &[], ExecutorSecurityLevel::Esl2 as i32);
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -839,23 +839,29 @@ fn host_enroll_request_end_test_secure_random_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
 
     mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_secure_random().returning(|_buf| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_secure_random()
+        .returning(|_buf| Err(ErrorCode::GeneralError));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -881,21 +887,25 @@ fn host_enroll_request_end_test_get_rtc_time_fail() {
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
-    mock_time_keeper.expect_get_rtc_time().returning(|| Err(ErrorCode::GeneralError));
+    mock_time_keeper
+        .expect_get_rtc_time()
+        .returning(|| Err(ErrorCode::GeneralError));
     TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl0;
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -919,21 +929,25 @@ fn host_enroll_request_end_test_add_device_fail() {
 
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
-    mock_host_db_manager.expect_add_device().returning(|| Err(ErrorCode::GeneralError));
+    mock_host_db_manager
+        .expect_add_device()
+        .returning(|| Err(ErrorCode::GeneralError));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -958,21 +972,25 @@ fn host_enroll_request_end_test_add_token_fail() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
     mock_host_db_manager.expect_add_device().returning(|| Ok(()));
-    mock_host_db_manager.expect_add_token().returning(|| Err(ErrorCode::GeneralError));
+    mock_host_db_manager
+        .expect_add_token()
+        .returning(|| Err(ErrorCode::GeneralError));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -1001,21 +1019,25 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_local_key_pair().returning(|| Err(ErrorCode::GeneralError));
+    mock_misc_manager
+        .expect_get_local_key_pair()
+        .returning(|| Err(ErrorCode::GeneralError));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -1042,21 +1064,25 @@ fn host_enroll_request_end_test_get_session_key_fail() {
     mock_host_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
     mock_host_db_manager.expect_add_device().returning(|| Ok(()));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
-    mock_host_db_manager.expect_read_device_sk().returning(|| Err(ErrorCode::NotFound));
+    mock_host_db_manager
+        .expect_read_device_sk()
+        .returning(|| Err(ErrorCode::NotFound));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -1081,33 +1107,40 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
-    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
     mock_host_db_manager.expect_add_device().returning(|| Ok(()));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
-    mock_host_db_manager.expect_read_device_sk().returning(|| Ok(vec![CompanionDeviceSk {
-        device_type: DeviceType::None,
-        sk: Vec::new(),
-    }]));
+    mock_host_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-    };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
 
-    let sec_message = create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION,
-        SUPPORT_CAPABILITY, ExecutorSecurityLevel::Esl2 as i32);
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        PROTOCAL_VERSION,
+        SUPPORT_CAPABILITY,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),

@@ -230,8 +230,7 @@ impl CompanionDeviceEnrollRequest {
         let (encrypt_data, tag, iv) =
             message_crypto::encrypt_sec_message(&reply_info.encode()?, &self.session_key).map_err(|e| p!(e))?;
 
-        let binding_reply =
-            SecBindingReply { tag: tag, iv: iv, encrypt_data: encrypt_data };
+        let binding_reply = SecBindingReply { tag: tag, iv: iv, encrypt_data: encrypt_data };
         let output = binding_reply.encode(DeviceType::None)?;
         Ok(output)
     }

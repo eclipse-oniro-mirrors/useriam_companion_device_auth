@@ -14,9 +14,7 @@
  */
 
 use crate::common::constants::ErrorCode;
-use crate::entry::companion_device_auth_entry::{
-    handle_rust_command, handle_rust_env_init, handle_rust_env_uninit,
-};
+use crate::entry::companion_device_auth_entry::{handle_rust_command, handle_rust_env_init, handle_rust_env_uninit};
 use crate::entry::companion_device_auth_ffi::{
     CommandId, CommonOutputFfi, InitInputFfi, InitOutputFfi, PlaceHolderFfi,
 };
@@ -30,10 +28,9 @@ use core::mem::size_of;
 
 fn mock_set_init_command_env() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_generate_ed25519_key_pair().returning(|| Ok(KeyPair {
-        pub_key: vec![1u8, 2, 3],
-        pri_key: vec![4u8, 5, 6],
-    }));
+    mock_crypto_engine
+        .expect_generate_ed25519_key_pair()
+        .returning(|| Ok(KeyPair { pub_key: vec![1u8, 2, 3], pri_key: vec![4u8, 5, 6] }));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_misc_manager = MockMiscManager::new();
@@ -63,7 +60,9 @@ fn handle_rust_command_test() {
     log_i!("handle_rust_command_test start");
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_generate_ed25519_key_pair().returning(|| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_generate_ed25519_key_pair()
+        .returning(|| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = [0u8; size_of::<InitInputFfi>()];

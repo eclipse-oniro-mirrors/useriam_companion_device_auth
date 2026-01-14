@@ -14,8 +14,8 @@
  */
 
 use crate::log_i;
-use crate::utils::scope_guard::ScopeGuard;
 use crate::ut_registry_guard;
+use crate::utils::scope_guard::ScopeGuard;
 
 static mut TEST: i32 = 0;
 

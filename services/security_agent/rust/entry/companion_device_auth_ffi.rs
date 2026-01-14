@@ -1059,6 +1059,7 @@ pub enum CommandId {
     HostCancelObtainToken = 1025,
     HostActivateToken = 1026,
     HostCheckTemplateEnrolled = 1027,
+    HostUpdateToken = 1028,
 
     // companion
     CompanionGetPersistedStatus = 2000,
@@ -1112,6 +1113,7 @@ impl TryFrom<i32> for CommandId {
             1025 => Ok(CommandId::HostCancelObtainToken),
             1026 => Ok(CommandId::HostActivateToken),
             1027 => Ok(CommandId::HostCheckTemplateEnrolled),
+            1028 => Ok(CommandId::HostUpdateToken),
             2000 => Ok(CommandId::CompanionGetPersistedStatus),
             2001 => Ok(CommandId::CompanionProcessCheck),
             2002 => Ok(CommandId::CompanionInitKeyNegotiation),

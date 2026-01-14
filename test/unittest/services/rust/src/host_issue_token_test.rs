@@ -15,9 +15,8 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, HostBeginIssueTokenInputFfi, HostEndIssueTokenInputFfi,
-    HostPreIssueTokenInputFfi, PROPERTY_MODE_UNFREEZE,
-    HostPreIssueTokenOutputFfi, HostBeginIssueTokenOutputFfi, HostEndIssueTokenOutputFfi,
+    DataArray1024Ffi, HostBeginIssueTokenInputFfi, HostBeginIssueTokenOutputFfi, HostEndIssueTokenInputFfi,
+    HostEndIssueTokenOutputFfi, HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi, PROPERTY_MODE_UNFREEZE,
 };
 use crate::log_i;
 use crate::request::jobs::common_message::{SecCommonReply, SecIssueToken};
@@ -69,14 +68,18 @@ fn create_valid_issue_token_reply(result: i32) -> Vec<u8> {
 fn mock_set_crypto_engine() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 }
 
 fn mock_set_misc_manager() {
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 }
 
@@ -89,10 +92,9 @@ fn mock_set_host_db_manager() {
             track_ability_level: 1,
         }])
     });
-    mock_host_db_manager.expect_read_device_sk().returning(|| Ok(vec![CompanionDeviceSk {
-        device_type: DeviceType::None,
-        sk: Vec::new(),
-    }]));
+    mock_host_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 }
@@ -106,19 +108,12 @@ fn host_issue_token_request_prepare_test_wrong_input_type() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let wrong_input = HostBeginIssueTokenInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
-    };
+    let wrong_input =
+        HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostBeginIssueTokenOutputFfi::default();
     let param = HostRequestParam::IssueTokenBegin(&wrong_input, &mut output);
@@ -162,12 +157,8 @@ fn host_issue_token_request_prepare_test_auth_type_not_companion_device() {
     mock_set_crypto_engine();
     mock_set_misc_manager();
 
-    let fwk_message = create_valid_fwk_issue_token_request(
-        PROPERTY_MODE_UNFREEZE,
-        999,
-        AuthTrustLevel::Atl3 as i32,
-        &[123u64],
-    );
+    let fwk_message =
+        create_valid_fwk_issue_token_request(PROPERTY_MODE_UNFREEZE, 999, AuthTrustLevel::Atl3 as i32, &[123u64]);
 
     let input = HostPreIssueTokenInputFfi {
         request_id: 1,
@@ -247,7 +238,9 @@ fn host_issue_token_request_prepare_test_read_device_capability_info_fail() {
     mock_set_misc_manager();
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_read_device_capability_info().returning(|| Err(ErrorCode::NotFound));
+    mock_host_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Err(ErrorCode::NotFound));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let fwk_message = create_valid_fwk_issue_token_request(
@@ -308,19 +301,12 @@ fn host_issue_token_request_begin_test_wrong_input_type() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let wrong_input = HostEndIssueTokenInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
-    };
+    let wrong_input =
+        HostEndIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostEndIssueTokenOutputFfi::default();
     let param = HostRequestParam::IssueTokenEnd(&wrong_input, &mut output);
@@ -339,18 +325,11 @@ fn host_issue_token_request_begin_test_decode_sec_message_fail() {
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let begin_input = HostBeginIssueTokenInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
-    };
+    let begin_input =
+        HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostBeginIssueTokenOutputFfi::default();
     let param = HostRequestParam::IssueTokenBegin(&begin_input, &mut output);
@@ -370,11 +349,7 @@ fn host_issue_token_request_begin_test_get_session_key_fail() {
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let sec_message = create_valid_pre_issue_reply(0);
@@ -398,16 +373,14 @@ fn host_issue_token_request_begin_test_decrypt_sec_message_fail() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let sec_message = create_valid_pre_issue_reply(0);
@@ -431,16 +404,14 @@ fn host_issue_token_request_begin_test_try_from_bytes_fail() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let encrypt_attribute = Attribute::new();
@@ -471,16 +442,14 @@ fn host_issue_token_request_begin_test_miss_challenge() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let mut encrypt_attribute = Attribute::new();
@@ -512,18 +481,18 @@ fn host_issue_token_request_begin_test_secure_random_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_secure_random().returning(|_buf| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_secure_random()
+        .returning(|_buf| Err(ErrorCode::GeneralError));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let sec_message = create_valid_pre_issue_reply(0);
@@ -546,18 +515,18 @@ fn host_issue_token_request_begin_test_generate_token_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_secure_random().returning(|_buf| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_secure_random()
+        .returning(|_buf| Err(ErrorCode::GeneralError));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let sec_message = create_valid_pre_issue_reply(0);
@@ -583,14 +552,12 @@ fn host_issue_token_request_begin_test_token_infos_empty() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_read_device_capability_info().returning(|| Ok(Vec::new()));
+    mock_host_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Ok(Vec::new()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let sec_message = create_valid_pre_issue_reply(0);
@@ -615,16 +582,14 @@ fn host_issue_token_request_begin_test_sec_message_get_session_key_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let sec_message = create_valid_pre_issue_reply(0);
@@ -648,17 +613,17 @@ fn host_issue_token_request_begin_test_sec_message_encrypt_issue_token_fail() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
-    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let sec_message = create_valid_pre_issue_reply(0);
@@ -683,18 +648,11 @@ fn host_issue_token_request_end_test_wrong_input_type() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
-    let wrong_input = HostBeginIssueTokenInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
-    };
+    let wrong_input =
+        HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostBeginIssueTokenOutputFfi::default();
     let param = HostRequestParam::IssueTokenBegin(&wrong_input, &mut output);
@@ -711,11 +669,7 @@ fn host_issue_token_request_end_test_decode_sec_message_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.token_infos.push(crate::request::jobs::token_helper::DeviceTokenInfo {
@@ -725,11 +679,8 @@ fn host_issue_token_request_end_test_decode_sec_message_fail() {
         atl: AuthTrustLevel::Atl3,
     });
 
-    let end_input = HostEndIssueTokenInputFfi {
-        request_id: 1,
-        secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
-    };
+    let end_input =
+        HostEndIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostEndIssueTokenOutputFfi::default();
     let param = HostRequestParam::IssueTokenEnd(&end_input, &mut output);
@@ -746,11 +697,7 @@ fn host_issue_token_request_end_test_result_not_zero() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.token_infos.push(crate::request::jobs::token_helper::DeviceTokenInfo {
@@ -788,14 +735,12 @@ fn host_issue_token_request_end_test_get_rtc_time_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
-    mock_time_keeper.expect_get_rtc_time().returning(|| Err(ErrorCode::GeneralError));
+    mock_time_keeper
+        .expect_get_rtc_time()
+        .returning(|| Err(ErrorCode::GeneralError));
     TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.token_infos.push(crate::request::jobs::token_helper::DeviceTokenInfo {
@@ -828,18 +773,16 @@ fn host_issue_token_request_end_test_add_token_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_add_token().returning(|| Err(ErrorCode::GeneralError));
+    mock_host_db_manager
+        .expect_add_token()
+        .returning(|| Err(ErrorCode::GeneralError));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
     mock_time_keeper.expect_get_rtc_time().returning(|| Ok(1000));
     TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.token_infos.push(crate::request::jobs::token_helper::DeviceTokenInfo {
@@ -877,11 +820,7 @@ fn host_issue_token_request_end_test_success() {
 
     mock_set_host_db_manager();
 
-    let input = HostPreIssueTokenInputFfi {
-        request_id: 1,
-        template_id: 123,
-        fwk_message: DataArray1024Ffi::default(),
-    };
+    let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.atl = AuthTrustLevel::Atl3;

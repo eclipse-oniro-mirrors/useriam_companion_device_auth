@@ -15,8 +15,8 @@
 
 use crate::common::constants::*;
 use crate::log_i;
-use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, HostTokenInfo, UserInfo};
 use crate::traits::companion_db_manager::{CompanionDbManager, DummyCompanionDbManager};
+use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, HostTokenInfo, UserInfo};
 use crate::ut_registry_guard;
 
 #[test]

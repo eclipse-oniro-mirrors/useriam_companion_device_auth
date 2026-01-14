@@ -29,14 +29,18 @@ fn create_mock_key_pair() -> KeyPair {
 
 fn mock_set_crypto_engine() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 }
 
 fn mock_set_misc_manager() {
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 }
 
@@ -62,7 +66,7 @@ fn fwk_auth_request_decode_test_missing_schedule_id() {
 
     let mut attribute = Attribute::new();
     attribute.set_i32(AttributeKey::AttrAuthTrustLevel, 30000);
-    
+
     let message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
     let fwk_message = message_codec.serialize_attribute(&attribute).unwrap();
 
@@ -80,7 +84,7 @@ fn fwk_auth_request_decode_test_missing_atl() {
 
     let mut attribute = Attribute::new();
     attribute.set_u64(AttributeKey::AttrScheduleId, 1);
-    
+
     let message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
     let fwk_message = message_codec.serialize_attribute(&attribute).unwrap();
 
@@ -94,7 +98,9 @@ fn fwk_auth_reply_encode_test_get_local_key_pair_fail() {
     log_i!("fwk_auth_reply_encode_test_get_local_key_pair_fail start");
 
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_local_key_pair().returning(|| Err(ErrorCode::GeneralError));
+    mock_misc_manager
+        .expect_get_local_key_pair()
+        .returning(|| Err(ErrorCode::GeneralError));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let reply = FwkAuthReply {
@@ -117,11 +123,15 @@ fn fwk_auth_reply_encode_test_serialize_attribute_fail() {
     log_i!("fwk_auth_reply_encode_test_serialize_attribute_fail start");
 
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_local_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_misc_manager
+        .expect_get_local_key_pair()
+        .returning(|| Ok(create_mock_key_pair()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let reply = FwkAuthReply {

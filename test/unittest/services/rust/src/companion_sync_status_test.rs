@@ -15,8 +15,8 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionProcessCheckInputFfi, CompanionProcessCheckOutputFfi, CompanionProcessTokenAuthInputFfi, 
-    Uint16Array64Ffi, DataArray1024Ffi
+    CompanionProcessCheckInputFfi, CompanionProcessCheckOutputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi,
+    Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;
@@ -119,12 +119,16 @@ fn companion_sync_status_request_begin_test_encrypt_sec_message_fail() {
     log_i!("companion_sync_status_request_begin_test_encrypt_sec_message_fail start");
 
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
-    mock_companion_db_manager.expect_read_device_sk().returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+    mock_companion_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_secure_random().returning(|_buf| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_secure_random()
+        .returning(|_buf| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = create_valid_input(123, 0);

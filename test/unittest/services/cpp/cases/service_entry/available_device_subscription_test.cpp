@@ -74,6 +74,10 @@ public:
         ON_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
         ON_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillByDefault(Return(0));
 
+        // Set default behaviors for callback mock methods that are called internally
+        ON_CALL(MockIIpcAvailableDeviceStatusCallback(), OnAvailableDeviceStatusChange(_)).WillByDefault(Return(0));
+        ON_CALL(MockIIpcAvailableDeviceStatusCallback(), AsObject()).WillByDefault(Return(nullptr));
+
         subscriptionManager_ = std::make_shared<SubscriptionManager>();
     }
 

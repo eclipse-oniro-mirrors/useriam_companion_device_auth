@@ -32,10 +32,7 @@ fn dummy_crypto_engine_test() {
     assert_eq!(dummy_crypto_engine.hmac_sha256(&[], &[]), Err(ErrorCode::GeneralError));
     assert_eq!(dummy_crypto_engine.sha256(&[]), Err(ErrorCode::GeneralError));
     assert_eq!(dummy_crypto_engine.secure_random(&mut []), Err(ErrorCode::GeneralError));
-    assert_eq!(
-        dummy_crypto_engine.secure_random_with_check(&mut [], Box::new(|_| true)),
-        Err(ErrorCode::GeneralError)
-    );
+    assert_eq!(dummy_crypto_engine.secure_random_with_check(&mut [], Box::new(|_| true)), Err(ErrorCode::GeneralError));
     assert!(dummy_crypto_engine.aes_gcm_encrypt(&[], &aes_gcm_param).is_err());
     assert_eq!(
         dummy_crypto_engine.aes_gcm_decrypt(
@@ -61,10 +58,7 @@ fn key_pair_test() {
     let _guard = ut_registry_guard!();
     log_i!("key_pair_test start");
 
-    let mut key_pair = KeyPair {
-        pub_key: Vec::new(),
-        pri_key: Vec::new(),
-    };
+    let mut key_pair = KeyPair { pub_key: Vec::new(), pri_key: Vec::new() };
 
     assert_eq!(key_pair.check_valid(), false);
 

@@ -14,9 +14,7 @@
  */
 
 use crate::common::constants::*;
-use crate::impls::default_companion_db_manager::{
-    DefaultCompaniomDbManager, MAX_DEVICE_NUM_PER_USER,
-};
+use crate::impls::default_companion_db_manager::{DefaultCompaniomDbManager, MAX_DEVICE_NUM_PER_USER};
 use crate::log_i;
 use crate::traits::companion_db_manager::CompanionDbManager;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
@@ -28,16 +26,9 @@ use std::boxed::Box;
 
 fn create_test_device_info(binding_id: i32, device_id: &str, user_id: i32) -> HostDeviceInfo {
     HostDeviceInfo {
-        device_key: DeviceKey {
-            device_id: device_id.to_string(),
-            device_id_type: 1,
-            user_id,
-        },
+        device_key: DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id },
         binding_id,
-        user_info: UserInfo {
-            user_id,
-            user_type: 1,
-        },
+        user_info: UserInfo { user_id, user_type: 1 },
         binding_time: 1000,
         last_used_time: 2000,
     }
@@ -48,10 +39,7 @@ fn create_test_sk_info(sk: Vec<u8>) -> HostDeviceSk {
 }
 
 fn create_test_token_info() -> HostTokenInfo {
-    HostTokenInfo {
-        token: vec![1u8, 2, 3, 4],
-        atl: AuthTrustLevel::Atl3,
-    }
+    HostTokenInfo { token: vec![1u8, 2, 3, 4], atl: AuthTrustLevel::Atl3 }
 }
 
 fn mock_set_storage_io_success() {
@@ -236,11 +224,7 @@ fn default_companion_db_manager_get_device_by_device_key_test_success() {
 
     let _ = manager.add_device(&device_info, &sk_info);
 
-    let device_key = DeviceKey {
-        device_id: "device1".to_string(),
-        device_id_type: 1,
-        user_id: 100,
-    };
+    let device_key = DeviceKey { device_id: "device1".to_string(), device_id_type: 1, user_id: 100 };
 
     let result = manager.get_device_by_device_key(100, &device_key);
     assert!(result.is_ok());
@@ -255,11 +239,7 @@ fn default_companion_db_manager_get_device_by_device_key_test_not_found() {
 
     let manager = DefaultCompaniomDbManager::new();
 
-    let device_key = DeviceKey {
-        device_id: "device999".to_string(),
-        device_id_type: 1,
-        user_id: 100,
-    };
+    let device_key = DeviceKey { device_id: "device999".to_string(), device_id_type: 1, user_id: 100 };
 
     let result = manager.get_device_by_device_key(100, &device_key);
     assert_eq!(result, Err(ErrorCode::NotFound));
@@ -316,7 +296,9 @@ fn default_companion_db_manager_remove_device_test_write_db_fail() {
 
     // Set up mock to fail on write
     let mut mock_storage_io_fail = MockStorageIo::new();
-    mock_storage_io_fail.expect_write().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_storage_io_fail
+        .expect_write()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     mock_storage_io_fail.expect_delete().returning(|| Ok(()));
     mock_storage_io_fail.expect_read().returning(|| Ok(Vec::new()));
     mock_storage_io_fail.expect_exists().returning(|| Ok(true));
@@ -423,7 +405,9 @@ fn default_companion_db_manager_update_device_test_write_db_fail() {
 
     // Set up mock to fail on write
     let mut mock_storage_io_fail = MockStorageIo::new();
-    mock_storage_io_fail.expect_write().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_storage_io_fail
+        .expect_write()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     mock_storage_io_fail.expect_delete().returning(|| Ok(()));
     mock_storage_io_fail.expect_read().returning(|| Ok(Vec::new()));
     mock_storage_io_fail.expect_exists().returning(|| Ok(true));
@@ -458,7 +442,9 @@ fn default_companion_db_manager_generate_unique_binding_id_test_crypto_fail() {
     log_i!("default_companion_db_manager_generate_unique_binding_id_test_crypto_fail start");
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_secure_random().returning(|_buf| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_secure_random()
+        .returning(|_buf| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let manager = DefaultCompaniomDbManager::new();
@@ -549,7 +535,7 @@ fn default_companion_db_manager_read_device_db_test_success() {
     parcel.write_i32(100);
     parcel.write_i32(123);
     parcel.write_i32(100);
-    parcel.write_i32(1); 
+    parcel.write_i32(1);
     parcel.write_u64(1000);
     parcel.write_u64(2000);
 
@@ -678,7 +664,7 @@ fn default_companion_db_manager_read_device_db_test_deserialize_user_id_fail() {
     parcel.write_i32(0);
     parcel.write_i32(1);
     parcel.write_string("device1");
-    parcel.write_i32(1); 
+    parcel.write_i32(1);
 
     let serialized_data = parcel.as_slice().to_vec();
 

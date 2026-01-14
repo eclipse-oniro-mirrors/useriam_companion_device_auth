@@ -86,6 +86,10 @@ public:
         request_ =
             std::make_shared<MockOutboundRequest>(RequestType::HOST_DELEGATE_AUTH_REQUEST, scheduleId_, timeoutMs_);
         request_->SetPeerDeviceKey(peerDeviceKey_);
+        // Set default behaviors for mock methods that are called internally
+        ON_CALL(*request_, GetWeakPtr()).WillByDefault(Return(std::weak_ptr<OutboundRequest>(request_)));
+        ON_CALL(*request_, CompleteWithError(_)).WillByDefault(Return());
+        ON_CALL(*request_, OnConnected()).WillByDefault(Return());
     }
 
 protected:

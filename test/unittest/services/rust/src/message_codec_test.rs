@@ -15,13 +15,13 @@
 
 use crate::common::constants::ErrorCode;
 use crate::common::types::Udid;
-use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
-use crate::utils::attribute::{Attribute, AttributeKey};
 use crate::log_i;
 use crate::traits::crypto_engine::MockCryptoEngine;
+use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
 use crate::ut_registry_guard;
-use crate::SHA256_DIGEST_SIZE;
+use crate::utils::attribute::{Attribute, AttributeKey};
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
+use crate::SHA256_DIGEST_SIZE;
 
 #[test]
 fn serialize_attribute_test() {
@@ -36,10 +36,8 @@ fn serialize_attribute_test() {
 
     let _ = ut_registry_guard!();
 
-    let message_codec_executor = MessageCodec::new(MessageSignParam::Executor(KeyPair {
-        pub_key: Vec::<u8>::new(),
-        pri_key: Vec::<u8>::new(),
-    }));
+    let message_codec_executor =
+        MessageCodec::new(MessageSignParam::Executor(KeyPair { pub_key: Vec::<u8>::new(), pri_key: Vec::<u8>::new() }));
 
     let mut mock_crypto_engin = MockCryptoEngine::new();
     mock_crypto_engin
@@ -80,15 +78,10 @@ fn deserialize_attribute_test() {
 
     let _ = ut_registry_guard!();
 
-    let message_codec_executor = MessageCodec::new(MessageSignParam::Executor(KeyPair {
-        pub_key: Vec::<u8>::new(),
-        pri_key: Vec::<u8>::new(),
-    }));
+    let message_codec_executor =
+        MessageCodec::new(MessageSignParam::Executor(KeyPair { pub_key: Vec::<u8>::new(), pri_key: Vec::<u8>::new() }));
     let message_codec_fwk = MessageCodec::new(MessageSignParam::Framework(Vec::<u8>::new()));
-    assert_eq!(
-        message_codec_executor.deserialize_attribute(&attr.to_bytes().unwrap()),
-        Err(ErrorCode::GeneralError)
-    );
+    assert_eq!(message_codec_executor.deserialize_attribute(&attr.to_bytes().unwrap()), Err(ErrorCode::GeneralError));
     assert_eq!(message_codec_fwk.deserialize_attribute(&attr.to_bytes().unwrap()), Err(ErrorCode::GeneralError));
 
     data_and_sign_attr.set_u8_slice(AttributeKey::AttrSignature, &[0u8; 32]);

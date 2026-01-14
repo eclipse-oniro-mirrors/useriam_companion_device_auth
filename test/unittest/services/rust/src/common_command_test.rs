@@ -16,9 +16,9 @@
 use crate::commands::common_command::*;
 use crate::common::constants::ErrorCode;
 use crate::entry::companion_device_auth_ffi::*;
+use crate::log_i;
 use crate::traits::db_manager::DeviceKey;
 use crate::traits::event_manager::{Event, EventType};
-use crate::log_i;
 use crate::ut_registry_guard;
 use std::ffi::CString;
 
@@ -145,11 +145,7 @@ fn device_key_ffi_try_from_test() {
     let _guard = ut_registry_guard!();
     log_i!("device_key_ffi_try_from_test start");
 
-    let device_key = DeviceKey {
-        device_id: String::from("test_device_id"),
-        device_id_type: 1,
-        user_id: 100,
-    };
+    let device_key = DeviceKey { device_id: String::from("test_device_id"), device_id_type: 1, user_id: 100 };
 
     let device_key_ffi = DeviceKeyFfi::try_from(device_key);
     assert!(device_key_ffi.is_ok());
@@ -157,11 +153,7 @@ fn device_key_ffi_try_from_test() {
     assert_eq!(device_key_ffi.device_id_type, 1);
     assert_eq!(device_key_ffi.user_id, 100);
 
-    let long_device_key = DeviceKey {
-        device_id: String::from("a").repeat(100),
-        device_id_type: 1,
-        user_id: 100,
-    };
+    let long_device_key = DeviceKey { device_id: String::from("a").repeat(100), device_id_type: 1, user_id: 100 };
     let result = DeviceKeyFfi::try_from(long_device_key);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -276,11 +268,7 @@ fn common_output_try_from_test() {
     let _guard = ut_registry_guard!();
     log_i!("common_output_try_from_test start");
 
-    let common_output = CommonOutput {
-        result: ErrorCode::Success,
-        has_fatal_error: false,
-        events: Vec::new(),
-    };
+    let common_output = CommonOutput { result: ErrorCode::Success, has_fatal_error: false, events: Vec::new() };
 
     let common_output_ffi = CommonOutputFfi::try_from(common_output);
     assert!(common_output_ffi.is_ok());
@@ -296,11 +284,7 @@ fn common_output_try_from_test() {
         event_info: CString::new("test event").unwrap(),
     };
 
-    let common_output = CommonOutput {
-        result: ErrorCode::GeneralError,
-        has_fatal_error: true,
-        events: vec![event],
-    };
+    let common_output = CommonOutput { result: ErrorCode::GeneralError, has_fatal_error: true, events: vec![event] };
 
     let common_output_ffi = CommonOutputFfi::try_from(common_output);
     assert!(common_output_ffi.is_ok());

@@ -15,8 +15,8 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, HostBeginTokenAuthInputFfi, HostEndTokenAuthInputFfi,
-    HostBeginTokenAuthOutputFfi, HostEndTokenAuthOutputFfi,
+    DataArray1024Ffi, HostBeginTokenAuthInputFfi, HostBeginTokenAuthOutputFfi, HostEndTokenAuthInputFfi,
+    HostEndTokenAuthOutputFfi,
 };
 use crate::log_i;
 use crate::request::token_auth::auth_message::SecAuthReply;
@@ -47,20 +47,14 @@ fn create_valid_fwk_auth_request(schedule_id: u64, template_ids: &[u64], atl: i3
 }
 
 fn create_valid_auth_reply_message(hmac: &[u8]) -> Vec<u8> {
-    let reply = SecAuthReply {
-        hmac: hmac.to_vec(),
-    };
+    let reply = SecAuthReply { hmac: hmac.to_vec() };
     reply.encode(DeviceType::None).unwrap()
 }
 
 fn create_mock_companion_device_info(template_id: u64, secure_protocol_id: u16) -> CompanionDeviceInfo {
     CompanionDeviceInfo {
         template_id,
-        device_key: DeviceKey {
-            device_id: String::from("test_device"),
-            device_id_type: 1,
-            user_id: 100,
-        },
+        device_key: DeviceKey { device_id: String::from("test_device"), device_id_type: 1, user_id: 100 },
         user_info: UserInfo { user_id: 100, user_type: 0 },
         added_time: 123456,
         secure_protocol_id,
@@ -81,15 +75,21 @@ fn create_mock_companion_token_info(added_time: u64) -> CompanionTokenInfo {
 fn mock_set_crypto_engine() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 }
 
 fn mock_set_misc_manager() {
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
-    mock_misc_manager.expect_get_local_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_misc_manager
+        .expect_get_fwk_pub_key()
+        .returning(|| Ok(create_mock_key_pair().pub_key.clone()));
+    mock_misc_manager
+        .expect_get_local_key_pair()
+        .returning(|| Ok(create_mock_key_pair()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 }
 
@@ -133,7 +133,9 @@ fn host_token_auth_request_new_test_secure_random_salt_fail() {
     log_i!("host_token_auth_request_new_test_secure_random_salt_fail start");
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_secure_random().returning(|_| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_secure_random()
+        .returning(|_| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = HostBeginTokenAuthInputFfi {
@@ -311,7 +313,9 @@ fn host_token_auth_request_begin_test_secure_protocol_id_not_support() {
     mock_set_misc_manager();
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info(123, 999)));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123, 999)));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let fwk_message = create_valid_fwk_auth_request(1, &[123u64], AuthTrustLevel::Atl3 as i32);
@@ -339,7 +343,9 @@ fn host_token_auth_request_begin_test_get_token_fail() {
     mock_set_misc_manager();
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info(123, 1)));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123, 1)));
     mock_host_db_manager.expect_get_token().returning(|| Err(ErrorCode::NotFound));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
@@ -368,12 +374,18 @@ fn host_token_auth_request_begin_test_get_rtc_time_fail() {
     mock_set_misc_manager();
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info(123, 1)));
-    mock_host_db_manager.expect_get_token().returning(|| Ok(create_mock_companion_token_info(1000)));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123, 1)));
+    mock_host_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_token_info(1000)));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
-    mock_time_keeper.expect_get_rtc_time().returning(|| Err(ErrorCode::GeneralError));
+    mock_time_keeper
+        .expect_get_rtc_time()
+        .returning(|| Err(ErrorCode::GeneralError));
     TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
     let fwk_message = create_valid_fwk_auth_request(1, &[123u64], AuthTrustLevel::Atl3 as i32);
@@ -402,8 +414,12 @@ fn host_token_auth_request_begin_test_token_time_bad() {
     mock_set_time_keeper(1000);
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info(123, 1)));
-    mock_host_db_manager.expect_get_token().returning(|| Ok(create_mock_companion_token_info(10000)));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123, 1)));
+    mock_host_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_token_info(10000)));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let fwk_message = create_valid_fwk_auth_request(1, &[123u64], AuthTrustLevel::Atl3 as i32);
@@ -432,8 +448,12 @@ fn host_token_auth_request_begin_test_token_expired() {
     mock_set_time_keeper(1001 + TOKEN_VALID_PERIOD);
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info(123, 1)));
-    mock_host_db_manager.expect_get_token().returning(|| Ok(create_mock_companion_token_info(1000)));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123, 1)));
+    mock_host_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_token_info(1000)));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let fwk_message = create_valid_fwk_auth_request(1, &[123u64], AuthTrustLevel::Atl3 as i32);
@@ -462,9 +482,15 @@ fn host_token_auth_request_begin_test_get_session_key_fail() {
     mock_set_time_keeper(2000);
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info(123, 1)));
-    mock_host_db_manager.expect_get_token().returning(|| Ok(create_mock_companion_token_info(1000)));
-    mock_host_db_manager.expect_read_device_sk().returning(|| Err(ErrorCode::NotFound));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123, 1)));
+    mock_host_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_token_info(1000)));
+    mock_host_db_manager
+        .expect_read_device_sk()
+        .returning(|| Err(ErrorCode::NotFound));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let fwk_message = create_valid_fwk_auth_request(1, &[123u64], AuthTrustLevel::Atl3 as i32);
@@ -490,19 +516,26 @@ fn host_token_auth_request_begin_test_aes_gcm_encrypt_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_ed25519_sign()
+        .returning(|_, bytes| Ok(bytes.to_vec()));
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device_info(123, 1)));
-    mock_host_db_manager.expect_get_token().returning(|| Ok(create_mock_companion_token_info(1000)));
-    mock_host_db_manager.expect_read_device_sk().returning(|| Ok(vec![CompanionDeviceSk {
-        device_type: DeviceType::None,
-        sk: Vec::new(),
-    }]));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123, 1)));
+    mock_host_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_token_info(1000)));
+    mock_host_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     mock_set_misc_manager();
@@ -593,11 +626,15 @@ fn host_token_auth_request_end_test_hmac_sha256_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_hmac_sha256().returning(|_, _| Err(ErrorCode::GeneralError));
+    mock_crypto_engine
+        .expect_hmac_sha256()
+        .returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_token().returning(|| Ok(create_mock_companion_token_info(1000)));
+    mock_host_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_token_info(1000)));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let input = HostBeginTokenAuthInputFfi {
@@ -632,11 +669,15 @@ fn host_token_auth_request_end_test_hmac_verification_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_hmac_sha256().returning(|_, _| Ok(vec![9u8, 9, 9, 9, 9]));
+    mock_crypto_engine
+        .expect_hmac_sha256()
+        .returning(|_, _| Ok(vec![9u8, 9, 9, 9, 9]));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_token().returning(|| Ok(create_mock_companion_token_info(1000)));
+    mock_host_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_token_info(1000)));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let input = HostBeginTokenAuthInputFfi {
@@ -671,15 +712,21 @@ fn host_token_auth_request_end_test_get_local_key_pair_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_hmac_sha256().returning(|_, _| Ok(vec![1u8, 2, 3, 4, 5]));
+    mock_crypto_engine
+        .expect_hmac_sha256()
+        .returning(|_, _| Ok(vec![1u8, 2, 3, 4, 5]));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
-    mock_host_db_manager.expect_get_token().returning(|| Ok(create_mock_companion_token_info(1000)));
+    mock_host_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_token_info(1000)));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let mut mock_misc_manager = MockMiscManager::new();
-    mock_misc_manager.expect_get_local_key_pair().returning(|| Err(ErrorCode::GeneralError));
+    mock_misc_manager
+        .expect_get_local_key_pair()
+        .returning(|| Err(ErrorCode::GeneralError));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let input = HostBeginTokenAuthInputFfi {
