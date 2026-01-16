@@ -135,14 +135,6 @@ public:
         return result;
     }
 
-    ResultCode ActivateToken(RequestId requestId, TemplateId templateId, Atl atl) override
-    {
-        (void)requestId;
-        (void)templateId;
-        (void)atl;
-        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
-    }
-
     ResultCode RemoveCompanion(TemplateId templateId) override
     {
         (void)templateId;
@@ -192,11 +184,6 @@ public:
     {
         (void)templateIds;
         (void)fwkUnlockMsg;
-    }
-
-    void RevokeTokens(const std::vector<TemplateId> &templateIds) override
-    {
-        (void)templateIds;
     }
 
     void NotifyCompanionStatusChange() override
@@ -861,12 +848,6 @@ public:
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 
-    ResultCode HostActivateToken(const HostActivateTokenInput &input) override
-    {
-        (void)input;
-        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
-    }
-
     ResultCode HostRevokeToken(const HostRevokeTokenInput &input) override
     {
         (void)input;
@@ -1439,10 +1420,10 @@ static bool InitSystemParamManager(FuzzedDataProvider &fuzzData)
     return true;
 }
 
-static bool InitActiveUserIdManager(FuzzedDataProvider &fuzzData)
+static bool InitUserIdManager(FuzzedDataProvider &fuzzData)
 {
     auto activeUserIdMgr = std::make_shared<MockUserIdManager>(fuzzData);
-    SingletonManager::GetInstance().SetActiveUserIdManager(activeUserIdMgr);
+    SingletonManager::GetInstance().SetUserIdManager(activeUserIdMgr);
     return true;
 }
 
@@ -1507,7 +1488,7 @@ static const bool g_singletonInitializersRegistered = []() {
     REGISTER_SINGLETON_INIT(HostBindingManager);
     REGISTER_SINGLETON_INIT(MiscManager);
     REGISTER_SINGLETON_INIT(SystemParamManager);
-    REGISTER_SINGLETON_INIT(ActiveUserIdManager);
+    REGISTER_SINGLETON_INIT(UserIdManager);
     REGISTER_SINGLETON_INIT(SecurityAgent);
     REGISTER_SINGLETON_INIT(CrossDeviceCommManager);
     REGISTER_SINGLETON_INIT(RequestManager);

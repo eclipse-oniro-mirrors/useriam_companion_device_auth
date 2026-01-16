@@ -317,12 +317,14 @@ FwkResultCode Inner::HandleFreezeRelatedCommand(FwkPropertyMode commandId, const
         commandId, freezeCommand.lockStateAuthTypeValue, freezeCommand.templateIdList.size(), freezeCommand.userId);
 
     if (commandId == FwkPropertyMode::PROPERTY_MODE_FREEZE && lockStateAuthType == AuthType::PIN) {
-        GetCompanionManager().RevokeTokens(freezeCommand.templateIdList);
+        for (const auto &templateId : freezeCommand.templateIdList) {
+            GetCompanionManager().SetCompanionTokenAtl(templateId, std::nullopt);
+        }
         GetHostBindingManager().RevokeTokens(freezeCommand.userId);
     } else if (commandId == FwkPropertyMode::PROPERTY_MODE_UNFREEZE) {
-        if (GetActiveUserIdManager().GetActiveUserId() != freezeCommand.userId) {
+        if (GetUserIdManager().GetActiveUserId() != freezeCommand.userId) {
             IAM_LOGE("userId %{public}d mismatch with active user id %{public}d, skip", freezeCommand.userId,
-                GetActiveUserIdManager().GetActiveUserId());
+                GetUserIdManager().GetActiveUserId());
             return FwkResultCode::SUCCESS;
         }
         GetCompanionManager().StartIssueTokenRequests(freezeCommand.templateIdList, extraInfo);

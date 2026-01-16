@@ -16,7 +16,7 @@
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     CompanionProcessCheckInputFfi, CompanionProcessCheckOutputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi,
-    Uint16Array64Ffi,
+    DataArray32Ffi, Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;
@@ -37,7 +37,7 @@ fn create_valid_input(binding_id: i32, challenge: u64) -> CompanionProcessCheckI
         binding_id,
         capability_list,
         secure_protocol_id: 1,
-        salt: [1u8; HKDF_SALT_SIZE],
+        salt: DataArray32Ffi { data: [1u8; HKDF_SALT_SIZE], len: HKDF_SALT_SIZE as u32 },
         challenge,
         sec_message: DataArray1024Ffi::default(),
     }
@@ -71,7 +71,7 @@ fn companion_sync_status_request_new_test_capability_list_convert_fail() {
         binding_id: 123,
         capability_list,
         secure_protocol_id: 1,
-        salt: [1u8; HKDF_SALT_SIZE],
+        salt: DataArray32Ffi { data: [1u8; HKDF_SALT_SIZE], len: HKDF_SALT_SIZE as u32 },
         challenge: 0,
         sec_message: DataArray1024Ffi::default(),
     };

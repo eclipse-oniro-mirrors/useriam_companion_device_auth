@@ -61,8 +61,8 @@ public:
         auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
         SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
@@ -115,7 +115,7 @@ protected:
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockCompanionManager> mockCompanionManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     NiceMock<MockMiscManager> mockMiscManager_;
 
     int32_t hostUserId_ = 100;
@@ -136,11 +136,6 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_001, TestSize.Level0)
     CreateDefaultRequest();
 
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_)).WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(mockCompanionManager_, UpdateToken(_, _, _))
-        .WillOnce(Invoke([](uint64_t, const std::vector<uint8_t> &, bool &needRedistribute) {
-            needRedistribute = true;
-            return ResultCode::SUCCESS;
-        }));
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus_)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
@@ -172,11 +167,6 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_003, TestSize.Level0)
     CreateDefaultRequest();
 
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_)).WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(mockCompanionManager_, UpdateToken(_, _, _))
-        .WillOnce(Invoke([](uint64_t, const std::vector<uint8_t> &, bool &needRedistribute) {
-            needRedistribute = true;
-            return ResultCode::SUCCESS;
-        }));
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus_)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_)).WillOnce(Return(std::nullopt));
@@ -192,11 +182,6 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_004, TestSize.Level0)
     CreateDefaultRequest();
 
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_)).WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(mockCompanionManager_, UpdateToken(_, _, _))
-        .WillOnce(Invoke([](uint64_t, const std::vector<uint8_t> &, bool &needRedistribute) {
-            needRedistribute = true;
-            return ResultCode::SUCCESS;
-        }));
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus_)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))

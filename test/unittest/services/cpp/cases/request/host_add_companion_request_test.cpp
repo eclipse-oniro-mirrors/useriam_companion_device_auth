@@ -43,6 +43,7 @@ constexpr uint32_t NUM_123 = 123;
 constexpr uint32_t NUM_2 = 2;
 constexpr uint32_t NUM_3 = 3;
 constexpr uint32_t NUM_4 = 4;
+constexpr int32_t INT32_12345 = 12345;
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
@@ -68,8 +69,8 @@ public:
         auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
         SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
@@ -125,7 +126,7 @@ protected:
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockCompanionManager> mockCompanionManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     NiceMock<MockMiscManager> mockMiscManager_;
 
     ScheduleId scheduleId_ = SCHEDULE_ID_1;
@@ -450,7 +451,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleBeginAddHostBindingReply_001, TestSi
             return ResultCode::SUCCESS;
         }));
     CompanionStatus status;
-    status.templateId = 12345;
+    status.templateId = INT32_12345;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(status)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, MessageType::END_ADD_HOST_BINDING, _, _))
         .WillOnce(Return(true));
@@ -540,7 +541,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleBeginAddHostBindingReply_005, TestSi
             return ResultCode::SUCCESS;
         }));
     CompanionStatus status;
-    status.templateId = 12345;
+    status.templateId = INT32_12345;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(status)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, MessageType::END_ADD_HOST_BINDING, _, _))
         .WillOnce(Return(false));
@@ -558,9 +559,9 @@ HWTEST_F(HostAddCompanionRequestTest, HandleEndAddHostBindingReply_001, TestSize
     };
 
     request_ = std::make_shared<HostAddCompanionRequest>(scheduleId_, fwkMsg_, tokenId_, std::move(fwkResultCallback_));
-    request_->templateId_ = 12345;
+    request_->templateId_ = INT32_12345;
 
-    EXPECT_CALL(mockCompanionManager_, ActivateToken(_, _, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, _)).WillOnce(Return(true));
 
     Attributes reply;
     EndAddHostBindingReply replyMsg = { .result = ResultCode::SUCCESS };
@@ -670,7 +671,7 @@ HWTEST_F(HostAddCompanionRequestTest, EndAddCompanion_001, TestSize.Level0)
     request_->SetPeerDeviceKey(companionDeviceKey_);
 
     CompanionStatus status;
-    status.templateId = 12345;
+    status.templateId = INT32_12345;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(status)));
 
     BeginAddHostBindingReply reply;

@@ -35,7 +35,7 @@ namespace CompanionDeviceAuth {
 
 using FwkResultCallback = std::function<void(ResultCode result, const std::vector<uint8_t> &extraInfo)>;
 
-using RequestId = uint64_t;
+using RequestId = uint32_t;
 using TemplateId = uint64_t;
 using ScheduleId = uint64_t;
 using UserId = int32_t;

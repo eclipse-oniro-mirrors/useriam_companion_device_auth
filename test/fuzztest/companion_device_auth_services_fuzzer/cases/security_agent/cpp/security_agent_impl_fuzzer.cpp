@@ -176,13 +176,6 @@ static void FuzzHostCancelAddCompanion(std::shared_ptr<SecurityAgentImpl> &agent
     agent->HostCancelAddCompanion(input);
 }
 
-static void FuzzHostActivateToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
-{
-    HostActivateTokenInput input;
-    input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
-    agent->HostActivateToken(input);
-}
-
 static void FuzzCompanionInitKeyNegotiation(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionInitKeyNegotiationInput input;
@@ -485,7 +478,6 @@ static const SecurityAgentFuzzFunction g_fuzzFuncs[] = {
     FuzzHostBeginAddCompanion,
     FuzzHostEndAddCompanion,
     FuzzHostCancelAddCompanion,
-    FuzzHostActivateToken,
     FuzzCompanionInitKeyNegotiation,
     FuzzCompanionBeginAddHostBinding,
     FuzzCompanionEndAddHostBinding,

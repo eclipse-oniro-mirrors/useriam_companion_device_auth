@@ -56,8 +56,8 @@ public:
         auto requestMgr = std::shared_ptr<IRequestManager>(&mockRequestManager_, [](IRequestManager *) {});
         SingletonManager::GetInstance().SetRequestManager(requestMgr);
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
         SingletonManager::GetInstance().SetCompanionManager(companionMgr);
@@ -91,7 +91,7 @@ protected:
     NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
     NiceMock<MockRequestFactory> mockRequestFactory_;
     NiceMock<MockRequestManager> mockRequestManager_;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     NiceMock<MockCompanionManager> mockCompanionManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
     NiceMock<MockMiscManager> mockMiscManager_;

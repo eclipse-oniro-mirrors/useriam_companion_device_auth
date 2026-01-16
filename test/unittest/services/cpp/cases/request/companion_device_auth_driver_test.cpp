@@ -32,6 +32,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 namespace {
+
 class FakeUserIdManager : public IUserIdManager {
 public:
     bool Initialize() override
@@ -72,7 +73,7 @@ public:
     {
         SingletonManager::GetInstance().Reset();
         auto activeUserIdMgr = std::make_shared<FakeUserIdManager>();
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserIdMgr);
+        SingletonManager::GetInstance().SetUserIdManager(activeUserIdMgr);
         adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
     }
 

@@ -29,6 +29,67 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+namespace {
+constexpr size_t SIZE_1025 = 1025;
+constexpr size_t SIZE_280 = 280;
+} // namespace
+
+constexpr int32_t INT32_42 = 42;
+constexpr int32_t INT32_123 = 123;
+constexpr int32_t INT32_200 = 200;
+constexpr int32_t INT32_222 = 222;
+constexpr int32_t INT32_333 = 333;
+constexpr int32_t INT32_256 = 256;
+constexpr int32_t INT32_321 = 321;
+constexpr int32_t INT32_444 = 444;
+constexpr int32_t INT32_456 = 456;
+constexpr int32_t INT32_555 = 555;
+constexpr int32_t INT32_999 = 999;
+constexpr int32_t INT32_666 = 666;
+constexpr int32_t INT32_2222 = 2222;
+constexpr int32_t INT32_3333 = 3333;
+constexpr int32_t INT32_4444 = 4444;
+constexpr int32_t INT32_5555 = 5555;
+constexpr int32_t INT32_6666 = 6666;
+constexpr int32_t INT32_7777 = 7777;
+constexpr int32_t INT32_8888 = 8888;
+constexpr int32_t INT32_9999 = 9999;
+constexpr int32_t INT32_99999 = 99999;
+constexpr int32_t INT32_20000 = 20000;
+constexpr int32_t INT32_21000 = 21000;
+constexpr int32_t INT32_22000 = 22000;
+constexpr int32_t INT32_23000 = 23000;
+constexpr int32_t INT32_24000 = 24000;
+constexpr int32_t INT32_25000 = 25000;
+constexpr int32_t INT32_26000 = 26000;
+constexpr int32_t INT32_27000 = 27000;
+constexpr int32_t INT32_28000 = 28000;
+constexpr int32_t INT32_54321 = 54321;
+
+constexpr uint8_t UINT8_0X00 = 0x00;
+constexpr uint8_t UINT8_0X11 = 0x11;
+constexpr uint8_t UINT8_0X12 = 0x12;
+constexpr uint8_t UINT8_0X22 = 0x22;
+constexpr uint8_t UINT8_0X33 = 0x33;
+constexpr uint8_t UINT8_0X34 = 0x34;
+constexpr uint8_t UINT8_0X44 = 0x44;
+constexpr uint8_t UINT8_0X55 = 0x55;
+constexpr uint8_t UINT8_0X56 = 0x56;
+constexpr uint8_t UINT8_0X66 = 0x66;
+constexpr uint8_t UINT8_0X77 = 0x77;
+constexpr uint8_t UINT8_0X78 = 0x78;
+constexpr uint8_t UINT8_0X88 = 0x88;
+constexpr uint8_t UINT8_0X99 = 0x99;
+constexpr uint8_t UINT8_0X9A = 0x9A;
+constexpr uint8_t UINT8_0XAA = 0xAA;
+constexpr uint8_t UINT8_0XBB = 0xBB;
+constexpr uint8_t UINT8_0XBC = 0xBC;
+constexpr uint8_t UINT8_0XCC = 0xCC;
+constexpr uint8_t UINT8_0XDD = 0xDD;
+constexpr uint8_t UINT8_0XDE = 0xDE;
+constexpr uint8_t UINT8_0XEE = 0xEE;
+constexpr uint8_t UINT8_0XFF = 0xFF;
+constexpr uint8_t UINT8_0XF0 = 0xF0;
 using namespace testing;
 using namespace testing::ext;
 
@@ -87,7 +148,7 @@ HWTEST_F(FfiUtilTest, EncodeDeviceKeyValidAndIdTooLong, TestSize.Level1)
     {
         DeviceKey key;
         key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        key.deviceUserId = 42;
+        key.deviceUserId = INT32_42;
         key.deviceId = "test_device_123";
 
         DeviceKeyFfi ffi = {};
@@ -119,8 +180,8 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationTrue, TestSize.
     {
         PersistedCompanionStatusFfi ffi = {};
 
-        ffi.templateId = 123;
-        ffi.hostUserId = 456;
+        ffi.templateId = INT32_123;
+        ffi.hostUserId = INT32_456;
         ffi.enabledBusinessIds.len = 2;
         ffi.enabledBusinessIds.data[0] = 1;
         ffi.enabledBusinessIds.data[1] = 2;
@@ -202,8 +263,8 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
     // Valid case
     {
         PersistedCompanionStatus status;
-        status.templateId = 789;
-        status.hostUserId = 321;
+        status.templateId = INT32_999;
+        status.hostUserId = INT32_321;
         status.secureProtocolId = SecureProtocolId::DEFAULT;
         status.isValid = true;
         status.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(3),
@@ -254,7 +315,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusValid, TestSize.Level1)
 {
     PersistedHostBindingStatusFfi ffi = {};
 
-    ffi.bindingId = 555;
+    ffi.bindingId = INT32_555;
     ffi.companionUserId = 888;
     ffi.isTokenValid = 1;
     ffi.hostDeviceKey.deviceIdType = 1;
@@ -280,7 +341,7 @@ HWTEST_F(FfiUtilTest, DecodeExecutorInfoLenValidation, TestSize.Level1)
         ffi.maxTemplateAcl = 100;
         ffi.publicKey.len = MAX_DATA_LEN_1024;
         for (uint32_t i = 0; i < ffi.publicKey.len; ++i) {
-            ffi.publicKey.data[i] = static_cast<uint8_t>(i % 256);
+            ffi.publicKey.data[i] = static_cast<uint8_t>(i % INT32_256);
         }
 
         SecureExecutorInfo info;
@@ -312,7 +373,7 @@ HWTEST_F(FfiUtilTest, DecodeEventLenValidation, TestSize.Level1)
         EventFfi ffi = {};
 
         ffi.time = 123456789;
-        ffi.lineNumber = 42;
+        ffi.lineNumber = INT32_42;
         const char *fileName = "test.cpp";
         ffi.fileName.len = strlen(fileName);
         ASSERT_EQ(memcpy_s(ffi.fileName.data, sizeof(ffi.fileName.data), fileName, ffi.fileName.len), EOK);
@@ -449,17 +510,17 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusListLenValidation, TestSiz
 
 HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSize.Level1)
 {
-    // Invalid: Salt too small
+    // Valid: Empty salt is allowed
     {
         CompanionProcessCheckInput input;
         input.bindingId = 1;
         input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.challenge = 123;
+        input.challenge = INT32_123;
         input.salt.clear();
 
         CompanionProcessCheckInputFfi ffi = {};
 
-        EXPECT_FALSE(EncodeCompanionProcessCheckInput(input, ffi));
+        EXPECT_TRUE(EncodeCompanionProcessCheckInput(input, ffi));
     }
 
     // Invalid: Salt too large
@@ -467,8 +528,8 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSi
         CompanionProcessCheckInput input;
         input.bindingId = 1;
         input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.challenge = 123;
-        input.salt.resize(SALT_LEN_FFI + 1, 0xAA);
+        input.challenge = INT32_123;
+        input.salt.resize(SALT_LEN_FFI + 1, UINT8_0XAA);
 
         CompanionProcessCheckInputFfi ffi = {};
 
@@ -480,10 +541,10 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSi
         CompanionProcessCheckInput input;
         input.bindingId = 1;
         input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.challenge = 123;
-        input.salt.resize(SALT_LEN_FFI, 0xCC);
+        input.challenge = INT32_123;
+        input.salt.resize(SALT_LEN_FFI, UINT8_0XCC);
         input.capabilityList = { 1, 2 };
-        input.companionCheckRequest = { 0xAA, 0xBB };
+        input.companionCheckRequest = { UINT8_0XAA, UINT8_0XBB };
 
         CompanionProcessCheckInputFfi ffi = {};
 
@@ -498,7 +559,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSi
 
 HWTEST_F(FfiUtilTest, EncodeCompanionEndDelegateAuthInputAuthTokenSizeValidation, TestSize.Level1)
 {
-    // Invalid: Token too small
+    // Valid: Empty token is allowed
     {
         CompanionDelegateAuthEndInput input;
         input.requestId = 1;
@@ -507,7 +568,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndDelegateAuthInputAuthTokenSizeValidation
 
         CompanionEndDelegateAuthInputFfi ffi = {};
 
-        EXPECT_FALSE(EncodeCompanionEndDelegateAuthInput(input, ffi));
+        EXPECT_TRUE(EncodeCompanionEndDelegateAuthInput(input, ffi));
     }
 
     // Invalid: Token too large
@@ -515,7 +576,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndDelegateAuthInputAuthTokenSizeValidation
         CompanionDelegateAuthEndInput input;
         input.requestId = 1;
         input.resultCode = static_cast<ResultCode>(0);
-        input.authToken.resize(AUTH_TOKEN_SIZE_FFI + 1, 0xBB);
+        input.authToken.resize(SIZE_1025, UINT8_0XBB);
 
         CompanionEndDelegateAuthInputFfi ffi = {};
 
@@ -527,7 +588,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndDelegateAuthInputAuthTokenSizeValidation
         CompanionDelegateAuthEndInput input;
         input.requestId = 1;
         input.resultCode = static_cast<ResultCode>(0);
-        input.authToken.resize(AUTH_TOKEN_SIZE_FFI, 0xDD);
+        input.authToken.resize(SIZE_280, UINT8_0XDD);
 
         CompanionEndDelegateAuthInputFfi ffi = {};
 
@@ -561,7 +622,7 @@ HWTEST_F(FfiUtilTest, RoundTripDeviceKey, TestSize.Level1)
 HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
 {
     PersistedCompanionStatus originalStatus;
-    originalStatus.templateId = 555;
+    originalStatus.templateId = INT32_555;
     originalStatus.hostUserId = 10;
     originalStatus.addedTime = 1000;
     originalStatus.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -591,8 +652,8 @@ HWTEST_F(FfiUtilTest, EncodeHostRegisterFinishInput_001, TestSize.Level0)
 {
     RegisterFinishInput input;
     input.templateIdList = { 1, 2, 3 };
-    input.fwkPublicKey = { 0xAA, 0xBB, 0xCC };
-    input.fwkMsg = { 0x11, 0x22, 0x33 };
+    input.fwkPublicKey = { UINT8_0XAA, UINT8_0XBB, UINT8_0XCC };
+    input.fwkMsg = { UINT8_0X11, UINT8_0X22, UINT8_0X33 };
 
     HostRegisterFinishInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostRegisterFinishInput(input, ffi));
@@ -613,12 +674,12 @@ HWTEST_F(FfiUtilTest, EncodeHostRegisterFinishInput_002, TestSize.Level0)
 HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_001, TestSize.Level0)
 {
     HostEndCompanionCheckInput input;
-    input.requestId = 123;
-    input.templateId = 456;
+    input.requestId = INT32_123;
+    input.templateId = INT32_456;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
     input.protocolVersionList = { 1, 2 };
     input.capabilityList = { 10, 20 };
-    input.companionCheckResponse = { 0xAA, 0xBB };
+    input.companionCheckResponse = { UINT8_0XAA, UINT8_0XBB };
 
     HostEndCompanionCheckInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostEndCompanionCheckInput(input, ffi));
@@ -641,9 +702,9 @@ HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_001, TestSize.Level0)
 {
     HostGetInitKeyNegotiationOutputFfi ffi = {};
     ffi.secMessage.len = 3;
-    ffi.secMessage.data[0] = 0xAA;
-    ffi.secMessage.data[1] = 0xBB;
-    ffi.secMessage.data[2] = 0xCC;
+    ffi.secMessage.data[0] = UINT8_0XAA;
+    ffi.secMessage.data[1] = UINT8_0XBB;
+    ffi.secMessage.data[2] = UINT8_0XCC;
 
     HostGetInitKeyNegotiationRequestOutput output;
     EXPECT_TRUE(DecodeHostInitKeyNegotiationOutput(ffi, output));
@@ -653,17 +714,17 @@ HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_001, TestSize.Level0)
 HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_001, TestSize.Level0)
 {
     HostBeginAddCompanionInput input;
-    input.requestId = 222;
-    input.scheduleId = 333;
+    input.requestId = INT32_222;
+    input.scheduleId = INT32_333;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
     input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     input.hostDeviceKey.deviceUserId = 100;
     input.hostDeviceKey.deviceId = "host-device";
     input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    input.companionDeviceKey.deviceUserId = 200;
+    input.companionDeviceKey.deviceUserId = INT32_200;
     input.companionDeviceKey.deviceId = "companion-device";
-    input.fwkMsg = { 0x11, 0x22 };
-    input.initKeyNegotiationReply = { 0x33, 0x44 };
+    input.fwkMsg = { UINT8_0X11, UINT8_0X22 };
+    input.initKeyNegotiationReply = { UINT8_0X33, UINT8_0X44 };
 
     HostBeginAddCompanionInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostBeginAddCompanionInput(input, ffi));
@@ -675,8 +736,8 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_001, TestSize.Level0)
 {
     HostBeginAddCompanionOutputFfi ffi = {};
     ffi.secMessage.len = 2;
-    ffi.secMessage.data[0] = 0xDD;
-    ffi.secMessage.data[1] = 0xEE;
+    ffi.secMessage.data[0] = UINT8_0XDD;
+    ffi.secMessage.data[1] = UINT8_0XEE;
 
     HostBeginAddCompanionOutput output;
     EXPECT_TRUE(DecodeHostBeginAddCompanionOutput(ffi, output));
@@ -686,12 +747,12 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_001, TestSize.Level0)
 HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
 {
     HostEndAddCompanionInput input;
-    input.requestId = 444;
+    input.requestId = INT32_444;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.companionStatus.templateId = 555;
-    input.companionStatus.hostUserId = 666;
+    input.companionStatus.templateId = INT32_555;
+    input.companionStatus.hostUserId = INT32_666;
     input.companionStatus.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.addHostBindingReply = { 0x55, 0x66 };
+    input.addHostBindingReply = { UINT8_0X55, UINT8_0X66 };
 
     HostEndAddCompanionInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostEndAddCompanionInput(input, ffi));
@@ -703,8 +764,8 @@ HWTEST_F(FfiUtilTest, DecodeHostEndAddCompanionOutput_001, TestSize.Level0)
     HostEndAddCompanionOutputFfi ffi = {};
     ffi.templateId = 777;
     ffi.fwkMessage.len = 2;
-    ffi.fwkMessage.data[0] = 0x77;
-    ffi.fwkMessage.data[1] = 0x88;
+    ffi.fwkMessage.data[0] = UINT8_0X77;
+    ffi.fwkMessage.data[1] = UINT8_0X88;
 
     HostEndAddCompanionOutput output;
     EXPECT_TRUE(DecodeHostEndAddCompanionOutput(ffi, output));
@@ -717,7 +778,7 @@ HWTEST_F(FfiUtilTest, EncodeHostPreIssueTokenInput_001, TestSize.Level0)
     HostPreIssueTokenInput input;
     input.requestId = 888;
     input.templateId = 999;
-    input.fwkUnlockMsg = { 0x99, 0xAA };
+    input.fwkUnlockMsg = { UINT8_0X99, UINT8_0XAA };
 
     HostPreIssueTokenInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostPreIssueTokenInput(input, ffi));
@@ -729,9 +790,9 @@ HWTEST_F(FfiUtilTest, DecodeHostPreIssueTokenOutput_001, TestSize.Level0)
 {
     HostPreIssueTokenOutputFfi ffi = {};
     ffi.secMessage.len = 3;
-    ffi.secMessage.data[0] = 0xBB;
-    ffi.secMessage.data[1] = 0xCC;
-    ffi.secMessage.data[2] = 0xDD;
+    ffi.secMessage.data[0] = UINT8_0XBB;
+    ffi.secMessage.data[1] = UINT8_0XCC;
+    ffi.secMessage.data[2] = UINT8_0XDD;
 
     HostPreIssueTokenOutput output;
     EXPECT_TRUE(DecodeHostPreIssueTokenOutput(ffi, output));
@@ -743,7 +804,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginIssueTokenInput_001, TestSize.Level0)
     HostBeginIssueTokenInput input;
     input.requestId = 1000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.preIssueTokenReply = { 0xEE, 0xFF };
+    input.preIssueTokenReply = { UINT8_0XEE, UINT8_0XFF };
 
     HostBeginIssueTokenInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostBeginIssueTokenInput(input, ffi));
@@ -768,7 +829,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndIssueTokenInput_001, TestSize.Level0)
     HostEndIssueTokenInput input;
     input.requestId = 1111;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.issueTokenReply = { 0x12, 0x34 };
+    input.issueTokenReply = { UINT8_0X12, UINT8_0X34 };
 
     HostEndIssueTokenInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostEndIssueTokenInput(input, ffi));
@@ -788,10 +849,10 @@ HWTEST_F(FfiUtilTest, DecodeHostEndIssueTokenOutput_001, TestSize.Level0)
 HWTEST_F(FfiUtilTest, EncodeHostBeginTokenAuthInput_001, TestSize.Level0)
 {
     HostBeginTokenAuthInput input;
-    input.requestId = 2222;
-    input.scheduleId = 3333;
-    input.templateId = 4444;
-    input.fwkMsg = { 0x56, 0x78 };
+    input.requestId = INT32_2222;
+    input.scheduleId = INT32_3333;
+    input.templateId = INT32_4444;
+    input.fwkMsg = { UINT8_0X56, UINT8_0X78 };
 
     HostBeginTokenAuthInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostBeginTokenAuthInput(input, ffi));
@@ -804,8 +865,8 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginTokenAuthOutput_001, TestSize.Level0)
 {
     HostBeginTokenAuthOutputFfi ffi = {};
     ffi.secMessage.len = 2;
-    ffi.secMessage.data[0] = 0x9A;
-    ffi.secMessage.data[1] = 0xBC;
+    ffi.secMessage.data[0] = UINT8_0X9A;
+    ffi.secMessage.data[1] = UINT8_0XBC;
 
     HostBeginTokenAuthOutput output;
     EXPECT_TRUE(DecodeHostBeginTokenAuthOutput(ffi, output));
@@ -815,10 +876,10 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginTokenAuthOutput_001, TestSize.Level0)
 HWTEST_F(FfiUtilTest, EncodeHostEndTokenAuthInput_001, TestSize.Level0)
 {
     HostEndTokenAuthInput input;
-    input.requestId = 5555;
-    input.templateId = 6666;
+    input.requestId = INT32_5555;
+    input.templateId = INT32_6666;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.tokenAuthReply = { 0xDE, 0xF0 };
+    input.tokenAuthReply = { UINT8_0XDE, UINT8_0XF0 };
 
     HostEndTokenAuthInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostEndTokenAuthInput(input, ffi));
@@ -830,9 +891,9 @@ HWTEST_F(FfiUtilTest, DecodeHostEndTokenAuthOutput_001, TestSize.Level0)
 {
     HostEndTokenAuthOutputFfi ffi = {};
     ffi.fwkMessage.len = 3;
-    ffi.fwkMessage.data[0] = 0x12;
-    ffi.fwkMessage.data[1] = 0x34;
-    ffi.fwkMessage.data[2] = 0x56;
+    ffi.fwkMessage.data[0] = UINT8_0X12;
+    ffi.fwkMessage.data[1] = UINT8_0X34;
+    ffi.fwkMessage.data[2] = UINT8_0X56;
 
     HostEndTokenAuthOutput output;
     EXPECT_TRUE(DecodeHostEndTokenAuthOutput(ffi, output));
@@ -842,7 +903,7 @@ HWTEST_F(FfiUtilTest, DecodeHostEndTokenAuthOutput_001, TestSize.Level0)
 HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_001, TestSize.Level0)
 {
     HostUpdateCompanionStatusInput input;
-    input.templateId = 7777;
+    input.templateId = INT32_7777;
     input.companionDeviceName = "TestDevice";
     input.companionDeviceUserName = "TestUser";
 
@@ -864,7 +925,7 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_002, TestSize.Level0)
 HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_001, TestSize.Level0)
 {
     HostUpdateCompanionEnabledBusinessIdsInput input;
-    input.templateId = 8888;
+    input.templateId = INT32_8888;
     input.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2), static_cast<BusinessId>(3),
         static_cast<BusinessId>(4) };
 
@@ -877,10 +938,10 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_001, Test
 HWTEST_F(FfiUtilTest, EncodeHostBeginDelegateAuthInput_001, TestSize.Level0)
 {
     HostBeginDelegateAuthInput input;
-    input.requestId = 9999;
+    input.requestId = INT32_9999;
     input.scheduleId = 10000;
     input.templateId = 11000;
-    input.fwkMsg = { 0x78, 0x9A };
+    input.fwkMsg = { UINT8_0X78, UINT8_0X9A };
 
     HostBeginDelegateAuthInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostBeginDelegateAuthInput(input, ffi));
@@ -893,8 +954,8 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginDelegateAuthOutput_001, TestSize.Level0)
 {
     HostBeginDelegateAuthOutputFfi ffi = {};
     ffi.secMessage.len = 2;
-    ffi.secMessage.data[0] = 0xBC;
-    ffi.secMessage.data[1] = 0xDE;
+    ffi.secMessage.data[0] = UINT8_0XBC;
+    ffi.secMessage.data[1] = UINT8_0XDE;
 
     HostBeginDelegateAuthOutput output;
     EXPECT_TRUE(DecodeHostBeginDelegateAuthOutput(ffi, output));
@@ -906,7 +967,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndDelegateAuthInput_001, TestSize.Level0)
     HostEndDelegateAuthInput input;
     input.requestId = 12000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.delegateAuthResult = { 0xF0, 0x12 };
+    input.delegateAuthResult = { UINT8_0XF0, UINT8_0X12 };
 
     HostEndDelegateAuthInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostEndDelegateAuthInput(input, ffi));
@@ -917,15 +978,15 @@ HWTEST_F(FfiUtilTest, DecodeHostEndDelegateAuthOutput_001, TestSize.Level0)
 {
     HostEndDelegateAuthOutputFfi ffi = {};
     ffi.authType = 2;
-    ffi.atl = 54321;
+    ffi.atl = INT32_54321;
     ffi.fwkMessage.len = 3;
-    ffi.fwkMessage.data[0] = 0x34;
-    ffi.fwkMessage.data[1] = 0x56;
-    ffi.fwkMessage.data[2] = 0x78;
+    ffi.fwkMessage.data[0] = UINT8_0X34;
+    ffi.fwkMessage.data[1] = UINT8_0X56;
+    ffi.fwkMessage.data[2] = UINT8_0X78;
 
     HostEndDelegateAuthOutput output;
     EXPECT_TRUE(DecodeHostEndDelegateAuthOutput(ffi, output));
-    EXPECT_EQ(output.atl, 54321);
+    EXPECT_EQ(output.atl, INT32_54321);
     EXPECT_EQ(output.fwkMsg.size(), 3U);
 }
 
@@ -946,10 +1007,10 @@ HWTEST_F(FfiUtilTest, DecodeHostProcessPreObtainTokenOutput_001, TestSize.Level0
 {
     HostProcessPreObtainTokenOutputFfi ffi = {};
     ffi.secMessage.len = 4;
-    ffi.secMessage.data[0] = 0x9A;
-    ffi.secMessage.data[1] = 0xBC;
-    ffi.secMessage.data[2] = 0xDE;
-    ffi.secMessage.data[3] = 0xF0;
+    ffi.secMessage.data[0] = UINT8_0X9A;
+    ffi.secMessage.data[1] = UINT8_0XBC;
+    ffi.secMessage.data[2] = UINT8_0XDE;
+    ffi.secMessage.data[3] = UINT8_0XF0;
 
     std::vector<uint8_t> reply;
     EXPECT_TRUE(DecodeHostProcessPreObtainTokenOutput(ffi, reply));
@@ -962,7 +1023,7 @@ HWTEST_F(FfiUtilTest, EncodeHostProcessObtainTokenInput_001, TestSize.Level0)
     input.requestId = 15000;
     input.templateId = 16000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.obtainTokenRequest = { 0x12, 0x34, 0x56 };
+    input.obtainTokenRequest = { UINT8_0X12, UINT8_0X34, UINT8_0X56 };
 
     HostProcessObtainTokenInputFfi ffi = {};
     EXPECT_TRUE(EncodeHostProcessObtainTokenInput(input, ffi));
@@ -973,15 +1034,15 @@ HWTEST_F(FfiUtilTest, EncodeHostProcessObtainTokenInput_001, TestSize.Level0)
 HWTEST_F(FfiUtilTest, DecodeHostProcessObtainTokenOutput_001, TestSize.Level0)
 {
     HostProcessObtainTokenOutputFfi ffi = {};
-    ffi.atl = 99999;
+    ffi.atl = INT32_99999;
     ffi.secMessage.len = 2;
-    ffi.secMessage.data[0] = 0x78;
-    ffi.secMessage.data[1] = 0x9A;
+    ffi.secMessage.data[0] = UINT8_0X78;
+    ffi.secMessage.data[1] = UINT8_0X9A;
 
     std::vector<uint8_t> reply;
     Atl atl;
     EXPECT_TRUE(DecodeHostProcessObtainTokenOutput(ffi, reply, atl));
-    EXPECT_EQ(atl, 99999);
+    EXPECT_EQ(atl, INT32_99999);
     EXPECT_EQ(reply.size(), 2U);
 }
 
@@ -989,9 +1050,9 @@ HWTEST_F(FfiUtilTest, DecodeCompanionProcessCheckOutput_001, TestSize.Level0)
 {
     CompanionProcessCheckOutputFfi ffi = {};
     ffi.secMessage.len = 3;
-    ffi.secMessage.data[0] = 0xAA;
-    ffi.secMessage.data[1] = 0xBB;
-    ffi.secMessage.data[2] = 0xCC;
+    ffi.secMessage.data[0] = UINT8_0XAA;
+    ffi.secMessage.data[1] = UINT8_0XBB;
+    ffi.secMessage.data[2] = UINT8_0XCC;
 
     CompanionProcessCheckOutput output;
     EXPECT_TRUE(DecodeCompanionProcessCheckOutput(ffi, output));
@@ -1007,9 +1068,9 @@ HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_001, TestSize.Level
     input.hostDeviceKey.deviceUserId = 100;
     input.hostDeviceKey.deviceId = "host";
     input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    input.companionDeviceKey.deviceUserId = 200;
+    input.companionDeviceKey.deviceUserId = INT32_200;
     input.companionDeviceKey.deviceId = "companion";
-    input.initKeyNegotiationRequest = { 0xDD, 0xEE };
+    input.initKeyNegotiationRequest = { UINT8_0XDD, UINT8_0XEE };
 
     CompanionInitKeyNegotiationInputFfi ffi = {};
     EXPECT_TRUE(EncodeCompanionInitKeyNegotiationInput(input, ffi));
@@ -1020,8 +1081,8 @@ HWTEST_F(FfiUtilTest, DecodeCompanionInitKeyNegotiationOutput_001, TestSize.Leve
 {
     CompanionInitKeyNegotiationOutputFfi ffi = {};
     ffi.secMessage.len = 2;
-    ffi.secMessage.data[0] = 0xFF;
-    ffi.secMessage.data[1] = 0x00;
+    ffi.secMessage.data[0] = UINT8_0XFF;
+    ffi.secMessage.data[1] = UINT8_0X00;
 
     CompanionInitKeyNegotiationOutput output;
     EXPECT_TRUE(DecodeCompanionInitKeyNegotiationOutput(ffi, output));
@@ -1033,7 +1094,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionBeginAddHostBindingInput_001, TestSize.Leve
     CompanionBeginAddHostBindingInput input;
     input.requestId = 18000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.addHostBindingRequest = { 0x11, 0x22 };
+    input.addHostBindingRequest = { UINT8_0X11, UINT8_0X22 };
 
     CompanionBeginAddHostBindingInputFfi ffi = {};
     EXPECT_TRUE(EncodeCompanionBeginAddHostBindingInput(input, ffi));
@@ -1043,16 +1104,16 @@ HWTEST_F(FfiUtilTest, EncodeCompanionBeginAddHostBindingInput_001, TestSize.Leve
 HWTEST_F(FfiUtilTest, DecodeCompanionBeginAddHostBindingOutput_001, TestSize.Level0)
 {
     CompanionBeginAddHostBindingOutputFfi ffi = {};
-    ffi.bindingId = 123;
-    ffi.bindingStatus.bindingId = 123;
-    ffi.bindingStatus.companionUserId = 456;
+    ffi.bindingId = INT32_123;
+    ffi.bindingStatus.bindingId = INT32_123;
+    ffi.bindingStatus.companionUserId = INT32_456;
     ffi.bindingStatus.isTokenValid = 1;
     ffi.bindingStatus.hostDeviceKey.deviceIdType = 1;
-    ffi.bindingStatus.hostDeviceKey.userId = 789;
+    ffi.bindingStatus.hostDeviceKey.userId = INT32_999;
     ffi.bindingStatus.hostDeviceKey.deviceId.len = 0;
     ffi.secMessage.len = 2;
-    ffi.secMessage.data[0] = 0x33;
-    ffi.secMessage.data[1] = 0x44;
+    ffi.secMessage.data[0] = UINT8_0X33;
+    ffi.secMessage.data[1] = UINT8_0X44;
 
     CompanionBeginAddHostBindingOutput output;
     EXPECT_TRUE(DecodeCompanionBeginAddHostBindingOutput(ffi, output));
@@ -1065,8 +1126,8 @@ HWTEST_F(FfiUtilTest, DecodeCompanionBeginAddHostBindingOutput_002, TestSize.Lev
 {
     CompanionBeginAddHostBindingOutputFfi ffi = {};
     ffi.bindingId = 0;
-    ffi.bindingStatus.bindingId = 555;
-    ffi.bindingStatus.companionUserId = 666;
+    ffi.bindingStatus.bindingId = INT32_555;
+    ffi.bindingStatus.companionUserId = INT32_666;
     ffi.bindingStatus.isTokenValid = 0;
     ffi.bindingStatus.hostDeviceKey.deviceIdType = 1;
     ffi.bindingStatus.hostDeviceKey.userId = 777;
@@ -1102,10 +1163,10 @@ HWTEST_F(FfiUtilTest, DecodeCompanionEndAddHostBindingOutput_001, TestSize.Level
 HWTEST_F(FfiUtilTest, EncodeCompanionPreIssueTokenInput_001, TestSize.Level0)
 {
     CompanionPreIssueTokenInput input;
-    input.requestId = 20000;
-    input.bindingId = 21000;
+    input.requestId = INT32_20000;
+    input.bindingId = INT32_21000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.preIssueTokenRequest = { 0x55, 0x66 };
+    input.preIssueTokenRequest = { UINT8_0X55, UINT8_0X66 };
 
     CompanionPreIssueTokenInputFfi ffi = {};
     EXPECT_TRUE(EncodeCompanionPreIssueTokenInput(input, ffi));
@@ -1117,9 +1178,9 @@ HWTEST_F(FfiUtilTest, DecodeCompanionPreIssueTokenOutput_001, TestSize.Level0)
 {
     CompanionPreIssueTokenOutputFfi ffi = {};
     ffi.secMessage.len = 3;
-    ffi.secMessage.data[0] = 0x77;
-    ffi.secMessage.data[1] = 0x88;
-    ffi.secMessage.data[2] = 0x99;
+    ffi.secMessage.data[0] = UINT8_0X77;
+    ffi.secMessage.data[1] = UINT8_0X88;
+    ffi.secMessage.data[2] = UINT8_0X99;
 
     CompanionPreIssueTokenOutput output;
     EXPECT_TRUE(DecodeCompanionPreIssueTokenOutput(ffi, output));
@@ -1129,9 +1190,9 @@ HWTEST_F(FfiUtilTest, DecodeCompanionPreIssueTokenOutput_001, TestSize.Level0)
 HWTEST_F(FfiUtilTest, EncodeCompanionProcessIssueTokenInput_001, TestSize.Level0)
 {
     CompanionProcessIssueTokenInput input;
-    input.requestId = 22000;
+    input.requestId = INT32_22000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.issueTokenRequest = { 0xAA, 0xBB };
+    input.issueTokenRequest = { UINT8_0XAA, UINT8_0XBB };
 
     CompanionProcessIssueTokenInputFfi ffi = {};
     EXPECT_TRUE(EncodeCompanionProcessIssueTokenInput(input, ffi));
@@ -1142,8 +1203,8 @@ HWTEST_F(FfiUtilTest, DecodeCompanionProcessIssueTokenOutput_001, TestSize.Level
 {
     CompanionProcessIssueTokenOutputFfi ffi = {};
     ffi.secMessage.len = 2;
-    ffi.secMessage.data[0] = 0xCC;
-    ffi.secMessage.data[1] = 0xDD;
+    ffi.secMessage.data[0] = UINT8_0XCC;
+    ffi.secMessage.data[1] = UINT8_0XDD;
 
     CompanionProcessIssueTokenOutput output;
     EXPECT_TRUE(DecodeCompanionProcessIssueTokenOutput(ffi, output));
@@ -1153,9 +1214,9 @@ HWTEST_F(FfiUtilTest, DecodeCompanionProcessIssueTokenOutput_001, TestSize.Level
 HWTEST_F(FfiUtilTest, EncodeCompanionProcessTokenAuthInput_001, TestSize.Level0)
 {
     CompanionProcessTokenAuthInput input;
-    input.bindingId = 23000;
+    input.bindingId = INT32_23000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.tokenAuthRequest = { 0xEE, 0xFF };
+    input.tokenAuthRequest = { UINT8_0XEE, UINT8_0XFF };
 
     CompanionProcessTokenAuthInputFfi ffi = {};
     EXPECT_TRUE(EncodeCompanionProcessTokenAuthInput(input, ffi));
@@ -1178,10 +1239,10 @@ HWTEST_F(FfiUtilTest, DecodeCompanionProcessTokenAuthOutput_001, TestSize.Level0
 HWTEST_F(FfiUtilTest, EncodeCompanionBeginDelegateAuthInput_001, TestSize.Level0)
 {
     CompanionDelegateAuthBeginInput input;
-    input.requestId = 24000;
-    input.bindingId = 25000;
+    input.requestId = INT32_24000;
+    input.bindingId = INT32_25000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.startDelegateAuthRequest = { 0x00, 0x11 };
+    input.startDelegateAuthRequest = { UINT8_0X00, UINT8_0X11 };
 
     CompanionBeginDelegateAuthInputFfi ffi = {};
     EXPECT_TRUE(EncodeCompanionBeginDelegateAuthInput(input, ffi));
@@ -1205,9 +1266,9 @@ HWTEST_F(FfiUtilTest, DecodeCompanionEndDelegateAuthOutput_001, TestSize.Level0)
 {
     CompanionEndDelegateAuthOutputFfi ffi = {};
     ffi.secMessage.len = 3;
-    ffi.secMessage.data[0] = 0x22;
-    ffi.secMessage.data[1] = 0x33;
-    ffi.secMessage.data[2] = 0x44;
+    ffi.secMessage.data[0] = UINT8_0X22;
+    ffi.secMessage.data[1] = UINT8_0X33;
+    ffi.secMessage.data[2] = UINT8_0X44;
 
     CompanionDelegateAuthEndOutput output;
     EXPECT_TRUE(DecodeCompanionEndDelegateAuthOutput(ffi, output));
@@ -1217,11 +1278,11 @@ HWTEST_F(FfiUtilTest, DecodeCompanionEndDelegateAuthOutput_001, TestSize.Level0)
 HWTEST_F(FfiUtilTest, EncodeCompanionBeginObtainTokenInput_001, TestSize.Level0)
 {
     CompanionBeginObtainTokenInput input;
-    input.requestId = 26000;
-    input.bindingId = 27000;
+    input.requestId = INT32_26000;
+    input.bindingId = INT32_27000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.fwkUnlockMsg = { 0x55, 0x66 };
-    input.preObtainTokenReply = { 0x77, 0x88 };
+    input.fwkUnlockMsg = { UINT8_0X55, UINT8_0X66 };
+    input.preObtainTokenReply = { UINT8_0X77, UINT8_0X88 };
 
     CompanionBeginObtainTokenInputFfi ffi = {};
     EXPECT_TRUE(EncodeCompanionBeginObtainTokenInput(input, ffi));
@@ -1245,9 +1306,9 @@ HWTEST_F(FfiUtilTest, DecodeCompanionBeginObtainTokenOutput_001, TestSize.Level0
 HWTEST_F(FfiUtilTest, EncodeCompanionEndObtainTokenInput_001, TestSize.Level0)
 {
     CompanionEndObtainTokenInput input;
-    input.requestId = 28000;
+    input.requestId = INT32_28000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.obtainTokenReply = { 0x99, 0xAA, 0xBB };
+    input.obtainTokenReply = { UINT8_0X99, UINT8_0XAA, UINT8_0XBB };
 
     CompanionEndObtainTokenInputFfi ffi = {};
     EXPECT_TRUE(EncodeCompanionEndObtainTokenInput(input, ffi));
@@ -1260,15 +1321,15 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusList_001, TestSize.Level0)
     ffi.len = 2;
 
     ffi.data[0].templateId = 111;
-    ffi.data[0].hostUserId = 222;
+    ffi.data[0].hostUserId = INT32_222;
     ffi.data[0].enabledBusinessIds.len = 0;
     ffi.data[0].companionDeviceKey.deviceId.len = 0;
     ffi.data[0].deviceModel.len = 0;
     ffi.data[0].deviceUserName.len = 0;
     ffi.data[0].deviceName.len = 0;
 
-    ffi.data[1].templateId = 333;
-    ffi.data[1].hostUserId = 444;
+    ffi.data[1].templateId = INT32_333;
+    ffi.data[1].hostUserId = INT32_444;
     ffi.data[1].enabledBusinessIds.len = 0;
     ffi.data[1].companionDeviceKey.deviceId.len = 0;
     ffi.data[1].deviceModel.len = 0;
@@ -1287,8 +1348,8 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusList_001, TestSize.Level0)
     HostBindingStatusArrayFfi ffi = {};
     ffi.len = 2;
 
-    ffi.data[0].bindingId = 555;
-    ffi.data[0].companionUserId = 666;
+    ffi.data[0].bindingId = INT32_555;
+    ffi.data[0].companionUserId = INT32_666;
     ffi.data[0].isTokenValid = 1;
     ffi.data[0].hostDeviceKey.deviceIdType = 1;
     ffi.data[0].hostDeviceKey.userId = 777;
@@ -1337,9 +1398,9 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow, TestSize.Level1
         input.hostDeviceKey.deviceUserId = 100;
         input.hostDeviceKey.deviceId = "host";
         input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = 200;
+        input.companionDeviceKey.deviceUserId = INT32_200;
         input.companionDeviceKey.deviceId = "companion";
-        input.fwkMsg.resize(MAX_DATA_LEN_1024 + 1, 0xBB);
+        input.fwkMsg.resize(MAX_DATA_LEN_1024 + 1, UINT8_0XBB);
 
         HostBeginAddCompanionInputFfi ffi = {};
         EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
@@ -1355,9 +1416,9 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow, TestSize.Level1
         input.hostDeviceKey.deviceUserId = 100;
         input.hostDeviceKey.deviceId = "host";
         input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = 200;
+        input.companionDeviceKey.deviceUserId = INT32_200;
         input.companionDeviceKey.deviceId = "companion";
-        input.initKeyNegotiationReply.resize(MAX_DATA_LEN_1024 + 1, 0xCC);
+        input.initKeyNegotiationReply.resize(MAX_DATA_LEN_1024 + 1, UINT8_0XCC);
 
         HostBeginAddCompanionInputFfi ffi = {};
         EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
@@ -1416,7 +1477,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_Overflow, TestSize.Level1
         input.requestId = 1;
         input.templateId = 1;
         input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.companionCheckResponse.resize(MAX_DATA_LEN_1024 + 1, 0xAA);
+        input.companionCheckResponse.resize(MAX_DATA_LEN_1024 + 1, UINT8_0XAA);
 
         HostEndCompanionCheckInputFfi ffi = {};
         EXPECT_FALSE(EncodeHostEndCompanionCheckInput(input, ffi));

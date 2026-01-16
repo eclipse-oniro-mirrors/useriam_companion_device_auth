@@ -125,7 +125,8 @@ impl HostRequest for HostDeviceSyncStatusRequest {
             return Err(ErrorCode::BadParam);
         };
         ffi_output.challenge = self.challenge;
-        ffi_output.salt = self.salt;
+        ffi_output.salt.data.copy_from_slice(&self.salt);
+        ffi_output.salt.len = self.salt.len() as u32;
         Ok(())
     }
 

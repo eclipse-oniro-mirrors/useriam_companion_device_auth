@@ -19,14 +19,14 @@ use crate::commands::system_commands::{
     companion_end_delegate_auth, companion_end_obtain_token, companion_get_persisted_status,
     companion_init_key_negotiation, companion_pre_issue_token, companion_process_check, companion_process_issue_token,
     companion_process_token_auth, companion_remove_host_binding, companion_revoke_token, get_executor_info,
-    host_active_token, host_begin_add_companion, host_begin_companion_check, host_begin_delegate_auth,
+    host_begin_add_companion, host_begin_companion_check, host_begin_delegate_auth,
     host_begin_issue_token, host_begin_token_auth, host_cancel_add_companion, host_cancel_companion_check,
     host_cancel_delegate_auth, host_cancel_issue_token, host_cancel_obtain_token, host_check_template_enrolled,
     host_end_add_companion, host_end_companion_check, host_end_delegate_auth, host_end_issue_token,
     host_end_token_auth, host_get_init_key_negotiation, host_get_persisted_status, host_on_register_finish,
     host_pre_issue_token, host_process_obtain_token, host_process_pre_obtain_token, host_remove_companion,
     host_revoke_token, host_update_companion_enabled_business_ids, host_update_companion_status, host_update_token,
-    init,
+    init, set_active_user_id,
 };
 use crate::common::constants::ErrorCode;
 use crate::ensure_or_return_val;
@@ -35,12 +35,13 @@ use crate::entry::companion_device_auth_ffi::CommandId::{
     CompanionCancelObtainToken, CompanionEndAddHostBinding, CompanionEndDelegateAuth, CompanionEndObtainToken,
     CompanionGetPersistedStatus, CompanionInitKeyNegotiation, CompanionPreIssueToken, CompanionProcessCheck,
     CompanionProcessIssueToken, CompanionProcessTokenAuth, CompanionRemoveHostBinding, CompanionRevokeToken,
-    GetExecutorInfo, HostActivateToken, HostBeginAddCompanion, HostBeginCompanionCheck, HostBeginDelegateAuth,
+    GetExecutorInfo, HostBeginAddCompanion, HostBeginCompanionCheck, HostBeginDelegateAuth,
     HostBeginIssueToken, HostBeginTokenAuth, HostCancelAddCompanion, HostCancelCompanionCheck, HostCancelDelegateAuth,
     HostCancelIssueToken, HostCancelObtainToken, HostCheckTemplateEnrolled, HostEndAddCompanion, HostEndCompanionCheck,
     HostEndDelegateAuth, HostEndIssueToken, HostEndTokenAuth, HostGetInitKeyNegotiation, HostGetPersistedStatus,
     HostPreIssueToken, HostProcessObtainToken, HostProcessPreObtainToken, HostRegisterFinish, HostRemoveCompanion,
     HostRevokeToken, HostUpdateCompanionEnabledBusinessIds, HostUpdateCompanionStatus, HostUpdateToken, Init,
+    SetActiveUserId,
 };
 use crate::entry::companion_device_auth_ffi::{
     CommandId, CommonOutputFfi, DataArray256Ffi, DataArray64Ffi, EventFfi, RustCommandParam, MAX_EVENT_NUM_FFI,
@@ -82,7 +83,9 @@ trait CmdHandler {
 
 fn invoke_cmd_handle<T, R, F>(input: &[u8], output: &mut [u8], f: F) -> Result<(), ErrorCode>
 where
-    F: FnOnce(T, &mut R) -> Result<(), ErrorCode>,
+    T: Default,
+    R: Default,
+    F: FnOnce(&T, &mut R) -> Result<(), ErrorCode>,
 {
     if input.len() != size_of::<T>() {
         log_e!("input len is not match {}:{}", input.len(), size_of::<T>());
@@ -93,18 +96,20 @@ where
         return Err(ErrorCode::BadParam);
     }
 
-    let input_val = unsafe {
-        let ptr = input.as_ptr() as *const T;
-        ptr.read_unaligned()
-    };
+    let mut input_val = Box::<T>::default();
+    let mut output_val = Box::<R>::default();
 
     unsafe {
-        let ptr = output.as_mut_ptr() as *mut R;
-        // Initialize output buffer to zero, then pass to function to fill
-        ptr.write_bytes(0, 1);
-        let output_ref = &mut *ptr;
-        f(input_val, output_ref)
+        *input_val = input.as_ptr().cast::<T>().read_unaligned();
     }
+
+    f(&input_val, &mut output_val)?;
+
+    unsafe {
+        output.as_mut_ptr().cast::<R>().write_unaligned(*output_val);
+    }
+
+    Ok(())
 }
 
 macro_rules! impl_cmd_trait {
@@ -148,6 +153,7 @@ fn handle_rust_command_inner(command_id: i32, input: &[u8], output: &mut [u8]) -
     let infos = register_cmd![
         [Init, init],
         [GetExecutorInfo, get_executor_info],
+        [SetActiveUserId, set_active_user_id],
         [HostRegisterFinish, host_on_register_finish],
         [HostGetPersistedStatus, host_get_persisted_status],
         [HostBeginCompanionCheck, host_begin_companion_check],
@@ -173,7 +179,6 @@ fn handle_rust_command_inner(command_id: i32, input: &[u8], output: &mut [u8]) -
         [HostProcessPreObtainToken, host_process_pre_obtain_token],
         [HostProcessObtainToken, host_process_obtain_token],
         [HostCancelObtainToken, host_cancel_obtain_token],
-        [HostActivateToken, host_active_token],
         [HostCheckTemplateEnrolled, host_check_template_enrolled],
         [HostUpdateToken, host_update_token],
         [CompanionGetPersistedStatus, companion_get_persisted_status],

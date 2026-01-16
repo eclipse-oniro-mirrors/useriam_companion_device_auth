@@ -36,11 +36,15 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr int32_t INT32_200 = 200;
+constexpr int32_t INT32_100 = 100;
+constexpr int32_t INT32_MINUS_1 = -1;
+
 class CompanionSyncDeviceStatusHandlerTest : public Test {
 public:
     void SetUp() override
     {
-        const int32_t defaultUserId = 100;
+        const int32_t defaultUserId = INT32_100;
 
         SingletonManager::GetInstance().Reset();
 
@@ -48,8 +52,8 @@ public:
             std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
         SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         auto hostBindingMgr =
             std::shared_ptr<IHostBindingManager>(&mockHostBindingManager_, [](IHostBindingManager *) {});
@@ -61,8 +65,8 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
-        ON_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillByDefault(Return(defaultUserId));
-        ON_CALL(mockActiveUserIdManager_, GetActiveUserName()).WillByDefault(Return("TestUser"));
+        ON_CALL(mockUserIdManager_, GetActiveUserId()).WillByDefault(Return(defaultUserId));
+        ON_CALL(mockUserIdManager_, GetActiveUserName()).WillByDefault(Return("TestUser"));
         ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile_));
         ON_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _))
             .WillByDefault(Return(std::make_optional(hostBindingStatus_)));
@@ -81,14 +85,14 @@ public:
 protected:
     std::unique_ptr<CompanionSyncDeviceStatusHandler> handler_;
     NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     NiceMock<MockHostBindingManager> mockHostBindingManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
     NiceMock<MockMiscManager> mockMiscManager_;
 
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
-        .deviceUserId = 100 };
+        .deviceUserId = INT32_100 };
     LocalDeviceProfile profile_ = { .protocols = { ProtocolId::VERSION_1 },
         .companionSecureProtocolId = SecureProtocolId::DEFAULT,
         .capabilities = { Capability::TOKEN_AUTH } };
@@ -100,7 +104,7 @@ protected:
         .protocolId = ProtocolId::VERSION_1,
         .secureProtocolId = SecureProtocolId::DEFAULT };
     HostBindingStatus hostBindingStatus_ = { .bindingId = 1,
-        .companionUserId = 200,
+        .companionUserId = INT32_200,
         .hostDeviceStatus = hostDeviceStatus_ };
 };
 
@@ -117,8 +121,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_001, TestSize.Level
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillOnce(Return(100));
-    EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserName()).WillOnce(Return("TestUser"));
+    EXPECT_CALL(mockUserIdManager_, GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(mockUserIdManager_, GetActiveUserName()).WillOnce(Return("TestUser"));
     EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile())
         .WillOnce(Return(profile_))
         .WillOnce(Return(profile_));
@@ -162,7 +166,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_003, TestSize.Level
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillOnce(Return(-1));
+    EXPECT_CALL(mockUserIdManager_, GetActiveUserId()).WillOnce(Return(INT32_MINUS_1));
 
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {
@@ -188,8 +192,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_004, TestSize.Level
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillOnce(Return(100));
-    EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserName()).WillOnce(Return("TestUser"));
+    EXPECT_CALL(mockUserIdManager_, GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(mockUserIdManager_, GetActiveUserName()).WillOnce(Return("TestUser"));
     EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillOnce(Return(profile_));
     EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
 
@@ -215,8 +219,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_005, TestSize.Level
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillOnce(Return(100));
-    EXPECT_CALL(mockActiveUserIdManager_, GetActiveUserName()).WillOnce(Return("TestUser"));
+    EXPECT_CALL(mockUserIdManager_, GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(mockUserIdManager_, GetActiveUserName()).WillOnce(Return("TestUser"));
     EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile())
         .WillOnce(Return(profile_))
         .WillOnce(Return(profile_));

@@ -54,7 +54,7 @@ private:
     bool CompanionBeginObtainToken(const PreObtainTokenReply &preObtainTokenReply);
     bool SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest);
     void HandleObtainTokenReply(const Attributes &reply);
-    bool CompanionEndObtainToken(const ObtainTokenReply &obtainTokenReply, RequestId requestId);
+    bool CompanionEndObtainToken(const ObtainTokenReply &obtainTokenReply);
     void CompleteWithSuccess();
     void HandleAuthMaintainActiveChanged(bool isActive);
 
@@ -63,7 +63,6 @@ private:
     std::vector<uint8_t> fwkUnlockMsg_;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     BindingId bindingId_ = 0;
-    RequestId requestId_ = -1;
     bool needCancelObtainToken_ = false;
     std::unique_ptr<Subscription> localDeviceStatusSubscription_;
 };

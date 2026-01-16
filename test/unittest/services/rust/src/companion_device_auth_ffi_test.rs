@@ -93,7 +93,6 @@ fn command_id_test_try_from() {
     assert_eq!(CommandId::try_from(1023).unwrap(), CommandId::HostProcessPreObtainToken);
     assert_eq!(CommandId::try_from(1024).unwrap(), CommandId::HostProcessObtainToken);
     assert_eq!(CommandId::try_from(1025).unwrap(), CommandId::HostCancelObtainToken);
-    assert_eq!(CommandId::try_from(1026).unwrap(), CommandId::HostActivateToken);
     assert_eq!(CommandId::try_from(1027).unwrap(), CommandId::HostCheckTemplateEnrolled);
     assert_eq!(CommandId::try_from(2000).unwrap(), CommandId::CompanionGetPersistedStatus);
     assert_eq!(CommandId::try_from(2001).unwrap(), CommandId::CompanionProcessCheck);

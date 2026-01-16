@@ -15,7 +15,7 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionBeginDelegateAuthInputFfi, CompanionEndDelegateAuthInputFfi, DataArray1024Ffi, AUTH_TOKEN_SIZE_FFI,
+    CompanionBeginDelegateAuthInputFfi, CompanionEndDelegateAuthInputFfi, DataArray1024Ffi,
 };
 use crate::log_i;
 use crate::request::delegate_auth::companion_auth::CompanionDelegateAuthRequest;
@@ -87,7 +87,7 @@ fn companion_delegate_auth_request_begin_test_wrong_input_type() {
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
 
     let wrong_input =
-        CompanionEndDelegateAuthInputFfi { request_id: 1, result: 0, auth_token: [0u8; AUTH_TOKEN_SIZE_FFI] };
+        CompanionEndDelegateAuthInputFfi { request_id: 1, result: 0, auth_token: DataArray1024Ffi::default() };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionEndDelegateAuthOutputFfi::default();
     let param = CompanionRequestParam::DelegateAuthEnd(&wrong_input, &mut output);
@@ -137,7 +137,7 @@ fn companion_delegate_auth_request_end_test_wrong_auth_token_len() {
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
 
     let end_input =
-        CompanionEndDelegateAuthInputFfi { request_id: 1, result: 0, auth_token: [0u8; AUTH_TOKEN_SIZE_FFI] };
+        CompanionEndDelegateAuthInputFfi { request_id: 1, result: 0, auth_token: DataArray1024Ffi::default() };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionEndDelegateAuthOutputFfi::default();
     let param = CompanionRequestParam::DelegateAuthEnd(&end_input, &mut output);

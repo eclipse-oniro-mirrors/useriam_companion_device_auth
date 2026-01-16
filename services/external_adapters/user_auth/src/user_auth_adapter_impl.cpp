@@ -47,14 +47,21 @@ public:
 
     void OnResult(int32_t result, const UserAuth::Attributes &extraInfo) override
     {
-        if (callback_) {
-            std::vector<uint8_t> token;
-            // Extract token from extraInfo if result is success
-            if (result == 0) { // SUCCESS
-                extraInfo.GetUint8ArrayValue(UserAuth::Attributes::AttributeKey::ATTR_ROOT, token);
-            }
-            callback_(result, token);
+        if (!callback_) {
+            IAM_LOGE("Callback is null");
+            return;
         }
+        std::vector<uint8_t> token;
+        if (result != UserAuth::ResultCode::SUCCESS) {
+            callback_(result, token);
+            return;
+        }
+        if (!extraInfo.GetUint8ArrayValue(UserAuth::Attributes::AttributeKey::ATTR_SIGNATURE, token)) {
+            IAM_LOGE("Get token fail");
+            callback_(UserAuth::ResultCode::GENERAL_ERROR, token);
+            return;
+        }
+        callback_(result, token);
     }
 
     void OnAcquireInfo(int32_t module, uint32_t acquireInfo, const UserAuth::Attributes &extraInfo) override

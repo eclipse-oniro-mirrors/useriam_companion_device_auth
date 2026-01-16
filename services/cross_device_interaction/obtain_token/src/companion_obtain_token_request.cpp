@@ -148,7 +148,7 @@ bool CompanionObtainTokenRequest::CompanionBeginObtainToken(const PreObtainToken
     bindingId_ = hostBindingStatus->bindingId;
 
     CompanionBeginObtainTokenInput input = {};
-    input.requestId = requestId_;
+    input.requestId = GetRequestId();
     input.bindingId = bindingId_;
     input.fwkUnlockMsg = fwkUnlockMsg_;
     input.secureProtocolId = secureProtocolId_;
@@ -205,7 +205,7 @@ void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply
         return;
     }
 
-    bool endRet = CompanionEndObtainToken(obtainTokenReply, requestId_);
+    bool endRet = CompanionEndObtainToken(obtainTokenReply);
     if (!endRet) {
         IAM_LOGE("%{public}s CompanionEndObtainToken failed", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
@@ -216,10 +216,10 @@ void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply
     CompleteWithSuccess();
 }
 
-bool CompanionObtainTokenRequest::CompanionEndObtainToken(const ObtainTokenReply &obtainTokenReply, RequestId requestId)
+bool CompanionObtainTokenRequest::CompanionEndObtainToken(const ObtainTokenReply &obtainTokenReply)
 {
     CompanionEndObtainTokenInput input = {};
-    input.requestId = requestId;
+    input.requestId = GetRequestId();
     input.secureProtocolId = secureProtocolId_;
     input.obtainTokenReply = obtainTokenReply.extraInfo;
     ResultCode ret = GetSecurityAgent().CompanionEndObtainToken(input);
@@ -239,7 +239,7 @@ void CompanionObtainTokenRequest::CompleteWithError(ResultCode result)
     IAM_LOGI("%{public}s: receive obtain token request failed, result=%{public}d", GetDescription(), result);
     localDeviceStatusSubscription_.reset();
     if (needCancelObtainToken_) {
-        CompanionCancelObtainTokenInput input = { requestId_ };
+        CompanionCancelObtainTokenInput input = { GetRequestId() };
         ResultCode cancelRet = GetSecurityAgent().CompanionCancelObtainToken(input);
         if (cancelRet != ResultCode::SUCCESS) {
             IAM_LOGE("%{public}s CompanionCancelObtainToken failed ret=%{public}d", GetDescription(), cancelRet);

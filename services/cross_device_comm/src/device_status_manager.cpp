@@ -86,14 +86,14 @@ bool DeviceStatusManager::Initialize()
         }
     }
 
-    activeUserIdSubscription_ = GetActiveUserIdManager().SubscribeActiveUserId([weakSelf](UserId userId) {
+    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf](UserId userId) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->HandleUserIdChange(userId);
     });
     ENSURE_OR_RETURN_VAL(activeUserIdSubscription_ != nullptr, false);
 
-    activeUserId_ = GetActiveUserIdManager().GetActiveUserId();
+    activeUserId_ = GetUserIdManager().GetActiveUserId();
 
     return true;
 }

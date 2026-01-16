@@ -61,7 +61,6 @@ bool EncodeHostBeginIssueTokenInput(const HostBeginIssueTokenInput &input, HostB
 bool DecodeHostBeginIssueTokenOutput(const HostBeginIssueTokenOutputFfi &ffi, HostBeginIssueTokenOutput &output);
 bool EncodeHostEndIssueTokenInput(const HostEndIssueTokenInput &input, HostEndIssueTokenInputFfi &ffi);
 bool DecodeHostEndIssueTokenOutput(const HostEndIssueTokenOutputFfi &ffi, Atl &atl);
-bool EncodeHostActivateTokenInput(const HostActivateTokenInput &input, HostActivateTokenInputFfi &ffi);
 
 bool EncodeHostBeginTokenAuthInput(const HostBeginTokenAuthInput &input, HostBeginTokenAuthInputFfi &ffi);
 bool DecodeHostBeginTokenAuthOutput(const HostBeginTokenAuthOutputFfi &ffi, HostBeginTokenAuthOutput &output);

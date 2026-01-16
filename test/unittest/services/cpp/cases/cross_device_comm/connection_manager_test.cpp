@@ -51,14 +51,14 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
-        ON_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
             return MakeSubscription();
         }));
-        ON_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillByDefault(Return(defaultUserId));
+        ON_CALL(mockUserIdManager_, GetActiveUserId()).WillByDefault(Return(defaultUserId));
 
         mockChannel_ = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
 
@@ -102,7 +102,7 @@ public:
 protected:
     uint64_t nextGlobalId_ = 1;
     NiceMock<MockMiscManager> mockMiscManager_;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel_;
     std::shared_ptr<ChannelManager> channelMgr_;
     std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr_;
@@ -195,6 +195,8 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_003, TestSize.Level0)
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
+
+    EXPECT_CALL(*mockChannel_, GetLocalPhysicalDeviceKey()).WillOnce(Return(std::nullopt));
 
     std::string connectionName;
     bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
@@ -809,7 +811,7 @@ HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_003, TestSize.L
     std::vector<PhysicalDeviceStatus> statusList;
     connectionMgr_->HandlePhysicalDeviceStatusChange(ChannelId::SOFTBUS, statusList);
 
-    EXPECT_TRUE(connectionMgr_->GetConnection(connectionName).has_value());
+    EXPECT_FALSE(connectionMgr_->GetConnection(connectionName).has_value());
 }
 
 HWTEST_F(ConnectionManagerTest, NotifyConnectionStatus_WithNullCallback, TestSize.Level0)

@@ -156,7 +156,7 @@ void Companion::SetCompanionTokenAtl(std::optional<Atl> tokenAtl)
         GetOptionalString(oldTokenAtl).c_str(), GetOptionalString(tokenAtl).c_str());
 
     tokenTimeoutSubscription_.reset();
-    if (!tokenAtl.has_value() && oldTokenAtl.has_value()) {
+    if (!tokenAtl.has_value()) {
         HostRevokeTokenInput input = { status_.templateId };
         (void)GetSecurityAgent().HostRevokeToken(input);
     } else if (tokenAtl.has_value()) {
@@ -172,7 +172,7 @@ void Companion::SetCompanionTokenAtl(std::optional<Atl> tokenAtl)
         IAM_LOGI("%{public}s registered token timeout timer", description_.c_str());
     }
 
-    if (status_.tokenAtl != tokenAtl) {
+    if (status_.tokenAtl != oldTokenAtl) {
         NotifySubscribers();
     }
 }

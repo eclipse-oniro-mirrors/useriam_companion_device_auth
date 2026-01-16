@@ -137,9 +137,9 @@ std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner
     ENSURE_OR_RETURN_VAL(systemParamManager != nullptr, nullptr);
     singletonManager.SetSystemParamManager(systemParamManager);
 
-    auto activeUserIdManager = IUserIdManager::Create();
-    ENSURE_OR_RETURN_VAL(activeUserIdManager != nullptr, nullptr);
-    singletonManager.SetActiveUserIdManager(activeUserIdManager);
+    auto userIdManager = IUserIdManager::Create();
+    ENSURE_OR_RETURN_VAL(userIdManager != nullptr, nullptr);
+    singletonManager.SetUserIdManager(userIdManager);
 
 #ifndef ENABLE_TEST
     auto securityAgent = SecurityAgentImpl::Create();
@@ -407,7 +407,7 @@ ResultCode CompanionDeviceAuthServiceInner::UnregisterDeviceSelectCallback(uint3
 bool CompanionDeviceAuthServiceInner::CheckLocalUserIdValid(int32_t localUserId)
 {
     IAM_LOGI("Start");
-    bool isUserIdValid = GetActiveUserIdManager().IsUserIdValid(localUserId);
+    bool isUserIdValid = GetUserIdManager().IsUserIdValid(localUserId);
     IAM_LOGI("End, isUserIdValid=%{public}d", isUserIdValid);
     return isUserIdValid;
 }

@@ -42,8 +42,8 @@ constexpr BusinessId BUSINESS_ID_1 = static_cast<BusinessId>(1);
 constexpr BusinessId BUSINESS_ID_2 = static_cast<BusinessId>(2);
 constexpr BusinessId BUSINESS_ID_3 = static_cast<BusinessId>(3);
 constexpr BusinessId BUSINESS_ID_4 = static_cast<BusinessId>(4);
-constexpr BusinessId BUSINESS_ID_5 = static_cast<BusinessId>(5);
 constexpr int32_t INT32_1 = 1;
+constexpr BusinessId BUSINESS_ID_5 = static_cast<BusinessId>(5);
 constexpr int32_t INT32_3 = 3;
 
 std::unique_ptr<Subscription> MakeSubscription()

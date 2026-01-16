@@ -74,9 +74,11 @@ public:
 
     void TearDown() override
     {
-        request_.reset();
+        // Execute all pending tasks BEFORE releasing the request object
+        // to avoid use-after-free crashes
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();
+        request_.reset();
         SingletonManager::GetInstance().Reset();
     }
 

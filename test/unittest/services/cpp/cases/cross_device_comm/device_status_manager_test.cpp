@@ -66,8 +66,8 @@ public:
         SingletonManager::GetInstance().Reset();
 
         // Register all mock objects in SingletonManager
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&activeUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&userIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         auto misc = std::shared_ptr<IMiscManager>(&miscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(misc);
@@ -91,10 +91,10 @@ public:
         mockChannel_ = InitMockChannel();
         channelMgr_ = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
             std::static_pointer_cast<ICrossDeviceChannel>(mockChannel_) });
-        ON_CALL(activeUserIdManager_, SubscribeActiveUserId).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+        ON_CALL(userIdManager_, SubscribeActiveUserId).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
             return MakeSubscription();
         }));
-        ON_CALL(activeUserIdManager_, GetActiveUserId).WillByDefault(Return(activeUserId_));
+        ON_CALL(userIdManager_, GetActiveUserId).WillByDefault(Return(activeUserId_));
         localStatusManager_ = LocalDeviceStatusManager::Create(channelMgr_);
         ASSERT_NE(localStatusManager_, nullptr);
         connectionMgr_ = ConnectionManager::Create(channelMgr_, localStatusManager_);
@@ -125,7 +125,7 @@ protected:
     int32_t activeUserId_ { 100 };
     uint64_t nextSubscriptionId_ { 1 };
     NiceMock<MockMiscManager> miscManager_;
-    NiceMock<MockUserIdManager> activeUserIdManager_;
+    NiceMock<MockUserIdManager> userIdManager_;
     NiceMock<MockRequestFactory> requestFactory_;
     NiceMock<MockRequestManager> requestManager_;
     NiceMock<MockCrossDeviceCommManager> crossDeviceCommMgr_;

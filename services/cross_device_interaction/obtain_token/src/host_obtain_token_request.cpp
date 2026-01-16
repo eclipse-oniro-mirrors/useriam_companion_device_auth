@@ -197,6 +197,7 @@ bool HostObtainTokenRequest::HandleHostProcessObtainToken(const ObtainTokenReque
     std::vector<uint8_t> &obtainTokenReply)
 {
     HostProcessObtainTokenInput input = {};
+    input.requestId = GetRequestId();
     input.templateId = templateId_;
     input.secureProtocolId = secureProtocolId_;
     input.obtainTokenRequest = request.extraInfo;

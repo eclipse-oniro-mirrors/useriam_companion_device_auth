@@ -12,7 +12,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 inline constexpr const char *PKG_NAME = "ohos.companiondeviceauth";
-inline constexpr const char *SERVER_SOCKET_NAME = "ohos.companiondeviceauth.service";
+inline constexpr const char *SERVER_SOCKET_NAME = "ohos.companiondeviceauth.server";
 inline constexpr const char *CLIENT_SOCKET_NAME_PREFIX = "ohos.companiondeviceauth.";
 
 } // namespace CompanionDeviceAuth

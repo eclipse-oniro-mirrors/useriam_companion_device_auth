@@ -61,8 +61,8 @@ public:
         auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
         SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
@@ -111,7 +111,7 @@ protected:
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockCompanionManager> mockCompanionManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     NiceMock<MockMiscManager> mockMiscManager_;
 
     std::string connectionName_ = "test_connection";

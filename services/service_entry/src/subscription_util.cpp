@@ -59,6 +59,57 @@ IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionSta
     return ipcStatus;
 }
 
+bool IpcDeviceStatusEqual(const IpcDeviceStatus &lhs, const IpcDeviceStatus &rhs)
+{
+    return lhs.deviceKey.deviceIdType == rhs.deviceKey.deviceIdType &&
+           lhs.deviceKey.deviceId == rhs.deviceKey.deviceId &&
+           lhs.deviceKey.deviceUserId == rhs.deviceKey.deviceUserId &&
+           lhs.deviceUserName == rhs.deviceUserName &&
+           lhs.deviceModelInfo == rhs.deviceModelInfo &&
+           lhs.deviceName == rhs.deviceName &&
+           lhs.isOnline == rhs.isOnline &&
+           lhs.supportedBusinessIds == rhs.supportedBusinessIds;
+}
+
+bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs,
+    const std::vector<IpcDeviceStatus> &rhs)
+{
+    if (lhs.size() != rhs.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < lhs.size(); ++i) {
+        if (!IpcDeviceStatusEqual(lhs[i], rhs[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool IpcTemplateStatusEqual(const IpcTemplateStatus &lhs, const IpcTemplateStatus &rhs)
+{
+    return lhs.templateId == rhs.templateId &&
+           lhs.isConfirmed == rhs.isConfirmed &&
+           lhs.isValid == rhs.isValid &&
+           lhs.localUserId == rhs.localUserId &&
+           lhs.addedTime == rhs.addedTime &&
+           lhs.enabledBusinessIds == rhs.enabledBusinessIds &&
+           IpcDeviceStatusEqual(lhs.deviceStatus, rhs.deviceStatus);
+}
+
+bool IpcTemplateStatusVectorEqual(const std::vector<IpcTemplateStatus> &lhs,
+    const std::vector<IpcTemplateStatus> &rhs)
+{
+    if (lhs.size() != rhs.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < lhs.size(); ++i) {
+        if (!IpcTemplateStatusEqual(lhs[i], rhs[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

@@ -49,14 +49,14 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
-        ON_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
             return MakeSubscription();
         }));
-        ON_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillByDefault(Return(defaultUserId));
+        ON_CALL(mockUserIdManager_, GetActiveUserId()).WillByDefault(Return(defaultUserId));
 
         mockChannel_ = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
 
@@ -96,7 +96,7 @@ public:
 protected:
     uint64_t nextGlobalId_ = 1;
     NiceMock<MockMiscManager> mockMiscManager_;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel_;
 };
 
@@ -125,7 +125,7 @@ HWTEST_F(CrossDeviceCommManagerImplTest, Create_003, TestSize.Level0)
 
 HWTEST_F(CrossDeviceCommManagerImplTest, Create_004, TestSize.Level0)
 {
-    EXPECT_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_))
+    EXPECT_CALL(mockUserIdManager_, SubscribeActiveUserId(_))
         .WillOnce(Invoke([](ActiveUserIdCallback &&) { return MakeSubscription(); }))
         .WillOnce(Return(nullptr));
 

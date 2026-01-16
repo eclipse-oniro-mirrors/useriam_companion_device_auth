@@ -63,7 +63,7 @@ void CompanionManagerImpl::Initialize()
     }
 
     auto weakSelf = weak_from_this();
-    activeUserIdSubscription_ = GetActiveUserIdManager().SubscribeActiveUserId([weakSelf](UserId userId) {
+    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf](UserId userId) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->OnActiveUserIdChanged(userId);
@@ -150,7 +150,7 @@ void CompanionManagerImpl::UnsubscribeCompanionDeviceStatusChange(SubscribeId su
 ResultCode CompanionManagerImpl::BeginAddCompanion(const BeginAddCompanionParams &params,
     std::vector<uint8_t> &outAddHostBindingRequest)
 {
-    IAM_LOGI("begin add companion, request id %{public}" PRIu64, params.requestId);
+    IAM_LOGI("begin add companion, request id %{public}u", params.requestId);
 
     if (hostUserId_ == INVALID_USER_ID) {
         IAM_LOGE("no active user");
@@ -185,13 +185,13 @@ ResultCode CompanionManagerImpl::BeginAddCompanion(const BeginAddCompanionParams
 
     outAddHostBindingRequest.swap(output.addHostBindingRequest);
 
-    IAM_LOGI("begin add companion success, request id %{public}" PRIu64, params.requestId);
+    IAM_LOGI("begin add companion success, request id %{public}u", params.requestId);
     return ResultCode::SUCCESS;
 }
 
 ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output)
 {
-    IAM_LOGI("end add companion, request id %{public}" PRIu64, input.requestId);
+    IAM_LOGI("end add companion, request id %{public}u", input.requestId);
 
     if (hostUserId_ == INVALID_USER_ID) {
         IAM_LOGE("no active user");
@@ -238,33 +238,7 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
 
     NotifyCompanionStatusChange();
 
-    IAM_LOGI("end add companion success, request id %{public}" PRIu64, input.requestId);
-    return ResultCode::SUCCESS;
-}
-
-ResultCode CompanionManagerImpl::ActivateToken(RequestId requestId, TemplateId templateId, Atl atl)
-{
-    IAM_LOGI("activate token, request id %{public}" PRIu64 ", template id %{public}s, atl %{public}d", requestId,
-        GET_MASKED_NUM_CSTR(templateId), atl);
-
-    auto companion = FindCompanionByTemplateId(templateId);
-    if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
-        return ResultCode::GENERAL_ERROR;
-    }
-
-    HostActivateTokenInput activateInput = { .requestId = requestId };
-    ResultCode ret = GetSecurityAgent().HostActivateToken(activateInput);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("HostActivateToken failed ret %{public}d", ret);
-        return ret;
-    }
-
-    // Set token ATL to start timeout timer and notify status change
-    SetCompanionTokenAtl(templateId, atl);
-
-    IAM_LOGI("activate token success, request id %{public}" PRIu64 ", template id %{public}s", requestId,
-        GET_MASKED_NUM_CSTR(templateId));
+    IAM_LOGI("end add companion success, request id %{public}u", input.requestId);
     return ResultCode::SUCCESS;
 }
 
@@ -558,36 +532,6 @@ void CompanionManagerImpl::StartIssueTokenRequests(const std::vector<uint64_t> &
 
         IAM_LOGI("companion %{public}s successfully started HostIssueTokenRequest",
             companion->GetDescription().c_str());
-    }
-
-    IAM_LOGI("end");
-}
-
-void CompanionManagerImpl::RevokeTokens(const std::vector<uint64_t> &templateIds)
-{
-    IAM_LOGI("start, templateIds size=%{public}zu", templateIds.size());
-
-    for (const auto &companion : companions_) {
-        auto it = std::find(templateIds.begin(), templateIds.end(), companion->GetTemplateId());
-        if (it == templateIds.end()) {
-            continue;
-        }
-
-        auto status = companion->GetStatus();
-        if (!status.tokenAtl.has_value()) {
-            IAM_LOGI("companion %{public}s token is not valid, no need revoke token",
-                companion->GetDescription().c_str());
-            continue;
-        }
-
-        HostRevokeTokenInput input = { status.templateId };
-        ResultCode ret = GetSecurityAgent().HostRevokeToken(input);
-        if (ret != ResultCode::SUCCESS) {
-            IAM_LOGE("companion %{public}s remoke token failed", companion->GetDescription().c_str());
-            continue;
-        }
-
-        IAM_LOGI("companion %{public}s revoke token success", companion->GetDescription().c_str());
     }
 
     IAM_LOGI("end");

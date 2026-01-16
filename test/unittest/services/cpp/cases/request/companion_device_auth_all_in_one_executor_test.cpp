@@ -51,6 +51,10 @@ const uint32_t ATTR_DATA = 100020;
 const uint32_t ATTR_AUTH_TYPE = 100024;
 const uint32_t ATTR_USER_ID = 100041;
 const uint32_t ATTR_LOCK_STATE_AUTH_TYPE = 100075;
+constexpr int32_t INT32_100 = 100;
+constexpr uint64_t UINT64_123 = 123;
+constexpr uint64_t UINT64_456 = 456;
+constexpr uint64_t UINT64_12345 = 12345;
 
 class FakeUserIdManager : public IUserIdManager {
 public:
@@ -81,7 +85,7 @@ public:
     }
 
 private:
-    int32_t activeUserId_ { 100 };
+    int32_t activeUserId_ { INT32_100 };
     ActiveUserIdCallback activeUserIdCallback_ {};
 };
 
@@ -119,7 +123,7 @@ public:
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
         auto activeUserIdMgr = std::make_shared<FakeUserIdManager>();
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserIdMgr);
+        SingletonManager::GetInstance().SetUserIdManager(activeUserIdMgr);
 
         uint32_t maxTemplateAcl = 3;
         ON_CALL(mockSecurityAgent_, HostGetExecutorInfo(_))
@@ -200,7 +204,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, OnRegisterFinish_001, TestSize
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    std::vector<uint64_t> templateIdList = { 123, 456 };
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
     std::vector<uint8_t> frameworkPublicKey = { 1, 2, 3 };
     std::vector<uint8_t> extraInfo = { 4, 5, 6 };
 
@@ -247,7 +251,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SendMessage_001, TestSize.Leve
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     int32_t srcRole = 1;
     std::vector<uint8_t> msg = { 1, 2, 3 };
 
@@ -262,7 +266,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SendMessage_002, TestSize.Leve
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     int32_t srcRole = 1;
     std::vector<uint8_t> msg = { 1, 2, 3 };
 
@@ -276,10 +280,10 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_001, TestSize.Level0)
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkEnrollParam param;
     param.extraInfo = { 1, 2, 3 };
-    param.tokenId = 100;
+    param.tokenId = INT32_100;
 
     auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
 
@@ -300,7 +304,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_002, TestSize.Level0)
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkEnrollParam param;
 
     FwkResultCode ret = executor->Enroll(scheduleId, param, nullptr);
@@ -313,7 +317,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_003, TestSize.Level0)
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkEnrollParam param;
 
     auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
@@ -331,7 +335,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_004, TestSize.Level0)
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkEnrollParam param;
 
     auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
@@ -355,7 +359,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_005, TestSize.Level0)
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkEnrollParam param;
     auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
 
@@ -369,10 +373,10 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_001, TestSize.Lev
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkAuthenticateParam param;
     param.extraInfo = { 1, 2, 3 };
-    param.userId = 100;
+    param.userId = INT32_100;
     param.templateIdList = { 123, 456 };
 
     auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
@@ -395,7 +399,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_002, TestSize.Lev
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkAuthenticateParam param;
 
     FwkResultCode ret = executor->Authenticate(scheduleId, param, nullptr);
@@ -408,9 +412,9 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_003, TestSize.Lev
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkAuthenticateParam param;
-    param.userId = 100;
+    param.userId = INT32_100;
     param.templateIdList = {};
 
     auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
@@ -425,7 +429,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_004, TestSize.Lev
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkAuthenticateParam param;
     param.templateIdList = { 123 };
 
@@ -444,7 +448,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_005, TestSize.Lev
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkAuthenticateParam param;
     param.templateIdList = { 123 };
 
@@ -470,7 +474,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_006, TestSize.Lev
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkAuthenticateParam param;
     auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
 
@@ -484,7 +488,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Delete_001, TestSize.Level0)
     auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
     ASSERT_NE(nullptr, executor);
 
-    std::vector<uint64_t> templateIdList = { 123, 456 };
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
 
     EXPECT_CALL(mockCompanionManager_, RemoveCompanion(_)).Times(2).WillRepeatedly(Return(ResultCode::SUCCESS));
 
@@ -539,7 +543,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Cancel_001, TestSize.Level0)
 
     EXPECT_CALL(mockRequestManager_, CancelRequestByScheduleId(_)).WillOnce(Return(true));
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkResultCode ret = executor->Cancel(scheduleId);
 
     EXPECT_EQ(FwkResultCode::SUCCESS, ret);
@@ -552,7 +556,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Cancel_002, TestSize.Level0)
 
     EXPECT_CALL(mockRequestManager_, CancelRequestByScheduleId(_)).WillOnce(Return(false));
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkResultCode ret = executor->Cancel(scheduleId);
 
     EXPECT_EQ(FwkResultCode::SUCCESS, ret);
@@ -564,7 +568,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Cancel_003, TestSize.Level0)
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
-    uint64_t scheduleId = 12345;
+    uint64_t scheduleId = UINT64_12345;
     FwkResultCode ret = executor->Cancel(scheduleId);
 
     EXPECT_EQ(FwkResultCode::GENERAL_ERROR, ret);
@@ -734,8 +738,8 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_004
         static_cast<uint32_t>(AuthType::PIN));
     dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE),
         static_cast<uint32_t>(AuthType::PIN));
-    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), 100);
-    std::vector<uint64_t> templateIdList = { 123, 456 };
+    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), INT32_100);
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
     dataTlvAttrs.SetUint64ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), templateIdList);
     std::vector<uint8_t> dataTlv = dataTlvAttrs.Serialize();
 
@@ -767,8 +771,8 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_005
         static_cast<uint32_t>(AuthType::COMPANION_DEVICE));
     dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE),
         static_cast<uint32_t>(AuthType::FINGERPRINT));
-    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), 100);
-    std::vector<uint64_t> templateIdList = { 123, 456 };
+    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), INT32_100);
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
     dataTlvAttrs.SetUint64ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), templateIdList);
     std::vector<uint8_t> dataTlv = dataTlvAttrs.Serialize();
 
@@ -800,8 +804,8 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_006
         static_cast<uint32_t>(AuthType::COMPANION_DEVICE));
     dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE),
         static_cast<uint32_t>(AuthType::PIN));
-    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), 100);
-    std::vector<uint64_t> templateIdList = { 123, 456 };
+    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), INT32_100);
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
     dataTlvAttrs.SetUint64ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), templateIdList);
     std::vector<uint8_t> dataTlv = dataTlvAttrs.Serialize();
 
@@ -814,7 +818,8 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_006
     std::vector<uint8_t> extraInfo = info.Serialize();
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
-    EXPECT_CALL(mockCompanionManager_, RevokeTokens(_)).Times(1);
+    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(UINT64_123, testing::Eq(std::optional<Atl>()))).Times(1);
+    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(UINT64_456, testing::Eq(std::optional<Atl>()))).Times(1);
     EXPECT_CALL(mockHostBindingManager_, RevokeTokens(_)).Times(1);
 
     FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
@@ -835,8 +840,8 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_007
         static_cast<uint32_t>(AuthType::COMPANION_DEVICE));
     dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE),
         static_cast<uint32_t>(AuthType::PIN));
-    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), 100);
-    std::vector<uint64_t> templateIdList = { 123, 456 };
+    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), INT32_100);
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
     dataTlvAttrs.SetUint64ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), templateIdList);
     std::vector<uint8_t> dataTlv = dataTlvAttrs.Serialize();
 
@@ -870,8 +875,8 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_008
         static_cast<uint32_t>(AuthType::COMPANION_DEVICE));
     dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE),
         static_cast<uint32_t>(AuthType::FACE));
-    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), 100);
-    std::vector<uint64_t> templateIdList = { 123, 456 };
+    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), INT32_100);
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
     dataTlvAttrs.SetUint64ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), templateIdList);
     std::vector<uint8_t> dataTlv = dataTlvAttrs.Serialize();
 
@@ -903,8 +908,8 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_009
         static_cast<uint32_t>(AuthType::COMPANION_DEVICE));
     dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE),
         static_cast<uint32_t>(AuthType::FACE));
-    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), 100);
-    std::vector<uint64_t> templateIdList = { 123, 456 };
+    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), INT32_100);
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
     dataTlvAttrs.SetUint64ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), templateIdList);
     std::vector<uint8_t> dataTlv = dataTlvAttrs.Serialize();
 
@@ -937,8 +942,8 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_010
     dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_AUTH_TYPE),
         static_cast<uint32_t>(AuthType::COMPANION_DEVICE));
     dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE), 999);
-    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), 100);
-    std::vector<uint64_t> templateIdList = { 123, 456 };
+    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), INT32_100);
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
     dataTlvAttrs.SetUint64ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), templateIdList);
     std::vector<uint8_t> dataTlv = dataTlvAttrs.Serialize();
 

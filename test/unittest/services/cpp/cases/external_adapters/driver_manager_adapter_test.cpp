@@ -32,6 +32,9 @@ namespace CompanionDeviceAuth {
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+}
+
 class DriverManagerAdapterTest : public testing::Test {
 public:
     static void SetUpTestCase();

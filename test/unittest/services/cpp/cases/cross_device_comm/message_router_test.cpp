@@ -243,7 +243,7 @@ public:
     static void SetUpTestCase()
     {
         SingletonManager::GetInstance().SetMiscManager(std::make_shared<FakeMiscManager>());
-        SingletonManager::GetInstance().SetActiveUserIdManager(std::make_shared<FakeUserIdManager>());
+        SingletonManager::GetInstance().SetUserIdManager(std::make_shared<FakeUserIdManager>());
     }
 
     void SetUp() override

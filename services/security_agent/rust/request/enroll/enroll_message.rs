@@ -234,9 +234,8 @@ impl SecBindingReplyInfo {
         let mut attribute = Attribute::new();
         attribute.set_string(AttributeKey::AttrDeviceId, self.device_id.clone());
         attribute.set_i32(AttributeKey::AttrUserId, self.user_id);
-
-        attribute.set_i32(AttributeKey::AttrEsl, ExecutorSecurityLevel::Esl2 as i32);
-        attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, 0);
+        attribute.set_i32(AttributeKey::AttrEsl, self.esl);
+        attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, self.track_ability_level);
         attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
         attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocal_list);
         attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.capability_list);

@@ -144,7 +144,7 @@ HWTEST_F(DeviceStatusEntryTest, IsSameDevice_003, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device-id";
 
-    bool result = entry.IsSameDevice(key, ChannelId::SOFTBUS);
+    bool result = entry.IsSameDevice(key, ChannelId::INVALID);
     EXPECT_FALSE(result);
 }
 

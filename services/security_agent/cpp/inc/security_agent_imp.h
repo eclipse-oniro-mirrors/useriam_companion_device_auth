@@ -64,7 +64,6 @@ public:
         HostBeginAddCompanionOutput &output) override;
     ResultCode HostEndAddCompanion(const HostEndAddCompanionInput &input, HostEndAddCompanionOutput &output) override;
     ResultCode HostCancelAddCompanion(const HostCancelAddCompanionInput &input) override;
-    ResultCode HostActivateToken(const HostActivateTokenInput &input) override;
 
     ResultCode CompanionInitKeyNegotiation(const CompanionInitKeyNegotiationInput &input,
         CompanionInitKeyNegotiationOutput &output) override;

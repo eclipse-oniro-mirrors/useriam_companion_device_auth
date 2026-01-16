@@ -34,7 +34,6 @@ namespace CompanionDeviceAuth {
 
 // Fuzz test constants
 constexpr int32_t INT32_NEG10 = -10;
-constexpr int32_t INT32_1 = 1;
 constexpr int32_t INT32_5 = 5;
 constexpr int32_t INT32_10 = 10;
 constexpr int32_t INT32_100000 = 100000;

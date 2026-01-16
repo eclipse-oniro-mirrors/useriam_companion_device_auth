@@ -81,8 +81,8 @@ public:
             std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
         SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
         SingletonManager::GetInstance().SetCompanionManager(companionMgr);
@@ -115,7 +115,7 @@ public:
 
 protected:
     NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     NiceMock<MockCompanionManager> mockCompanionManager_;
     std::unique_ptr<SubscriptionManager> subscriptionManager_;
 };

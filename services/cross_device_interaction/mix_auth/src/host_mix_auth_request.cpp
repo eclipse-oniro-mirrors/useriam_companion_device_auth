@@ -196,7 +196,7 @@ void HostMixAuthRequest::Destroy()
     auto requestId = GetRequestId();
     TaskRunnerManager::GetInstance().PostTaskOnResident([requestId]() {
         GetRequestManager().Remove(requestId);
-        IAM_LOGI("request %{public}" PRIu64 " removed", requestId);
+        IAM_LOGI("request %{public}u removed", requestId);
     });
 }
 } // namespace CompanionDeviceAuth

@@ -82,8 +82,8 @@ public:
     {
         SingletonManager::GetInstance().Reset();
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         auto crossDeviceCommMgr =
             std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
@@ -101,8 +101,8 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
-        ON_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockActiveUserIdManager_, GetActiveUserId()).WillByDefault(Return(activeUserId_));
+        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+        ON_CALL(mockUserIdManager_, GetActiveUserId()).WillByDefault(Return(activeUserId_));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _))
             .WillByDefault(Return(ByMove(MakeSubscription())));
         ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
@@ -138,7 +138,7 @@ public:
 
 protected:
     int32_t activeUserId_ = USER_ID_100;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
     NiceMock<MockRequestFactory> mockRequestFactory_;
     NiceMock<MockRequestManager> mockRequestManager_;
@@ -148,7 +148,7 @@ protected:
 
 HWTEST_F(CompanionManagerImplTest, Create_001, TestSize.Level0)
 {
-    EXPECT_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Return(ByMove(MakeSubscription())));
 
     auto manager = CompanionManagerImpl::Create();
     EXPECT_NE(nullptr, manager);
@@ -156,7 +156,7 @@ HWTEST_F(CompanionManagerImplTest, Create_001, TestSize.Level0)
 
 HWTEST_F(CompanionManagerImplTest, Create_002, TestSize.Level0)
 {
-    EXPECT_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
 
     auto manager = CompanionManagerImpl::Create();
     EXPECT_NE(nullptr, manager);
@@ -882,91 +882,6 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_006, TestSize.Level0)
     EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Return(true));
 
     manager->StartIssueTokenRequests(templateIds, fwkMsg);
-}
-
-HWTEST_F(CompanionManagerImplTest, RevokeTokens_001, TestSize.Level0)
-{
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    std::vector<uint64_t> templateIds;
-    manager->RevokeTokens(templateIds);
-}
-
-HWTEST_F(CompanionManagerImplTest, RevokeTokens_002, TestSize.Level0)
-{
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    manager->hostUserId_ = activeUserId_;
-
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
-    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
-
-    std::vector<uint64_t> templateIds = { UINT32_1 };
-
-    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).Times(0);
-
-    manager->RevokeTokens(templateIds);
-}
-
-HWTEST_F(CompanionManagerImplTest, RevokeTokens_003, TestSize.Level0)
-{
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    manager->hostUserId_ = activeUserId_;
-
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
-    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
-
-    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
-
-    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).Times(0);
-
-    manager->RevokeTokens(templateIds);
-}
-
-HWTEST_F(CompanionManagerImplTest, RevokeTokens_004, TestSize.Level0)
-{
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    manager->hostUserId_ = activeUserId_;
-
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
-    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
-
-    manager->SetCompanionTokenAtl(TEMPLATE_ID_12345, INT32_3);
-
-    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
-
-    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
-
-    manager->RevokeTokens(templateIds);
-}
-
-HWTEST_F(CompanionManagerImplTest, RevokeTokens_005, TestSize.Level0)
-{
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    manager->hostUserId_ = activeUserId_;
-
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
-    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
-
-    manager->SetCompanionTokenAtl(TEMPLATE_ID_12345, INT32_3);
-
-    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
-
-    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillOnce(Return(ResultCode::SUCCESS));
-
-    manager->RevokeTokens(templateIds);
 }
 
 } // namespace

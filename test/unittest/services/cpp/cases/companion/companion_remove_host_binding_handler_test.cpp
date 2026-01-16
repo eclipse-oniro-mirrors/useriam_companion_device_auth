@@ -34,6 +34,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr int32_t INT32_200 = 200;
+
 class CompanionRemoveHostBindingHandlerTest : public Test {
 public:
     void SetUp() override
@@ -74,7 +76,7 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_001, TestSize.Leve
 {
     Attributes request;
     RemoveHostBindingRequest removeHostBindingRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = 200,
+        .companionUserId = INT32_200,
         .extraInfo = { 1, 2, 3 } };
     EncodeRemoveHostBindingRequest(removeHostBindingRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
@@ -110,7 +112,7 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_003, TestSize.Leve
 {
     Attributes request;
     RemoveHostBindingRequest removeHostBindingRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = 200,
+        .companionUserId = INT32_200,
         .extraInfo = { 1, 2, 3 } };
     EncodeRemoveHostBindingRequest(removeHostBindingRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,

@@ -63,8 +63,8 @@ public:
     {
         SingletonManager::GetInstance().Reset();
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
         auto crossDeviceCommMgr =
             std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
@@ -82,7 +82,7 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
-        ON_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
             return MakeSubscription();
         }));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _))
@@ -118,7 +118,7 @@ public:
 
 protected:
     int32_t activeUserId_ = 100;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
     NiceMock<MockRequestFactory> mockRequestFactory_;
     NiceMock<MockRequestManager> mockRequestManager_;
@@ -128,7 +128,7 @@ protected:
 
 HWTEST_F(HostBindingManagerImplTest, Create_001, TestSize.Level0)
 {
-    EXPECT_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Invoke([](ActiveUserIdCallback &&) {
+    EXPECT_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
 
@@ -138,7 +138,7 @@ HWTEST_F(HostBindingManagerImplTest, Create_001, TestSize.Level0)
 
 HWTEST_F(HostBindingManagerImplTest, Create_002, TestSize.Level0)
 {
-    EXPECT_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
 
     auto manager = HostBindingManagerImpl::Create();
     EXPECT_NE(nullptr, manager);

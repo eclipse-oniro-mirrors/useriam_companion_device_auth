@@ -33,7 +33,8 @@ public:
 
     void RegisterCallback(std::shared_ptr<ISoftBusSocketCallback> callback) override;
     std::optional<SocketId> CreateServerSocket() override;
-    std::optional<SocketId> CreateClientSocket(const std::string &networkId) override;
+    std::optional<SocketId> CreateClientSocket(const std::string &connectionName,
+        const std::string &networkId) override;
     bool SendBytes(int32_t socketId, const std::vector<uint8_t> &data) override;
     void ShutdownSocket(int32_t socketId) override;
 

@@ -54,8 +54,9 @@ public:
         return std::optional<SocketId>();
     }
 
-    std::optional<SocketId> CreateClientSocket(const std::string &networkId) override
+    std::optional<SocketId> CreateClientSocket(const std::string &connectionName, const std::string &networkId) override
     {
+        (void)connectionName;
         (void)networkId;
         if (fuzzData_.ConsumeBool()) {
             return fuzzData_.ConsumeIntegral<SocketId>();

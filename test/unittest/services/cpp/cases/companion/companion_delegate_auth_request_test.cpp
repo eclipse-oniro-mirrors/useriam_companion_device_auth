@@ -36,6 +36,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+
 constexpr uint64_t UINT64_12345 = 12345;
 
 class CompanionDelegateAuthRequestTest : public Test {
