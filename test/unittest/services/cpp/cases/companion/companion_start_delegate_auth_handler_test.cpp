@@ -37,6 +37,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+
+constexpr int32_t INT32_200 = 200;
 constexpr uint64_t UINT64_12345 = 12345;
 
 class CompanionStartDelegateAuthHandlerTest : public Test {
@@ -86,7 +88,7 @@ protected:
     NiceMock<MockUserAuthAdapter> mockUserAuthAdapter_;
 
     std::string connectionName_ = "test_connection";
-    int32_t companionUserId_ = 200;
+    int32_t companionUserId_ = INT32_200;
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
         .deviceUserId = 100 };

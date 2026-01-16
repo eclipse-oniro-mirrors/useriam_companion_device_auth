@@ -25,6 +25,9 @@
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+}
+
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
@@ -44,7 +47,7 @@ public:
     }
 };
 
-HWTEST_F(ConstantUserIdManagerTest, CreateActiveUserIdManager_001, TestSize.Level0)
+HWTEST_F(ConstantUserIdManagerTest, CreateUserIdManager_001, TestSize.Level0)
 {
     auto manager = IUserIdManager::Create();
     EXPECT_NE(nullptr, manager);

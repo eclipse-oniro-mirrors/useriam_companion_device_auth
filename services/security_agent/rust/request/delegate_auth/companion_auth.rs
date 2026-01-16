@@ -127,12 +127,17 @@ impl CompanionRequest for CompanionDelegateAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        if ffi_input.auth_token.len() != core::mem::size_of::<UserAuthToken>() {
-            log_e!("auth_token len is error");
+        if (ffi_input.result != ErrorCode::Success as i32) {
+            log_e!("delegate auth fail {}", ffi_input.result);
+            return Ok(());
+        }
+
+        if ffi_input.auth_token.len as usize != core::mem::size_of::<UserAuthToken>() {
+            log_e!("auth_token length mismatch: expected {}, got {}", core::mem::size_of::<UserAuthToken>(), ffi_input.auth_token.len);
             return Err(ErrorCode::GeneralError);
         }
 
-        let auth_token = UserAuthToken::deserialize(&ffi_input.auth_token).map_err(|e| p!(e))?;
+        let auth_token = UserAuthToken::deserialize(&ffi_input.auth_token.data[..ffi_input.auth_token.len as usize]).map_err(|e| p!(e))?;
         self.atl = auth_token.token_data_plain.auth_trust_level;
 
         let sec_message = self.create_end_sec_message()?;

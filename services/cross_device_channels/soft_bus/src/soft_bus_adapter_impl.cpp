@@ -138,9 +138,10 @@ std::optional<SocketId> SoftBusAdapterImpl::CreateServerSocket()
     return socketId;
 }
 
-std::optional<SocketId> SoftBusAdapterImpl::CreateClientSocket(const std::string &networkId)
+std::optional<SocketId> SoftBusAdapterImpl::CreateClientSocket(const std::string &connectionName,
+    const std::string &networkId)
 {
-    std::string socketName = std::string(CLIENT_SOCKET_NAME_PREFIX) + "." + networkId;
+    std::string socketName = std::string(CLIENT_SOCKET_NAME_PREFIX) + "." + connectionName;
 
     SocketInfo info = {
         .name = const_cast<char *>(socketName.c_str()),

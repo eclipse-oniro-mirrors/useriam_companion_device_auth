@@ -15,7 +15,7 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionProcessCheckInputFfi, DataArray1024Ffi, Uint16Array64Ffi, SALT_LEN_FFI,
+    CompanionProcessCheckInputFfi, DataArray1024Ffi, DataArray32Ffi, Uint16Array64Ffi, SALT_LEN_FFI,
 };
 use crate::impls::default_companion_request_manager::DefaultCompanionRequestManager;
 use crate::log_i;
@@ -31,7 +31,7 @@ fn create_test_companion_process_check_input_ffi(binding_id: i32) -> CompanionPr
         binding_id,
         capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
-        salt: [0u8; SALT_LEN_FFI],
+        salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
         challenge: 12345,
         sec_message: DataArray1024Ffi::default(),
     }

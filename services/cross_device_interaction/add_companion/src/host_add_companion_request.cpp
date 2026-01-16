@@ -305,12 +305,7 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
     }
 
     ENSURE_OR_RETURN(templateId_ != 0);
-    ResultCode ret = GetCompanionManager().ActivateToken(GetRequestId(), templateId_, tokenAtl_);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s ActivateToken failed ret=%{public}d", GetDescription(), ret);
-        errorGuard.UpdateErrorCode(ret);
-        return;
-    }
+    GetCompanionManager().SetCompanionTokenAtl(templateId_, tokenAtl_);
     needCancelIssueToken_ = false;
     IAM_LOGI("%{public}s token activated successfully", GetDescription());
 

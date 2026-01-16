@@ -52,7 +52,6 @@ public:
     MOCK_METHOD(ResultCode, HostEndAddCompanion,
         (const HostEndAddCompanionInput &input, HostEndAddCompanionOutput &output), (override));
     MOCK_METHOD(ResultCode, HostCancelAddCompanion, (const HostCancelAddCompanionInput &input), (override));
-    MOCK_METHOD(ResultCode, HostActivateToken, (const HostActivateTokenInput &input), (override));
 
     MOCK_METHOD(ResultCode, CompanionInitKeyNegotiation,
         (const CompanionInitKeyNegotiationInput &input, CompanionInitKeyNegotiationOutput &output), (override));

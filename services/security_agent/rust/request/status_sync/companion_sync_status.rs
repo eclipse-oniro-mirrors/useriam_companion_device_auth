@@ -32,17 +32,23 @@ use crate::{log_e, log_i, p, Box, Vec};
 pub struct CompanionDeviceSyncStatusRequest {
     pub binding_id: i32,
     pub challenge: u64,
-    pub salt: [u8; HKDF_SALT_SIZE],
+    pub salt: Vec<u8>,
     pub protocal_list: Vec<u16>,
     pub capability_list: Vec<u16>,
 }
 
 impl CompanionDeviceSyncStatusRequest {
     pub fn new(input: &CompanionProcessCheckInputFfi) -> Result<Self, ErrorCode> {
+        // Validate salt length
+        if input.salt.len as usize != HKDF_SALT_SIZE {
+            log_e!("salt length mismatch: expected {}, got {}", HKDF_SALT_SIZE, input.salt.len);
+            return Err(ErrorCode::GeneralError);
+        }
+
         Ok(CompanionDeviceSyncStatusRequest {
             binding_id: input.binding_id,
             challenge: input.challenge,
-            salt: input.salt,
+            salt: input.salt.data[..input.salt.len as usize].to_vec(),
             protocal_list: PROTOCAL_VERSION.to_vec(),
             capability_list: input.capability_list.try_into().map_err(|e| p!(e))?,
         })

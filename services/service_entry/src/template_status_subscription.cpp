@@ -124,6 +124,11 @@ void TemplateStatusSubscription::HandleCompanionStatusChange(const std::vector<C
         templateStatusList.push_back(ConvertToIpcTemplateStatus(status, manageSubscribeTime));
     }
 
+    if (IpcTemplateStatusVectorEqual(cachedTemplateStatus_, templateStatusList)) {
+        IAM_LOGI("Template status not changed, skip notification");
+        return;
+    }
+
     cachedTemplateStatus_ = templateStatusList;
 
     auto callbacks = callbacks_;

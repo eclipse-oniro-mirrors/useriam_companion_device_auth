@@ -53,8 +53,8 @@ public:
     virtual ISystemParamManager &GetSystemParamManager() = 0;
     virtual void SetSystemParamManager(std::shared_ptr<ISystemParamManager> systemParamManager) = 0;
 
-    virtual IUserIdManager &GetActiveUserIdManager() = 0;
-    virtual void SetActiveUserIdManager(std::shared_ptr<IUserIdManager> activeUserIdManager) = 0;
+    virtual IUserIdManager &GetUserIdManager() = 0;
+    virtual void SetUserIdManager(std::shared_ptr<IUserIdManager> userIdManager) = 0;
 
     virtual ISecurityAgent &GetSecurityAgent() = 0;
     virtual void SetSecurityAgent(std::shared_ptr<ISecurityAgent> securityAgent) = 0;
@@ -100,9 +100,9 @@ inline ISystemParamManager &GetSystemParamManager()
     return SingletonManager::GetInstance().GetSystemParamManager();
 }
 
-inline IUserIdManager &GetActiveUserIdManager()
+inline IUserIdManager &GetUserIdManager()
 {
-    return SingletonManager::GetInstance().GetActiveUserIdManager();
+    return SingletonManager::GetInstance().GetUserIdManager();
 }
 
 inline ISecurityAgent &GetSecurityAgent()

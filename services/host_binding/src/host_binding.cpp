@@ -24,6 +24,7 @@
 #include "iam_para2str.h"
 #include "iam_ptr.h"
 
+#include "companion_manager.h"
 #include "cross_device_comm_manager.h"
 #include "host_binding_manager.h"
 #include "relative_timer.h"

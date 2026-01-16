@@ -151,8 +151,7 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
         IAM_LOGE("%{public}s companion token auth failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(replyMsg.result));
 
-        HostRevokeTokenInput revokeInput = { .templateId = templateId_ };
-        (void)GetSecurityAgent().HostRevokeToken(revokeInput);
+        GetCompanionManager().SetCompanionTokenAtl(templateId_, std::nullopt);
 
         errorGuard.UpdateErrorCode(replyMsg.result);
         return;

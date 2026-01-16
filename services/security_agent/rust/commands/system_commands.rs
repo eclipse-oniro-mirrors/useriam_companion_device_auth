@@ -53,7 +53,7 @@ use core::convert::TryFrom;
 static mut INIT_FLAG: bool = false;
 
 // Init
-pub fn init(_input: InitInputFfi, _output: &mut InitOutputFfi) -> Result<(), ErrorCode> {
+pub fn init(_input: &InitInputFfi, _output: &mut InitOutputFfi) -> Result<(), ErrorCode> {
     log_i!("init start");
     let key_pair = CryptoEngineRegistry::get().generate_ed25519_key_pair().map_err(|e| p!(e))?;
     MiscManagerRegistry::get_mut().set_local_key_pair(key_pair).map_err(|e| p!(e))?;
@@ -65,7 +65,7 @@ pub fn init(_input: InitInputFfi, _output: &mut InitOutputFfi) -> Result<(), Err
 
 // GetExecutorInfo
 pub fn get_executor_info(
-    _input: GetExecutorInfoInputFfi,
+    _input: &GetExecutorInfoInputFfi,
     output: &mut GetExecutorInfoOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("get_executor_info start");
@@ -77,9 +77,18 @@ pub fn get_executor_info(
     Ok(())
 }
 
+// SetActiveUserId
+pub fn set_active_user_id(
+    input: &SetActiveUserInputFfi,
+    _output: &mut SetActiveUserOutputFfi,
+) -> Result<(), ErrorCode> {
+    log_i!("set_active_user_id called, userId: {}", input.user_id);
+    Ok(())
+}
+
 // OnRegisterFinish
 pub fn host_on_register_finish(
-    input: HostRegisterFinishInputFfi,
+    input: &HostRegisterFinishInputFfi,
     _output: &mut HostRegisterFinishOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_on_register_finish start");
@@ -90,7 +99,7 @@ pub fn host_on_register_finish(
 
 // HostGetPersistedStatus
 pub fn host_get_persisted_status(
-    input: HostGetPersistedStatusInputFfi,
+    input: &HostGetPersistedStatusInputFfi,
     output: &mut HostGetPersistedStatusOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_get_persisted_status start");
@@ -133,7 +142,7 @@ pub fn host_get_persisted_status(
 
 // HostBeginCompanionCheck
 pub fn host_begin_companion_check(
-    input: HostBeginCompanionCheckInputFfi,
+    input: &HostBeginCompanionCheckInputFfi,
     output: &mut HostBeginCompanionCheckOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_companion_check start");
@@ -146,7 +155,7 @@ pub fn host_begin_companion_check(
 
 // HostEndCompanionCheck
 pub fn host_end_companion_check(
-    input: HostEndCompanionCheckInputFfi,
+    input: &HostEndCompanionCheckInputFfi,
     output: &mut HostEndCompanionCheckOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_companion_check start");
@@ -158,7 +167,7 @@ pub fn host_end_companion_check(
 
 // HostCancelCompanionCheck
 pub fn host_cancel_companion_check(
-    input: HostCancelCompanionCheckInputFfi,
+    input: &HostCancelCompanionCheckInputFfi,
     _output: &mut HostCancelCompanionCheckOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_companion_check start");
@@ -168,7 +177,7 @@ pub fn host_cancel_companion_check(
 
 // HostGetInitKeyNegotiation
 pub fn host_get_init_key_negotiation(
-    input: HostGetInitKeyNegotiationInputFfi,
+    input: &HostGetInitKeyNegotiationInputFfi,
     output: &mut HostGetInitKeyNegotiationOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_get_init_key_negotiation start");
@@ -181,7 +190,7 @@ pub fn host_get_init_key_negotiation(
 
 // HostBeginAddCompanion
 pub fn host_begin_add_companion(
-    input: HostBeginAddCompanionInputFfi,
+    input: &HostBeginAddCompanionInputFfi,
     output: &mut HostBeginAddCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_add_companion start");
@@ -193,7 +202,7 @@ pub fn host_begin_add_companion(
 
 // HostEndAddCompanion
 pub fn host_end_add_companion(
-    input: HostEndAddCompanionInputFfi,
+    input: &HostEndAddCompanionInputFfi,
     output: &mut HostEndAddCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_add_companion start");
@@ -205,7 +214,7 @@ pub fn host_end_add_companion(
 
 // HostCancelAddCompanion
 pub fn host_cancel_add_companion(
-    input: HostCancelAddCompanionInputFfi,
+    input: &HostCancelAddCompanionInputFfi,
     _output: &mut HostCancelAddCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_add_companion start");
@@ -215,7 +224,7 @@ pub fn host_cancel_add_companion(
 
 // HostRemoveCompanion
 pub fn host_remove_companion(
-    input: HostRemoveCompanionInputFfi,
+    input: &HostRemoveCompanionInputFfi,
     output: &mut HostRemoveCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_remove_companion start");
@@ -230,7 +239,7 @@ pub fn host_remove_companion(
 
 // HostPreIssueToken
 pub fn host_pre_issue_token(
-    input: HostPreIssueTokenInputFfi,
+    input: &HostPreIssueTokenInputFfi,
     output: &mut HostPreIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_pre_issue_token start");
@@ -243,7 +252,7 @@ pub fn host_pre_issue_token(
 
 // HostBeginIssueToken
 pub fn host_begin_issue_token(
-    input: HostBeginIssueTokenInputFfi,
+    input: &HostBeginIssueTokenInputFfi,
     output: &mut HostBeginIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_issue_token start");
@@ -256,7 +265,7 @@ pub fn host_begin_issue_token(
 
 // HostEndIssueToken
 pub fn host_end_issue_token(
-    input: HostEndIssueTokenInputFfi,
+    input: &HostEndIssueTokenInputFfi,
     output: &mut HostEndIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_issue_token start");
@@ -268,7 +277,7 @@ pub fn host_end_issue_token(
 
 // HostCancelIssueToken
 pub fn host_cancel_issue_token(
-    input: HostCancelIssueTokenInputFfi,
+    input: &HostCancelIssueTokenInputFfi,
     _output: &mut HostCancelIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_issue_token start");
@@ -278,7 +287,7 @@ pub fn host_cancel_issue_token(
 
 // HostBeginTokenAuth
 pub fn host_begin_token_auth(
-    input: HostBeginTokenAuthInputFfi,
+    input: &HostBeginTokenAuthInputFfi,
     output: &mut HostBeginTokenAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_token_auth start");
@@ -291,7 +300,7 @@ pub fn host_begin_token_auth(
 
 // HostEndTokenAuth
 pub fn host_end_token_auth(
-    input: HostEndTokenAuthInputFfi,
+    input: &HostEndTokenAuthInputFfi,
     output: &mut HostEndTokenAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_token_auth start");
@@ -303,7 +312,7 @@ pub fn host_end_token_auth(
 
 // HostRevokeToken
 pub fn host_revoke_token(
-    input: HostRevokeTokenInputFfi,
+    input: &HostRevokeTokenInputFfi,
     _output: &mut HostRevokeTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_revoke_token start");
@@ -313,7 +322,7 @@ pub fn host_revoke_token(
 
 // HostUpdateCompanionStatus
 pub fn host_update_companion_status(
-    input: HostUpdateCompanionStatusInputFfi,
+    input: &HostUpdateCompanionStatusInputFfi,
     _output: &mut HostUpdateCompanionStatusOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_update_companion_status start");
@@ -327,7 +336,7 @@ pub fn host_update_companion_status(
 
 // HostUpdateCompanionEnabledBusinessIds
 pub fn host_update_companion_enabled_business_ids(
-    input: HostUpdateCompanionEnabledBusinessIdsInputFfi,
+    input: &HostUpdateCompanionEnabledBusinessIdsInputFfi,
     _output: &mut HostUpdateCompanionEnabledBusinessIdsOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_update_companion_enabled_business_ids start");
@@ -340,7 +349,7 @@ pub fn host_update_companion_enabled_business_ids(
 
 // HostBeginDelegateAuth
 pub fn host_begin_delegate_auth(
-    input: HostBeginDelegateAuthInputFfi,
+    input: &HostBeginDelegateAuthInputFfi,
     output: &mut HostBeginDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_delegate_auth start");
@@ -353,7 +362,7 @@ pub fn host_begin_delegate_auth(
 
 // HostEndDelegateAuth
 pub fn host_end_delegate_auth(
-    input: HostEndDelegateAuthInputFfi,
+    input: &HostEndDelegateAuthInputFfi,
     output: &mut HostEndDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_delegate_auth start");
@@ -365,7 +374,7 @@ pub fn host_end_delegate_auth(
 
 // HostCancelDelegateAuth
 pub fn host_cancel_delegate_auth(
-    input: HostCancelDelegateAuthInputFfi,
+    input: &HostCancelDelegateAuthInputFfi,
     _output: &mut HostCancelDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_delegate_auth start");
@@ -375,7 +384,7 @@ pub fn host_cancel_delegate_auth(
 
 // HostProcessPreObtainToken
 pub fn host_process_pre_obtain_token(
-    input: HostProcessPreObtainTokenInputFfi,
+    input: &HostProcessPreObtainTokenInputFfi,
     output: &mut HostProcessPreObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_process_pre_obtain_token start");
@@ -388,7 +397,7 @@ pub fn host_process_pre_obtain_token(
 
 // HostProcessObtainToken
 pub fn host_process_obtain_token(
-    input: HostProcessObtainTokenInputFfi,
+    input: &HostProcessObtainTokenInputFfi,
     output: &mut HostProcessObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_process_obtain_token start");
@@ -400,7 +409,7 @@ pub fn host_process_obtain_token(
 
 // HostCancelObtainToken
 pub fn host_cancel_obtain_token(
-    input: HostCancelObtainTokenInputFfi,
+    input: &HostCancelObtainTokenInputFfi,
     _output: &mut HostCancelObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_obtain_token start");
@@ -408,18 +417,9 @@ pub fn host_cancel_obtain_token(
     Ok(())
 }
 
-// HostActivateToken
-pub fn host_active_token(
-    _input: HostActivateTokenInputFfi,
-    _output: &mut HostActivateTokenOutputFfi,
-) -> Result<(), ErrorCode> {
-    log_i!("host_active_token start");
-    Ok(())
-}
-
 // HostCheckTemplateEnrolled
 pub fn host_check_template_enrolled(
-    input: HostCheckTemplateEnrolledInputFfi,
+    input: &HostCheckTemplateEnrolledInputFfi,
     output: &mut HostCheckTemplateEnrolledOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_check_template_enrolled start, template_id:{:x}", input.template_id as u16);
@@ -442,7 +442,7 @@ pub fn host_check_template_enrolled(
 }
 
 pub fn host_update_token(
-    input: HostUpdateTokenInputFfi,
+    input: &HostUpdateTokenInputFfi,
     output: &mut HostUpdateTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_update_token start");
@@ -473,7 +473,7 @@ pub fn host_update_token(
 
 // CompanionGetPersistedStatus
 pub fn companion_get_persisted_status(
-    input: CompanionGetPersistedStatusInputFfi,
+    input: &CompanionGetPersistedStatusInputFfi,
     output: &mut CompanionGetPersistedStatusOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_get_persisted_status start");
@@ -493,7 +493,7 @@ pub fn companion_get_persisted_status(
 
 // CompanionProcessCheck
 pub fn companion_process_check(
-    input: CompanionProcessCheckInputFfi,
+    input: &CompanionProcessCheckInputFfi,
     output: &mut CompanionProcessCheckOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_process_check start");
@@ -505,7 +505,7 @@ pub fn companion_process_check(
 
 // CompanionInitKeyNegotiation
 pub fn companion_init_key_negotiation(
-    input: CompanionInitKeyNegotiationInputFfi,
+    input: &CompanionInitKeyNegotiationInputFfi,
     output: &mut CompanionInitKeyNegotiationOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_init_key_negotiation start");
@@ -518,7 +518,7 @@ pub fn companion_init_key_negotiation(
 
 // CompanionBeginAddHostBinding
 pub fn companion_begin_add_host_binding(
-    input: CompanionBeginAddHostBindingInputFfi,
+    input: &CompanionBeginAddHostBindingInputFfi,
     output: &mut CompanionBeginAddHostBindingOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_begin_add_host_binding start");
@@ -530,7 +530,7 @@ pub fn companion_begin_add_host_binding(
 
 // CompanionEndAddHostBinding
 pub fn companion_end_add_host_binding(
-    input: CompanionEndAddHostBindingInputFfi,
+    input: &CompanionEndAddHostBindingInputFfi,
     output: &mut CompanionEndAddHostBindingOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_end_add_host_binding start");
@@ -542,7 +542,7 @@ pub fn companion_end_add_host_binding(
 
 // CompanionRemoveHostBinding
 pub fn companion_remove_host_binding(
-    input: CompanionRemoveHostBindingInputFfi,
+    input: &CompanionRemoveHostBindingInputFfi,
     _output: &mut CompanionRemoveHostBindingOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_remove_host_binding start");
@@ -552,7 +552,7 @@ pub fn companion_remove_host_binding(
 
 // CompanionPreIssueToken
 pub fn companion_pre_issue_token(
-    input: CompanionPreIssueTokenInputFfi,
+    input: &CompanionPreIssueTokenInputFfi,
     output: &mut CompanionPreIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     let mut issue_token_request = CompanionDeviceIssueTokenRequest::new(&input)?;
@@ -564,7 +564,7 @@ pub fn companion_pre_issue_token(
 
 // CompanionProcessIssueToken
 pub fn companion_process_issue_token(
-    input: CompanionProcessIssueTokenInputFfi,
+    input: &CompanionProcessIssueTokenInputFfi,
     output: &mut CompanionProcessIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_process_issue_token start");
@@ -576,7 +576,7 @@ pub fn companion_process_issue_token(
 
 // CompanionCancelIssueToken
 pub fn companion_cancel_issue_token(
-    input: CompanionCancelIssueTokenInputFfi,
+    input: &CompanionCancelIssueTokenInputFfi,
     _output: &mut CompanionCancelIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_cancel_issue_token start");
@@ -586,7 +586,7 @@ pub fn companion_cancel_issue_token(
 
 // CompanionProcessTokenAuth
 pub fn companion_process_token_auth(
-    input: CompanionProcessTokenAuthInputFfi,
+    input: &CompanionProcessTokenAuthInputFfi,
     output: &mut CompanionProcessTokenAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_process_token_auth start");
@@ -598,7 +598,7 @@ pub fn companion_process_token_auth(
 
 // CompanionRevokeToken
 pub fn companion_revoke_token(
-    input: CompanionRevokeTokenInputFfi,
+    input: &CompanionRevokeTokenInputFfi,
     _output: &mut CompanionRevokeTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_revoke_token start");
@@ -608,7 +608,7 @@ pub fn companion_revoke_token(
 
 // CompanionBeginDelegateAuth
 pub fn companion_begin_delegate_auth(
-    input: CompanionBeginDelegateAuthInputFfi,
+    input: &CompanionBeginDelegateAuthInputFfi,
     output: &mut CompanionBeginDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_begin_delegate_auth start");
@@ -621,7 +621,7 @@ pub fn companion_begin_delegate_auth(
 
 // CompanionEndDelegateAuth
 pub fn companion_end_delegate_auth(
-    input: CompanionEndDelegateAuthInputFfi,
+    input: &CompanionEndDelegateAuthInputFfi,
     output: &mut CompanionEndDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_end_delegate_auth start");
@@ -633,7 +633,7 @@ pub fn companion_end_delegate_auth(
 
 // CompanionBeginObtainToken
 pub fn companion_begin_obtain_token(
-    input: CompanionBeginObtainTokenInputFfi,
+    input: &CompanionBeginObtainTokenInputFfi,
     output: &mut CompanionBeginObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_begin_obtain_token start");
@@ -646,7 +646,7 @@ pub fn companion_begin_obtain_token(
 
 // CompanionEndObtainToken
 pub fn companion_end_obtain_token(
-    input: CompanionEndObtainTokenInputFfi,
+    input: &CompanionEndObtainTokenInputFfi,
     output: &mut CompanionEndObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_end_obtain_token start");
@@ -658,7 +658,7 @@ pub fn companion_end_obtain_token(
 
 // CompanionCancelObtainToken
 pub fn companion_cancel_obtain_token(
-    input: CompanionCancelObtainTokenInputFfi,
+    input: &CompanionCancelObtainTokenInputFfi,
     _output: &mut CompanionCancelObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_cancel_obtain_token start");

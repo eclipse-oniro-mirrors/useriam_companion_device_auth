@@ -137,10 +137,6 @@ struct HostCancelAddCompanionInput {
     RequestId requestId;
 };
 
-struct HostActivateTokenInput {
-    RequestId requestId;
-};
-
 struct CompanionInitKeyNegotiationInput {
     RequestId requestId;
     SecureProtocolId secureProtocolId;
@@ -451,7 +447,6 @@ public:
     virtual ResultCode HostEndAddCompanion(const HostEndAddCompanionInput &input,
         HostEndAddCompanionOutput &output) = 0;
     virtual ResultCode HostCancelAddCompanion(const HostCancelAddCompanionInput &input) = 0;
-    virtual ResultCode HostActivateToken(const HostActivateTokenInput &input) = 0;
 
     virtual ResultCode CompanionInitKeyNegotiation(const CompanionInitKeyNegotiationInput &input,
         CompanionInitKeyNegotiationOutput &output) = 0;

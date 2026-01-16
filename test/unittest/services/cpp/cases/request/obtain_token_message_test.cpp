@@ -26,6 +26,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+constexpr int32_t INT32_100 = 100;
+constexpr int32_t INT32_200 = 200;
 
 class ObtainTokenMessageTest : public Test {
 public:
@@ -39,9 +41,8 @@ public:
 protected:
     DeviceKey companionDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "companion_device_id",
-        .deviceUserId = 200 };
-    int32_t hostUserId_ = 100;
-    int32_t requestId_ = 12345;
+        .deviceUserId = INT32_200 };
+    int32_t hostUserId_ = INT32_100;
     std::vector<uint8_t> extraInfo_ = { 1, 2, 3, 4, 5 };
 };
 

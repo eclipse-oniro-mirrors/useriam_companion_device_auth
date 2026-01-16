@@ -161,9 +161,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
     "../common_fuzzer_config:fuzz_common_config",
   ]
 
-  include_dirs = companion_device_auth_fake_include_dirs + [
-                   "fuzz_helpers",
-                 ]
+  include_dirs = companion_device_auth_fake_include_dirs + [ "fuzz_helpers" ]
 
   deps = companion_device_auth_service_deps
 

@@ -23,6 +23,7 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
+#include "mock_companion_manager.h"
 #include "mock_cross_device_comm_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_factory.h"
@@ -36,6 +37,10 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+
+constexpr int32_t INT32_100 = 100;
+constexpr int32_t INT32_200 = 200;
+constexpr uint32_t UINT32_12345 = 12345;
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
@@ -98,7 +103,18 @@ public:
         ON_CALL(mockCrossDeviceCommManager_, SubscribeIsAuthMaintainActive(_))
             .WillByDefault(Return(ByMove(MakeSubscription())));
         ON_CALL(mockCrossDeviceCommManager_, IsAuthMaintainActive()).WillByDefault(Return(true));
-        ON_CALL(mockSecurityAgent_, CompanionRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+        CompanionStatus mockCompanionStatus = {};
+        mockCompanionStatus.templateId = UINT32_12345;
+        mockCompanionStatus.hostUserId = INT32_100;
+        mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+        mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+        mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+        mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+        mockCompanionStatus.isValid = true;
+        mockCompanionStatus.tokenAtl = std::nullopt;
+        ON_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+        ON_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
         ON_CALL(mockRequestFactory_, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
         ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
     }
@@ -116,11 +132,12 @@ protected:
     NiceMock<MockRequestFactory> mockRequestFactory_;
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockCompanionManager> mockCompanionManager_;
 };
 
 HWTEST_F(HostBindingTest, Create_001, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
 
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeIsAuthMaintainActive(_))
@@ -129,14 +146,14 @@ HWTEST_F(HostBindingTest, Create_001, TestSize.Level0)
     auto binding = HostBinding::Create(persistedStatus);
 
     EXPECT_NE(nullptr, binding);
-    EXPECT_EQ(12345, binding->GetBindingId());
-    EXPECT_EQ(100, binding->GetCompanionUserId());
+    EXPECT_EQ(UINT32_12345, binding->GetBindingId());
+    EXPECT_EQ(INT32_100, binding->GetCompanionUserId());
     EXPECT_EQ("test_device_id", binding->GetHostDeviceKey().deviceId);
 }
 
 HWTEST_F(HostBindingTest, Create_002, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
 
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(nullptr));
 
@@ -147,7 +164,7 @@ HWTEST_F(HostBindingTest, Create_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, Create_003, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
 
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeIsAuthMaintainActive(_)).WillOnce(Return(nullptr));
@@ -159,7 +176,7 @@ HWTEST_F(HostBindingTest, Create_003, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_001, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     DeviceKey deviceKey = persistedStatus.hostDeviceKey;
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -174,7 +191,7 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_002, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     DeviceKey deviceKey = persistedStatus.hostDeviceKey;
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -190,7 +207,7 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleHostDeviceStatusUpdate_001, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     DeviceKey deviceKey = persistedStatus.hostDeviceKey;
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -205,7 +222,7 @@ HWTEST_F(HostBindingTest, HandleHostDeviceStatusUpdate_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleHostDeviceOffline_001, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
@@ -220,7 +237,7 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleHostDeviceOffline_002, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
@@ -233,7 +250,7 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_001, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
@@ -244,7 +261,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_002, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
@@ -259,7 +276,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_003, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
@@ -272,7 +289,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_003, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_001, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
@@ -283,11 +300,10 @@ HWTEST_F(HostBindingTest, SetTokenValid_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_002, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    EXPECT_CALL(mockSecurityAgent_, CompanionRevokeToken(_)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(mockRequestFactory_, CreateCompanionRevokeTokenRequest(_, _)).WillOnce(Return(nullptr));
 
     binding->status_.isTokenValid = true;
@@ -298,11 +314,10 @@ HWTEST_F(HostBindingTest, SetTokenValid_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_003, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    EXPECT_CALL(mockSecurityAgent_, CompanionRevokeToken(_)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(mockRequestFactory_, CreateCompanionRevokeTokenRequest(_, _))
         .WillOnce(Invoke([](UserId companionUserId, const DeviceKey &hostDeviceKey) {
             return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey);
@@ -317,11 +332,10 @@ HWTEST_F(HostBindingTest, SetTokenValid_003, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_004, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    EXPECT_CALL(mockSecurityAgent_, CompanionRevokeToken(_)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(mockRequestFactory_, CreateCompanionRevokeTokenRequest(_, _))
         .WillOnce(Invoke([](UserId companionUserId, const DeviceKey &hostDeviceKey) {
             return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey);
@@ -336,7 +350,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_004, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_005, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
@@ -349,7 +363,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_005, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, Destructor_001, TestSize.Level0)
 {
-    auto persistedStatus = MakePersistedStatus(12345, 100, "test_device_id", 200);
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 

@@ -73,13 +73,13 @@ bool LocalDeviceStatusManager::Init()
     profile_.companionSecureProtocolId = primaryChannel->GetCompanionSecureProtocolId();
 
     auto weakSelf2 = weak_from_this();
-    activeUserIdSubscription_ = GetActiveUserIdManager().SubscribeActiveUserId([weakSelf2](UserId userId) {
+    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf2](UserId userId) {
         auto self = weakSelf2.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->OnActiveUserIdChanged(userId);
     });
     ENSURE_OR_RETURN_VAL(activeUserIdSubscription_ != nullptr, false);
-    OnActiveUserIdChanged(GetActiveUserIdManager().GetActiveUserId());
+    OnActiveUserIdChanged(GetUserIdManager().GetActiveUserId());
 
     return true;
 }
@@ -149,7 +149,7 @@ std::optional<DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKey(ChannelId c
     DeviceKey deviceKey;
     deviceKey.idType = physicalKey.idType;
     deviceKey.deviceId = physicalKey.deviceId;
-    deviceKey.deviceUserId = GetActiveUserIdManager().GetActiveUserId();
+    deviceKey.deviceUserId = GetUserIdManager().GetActiveUserId();
 
     return deviceKey;
 }

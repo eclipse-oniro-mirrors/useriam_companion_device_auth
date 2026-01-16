@@ -53,7 +53,6 @@ public:
     ResultCode BeginAddCompanion(const BeginAddCompanionParams &params,
         std::vector<uint8_t> &outAddHostBindingRequest) override;
     ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) override;
-    ResultCode ActivateToken(RequestId requestId, TemplateId templateId, Atl atl) override;
     ResultCode RemoveCompanion(TemplateId templateId) override;
 
     ResultCode UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
@@ -67,7 +66,6 @@ public:
 
     void StartIssueTokenRequests(const std::vector<TemplateId> &templateIds,
         const std::vector<uint8_t> &fwkUnlockMsg) override;
-    void RevokeTokens(const std::vector<TemplateId> &templateIds) override;
 
     void NotifyCompanionStatusChange() override;
 

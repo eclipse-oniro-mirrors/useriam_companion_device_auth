@@ -414,12 +414,6 @@ bool DecodeHostEndIssueTokenOutput(const HostEndIssueTokenOutputFfi &ffi, Atl &a
     return true;
 }
 
-bool EncodeHostActivateTokenInput(const HostActivateTokenInput &input, HostActivateTokenInputFfi &ffi)
-{
-    ffi.requestId = input.requestId;
-    return true;
-}
-
 bool EncodeHostBeginTokenAuthInput(const HostBeginTokenAuthInput &input, HostBeginTokenAuthInputFfi &ffi)
 {
     ffi.requestId = input.requestId;
@@ -565,12 +559,7 @@ bool EncodeCompanionProcessCheckInput(const CompanionProcessCheckInput &input, C
         return false;
     }
 
-    if (input.salt.size() != SALT_LEN_FFI) {
-        IAM_LOGE("Salt size mismatch: %{public}zu != %{public}u", input.salt.size(), SALT_LEN_FFI);
-        return false;
-    }
-    if (memcpy_s(ffi.salt, SALT_LEN_FFI, input.salt.data(), SALT_LEN_FFI) != EOK) {
-        IAM_LOGE("Failed to copy salt");
+    if (!VectorToFfiArray(input.salt, ffi.salt, "salt")) {
         return false;
     }
 
@@ -712,17 +701,7 @@ bool EncodeCompanionEndDelegateAuthInput(const CompanionDelegateAuthEndInput &in
     ffi.requestId = input.requestId;
     ffi.result = static_cast<int32_t>(input.resultCode);
 
-    if (input.authToken.size() != AUTH_TOKEN_SIZE_FFI) {
-        IAM_LOGE("Auth token size mismatch: %{public}zu != %{public}u", input.authToken.size(), AUTH_TOKEN_SIZE_FFI);
-        return false;
-    }
-
-    if (memcpy_s(ffi.authToken, AUTH_TOKEN_SIZE_FFI, input.authToken.data(), AUTH_TOKEN_SIZE_FFI) != EOK) {
-        IAM_LOGE("Failed to copy auth token");
-        return false;
-    }
-
-    return true;
+    return VectorToFfiArray(input.authToken, ffi.authToken, "auth token");
 }
 
 bool DecodeCompanionEndDelegateAuthOutput(const CompanionEndDelegateAuthOutputFfi &ffi,

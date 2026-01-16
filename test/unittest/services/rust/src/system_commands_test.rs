@@ -140,7 +140,7 @@ fn init_test_success() {
 
     let input = InitInputFfi::default();
     let mut output = InitOutputFfi::default();
-    let result = init(input, &mut output);
+    let result = init(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -157,7 +157,7 @@ fn init_test_crypto_engine_fail() {
 
     let input = InitInputFfi::default();
     let mut output = InitOutputFfi::default();
-    let result = init(input, &mut output);
+    let result = init(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -180,7 +180,7 @@ fn init_test_misc_manager_fail() {
 
     let input = InitInputFfi::default();
     let mut output = InitOutputFfi::default();
-    let result = init(input, &mut output);
+    let result = init(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -211,7 +211,7 @@ fn init_test_host_db_fail() {
 
     let input = InitInputFfi::default();
     let mut output = InitOutputFfi::default();
-    let result = init(input, &mut output);
+    let result = init(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -238,7 +238,7 @@ fn init_test_companion_db_fail() {
 
     let input = InitInputFfi::default();
     let mut output = InitOutputFfi::default();
-    let result = init(input, &mut output);
+    let result = init(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -255,7 +255,7 @@ fn get_executor_info_test_success() {
 
     let input = GetExecutorInfoInputFfi::default();
     let mut output = GetExecutorInfoOutputFfi { esl: 0, max_template_acl: 0, public_key: DataArray1024Ffi::default() };
-    let result = get_executor_info(input, &mut output);
+    let result = get_executor_info(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.esl, ExecutorSecurityLevel::Esl3 as i32);
     assert_eq!(output.max_template_acl, AuthCapabilityLevel::Acl3 as i32);
@@ -275,7 +275,7 @@ fn get_executor_info_test_fail() {
 
     let input = GetExecutorInfoInputFfi::default();
     let mut output = GetExecutorInfoOutputFfi { esl: 0, max_template_acl: 0, public_key: DataArray1024Ffi::default() };
-    let result = get_executor_info(input, &mut output);
+    let result = get_executor_info(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -302,7 +302,7 @@ fn host_on_register_finish_test_success() {
     input.template_ids.data[0] = 123;
     input.template_ids.len = 1;
     let mut output = HostRegisterFinishOutputFfi::default();
-    let result = host_on_register_finish(input, &mut output);
+    let result = host_on_register_finish(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -325,7 +325,7 @@ fn host_on_register_finish_test_misc_manager_fail() {
     input.template_ids.data[0] = 123;
     input.template_ids.len = 1;
     let mut output = HostRegisterFinishOutputFfi::default();
-    let result = host_on_register_finish(input, &mut output);
+    let result = host_on_register_finish(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -355,7 +355,7 @@ fn host_on_register_finish_test_remove_device_success() {
     input.template_ids.data[0] = 456;
     input.template_ids.len = 1;
     let mut output = HostRegisterFinishOutputFfi::default();
-    let result = host_on_register_finish(input, &mut output);
+    let result = host_on_register_finish(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -385,7 +385,7 @@ fn host_on_register_finish_test_remove_device_fail() {
     input.template_ids.data[0] = 456;
     input.template_ids.len = 1;
     let mut output = HostRegisterFinishOutputFfi::default();
-    let result = host_on_register_finish(input, &mut output);
+    let result = host_on_register_finish(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -405,7 +405,7 @@ fn host_get_persisted_status_test_success_with_devices() {
 
     let input = HostGetPersistedStatusInputFfi { user_id: 100 };
     let mut output = HostGetPersistedStatusOutputFfi { companion_status_list: CompanionStatusArrayFfi::default() };
-    let result = host_get_persisted_status(input, &mut output);
+    let result = host_get_persisted_status(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.companion_status_list.len, 1);
 }
@@ -421,7 +421,7 @@ fn host_get_persisted_status_test_success_no_devices() {
 
     let input = HostGetPersistedStatusInputFfi { user_id: 100 };
     let mut output = HostGetPersistedStatusOutputFfi { companion_status_list: CompanionStatusArrayFfi::default() };
-    let result = host_get_persisted_status(input, &mut output);
+    let result = host_get_persisted_status(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.companion_status_list.len, 0);
 }
@@ -442,7 +442,7 @@ fn host_get_persisted_status_test_read_device_base_info_fail() {
 
     let input = HostGetPersistedStatusInputFfi { user_id: 100 };
     let mut output = HostGetPersistedStatusOutputFfi { companion_status_list: CompanionStatusArrayFfi::default() };
-    let result = host_get_persisted_status(input, &mut output);
+    let result = host_get_persisted_status(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -460,8 +460,8 @@ fn host_begin_companion_check_test_success() {
     HostRequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
-    let mut output = HostBeginCompanionCheckOutputFfi { challenge: 0, salt: [0u8; SALT_LEN_FFI] };
-    let result = host_begin_companion_check(input, &mut output);
+    let mut output = HostBeginCompanionCheckOutputFfi { challenge: 0, salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 } };
+    let result = host_begin_companion_check(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -477,8 +477,8 @@ fn host_begin_companion_check_test_request_new_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
-    let mut output = HostBeginCompanionCheckOutputFfi { challenge: 0, salt: [0u8; SALT_LEN_FFI] };
-    let result = host_begin_companion_check(input, &mut output);
+    let mut output = HostBeginCompanionCheckOutputFfi { challenge: 0, salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 } };
+    let result = host_begin_companion_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -498,8 +498,8 @@ fn host_begin_companion_check_test_add_request_fail() {
     HostRequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
-    let mut output = HostBeginCompanionCheckOutputFfi { challenge: 0, salt: [0u8; SALT_LEN_FFI] };
-    let result = host_begin_companion_check(input, &mut output);
+    let mut output = HostBeginCompanionCheckOutputFfi { challenge: 0, salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 } };
+    let result = host_begin_companion_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -540,7 +540,7 @@ fn host_end_companion_check_test_success() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndCompanionCheckOutputFfi::default();
-    let result = host_end_companion_check(input, &mut output);
+    let result = host_end_companion_check(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -564,7 +564,7 @@ fn host_end_companion_check_test_remove_request_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndCompanionCheckOutputFfi::default();
-    let result = host_end_companion_check(input, &mut output);
+    let result = host_end_companion_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -604,7 +604,7 @@ fn host_end_companion_check_test_request_end_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndCompanionCheckOutputFfi::default();
-    let result = host_end_companion_check(input, &mut output);
+    let result = host_end_companion_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -628,7 +628,7 @@ fn host_cancel_companion_check_test_success() {
 
     let input = HostCancelCompanionCheckInputFfi { request_id: 1 };
     let mut output = HostCancelCompanionCheckOutputFfi::default();
-    let result = host_cancel_companion_check(input, &mut output);
+    let result = host_cancel_companion_check(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -645,7 +645,7 @@ fn host_cancel_companion_check_test_fail() {
 
     let input = HostCancelCompanionCheckInputFfi { request_id: 1 };
     let mut output = HostCancelCompanionCheckOutputFfi::default();
-    let result = host_cancel_companion_check(input, &mut output);
+    let result = host_cancel_companion_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -664,7 +664,7 @@ fn host_get_init_key_negotiation_test_success() {
 
     let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
     let mut output = HostGetInitKeyNegotiationOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_get_init_key_negotiation(input, &mut output);
+    let result = host_get_init_key_negotiation(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -681,7 +681,7 @@ fn host_get_init_key_negotiation_test_request_new_fail() {
 
     let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
     let mut output = HostGetInitKeyNegotiationOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_get_init_key_negotiation(input, &mut output);
+    let result = host_get_init_key_negotiation(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -702,7 +702,7 @@ fn host_get_init_key_negotiation_test_add_request_fail() {
 
     let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
     let mut output = HostGetInitKeyNegotiationOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_get_init_key_negotiation(input, &mut output);
+    let result = host_get_init_key_negotiation(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -760,7 +760,7 @@ fn host_begin_add_companion_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let result = host_begin_add_companion(input, &mut output);
+    let result = host_begin_add_companion(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -783,7 +783,7 @@ fn host_begin_add_companion_test_get_request_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let result = host_begin_add_companion(input, &mut output);
+    let result = host_begin_add_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -821,7 +821,7 @@ fn host_begin_add_companion_test_request_begin_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let result = host_begin_add_companion(input, &mut output);
+    let result = host_begin_add_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -865,7 +865,7 @@ fn host_end_add_companion_test_success() {
 
     let input = HostEndAddCompanionInputFfi::default();
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let result = host_end_add_companion(input, &mut output);
+    let result = host_end_add_companion(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -882,7 +882,7 @@ fn host_end_add_companion_test_remove_request_fail() {
 
     let input = HostEndAddCompanionInputFfi::default();
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let result = host_end_add_companion(input, &mut output);
+    let result = host_end_add_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -914,7 +914,7 @@ fn host_end_add_companion_test_request_end_fail() {
 
     let input = HostEndAddCompanionInputFfi::default();
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let result = host_end_add_companion(input, &mut output);
+    let result = host_end_add_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -938,7 +938,7 @@ fn host_cancel_add_companion_test_success() {
 
     let input = HostCancelAddCompanionInputFfi { request_id: 1 };
     let mut output = HostCancelAddCompanionOutputFfi::default();
-    let result = host_cancel_add_companion(input, &mut output);
+    let result = host_cancel_add_companion(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -955,7 +955,7 @@ fn host_cancel_add_companion_test_fail() {
 
     let input = HostCancelAddCompanionInputFfi { request_id: 1 };
     let mut output = HostCancelAddCompanionOutputFfi::default();
-    let result = host_cancel_add_companion(input, &mut output);
+    let result = host_cancel_add_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -975,7 +975,7 @@ fn host_remove_companion_test_success() {
 
     let input = HostRemoveCompanionInputFfi { template_id: 123 };
     let mut output = HostRemoveCompanionOutputFfi { user_id: 0, companion_device_key: DeviceKeyFfi::default() };
-    let result = host_remove_companion(input, &mut output);
+    let result = host_remove_companion(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.user_id, 100);
 }
@@ -991,7 +991,7 @@ fn host_remove_companion_test_fail_get_device() {
 
     let input = HostRemoveCompanionInputFfi { template_id: 123 };
     let mut output = HostRemoveCompanionOutputFfi { user_id: 0, companion_device_key: DeviceKeyFfi::default() };
-    let result = host_remove_companion(input, &mut output);
+    let result = host_remove_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -1011,7 +1011,7 @@ fn host_remove_companion_test_fail_remove_device() {
 
     let input = HostRemoveCompanionInputFfi { template_id: 123 };
     let mut output = HostRemoveCompanionOutputFfi { user_id: 0, companion_device_key: DeviceKeyFfi::default() };
-    let result = host_remove_companion(input, &mut output);
+    let result = host_remove_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1065,7 +1065,7 @@ fn host_pre_issue_token_test_success() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
     };
     let mut output = HostPreIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_pre_issue_token(input, &mut output);
+    let result = host_pre_issue_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1082,7 +1082,7 @@ fn host_pre_issue_token_test_request_new_fail() {
 
     let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut output = HostPreIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_pre_issue_token(input, &mut output);
+    let result = host_pre_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1103,7 +1103,7 @@ fn host_pre_issue_token_test_request_prepare_fail() {
 
     let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut output = HostPreIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_pre_issue_token(input, &mut output);
+    let result = host_pre_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1159,7 +1159,7 @@ fn host_pre_issue_token_test_add_request_fail() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
     };
     let mut output = HostPreIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_pre_issue_token(input, &mut output);
+    let result = host_pre_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1204,7 +1204,7 @@ fn host_begin_issue_token_test_success() {
     let input =
         HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
     let mut output = HostBeginIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_issue_token(input, &mut output);
+    let result = host_begin_issue_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1220,7 +1220,7 @@ fn host_begin_issue_token_test_get_request_fail() {
     let input =
         HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
     let mut output = HostBeginIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_issue_token(input, &mut output);
+    let result = host_begin_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -1252,7 +1252,7 @@ fn host_begin_issue_token_test_request_begin_fail() {
     let input =
         HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
     let mut output = HostBeginIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_issue_token(input, &mut output);
+    let result = host_begin_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1279,7 +1279,7 @@ fn host_end_issue_token_test_success() {
     let input =
         HostEndIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
     let mut output = HostEndIssueTokenOutputFfi::default();
-    let result = host_end_issue_token(input, &mut output);
+    let result = host_end_issue_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1297,7 +1297,7 @@ fn host_end_issue_token_test_remove_request_fail() {
     let input =
         HostEndIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
     let mut output = HostEndIssueTokenOutputFfi::default();
-    let result = host_end_issue_token(input, &mut output);
+    let result = host_end_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1322,7 +1322,7 @@ fn host_cancel_issue_token_test_success() {
 
     let input = HostCancelIssueTokenInputFfi { request_id: 1 };
     let mut output = HostCancelIssueTokenOutputFfi::default();
-    let result = host_cancel_issue_token(input, &mut output);
+    let result = host_cancel_issue_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1339,7 +1339,7 @@ fn host_cancel_issue_token_test_fail() {
 
     let input = HostCancelIssueTokenInputFfi { request_id: 1 };
     let mut output = HostCancelIssueTokenOutputFfi::default();
-    let result = host_cancel_issue_token(input, &mut output);
+    let result = host_cancel_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -1403,7 +1403,7 @@ fn host_begin_token_auth_test_success() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
     };
     let mut output = HostBeginTokenAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_token_auth(input, &mut output);
+    let result = host_begin_token_auth(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1425,7 +1425,7 @@ fn host_begin_token_auth_test_request_new_fail() {
         fwk_message: DataArray1024Ffi::default(),
     };
     let mut output = HostBeginTokenAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_token_auth(input, &mut output);
+    let result = host_begin_token_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1451,7 +1451,7 @@ fn host_begin_token_auth_test_request_begin_fail() {
         fwk_message: DataArray1024Ffi::default(),
     };
     let mut output = HostBeginTokenAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_token_auth(input, &mut output);
+    let result = host_begin_token_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1517,7 +1517,7 @@ fn host_begin_token_auth_test_add_request_fail() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
     };
     let mut output = HostBeginTokenAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_token_auth(input, &mut output);
+    let result = host_begin_token_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1570,7 +1570,7 @@ fn host_end_token_auth_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = HostEndTokenAuthOutputFfi { fwk_message: DataArray1024Ffi::default() };
-    let result = host_end_token_auth(input, &mut output);
+    let result = host_end_token_auth(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1592,7 +1592,7 @@ fn host_end_token_auth_test_remove_request_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndTokenAuthOutputFfi { fwk_message: DataArray1024Ffi::default() };
-    let result = host_end_token_auth(input, &mut output);
+    let result = host_end_token_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1626,7 +1626,7 @@ fn host_end_token_auth_test_request_end_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndTokenAuthOutputFfi { fwk_message: DataArray1024Ffi::default() };
-    let result = host_end_token_auth(input, &mut output);
+    let result = host_end_token_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1643,7 +1643,7 @@ fn host_revoke_token_test_success() {
 
     let input = HostRevokeTokenInputFfi { template_id: 123 };
     let mut output = HostRevokeTokenOutputFfi::default();
-    let result = host_revoke_token(input, &mut output);
+    let result = host_revoke_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1660,7 +1660,7 @@ fn host_revoke_token_test_fail() {
 
     let input = HostRevokeTokenInputFfi { template_id: 123 };
     let mut output = HostRevokeTokenOutputFfi::default();
-    let result = host_revoke_token(input, &mut output);
+    let result = host_revoke_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -1682,7 +1682,7 @@ fn host_update_companion_status_test_success() {
         device_user_name: DataArray256Ffi::default(),
     };
     let mut output = HostUpdateCompanionStatusOutputFfi::default();
-    let result = host_update_companion_status(input, &mut output);
+    let result = host_update_companion_status(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1703,7 +1703,7 @@ fn host_update_companion_status_test_fail() {
         device_user_name: DataArray256Ffi::default(),
     };
     let mut output = HostUpdateCompanionStatusOutputFfi::default();
-    let result = host_update_companion_status(input, &mut output);
+    let result = host_update_companion_status(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1725,7 +1725,7 @@ fn host_update_companion_enabled_business_ids_test_success() {
     let input =
         HostUpdateCompanionEnabledBusinessIdsInputFfi { template_id: 123, business_ids: Int32Array64Ffi::default() };
     let mut output = HostUpdateCompanionEnabledBusinessIdsOutputFfi::default();
-    let result = host_update_companion_enabled_business_ids(input, &mut output);
+    let result = host_update_companion_enabled_business_ids(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1741,7 +1741,7 @@ fn host_update_companion_enabled_business_ids_test_fail() {
     let input =
         HostUpdateCompanionEnabledBusinessIdsInputFfi { template_id: 123, business_ids: Int32Array64Ffi::default() };
     let mut output = HostUpdateCompanionEnabledBusinessIdsOutputFfi::default();
-    let result = host_update_companion_enabled_business_ids(input, &mut output);
+    let result = host_update_companion_enabled_business_ids(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -1758,7 +1758,7 @@ fn host_check_template_enrolled_test_success() {
 
     let input = HostCheckTemplateEnrolledInputFfi { template_id: 123 };
     let mut output = HostCheckTemplateEnrolledOutputFfi { enrolled: 10 };
-    let result = host_check_template_enrolled(input, &mut output);
+    let result = host_check_template_enrolled(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.enrolled, 1);
 }
@@ -1774,7 +1774,7 @@ fn host_check_template_enrolled_test_not_found() {
 
     let input = HostCheckTemplateEnrolledInputFfi { template_id: 123 };
     let mut output = HostCheckTemplateEnrolledOutputFfi { enrolled: 10 };
-    let result = host_check_template_enrolled(input, &mut output);
+    let result = host_check_template_enrolled(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.enrolled, 0);
 }
@@ -1792,7 +1792,7 @@ fn host_check_template_enrolled_test_fail() {
 
     let input = HostCheckTemplateEnrolledInputFfi { template_id: 123 };
     let mut output = HostCheckTemplateEnrolledOutputFfi { enrolled: 10 };
-    let result = host_check_template_enrolled(input, &mut output);
+    let result = host_check_template_enrolled(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
     assert_eq!(output.enrolled, 10);
 }
@@ -1846,7 +1846,7 @@ fn host_begin_delegate_auth_test_success() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
     };
     let mut output = HostBeginDelegateAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_delegate_auth(input, &mut output);
+    let result = host_begin_delegate_auth(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -1868,7 +1868,7 @@ fn host_begin_delegate_auth_test_request_new_fail() {
         fwk_message: DataArray1024Ffi::default(),
     };
     let mut output = HostBeginDelegateAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_delegate_auth(input, &mut output);
+    let result = host_begin_delegate_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1894,7 +1894,7 @@ fn host_begin_delegate_auth_test_request_begin_fail() {
         fwk_message: DataArray1024Ffi::default(),
     };
     let mut output = HostBeginDelegateAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_delegate_auth(input, &mut output);
+    let result = host_begin_delegate_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1949,7 +1949,7 @@ fn host_begin_delegate_auth_test_add_request_fail() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
     };
     let mut output = HostBeginDelegateAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_begin_delegate_auth(input, &mut output);
+    let result = host_begin_delegate_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -1996,7 +1996,7 @@ fn host_end_delegate_auth_test_success() {
     let input =
         HostEndDelegateAuthInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
     let mut output = HostEndDelegateAuthOutputFfi { fwk_message: DataArray1024Ffi::default(), auth_type: 0, atl: 0 };
-    let result = host_end_delegate_auth(input, &mut output);
+    let result = host_end_delegate_auth(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.auth_type, 64);
     assert_eq!(output.atl, AuthTrustLevel::Atl3 as i32);
@@ -2016,7 +2016,7 @@ fn host_end_delegate_auth_test_remove_request_fail() {
     let input =
         HostEndDelegateAuthInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
     let mut output = HostEndDelegateAuthOutputFfi { fwk_message: DataArray1024Ffi::default(), auth_type: 0, atl: 0 };
-    let result = host_end_delegate_auth(input, &mut output);
+    let result = host_end_delegate_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -2052,7 +2052,7 @@ fn host_end_delegate_auth_test_request_end_fail() {
     let input =
         HostEndDelegateAuthInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
     let mut output = HostEndDelegateAuthOutputFfi { fwk_message: DataArray1024Ffi::default(), auth_type: 0, atl: 0 };
-    let result = host_end_delegate_auth(input, &mut output);
+    let result = host_end_delegate_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2081,7 +2081,7 @@ fn host_cancel_delegate_auth_test_success() {
 
     let input = HostCancelDelegateAuthInputFfi { request_id: 1 };
     let mut output = HostCancelDelegateAuthOutputFfi::default();
-    let result = host_cancel_delegate_auth(input, &mut output);
+    let result = host_cancel_delegate_auth(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -2098,7 +2098,7 @@ fn host_cancel_delegate_auth_test_fail() {
 
     let input = HostCancelDelegateAuthInputFfi { request_id: 1 };
     let mut output = HostCancelDelegateAuthOutputFfi::default();
-    let result = host_cancel_delegate_auth(input, &mut output);
+    let result = host_cancel_delegate_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -2123,7 +2123,7 @@ fn host_process_pre_obtain_token_test_success() {
 
     let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
     let mut output = HostProcessPreObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_process_pre_obtain_token(input, &mut output);
+    let result = host_process_pre_obtain_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -2140,7 +2140,7 @@ fn host_process_pre_obtain_token_test_request_new_fail() {
 
     let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
     let mut output = HostProcessPreObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_process_pre_obtain_token(input, &mut output);
+    let result = host_process_pre_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2161,7 +2161,7 @@ fn host_process_pre_obtain_token_test_request_begin_fail() {
 
     let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
     let mut output = HostProcessPreObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_process_pre_obtain_token(input, &mut output);
+    let result = host_process_pre_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2188,7 +2188,7 @@ fn host_process_pre_obtain_token_test_add_request_fail() {
 
     let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
     let mut output = HostProcessPreObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = host_process_pre_obtain_token(input, &mut output);
+    let result = host_process_pre_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2241,7 +2241,7 @@ fn host_process_obtain_token_test_success() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostProcessObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default(), atl: 0 };
-    let result = host_process_obtain_token(input, &mut output);
+    let result = host_process_obtain_token(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.atl, AuthTrustLevel::Atl3 as i32);
 }
@@ -2264,7 +2264,7 @@ fn host_process_obtain_token_test_remove_request_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostProcessObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default(), atl: 0 };
-    let result = host_process_obtain_token(input, &mut output);
+    let result = host_process_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -2299,7 +2299,7 @@ fn host_process_obtain_token_test_request_end_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostProcessObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default(), atl: 0 };
-    let result = host_process_obtain_token(input, &mut output);
+    let result = host_process_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2323,7 +2323,7 @@ fn host_cancel_obtain_token_test_success() {
 
     let input = HostCancelObtainTokenInputFfi { request_id: 1 };
     let mut output = HostCancelObtainTokenOutputFfi::default();
-    let result = host_cancel_obtain_token(input, &mut output);
+    let result = host_cancel_obtain_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -2340,19 +2340,8 @@ fn host_cancel_obtain_token_test_fail() {
 
     let input = HostCancelObtainTokenInputFfi { request_id: 1 };
     let mut output = HostCancelObtainTokenOutputFfi::default();
-    let result = host_cancel_obtain_token(input, &mut output);
+    let result = host_cancel_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
-}
-
-#[test]
-fn host_active_token_test_success() {
-    let _guard = ut_registry_guard!();
-    log_i!("host_active_token_test_success start");
-
-    let input = HostActivateTokenInputFfi { request_id: 1 };
-    let mut output = HostActivateTokenOutputFfi::default();
-    let result = host_active_token(input, &mut output);
-    assert!(result.is_ok());
 }
 
 #[test]
@@ -2382,19 +2371,19 @@ fn host_update_token_test_success() {
     let input =
         HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
     let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
-    let result = host_update_token(input, &mut output);
+    let result = host_update_token(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.need_redistribute, false);
 
-    let result = host_update_token(input, &mut output);
+    let result = host_update_token(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.need_redistribute, true);
 
-    let result = host_update_token(input, &mut output);
+    let result = host_update_token(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.need_redistribute, true);
 
-    let result = host_update_token(input, &mut output);
+    let result = host_update_token(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.need_redistribute, true);
 }
@@ -2412,7 +2401,7 @@ fn host_update_token_test_get_fwk_pub_key_fail() {
 
     let input = HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
-    let result = host_update_token(input, &mut output);
+    let result = host_update_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2427,7 +2416,7 @@ fn host_update_token_test_deserialize_attribute_fail() {
 
     let input = HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
-    let result = host_update_token(input, &mut output);
+    let result = host_update_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -2462,7 +2451,7 @@ fn host_update_token_test_read_device_capability_info_fail() {
     let input =
         HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
     let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
-    let result = host_update_token(input, &mut output);
+    let result = host_update_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -2480,7 +2469,7 @@ fn companion_get_persisted_status_test_success() {
 
     let input = CompanionGetPersistedStatusInputFfi { user_id: 100 };
     let mut output = CompanionGetPersistedStatusOutputFfi { binding_status_list: HostBindingStatusArrayFfi::default() };
-    let result = companion_get_persisted_status(input, &mut output);
+    let result = companion_get_persisted_status(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.binding_status_list.len, 1);
 }
@@ -2501,7 +2490,7 @@ fn companion_get_persisted_status_test_token_valid_fail() {
 
     let input = CompanionGetPersistedStatusInputFfi { user_id: 100 };
     let mut output = CompanionGetPersistedStatusOutputFfi { binding_status_list: HostBindingStatusArrayFfi::default() };
-    let result = companion_get_persisted_status(input, &mut output);
+    let result = companion_get_persisted_status(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2528,12 +2517,12 @@ fn companion_process_check_test_success() {
         binding_id: 123,
         capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
-        salt: [0u8; SALT_LEN_FFI],
+        salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
         challenge: 12345,
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionProcessCheckOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_process_check(input, &mut output);
+    let result = companion_process_check(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -2552,12 +2541,12 @@ fn companion_process_check_test_request_begin_fail() {
         binding_id: 123,
         capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
-        salt: [0u8; SALT_LEN_FFI],
+        salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
         challenge: 12345,
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionProcessCheckOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_process_check(input, &mut output);
+    let result = companion_process_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2588,7 +2577,7 @@ fn companion_init_key_negotiation_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionInitKeyNegotiationOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_init_key_negotiation(input, &mut output);
+    let result = companion_init_key_negotiation(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -2611,7 +2600,7 @@ fn companion_init_key_negotiation_test_request_new_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionInitKeyNegotiationOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_init_key_negotiation(input, &mut output);
+    let result = companion_init_key_negotiation(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2632,7 +2621,7 @@ fn companion_init_key_negotiation_test_request_prepare_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionInitKeyNegotiationOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_init_key_negotiation(input, &mut output);
+    let result = companion_init_key_negotiation(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2665,7 +2654,7 @@ fn companion_init_key_negotiation_test_add_request_fail() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionInitKeyNegotiationOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_init_key_negotiation(input, &mut output);
+    let result = companion_init_key_negotiation(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2746,7 +2735,7 @@ fn companion_begin_add_host_binding_test_success() {
         binding_id: -1,
         binding_status: PersistedHostBindingStatusFfi::default(),
     };
-    let result = companion_begin_add_host_binding(input, &mut output);
+    let result = companion_begin_add_host_binding(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.binding_id, 1);
 }
@@ -2770,7 +2759,7 @@ fn companion_begin_add_host_binding_test_get_request_fail() {
         binding_id: -1,
         binding_status: PersistedHostBindingStatusFfi::default(),
     };
-    let result = companion_begin_add_host_binding(input, &mut output);
+    let result = companion_begin_add_host_binding(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -2808,7 +2797,7 @@ fn companion_begin_add_host_binding_test_request_begin_fail() {
         binding_id: -1,
         binding_status: PersistedHostBindingStatusFfi::default(),
     };
-    let result = companion_begin_add_host_binding(input, &mut output);
+    let result = companion_begin_add_host_binding(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2865,7 +2854,7 @@ fn companion_end_add_host_binding_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionEndAddHostBindingOutputFfi { binding_id: -1 };
-    let result = companion_end_add_host_binding(input, &mut output);
+    let result = companion_end_add_host_binding(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.binding_id, 0);
 }
@@ -2884,7 +2873,7 @@ fn companion_end_add_host_binding_test_remove_request_fail() {
     let input =
         CompanionEndAddHostBindingInputFfi { request_id: 1, result: 0, sec_message: DataArray1024Ffi::default() };
     let mut output = CompanionEndAddHostBindingOutputFfi { binding_id: -1 };
-    let result = companion_end_add_host_binding(input, &mut output);
+    let result = companion_end_add_host_binding(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -2915,7 +2904,7 @@ fn companion_end_add_host_binding_test_request_end_fail() {
     let input =
         CompanionEndAddHostBindingInputFfi { request_id: 1, result: 1, sec_message: DataArray1024Ffi::default() };
     let mut output = CompanionEndAddHostBindingOutputFfi { binding_id: -1 };
-    let result = companion_end_add_host_binding(input, &mut output);
+    let result = companion_end_add_host_binding(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -2932,7 +2921,7 @@ fn companion_remove_host_binding_test_success() {
 
     let input = CompanionRemoveHostBindingInputFfi { binding_id: 123 };
     let mut output = CompanionRemoveHostBindingOutputFfi::default();
-    let result = companion_remove_host_binding(input, &mut output);
+    let result = companion_remove_host_binding(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -2949,7 +2938,7 @@ fn companion_remove_host_binding_test_fail() {
 
     let input = CompanionRemoveHostBindingInputFfi { binding_id: 123 };
     let mut output = CompanionRemoveHostBindingOutputFfi::default();
-    let result = companion_remove_host_binding(input, &mut output);
+    let result = companion_remove_host_binding(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -2986,7 +2975,7 @@ fn companion_pre_issue_token_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionPreIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_pre_issue_token(input, &mut output);
+    let result = companion_pre_issue_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -3008,7 +2997,7 @@ fn companion_pre_issue_token_test_request_new_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionPreIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_pre_issue_token(input, &mut output);
+    let result = companion_pre_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -3028,7 +3017,7 @@ fn companion_pre_issue_token_test_request_begin_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionPreIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_pre_issue_token(input, &mut output);
+    let result = companion_pre_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -3067,7 +3056,7 @@ fn companion_pre_issue_token_test_add_request_fail() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionPreIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_pre_issue_token(input, &mut output);
+    let result = companion_pre_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -3116,7 +3105,7 @@ fn companion_process_issue_token_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionProcessIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_process_issue_token(input, &mut output);
+    let result = companion_process_issue_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -3137,7 +3126,7 @@ fn companion_process_issue_token_test_remove_request_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionProcessIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_process_issue_token(input, &mut output);
+    let result = companion_process_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -3170,7 +3159,7 @@ fn companion_process_issue_token_test_request_end_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionProcessIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_process_issue_token(input, &mut output);
+    let result = companion_process_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -3199,7 +3188,7 @@ fn companion_cancel_issue_token_test_success() {
 
     let input = CompanionCancelIssueTokenInputFfi { request_id: 1 };
     let mut output = CompanionCancelIssueTokenOutputFfi::default();
-    let result = companion_cancel_issue_token(input, &mut output);
+    let result = companion_cancel_issue_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -3216,7 +3205,7 @@ fn companion_cancel_issue_token_test_fail() {
 
     let input = CompanionCancelIssueTokenInputFfi { request_id: 1 };
     let mut output = CompanionCancelIssueTokenOutputFfi::default();
-    let result = companion_cancel_issue_token(input, &mut output);
+    let result = companion_cancel_issue_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -3259,7 +3248,7 @@ fn companion_process_token_auth_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionProcessTokenAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_process_token_auth(input, &mut output);
+    let result = companion_process_token_auth(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -3274,7 +3263,7 @@ fn companion_process_token_auth_test_request_begin_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionProcessTokenAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_process_token_auth(input, &mut output);
+    let result = companion_process_token_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -3289,7 +3278,7 @@ fn companion_revoke_token_test_success() {
 
     let input = CompanionRevokeTokenInputFfi { binding_id: 123 };
     let mut output = CompanionRevokeTokenOutputFfi::default();
-    let result = companion_revoke_token(input, &mut output);
+    let result = companion_revoke_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -3306,7 +3295,7 @@ fn companion_revoke_token_test_fail() {
 
     let input = CompanionRevokeTokenInputFfi { binding_id: 123 };
     let mut output = CompanionRevokeTokenOutputFfi::default();
-    let result = companion_revoke_token(input, &mut output);
+    let result = companion_revoke_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -3351,7 +3340,7 @@ fn companion_begin_delegate_auth_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionBeginDelegateAuthOutputFfi { challenge: 1, atl: 0 };
-    let result = companion_begin_delegate_auth(input, &mut output);
+    let result = companion_begin_delegate_auth(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.challenge, 0);
     assert_eq!(output.atl, 30000);
@@ -3369,7 +3358,7 @@ fn companion_begin_delegate_auth_test_request_begin_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionBeginDelegateAuthOutputFfi { challenge: 1, atl: 0 };
-    let result = companion_begin_delegate_auth(input, &mut output);
+    let result = companion_begin_delegate_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -3416,7 +3405,7 @@ fn companion_begin_delegate_auth_test_add_request_fail() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionBeginDelegateAuthOutputFfi { challenge: 1, atl: 0 };
-    let result = companion_begin_delegate_auth(input, &mut output);
+    let result = companion_begin_delegate_auth(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -3479,7 +3468,7 @@ fn companion_begin_delegate_auth_test_add_request_fail() {
 //         auth_token: auth_token_array,
 //     };
 //     let mut output = CompanionEndDelegateAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
-//     let result = companion_end_delegate_auth(input, &mut output);
+//     let result = companion_end_delegate_auth(&input, &mut output);
 //     assert!(result.is_ok());
 // }
 
@@ -3533,7 +3522,7 @@ fn companion_begin_obtain_token_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionBeginObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_begin_obtain_token(input, &mut output);
+    let result = companion_begin_obtain_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -3556,7 +3545,7 @@ fn companion_begin_obtain_token_test_request_begin_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionBeginObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_begin_obtain_token(input, &mut output);
+    let result = companion_begin_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -3612,7 +3601,7 @@ fn companion_begin_obtain_token_test_add_request_fail() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionBeginObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
-    let result = companion_begin_obtain_token(input, &mut output);
+    let result = companion_begin_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -3662,7 +3651,7 @@ fn companion_end_obtain_token_test_success() {
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionEndObtainTokenOutputFfi::default();
-    let result = companion_end_obtain_token(input, &mut output);
+    let result = companion_end_obtain_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -3683,7 +3672,7 @@ fn companion_end_obtain_token_test_remove_request_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionEndObtainTokenOutputFfi::default();
-    let result = companion_end_obtain_token(input, &mut output);
+    let result = companion_end_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
@@ -3714,7 +3703,7 @@ fn companion_end_obtain_token_test_request_end_fail() {
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionEndObtainTokenOutputFfi::default();
-    let result = companion_end_obtain_token(input, &mut output);
+    let result = companion_end_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -3740,7 +3729,7 @@ fn companion_cancel_obtain_token_test_success() {
 
     let input = CompanionCancelObtainTokenInputFfi { request_id: 1 };
     let mut output = CompanionCancelObtainTokenOutputFfi::default();
-    let result = companion_cancel_obtain_token(input, &mut output);
+    let result = companion_cancel_obtain_token(&input, &mut output);
     assert!(result.is_ok());
 }
 
@@ -3757,6 +3746,6 @@ fn companion_cancel_obtain_token_test_fail() {
 
     let input = CompanionCancelObtainTokenInputFfi { request_id: 1 };
     let mut output = CompanionCancelObtainTokenOutputFfi::default();
-    let result = companion_cancel_obtain_token(input, &mut output);
+    let result = companion_cancel_obtain_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }

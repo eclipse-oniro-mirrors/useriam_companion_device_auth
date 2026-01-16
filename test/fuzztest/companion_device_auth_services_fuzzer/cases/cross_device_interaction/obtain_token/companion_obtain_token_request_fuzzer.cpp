@@ -144,8 +144,7 @@ static void FuzzCompanionEndObtainToken(std::shared_ptr<CompanionObtainTokenRequ
     obtainTokenReply.result = fuzzData.ConsumeIntegral<int32_t>();
     obtainTokenReply.extraInfo =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
-    RequestId requestId = fuzzData.ConsumeIntegral<uint64_t>();
-    (void)request->CompanionEndObtainToken(obtainTokenReply, requestId);
+    (void)request->CompanionEndObtainToken(obtainTokenReply);
 }
 
 static const CompanionObtainTokenRequestFuzzFunction g_fuzzFuncs[] = {

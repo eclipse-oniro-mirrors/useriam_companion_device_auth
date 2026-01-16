@@ -95,8 +95,6 @@ include = [
     "HostEndIssueTokenOutputFfi",
     "HostCancelIssueTokenInputFfi",
     "HostCancelIssueTokenOutputFfi",
-    "HostActivateTokenInputFfi",
-    "HostActivateTokenOutputFfi",
     "HostBeginTokenAuthInputFfi",
     "HostBeginTokenAuthOutputFfi",
     "HostEndTokenAuthInputFfi",

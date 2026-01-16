@@ -38,7 +38,6 @@ public:
         (const BeginAddCompanionParams &params, std::vector<uint8_t> &outAddHostBindingRequest), (override));
     MOCK_METHOD(ResultCode, EndAddCompanion, (const EndAddCompanionInput &input, EndAddCompanionOutput &output),
         (override));
-    MOCK_METHOD(ResultCode, ActivateToken, (RequestId requestId, TemplateId templateId, Atl atl), (override));
     MOCK_METHOD(ResultCode, RemoveCompanion, (TemplateId templateId), (override));
     MOCK_METHOD(ResultCode, UpdateCompanionStatus,
         (TemplateId templateId, const std::string &deviceName, const std::string &deviceUserName), (override));
@@ -50,7 +49,6 @@ public:
     MOCK_METHOD(ResultCode, HandleCompanionCheckFail, (TemplateId templateId), (override));
     MOCK_METHOD(void, StartIssueTokenRequests,
         (const std::vector<TemplateId> &templateIds, const std::vector<uint8_t> &fwkUnlockMsg), (override));
-    MOCK_METHOD(void, RevokeTokens, (const std::vector<TemplateId> &templateIds), (override));
     MOCK_METHOD(void, NotifyCompanionStatusChange, (), (override));
     MOCK_METHOD(void, Initialize, (), (override));
 };

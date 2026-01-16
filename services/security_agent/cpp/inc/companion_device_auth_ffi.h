@@ -40,6 +40,8 @@ extern "C" {
 
 #define MAX_USER_NUM_FFI 5
 
+#define MAX_DATA_LEN_32 32
+
 #define MAX_DATA_LEN_64 64
 
 #define MAX_DATA_LEN_128 128
@@ -50,8 +52,6 @@ extern "C" {
 
 #define MAX_STRUCT_SIZE_FFI 409600
 
-#define AUTH_TOKEN_SIZE_FFI 280
-
 #define PROPERTY_MODE_FREEZE 5
 
 #define PROPERTY_MODE_UNFREEZE 6
@@ -59,6 +59,8 @@ extern "C" {
 enum CommandId {
     INIT = 1,
     GET_EXECUTOR_INFO = 2,
+    SET_ACTIVE_USER_ID = 3,
+
     HOST_REGISTER_FINISH = 1001,
     HOST_GET_PERSISTED_STATUS = 1002,
     HOST_BEGIN_COMPANION_CHECK = 1003,
@@ -115,6 +117,11 @@ typedef struct RustCommandParam {
     uint8_t *commonOutputData;
     uint32_t commonOutputDataLen;
 } RustCommandParam;
+
+typedef struct DataArray32Ffi {
+    uint8_t data[MAX_DATA_LEN_32];
+    uint32_t len;
+} DataArray32Ffi;
 
 typedef struct DataArray64Ffi {
     uint8_t data[MAX_DATA_LEN_64];
@@ -211,6 +218,12 @@ typedef struct PlaceHolderFfi InitOutputFfi;
 
 typedef struct PlaceHolderFfi GetExecutorInfoInputFfi;
 
+typedef struct SetActiveUserInputFfi {
+    int32_t userId;
+} SetActiveUserInputFfi;
+
+typedef struct PlaceHolderFfi SetActiveUserOutputFfi;
+
 typedef struct GetExecutorInfoOutputFfi {
     int32_t esl;
     int32_t maxTemplateAcl;
@@ -239,7 +252,7 @@ typedef struct HostBeginCompanionCheckInputFfi {
 
 typedef struct HostBeginCompanionCheckOutputFfi {
     uint64_t challenge;
-    uint8_t salt[SALT_LEN_FFI];
+    struct DataArray32Ffi salt;
 } HostBeginCompanionCheckOutputFfi;
 
 typedef struct Uint16Array64Ffi {
@@ -351,12 +364,6 @@ typedef struct HostCancelIssueTokenInputFfi {
 } HostCancelIssueTokenInputFfi;
 
 typedef struct PlaceHolderFfi HostCancelIssueTokenOutputFfi;
-
-typedef struct HostActivateTokenInputFfi {
-    int32_t requestId;
-} HostActivateTokenInputFfi;
-
-typedef struct PlaceHolderFfi HostActivateTokenOutputFfi;
 
 typedef struct HostBeginTokenAuthInputFfi {
     int32_t requestId;
@@ -487,7 +494,7 @@ typedef struct CompanionProcessCheckInputFfi {
     int32_t bindingId;
     struct Uint16Array64Ffi capabilityList;
     uint16_t secureProtocolId;
-    uint8_t salt[SALT_LEN_FFI];
+    struct DataArray32Ffi salt;
     uint64_t challenge;
     struct DataArray1024Ffi secMessage;
 } CompanionProcessCheckInputFfi;
@@ -594,7 +601,7 @@ typedef struct CompanionBeginDelegateAuthOutputFfi {
 typedef struct CompanionEndDelegateAuthInputFfi {
     int32_t requestId;
     int32_t result;
-    uint8_t authToken[AUTH_TOKEN_SIZE_FFI];
+    struct DataArray1024Ffi authToken;
 } CompanionEndDelegateAuthInputFfi;
 
 typedef struct CompanionEndDelegateAuthOutputFfi {

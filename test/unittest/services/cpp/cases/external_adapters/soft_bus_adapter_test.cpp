@@ -37,6 +37,9 @@ namespace CompanionDeviceAuth {
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+}
+
 class SoftBusAdapterTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -136,7 +139,7 @@ HWTEST_F(SoftBusAdapterTest, CreateClientSocketWithEmptyNetworkId, TestSize.Leve
     auto &adapterRef = SoftBusAdapterManager::GetInstance().GetSoftBusAdapter();
     adapterRef.RegisterCallback(callback);
 
-    auto result = adapterRef.CreateClientSocket("");
+    auto result = adapterRef.CreateClientSocket("test_connection", "");
     // In test environment with fake implementation, it should succeed even with empty network ID
     EXPECT_TRUE(result.has_value());
 }

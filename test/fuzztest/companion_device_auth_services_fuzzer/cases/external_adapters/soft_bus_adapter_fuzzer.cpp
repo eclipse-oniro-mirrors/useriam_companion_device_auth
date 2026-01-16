@@ -30,7 +30,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 const size_t TEST_VAL1024 = 1024;
-}
+constexpr size_t SIZE_64 = 64;
+} // namespace
 
 using SoftBusAdapterFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
@@ -42,7 +43,9 @@ static void FuzzCreateServerSocket(FuzzedDataProvider &fuzzData)
 
 static void FuzzCreateClientSocket(FuzzedDataProvider &fuzzData)
 {
-    std::string networkId = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
+    std::string networkId = GenerateFuzzString(fuzzData, SIZE_64);
+    (void)connectionName;
     (void)networkId;
 }
 
@@ -65,7 +68,7 @@ static void FuzzSoftBusOperations(FuzzedDataProvider &fuzzData)
 {
     uint32_t operationCode = fuzzData.ConsumeIntegral<uint32_t>();
     int32_t socketId = fuzzData.ConsumeIntegral<int32_t>();
-    std::string networkId = GenerateFuzzString(fuzzData, 64);
+    std::string networkId = GenerateFuzzString(fuzzData, SIZE_64);
     (void)operationCode;
     (void)socketId;
     (void)networkId;

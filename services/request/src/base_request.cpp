@@ -31,6 +31,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+
 BaseRequest::BaseRequest(RequestType requestType, ScheduleId scheduleId, uint32_t timeoutMs)
     : requestType_(requestType),
       scheduleId_(scheduleId),
@@ -99,10 +100,9 @@ void BaseRequest::Destroy()
     IAM_LOGI("%{public}s destroy", GetDescription());
     StopTimeout();
 
-    auto requestId = requestId_;
-    TaskRunnerManager::GetInstance().PostTaskOnResident([requestId]() {
+    TaskRunnerManager::GetInstance().PostTaskOnResident([requestId = requestId_]() {
         GetRequestManager().Remove(requestId);
-        IAM_LOGI("request %{public}" PRIu64 " removed", requestId);
+        IAM_LOGI("request %{public}u removed", requestId);
     });
 }
 } // namespace CompanionDeviceAuth

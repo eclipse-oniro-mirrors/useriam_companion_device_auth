@@ -22,6 +22,9 @@
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+}
+
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {

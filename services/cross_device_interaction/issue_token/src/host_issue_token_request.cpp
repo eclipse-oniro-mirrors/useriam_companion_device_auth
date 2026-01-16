@@ -53,19 +53,6 @@ bool HostIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
 
-    bool needRedistribute = false;
-    ResultCode ret = GetCompanionManager().UpdateToken(templateId_, fwkUnlockMsg_, needRedistribute);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s UpdateToken failed ret=%{public}d", GetDescription(), ret);
-        errorGuard.UpdateErrorCode(ret);
-        return false;
-    }
-    if (!needRedistribute) {
-        IAM_LOGI("%{public}s UpdateToken success, no need redistribute", GetDescription());
-        CompleteWithSuccess();
-        return true;
-    }
-
     companionUserId_ = companionStatus->companionDeviceStatus.deviceKey.deviceUserId;
     auto secureProtocolOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(companionDeviceKey);
     if (!secureProtocolOpt.has_value()) {

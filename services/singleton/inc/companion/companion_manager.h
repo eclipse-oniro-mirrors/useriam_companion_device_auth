@@ -74,7 +74,6 @@ public:
     virtual ResultCode BeginAddCompanion(const BeginAddCompanionParams &params,
         std::vector<uint8_t> &outAddHostBindingRequest) = 0;
     virtual ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) = 0;
-    virtual ResultCode ActivateToken(RequestId requestId, TemplateId templateId, Atl atl) = 0;
     virtual ResultCode RemoveCompanion(TemplateId templateId) = 0;
 
     virtual ResultCode UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
@@ -90,7 +89,6 @@ public:
 
     virtual void StartIssueTokenRequests(const std::vector<TemplateId> &templateIds,
         const std::vector<uint8_t> &fwkUnlockMsg) = 0;
-    virtual void RevokeTokens(const std::vector<TemplateId> &templateIds) = 0;
 
     virtual void NotifyCompanionStatusChange() = 0;
 

@@ -35,6 +35,9 @@ namespace CompanionDeviceAuth {
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+}
+
 class SaManagerAdapterTest : public testing::Test {
 public:
     static void SetUpTestCase();

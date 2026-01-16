@@ -27,6 +27,13 @@ using namespace testing::ext;
 using namespace OHOS;
 using namespace OHOS::UserIam::CompanionDeviceAuth;
 
+constexpr int32_t INT32_2 = 2;
+namespace {
+constexpr int32_t INT32_0 = 0;
+constexpr int32_t INT32_8888 = 8888;
+constexpr int32_t INT32_9999 = 9999;
+} // namespace
+
 class SystemAbilityListenerTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -115,7 +122,7 @@ HWTEST_F(SystemAbilityListenerTest, OnAddSystemAbilityIgnoresDifferentSaId, Test
     ASSERT_NE(listener, nullptr);
 
     // Act - Call with different SA ID
-    listener->OnAddSystemAbility(9999, "test-device");
+    listener->OnAddSystemAbility(INT32_9999, "test-device");
 
     // Assert
     EXPECT_FALSE(addCallbackCalled);
@@ -136,7 +143,7 @@ HWTEST_F(SystemAbilityListenerTest, OnRemoveSystemAbilityIgnoresDifferentSaId, T
     ASSERT_NE(listener, nullptr);
 
     // Act - Call with different SA ID
-    listener->OnRemoveSystemAbility(8888, "test-device");
+    listener->OnRemoveSystemAbility(INT32_8888, "test-device");
 
     // Assert
     EXPECT_FALSE(removeCallbackCalled);
@@ -183,8 +190,8 @@ HWTEST_F(SystemAbilityListenerTest, MultipleAddRemoveCycles, TestSize.Level0)
     listener->OnRemoveSystemAbility(SUBSYS_USERIAM_SYS_ABILITY_COMPANIONDEVICEAUTH, "device2");
 
     // Assert
-    EXPECT_EQ(addCount, 2);
-    EXPECT_EQ(removeCount, 2);
+    EXPECT_EQ(addCount, INT32_2);
+    EXPECT_EQ(removeCount, INT32_2);
 }
 
 /**
@@ -226,5 +233,5 @@ HWTEST_F(SystemAbilityListenerTest, UnSubscribeSucceeds, TestSize.Level0)
     int32_t result = SystemAbilityListener::UnSubscribe(SUBSYS_USERIAM_SYS_ABILITY_COMPANIONDEVICEAUTH, listener);
 
     // Assert - Should return success (0)
-    EXPECT_EQ(result, 0);
+    EXPECT_EQ(result, INT32_0);
 }

@@ -15,7 +15,7 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi, Uint16Array64Ffi,
+    CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi, DataArray32Ffi, Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::jobs::common_message::SecCommonRequest;
@@ -92,7 +92,7 @@ fn companion_token_auth_request_begin_test_wrong_input_type() {
         binding_id: 123,
         secure_protocol_id: 1,
         challenge: 0,
-        salt: [0u8; HKDF_SALT_SIZE],
+        salt: DataArray32Ffi { data: [0u8; HKDF_SALT_SIZE], len: HKDF_SALT_SIZE as u32 },
         capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };

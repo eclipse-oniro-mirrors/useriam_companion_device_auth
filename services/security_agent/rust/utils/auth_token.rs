@@ -55,8 +55,7 @@ impl UserAuthToken {
 
     // Struct deserialization
     pub fn deserialize(bytes: &[u8]) -> Result<Self, ErrorCode> {
-        let expected_len = core::mem::size_of::<Self>();
-        if bytes.len() != expected_len {
+        if bytes.len() != core::mem::size_of::<Self>() {
             return Err(ErrorCode::GeneralError);
         }
 

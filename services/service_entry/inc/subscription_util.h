@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include "companion_device_auth_types.h"
 #include "service_common.h"
@@ -29,6 +30,14 @@ namespace CompanionDeviceAuth {
 IpcDeviceStatus ConvertToIpcDeviceStatus(const DeviceStatus &status);
 IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionStatus,
     const std::optional<int64_t> &manageSubscribeTime);
+
+bool IpcDeviceStatusEqual(const IpcDeviceStatus &lhs, const IpcDeviceStatus &rhs);
+bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs,
+    const std::vector<IpcDeviceStatus> &rhs);
+
+bool IpcTemplateStatusEqual(const IpcTemplateStatus &lhs, const IpcTemplateStatus &rhs);
+bool IpcTemplateStatusVectorEqual(const std::vector<IpcTemplateStatus> &lhs,
+    const std::vector<IpcTemplateStatus> &rhs);
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

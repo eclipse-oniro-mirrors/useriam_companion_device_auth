@@ -89,7 +89,7 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
     AuthResultCallback callback = [weakSelf](int32_t result, const std::vector<uint8_t> &token) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
-        ResultCode resultCode = (result == 0) ? ResultCode::SUCCESS : ResultCode::GENERAL_ERROR;
+        ResultCode resultCode = (result == ResultCode::SUCCESS) ? ResultCode::SUCCESS : ResultCode::GENERAL_ERROR;
         self->HandleDelegateAuthResult(resultCode, token);
     };
 
@@ -124,26 +124,18 @@ bool CompanionDelegateAuthRequest::SecureAgentBeginDelegateAuth(uint64_t &challe
     return true;
 }
 
-void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCode,
-    const std::vector<uint8_t> &extraInfo)
+void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCode, const std::vector<uint8_t> &token)
 {
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     IAM_LOGI("%{public}s", GetDescription());
     contextId_.reset();
 
-    Attributes message(extraInfo);
-    std::vector<uint8_t> authToken;
-    bool getAuthToken = message.GetUint8ArrayValue(Attributes::ATTR_SIGNATURE, authToken);
-    ENSURE_OR_RETURN(getAuthToken);
-
     std::vector<uint8_t> delegateAuthResult;
-    bool result = SecurityAgentEndDelegateAuth(resultCode, authToken, delegateAuthResult);
+    bool result = SecurityAgentEndDelegateAuth(resultCode, token, delegateAuthResult);
     if (!result) {
         IAM_LOGE("%{public}s SecurityAgentEndDelegateAuth failed", GetDescription());
-        if (resultCode == ResultCode::SUCCESS) {
-            resultCode = ResultCode::GENERAL_ERROR;
-        }
+        resultCode = ResultCode::GENERAL_ERROR;
     }
 
     bool sendResult = SendDelegateAuthResult(resultCode, delegateAuthResult);

@@ -57,9 +57,9 @@ std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 
 void SecurityAgentImpl::Initialize()
 {
-    auto &activeUserIdManager = SingletonManager::GetInstance().GetActiveUserIdManager();
-    UserId currentUserId = activeUserIdManager.GetActiveUserId();
-    auto subscription = activeUserIdManager.SubscribeActiveUserId([this](UserId userId) {
+    auto &userIdManager = SingletonManager::GetInstance().GetUserIdManager();
+    UserId currentUserId = userIdManager.GetActiveUserId();
+    auto subscription = userIdManager.SubscribeActiveUserId([this](UserId userId) {
         auto result = SetActiveUser(SetActiveUserInput { userId });
         if (result != SUCCESS) {
             IAM_LOGE("failed to update active user %{public}d", result);
@@ -96,7 +96,22 @@ ResultCode SecurityAgentImpl::Init()
 
 ResultCode SecurityAgentImpl::SetActiveUser(const SetActiveUserInput &input)
 {
-    IAM_LOGI("SetActiveUser stub invoked, userId %{public}d", input.userId);
+    IAM_LOGI("SetActiveUser invoked, userId %{public}d", input.userId);
+    ENSURE_OR_RETURN_VAL(invoker_ != nullptr, GENERAL_ERROR);
+
+    auto ffiInput = std::make_unique<SetActiveUserInputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
+    ffiInput->userId = input.userId;
+
+    auto ffiOutput = std::make_unique<SetActiveUserOutputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
+
+    int32_t invokeResult = invoker_->InvokeCommand(CommandId::SET_ACTIVE_USER_ID,
+        reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(SetActiveUserInputFfi),
+        reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(SetActiveUserOutputFfi));
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+
+    IAM_LOGI("success");
     return SUCCESS;
 }
 
@@ -208,7 +223,7 @@ ResultCode SecurityAgentImpl::HostBeginCompanionCheck(const HostBeginCompanionCh
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostBeginCompanionCheckOutputFfi));
     ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
 
-    output.salt.assign(ffiOutput->salt, ffiOutput->salt + SALT_LEN_FFI);
+    output.salt.assign(ffiOutput->salt.data, ffiOutput->salt.data + ffiOutput->salt.len);
     output.challenge = ffiOutput->challenge;
     IAM_LOGI("success");
     return SUCCESS;
@@ -366,27 +381,6 @@ ResultCode SecurityAgentImpl::HostCancelAddCompanion(const HostCancelAddCompanio
     int32_t invokeResult = invoker_->InvokeCommand(CommandId::HOST_CANCEL_ADD_COMPANION,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostCancelAddCompanionInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostCancelAddCompanionOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
-
-    IAM_LOGI("success");
-    return SUCCESS;
-}
-
-ResultCode SecurityAgentImpl::HostActivateToken(const HostActivateTokenInput &input)
-{
-    ENSURE_OR_RETURN_VAL(invoker_ != nullptr, GENERAL_ERROR);
-
-    auto ffiInput = std::make_unique<HostActivateTokenInputFfi>();
-    ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
-    bool encodeRet = EncodeHostActivateTokenInput(input, *ffiInput);
-    ENSURE_OR_RETURN_VAL(encodeRet, INVALID_PARAMETERS);
-
-    auto ffiOutput = std::make_unique<HostActivateTokenOutputFfi>();
-    ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
-
-    int32_t invokeResult = invoker_->InvokeCommand(CommandId::HOST_ACTIVATE_TOKEN,
-        reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostActivateTokenInputFfi),
-        reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostActivateTokenOutputFfi));
     ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
 
     IAM_LOGI("success");

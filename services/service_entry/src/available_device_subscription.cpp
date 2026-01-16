@@ -103,7 +103,7 @@ void AvailableDeviceSubscription::HandleDeviceStatusChange(const std::vector<Dev
 {
     IAM_LOGI("HandleDeviceStatusChange start, total device count:%{public}zu, userId:%{public}d",
         deviceStatusList.size(), userId_);
-    int32_t activeUserId = GetActiveUserIdManager().GetActiveUserId();
+    int32_t activeUserId = GetUserIdManager().GetActiveUserId();
     if (activeUserId != userId_) {
         IAM_LOGE("userId not match, activeUserId = %{public}d, userId_ = %{public}d", activeUserId, userId_);
         return;
@@ -117,6 +117,12 @@ void AvailableDeviceSubscription::HandleDeviceStatusChange(const std::vector<Dev
         }
         availableDeviceStatus.push_back(ConvertToIpcDeviceStatus(deviceStatus));
     }
+
+    if (IpcDeviceStatusVectorEqual(cachedAvailableDeviceStatus_, availableDeviceStatus)) {
+        IAM_LOGI("Available device status not changed, skip notification");
+        return;
+    }
+
     cachedAvailableDeviceStatus_ = availableDeviceStatus;
 
     auto callbacks = callbacks_;

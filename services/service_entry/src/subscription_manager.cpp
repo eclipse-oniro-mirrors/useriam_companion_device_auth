@@ -88,7 +88,11 @@ std::shared_ptr<ContinuousAuthSubscription> SubscriptionManager::GetOrCreateCont
         return it->second;
     }
 
-    auto subscription = std::make_shared<ContinuousAuthSubscription>(userId, templateId, weak_from_this());
+    auto subscription = ContinuousAuthSubscription::Create(userId, templateId, weak_from_this());
+    if (subscription == nullptr) {
+        IAM_LOGE("create ContinuousAuthSubscription failed");
+        return nullptr;
+    }
     continuousAuthSubscriptions_[key] = subscription;
     subscription->SetDeathHandler(
         [weakThis = weak_from_this()](const sptr<IIpcContinuousAuthStatusCallback> &callback) {
@@ -108,10 +112,7 @@ void SubscriptionManager::AddAvailableDeviceStatusCallback(int32_t userId,
     }
 
     auto subscription = GetOrCreateAvailableDeviceSubscription(userId);
-    if (subscription == nullptr) {
-        IAM_LOGE("subscription is nullptr");
-        return;
-    }
+    ENSURE_OR_RETURN(subscription != nullptr);
     subscription->AddCallback(availableDeviceStatusCallback);
     UpdateSubscribeMode();
 }
@@ -146,10 +147,7 @@ void SubscriptionManager::AddTemplateStatusCallback(int32_t userId,
     }
 
     auto subscription = GetOrCreateTemplateStatusSubscription(userId);
-    if (subscription == nullptr) {
-        IAM_LOGE("subscription is nullptr");
-        return;
-    }
+    ENSURE_OR_RETURN(subscription != nullptr);
     subscription->AddCallback(templateStatusCallback);
     UpdateSubscribeMode();
 }

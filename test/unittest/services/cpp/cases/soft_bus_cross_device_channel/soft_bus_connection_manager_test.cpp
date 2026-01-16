@@ -53,7 +53,7 @@ public:
 
         // Set up mock SoftBusAdapter
         ON_CALL(mockSoftBusAdapter_, CreateServerSocket()).WillByDefault(Return(std::optional<int32_t>(INT32_1)));
-        ON_CALL(mockSoftBusAdapter_, CreateClientSocket(_)).WillByDefault(Return(std::optional<int32_t>(INT32_2)));
+        ON_CALL(mockSoftBusAdapter_, CreateClientSocket(_, _)).WillByDefault(Return(std::optional<int32_t>(INT32_2)));
         ON_CALL(mockSoftBusAdapter_, SendBytes(_, _)).WillByDefault(Return(true));
 
         auto softBusAdapter = std::shared_ptr<ISoftBusAdapter>(&mockSoftBusAdapter_, [](ISoftBusAdapter *) {});

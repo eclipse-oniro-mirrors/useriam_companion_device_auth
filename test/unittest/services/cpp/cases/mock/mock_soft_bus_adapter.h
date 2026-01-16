@@ -33,7 +33,7 @@ class MockSoftBusAdapter : public ISoftBusAdapter {
 public:
     MOCK_METHOD(void, RegisterCallback, (std::shared_ptr<ISoftBusSocketCallback>), (override));
     MOCK_METHOD(std::optional<int32_t>, CreateServerSocket, (), (override));
-    MOCK_METHOD(std::optional<int32_t>, CreateClientSocket, (const std::string &), (override));
+    MOCK_METHOD(std::optional<int32_t>, CreateClientSocket, (const std::string &, const std::string &), (override));
     MOCK_METHOD(bool, SendBytes, (int32_t, const std::vector<uint8_t> &), (override));
     MOCK_METHOD(void, ShutdownSocket, (int32_t), (override));
 };

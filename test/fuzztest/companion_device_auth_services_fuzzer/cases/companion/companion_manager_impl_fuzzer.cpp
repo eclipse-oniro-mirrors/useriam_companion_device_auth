@@ -136,11 +136,10 @@ static void FuzzStartIssueTokenRequests(std::shared_ptr<CompanionManagerImpl> &m
 static void FuzzRevokeTokens(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_DEVICE_STATUS_COUNT);
-    std::vector<TemplateId> templateIds;
     for (uint8_t j = 0; j < count; ++j) {
-        templateIds.push_back(fuzzData.ConsumeIntegral<TemplateId>());
+        TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
+        manager->SetCompanionTokenAtl(templateId, std::nullopt);
     }
-    manager->RevokeTokens(templateIds);
 }
 
 static void FuzzFindCompanionByTemplateId(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)

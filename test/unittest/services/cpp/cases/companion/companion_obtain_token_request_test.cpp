@@ -337,7 +337,7 @@ HWTEST_F(CompanionObtainTokenRequestTest, CompanionEndObtainToken_001, TestSize.
 
     ObtainTokenReply obtainTokenReply = { .result = static_cast<int32_t>(ResultCode::SUCCESS),
         .extraInfo = { 1, 2, 3 } };
-    bool result = request_->CompanionEndObtainToken(obtainTokenReply, 0);
+    bool result = request_->CompanionEndObtainToken(obtainTokenReply);
 
     EXPECT_TRUE(result);
 }

@@ -87,7 +87,7 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_001, TestSize.Level0)
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, revokeTokenRequest.companionDeviceKey.deviceId);
 
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, Eq(std::nullopt))).WillOnce(Return(true));
 
     Attributes reply;
     ErrorGuard errorGuard([](ResultCode) {});
@@ -144,7 +144,7 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_004, TestSize.Level0)
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, revokeTokenRequest.companionDeviceKey.deviceId);
 
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, Eq(std::nullopt))).WillOnce(Return(true));
 
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {
@@ -154,7 +154,8 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_004, TestSize.Level0)
     int32_t replyResult = 0;
 
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
-    EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
+    // Note: New implementation always returns SUCCESS after SetCompanionTokenAth
+    EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
 }
 
 } // namespace

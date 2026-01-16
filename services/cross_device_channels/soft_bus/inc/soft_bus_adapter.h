@@ -54,7 +54,8 @@ public:
 
     virtual void RegisterCallback(std::shared_ptr<ISoftBusSocketCallback> callback) = 0;
     virtual std::optional<SocketId> CreateServerSocket() = 0;
-    virtual std::optional<SocketId> CreateClientSocket(const std::string &networkId) = 0;
+    virtual std::optional<SocketId> CreateClientSocket(const std::string &connectionName,
+        const std::string &networkId) = 0;
     virtual bool SendBytes(int32_t socketId, const std::vector<uint8_t> &data) = 0;
     virtual void ShutdownSocket(int32_t socketId) = 0;
 

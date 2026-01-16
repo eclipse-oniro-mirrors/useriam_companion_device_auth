@@ -48,7 +48,7 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
     }
     const auto &syncRequest = *syncRequestOpt;
 
-    auto companionUserId = GetActiveUserIdManager().GetActiveUserId();
+    auto companionUserId = GetUserIdManager().GetActiveUserId();
     if (companionUserId == INVALID_USER_ID) {
         IAM_LOGE("GetActiveUserId failed");
         return;
@@ -62,7 +62,7 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
     syncReply.capabilityList = profile.capabilities;
     syncReply.secureProtocolId = profile.companionSecureProtocolId;
     syncReply.companionDeviceKey.deviceUserId = companionUserId;
-    syncReply.deviceUserName = GetActiveUserIdManager().GetActiveUserName();
+    syncReply.deviceUserName = GetUserIdManager().GetActiveUserName();
 
     auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(companionUserId, syncRequest.hostDeviceKey);
     if (hostBindingStatus.has_value()) {

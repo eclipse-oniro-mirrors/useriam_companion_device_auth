@@ -53,13 +53,7 @@ void HostRevokeTokenHandler::HandleRequest(const Attributes &request, Attributes
         return;
     }
 
-    HostRevokeTokenInput input = { companionStatus->templateId };
-    ResultCode ret = GetSecurityAgent().HostRevokeToken(input);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("HostRevokeToken failed ret=%{public}d", ret);
-        errorGuard.UpdateErrorCode(ret);
-        return;
-    }
+    GetCompanionManager().SetCompanionTokenAtl(companionStatus->templateId, std::nullopt);
 
     RevokeTokenReply replyMsg = { .result = ResultCode::SUCCESS };
     bool encodeRet = EncodeRevokeTokenReply(replyMsg, reply);

@@ -16,10 +16,7 @@ import("//build/ohos.gni")
 import("../../../companion_device_auth.gni")
 
 config("companion_device_auth_native_ipc_config") {
-  include_dirs = [
-    "${companion_device_auth_path}/interfaces/inner_api",
-    "${target_gen_dir}",
-  ]
+  include_dirs = [ "${target_gen_dir}" ]
 }
 
 idl_gen_interface("companion_device_auth_ipc_interface") {

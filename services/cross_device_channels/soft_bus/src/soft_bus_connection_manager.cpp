@@ -125,7 +125,7 @@ bool SoftBusConnectionManager::OpenConnection(const std::string &connectionName,
         return false;
     }
 
-    auto socketId = GetSoftBusAdapter().CreateClientSocket(networkId);
+    auto socketId = GetSoftBusAdapter().CreateClientSocket(connectionName, networkId);
     if (!socketId.has_value()) {
         IAM_LOGE("Create client socket failed");
         return false;

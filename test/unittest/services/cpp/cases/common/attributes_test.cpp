@@ -34,6 +34,9 @@ namespace CompanionDeviceAuth {
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+} // namespace
+
 class AttributesTest : public testing::Test {
 public:
     static void SetUpTestCase();

@@ -32,6 +32,11 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr int32_t INT32_2 = 2;
+// Test constants
+constexpr int32_t INT32_100 = 100;
+constexpr int32_t INT32_200 = 200;
+
 std::unique_ptr<Subscription> MakeSubscription()
 {
     return std::make_unique<Subscription>([]() {});
@@ -41,7 +46,7 @@ class LocalDeviceStatusManagerTest : public Test {
 public:
     void SetUp() override
     {
-        const int32_t defaultUserId = 100;
+        const int32_t defaultUserId = INT32_100;
 
         SingletonManager::GetInstance().Reset();
 
@@ -61,15 +66,15 @@ public:
         ON_CALL(*mockChannel_, GetAuthMaintainActive).WillByDefault(Return(false));
         ON_CALL(*mockChannel_, GetCompanionSecureProtocolId).WillByDefault(Return(SecureProtocolId::DEFAULT));
 
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockActiveUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetActiveUserIdManager(activeUserMgr);
+        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
-        ON_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_))
+        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_))
             .WillByDefault(Invoke([this](ActiveUserIdCallback &&callback) {
                 activeUserIdCallback_ = std::move(callback);
                 return MakeSubscription();
             }));
-        ON_CALL(mockActiveUserIdManager_, GetActiveUserId).WillByDefault(Return(defaultUserId));
+        ON_CALL(mockUserIdManager_, GetActiveUserId).WillByDefault(Return(defaultUserId));
     }
 
     void TearDown() override
@@ -80,7 +85,7 @@ public:
 
 protected:
     std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel_;
-    NiceMock<MockUserIdManager> mockActiveUserIdManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
     OnAuthMaintainActiveChange authMaintainCallback_;
     ActiveUserIdCallback activeUserIdCallback_;
 };
@@ -125,7 +130,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, Create_005, TestSize.Level0)
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    EXPECT_CALL(mockActiveUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
     EXPECT_EQ(manager, nullptr);
@@ -169,7 +174,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, SubscribeIsAuthMaintainActive_002, TestSi
     manager->SetAuthMaintainActive(true);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
-    EXPECT_FALSE(callbackInvoked);
+    EXPECT_TRUE(callbackInvoked);
     EXPECT_TRUE(manager->IsAuthMaintainActive());
 }
 
@@ -182,7 +187,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_001, TestSize.Level
     ASSERT_NE(manager, nullptr);
 
     ASSERT_TRUE(activeUserIdCallback_ != nullptr);
-    activeUserIdCallback_(200);
+    activeUserIdCallback_(INT32_200);
     TaskRunnerManager::GetInstance().ExecuteAll();
 }
 
@@ -198,7 +203,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_002, TestSize.Level
     auto subscription = manager->SubscribeIsAuthMaintainActive([&callbackInvoked](bool) { callbackInvoked = true; });
 
     ASSERT_TRUE(activeUserIdCallback_ != nullptr);
-    activeUserIdCallback_(100);
+    activeUserIdCallback_(INT32_100);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(callbackInvoked);
@@ -212,17 +217,20 @@ HWTEST_F(LocalDeviceStatusManagerTest, AuthMaintainCallback_001, TestSize.Level0
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
     ASSERT_NE(manager, nullptr);
 
-    bool callbackInvoked = false;
-    auto subscription = manager->SubscribeIsAuthMaintainActive([&callbackInvoked](bool isActive) {
-        callbackInvoked = true;
-        EXPECT_TRUE(isActive);
+    int callbackCount = 0;
+    auto subscription = manager->SubscribeIsAuthMaintainActive([&callbackCount](bool isActive) {
+        callbackCount++;
+        // First callback will be false (initial state), second will be true
+        if (callbackCount == INT32_2) {
+            EXPECT_TRUE(isActive);
+        }
     });
 
     ASSERT_TRUE(authMaintainCallback_ != nullptr);
     authMaintainCallback_(true);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
-    EXPECT_TRUE(callbackInvoked);
+    EXPECT_EQ(callbackCount, INT32_2);
     EXPECT_TRUE(manager->IsAuthMaintainActive());
 }
 
@@ -240,7 +248,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_001, TestSize.Level0)
     const auto &deviceKey = deviceKeyOpt.value();
     EXPECT_EQ(deviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(deviceKey.deviceId, "local-device-id");
-    EXPECT_EQ(deviceKey.deviceUserId, 100);
+    EXPECT_EQ(deviceKey.deviceUserId, INT32_100);
 }
 
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_002, TestSize.Level0)
@@ -251,7 +259,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_002, TestSize.Level0)
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
     ASSERT_NE(manager, nullptr);
 
-    auto deviceKeyOpt = manager->GetLocalDeviceKey(ChannelId::SOFTBUS);
+    auto deviceKeyOpt = manager->GetLocalDeviceKey(ChannelId::INVALID);
     EXPECT_FALSE(deviceKeyOpt.has_value());
 }
 
@@ -286,7 +294,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKeys_001, TestSize.Level0)
     const auto &deviceKey = it->second;
     EXPECT_EQ(deviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(deviceKey.deviceId, "local-device-id");
-    EXPECT_EQ(deviceKey.deviceUserId, 100);
+    EXPECT_EQ(deviceKey.deviceUserId, INT32_100);
 }
 
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKeys_002, TestSize.Level0)
@@ -312,15 +320,14 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKeys_002, TestSize.Level0)
     ASSERT_NE(manager, nullptr);
 
     auto deviceKeys = manager->GetLocalDeviceKeys();
-    EXPECT_EQ(deviceKeys.size(), 2);
+    // Since both channels have the same ChannelId::SOFTBUS, only one will be in the map
+    // GetLocalDeviceKey() queries the channel manager, which returns the first matching channel
+    EXPECT_EQ(deviceKeys.size(), 1);
 
-    auto it1 = deviceKeys.find(ChannelId::SOFTBUS);
-    ASSERT_NE(it1, deviceKeys.end());
-    EXPECT_EQ(it1->second.deviceId, "local-device-id");
-
-    auto it2 = deviceKeys.find(ChannelId::SOFTBUS);
-    ASSERT_NE(it2, deviceKeys.end());
-    EXPECT_EQ(it2->second.deviceId, "local-device-id-2");
+    auto it = deviceKeys.find(ChannelId::SOFTBUS);
+    ASSERT_NE(it, deviceKeys.end());
+    // The first channel's data is returned (GetChannelById returns first match)
+    EXPECT_EQ(it->second.deviceId, "local-device-id");
 }
 
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKeys_003, TestSize.Level0)
