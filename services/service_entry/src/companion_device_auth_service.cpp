@@ -325,7 +325,7 @@ ResultCode CompanionDeviceAuthServiceInner::UpdateTemplateEnabledBusinessIds(uin
         GetCompanionManager().UpdateCompanionEnabledBusinessIds(static_cast<TemplateId>(templateId), businessIdEnums);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("UpdateCompanionEnabledBusinessIds failed ret=%{public}d", ret);
-        return ResultCode::GENERAL_ERROR;
+        return ret;
     }
 
     IAM_LOGI("End");
