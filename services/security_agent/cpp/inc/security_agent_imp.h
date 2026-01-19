@@ -129,9 +129,7 @@ public:
     ResultCode HostCheckTemplateEnrolled(const HostCheckTemplateEnrolledInput &input,
         HostCheckTemplateEnrolledOutput &output) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     explicit SecurityAgentImpl(std::shared_ptr<ICommandInvoker> invoker);
     void Initialize() override;
     std::shared_ptr<ICommandInvoker> invoker_;

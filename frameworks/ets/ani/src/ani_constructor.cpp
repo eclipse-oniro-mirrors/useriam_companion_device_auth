@@ -17,7 +17,7 @@
 
 #include "ohos.userIAM.companionDeviceAuth.ani.hpp"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
+#define LOG_TAG "CDA_ANI"
 
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {

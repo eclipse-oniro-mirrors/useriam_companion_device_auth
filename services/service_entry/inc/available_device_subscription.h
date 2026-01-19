@@ -46,9 +46,7 @@ public:
     void OnCallbackAdded(const sptr<IIpcAvailableDeviceStatusCallback> &callback) override;
     void OnCallbackRemoteDied(const sptr<IIpcAvailableDeviceStatusCallback> &callback) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     AvailableDeviceSubscription(UserId userId, std::weak_ptr<SubscriptionManager> subscriptionManager);
     bool Initialize();
     void HandleDeviceStatusChange(const std::vector<DeviceStatus> &deviceStatusList);

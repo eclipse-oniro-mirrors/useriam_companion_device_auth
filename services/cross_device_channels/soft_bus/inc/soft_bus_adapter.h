@@ -42,9 +42,7 @@ public:
     virtual void HandleShutdown(int32_t socketId, int32_t reason) = 0;
     virtual void HandleError(int32_t socketId, int32_t errorCode) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     ISoftBusSocketCallback() = default;
 };
 
@@ -59,9 +57,7 @@ public:
     virtual bool SendBytes(int32_t socketId, const std::vector<uint8_t> &data) = 0;
     virtual void ShutdownSocket(int32_t socketId) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     ISoftBusAdapter() = default;
 };
 

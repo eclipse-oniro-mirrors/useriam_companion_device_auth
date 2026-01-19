@@ -51,9 +51,7 @@ public:
         const sptr<IIpcContinuousAuthStatusCallback> &continuousAuthStatusCallback);
     void RemoveContinuousAuthStatusCallback(const sptr<IIpcContinuousAuthStatusCallback> &continuousAuthStatusCallback);
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void UpdateSubscribeMode();
 
     std::shared_ptr<AvailableDeviceSubscription> GetOrCreateAvailableDeviceSubscription(UserId userId);

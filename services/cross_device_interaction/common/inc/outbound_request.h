@@ -41,9 +41,7 @@ public:
     void Start() override final;
     bool Cancel(ResultCode resultCode) override final;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     void Destroy();
 
     virtual bool OnStart(ErrorGuard &errorGuard);
@@ -57,9 +55,7 @@ protected:
     std::optional<DeviceKey> GetPeerDeviceKey() const override;
     const std::string &GetConnectionName() const;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void CloseConnection();
 
     void HandleConnectionStatus(const std::string &connName, ConnectionStatus status, const std::string &reason);

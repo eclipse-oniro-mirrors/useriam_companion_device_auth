@@ -28,9 +28,7 @@ public:
     CompanionInitKeyNegotiationHandler();
     ~CompanionInitKeyNegotiationHandler() override = default;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     void HandleRequest(const Attributes &request, OnMessageReply &onMessageReply) override;
 };
 } // namespace CompanionDeviceAuth

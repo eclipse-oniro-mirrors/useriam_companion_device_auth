@@ -113,9 +113,7 @@ public:
     std::vector<AttributeKey> GetKeys() const;
     bool HasAttribute(AttributeKey key) const;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     std::map<AttributeKey, std::vector<uint8_t>> map_;
 };
 

@@ -38,17 +38,13 @@ public:
     bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
         uint32_t subsequentSameTypeCount) const override;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     bool OnStart(ErrorGuard &errorGuard) override;
     void CompleteWithError(ResultCode result) override;
     void CompleteWithSuccess();
     std::weak_ptr<InboundRequest> GetWeakPtr() override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     bool ParsePreObtainTokenRequest(ErrorGuard &errorGuard);
     bool ProcessPreObtainToken(std::vector<uint8_t> &preObtainTokenReply);
     void SendPreObtainTokenReply(ResultCode result, const std::vector<uint8_t> &preObtainTokenReply);

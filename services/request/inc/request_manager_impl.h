@@ -41,9 +41,7 @@ public:
     void Remove(RequestId requestId) override;
     std::shared_ptr<IRequest> Get(RequestId requestId) const override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     RequestManagerImpl();
 
     std::deque<std::shared_ptr<IRequest>> runningRequests_;

@@ -45,9 +45,7 @@ public:
     virtual bool RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) = 0;
     virtual void UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     IDeviceManagerAdapter() = default;
 };
 

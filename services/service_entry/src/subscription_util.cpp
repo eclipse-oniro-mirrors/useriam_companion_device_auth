@@ -17,7 +17,7 @@
 
 #include "iam_logger.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
@@ -62,17 +62,13 @@ IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionSta
 bool IpcDeviceStatusEqual(const IpcDeviceStatus &lhs, const IpcDeviceStatus &rhs)
 {
     return lhs.deviceKey.deviceIdType == rhs.deviceKey.deviceIdType &&
-           lhs.deviceKey.deviceId == rhs.deviceKey.deviceId &&
-           lhs.deviceKey.deviceUserId == rhs.deviceKey.deviceUserId &&
-           lhs.deviceUserName == rhs.deviceUserName &&
-           lhs.deviceModelInfo == rhs.deviceModelInfo &&
-           lhs.deviceName == rhs.deviceName &&
-           lhs.isOnline == rhs.isOnline &&
-           lhs.supportedBusinessIds == rhs.supportedBusinessIds;
+        lhs.deviceKey.deviceId == rhs.deviceKey.deviceId && lhs.deviceKey.deviceUserId == rhs.deviceKey.deviceUserId &&
+        lhs.deviceUserName == rhs.deviceUserName && lhs.deviceModelInfo == rhs.deviceModelInfo &&
+        lhs.deviceName == rhs.deviceName && lhs.isOnline == rhs.isOnline &&
+        lhs.supportedBusinessIds == rhs.supportedBusinessIds;
 }
 
-bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs,
-    const std::vector<IpcDeviceStatus> &rhs)
+bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs, const std::vector<IpcDeviceStatus> &rhs)
 {
     if (lhs.size() != rhs.size()) {
         return false;
@@ -87,17 +83,12 @@ bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs,
 
 bool IpcTemplateStatusEqual(const IpcTemplateStatus &lhs, const IpcTemplateStatus &rhs)
 {
-    return lhs.templateId == rhs.templateId &&
-           lhs.isConfirmed == rhs.isConfirmed &&
-           lhs.isValid == rhs.isValid &&
-           lhs.localUserId == rhs.localUserId &&
-           lhs.addedTime == rhs.addedTime &&
-           lhs.enabledBusinessIds == rhs.enabledBusinessIds &&
-           IpcDeviceStatusEqual(lhs.deviceStatus, rhs.deviceStatus);
+    return lhs.templateId == rhs.templateId && lhs.isConfirmed == rhs.isConfirmed && lhs.isValid == rhs.isValid &&
+        lhs.localUserId == rhs.localUserId && lhs.addedTime == rhs.addedTime &&
+        lhs.enabledBusinessIds == rhs.enabledBusinessIds && IpcDeviceStatusEqual(lhs.deviceStatus, rhs.deviceStatus);
 }
 
-bool IpcTemplateStatusVectorEqual(const std::vector<IpcTemplateStatus> &lhs,
-    const std::vector<IpcTemplateStatus> &rhs)
+bool IpcTemplateStatusVectorEqual(const std::vector<IpcTemplateStatus> &lhs, const std::vector<IpcTemplateStatus> &rhs)
 {
     if (lhs.size() != rhs.size()) {
         return false;

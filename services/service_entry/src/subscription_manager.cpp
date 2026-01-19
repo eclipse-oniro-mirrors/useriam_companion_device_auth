@@ -28,7 +28,7 @@
 #include "singleton_manager.h"
 #include "template_status_subscription.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {

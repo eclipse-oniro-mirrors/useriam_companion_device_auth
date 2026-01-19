@@ -54,9 +54,7 @@ public:
     void ReportConnectionEstablished(const std::string &connectionName);
     void ReportConnectionClosed(const std::string &connectionName, const std::string &reason);
 
-#ifndef ENABLE_TEST
 private:
-#endif
     SoftBusConnectionManager();
     bool Initialize();
     bool StartServerSocket();

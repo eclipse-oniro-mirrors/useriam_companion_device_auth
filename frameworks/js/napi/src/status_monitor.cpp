@@ -18,7 +18,7 @@
 #include "iam_logger.h"
 #include "iam_ptr.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_NAPI"
+#define LOG_TAG "CDA_NAPI"
 
 namespace OHOS {
 namespace UserIam {

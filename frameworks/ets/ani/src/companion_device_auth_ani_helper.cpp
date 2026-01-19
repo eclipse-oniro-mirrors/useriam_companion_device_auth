@@ -28,7 +28,7 @@
 
 #include "taihe/runtime.hpp"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
+#define LOG_TAG "CDA_ANI"
 
 using namespace taihe;
 

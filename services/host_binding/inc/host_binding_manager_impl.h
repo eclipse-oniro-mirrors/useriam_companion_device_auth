@@ -54,9 +54,7 @@ public:
     void StartObtainTokenRequests(UserId userId, const std::vector<uint8_t> &fwkUnlockMsg) override;
     void RevokeTokens(UserId userId) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     HostBindingManagerImpl() = default;
     void Initialize() override;
     void OnActiveUserIdChanged(UserId userId);

@@ -30,7 +30,7 @@
 #include "temporary_task_runner.h"
 #include "xcollie_helper.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {
@@ -173,18 +173,6 @@ void TaskRunnerManager::PostTaskOnTemporary(const std::string &name, std::functi
     PostTask(thread_name, std::move(task));
     DestroyTaskRunner(thread_name);
 }
-
-#ifdef ENABLE_TEST
-void TaskRunnerManager::ExecuteAll()
-{
-    IAM_LOGI("ExecuteAll not implemented for production TaskRunnerManager");
-}
-
-void TaskRunnerManager::EnsureAllTaskExecuted()
-{
-    IAM_LOGI("EnsureAllTaskExecuted not implemented for production TaskRunnerManager");
-}
-#endif
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

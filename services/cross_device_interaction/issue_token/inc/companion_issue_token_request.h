@@ -40,17 +40,13 @@ public:
     bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
         uint32_t subsequentSameTypeCount) const override;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     bool OnStart(ErrorGuard &errorGuard) override;
     std::weak_ptr<InboundRequest> GetWeakPtr() override;
     void CompleteWithError(ResultCode result) override;
     void CompleteWithSuccess();
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void HandleIssueTokenMessage(const Attributes &request, OnMessageReply &onMessageReply);
     bool SecureAgentCompanionIssueToken(const std::vector<uint8_t> &issueTokenRequest,
         std::vector<uint8_t> &issueTokenReply);

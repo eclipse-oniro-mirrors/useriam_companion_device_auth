@@ -35,9 +35,7 @@ public:
     bool RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override;
     void UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     DeviceManagerAdapterImpl() = default;
     bool Initialize();
 };

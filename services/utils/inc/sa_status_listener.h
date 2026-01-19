@@ -39,9 +39,7 @@ public:
 
     ~SaStatusListener();
 
-#ifndef ENABLE_TEST
 private:
-#endif
     class SaStatusStub;
 
     SaStatusListener(const std::string &name, int32_t systemAbilityId, AddFunc &&addFunc, RemoveFunc &&removeFunc);

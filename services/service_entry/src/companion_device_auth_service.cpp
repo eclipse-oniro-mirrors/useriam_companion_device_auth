@@ -61,7 +61,7 @@
 #include "soft_bus_channel.h"
 #endif
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {
@@ -71,7 +71,7 @@ namespace {
 #ifndef ENABLE_TEST
 [[maybe_unused]] const bool REGISTER_RESULT =
     SystemAbility::MakeAndRegisterAbility(CompanionDeviceAuthService::GetInstance().GetRefPtr());
-#endif
+#endif // ENABLE_TEST
 } // namespace
 
 class CompanionDeviceAuthService::CompanionDeviceAuthServiceInner : public NoCopyable {
@@ -145,7 +145,7 @@ std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner
     auto securityAgent = SecurityAgentImpl::Create();
     ENSURE_OR_RETURN_VAL(securityAgent != nullptr, nullptr);
     singletonManager.SetSecurityAgent(securityAgent);
-#endif
+#endif // ENABLE_TEST
 
     auto registry = IncomingMessageHandlerRegistry::Create();
     ENSURE_OR_RETURN_VAL(registry != nullptr, nullptr);

@@ -49,9 +49,7 @@ public:
 
     virtual void SetAuthMaintainActive(bool isActive);
 
-#ifndef ENABLE_TEST
 private:
-#endif
     explicit LocalDeviceStatusManager(std::shared_ptr<ChannelManager> channelMgr);
     bool Init();
 

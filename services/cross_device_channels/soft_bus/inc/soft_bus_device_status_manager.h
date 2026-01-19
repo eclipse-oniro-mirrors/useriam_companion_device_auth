@@ -45,9 +45,7 @@ public:
     bool GetAuthMaintainActive() const;
     std::optional<PhysicalDeviceKey> GetLocalPhysicalDeviceKey() const;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     static std::string DeviceTypeIdToString(DistributedHardware::DmDeviceType deviceTypeId);
     static std::string GenerateDeviceModelInfo(DistributedHardware::DmDeviceType deviceTypeId);
     static bool IsDeviceTypeIdSupport(DistributedHardware::DmDeviceType deviceTypeId);

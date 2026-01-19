@@ -35,9 +35,7 @@ public:
     virtual bool CheckSystemPermission(IPCObjectStub &stub) = 0;
     virtual uint32_t GetAccessTokenId(IPCObjectStub &stub) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     IAccessTokenKitAdapter() = default;
 };
 

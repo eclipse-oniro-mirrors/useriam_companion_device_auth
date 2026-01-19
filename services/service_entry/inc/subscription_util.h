@@ -32,12 +32,10 @@ IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionSta
     const std::optional<int64_t> &manageSubscribeTime);
 
 bool IpcDeviceStatusEqual(const IpcDeviceStatus &lhs, const IpcDeviceStatus &rhs);
-bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs,
-    const std::vector<IpcDeviceStatus> &rhs);
+bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs, const std::vector<IpcDeviceStatus> &rhs);
 
 bool IpcTemplateStatusEqual(const IpcTemplateStatus &lhs, const IpcTemplateStatus &rhs);
-bool IpcTemplateStatusVectorEqual(const std::vector<IpcTemplateStatus> &lhs,
-    const std::vector<IpcTemplateStatus> &rhs);
+bool IpcTemplateStatusVectorEqual(const std::vector<IpcTemplateStatus> &lhs, const std::vector<IpcTemplateStatus> &rhs);
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

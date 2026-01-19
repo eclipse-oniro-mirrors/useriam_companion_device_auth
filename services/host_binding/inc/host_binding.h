@@ -61,9 +61,7 @@ public:
     }
     void SetTokenValid(bool isTokenValid);
 
-#ifndef ENABLE_TEST
 private:
-#endif
     explicit HostBinding(const PersistedHostBindingStatus &persistedStatus);
     bool Initialize();
     void HandleDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);

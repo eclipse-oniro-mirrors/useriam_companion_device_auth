@@ -74,9 +74,7 @@ public:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
-#ifdef ENABLE_TEST
         AdapterManager::GetInstance().Reset();
-#endif
     }
 
 protected:

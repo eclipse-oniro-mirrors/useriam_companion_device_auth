@@ -27,7 +27,7 @@
 #include "adapter_manager.h"
 #include "soft_bus_adapter_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {

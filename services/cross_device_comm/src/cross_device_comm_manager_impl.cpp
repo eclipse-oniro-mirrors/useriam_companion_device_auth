@@ -26,7 +26,7 @@
 #include "local_device_status_manager.h"
 #include "message_router.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {

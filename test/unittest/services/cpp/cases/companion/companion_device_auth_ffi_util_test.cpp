@@ -24,8 +24,6 @@
 #include "companion_device_auth_ffi_util.h"
 #include "security_agent.h"
 
-#define LOG_TAG "DEVICE_AUTH"
-
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {

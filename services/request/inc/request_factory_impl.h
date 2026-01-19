@@ -63,9 +63,7 @@ public:
     std::shared_ptr<IRequest> CreateHostSingleMixAuthRequest(ScheduleId scheduleId, std::vector<uint8_t> fwkMsg,
         UserId hostUserId, TemplateId templateId, FwkResultCallback &&requestCallback) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     RequestFactoryImpl() = default;
 };
 } // namespace CompanionDeviceAuth

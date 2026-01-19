@@ -92,9 +92,7 @@ public:
 
     virtual void NotifyCompanionStatusChange() = 0;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     virtual void Initialize() = 0;
 };
 } // namespace CompanionDeviceAuth

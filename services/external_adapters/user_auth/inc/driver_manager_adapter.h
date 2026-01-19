@@ -32,9 +32,7 @@ public:
 
     virtual bool Start(std::shared_ptr<CompanionDeviceAuthDriver> driver) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     IDriverManagerAdapter() = default;
 };
 

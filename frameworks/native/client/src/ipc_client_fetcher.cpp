@@ -22,7 +22,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_SDK"
+#define LOG_TAG "CDA_SDK"
 
 namespace OHOS {
 namespace UserIam {

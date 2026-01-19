@@ -23,7 +23,7 @@
 #include "xcollie/xcollie.h"
 #include "xcollie/xcollie_define.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {

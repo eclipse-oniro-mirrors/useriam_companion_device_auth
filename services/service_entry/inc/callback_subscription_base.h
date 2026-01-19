@@ -30,7 +30,7 @@
 #include "callback_death_recipient.h"
 #include "task_runner_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {
@@ -113,9 +113,7 @@ public:
 
     virtual void OnCallbackRemoteDied(const sptr<CallbackType> &callback) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     std::vector<sptr<CallbackType>> callbacks_;
     DeathHandler deathHandler_;
 };

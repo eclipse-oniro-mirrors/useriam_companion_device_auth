@@ -34,18 +34,14 @@ public:
     bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
         uint32_t subsequentSameTypeCount) const override;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     bool OnStart(ErrorGuard &errorGuard) override;
     void OnConnected() override;
     std::weak_ptr<OutboundRequest> GetWeakPtr() override;
 
     void CompleteWithError(ResultCode result) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void SendRemoveHostBindingRequest();
     void HandleRemoveHostBindingReply(const Attributes &message);
     void CompleteWithSuccess();

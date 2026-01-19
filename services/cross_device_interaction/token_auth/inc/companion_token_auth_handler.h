@@ -28,9 +28,7 @@ public:
     CompanionTokenAuthHandler();
     ~CompanionTokenAuthHandler() override = default;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     void HandleRequest(const Attributes &request, Attributes &reply) override;
 };
 } // namespace CompanionDeviceAuth

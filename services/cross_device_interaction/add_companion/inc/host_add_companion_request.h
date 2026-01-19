@@ -41,18 +41,14 @@ public:
     bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
         uint32_t subsequentSameTypeCount) const override;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     bool OnStart(ErrorGuard &errorGuard) override;
     void OnConnected() override;
     void CompleteWithError(ResultCode result) override;
     void CompleteWithSuccess();
     std::weak_ptr<OutboundRequest> GetWeakPtr() override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices);
     bool BeginAddCompanion(const InitKeyNegotiationReply &reply, std::vector<uint8_t> &addHostBindingRequest,
         ErrorGuard &errorGuard);

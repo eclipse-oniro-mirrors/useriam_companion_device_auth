@@ -74,9 +74,7 @@ public:
     virtual void Reset() = 0;
 #endif
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     SingletonManager() = default;
 };
 

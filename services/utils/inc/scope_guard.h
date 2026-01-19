@@ -48,9 +48,7 @@ public:
         action_ = nullptr;
     }
 
-#ifndef ENABLE_TEST
 private:
-#endif
     ExitAction action_;
 };
 

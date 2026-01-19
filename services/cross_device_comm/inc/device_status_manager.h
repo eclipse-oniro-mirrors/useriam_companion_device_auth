@@ -67,9 +67,7 @@ public:
 
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, OnDeviceStatusChange &&callback);
 
-#ifndef ENABLE_TEST
 private:
-#endif
     static constexpr int32_t PERIODIC_SYNC_INTERVAL_MS = 10000; // 10 seconds
 
     struct DeviceStatusSubscriptionInfo {

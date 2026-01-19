@@ -24,7 +24,8 @@
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_SDK"
+#define LOG_TAG "CDA_SDK"
+
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
@@ -39,7 +40,7 @@ void CompanionDeviceAuthClientImpl::SetProxy(const sptr<ICompanionDeviceAuth> &p
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     proxy_ = proxy;
 }
-#endif
+#endif // ENABLE_TEST
 
 int32_t CompanionDeviceAuthClientImpl::RegisterDeviceSelectCallback(
     const std::shared_ptr<IDeviceSelectCallback> &callback)
@@ -496,7 +497,7 @@ sptr<ICompanionDeviceAuth> CompanionDeviceAuthClientImpl::GetProxy()
     });
 
     return proxy_;
-#endif
+#endif // ENABLE_TEST
 }
 
 void CompanionDeviceAuthClientImpl::ResetProxy(const wptr<IRemoteObject> &remote)

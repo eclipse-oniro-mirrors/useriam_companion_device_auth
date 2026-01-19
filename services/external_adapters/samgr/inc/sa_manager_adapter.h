@@ -35,9 +35,7 @@ public:
     virtual bool UnSubscribeSystemAbility(int32_t systemAbilityId,
         const sptr<SystemAbilityStatusChangeStub> &listener) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     ISaManagerAdapter() = default;
 };
 

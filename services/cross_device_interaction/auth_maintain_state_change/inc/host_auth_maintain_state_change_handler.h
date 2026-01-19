@@ -34,14 +34,10 @@ public:
     }
     ~HostAuthMaintainStateChangeHandler() override = default;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     void HandleRequest(const Attributes &request, Attributes &reply) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     std::function<void(bool)> onStateChange_;
 };
 } // namespace CompanionDeviceAuth

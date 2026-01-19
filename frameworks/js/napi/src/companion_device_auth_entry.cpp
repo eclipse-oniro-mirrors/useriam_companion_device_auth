@@ -26,7 +26,7 @@
 #include "status_monitor.h"
 #include "tokenid_kit.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_NAPI"
+#define LOG_TAG "CDA_NAPI"
 
 namespace OHOS {
 namespace UserIam {

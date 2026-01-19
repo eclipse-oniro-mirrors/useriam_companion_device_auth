@@ -89,9 +89,7 @@ public:
         const std::string &reason);
     void HandleKeepAliveReply(const std::string &connectionName, const Attributes &reply);
 
-#ifndef ENABLE_TEST
 private:
-#endif
     ConnectionManager(std::shared_ptr<ChannelManager> channelManager,
         std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusManager);
     bool Initialize();

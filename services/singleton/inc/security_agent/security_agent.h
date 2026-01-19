@@ -516,9 +516,7 @@ public:
     virtual ResultCode HostRevokeToken(const HostRevokeTokenInput &input) = 0;
     virtual ResultCode CompanionRevokeToken(const CompanionRevokeTokenInput &input) = 0;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     virtual void Initialize() = 0;
 };
 } // namespace CompanionDeviceAuth

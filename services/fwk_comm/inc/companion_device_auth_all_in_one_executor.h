@@ -58,9 +58,7 @@ public:
 
     class CompanionDeviceAuthAllInOneExecutorInner;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     FwkResultCode RunOnResidentSync(std::function<FwkResultCode()> func, uint32_t timeoutSec = MAX_SYNC_WAIT_TIME_SEC);
 
     std::shared_ptr<CompanionDeviceAuthAllInOneExecutorInner> inner_;

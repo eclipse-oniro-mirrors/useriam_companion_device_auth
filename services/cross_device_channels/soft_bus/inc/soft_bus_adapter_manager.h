@@ -41,7 +41,7 @@ public:
 
 #ifdef ENABLE_TEST
     void Reset();
-#endif
+#endif // ENABLE_TEST
 
 private:
     SoftBusAdapterManager() = default;

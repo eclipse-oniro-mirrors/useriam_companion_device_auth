@@ -79,9 +79,7 @@ public:
     std::optional<SecureProtocolId> HostGetSecureProtocolId(const DeviceKey &companionDeviceKey) override;
     SecureProtocolId CompanionGetSecureProtocolId() override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     CrossDeviceCommManagerImpl(std::shared_ptr<ChannelManager> channelMgr,
         std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr,
         std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<MessageRouter> messageRouter,

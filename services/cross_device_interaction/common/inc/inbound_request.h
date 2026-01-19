@@ -40,9 +40,7 @@ public:
     void Start() override final;
     bool Cancel(ResultCode resultCode) override final;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     virtual bool OnStart(ErrorGuard &errorGuard) = 0;
 
     virtual std::weak_ptr<InboundRequest> GetWeakPtr() = 0;
@@ -54,9 +52,7 @@ protected:
     void SendRequestAborted(ResultCode result, const std::string &reason);
     void CompleteWithError(ResultCode result) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void HandleConnectionStatus(const std::string &connName, ConnectionStatus status, const std::string &reason);
 
     std::string connectionName_;

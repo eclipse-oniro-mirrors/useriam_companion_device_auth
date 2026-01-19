@@ -25,7 +25,7 @@
 
 #include "companion_device_auth_client.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_NAPI"
+#define LOG_TAG "CDA_NAPI"
 
 namespace OHOS {
 namespace UserIam {

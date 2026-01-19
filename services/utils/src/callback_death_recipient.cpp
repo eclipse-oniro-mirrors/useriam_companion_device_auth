@@ -23,7 +23,7 @@
 #include "service_common.h"
 #include "task_runner_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {
@@ -46,7 +46,7 @@ sptr<CallbackDeathRecipient> CallbackDeathRecipient::Register(const sptr<IRemote
         IAM_LOGE("AddDeathRecipient failed");
         return nullptr;
     }
-#endif
+#endif // ENABLE_TEST
 
     return recipient;
 }

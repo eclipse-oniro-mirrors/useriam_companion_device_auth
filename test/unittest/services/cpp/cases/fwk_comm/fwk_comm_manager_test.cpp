@@ -46,9 +46,7 @@ public:
 
     void TearDown() override
     {
-#ifdef ENABLE_TEST
         AdapterManager::GetInstance().Reset();
-#endif
     }
 
 protected:

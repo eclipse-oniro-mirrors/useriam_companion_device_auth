@@ -29,9 +29,7 @@ public:
     static std::shared_ptr<FwkCommManager> Create();
     ~FwkCommManager() = default;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     FwkCommManager() = default;
     bool Initialize();
 };

@@ -74,9 +74,7 @@ public:
     virtual std::optional<SecureProtocolId> HostGetSecureProtocolId(const DeviceKey &companionDeviceKey) = 0;
     virtual SecureProtocolId CompanionGetSecureProtocolId() = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     ICrossDeviceCommManager() = default;
 };
 

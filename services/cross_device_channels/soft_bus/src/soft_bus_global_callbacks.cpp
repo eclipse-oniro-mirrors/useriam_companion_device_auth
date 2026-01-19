@@ -21,7 +21,7 @@
 #include "soft_bus_connection_manager.h"
 #include "task_runner_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 constexpr int INVALID_SOCKET_ID = -1;
 constexpr int MAX_DATA_LEN = 4096;

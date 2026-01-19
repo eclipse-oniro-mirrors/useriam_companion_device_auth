@@ -33,7 +33,7 @@
 #include "taihe/runtime.hpp"
 #include "tokenid_kit.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH_ANI"
+#define LOG_TAG "CDA_ANI"
 
 namespace CompanionDeviceAuth = OHOS::UserIam::CompanionDeviceAuth;
 

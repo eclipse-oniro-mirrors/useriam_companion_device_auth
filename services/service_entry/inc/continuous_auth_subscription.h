@@ -48,9 +48,7 @@ public:
     void OnCallbackAdded(const sptr<IIpcContinuousAuthStatusCallback> &callback) override;
     void OnCallbackRemoteDied(const sptr<IIpcContinuousAuthStatusCallback> &callback) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     bool Initialize();
     void HandleCompanionStatusChange(const std::vector<CompanionStatus> &companionStatusList);
     void NotifyAuthStatus(std::optional<Atl> authTrustLevel);

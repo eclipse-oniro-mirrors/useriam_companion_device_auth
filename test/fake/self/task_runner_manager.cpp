@@ -25,7 +25,7 @@
 
 #include "iam_logger.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {
@@ -101,7 +101,6 @@ void TaskRunnerManager::AssertRunningOnResidentThread() const
     return;
 }
 
-#ifdef ENABLE_TEST
 void TaskRunnerManager::ExecuteAll()
 {
     auto tasks = std::move(*g_pendingTasks);
@@ -124,7 +123,6 @@ void TaskRunnerManager::EnsureAllTaskExecuted()
     }
     abort();
 }
-#endif
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

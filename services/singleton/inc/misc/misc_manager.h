@@ -49,9 +49,7 @@ public:
     virtual std::optional<std::string> GetLocalUdid() = 0;
     virtual bool CheckBusinessIds(const std::vector<BusinessId> &businessIds) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     IMiscManager() = default;
 };
 } // namespace CompanionDeviceAuth

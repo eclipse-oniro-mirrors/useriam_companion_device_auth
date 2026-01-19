@@ -35,9 +35,7 @@ public:
     void PostTask(Task &&task) override;
     void Suspend() override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     OHOS::ThreadPool pool_;
     bool canSuspend_ = false;
 

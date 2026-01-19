@@ -41,9 +41,7 @@ public:
     ScheduleId GetScheduleId() const final override;
     std::optional<DeviceKey> GetPeerDeviceKey() const override;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     void StartTimeout();
     void StopTimeout();
     void Destroy();

@@ -44,9 +44,7 @@ public:
     virtual void SetParamTwice(const std::string &key, const std::string &value1, const std::string &value2) = 0;
     virtual std::unique_ptr<Subscription> WatchParam(const std::string &key, SystemParamCallback &&callback) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     ISystemParamManager() = default;
 };
 } // namespace CompanionDeviceAuth

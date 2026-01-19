@@ -38,9 +38,7 @@ public:
     bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
         uint32_t subsequentSameTypeCount) const override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void CompleteWithError(ResultCode result) override;
     void CompleteWithSuccess(const std::vector<uint8_t> &extraInfo);
     void Destroy();

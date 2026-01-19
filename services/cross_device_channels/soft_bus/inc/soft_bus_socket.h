@@ -55,9 +55,7 @@ public:
     void HandleInboundConnected(const std::string &connectionName);
     void MarkShutdownByPeer();
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void Cleanup();
     void NotifyConnectionEstablished();
     void NotifyConnectionClosed();

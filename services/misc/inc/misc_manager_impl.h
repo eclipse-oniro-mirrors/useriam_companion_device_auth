@@ -44,9 +44,7 @@ public:
     std::optional<std::string> GetLocalUdid() override;
     bool CheckBusinessIds(const std::vector<BusinessId> &businessIds) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     MiscManagerImpl();
     struct CallbackInfo {
         sptr<IIpcDeviceSelectCallback> callback;

@@ -56,9 +56,7 @@ public:
 
     void OnRemoteDisconnect(const std::string &connectionName, const std::string &reason) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     SoftBusChannel();
     bool Initialize();
 

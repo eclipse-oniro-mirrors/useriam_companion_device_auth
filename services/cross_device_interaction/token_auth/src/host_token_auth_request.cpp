@@ -27,7 +27,7 @@
 #include "task_runner_manager.h"
 #include "token_auth_message.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {

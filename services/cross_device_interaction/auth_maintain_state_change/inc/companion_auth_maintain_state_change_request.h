@@ -31,9 +31,7 @@ public:
     CompanionAuthMaintainStateChangeRequest(const DeviceKey &hostDeviceKey, bool authStateMaintain);
     ~CompanionAuthMaintainStateChangeRequest() override = default;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     std::weak_ptr<OutboundRequest> GetWeakPtr() override;
     void OnConnected() override;
     void CompleteWithError(ResultCode result) override;
@@ -41,9 +39,7 @@ protected:
     bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
         uint32_t subsequentSameTypeCount) const override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void SendAuthMaintainStateChangeRequest();
     void HandleAuthMaintainStateChangeReply(const Attributes &message);
     void CompleteWithSuccess();

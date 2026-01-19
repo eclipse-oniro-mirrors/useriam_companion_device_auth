@@ -36,9 +36,7 @@ public:
         AuthResultCallback callback) = 0;
     virtual int32_t CancelAuthentication(uint64_t contextId) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     IUserAuthAdapter() = default;
 };
 

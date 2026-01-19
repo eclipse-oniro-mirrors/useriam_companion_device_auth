@@ -47,9 +47,7 @@ public:
     virtual void StartObtainTokenRequests(UserId userId, const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual void RevokeTokens(UserId userId) = 0;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     virtual void Initialize() = 0;
 };
 } // namespace CompanionDeviceAuth

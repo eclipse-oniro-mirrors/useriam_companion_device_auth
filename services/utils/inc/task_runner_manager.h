@@ -57,11 +57,9 @@ public:
 #ifdef ENABLE_TEST
     virtual void ExecuteAll();
     virtual void EnsureAllTaskExecuted();
-#endif
+#endif // ENABLE_TEST
 
-#ifndef ENABLE_TEST
 private:
-#endif
     std::recursive_mutex mutex_;
     std::map<std::string, std::shared_ptr<TaskRunner>> taskRunnerMap_;
 };

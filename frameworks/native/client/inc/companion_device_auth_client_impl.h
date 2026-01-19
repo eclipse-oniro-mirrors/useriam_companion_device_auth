@@ -28,7 +28,7 @@
 
 #ifndef ENABLE_TEST
 #include "ipc_client_fetcher.h"
-#endif
+#endif // ENABLE_TEST
 #include "icompanion_device_auth.h"
 #include "ipc_available_device_status_callback_service.h"
 #include "ipc_continuous_auth_status_callback_service.h"
@@ -60,15 +60,13 @@ public:
     int32_t CheckLocalUserIdValid(const int32_t localUserId, bool &isUserIdValid) override;
     void SubscribeCompanionDeviceAuthSaStatus();
 
-#ifndef ENABLE_TEST
 private:
-#endif
     CompanionDeviceAuthClientImpl();
     ~CompanionDeviceAuthClientImpl() override;
 
 #ifdef ENABLE_TEST
     void SetProxy(const sptr<ICompanionDeviceAuth> &proxy);
-#endif
+#endif // ENABLE_TEST
 
     void ReregisterDeviceSelectCallback();
     void ResubscribeTemplateStatusChange();

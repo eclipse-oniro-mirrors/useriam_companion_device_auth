@@ -26,7 +26,7 @@
 #include "if_system_ability_manager.h"
 #include "task_runner_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {
@@ -95,7 +95,7 @@ std::unique_ptr<SaStatusListener> SaStatusListener::Create(const std::string &na
     (void)addFunc;
     (void)removeFunc;
     return nullptr;
-#endif
+#endif // ENABLE_TEST
 }
 
 SaStatusListener::SaStatusListener([[maybe_unused]] const std::string &name, int32_t systemAbilityId, AddFunc &&addFunc,

@@ -23,7 +23,7 @@
 #include "host_auth_maintain_state_change_handler.h"
 #include "singleton_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {

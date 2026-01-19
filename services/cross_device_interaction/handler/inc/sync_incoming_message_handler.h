@@ -36,14 +36,10 @@ public:
     void HandleIncomingMessage(const Attributes &request, OnMessageReply &onMessageReply) override;
     MessageType GetMessageType() const override;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     virtual void HandleRequest(const Attributes &request, Attributes &reply) = 0;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     MessageType messageType_ { MessageType::INVALID };
     std::unique_ptr<Subscription> subscription_;
 };

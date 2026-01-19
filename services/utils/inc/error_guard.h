@@ -56,9 +56,7 @@ public:
         handler_ = nullptr;
     }
 
-#ifndef ENABLE_TEST
 private:
-#endif
     ErrorHandler handler_;
     ResultCode resultCode_ { ResultCode::GENERAL_ERROR };
 };

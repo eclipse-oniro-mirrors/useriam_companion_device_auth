@@ -37,15 +37,12 @@ public:
     std::unique_ptr<Subscription> Register(TimerCallback &&callback, uint32_t ms);
     std::unique_ptr<Subscription> RegisterPeriodic(TimerCallback &&callback, uint32_t ms);
     void PostTask(TimerCallback &&callback, uint32_t ms);
-
 #ifdef ENABLE_TEST
     void ExecuteAll();
     void EnsureAllTaskExecuted();
-#endif
+#endif // ENABLE_TEST
 
-#ifndef ENABLE_TEST
 private:
-#endif
     Utils::Timer timer_;
 };
 

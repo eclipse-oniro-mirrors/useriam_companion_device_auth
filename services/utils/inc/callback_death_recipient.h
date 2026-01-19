@@ -35,9 +35,7 @@ public:
     ~CallbackDeathRecipient() override = default;
     void OnRemoteDied(const wptr<IRemoteObject> &remote) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     explicit CallbackDeathRecipient(DeathCallback &&callback);
 
     DeathCallback callback_;

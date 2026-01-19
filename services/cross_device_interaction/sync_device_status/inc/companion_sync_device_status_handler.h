@@ -30,14 +30,10 @@ public:
     CompanionSyncDeviceStatusHandler();
     ~CompanionSyncDeviceStatusHandler() override = default;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     void HandleRequest(const Attributes &request, Attributes &reply) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     bool CompanionProcessCheck(const HostBindingStatus &hostBindingStatus, const SyncDeviceStatusRequest &syncRequest,
         std::vector<uint8_t> &outCompanionCheckResponse);
 };

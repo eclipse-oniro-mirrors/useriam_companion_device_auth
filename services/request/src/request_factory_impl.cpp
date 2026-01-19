@@ -37,7 +37,7 @@
 #include "host_token_auth_request.h"
 #include "singleton_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {

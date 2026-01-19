@@ -69,9 +69,7 @@ public:
     void RefreshTokenTimer();
     void NotifySubscribers();
 
-#ifndef ENABLE_TEST
 private:
-#endif
     explicit Companion(const PersistedCompanionStatus &persistedStatus,
         const std::weak_ptr<CompanionManagerImpl> &managerWeakPtr);
     bool Initialize();

@@ -26,9 +26,6 @@ namespace CompanionDeviceAuth {
 
 void FuzzDefaultUserIdManager(FuzzedDataProvider &fuzzData)
 {
-    // DefaultUserIdManager is not used in test mode (ENABLE_TEST is defined)
-    // IUserIdManager::Create() returns ConstantUserIdManager instead
-    // This is a placeholder fuzzer
     (void)fuzzData;
 }
 

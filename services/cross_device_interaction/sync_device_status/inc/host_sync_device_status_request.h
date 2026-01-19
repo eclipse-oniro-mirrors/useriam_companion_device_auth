@@ -43,16 +43,12 @@ public:
     bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
         uint32_t subsequentSameTypeCount) const override;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     void OnConnected() override;
     std::weak_ptr<OutboundRequest> GetWeakPtr() override;
     void CompleteWithError(ResultCode result) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     void CompleteWithSuccess(const SyncDeviceStatus &syncDeviceStatus);
 
     void BeginCompanionCheck();

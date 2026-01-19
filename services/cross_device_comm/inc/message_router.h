@@ -56,9 +56,7 @@ public:
     void HandleRawMessage(const std::string &connectionName, const std::vector<uint8_t> &rawMsg);
     void HandleConnectionDown(const std::string &connectionName);
 
-#ifndef ENABLE_TEST
 private:
-#endif
     static constexpr int32_t MESSAGE_TIMEOUT_MS = 5000;
     static constexpr int32_t TIMEOUT_CHECK_INTERVAL_MS = 1000;
     static constexpr size_t MAX_PENDING_MESSAGES = 100;
@@ -113,9 +111,7 @@ private:
     std::shared_ptr<ConnectionManager> connectionMgr_;
     std::shared_ptr<ChannelManager> channelMgr_;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     MessageRouter(std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr);
 };
 

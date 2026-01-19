@@ -22,7 +22,7 @@
 
 #include "task_runner_manager.h"
 
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
+#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {
@@ -56,7 +56,7 @@ public:
 
 #ifdef ENABLE_TEST
     virtual void Reset() override;
-#endif
+#endif // ENABLE_TEST
 
 private:
     void AbortIfSingletonUninitialized();
@@ -87,7 +87,7 @@ void SingletonManagerImpl::Reset()
     requestFactory_.reset();
     incomingMessageHandlerRegistry_.reset();
 }
-#endif
+#endif // ENABLE_TEST
 
 ICompanionManager &SingletonManagerImpl::GetCompanionManager()
 {

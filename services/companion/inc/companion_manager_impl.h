@@ -69,9 +69,7 @@ public:
 
     void NotifyCompanionStatusChange() override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     CompanionManagerImpl();
     void Initialize() override;
     void OnActiveUserIdChanged(UserId userId);

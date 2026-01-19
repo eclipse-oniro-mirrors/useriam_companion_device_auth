@@ -47,9 +47,7 @@ public:
     void OnCallbackAdded(const sptr<IIpcTemplateStatusCallback> &callback) override;
     void OnCallbackRemoteDied(const sptr<IIpcTemplateStatusCallback> &callback) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     TemplateStatusSubscription(UserId userId, std::weak_ptr<SubscriptionManager> subscriptionManager);
     bool Initialize();
 

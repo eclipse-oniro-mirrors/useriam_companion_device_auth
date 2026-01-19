@@ -86,15 +86,11 @@ public:
 
     class CompanionDeviceAuthServiceInner;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     void OnStart() override;
     void OnStop() override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     bool CheckPermission(int32_t &companionDeviceAuthResult);
 
     template <typename Func>

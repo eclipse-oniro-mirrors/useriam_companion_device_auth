@@ -34,9 +34,7 @@ public:
     ResultCode InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen, uint8_t *outputData,
         uint32_t outputDataLen) override;
 
-#ifndef ENABLE_TEST
 private:
-#endif
     bool inited_ = false;
 };
 } // namespace CompanionDeviceAuth

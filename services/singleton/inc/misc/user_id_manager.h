@@ -44,9 +44,7 @@ public:
     virtual std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) = 0;
     virtual bool IsUserIdValid(int32_t userId) = 0;
 
-#ifndef ENABLE_TEST
 protected:
-#endif
     IUserIdManager() = default;
 };
 } // namespace CompanionDeviceAuth
