@@ -29,7 +29,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 OutboundRequest::OutboundRequest(RequestType requestType, ScheduleId scheduleId, uint32_t timeoutMs)
-    : BaseRequest(requestType, scheduleId, timeoutMs)
+    : BaseRequest(requestType, scheduleId, timeoutMs, "-")
 {
 }
 
@@ -111,6 +111,8 @@ bool OutboundRequest::OpenConnection()
     }
 
     IAM_LOGI("%{public}s open connection %{public}s success", GetDescription(), connectionName_.c_str());
+
+    UpdateDescription(GenerateDescription(requestType_, requestId_, connectionName_));
 
     connectionStatusSubscription_ = GetCrossDeviceCommManager().SubscribeConnectionStatus(connectionName_,
         [weakSelf = GetWeakPtr()](const std::string &connName, ConnectionStatus status, const std::string &reason) {

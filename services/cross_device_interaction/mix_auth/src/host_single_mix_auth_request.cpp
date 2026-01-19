@@ -32,7 +32,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 HostSingleMixAuthRequest::HostSingleMixAuthRequest(ScheduleId scheduleId, std::vector<uint8_t> fwkMsg,
     UserId hostUserId, TemplateId templateId, FwkResultCallback &&requestCallback)
-    : BaseRequest(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, scheduleId),
+    : BaseRequest(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, scheduleId, DEFAULT_REQUEST_TIMEOUT_MS, "-"),
       fwkMsg_(fwkMsg),
       hostUserId_(hostUserId),
       templateId_(templateId),

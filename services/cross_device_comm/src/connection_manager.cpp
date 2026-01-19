@@ -345,8 +345,8 @@ std::string ConnectionManager::GenerateConnectionName(const PhysicalDeviceKey &l
     uint32_t id = static_cast<uint32_t>(GetMiscManager().GetNextGlobalId());
 
     std::ostringstream oss;
-    oss << "conn" << ":" << localShort << ":" << remoteShort << ":" << std::hex << std::setfill('0')
-        << std::setw(connectionIdWidth) << id;
+    oss << localShort << ":" << remoteShort << ":" << std::hex << std::setfill('0') << std::setw(connectionIdWidth)
+        << id;
 
     return oss.str();
 }

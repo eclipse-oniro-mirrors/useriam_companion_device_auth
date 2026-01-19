@@ -43,7 +43,7 @@ public:
     virtual std::shared_ptr<IRequest> CreateHostTokenAuthRequest(ScheduleId scheduleId,
         const std::vector<uint8_t> &fwkMsg, UserId hostUserId, TemplateId templateId,
         FwkResultCallback &&requestCallback) = 0;
-    virtual std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(UserId hostUserId,
+    virtual std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId,
         const DeviceKey &companionDeviceKey) = 0;
     virtual std::shared_ptr<IRequest> CreateHostSyncDeviceStatusRequest(UserId hostUserId,
         const DeviceKey &companionDeviceKey, const std::string &companionDeviceName,

@@ -68,6 +68,7 @@ public:
         const std::vector<uint8_t> &fwkUnlockMsg) override;
 
     void NotifyCompanionStatusChange() override;
+    void HandleRemoveHostBindingComplete(TemplateId templateId) override;
 
 private:
     CompanionManagerImpl();

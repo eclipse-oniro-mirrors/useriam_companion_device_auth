@@ -63,9 +63,9 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostTokenAuthRequest(Schedul
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostRemoveHostBindingRequest(UserId hostUserId,
-    const DeviceKey &companionDeviceKey)
+    TemplateId templateId, const DeviceKey &companionDeviceKey)
 {
-    return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, companionDeviceKey);
+    return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostSyncDeviceStatusRequest(UserId hostUserId,

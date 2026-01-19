@@ -23,7 +23,10 @@
 
 #include "singleton.h"
 #include "subscription.h"
+
+#ifndef ENABLE_TEST
 #include "timer.h"
+#endif
 
 namespace OHOS {
 namespace UserIam {
@@ -40,10 +43,10 @@ public:
 #ifdef ENABLE_TEST
     void ExecuteAll();
     void EnsureAllTaskExecuted();
-#endif // ENABLE_TEST
-
+#else
 private:
     Utils::Timer timer_;
+#endif // ENABLE_TEST
 };
 
 } // namespace CompanionDeviceAuth

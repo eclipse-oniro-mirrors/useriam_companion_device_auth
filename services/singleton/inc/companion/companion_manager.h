@@ -91,6 +91,7 @@ public:
         const std::vector<uint8_t> &fwkUnlockMsg) = 0;
 
     virtual void NotifyCompanionStatusChange() = 0;
+    virtual void HandleRemoveHostBindingComplete(TemplateId templateId) = 0;
 
 private:
     virtual void Initialize() = 0;

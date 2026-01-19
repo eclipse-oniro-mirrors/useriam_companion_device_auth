@@ -120,9 +120,10 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostRemoveH
 void FuzzHostRemoveHostBindingRequest(FuzzedDataProvider &fuzzData)
 {
     UserId hostUserId = fuzzData.ConsumeIntegral<UserId>();
+    TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(hostUserId, companionDeviceKey);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
     if (!request) {
         return;
     }

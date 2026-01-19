@@ -70,10 +70,6 @@ ohos_shared_library("companiondeviceauth") {
 
   relative_install_dir = "module/useriam"
 
-  # if (use_musl) {
-  #   version_script = "companion_device_auth_napi_map"
-  # }
-
   subsystem_name = companion_device_auth_subsystem_name
   part_name = companion_device_auth_part_name
 }

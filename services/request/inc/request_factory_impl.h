@@ -35,7 +35,7 @@ public:
         uint32_t tokenId, FwkResultCallback &&requestCallback) override;
     std::shared_ptr<IRequest> CreateHostTokenAuthRequest(ScheduleId scheduleId, const std::vector<uint8_t> &fwkMsg,
         UserId hostUserId, TemplateId templateId, FwkResultCallback &&requestCallback) override;
-    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(UserId hostUserId,
+    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId,
         const DeviceKey &companionDeviceKey) override;
     std::shared_ptr<IRequest> CreateHostSyncDeviceStatusRequest(UserId hostUserId, const DeviceKey &companionDeviceKey,
         const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback) override;

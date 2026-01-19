@@ -16,13 +16,16 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "host_delegate_auth_request.h"
 #include "host_mix_auth_request.h"
 #include "host_single_mix_auth_request.h"
+#include "host_token_auth_request.h"
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
 #include "mock_companion_manager.h"
+#include "mock_cross_device_comm_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
@@ -50,6 +53,10 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
+        auto crossDeviceCommMgr =
+            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
+        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
+
         auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
         SingletonManager::GetInstance().SetCompanionManager(companionMgr);
 
@@ -57,6 +64,18 @@ public:
             .WillByDefault(Invoke([this](ScheduleId scheduleId, std::vector<uint8_t> fwkMsg, UserId hostUserId,
                                       TemplateId templateId, FwkResultCallback &&requestCallback) {
                 return std::make_shared<HostSingleMixAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
+                    std::move(requestCallback));
+            }));
+        ON_CALL(mockRequestFactory_, CreateHostTokenAuthRequest(_, _, _, _, _))
+            .WillByDefault(Invoke([this](ScheduleId scheduleId, std::vector<uint8_t> fwkMsg, UserId hostUserId,
+                                      TemplateId templateId, FwkResultCallback &&requestCallback) {
+                return std::make_shared<HostTokenAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
+                    std::move(requestCallback));
+            }));
+        ON_CALL(mockRequestFactory_, CreateHostDelegateAuthRequest(_, _, _, _, _))
+            .WillByDefault(Invoke([this](ScheduleId scheduleId, std::vector<uint8_t> fwkMsg, UserId hostUserId,
+                                      TemplateId templateId, FwkResultCallback &&requestCallback) {
+                return std::make_shared<HostDelegateAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
                     std::move(requestCallback));
             }));
         ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
@@ -70,15 +89,20 @@ public:
         companionStatus.hostUserId = hostUserId_;
         companionStatus.isValid = true;
         ON_CALL(mockCompanionManager_, GetCompanionStatus(templateId_)).WillByDefault(Return(companionStatus));
+
+        // Set up CrossDeviceCommManager mocks
+        ON_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
+            .WillByDefault(Return(SecureProtocolId::DEFAULT));
+        ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _))
+            .WillByDefault(Return(ByMove(std::make_unique<Subscription>([]() {}))));
+        ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
     }
 
     void TearDown() override
     {
-        // Execute all pending tasks BEFORE releasing the request object
-        // to avoid use-after-free crashes
+        request_.reset();
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();
-        request_.reset();
         SingletonManager::GetInstance().Reset();
     }
 
@@ -93,6 +117,7 @@ protected:
     NiceMock<MockRequestFactory> mockRequestFactory_;
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
     NiceMock<MockCompanionManager> mockCompanionManager_;
 
     ScheduleId scheduleId_ = 1;

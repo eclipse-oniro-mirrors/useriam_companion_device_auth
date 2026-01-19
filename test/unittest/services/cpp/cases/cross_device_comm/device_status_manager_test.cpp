@@ -39,7 +39,6 @@ using namespace testing::ext;
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-namespace {
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
@@ -60,7 +59,7 @@ PhysicalDeviceStatus MakePhysicalStatus(const std::string &deviceId, ChannelId c
 }
 
 class DeviceStatusManagerTest : public Test {
-public:
+protected:
     void SetUp() override
     {
         SingletonManager::GetInstance().Reset();
@@ -121,24 +120,6 @@ public:
         return deviceKey;
     }
 
-protected:
-    int32_t activeUserId_ { 100 };
-    uint64_t nextSubscriptionId_ { 1 };
-    NiceMock<MockMiscManager> miscManager_;
-    NiceMock<MockUserIdManager> userIdManager_;
-    NiceMock<MockRequestFactory> requestFactory_;
-    NiceMock<MockRequestManager> requestManager_;
-    NiceMock<MockCrossDeviceCommManager> crossDeviceCommMgr_;
-    NiceMock<MockCompanionManager> companionManager_;
-    NiceMock<MockSecurityAgent> securityAgent_;
-    PhysicalDeviceKey localPhysicalKey_;
-    std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel_;
-    std::shared_ptr<ChannelManager> channelMgr_;
-    std::shared_ptr<ConnectionManager> connectionMgr_;
-    std::shared_ptr<LocalDeviceStatusManager> localStatusManager_;
-    std::shared_ptr<DeviceStatusManager> manager_;
-
-private:
     std::shared_ptr<NiceMock<MockCrossDeviceChannel>> InitMockChannel()
     {
         auto mockChannel = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
@@ -163,6 +144,22 @@ private:
         }));
         return mockChannel;
     }
+
+    int32_t activeUserId_ { 100 };
+    uint64_t nextSubscriptionId_ { 1 };
+    NiceMock<MockMiscManager> miscManager_;
+    NiceMock<MockUserIdManager> userIdManager_;
+    NiceMock<MockRequestFactory> requestFactory_;
+    NiceMock<MockRequestManager> requestManager_;
+    NiceMock<MockCrossDeviceCommManager> crossDeviceCommMgr_;
+    NiceMock<MockCompanionManager> companionManager_;
+    NiceMock<MockSecurityAgent> securityAgent_;
+    PhysicalDeviceKey localPhysicalKey_;
+    std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel_;
+    std::shared_ptr<ChannelManager> channelMgr_;
+    std::shared_ptr<ConnectionManager> connectionMgr_;
+    std::shared_ptr<LocalDeviceStatusManager> localStatusManager_;
+    std::shared_ptr<DeviceStatusManager> manager_;
 };
 
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedStatus, TestSize.Level0)
@@ -775,7 +772,6 @@ HWTEST_F(DeviceStatusManagerTest, NotifySubscribers_WithNullCallback, TestSize.L
     TaskRunnerManager::GetInstance().ExecuteAll();
 }
 
-} // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

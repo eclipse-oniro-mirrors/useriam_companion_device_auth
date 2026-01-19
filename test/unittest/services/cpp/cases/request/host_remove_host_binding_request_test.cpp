@@ -81,10 +81,11 @@ public:
     void CreateDefaultRequest()
     {
         UserId hostUserId = 100;
+        TemplateId templateId = 1;
         DeviceKey companionDeviceKey = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
             .deviceId = "companion_device_id",
             .deviceUserId = 200 };
-        request_ = std::make_shared<HostRemoveHostBindingRequest>(hostUserId, companionDeviceKey);
+        request_ = std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
     }
 
 protected:

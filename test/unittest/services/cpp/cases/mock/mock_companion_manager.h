@@ -50,6 +50,7 @@ public:
     MOCK_METHOD(void, StartIssueTokenRequests,
         (const std::vector<TemplateId> &templateIds, const std::vector<uint8_t> &fwkUnlockMsg), (override));
     MOCK_METHOD(void, NotifyCompanionStatusChange, (), (override));
+    MOCK_METHOD(void, HandleRemoveHostBindingComplete, (TemplateId templateId), (override));
     MOCK_METHOD(void, Initialize, (), (override));
 };
 

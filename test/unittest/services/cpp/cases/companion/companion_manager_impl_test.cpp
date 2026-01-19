@@ -117,10 +117,11 @@ public:
         ON_CALL(mockSecurityAgent_, HostUpdateCompanionEnabledBusinessIds(_))
             .WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-        ON_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _))
-            .WillByDefault(Invoke([this](UserId hostUserId, const DeviceKey &companionDeviceKey) {
-                return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, companionDeviceKey);
-            }));
+        ON_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _, _))
+            .WillByDefault(
+                Invoke([this](UserId hostUserId, TemplateId templateId, const DeviceKey &companionDeviceKey) {
+                    return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
+                }));
         ON_CALL(mockRequestFactory_, CreateHostIssueTokenRequest(_, _, _))
             .WillByDefault(
                 Invoke([this](UserId hostUserId, TemplateId templateId, const std::vector<uint8_t> &fwkUnlockMsg) {
@@ -505,7 +506,7 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_002, TestSize.Level0)
     manager->Reload(persistedList);
 
     EXPECT_CALL(mockSecurityAgent_, HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _, _)).WillOnce(Return(nullptr));
 
     ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345);
 
@@ -525,9 +526,9 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_003, TestSize.Level0)
     manager->Reload(persistedList);
 
     EXPECT_CALL(mockSecurityAgent_, HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _))
-        .WillOnce(Invoke([this](UserId hostUserId, const DeviceKey &companionDeviceKey) {
-            return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, companionDeviceKey);
+    EXPECT_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _, _))
+        .WillOnce(Invoke([this](UserId hostUserId, TemplateId templateId, const DeviceKey &companionDeviceKey) {
+            return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
         }));
     EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Return(false));
 
@@ -549,16 +550,16 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_004, TestSize.Level0)
     manager->Reload(persistedList);
 
     EXPECT_CALL(mockSecurityAgent_, HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _))
-        .WillOnce(Invoke([this](UserId hostUserId, const DeviceKey &companionDeviceKey) {
-            return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, companionDeviceKey);
+    EXPECT_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _, _))
+        .WillOnce(Invoke([this](UserId hostUserId, TemplateId templateId, const DeviceKey &companionDeviceKey) {
+            return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
         }));
     EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Return(true));
 
     ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345);
 
     EXPECT_EQ(ret, ResultCode::SUCCESS);
-    EXPECT_FALSE(manager->GetCompanionStatus(TEMPLATE_ID_12345).has_value());
+    EXPECT_TRUE(manager->GetCompanionStatus(TEMPLATE_ID_12345).has_value());
 }
 
 HWTEST_F(CompanionManagerImplTest, UpdateCompanionStatus_001, TestSize.Level0)

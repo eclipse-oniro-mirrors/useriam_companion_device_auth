@@ -27,7 +27,7 @@ namespace CompanionDeviceAuth {
 class HostRemoveHostBindingRequest : public OutboundRequest,
                                      public std::enable_shared_from_this<HostRemoveHostBindingRequest> {
 public:
-    HostRemoveHostBindingRequest(UserId hostUserId, const DeviceKey &companionDeviceKey);
+    HostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId, const DeviceKey &companionDeviceKey);
     ~HostRemoveHostBindingRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
@@ -48,6 +48,7 @@ private:
 
     UserId hostUserId_ = INVALID_USER_ID;
     DeviceKey companionDeviceKey_;
+    TemplateId templateId_ = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

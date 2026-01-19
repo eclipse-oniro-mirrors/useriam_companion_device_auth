@@ -30,7 +30,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 InboundRequest::InboundRequest(RequestType requestType, const std::string &connectionName,
     const DeviceKey &peerDeviceKey)
-    : BaseRequest(requestType),
+    : BaseRequest(requestType, 0, DEFAULT_REQUEST_TIMEOUT_MS, connectionName),
       connectionName_(connectionName),
       peerDeviceKey_(peerDeviceKey)
 {

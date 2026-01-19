@@ -190,6 +190,11 @@ public:
     {
     }
 
+    void HandleRemoveHostBindingComplete(TemplateId templateId) override
+    {
+        (void)templateId;
+    }
+
 private:
     void Initialize() override
     {
@@ -1213,10 +1218,11 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(UserId hostUserId,
+    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId,
         const DeviceKey &companionDeviceKey) override
     {
         (void)hostUserId;
+        (void)templateId;
         (void)companionDeviceKey;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0
             ? std::make_shared<MockFuzzIRequest>(fuzzData_, requestCounter_++, 0)

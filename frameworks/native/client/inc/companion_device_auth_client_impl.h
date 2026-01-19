@@ -40,6 +40,9 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class CompanionDeviceAuthClientImpl final : public CompanionDeviceAuthClient, NoCopyable {
 public:
+    CompanionDeviceAuthClientImpl();
+    ~CompanionDeviceAuthClientImpl() override;
+
     int32_t RegisterDeviceSelectCallback(const std::shared_ptr<IDeviceSelectCallback> &callback) override;
     int32_t UnregisterDeviceSelectCallback() override;
     int32_t UpdateTemplateEnabledBusinessIds(const uint64_t templateId,
@@ -60,11 +63,8 @@ public:
     int32_t CheckLocalUserIdValid(const int32_t localUserId, bool &isUserIdValid) override;
     void SubscribeCompanionDeviceAuthSaStatus();
 
-private:
-    CompanionDeviceAuthClientImpl();
-    ~CompanionDeviceAuthClientImpl() override;
-
 #ifdef ENABLE_TEST
+private:
     void SetProxy(const sptr<ICompanionDeviceAuth> &proxy);
 #endif // ENABLE_TEST
 

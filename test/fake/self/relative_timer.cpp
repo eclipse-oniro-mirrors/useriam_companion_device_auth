@@ -33,7 +33,7 @@ auto g_pendingTasks = std::make_shared<std::map<uint64_t, RelativeTimer::TimerCa
 auto g_nextTaskId = std::make_shared<std::atomic<uint64_t>>(0);
 } // namespace
 
-RelativeTimer::RelativeTimer() : timer_("RelativeTimerTest")
+RelativeTimer::RelativeTimer()
 {
 }
 

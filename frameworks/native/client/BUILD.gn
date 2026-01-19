@@ -18,10 +18,6 @@ import("BUILD.gni")
 # Export config for tests to use
 config("client_config") {
   include_dirs = companion_device_auth_client_include_dirs
-  cflags = [
-    "-Dprivate=public",
-    "-Dprotected=public",
-  ]
 }
 
 ohos_shared_library("companion_device_auth_client") {
@@ -46,9 +42,9 @@ ohos_shared_library("companion_device_auth_client") {
 
   deps = companion_device_auth_client_deps
 
-  # if (use_musl) {
-  #   version_script = "companion_device_auth_client_map"
-  # }
+  if (use_musl) {
+    version_script = "companion_device_auth_client_map"
+  }
 
   external_deps = companion_device_auth_client_external_deps
 

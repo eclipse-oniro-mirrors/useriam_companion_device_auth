@@ -20,8 +20,8 @@
 
 #include "companion_device_auth_common_defines.h"
 #include "companion_device_auth_types.h"
+#include "iipc_set_device_select_result_callback.h"
 #include "ipc_device_select_callback_stub.h"
-#include "ipc_set_device_select_result_callback_proxy.h"
 
 namespace OHOS {
 namespace UserIam {

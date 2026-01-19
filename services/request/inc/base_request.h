@@ -31,9 +31,13 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class BaseRequest : public IRequest {
 public:
-    BaseRequest(RequestType requestType, ScheduleId scheduleId = 0, uint32_t timeoutMs = 0);
+    BaseRequest(RequestType requestType, ScheduleId scheduleId, uint32_t timeoutMs, const std::string &connectionName);
 
     virtual ~BaseRequest();
+
+    static std::string GenerateDescription(RequestType requestType, RequestId requestId);
+    static std::string GenerateDescription(RequestType requestType, RequestId requestId,
+        const std::string &connectionName);
 
     RequestType GetRequestType() const final override;
     const char *GetDescription() const final override;
@@ -44,6 +48,7 @@ public:
 protected:
     void StartTimeout();
     void StopTimeout();
+    void UpdateDescription(const std::string &newDescription);
     void Destroy();
     virtual void CompleteWithError(ResultCode result) = 0;
 

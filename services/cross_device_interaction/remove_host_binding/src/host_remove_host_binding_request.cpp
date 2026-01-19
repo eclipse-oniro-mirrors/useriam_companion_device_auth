@@ -18,6 +18,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "companion_manager.h"
 #include "companion_remove_host_binding_handler.h"
 #include "error_guard.h"
 #include "remove_host_binding_message.h"
@@ -28,10 +29,12 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-HostRemoveHostBindingRequest::HostRemoveHostBindingRequest(UserId hostUserId, const DeviceKey &companionDeviceKey)
+HostRemoveHostBindingRequest::HostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId,
+    const DeviceKey &companionDeviceKey)
     : OutboundRequest(RequestType::HOST_REMOVE_HOST_BINDING_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
       hostUserId_(hostUserId),
-      companionDeviceKey_(companionDeviceKey)
+      companionDeviceKey_(companionDeviceKey),
+      templateId_(templateId)
 {
 }
 
@@ -112,12 +115,14 @@ std::weak_ptr<OutboundRequest> HostRemoveHostBindingRequest::GetWeakPtr()
 void HostRemoveHostBindingRequest::CompleteWithError(ResultCode result)
 {
     IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
+    GetCompanionManager().HandleRemoveHostBindingComplete(templateId_);
     Destroy();
 }
 
 void HostRemoveHostBindingRequest::CompleteWithSuccess()
 {
     IAM_LOGI("%{public}s complete with success", GetDescription());
+    GetCompanionManager().HandleRemoveHostBindingComplete(templateId_);
     Destroy();
 }
 

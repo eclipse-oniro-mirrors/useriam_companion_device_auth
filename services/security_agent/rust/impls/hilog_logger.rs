@@ -29,7 +29,7 @@ extern crate std;
 use hilog_rust::{error, hilog, info, HiLogLabel, LogType};
 
 const LOG_LABEL: HiLogLabel =
-    HiLogLabel { log_type: LogType::LogCore, domain: 0xD002401, tag: "COMPANION_DEVICE_AUTH" };
+    HiLogLabel { log_type: LogType::LogCore, domain: 0xD002401, tag: "CDA_SEC" };
 
 pub struct HilogLogger;
 

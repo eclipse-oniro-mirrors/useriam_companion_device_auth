@@ -14,7 +14,8 @@
 {
     global:
     extern "C++" {
-        OHOS::UserIam::CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance*;
+        OHOS::UserIam::CompanionDeviceAuth::CompanionDeviceAuthClient::*;
+        OHOS::UserIam::CompanionDeviceAuth::SetDeviceSelectResultCallback::*;
     };
     local:
         *;

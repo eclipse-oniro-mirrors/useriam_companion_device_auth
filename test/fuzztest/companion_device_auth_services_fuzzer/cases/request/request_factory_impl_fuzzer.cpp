@@ -66,8 +66,9 @@ static void FuzzCreateHostRemoveHostBindingRequest(std::shared_ptr<RequestFactor
     FuzzedDataProvider &fuzzData)
 {
     UserId hostUserId = fuzzData.ConsumeIntegral<UserId>();
+    TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto request = factory->CreateHostRemoveHostBindingRequest(hostUserId, companionDeviceKey);
+    auto request = factory->CreateHostRemoveHostBindingRequest(hostUserId, templateId, companionDeviceKey);
     (void)request;
 }
 

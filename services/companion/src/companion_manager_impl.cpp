@@ -27,6 +27,7 @@
 #include "host_remove_host_binding_request.h"
 #include "request_factory.h"
 #include "request_manager.h"
+#include "scope_guard.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
@@ -253,14 +254,9 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId)
         return ret;
     }
 
-    ResultCode removeRet = RemoveCompanionInternal(templateId);
-    if (removeRet != ResultCode::SUCCESS) {
-        IAM_LOGW("companion template id %{public}s not cached locally", GET_MASKED_NUM_CSTR(templateId));
-    }
-
-    NotifyCompanionStatusChange();
-
-    auto request = GetRequestFactory().CreateHostRemoveHostBindingRequest(output.userId, output.companionDeviceKey);
+    ScopeGuard guard([this, templateId]() { HandleRemoveHostBindingComplete(templateId); });
+    auto request =
+        GetRequestFactory().CreateHostRemoveHostBindingRequest(output.userId, templateId, output.companionDeviceKey);
     if (request == nullptr) {
         IAM_LOGE("CreateHostRemoveHostBindingRequest failed for templateId %{public}s",
             GET_MASKED_NUM_CSTR(templateId));
@@ -272,6 +268,7 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId)
         IAM_LOGE("request Start failed for templateId %{public}s", GET_MASKED_NUM_CSTR(templateId));
         return ResultCode::SUCCESS;
     }
+    guard.Cancel();
 
     IAM_LOGI("remove companion success, template id %{public}s", GET_MASKED_NUM_CSTR(templateId));
     return ResultCode::SUCCESS;
@@ -535,6 +532,18 @@ void CompanionManagerImpl::StartIssueTokenRequests(const std::vector<uint64_t> &
     }
 
     IAM_LOGI("end");
+}
+
+void CompanionManagerImpl::HandleRemoveHostBindingComplete(TemplateId templateId)
+{
+    IAM_LOGI("start, template id %{public}s", GET_MASKED_NUM_CSTR(templateId));
+    ResultCode removeRet = RemoveCompanionInternal(templateId);
+    if (removeRet != ResultCode::SUCCESS) {
+        IAM_LOGE("failed to remove companion template id %{public}s", GET_MASKED_NUM_CSTR(templateId));
+        return;
+    }
+
+    NotifyCompanionStatusChange();
 }
 
 } // namespace CompanionDeviceAuth
