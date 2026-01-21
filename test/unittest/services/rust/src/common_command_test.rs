@@ -141,6 +141,56 @@ fn data_array_1024_ffi_test() {
 }
 
 #[test]
+fn data_array_20000_ffi_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("data_array_20000_ffi_test start");
+
+    // Test normal case
+    let vec = vec![1u8; 10000];
+    let data_array = DataArray20000Ffi::try_from(&vec);
+    assert!(data_array.is_ok());
+    let data_array = data_array.unwrap();
+
+    let slice = data_array.as_slice().unwrap();
+    assert_eq!(slice.len(), 10000);
+    assert_eq!(slice[0], 1);
+    assert_eq!(slice[9999], 1);
+
+    // Test at boundary - exactly 20000 bytes
+    let vec = vec![0xAAu8; 20000];
+    let data_array = DataArray20000Ffi::try_from(&vec);
+    assert!(data_array.is_ok());
+    let data_array = data_array.unwrap();
+    let slice = data_array.as_slice().unwrap();
+    assert_eq!(slice.len(), 20000);
+    assert_eq!(slice[0], 0xAA);
+    assert_eq!(slice[19999], 0xAA);
+
+    // Test to_vec conversion
+    let vec_result = data_array.to_vec().unwrap();
+    assert_eq!(vec_result.len(), 20000);
+    assert_eq!(vec_result[0], 0xAA);
+    assert_eq!(vec_result[19999], 0xAA);
+
+    // Test overflow - 20001 bytes should fail
+    let vec = vec![1u8; 20001];
+    let result = DataArray20000Ffi::try_from(&vec);
+    assert_eq!(result, Err(ErrorCode::BadParam));
+
+    // Test from CString
+    let str_vec = "Hello, World!".as_bytes().to_vec();
+    let data_array = DataArray20000Ffi::try_from(str_vec).unwrap();
+    let string = data_array.to_string();
+    assert!(string.is_ok());
+    assert_eq!(string.unwrap(), "Hello, World!");
+
+    // Test invalid UTF-8
+    let invalid_utf8 = vec![0xFFu8, 0xFE, 0xFD];
+    let data_array = DataArray20000Ffi::try_from(invalid_utf8).unwrap();
+    assert_eq!(data_array.to_string(), Err(ErrorCode::GeneralError));
+}
+
+#[test]
 fn device_key_ffi_try_from_test() {
     let _guard = ut_registry_guard!();
     log_i!("device_key_ffi_try_from_test start");

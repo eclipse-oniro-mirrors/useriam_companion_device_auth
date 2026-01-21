@@ -46,8 +46,6 @@ void CompanionDeviceAuthExecutorCallback::operator()(ResultCode result, const st
 
 FwkResultCode CompanionDeviceAuthExecutorCallback::ConvertResultCode(const ResultCode in)
 {
-    namespace UserAuth = OHOS::UserIam::UserAuth;
-
     static const std::map<ResultCode, UserAuth::ResultCode> data = {
         { ResultCode::SUCCESS, UserAuth::ResultCode::SUCCESS },
         { ResultCode::FAIL, UserAuth::ResultCode::FAIL },

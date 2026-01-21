@@ -39,7 +39,7 @@ public:
         (override));
 
     MOCK_METHOD(void, SetSubscribeMode, (SubscribeMode subscribeMode), (override));
-    MOCK_METHOD(std::optional<int64_t>, GetManageSubscribeTime, (), (const, override));
+    MOCK_METHOD(std::optional<SteadyTimeMs>, GetManageSubscribeTime, (), (const, override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeDeviceStatus,
         (const DeviceKey &deviceKey, OnDeviceStatusChange &&onDeviceStatusChange), (override));
 

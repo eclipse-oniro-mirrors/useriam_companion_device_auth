@@ -30,6 +30,7 @@ pub const MAX_DATA_LEN_64: usize = 64;
 pub const MAX_DATA_LEN_128: usize = 128;
 pub const MAX_DATA_LEN_256: usize = 256;
 pub const MAX_DATA_LEN_1024: usize = 1024;
+pub const MAX_DATA_LEN_20000: usize = 20000;
 pub const MAX_STRUCT_SIZE_FFI: usize = 409600;
 pub const PROPERTY_MODE_FREEZE: u32 = 5;
 pub const PROPERTY_MODE_UNFREEZE: u32 = 6;
@@ -88,6 +89,15 @@ pub struct DataArray1024Ffi {
 }
 assert_max_size!(DataArray1024Ffi);
 
+#[repr(C)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct DataArray20000Ffi {
+    pub data: [u8; MAX_DATA_LEN_20000],
+    pub len: u32,
+}
+assert_max_size!(DataArray20000Ffi);
+
 macro_rules! impl_default_data_array {
     ($name:ident, $size:expr) => {
         impl Default for $name {
@@ -102,6 +112,7 @@ impl_default_data_array!(DataArray64Ffi, MAX_DATA_LEN_64);
 impl_default_data_array!(DataArray128Ffi, MAX_DATA_LEN_128);
 impl_default_data_array!(DataArray256Ffi, MAX_DATA_LEN_256);
 impl_default_data_array!(DataArray1024Ffi, MAX_DATA_LEN_1024);
+impl_default_data_array!(DataArray20000Ffi, MAX_DATA_LEN_20000);
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -388,7 +399,7 @@ assert_max_size!(HostGetInitKeyNegotiationInputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostGetInitKeyNegotiationOutputFfi {
-    pub sec_message: DataArray1024Ffi, /* algorithm_list */
+    pub sec_message: DataArray20000Ffi, /* algorithm_list */
 }
 assert_max_size!(HostGetInitKeyNegotiationOutputFfi);
 
@@ -403,7 +414,7 @@ pub struct HostBeginAddCompanionInputFfi {
     pub companion_device_key: DeviceKeyFfi,
     pub fwk_message: DataArray1024Ffi,
     pub secure_protocol_id: u16,
-    pub sec_message: DataArray1024Ffi, /* algo, challenge, pub_key */
+    pub sec_message: DataArray20000Ffi, /* algo, challenge, pub_key */
 }
 assert_max_size!(HostBeginAddCompanionInputFfi);
 
@@ -435,6 +446,7 @@ pub struct HostEndAddCompanionOutputFfi {
     pub sec_message: DataArray1024Ffi,
     pub template_id: u64,
     pub atl: i32,
+    pub added_time: u64,
 }
 assert_max_size!(HostEndAddCompanionOutputFfi);
 
@@ -797,7 +809,7 @@ pub struct CompanionInitKeyNegotiationInputFfi {
     pub secure_protocol_id: u16,
     pub companion_device_key: DeviceKeyFfi,
     pub host_device_key: DeviceKeyFfi,
-    pub sec_message: DataArray1024Ffi, /* algorithm_list */
+    pub sec_message: DataArray20000Ffi, /* algorithm_list */
 }
 assert_max_size!(CompanionInitKeyNegotiationInputFfi);
 
@@ -805,7 +817,7 @@ assert_max_size!(CompanionInitKeyNegotiationInputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionInitKeyNegotiationOutputFfi {
-    pub sec_message: DataArray1024Ffi, /* challenge, algorithm, algorithm_data */
+    pub sec_message: DataArray20000Ffi, /* challenge, algorithm, algorithm_data */
 }
 assert_max_size!(CompanionInitKeyNegotiationOutputFfi);
 

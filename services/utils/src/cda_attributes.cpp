@@ -24,7 +24,6 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_safe_arithmetic.h"
-
 #include "service_common.h"
 
 namespace OHOS {
@@ -161,7 +160,7 @@ bool EncodeNumericArrayValue(const std::vector<T> &src, std::vector<uint8_t> &ds
     using Traits = EncodingTraits<T>;
 
     // Use safe multiplication to prevent overflow
-    auto outSize = safe_multiply(src.size(), Traits::size);
+    auto outSize = safe_mul(src.size(), Traits::size);
     ENSURE_OR_RETURN_VAL(outSize.has_value(), false);
 
     std::vector<uint8_t> out(outSize.value());
@@ -194,7 +193,7 @@ bool DecodeNumericArrayValue(const std::vector<uint8_t> &src, std::vector<T> &ds
 
     for (size_t i = 0; i < count; i++) {
         // Use safe multiplication for offset calculation
-        auto offset = safe_multiply(i, sizeof(LEType));
+        auto offset = safe_mul(i, sizeof(LEType));
         ENSURE_OR_RETURN_VAL(offset.has_value() && offset.value() <= src.size() - sizeof(LEType), false);
 
         LEType temp;

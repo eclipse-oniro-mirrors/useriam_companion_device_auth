@@ -27,10 +27,13 @@
 #include "access_token_kit_adapter.h"
 #include "adapter_manager.h"
 #include "driver_manager_adapter.h"
+#include "event_manager_adapter.h"
 #include "fuzz_data_generator.h"
+#include "idm_adapter.h"
 #include "sa_manager_adapter.h"
 #include "soft_bus_adapter.h"
 #include "soft_bus_adapter_manager.h"
+#include "subscription.h"
 #include "user_auth_adapter.h"
 
 namespace OHOS {
@@ -155,6 +158,36 @@ private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };
 
+class MockIdmAdapter : public IIdmAdapter {
+public:
+    explicit MockIdmAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    std::vector<uint64_t> GetUserTemplates(int32_t userId) override
+    {
+        (void)userId;
+        std::vector<uint64_t> templateIds;
+        if (fuzzData_.ConsumeBool()) {
+            size_t count = fuzzData_.ConsumeIntegralInRange<size_t>(0, 10);
+            for (size_t i = 0; i < count; ++i) {
+                templateIds.push_back(fuzzData_.ConsumeIntegral<uint64_t>());
+            }
+        }
+        return templateIds;
+    }
+
+    std::unique_ptr<Subscription> SubscribeUserTemplateChange(int32_t userId, TemplateChangeCallback callback) override
+    {
+        (void)userId;
+        (void)callback;
+        return std::make_unique<Subscription>([]() {});
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
 class MockSaManagerAdapter : public ISaManagerAdapter {
 public:
     explicit MockSaManagerAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
@@ -173,6 +206,24 @@ public:
         (void)systemAbilityId;
         (void)listener;
         return fuzzData_.ConsumeBool();
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+class MockEventManagerAdapter : public IEventManagerAdapter {
+public:
+    explicit MockEventManagerAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    void ReportSystemFault(const char *fileName, uint32_t lineNum, FaultType faultType, std::string &faultInfo) override
+    {
+        (void)fileName;
+        (void)lineNum;
+        (void)faultType;
+        (void)faultInfo;
     }
 
 private:
@@ -244,8 +295,14 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
     auto userAuthAdapter = std::make_shared<MockUserAuthAdapter>(fuzzData);
     adapterMgr.SetUserAuthAdapter(userAuthAdapter);
 
+    auto idmAdapter = std::make_shared<MockIdmAdapter>(fuzzData);
+    adapterMgr.SetIdmAdapter(idmAdapter);
+
     auto saMgrAdapter = std::make_shared<MockSaManagerAdapter>(fuzzData);
     adapterMgr.SetSaManagerAdapter(saMgrAdapter);
+
+    auto eventMgrAdapter = std::make_shared<MockEventManagerAdapter>(fuzzData);
+    adapterMgr.SetEventManagerAdapter(eventMgrAdapter);
 
     return true;
 }

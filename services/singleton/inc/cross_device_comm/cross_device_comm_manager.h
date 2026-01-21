@@ -49,7 +49,7 @@ public:
     virtual std::unique_ptr<Subscription> SubscribeAllDeviceStatus(OnDeviceStatusChange &&onDeviceStatusChange) = 0;
 
     virtual void SetSubscribeMode(SubscribeMode subscribeMode) = 0;
-    virtual std::optional<int64_t> GetManageSubscribeTime() const = 0;
+    virtual std::optional<SteadyTimeMs> GetManageSubscribeTime() const = 0;
     virtual std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey,
         OnDeviceStatusChange &&onDeviceStatusChange) = 0;
 

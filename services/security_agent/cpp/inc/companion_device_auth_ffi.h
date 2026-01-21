@@ -50,6 +50,8 @@ extern "C" {
 
 #define MAX_DATA_LEN_1024 1024
 
+#define MAX_DATA_LEN_20000 20000
+
 #define MAX_STRUCT_SIZE_FFI 409600
 
 #define PROPERTY_MODE_FREEZE 5
@@ -142,6 +144,11 @@ typedef struct DataArray1024Ffi {
     uint8_t data[MAX_DATA_LEN_1024];
     uint32_t len;
 } DataArray1024Ffi;
+
+typedef struct DataArray20000Ffi {
+    uint8_t data[MAX_DATA_LEN_20000];
+    uint32_t len;
+} DataArray20000Ffi;
 
 typedef struct TemplateIdArrayFfi {
     uint64_t data[MAX_TEMPLATE_ID_NUM_PER_USER_FFI];
@@ -283,7 +290,7 @@ typedef struct HostGetInitKeyNegotiationInputFfi {
 } HostGetInitKeyNegotiationInputFfi;
 
 typedef struct HostGetInitKeyNegotiationOutputFfi {
-    struct DataArray1024Ffi secMessage;
+    struct DataArray20000Ffi secMessage;
 } HostGetInitKeyNegotiationOutputFfi;
 
 typedef struct HostBeginAddCompanionInputFfi {
@@ -293,7 +300,7 @@ typedef struct HostBeginAddCompanionInputFfi {
     struct DeviceKeyFfi companionDeviceKey;
     struct DataArray1024Ffi fwkMessage;
     uint16_t secureProtocolId;
-    struct DataArray1024Ffi secMessage;
+    struct DataArray20000Ffi secMessage;
 } HostBeginAddCompanionInputFfi;
 
 typedef struct HostBeginAddCompanionOutputFfi {
@@ -312,6 +319,7 @@ typedef struct HostEndAddCompanionOutputFfi {
     struct DataArray1024Ffi secMessage;
     uint64_t templateId;
     int32_t atl;
+    uint64_t addedTime;
 } HostEndAddCompanionOutputFfi;
 
 typedef struct HostCancelAddCompanionInputFfi {
@@ -508,11 +516,11 @@ typedef struct CompanionInitKeyNegotiationInputFfi {
     uint16_t secureProtocolId;
     struct DeviceKeyFfi companionDeviceKey;
     struct DeviceKeyFfi hostDeviceKey;
-    struct DataArray1024Ffi secMessage;
+    struct DataArray20000Ffi secMessage;
 } CompanionInitKeyNegotiationInputFfi;
 
 typedef struct CompanionInitKeyNegotiationOutputFfi {
-    struct DataArray1024Ffi secMessage;
+    struct DataArray20000Ffi secMessage;
 } CompanionInitKeyNegotiationOutputFfi;
 
 typedef struct CompanionBeginAddHostBindingInputFfi {

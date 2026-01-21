@@ -16,7 +16,6 @@
 #ifndef COMPANION_DEVICE_AUTH_DEVICE_STATUS_MANAGER_H
 #define COMPANION_DEVICE_AUTH_DEVICE_STATUS_MANAGER_H
 
-#include <chrono>
 #include <functional>
 #include <map>
 #include <memory>
@@ -63,7 +62,7 @@ public:
     {
         return currentMode_;
     }
-    std::optional<int64_t> GetManageSubscribeTime() const;
+    std::optional<SteadyTimeMs> GetManageSubscribeTime() const;
 
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, OnDeviceStatusChange &&callback);
 
@@ -110,7 +109,7 @@ private:
     int32_t activeUserId_ { INVALID_USER_ID };
     std::map<PhysicalDeviceKey, DeviceStatusEntry> deviceStatusMap_;
     SubscribeMode currentMode_ { SUBSCRIBE_MODE_AUTH };
-    std::optional<int64_t> manageSubscribeTime_;
+    std::optional<SteadyTimeMs> manageSubscribeTime_;
     std::vector<DeviceStatusSubscriptionInfo> subscriptions_;
     std::unique_ptr<Subscription> periodicSyncTimerSubscription_;
 

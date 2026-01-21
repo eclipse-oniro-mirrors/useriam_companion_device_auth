@@ -145,7 +145,7 @@ ResultCode HostBindingManagerImpl::BeginAddHostBinding(RequestId requestId, User
     SecureProtocolId secureProtocolId, const std::vector<uint8_t> &addHostBindingRequest,
     std::vector<uint8_t> &outAddHostBindingReply)
 {
-    IAM_LOGI("begin add host binding, request id %{public}u", requestId);
+    IAM_LOGI("begin add host binding, request id 0x%{public}08X", requestId);
 
     ENSURE_OR_RETURN_VAL(companionUserId == activeUserId_, ResultCode::GENERAL_ERROR);
     if (activeUserId_ != companionUserId) {
@@ -195,14 +195,14 @@ ResultCode HostBindingManagerImpl::BeginAddHostBinding(RequestId requestId, User
 
     outAddHostBindingReply.swap(output.addHostBindingReply);
 
-    IAM_LOGI("begin add host binding success, request id %{public}u", requestId);
+    IAM_LOGI("begin add host binding success, request id 0x%{public}08X", requestId);
     return ResultCode::SUCCESS;
 }
 
 ResultCode HostBindingManagerImpl::EndAddHostBinding(RequestId requestId, ResultCode resultCode,
     const std::vector<uint8_t> &tokenData)
 {
-    IAM_LOGI("end add host binding, request id %{public}u, result %{public}d", requestId, resultCode);
+    IAM_LOGI("end add host binding, request id 0x%{public}08X, result %{public}d", requestId, resultCode);
 
     CompanionEndAddHostBindingInput input { .requestId = requestId, .resultCode = resultCode, .tokenData = tokenData };
     CompanionEndAddHostBindingOutput output {};

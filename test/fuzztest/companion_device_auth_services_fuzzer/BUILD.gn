@@ -109,7 +109,6 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               "cases/common/service_converter_fuzzer.cpp",
 
               # security_agent cases
-              "cases/security_agent/cpp/command_invoker_fuzzer.cpp",
               "cases/security_agent/cpp/companion_device_auth_ffi_util_fuzzer.cpp",
               "cases/security_agent/cpp/ffi_util_fuzzer.cpp",
               "cases/security_agent/cpp/security_agent_impl_fuzzer.cpp",
@@ -142,6 +141,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               "cases/external_adapters/device_manager_adapter_fuzzer.cpp",
               "cases/external_adapters/driver_manager_adapter_fuzzer.cpp",
               "cases/external_adapters/sa_manager_adapter_fuzzer.cpp",
+              "cases/external_adapters/security_command/security_command_adapter_fuzzer.cpp",
               "cases/external_adapters/soft_bus_adapter_fuzzer.cpp",
               "cases/external_adapters/user_auth_adapter_fuzzer.cpp",
 
@@ -161,11 +161,16 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
     "../common_fuzzer_config:fuzz_common_config",
   ]
 
-  include_dirs = companion_device_auth_fake_include_dirs + [ "fuzz_helpers" ]
+  include_dirs =
+      companion_device_auth_fake_include_dirs + [
+        "fuzz_helpers",
+        "${companion_device_auth_path}/test/unittest/services/cpp/cases/mock",
+      ]
 
   deps = companion_device_auth_service_deps
 
-  external_deps = companion_device_auth_service_external_deps
+  external_deps = companion_device_auth_service_external_deps +
+                  companion_device_auth_test_external_deps
 
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
 

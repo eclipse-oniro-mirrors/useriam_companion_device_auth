@@ -262,12 +262,12 @@ impl CryptoEngine for OpenSSLCryptoEngine {
         })?;
 
         ctx.set_hkdf_key(key).map_err(|e| {
-            log_e!("Failed to set HKDF input key material (length: {} bytes): {}", key.len(), e);
+            log_e!("Failed to set HKDF input key material length: {} error: {}", key.len(), e);
             ErrorCode::GeneralError
         })?;
 
         ctx.set_hkdf_salt(salt).map_err(|e| {
-            log_e!("Failed to set HKDF salt (length: {} bytes): {}", salt.len(), e);
+            log_e!("Failed to set HKDF salt length: {} error: {}", salt.len(), e);
             ErrorCode::GeneralError
         })?;
 

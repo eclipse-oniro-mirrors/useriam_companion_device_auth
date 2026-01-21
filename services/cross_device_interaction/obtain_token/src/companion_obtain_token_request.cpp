@@ -70,7 +70,7 @@ bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 
 void CompanionObtainTokenRequest::OnConnected()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto localDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
@@ -114,7 +114,7 @@ bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
 
 void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &reply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto preObtainTokenReplyOpt = DecodePreObtainTokenReply(reply);
@@ -191,7 +191,7 @@ bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8
 
 void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto obtainTokenReplyOpt = DecodeObtainTokenReply(reply);

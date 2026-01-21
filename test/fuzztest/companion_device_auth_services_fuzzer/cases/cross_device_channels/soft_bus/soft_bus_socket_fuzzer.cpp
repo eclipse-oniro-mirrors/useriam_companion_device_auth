@@ -29,7 +29,6 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-const uint32_t TEST_VAL64 = 64;
 }
 
 using SoftBusSocketFuzzFunction = void (*)(std::unique_ptr<SoftBusSocket> &, FuzzedDataProvider &);

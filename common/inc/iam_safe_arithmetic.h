@@ -16,7 +16,6 @@
 #ifndef COMPANION_DEVICE_AUTH_IAM_SAFE_ARITHMETIC_H
 #define COMPANION_DEVICE_AUTH_IAM_SAFE_ARITHMETIC_H
 
-#include <limits>
 #include <optional>
 #include <type_traits>
 
@@ -25,46 +24,60 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 /**
- * @brief Performs safe addition with overflow detection for unsigned integers.
+ * @brief Performs safe addition with overflow detection.
  *
- * @tparam T Unsigned integral type (uint8_t, uint16_t, uint32_t, uint64_t, size_t, etc.).
+ * @tparam T Integral type (signed or unsigned).
  * @param a First addend.
  * @param b Second addend.
  * @return std::optional<T> Returns the sum if no overflow occurs, otherwise std::nullopt.
- *
- * @note This function only supports unsigned integer types to ensure type consistency.
- *       Both parameters must be of the same unsigned type.
  */
 template <typename T>
-typename std::enable_if<std::is_unsigned_v<T>, std::optional<T>>::type safe_add(T a, T b)
+std::optional<T> safe_add(T a, T b)
 {
-    if (a > std::numeric_limits<T>::max() - b) {
+    static_assert(std::is_integral_v<T>, "integral only");
+    T result;
+    if (__builtin_add_overflow(a, b, &result)) {
         return std::nullopt;
     }
-    return a + b;
+    return result;
 }
 
 /**
- * @brief Performs safe multiplication with overflow detection for unsigned integers.
+ * @brief Performs safe subtraction with overflow/underflow detection.
  *
- * @tparam T Unsigned integral type (uint8_t, uint16_t, uint32_t, uint64_t, size_t, etc.).
+ * @tparam T Integral type (signed or unsigned).
+ * @param a Minuend (number to be subtracted from).
+ * @param b Subtrahend (number to subtract).
+ * @return std::optional<T> Returns the difference if no overflow occurs, otherwise std::nullopt.
+ */
+template <typename T>
+std::optional<T> safe_sub(T a, T b)
+{
+    static_assert(std::is_integral_v<T>, "integral only");
+    T result;
+    if (__builtin_sub_overflow(a, b, &result)) {
+        return std::nullopt;
+    }
+    return result;
+}
+
+/**
+ * @brief Performs safe multiplication with overflow detection.
+ *
+ * @tparam T Integral type (signed or unsigned).
  * @param a Multiplicand.
  * @param b Multiplier.
  * @return std::optional<T> Returns the product if no overflow occurs, otherwise std::nullopt.
- *
- * @note This function only supports unsigned integer types to ensure type consistency.
- *       Both parameters must be of the same unsigned type.
  */
 template <typename T>
-typename std::enable_if<std::is_unsigned_v<T>, std::optional<T>>::type safe_multiply(T a, T b)
+std::optional<T> safe_mul(T a, T b)
 {
-    if (a == 0 || b == 0) {
-        return 0;
-    }
-    if (a > std::numeric_limits<T>::max() / b) {
+    static_assert(std::is_integral_v<T>, "integral only");
+    T result;
+    if (__builtin_mul_overflow(a, b, &result)) {
         return std::nullopt;
     }
-    return a * b;
+    return result;
 }
 
 } // namespace CompanionDeviceAuth

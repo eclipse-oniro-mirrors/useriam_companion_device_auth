@@ -24,14 +24,19 @@
 #include "fuzzer/FuzzedDataProvider.h"
 
 #include "cross_device_comm/icross_device_channel.h"
+#include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+
 namespace {
-const uint32_t TEST_VAL64 = 64;
+inline std::vector<uint8_t> GetFuzzSampleMessage()
+{
+    return { 1, 2, 3, 4 };
 }
+} // namespace
 
 // Simple cross-device channel implementation for fuzzing
 // Provides non-deterministic behavior based on FuzzedDataProvider
@@ -117,7 +122,7 @@ public:
     {
         if (callback) {
             std::string connectionName = "fuzz_connection";
-            std::vector<uint8_t> rawMsg = { 1, 2, 3, 4 };
+            std::vector<uint8_t> rawMsg = GetFuzzSampleMessage();
             callback(connectionName, rawMsg);
         }
         return std::make_unique<Subscription>([] {});

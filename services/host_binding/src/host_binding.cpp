@@ -46,11 +46,11 @@ std::shared_ptr<HostBinding> HostBinding::Create(const PersistedHostBindingStatu
     ENSURE_OR_RETURN_VAL(binding != nullptr, nullptr);
 
     if (!binding->Initialize()) {
-        IAM_LOGE("%{public}s failed to initialize", binding->GetDescription().c_str());
+        IAM_LOGE("%{public}s failed to initialize", binding->GetDescription());
         return nullptr;
     }
 
-    IAM_LOGI("%{public}s created", binding->GetDescription().c_str());
+    IAM_LOGI("%{public}s created", binding->GetDescription());
     return binding;
 }
 
@@ -62,7 +62,7 @@ HostBinding::HostBinding(const PersistedHostBindingStatus &persistedStatus)
     status_.isTokenValid = persistedStatus.isTokenValid;
 
     std::ostringstream oss;
-    oss << "HB_" << GET_TRUNCATED_STRING(persistedStatus.bindingId);
+    oss << "CdaHost(" << GET_TRUNCATED_STRING(persistedStatus.bindingId) << ")";
     description_ = oss.str();
 }
 
@@ -80,7 +80,7 @@ bool HostBinding::Initialize()
             self->HandleDeviceStatusChanged(deviceStatusList);
         });
     if (deviceStatusSubscription_ == nullptr) {
-        IAM_LOGE("%{public}s failed to subscribe device status", GetDescription().c_str());
+        IAM_LOGE("%{public}s failed to subscribe device status", GetDescription());
         return false;
     }
 
@@ -94,7 +94,7 @@ bool HostBinding::Initialize()
             self->HandleAuthMaintainActiveChanged(isActive);
         });
     if (localDeviceStatusSubscription_ == nullptr) {
-        IAM_LOGE("%{public}s failed to subscribe auth maintain active", GetDescription().c_str());
+        IAM_LOGE("%{public}s failed to subscribe auth maintain active", GetDescription());
         return false;
     }
     HandleAuthMaintainActiveChanged(GetCrossDeviceCommManager().IsAuthMaintainActive());
@@ -117,7 +117,7 @@ void HostBinding::HandleDeviceStatusChanged(const std::vector<DeviceStatus> &dev
 void HostBinding::HandleHostDeviceStatusUpdate(const DeviceStatus &hostDeviceStatus)
 {
     status_.hostDeviceStatus = hostDeviceStatus;
-    IAM_LOGI("%{public}s device status updated", description_.c_str());
+    IAM_LOGI("%{public}s device status updated", GetDescription());
 }
 
 void HostBinding::HandleHostDeviceOffline()
@@ -138,9 +138,9 @@ void HostBinding::HandleAuthMaintainActiveChanged(bool isActive)
     }
 
     status_.localAuthMaintainActive = isActive;
-    IAM_LOGI("%{public}s local auth maintain active -> %{public}d", description_.c_str(), isActive);
+    IAM_LOGI("%{public}s local auth maintain active -> %{public}d", GetDescription(), isActive);
     if (!isActive) {
-        IAM_LOGE("%{public}s local auth maintain inactive, revoking token", description_.c_str());
+        IAM_LOGE("%{public}s local auth maintain inactive, revoking token", GetDescription());
         SetTokenValid(false);
     }
 }
@@ -149,7 +149,7 @@ void HostBinding::SetTokenValid(bool isTokenValid)
 {
     bool oldTokenValid = status_.isTokenValid;
     status_.isTokenValid = isTokenValid;
-    IAM_LOGI("%{public}s set token valid %{public}s -> %{public}s", description_.c_str(), GetBoolStr(oldTokenValid),
+    IAM_LOGI("%{public}s set token valid %{public}s -> %{public}s", GetDescription(), GetBoolStr(oldTokenValid),
         GetBoolStr(isTokenValid));
 
     if (!isTokenValid && oldTokenValid) {
@@ -162,11 +162,11 @@ void HostBinding::SetTokenValid(bool isTokenValid)
 
         bool result = GetRequestManager().Start(request);
         if (!result) {
-            IAM_LOGE("%{public}s failed to start CompanionRevokeTokenRequest", description_.c_str());
+            IAM_LOGE("%{public}s failed to start CompanionRevokeTokenRequest", GetDescription());
             return;
         }
 
-        IAM_LOGI("%{public}s successfully started CompanionRevokeTokenRequest", description_.c_str());
+        IAM_LOGI("%{public}s successfully started CompanionRevokeTokenRequest", GetDescription());
     }
 }
 

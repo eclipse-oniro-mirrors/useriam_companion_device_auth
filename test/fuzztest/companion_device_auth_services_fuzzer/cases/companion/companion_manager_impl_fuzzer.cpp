@@ -43,7 +43,8 @@ static void FuzzReload(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDat
         status.isValid = fuzzData.ConsumeBool();
         companionList.push_back(status);
     }
-    manager->Reload(companionList);
+    std::vector<TemplateId> activeUserTemplateIds; // Empty for fuzzer test
+    manager->Reload(companionList, activeUserTemplateIds);
 }
 
 static void FuzzGetCompanionStatusByTemplate(std::shared_ptr<CompanionManagerImpl> &manager,

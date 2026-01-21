@@ -21,7 +21,6 @@ use crate::{log_e, p, Vec};
 
 pub const AES_GCM_TOKEN_AAD_BYTES: &[u8] = b"OH_authToken";
 pub const AUTH_TOKEN_CIPHER_LEN: usize = core::mem::size_of::<TokenDataToEncrypt>();
-pub const TOKEN_VALIDITY_PERIOD: u64 = 10 * 60 * 100;
 pub const TOKEN_VERSION: u32 = 0;
 
 // Encrypted+signed auth token product

@@ -20,6 +20,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "cda_attributes.h"
 #include "common_defines.h"
 #include "relative_timer.h"
@@ -27,6 +28,7 @@
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "time_keeper.h"
 
 #define LOG_TAG "CDA_SA"
 
@@ -93,7 +95,7 @@ std::unique_ptr<Subscription> MessageRouter::SubscribeIncomingConnection(Message
     key.connectionName = "";
     key.msgType = msgType;
 
-    IAM_LOGI("incoming connection subscription added: type=0x%{public}04x", static_cast<uint16_t>(msgType));
+    IAM_LOGD("incoming connection subscription added: type=0x%{public}04x", static_cast<uint16_t>(msgType));
     RegisterSubscription(key, std::move(onMessage), "incoming connection subscription added: type=0x%{public}04x");
 
     auto weakSelf = weak_from_this();
@@ -111,7 +113,7 @@ std::unique_ptr<Subscription> MessageRouter::SubscribeMessage(const std::string 
     key.connectionName = connectionName;
     key.msgType = msgType;
 
-    IAM_LOGI("message subscription added: conn=%{public}s, type=0x%{public}04x", connectionName.c_str(),
+    IAM_LOGD("message subscription added: conn=%{public}s, type=0x%{public}04x", connectionName.c_str(),
         static_cast<uint16_t>(msgType));
     RegisterSubscription(key, std::move(onMessage),
         "message subscription added: conn=" + connectionName + ", type=0x%{public}04x");
@@ -136,7 +138,7 @@ void MessageRouter::RegisterSubscription(const SubscriptionKey &key, OnMessage &
 void MessageRouter::UnregisterSubscription(const SubscriptionKey &key)
 {
     subscriptions_.erase(key);
-    IAM_LOGI("subscription removed");
+    IAM_LOGD("subscription removed");
 }
 
 OnMessage MessageRouter::FindMessageSubscriber(const std::string &connectionName, MessageType msgType)
@@ -175,7 +177,7 @@ bool MessageRouter::SendMessage(const std::string &connectionName, MessageType m
 
     uint32_t messageSeq = static_cast<uint32_t>(GetMiscManager().GetNextGlobalId());
 
-    IAM_LOGI("sending message: seq=%{public}u, conn=%{public}s, type=0x%{public}04x", messageSeq,
+    IAM_LOGI("sending message: seq=0x%{public}08X, conn=%{public}s, type=0x%{public}04x", messageSeq,
         connectionName.c_str(), static_cast<uint16_t>(msgType));
 
     MessageHeader header;
@@ -213,14 +215,16 @@ bool MessageRouter::SendMessage(const std::string &connectionName, MessageType m
     pending.messageSeq = messageSeq;
     pending.msgType = msgType;
     pending.replyCallback = std::move(onMessageReply);
-    pending.sendTime = std::chrono::steady_clock::now();
+    auto sendTimeMs = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN_VAL(sendTimeMs.has_value(), false);
+    pending.sendTimeMs = sendTimeMs.value();
 
     pendingReplyMessages_[messageSeq] = std::move(pending);
 
     RefreshConnectionStatusSubscription(connectionName);
     RefreshTimeOutSubscription();
 
-    IAM_LOGI("message sent successfully: seq=%{public}u", messageSeq);
+    IAM_LOGI("message sent successfully: seq=0x%{public}08X", messageSeq);
     return true;
 }
 
@@ -263,11 +267,11 @@ void MessageRouter::HandleRawMessage(const std::string &connectionName, const st
 
 void MessageRouter::HandleReply(const MessageHeader &header, const Attributes &payload)
 {
-    IAM_LOGI("handling reply: seq=%{public}u", header.messageSeq);
+    IAM_LOGI("handling reply: seq=0x%{public}08X", header.messageSeq);
 
     auto it = pendingReplyMessages_.find(header.messageSeq);
     if (it == pendingReplyMessages_.end()) {
-        IAM_LOGW("no pending reply message found for seq: %{public}u", header.messageSeq);
+        IAM_LOGW("no pending reply message found for seq: 0x%{public}08X", header.messageSeq);
         return;
     }
 
@@ -283,12 +287,12 @@ void MessageRouter::HandleReply(const MessageHeader &header, const Attributes &p
             cb(payload);
         }
     });
-    IAM_LOGI("reply handled: seq=%{public}u", header.messageSeq);
+    IAM_LOGI("reply handled: seq=0x%{public}08X", header.messageSeq);
 }
 
 void MessageRouter::HandleRequest(const MessageHeader &header, const Attributes &payload, ChannelId channelId)
 {
-    IAM_LOGI("handling request: seq=%{public}u, conn=%{public}s, type=0x%{public}04x", header.messageSeq,
+    IAM_LOGI("handling request: seq=0x%{public}08X, conn=%{public}s, type=0x%{public}04x", header.messageSeq,
         header.connectionName.c_str(), static_cast<uint16_t>(header.msgType));
 
     if (header.msgType == MessageType::DISCONNECT) {
@@ -357,7 +361,7 @@ void MessageRouter::SendReply(const MessageHeader &requestHeader, ChannelId chan
     ENSURE_OR_RETURN(channel != nullptr);
 
     channel->SendMessage(requestHeader.connectionName, rawMsg);
-    IAM_LOGI("reply sent: seq=%{public}u, type=0x%{public}04x", requestHeader.messageSeq,
+    IAM_LOGI("reply sent: seq=0x%{public}08X, type=0x%{public}04x", requestHeader.messageSeq,
         static_cast<uint16_t>(requestHeader.msgType));
 }
 
@@ -390,7 +394,7 @@ void MessageRouter::HandleConnectionDown(const std::string &connectionName)
 
 void MessageRouter::HandleMessageTimeout(uint32_t messageSeq)
 {
-    IAM_LOGE("message timeout: seq=%{public}u", messageSeq);
+    IAM_LOGE("message timeout: seq=0x%{public}08X", messageSeq);
 
     auto it = pendingReplyMessages_.find(messageSeq);
     if (it == pendingReplyMessages_.end()) {
@@ -448,10 +452,10 @@ void MessageRouter::RefreshConnectionStatusSubscription(const std::string &conne
             });
         ENSURE_OR_RETURN(subscription != nullptr);
         connectionStatusSubscriptions_[connectionName] = std::move(subscription);
-        IAM_LOGI("connection status subscription added: %{public}s", connectionName.c_str());
+        IAM_LOGD("connection status subscription added: %{public}s", connectionName.c_str());
     } else {
         if (connectionStatusSubscriptions_.erase(connectionName) > 0) {
-            IAM_LOGI("connection status subscription removed: %{public}s", connectionName.c_str());
+            IAM_LOGD("connection status subscription removed: %{public}s", connectionName.c_str());
         }
     }
 }
@@ -484,14 +488,15 @@ void MessageRouter::RefreshTimeOutSubscription()
 
 void MessageRouter::HandleTimeoutCheck()
 {
-    auto now = std::chrono::steady_clock::now();
-    std::chrono::milliseconds timeoutDuration(MESSAGE_TIMEOUT_MS);
+    auto now = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN(now.has_value());
+    uint64_t timeoutDurationMs = static_cast<uint64_t>(MESSAGE_TIMEOUT_MS);
 
     std::vector<uint32_t> timeoutMessages;
 
     for (const auto &pair : pendingReplyMessages_) {
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - pair.second.sendTime);
-        if (elapsed >= timeoutDuration) {
+        auto elapsedMs = now.value() - pair.second.sendTimeMs;
+        if (elapsedMs >= timeoutDurationMs) {
             timeoutMessages.push_back(pair.first);
         }
     }

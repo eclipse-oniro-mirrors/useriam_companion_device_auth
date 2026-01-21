@@ -51,7 +51,7 @@ private:
         sptr<IRemoteObject::DeathRecipient> deathRecipient;
     };
 
-    uint64_t globalIdCounter_ { 1 };
+    uint64_t globalIdCounter_;
     std::map<uint32_t, CallbackInfo> callbacks_;
 };
 

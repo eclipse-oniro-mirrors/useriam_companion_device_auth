@@ -29,14 +29,14 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-const uint32_t TEST_VAL64 = 64;
+constexpr uint8_t FUZZ_MAX_MSG_TYPE = 50;
 }
 
 using MessageRouterFuzzFunction = void (*)(std::shared_ptr<MessageRouter> &router, FuzzedDataProvider &fuzzData);
 
 static void FuzzSubscribeIncomingConnection(std::shared_ptr<MessageRouter> &router, FuzzedDataProvider &fuzzData)
 {
-    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 50);
+    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_MSG_TYPE);
     MessageType msgType = static_cast<MessageType>(msgTypeValue);
     auto callback = [](const Attributes &msg, OnMessageReply &onMessageReply) {
         (void)msg;
@@ -49,7 +49,7 @@ static void FuzzSubscribeIncomingConnection(std::shared_ptr<MessageRouter> &rout
 static void FuzzSubscribeMessage(std::shared_ptr<MessageRouter> &router, FuzzedDataProvider &fuzzData)
 {
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 50);
+    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_MSG_TYPE);
     MessageType msgType = static_cast<MessageType>(msgTypeValue);
     auto callback = [](const Attributes &msg, OnMessageReply &onMessageReply) {
         (void)msg;
@@ -62,7 +62,7 @@ static void FuzzSubscribeMessage(std::shared_ptr<MessageRouter> &router, FuzzedD
 static void FuzzSendMessage(std::shared_ptr<MessageRouter> &router, FuzzedDataProvider &fuzzData)
 {
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 50);
+    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_MSG_TYPE);
     MessageType msgType = static_cast<MessageType>(msgTypeValue);
     Attributes request = GenerateFuzzAttributes(fuzzData);
     auto callback = [](const Attributes &reply) { (void)reply; };
@@ -87,7 +87,7 @@ static void FuzzHandleConnectionDown(std::shared_ptr<MessageRouter> &router, Fuz
 static void FuzzFindMessageSubscriber(std::shared_ptr<MessageRouter> &router, FuzzedDataProvider &fuzzData)
 {
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 50);
+    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_MSG_TYPE);
     MessageType msgType = static_cast<MessageType>(msgTypeValue);
     auto subscriber = router->FindMessageSubscriber(connectionName, msgType);
     (void)subscriber;

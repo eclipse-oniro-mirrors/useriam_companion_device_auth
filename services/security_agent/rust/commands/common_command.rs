@@ -105,6 +105,7 @@ impl_data_array!(DataArray64Ffi, MAX_DATA_LEN_64);
 impl_data_array!(DataArray128Ffi, MAX_DATA_LEN_128);
 impl_data_array!(DataArray256Ffi, MAX_DATA_LEN_256);
 impl_data_array!(DataArray1024Ffi, MAX_DATA_LEN_1024);
+impl_data_array!(DataArray20000Ffi, MAX_DATA_LEN_20000);
 
 // DeviceKeyFfi
 impl TryFrom<DeviceKey> for DeviceKeyFfi {

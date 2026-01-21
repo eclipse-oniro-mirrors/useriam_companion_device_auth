@@ -69,7 +69,7 @@ bool HostIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 
 void HostIssueTokenRequest::OnConnected()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     HostPreIssueToken();
 }
 
@@ -127,7 +127,7 @@ bool HostIssueTokenRequest::SendPreIssueTokenRequest(const std::vector<uint8_t> 
 
 void HostIssueTokenRequest::HandlePreIssueTokenReply(const Attributes &message)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodePreIssueTokenReply(message);
@@ -193,7 +193,7 @@ bool HostIssueTokenRequest::SendIssueTokenRequest(const std::vector<uint8_t> &is
 
 void HostIssueTokenRequest::HandleIssueTokenReply(const Attributes &message)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeIssueTokenReply(message);

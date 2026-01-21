@@ -76,7 +76,7 @@ static const char *GetRequestTypeAbbr(RequestType requestType)
 
 std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId requestId)
 {
-    return std::string("CdaR(") + GetRequestTypeAbbr(requestType) + "," + std::to_string(requestId) + ")";
+    return std::string("CdaRequest(") + GetRequestTypeAbbr(requestType) + "," + std::to_string(requestId) + ")";
 }
 
 std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId requestId,
@@ -85,8 +85,8 @@ std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId 
     if (connectionName.empty() || connectionName == "-") {
         return GenerateDescription(requestType, requestId);
     }
-    return std::string("CdaR(") + GetRequestTypeAbbr(requestType) + "," + std::to_string(requestId) +
-        "," + connectionName + ")";
+    return std::string("CdaRequest(") + GetRequestTypeAbbr(requestType) + "," + std::to_string(requestId) + "," +
+        connectionName + ")";
 }
 
 BaseRequest::BaseRequest(RequestType requestType, ScheduleId scheduleId, uint32_t timeoutMs,
@@ -164,7 +164,7 @@ void BaseRequest::Destroy()
 
     TaskRunnerManager::GetInstance().PostTaskOnResident([requestId = requestId_]() {
         GetRequestManager().Remove(requestId);
-        IAM_LOGI("request %{public}u removed", requestId);
+        IAM_LOGI("request 0x%{public}08X removed", requestId);
     });
 }
 } // namespace CompanionDeviceAuth

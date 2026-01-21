@@ -77,6 +77,13 @@ constexpr uint8_t FUZZ_MAX_BUSINESS_IDS_COUNT = 10;
 constexpr uint8_t FUZZ_MAX_PROTOCOLS_COUNT = 5;
 constexpr uint8_t FUZZ_MAX_ATTRIBUTES_COUNT = 20;
 
+// Common test values
+constexpr uint32_t TEST_VAL10 = 10;
+constexpr uint32_t TEST_VAL16 = 16;
+constexpr uint32_t TEST_VAL64 = 64;
+constexpr uint32_t TEST_VAL256 = 256;
+constexpr uint32_t TEST_VAL1024 = 1024;
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

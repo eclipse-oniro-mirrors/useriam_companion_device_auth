@@ -27,10 +27,6 @@ ohos_shared_library("companion_device_auth_client") {
 
   sources = companion_device_auth_client_sources
 
-  configs = [
-    "${companion_device_auth_path}/common:companion_device_auth_common_config",
-  ]
-
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
 
   public_configs = [

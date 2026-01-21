@@ -29,7 +29,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-const uint32_t TEST_VAL64 = 64;
+constexpr uint8_t FUZZ_REASON_LENGTH = 128;
 }
 
 using SoftBusChannelFuzzFunction = void (*)(std::shared_ptr<SoftBusChannel> &, FuzzedDataProvider &);
@@ -113,7 +113,7 @@ static void FuzzOp9(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider
     (void)fuzzData;
     // Test OnRemoteDisconnect
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    std::string reason = GenerateFuzzString(fuzzData, 128);
+    std::string reason = GenerateFuzzString(fuzzData, FUZZ_REASON_LENGTH);
     channel->OnRemoteDisconnect(connectionName, reason);
 }
 
@@ -200,7 +200,7 @@ static void FuzzOp17(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvide
     // Test ConvertToConnectionStatus (inline function from cross_device_common.h)
     (void)channel; // Unused in this test
     bool isConnected = fuzzData.ConsumeBool();
-    std::string reason = GenerateFuzzString(fuzzData, 128);
+    std::string reason = GenerateFuzzString(fuzzData, FUZZ_REASON_LENGTH);
     ConnectionStatus status = ConvertToConnectionStatus(isConnected, reason);
     (void)status;
 }

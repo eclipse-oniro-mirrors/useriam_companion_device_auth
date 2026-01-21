@@ -36,10 +36,15 @@ class CompanionManagerImpl;
 
 class Companion : public NoCopyable, public std::enable_shared_from_this<Companion> {
 public:
-    static std::shared_ptr<Companion> Create(const PersistedCompanionStatus &persistedStatus,
+    static std::shared_ptr<Companion> Create(const PersistedCompanionStatus &persistedStatus, bool addedToIdm,
         const std::weak_ptr<CompanionManagerImpl> &managerWeakPtr);
 
     ~Companion() override;
+
+    bool IsAddedToIdm() const
+    {
+        return addedToIdm_;
+    }
 
     uint64_t GetTemplateId() const
     {
@@ -57,9 +62,9 @@ public:
     {
         return status_;
     }
-    std::string GetDescription() const
+    const char *GetDescription() const
     {
-        return description_;
+        return description_.c_str();
     }
 
     void SetEnabledBusinessIds(const std::vector<BusinessId> &enabledBusinessIds);
@@ -68,20 +73,25 @@ public:
     void SetDeviceNames(const std::string &deviceName, const std::string &deviceUserName);
     void RefreshTokenTimer();
     void NotifySubscribers();
+    void MarkAsAddedToIdm();
 
 private:
-    explicit Companion(const PersistedCompanionStatus &persistedStatus,
+    explicit Companion(const PersistedCompanionStatus &persistedStatus, bool addedToIdm,
         const std::weak_ptr<CompanionManagerImpl> &managerWeakPtr);
     bool Initialize();
     void HandleDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
     void HandleDeviceStatusUpdate(const DeviceStatus &deviceStatus);
     void HandleDeviceOffline();
+    void StartTemplateAddToIdmTimer();
+    void HandleTemplateAddToIdmTimeout();
 
     CompanionStatus status_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
     std::unique_ptr<Subscription> tokenTimeoutSubscription_;
+    std::unique_ptr<Subscription> templateAddToIdmTimer_;
     std::string description_;
-    std::weak_ptr<CompanionManagerImpl> managerWeakPtr_;
+    bool addedToIdm_;
+    std::weak_ptr<CompanionManagerImpl> weakManager_;
 };
 
 } // namespace CompanionDeviceAuth

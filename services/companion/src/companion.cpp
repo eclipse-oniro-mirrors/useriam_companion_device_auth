@@ -23,9 +23,16 @@
 #include "iam_para2str.h"
 #include "iam_ptr.h"
 
+#include "adapter_manager.h"
+#include "iam_safe_arithmetic.h"
+
 #include "companion_manager_impl.h"
 #include "relative_timer.h"
+#include "scope_guard.h"
+#include "service_common.h"
 #include "singleton_manager.h"
+#include "task_runner_manager.h"
+#include "time_keeper.h"
 
 #define LOG_TAG "CDA_SA"
 
@@ -33,28 +40,34 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-std::shared_ptr<Companion> Companion::Create(const PersistedCompanionStatus &persistedStatus,
+std::shared_ptr<Companion> Companion::Create(const PersistedCompanionStatus &persistedStatus, bool addedToIdm,
     const std::weak_ptr<CompanionManagerImpl> &managerWeakPtr)
 {
-    auto companion = std::shared_ptr<Companion>(new (std::nothrow) Companion(persistedStatus, managerWeakPtr));
+    auto companion =
+        std::shared_ptr<Companion>(new (std::nothrow) Companion(persistedStatus, addedToIdm, managerWeakPtr));
     ENSURE_OR_RETURN_VAL(companion != nullptr, nullptr);
 
     if (!companion->Initialize()) {
-        IAM_LOGE("%{public}s failed to initialize", companion->GetDescription().c_str());
+        IAM_LOGE("%{public}s failed to initialize", companion->GetDescription());
         return nullptr;
     }
 
-    IAM_LOGI("%{public}s created", companion->GetDescription().c_str());
+    if (!addedToIdm) {
+        companion->StartTemplateAddToIdmTimer();
+    }
+
+    IAM_LOGI("%{public}s created, addedToIdm=%{public}d", companion->GetDescription(), addedToIdm);
     return companion;
 }
 
-Companion::Companion(const PersistedCompanionStatus &persistedStatus,
+Companion::Companion(const PersistedCompanionStatus &persistedStatus, bool addedToIdm,
     const std::weak_ptr<CompanionManagerImpl> &managerWeakPtr)
-    : managerWeakPtr_(managerWeakPtr)
+    : addedToIdm_(addedToIdm),
+      weakManager_(managerWeakPtr)
 {
     status_.FromPersisted(persistedStatus);
     std::ostringstream oss;
-    oss << "CP_" << GET_TRUNCATED_STRING(status_.templateId);
+    oss << "CdaCompanion(" << GET_TRUNCATED_STRING(status_.templateId) << ")";
     description_ = oss.str();
 }
 
@@ -72,7 +85,7 @@ bool Companion::Initialize()
                 self->HandleDeviceStatusChanged(deviceStatusList);
             });
     if (deviceStatusSubscription_ == nullptr) {
-        IAM_LOGE("%{public}s failed to subscribe device status", GetDescription().c_str());
+        IAM_LOGE("%{public}s failed to subscribe device status", GetDescription());
         return false;
     }
 
@@ -105,10 +118,10 @@ void Companion::HandleDeviceStatusUpdate(const DeviceStatus &deviceStatus)
     }
 
     status_.companionDeviceStatus = deviceStatus;
-    IAM_LOGI("%{public}s device status updated", description_.c_str());
+    IAM_LOGI("%{public}s device status updated", GetDescription());
 
     if (!deviceStatus.isAuthMaintainActive) {
-        IAM_LOGE("%{public}s auth maintain inactive, set token invalid", description_.c_str());
+        IAM_LOGE("%{public}s auth maintain inactive, set token invalid", GetDescription());
         SetCompanionTokenAtl(std::nullopt);
     }
     NotifySubscribers();
@@ -121,7 +134,7 @@ void Companion::HandleDeviceOffline()
     }
 
     status_.companionDeviceStatus.isOnline = false;
-    IAM_LOGE("%{public}s device offline", description_.c_str());
+    IAM_LOGE("%{public}s device offline", GetDescription());
     SetCompanionTokenAtl(std::nullopt);
     NotifySubscribers();
 }
@@ -133,7 +146,7 @@ void Companion::SetEnabledBusinessIds(const std::vector<BusinessId> &enabledBusi
     }
 
     status_.enabledBusinessIds = enabledBusinessIds;
-    IAM_LOGI("%{public}s enabled business ids updated", description_.c_str());
+    IAM_LOGI("%{public}s enabled business ids updated", GetDescription());
     NotifySubscribers();
 }
 
@@ -143,7 +156,7 @@ void Companion::SetCompanionValid(bool isValid)
         return;
     }
 
-    IAM_LOGI("%{public}s set valid %{public}d -> %{public}d", description_.c_str(), status_.isValid, isValid);
+    IAM_LOGI("%{public}s set valid %{public}d -> %{public}d", GetDescription(), status_.isValid, isValid);
     status_.isValid = isValid;
     NotifySubscribers();
 }
@@ -152,7 +165,7 @@ void Companion::SetCompanionTokenAtl(std::optional<Atl> tokenAtl)
 {
     std::optional<Atl> oldTokenAtl = status_.tokenAtl;
     status_.tokenAtl = tokenAtl;
-    IAM_LOGI("%{public}s set token atl %{public}s -> %{public}s", description_.c_str(),
+    IAM_LOGI("%{public}s set token atl %{public}s -> %{public}s", GetDescription(),
         GetOptionalString(oldTokenAtl).c_str(), GetOptionalString(tokenAtl).c_str());
 
     tokenTimeoutSubscription_.reset();
@@ -164,12 +177,12 @@ void Companion::SetCompanionTokenAtl(std::optional<Atl> tokenAtl)
             [weakSelf = weak_from_this()]() {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
-                IAM_LOGI("%{public}s token timeout, revoking token", self->GetDescription().c_str());
+                IAM_LOGI("%{public}s token timeout, revoking token", self->GetDescription());
                 self->SetCompanionTokenAtl(std::nullopt);
             },
             TOKEN_TIMEOUT_MS);
         ENSURE_OR_RETURN(tokenTimeoutSubscription_ != nullptr);
-        IAM_LOGI("%{public}s registered token timeout timer", description_.c_str());
+        IAM_LOGI("%{public}s registered token timeout timer", GetDescription());
     }
 
     if (status_.tokenAtl != oldTokenAtl) {
@@ -180,7 +193,7 @@ void Companion::SetCompanionTokenAtl(std::optional<Atl> tokenAtl)
 void Companion::RefreshTokenTimer()
 {
     if (!status_.tokenAtl.has_value()) {
-        IAM_LOGE("%{public}s no token atl, skip refresh timer", description_.c_str());
+        IAM_LOGE("%{public}s no token atl, skip refresh timer", GetDescription());
         return;
     }
 
@@ -189,12 +202,12 @@ void Companion::RefreshTokenTimer()
         [weakSelf = weak_from_this()]() {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            IAM_LOGI("%{public}s token timeout, revoking token", self->GetDescription().c_str());
+            IAM_LOGI("%{public}s token timeout, revoking token", self->GetDescription());
             self->SetCompanionTokenAtl(std::nullopt);
         },
         TOKEN_TIMEOUT_MS);
     ENSURE_OR_RETURN(tokenTimeoutSubscription_ != nullptr);
-    IAM_LOGI("%{public}s refreshed token timeout timer", description_.c_str());
+    IAM_LOGI("%{public}s refreshed token timeout timer", GetDescription());
 }
 
 void Companion::SetDeviceNames(const std::string &deviceName, const std::string &deviceUserName)
@@ -206,18 +219,84 @@ void Companion::SetDeviceNames(const std::string &deviceName, const std::string 
 
     status_.companionDeviceStatus.deviceName = deviceName;
     status_.companionDeviceStatus.deviceUserName = deviceUserName;
-    IAM_LOGI("%{public}s updating device names", description_.c_str());
+    IAM_LOGI("%{public}s updating device names", GetDescription());
     NotifySubscribers();
 }
 
 void Companion::NotifySubscribers()
 {
-    auto manager = managerWeakPtr_.lock();
+    auto manager = weakManager_.lock();
     if (manager == nullptr) {
-        IAM_LOGW("%{public}s manager is null, cannot notify subscribers", description_.c_str());
+        IAM_LOGW("%{public}s manager is null, cannot notify subscribers", GetDescription());
         return;
     }
     manager->NotifyCompanionStatusChange();
+}
+
+void Companion::MarkAsAddedToIdm()
+{
+    if (addedToIdm_) {
+        return;
+    }
+
+    IAM_LOGI("%{public}s marked as added to IDM", GetDescription());
+    addedToIdm_ = true;
+    templateAddToIdmTimer_.reset();
+}
+
+void Companion::StartTemplateAddToIdmTimer()
+{
+    if (addedToIdm_) {
+        IAM_LOGI("%{public}s already added to IDM, no need to start timer", GetDescription());
+        return;
+    }
+
+    ScopeGuard guard([this]() {
+        IAM_LOGE("%{public}s failed to start timer, triggering timeout handler", GetDescription());
+        HandleTemplateAddToIdmTimeout();
+    });
+
+    auto nowMs = GetTimeKeeper().GetSystemTimeMs();
+    ENSURE_OR_RETURN(nowMs.has_value());
+    auto elapsedMs = safe_sub(nowMs.value(), static_cast<uint64_t>(status_.addedTime));
+    ENSURE_OR_RETURN(elapsedMs.has_value());
+    auto remainingMs =
+        safe_sub(static_cast<int64_t>(IDM_ADD_TEMPLATE_TIMEOUT_MS), static_cast<int64_t>(elapsedMs.value()));
+    ENSURE_OR_RETURN(remainingMs.has_value());
+    ENSURE_OR_RETURN(remainingMs.value() > 0);
+    ENSURE_OR_RETURN(remainingMs.value() < UINT32_MAX);
+    uint32_t remainingMsValue = static_cast<uint32_t>(remainingMs.value());
+    IAM_LOGI("%{public}s starting template add timer, remaining: %{public}u ms", GetDescription(), remainingMsValue);
+    templateAddToIdmTimer_ = RelativeTimer::GetInstance().Register(
+        [weakSelf = weak_from_this()]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleTemplateAddToIdmTimeout();
+        },
+        remainingMsValue);
+    ENSURE_OR_RETURN(templateAddToIdmTimer_ != nullptr);
+    guard.Cancel();
+    return;
+}
+
+void Companion::HandleTemplateAddToIdmTimeout()
+{
+    if (addedToIdm_) {
+        IAM_LOGI("%{public}s already added to IDM, timeout ignored", GetDescription());
+        return;
+    }
+
+    IAM_LOGE("%{public}s template add to IDM failed", GetDescription());
+
+    TemplateId templateId = status_.templateId;
+    TaskRunnerManager::GetInstance().PostTaskOnResident([weakManager = weakManager_, templateId]() {
+        auto manager = weakManager.lock();
+        if (manager == nullptr) {
+            IAM_LOGE("manager is null when handling template add timeout");
+            return;
+        }
+        manager->RemoveCompanion(templateId);
+    });
 }
 
 } // namespace CompanionDeviceAuth

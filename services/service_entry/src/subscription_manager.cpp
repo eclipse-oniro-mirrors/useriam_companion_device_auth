@@ -15,6 +15,7 @@
 
 #include "subscription_manager.h"
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <utility>
@@ -44,14 +45,11 @@ std::shared_ptr<AvailableDeviceSubscription> SubscriptionManager::GetOrCreateAva
     }
 
     auto subscription = AvailableDeviceSubscription::Create(userId, weak_from_this());
-    if (subscription == nullptr) {
-        IAM_LOGE("create AvailableDeviceSubscription failed");
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(subscription != nullptr, nullptr);
     availableDeviceSubscriptions_[userId] = subscription;
     subscription->SetDeathHandler(
-        [weakThis = weak_from_this()](const sptr<IIpcAvailableDeviceStatusCallback> &callback) {
-            auto self = weakThis.lock();
+        [weakSelf = weak_from_this()](const sptr<IIpcAvailableDeviceStatusCallback> &callback) {
+            auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->RemoveAvailableDeviceStatusCallback(callback);
         });
@@ -66,13 +64,10 @@ std::shared_ptr<TemplateStatusSubscription> SubscriptionManager::GetOrCreateTemp
     }
 
     auto subscription = TemplateStatusSubscription::Create(userId, weak_from_this());
-    if (subscription == nullptr) {
-        IAM_LOGE("create TemplateStatusSubscription failed");
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(subscription != nullptr, nullptr);
     templateStatusSubscriptions_[userId] = subscription;
-    subscription->SetDeathHandler([weakThis = weak_from_this()](const sptr<IIpcTemplateStatusCallback> &callback) {
-        auto self = weakThis.lock();
+    subscription->SetDeathHandler([weakSelf = weak_from_this()](const sptr<IIpcTemplateStatusCallback> &callback) {
+        auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->RemoveTemplateStatusCallback(callback);
     });
@@ -88,15 +83,12 @@ std::shared_ptr<ContinuousAuthSubscription> SubscriptionManager::GetOrCreateCont
         return it->second;
     }
 
-    auto subscription = ContinuousAuthSubscription::Create(userId, templateId, weak_from_this());
-    if (subscription == nullptr) {
-        IAM_LOGE("create ContinuousAuthSubscription failed");
-        return nullptr;
-    }
+    auto subscription = std::make_shared<ContinuousAuthSubscription>(userId, templateId, weak_from_this());
+    ENSURE_OR_RETURN_VAL(subscription != nullptr, nullptr);
     continuousAuthSubscriptions_[key] = subscription;
     subscription->SetDeathHandler(
-        [weakThis = weak_from_this()](const sptr<IIpcContinuousAuthStatusCallback> &callback) {
-            auto self = weakThis.lock();
+        [weakSelf = weak_from_this()](const sptr<IIpcContinuousAuthStatusCallback> &callback) {
+            auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->RemoveContinuousAuthStatusCallback(callback);
         });

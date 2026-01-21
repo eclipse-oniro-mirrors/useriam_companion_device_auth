@@ -19,30 +19,31 @@
 
 #include "fuzzer/FuzzedDataProvider.h"
 
-#include "command_invoker.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
 #include "fuzz_registry.h"
+#include "security_command_adapter_impl.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-using CommandInvokerFuzzFunction = void (*)(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData);
+using SecurityCommandFuzzFunction = void (*)(std::shared_ptr<SecurityCommandAdapterImpl> &adapter,
+    FuzzedDataProvider &fuzzData);
 
-static void FuzzInitialize(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData)
+static void FuzzInitialize(std::shared_ptr<SecurityCommandAdapterImpl> &adapter, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    (void)invoker->Initialize();
+    (void)adapter->Initialize();
 }
 
-static void FuzzFinalize(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData)
+static void FuzzFinalize(std::shared_ptr<SecurityCommandAdapterImpl> &adapter, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    invoker->Finalize();
+    adapter->Finalize();
 }
 
-static void FuzzInvokeCommand(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData)
+static void FuzzInvokeCommand(std::shared_ptr<SecurityCommandAdapterImpl> &adapter, FuzzedDataProvider &fuzzData)
 {
     int32_t commandId = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t inputDataLen = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
@@ -51,44 +52,47 @@ static void FuzzInvokeCommand(std::shared_ptr<CommandInvoker> &invoker, FuzzedDa
     uint32_t outputDataLen = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
     std::vector<uint8_t> outputData(outputDataLen);
 
-    (void)invoker->InvokeCommand(commandId, inputData.data(), inputDataLen, outputData.data(), outputDataLen);
+    (void)adapter->InvokeCommand(commandId, inputData.data(), inputDataLen, outputData.data(), outputDataLen);
 }
 
-static void FuzzInvokeCommandWithNullInput(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData)
+static void FuzzInvokeCommandWithNullInput(std::shared_ptr<SecurityCommandAdapterImpl> &adapter,
+    FuzzedDataProvider &fuzzData)
 {
     int32_t commandId = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t outputDataLen = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
     std::vector<uint8_t> outputData(outputDataLen);
 
-    (void)invoker->InvokeCommand(commandId, nullptr, 0, outputData.data(), outputDataLen);
+    (void)adapter->InvokeCommand(commandId, nullptr, 0, outputData.data(), outputDataLen);
 }
 
-static void FuzzInvokeCommandWithNullOutput(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData)
+static void FuzzInvokeCommandWithNullOutput(std::shared_ptr<SecurityCommandAdapterImpl> &adapter,
+    FuzzedDataProvider &fuzzData)
 {
     int32_t commandId = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t inputDataLen = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
     std::vector<uint8_t> inputData = fuzzData.ConsumeBytes<uint8_t>(inputDataLen);
 
-    (void)invoker->InvokeCommand(commandId, inputData.data(), inputDataLen, nullptr, 0);
+    (void)adapter->InvokeCommand(commandId, inputData.data(), inputDataLen, nullptr, 0);
 }
 
-static void FuzzMultipleInitializes(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData)
+static void FuzzMultipleInitializes(std::shared_ptr<SecurityCommandAdapterImpl> &adapter, FuzzedDataProvider &fuzzData)
 {
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
     for (uint8_t i = 0; i < count; ++i) {
-        (void)invoker->Initialize();
+        (void)adapter->Initialize();
     }
 }
 
-static void FuzzInitializeFinalizeSequence(std::shared_ptr<CommandInvoker> &invoker, FuzzedDataProvider &fuzzData)
+static void FuzzInitializeFinalizeSequence(std::shared_ptr<SecurityCommandAdapterImpl> &adapter,
+    FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    (void)invoker->Initialize();
-    invoker->Finalize();
-    (void)invoker->Initialize();
+    (void)adapter->Initialize();
+    adapter->Finalize();
+    (void)adapter->Initialize();
 }
 
-static const CommandInvokerFuzzFunction g_fuzzFuncs[] = {
+static const SecurityCommandFuzzFunction g_fuzzFuncs[] = {
     FuzzInitialize,
     FuzzFinalize,
     FuzzInvokeCommand,
@@ -98,12 +102,12 @@ static const CommandInvokerFuzzFunction g_fuzzFuncs[] = {
     FuzzInitializeFinalizeSequence,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CommandInvokerFuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SecurityCommandFuzzFunction);
 
-void FuzzCommandInvoker(FuzzedDataProvider &fuzzData)
+void FuzzSecurityCommandAdapter(FuzzedDataProvider &fuzzData)
 {
-    auto invoker = std::make_shared<CommandInvoker>();
-    if (!invoker) {
+    auto adapter = SecurityCommandAdapterImpl::Create();
+    if (!adapter) {
         return;
     }
 
@@ -114,14 +118,14 @@ void FuzzCommandInvoker(FuzzedDataProvider &fuzzData)
         }
 
         uint8_t operation = fuzzData.ConsumeIntegralInRange<uint8_t>(0, NUM_FUZZ_OPERATIONS - 1);
-        g_fuzzFuncs[operation](invoker, fuzzData);
+        g_fuzzFuncs[operation](adapter, fuzzData);
         EnsureAllTaskExecuted();
     }
 }
 
 } // namespace CompanionDeviceAuth
 
-FUZZ_REGISTER(CommandInvoker)
+FUZZ_REGISTER(SecurityCommandAdapter)
 
 } // namespace UserIam
 } // namespace OHOS

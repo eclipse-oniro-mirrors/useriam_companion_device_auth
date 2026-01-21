@@ -16,23 +16,24 @@
 #include "device_status_manager.h"
 
 #include <algorithm>
-
 #include <cinttypes>
+#include <memory>
 
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "adapter_manager.h"
 #include "channel_manager.h"
 #include "connection_manager.h"
 #include "host_sync_device_status_request.h"
-#include "relative_timer.h"
 #include "scope_guard.h"
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "time_keeper.h"
 
-#define LOG_TAG "CDA_SA"
+#define LOG_TAG "COMPANION_DEVICE_AUTH"
 
 namespace OHOS {
 namespace UserIam {
@@ -150,7 +151,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(OnDevic
     info.callback = std::move(callback);
     subscriptions_.push_back(info);
 
-    IAM_LOGI("device status subscription added: id=%{public}" PRIu64 " (all devices)", subscriptionId);
+    IAM_LOGD("device status subscription added: id=0x%{public}016" PRIX64 " (all devices)", subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -181,10 +182,12 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     }
 
     DeviceStatusEntry &deviceStatus = it->second;
+
     ScopeGuard guard([&deviceStatus]() {
         deviceStatus.isSynced = false;
         deviceStatus.isSyncInProgress = false;
     });
+
     if (resultCode != SUCCESS) {
         IAM_LOGE("sync failed: %{public}d", resultCode);
         return;
@@ -219,9 +222,9 @@ void DeviceStatusManager::SetSubscribeMode(SubscribeMode mode)
     currentMode_ = mode;
 
     if (mode == SUBSCRIBE_MODE_MANAGE) {
-        auto now = std::chrono::system_clock::now();
-        auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-        manageSubscribeTime_ = timestamp;
+        auto now = GetTimeKeeper().GetSteadyTimeMs();
+        ENSURE_OR_RETURN(now.has_value());
+        manageSubscribeTime_ = now.value();
         StartPeriodicSync();
     } else {
         manageSubscribeTime_ = std::nullopt;
@@ -230,7 +233,7 @@ void DeviceStatusManager::SetSubscribeMode(SubscribeMode mode)
     }
 }
 
-std::optional<int64_t> DeviceStatusManager::GetManageSubscribeTime() const
+std::optional<SteadyTimeMs> DeviceStatusManager::GetManageSubscribeTime() const
 {
     return manageSubscribeTime_;
 }
@@ -245,7 +248,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(const D
     info.callback = std::move(callback);
     subscriptions_.push_back(info);
 
-    IAM_LOGI("device status subscription added: id=%{public}" PRIu64 " for device %{public}s", subscriptionId,
+    IAM_LOGD("device status subscription added: id=0x%{public}016" PRIX64 " for device %{public}s", subscriptionId,
         deviceKey.GetDesc().c_str());
     RefreshDeviceList(false);
 
@@ -264,13 +267,13 @@ bool DeviceStatusManager::UnsubscribeDeviceStatus(SubscribeId subscriptionId)
     if (it != subscriptions_.end()) {
         bool wasSpecificDevice = it->deviceKey.has_value();
         subscriptions_.erase(it);
-        IAM_LOGI("device status subscription removed: id=%{public}" PRIu64, subscriptionId);
+        IAM_LOGD("device status subscription removed: id=0x%{public}016" PRIX64 "", subscriptionId);
         if (wasSpecificDevice) {
             RefreshDeviceList(false);
         }
         return true;
     }
-    IAM_LOGW("device status subscription not found: id=%{public}" PRIu64, subscriptionId);
+    IAM_LOGW("device status subscription not found: id=0x%{public}016" PRIX64 "", subscriptionId);
     return false;
 }
 
@@ -515,11 +518,17 @@ bool DeviceStatusManager::AddOrUpdateDevices(
             TriggerDeviceSync(key);
         } else {
             DeviceStatusEntry &deviceStatus = it->second;
-            deviceStatus.channelId = status.channelId;
-            deviceStatus.deviceName = status.deviceName;
-            deviceStatus.deviceModelInfo = status.deviceModelInfo;
-            deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
-            deviceChanged = true;
+            bool hasChange = deviceStatus.channelId != status.channelId ||
+                deviceStatus.deviceName != status.deviceName ||
+                deviceStatus.deviceModelInfo != status.deviceModelInfo ||
+                deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive;
+            if (hasChange) {
+                deviceStatus.channelId = status.channelId;
+                deviceStatus.deviceName = status.deviceName;
+                deviceStatus.deviceModelInfo = status.deviceModelInfo;
+                deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
+                deviceChanged = true;
+            }
             if (resync) {
                 TriggerDeviceSync(key);
             }

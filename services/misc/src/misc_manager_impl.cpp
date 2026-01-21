@@ -17,6 +17,7 @@
 
 #include <limits>
 #include <new>
+#include <random>
 #include <utility>
 
 #include "errors.h"
@@ -97,7 +98,13 @@ private:
 };
 } // namespace
 
-MiscManagerImpl::MiscManagerImpl() = default;
+MiscManagerImpl::MiscManagerImpl()
+{
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<uint64_t> dis(1, std::numeric_limits<uint64_t>::max());
+    globalIdCounter_ = dis(gen);
+}
 
 std::shared_ptr<MiscManagerImpl> MiscManagerImpl::Create()
 {

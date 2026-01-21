@@ -44,7 +44,7 @@ bool VectorToFixedArray(const std::vector<T> &vec, T (&arr)[N], const char *name
         IAM_LOGE("Vector size mismatch for %{public}s: %{public}zu != %{public}zu", name, vec.size(), N);
         return false;
     }
-    auto copySizeOpt = safe_multiply(N, sizeof(T));
+    auto copySizeOpt = safe_mul(N, sizeof(T));
     ENSURE_OR_RETURN_VAL(copySizeOpt.has_value(), false);
 
     if (memcpy_s(arr, sizeof(arr), vec.data(), copySizeOpt.value()) != EOK) {
@@ -104,11 +104,10 @@ bool VectorToFfiArray(const std::vector<T> &vec, FfiArrayType &ffiArr, const cha
     using ElementType = typename std::remove_reference<decltype(ffiArr.data[0])>::type;
     if constexpr (std::is_same_v<T, ElementType> && (std::is_integral_v<T> || std::is_enum_v<T>)) {
         if (ffiArr.len > 0) {
-            auto copySizeOpt = safe_multiply(ffiArr.len, static_cast<uint32_t>(sizeof(ElementType)));
+            auto copySizeOpt = safe_mul(ffiArr.len, static_cast<uint32_t>(sizeof(ElementType)));
             ENSURE_OR_RETURN_VAL(copySizeOpt.has_value(), false);
 
-            auto bufferSizeOpt =
-                safe_multiply(static_cast<uint32_t>(maxSize), static_cast<uint32_t>(sizeof(ElementType)));
+            auto bufferSizeOpt = safe_mul(static_cast<uint32_t>(maxSize), static_cast<uint32_t>(sizeof(ElementType)));
             ENSURE_OR_RETURN_VAL(bufferSizeOpt.has_value(), false);
 
             if (memcpy_s(ffiArr.data, bufferSizeOpt.value(), vec.data(), copySizeOpt.value()) != EOK) {
@@ -176,6 +175,16 @@ inline bool DecodeMessageArray(const DataArray1024Ffi &ffi, std::vector<uint8_t>
 }
 
 inline bool EncodeMessageArray(const std::vector<uint8_t> &vec, DataArray1024Ffi &ffi)
+{
+    return VectorToFfiArray(vec, ffi, "message array");
+}
+
+inline bool DecodeMessageArray(const DataArray20000Ffi &ffi, std::vector<uint8_t> &vec)
+{
+    return FfiArrayToVector(ffi, vec);
+}
+
+inline bool EncodeMessageArray(const std::vector<uint8_t> &vec, DataArray20000Ffi &ffi)
 {
     return VectorToFfiArray(vec, ffi, "message array");
 }
@@ -367,6 +376,7 @@ bool DecodeHostEndAddCompanionOutput(const HostEndAddCompanionOutputFfi &ffi, Ho
 {
     output.templateId = ffi.templateId;
     output.atl = ffi.atl;
+    output.addedTime = ffi.addedTime;
     if (!DecodeMessageArray(ffi.fwkMessage, output.fwkMsg) || !DecodeMessageArray(ffi.secMessage, output.tokenData)) {
         return false;
     }

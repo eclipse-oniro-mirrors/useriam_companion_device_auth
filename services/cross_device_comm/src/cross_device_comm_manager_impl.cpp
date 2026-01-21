@@ -129,7 +129,7 @@ void CrossDeviceCommManagerImpl::SetSubscribeMode(SubscribeMode subscribeMode)
     deviceStatusMgr_->SetSubscribeMode(subscribeMode);
 }
 
-std::optional<int64_t> CrossDeviceCommManagerImpl::GetManageSubscribeTime() const
+std::optional<SteadyTimeMs> CrossDeviceCommManagerImpl::GetManageSubscribeTime() const
 {
     return deviceStatusMgr_->GetManageSubscribeTime();
 }

@@ -58,7 +58,7 @@ public:
     std::vector<DeviceStatus> GetAllDeviceStatus() override;
     std::unique_ptr<Subscription> SubscribeAllDeviceStatus(OnDeviceStatusChange &&onDeviceStatusChange) override;
     void SetSubscribeMode(SubscribeMode subscribeMode) override;
-    std::optional<int64_t> GetManageSubscribeTime() const override;
+    std::optional<SteadyTimeMs> GetManageSubscribeTime() const override;
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey,
         OnDeviceStatusChange &&onDeviceStatusChange) override;
     bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) override;

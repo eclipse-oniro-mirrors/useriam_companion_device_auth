@@ -62,10 +62,6 @@ ohos_shared_library("companiondeviceauth") {
     "samgr:samgr_proxy",
   ]
 
-  configs = [
-    "${companion_device_auth_path}/common:companion_device_auth_common_config",
-  ]
-
   public_configs = [ ":companion_device_auth_public_config" ]
 
   relative_install_dir = "module/useriam"

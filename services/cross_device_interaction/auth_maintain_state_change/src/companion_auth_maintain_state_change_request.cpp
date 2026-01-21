@@ -44,7 +44,7 @@ std::weak_ptr<OutboundRequest> CompanionAuthMaintainStateChangeRequest::GetWeakP
 
 void CompanionAuthMaintainStateChangeRequest::OnConnected()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     SendAuthMaintainStateChangeRequest();
 }
 
@@ -73,7 +73,7 @@ void CompanionAuthMaintainStateChangeRequest::SendAuthMaintainStateChangeRequest
 
 void CompanionAuthMaintainStateChangeRequest::HandleAuthMaintainStateChangeReply(const Attributes &message)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeAuthMaintainStateChangeReply(message);

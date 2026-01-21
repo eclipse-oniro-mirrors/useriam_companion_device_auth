@@ -20,6 +20,8 @@
 
 #include "iam_logger.h"
 #include "iam_para2str.h"
+#include "ipc_skeleton.h"
+#include "token_setproc.h"
 
 #include "xcollie_helper.h"
 
@@ -104,7 +106,11 @@ uint64_t UserAuthAdapterImpl::BeginDelegateAuth(uint32_t userId, const std::vect
     // Create bridge callback
     auto authCallback = std::make_shared<AuthCallbackBridge>(std::move(callback));
     XCollieHelper xcollie("UserAuthAdapterImpl-BeginDelegateAuth", API_CALL_TIMEOUT);
+
+    SetFirstCallerTokenID(IPCSkeleton::GetCallingTokenID());
     uint64_t contextId = UserAuthClient::GetInstance().BeginWidgetAuth(authParam, widgetParam, authCallback);
+    SetFirstCallerTokenID(0);
+
     if (contextId == 0) {
         IAM_LOGE("BeginWidgetAuth failed");
         return 0;
@@ -122,7 +128,11 @@ int32_t UserAuthAdapterImpl::CancelAuthentication(uint64_t contextId)
     }
 
     XCollieHelper xcollie("UserAuthAdapterImpl-CancelAuthentication", API_CALL_TIMEOUT);
+
+    SetFirstCallerTokenID(IPCSkeleton::GetCallingTokenID());
     int32_t ret = UserAuthClient::GetInstance().CancelAuthentication(contextId);
+    SetFirstCallerTokenID(0);
+
     if (ret != 0) {
         IAM_LOGE("CancelAuthentication failed: %{public}d", ret);
         return ret;

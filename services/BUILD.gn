@@ -30,10 +30,7 @@ ohos_shared_library("companiondeviceauthservice") {
 
   sources = companion_device_auth_service_sources
 
-  configs = [
-    ":service_config",
-    "${companion_device_auth_path}/common:companion_device_auth_common_config",
-  ]
+  configs = [ ":service_config" ]
 
   deps = companion_device_auth_service_deps
   external_deps = companion_device_auth_service_external_deps

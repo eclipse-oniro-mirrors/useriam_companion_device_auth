@@ -15,7 +15,7 @@
 
 use crate::common::{constants::*, types::*};
 use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi, HostEndAddCompanionInputFfi,
+    DataArray1024Ffi, DataArray20000Ffi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi, HostEndAddCompanionInputFfi,
     HostEndAddCompanionOutputFfi, HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
 };
 use crate::impls::default_host_db_manager::CURRENT_VERSION;
@@ -364,10 +364,10 @@ impl HostDeviceEnrollRequest {
         Ok((device_info, base_info, capability_infos, sk_infos))
     }
 
-    fn store_device_info(&mut self) -> Result<u64, ErrorCode> {
+    fn store_device_info(&mut self) -> Result<CompanionDeviceInfo, ErrorCode> {
         let (device_info, device_base_info, capability_infos, sk_infos) = self.init_device_info()?;
         HostDbManagerRegistry::get_mut().add_device(&device_info, &device_base_info, &capability_infos, &sk_infos)?;
-        Ok(device_info.template_id)
+        Ok(device_info)
     }
 
     fn store_token(&self, template_id: u64) -> Result<(), ErrorCode> {
@@ -399,7 +399,7 @@ impl HostRequest for HostDeviceEnrollRequest {
         };
 
         let sec_message = self.create_prepare_sec_message()?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message = DataArray20000Ffi::try_from(sec_message).map_err(|e| p!(e))?;
         Ok(())
     }
 
@@ -432,15 +432,16 @@ impl HostRequest for HostDeviceEnrollRequest {
         };
 
         self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
-        let template_id = self.store_device_info()?;
-        self.store_token(template_id)?;
+        let device_info = self.store_device_info()?;
+        self.store_token(device_info.template_id)?;
 
-        let fwk_message = self.create_end_fwk_message(0, template_id)?;
-        let sec_message = self.create_end_sec_message(template_id)?;
+        let fwk_message = self.create_end_fwk_message(0, device_info.template_id)?;
+        let sec_message = self.create_end_sec_message(device_info.template_id)?;
         ffi_output.fwk_message = DataArray1024Ffi::try_from(fwk_message).map_err(|e| p!(e))?;
         ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
-        ffi_output.template_id = template_id;
+        ffi_output.template_id = device_info.template_id;
         ffi_output.atl = self.atl as i32;
+        ffi_output.added_time = device_info.added_time;
         Ok(())
     }
 }

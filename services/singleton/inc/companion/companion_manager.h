@@ -60,8 +60,7 @@ class ICompanionManager : public NoCopyable {
 public:
     virtual ~ICompanionManager() = default;
 
-    virtual void Reload(const std::vector<PersistedCompanionStatus> &persistedCompanionList) = 0;
-
+    virtual void Initialize() = 0;
     virtual std::optional<CompanionStatus> GetCompanionStatus(TemplateId templateId) = 0;
     virtual std::optional<CompanionStatus> GetCompanionStatus(UserId hostUserId,
         const DeviceKey &companionDeviceKey) = 0;
@@ -92,9 +91,6 @@ public:
 
     virtual void NotifyCompanionStatusChange() = 0;
     virtual void HandleRemoveHostBindingComplete(TemplateId templateId) = 0;
-
-private:
-    virtual void Initialize() = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

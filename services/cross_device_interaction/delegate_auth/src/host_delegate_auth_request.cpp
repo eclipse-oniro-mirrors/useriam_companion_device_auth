@@ -69,7 +69,7 @@ bool HostDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 
 void HostDelegateAuthRequest::OnConnected()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     HostBeginDelegateAuth();
 }
 
@@ -148,7 +148,7 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
 
 void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &message)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeStartDelegateAuthReply(message);
@@ -166,7 +166,7 @@ void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &mes
 
 bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &fwkMsg)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
 
     auto resultMsgOpt = DecodeSendDelegateAuthResultRequest(request);
     ENSURE_OR_RETURN_VAL(resultMsgOpt.has_value(), false);

@@ -45,7 +45,7 @@ HostSyncDeviceStatusRequest::HostSyncDeviceStatusRequest(int32_t hostUserId, con
 
 void HostSyncDeviceStatusRequest::OnConnected()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     BeginCompanionCheck();
 }
 
@@ -148,7 +148,7 @@ bool HostSyncDeviceStatusRequest::SendSyncDeviceStatusRequest(const std::vector<
 
 void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &reply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyDataOpt = DecodeSyncDeviceStatusReply(reply);

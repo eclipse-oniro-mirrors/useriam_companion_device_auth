@@ -41,7 +41,7 @@ CompanionAddCompanionRequest::CompanionAddCompanionRequest(const std::string &co
 
 bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
 
     auto companionKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_VAL(companionKeyOpt.has_value(), false);
@@ -98,7 +98,7 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
 bool CompanionAddCompanionRequest::CompanionInitKeyNegotiation(const InitKeyNegotiationRequest &request,
     std::vector<uint8_t> &initKeyNegotiationReply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
 
     CompanionInitKeyNegotiationInput input = {};
     input.requestId = GetRequestId();
@@ -136,7 +136,7 @@ bool CompanionAddCompanionRequest::SendInitKeyNegotiationReply(ResultCode result
 
 void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN(onMessageReply != nullptr);
 
     currentReply_ = std::move(onMessageReply);
@@ -167,7 +167,7 @@ void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &att
 
 void CompanionAddCompanionRequest::HandleEndAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN(onMessageReply != nullptr);
 
     currentReply_ = std::move(onMessageReply);

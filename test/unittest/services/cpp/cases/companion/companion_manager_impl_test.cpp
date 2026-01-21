@@ -16,6 +16,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "adapter_manager.h"
 #include "companion_manager_impl.h"
 #include "host_issue_token_request.h"
 #include "host_remove_host_binding_request.h"
@@ -26,10 +27,12 @@
 #include "task_runner_manager.h"
 
 #include "mock_cross_device_comm_manager.h"
+#include "mock_idm_adapter.h"
 #include "mock_misc_manager.h"
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_time_keeper.h"
 #include "mock_user_id_manager.h"
 
 using namespace testing;
@@ -68,6 +71,7 @@ PersistedCompanionStatus MakePersistedStatus(TemplateId templateId, UserId hostU
     status.companionDeviceKey.deviceUserId = deviceUserId;
     status.isValid = true;
     status.enabledBusinessIds = { BUSINESS_ID_1, BUSINESS_ID_2 };
+    // Set addedTime to 0 for MockTimeKeeper compatibility
     status.addedTime = 0;
     status.secureProtocolId = SecureProtocolId::DEFAULT;
     status.deviceModelInfo = "TestModel";
@@ -100,6 +104,15 @@ public:
 
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
+
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
+        // IDM_ADD_TEMPLATE_TIMEOUT_MS = 10000, so we set it to 5000 (5 seconds)
+        timeKeeper->AdvanceSystemTime(5000);
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
+        auto idmAdapter = std::shared_ptr<IIdmAdapter>(&mockIdmAdapter_, [](IIdmAdapter *) {});
+        AdapterManager::GetInstance().SetIdmAdapter(idmAdapter);
 
         ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Return(ByMove(MakeSubscription())));
         ON_CALL(mockUserIdManager_, GetActiveUserId()).WillByDefault(Return(activeUserId_));
@@ -135,6 +148,7 @@ public:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:
@@ -145,6 +159,7 @@ protected:
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
     NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockIdmAdapter> mockIdmAdapter_;
 };
 
 HWTEST_F(CompanionManagerImplTest, Create_001, TestSize.Level0)
@@ -177,7 +192,8 @@ HWTEST_F(CompanionManagerImplTest, Reload_001, TestSize.Level0)
     ASSERT_NE(nullptr, manager);
 
     std::vector<PersistedCompanionStatus> emptyList;
-    manager->Reload(emptyList);
+    std::vector<TemplateId> emptyTemplateIds;
+    manager->Reload(emptyList, emptyTemplateIds);
 
     EXPECT_EQ(0u, manager->GetAllCompanionStatus().size());
 }
@@ -189,7 +205,8 @@ HWTEST_F(CompanionManagerImplTest, Reload_002, TestSize.Level0)
 
     auto status = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList = { status };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_EQ(UINT32_1, manager->GetAllCompanionStatus().size());
 }
@@ -203,7 +220,8 @@ HWTEST_F(CompanionManagerImplTest, Reload_003, TestSize.Level0)
 
     auto status = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList = { status };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_EQ(0u, manager->GetAllCompanionStatus().size());
 }
@@ -215,7 +233,8 @@ HWTEST_F(CompanionManagerImplTest, GetCompanionStatusByTemplateId_001, TestSize.
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     auto status = manager->GetCompanionStatus(TEMPLATE_ID_12345);
     ASSERT_TRUE(status.has_value());
@@ -239,7 +258,8 @@ HWTEST_F(CompanionManagerImplTest, GetCompanionStatusByDeviceUser_001, TestSize.
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     DeviceKey deviceKey;
     deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -291,10 +311,11 @@ HWTEST_F(CompanionManagerImplTest, UnsubscribeCompanionDeviceStatusChange_001, T
     ASSERT_NE(nullptr, manager);
 
     bool callbackInvoked = false;
-    auto subscription = manager->SubscribeCompanionDeviceStatusChange(
-        [&callbackInvoked](const std::vector<CompanionStatus> &) { callbackInvoked = true; });
-
-    manager->UnsubscribeCompanionDeviceStatusChange(UINT32_1);
+    {
+        auto subscription = manager->SubscribeCompanionDeviceStatusChange(
+            [&callbackInvoked](const std::vector<CompanionStatus> &) { callbackInvoked = true; });
+        // subscription will be destroyed when leaving this scope
+    }
 
     manager->NotifyCompanionStatusChange();
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -503,7 +524,8 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_002, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(mockSecurityAgent_, HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _, _)).WillOnce(Return(nullptr));
@@ -523,7 +545,8 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_003, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(mockSecurityAgent_, HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _, _))
@@ -547,7 +570,8 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_004, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(mockSecurityAgent_, HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(mockRequestFactory_, CreateHostRemoveHostBindingRequest(_, _, _))
@@ -580,7 +604,8 @@ HWTEST_F(CompanionManagerImplTest, UpdateCompanionStatus_002, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
@@ -597,7 +622,8 @@ HWTEST_F(CompanionManagerImplTest, UpdateCompanionStatus_003, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::SUCCESS));
 
@@ -624,7 +650,8 @@ HWTEST_F(CompanionManagerImplTest, UpdateCompanionEnabledBusinessIds_002, TestSi
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionEnabledBusinessIds(_))
         .WillOnce(Return(ResultCode::NOT_ENROLLED));
@@ -643,7 +670,8 @@ HWTEST_F(CompanionManagerImplTest, UpdateCompanionEnabledBusinessIds_003, TestSi
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionEnabledBusinessIds(_)).WillOnce(Return(ResultCode::SUCCESS));
 
@@ -670,7 +698,8 @@ HWTEST_F(CompanionManagerImplTest, SetCompanionTokenAtl_002, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     bool result = manager->SetCompanionTokenAtl(TEMPLATE_ID_12345, INT32_3);
     EXPECT_TRUE(result);
@@ -699,7 +728,8 @@ HWTEST_F(CompanionManagerImplTest, HandleCompanionCheckFail_002, TestSize.Level0
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     ResultCode ret = manager->HandleCompanionCheckFail(TEMPLATE_ID_12345);
     EXPECT_EQ(ret, ResultCode::SUCCESS);
@@ -718,7 +748,8 @@ HWTEST_F(CompanionManagerImplTest, OnActiveUserIdChanged_001, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     manager->OnActiveUserIdChanged(activeUserId_);
 
@@ -735,7 +766,8 @@ HWTEST_F(CompanionManagerImplTest, OnActiveUserIdChanged_002, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     manager->OnActiveUserIdChanged(USER_ID_200);
 
@@ -752,7 +784,8 @@ HWTEST_F(CompanionManagerImplTest, OnActiveUserIdChanged_003, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     manager->OnActiveUserIdChanged(INVALID_USER_ID);
 
@@ -790,7 +823,8 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_002, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     std::vector<uint64_t> templateIds = { UINT32_1 };
     std::vector<uint8_t> fwkMsg;
@@ -810,7 +844,8 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_003, TestSize.Level0)
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     persistedStatus.isValid = false;
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
     std::vector<uint8_t> fwkMsg;
@@ -829,7 +864,8 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_004, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
     std::vector<uint8_t> fwkMsg;
@@ -848,7 +884,8 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_005, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
     std::vector<uint8_t> fwkMsg;
@@ -871,7 +908,8 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_006, TestSize.Level0)
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    manager->Reload(persistedList);
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
 
     std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
     std::vector<uint8_t> fwkMsg;
@@ -883,6 +921,98 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_006, TestSize.Level0)
     EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Return(true));
 
     manager->StartIssueTokenRequests(templateIds, fwkMsg);
+}
+
+HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_001, TestSize.Level0)
+{
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds; // Empty initially, companion not in IDM
+    manager->Reload(persistedList, activeTemplateIds);
+
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(companion, nullptr);
+    EXPECT_FALSE(companion->IsAddedToIdm());
+
+    // Simulate template added to IDM
+    std::vector<TemplateId> newTemplateIds = { TEMPLATE_ID_12345 };
+    manager->OnTemplateListChanged(activeUserId_, newTemplateIds);
+
+    companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(companion, nullptr);
+    EXPECT_TRUE(companion->IsAddedToIdm());
+}
+
+HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_002, TestSize.Level0)
+{
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(companion, nullptr);
+    EXPECT_TRUE(companion->IsAddedToIdm());
+
+    // Call again with same template list
+    std::vector<TemplateId> templateIds = { TEMPLATE_ID_12345 };
+    manager->OnTemplateListChanged(activeUserId_, templateIds);
+
+    companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(companion, nullptr);
+    EXPECT_TRUE(companion->IsAddedToIdm());
+}
+
+HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_003, TestSize.Level0)
+{
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds;
+    manager->Reload(persistedList, activeTemplateIds);
+
+    // Call with different user ID (should be ignored)
+    std::vector<TemplateId> templateIds = { TEMPLATE_ID_12345 };
+    manager->OnTemplateListChanged(USER_ID_200, templateIds);
+
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(companion, nullptr);
+    EXPECT_FALSE(companion->IsAddedToIdm());
+}
+
+HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_004, TestSize.Level0)
+{
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds;
+    manager->Reload(persistedList, activeTemplateIds);
+
+    // Call with template ID not in list
+    std::vector<TemplateId> templateIds = { 99999 }; // Different template ID
+    manager->OnTemplateListChanged(activeUserId_, templateIds);
+
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(companion, nullptr);
+    EXPECT_FALSE(companion->IsAddedToIdm());
 }
 
 } // namespace

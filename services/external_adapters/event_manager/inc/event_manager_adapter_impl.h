@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,30 +13,26 @@
  * limitations under the License.
  */
 
-#ifndef I_COMMAND_INVOKER_H
-#define I_COMMAND_INVOKER_H
+#ifndef COMPANION_DEVICE_AUTH_EVENT_MANAGER_ADAPTER_IMPL_H
+#define COMPANION_DEVICE_AUTH_EVENT_MANAGER_ADAPTER_IMPL_H
 
-#include <memory>
-
-#include "common_defines.h"
+#include "event_manager_adapter.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class ICommandInvoker {
+
+class EventManagerAdapterImpl : public IEventManagerAdapter {
 public:
-    static std::shared_ptr<ICommandInvoker> Create();
+    EventManagerAdapterImpl() = default;
+    ~EventManagerAdapterImpl() override = default;
 
-    ICommandInvoker() = default;
-    virtual ~ICommandInvoker() = default;
-
-    virtual ResultCode Initialize() = 0;
-    virtual void Finalize() = 0;
-    virtual ResultCode InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen,
-        uint8_t *outputData, uint32_t outputDataLen) = 0;
+    void ReportSystemFault(const char *fileName, uint32_t lineNum, FaultType faultType,
+        std::string &faultInfo) override;
 };
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
 
-#endif // I_COMMAND_INVOKER_H
+#endif // COMPANION_DEVICE_AUTH_EVENT_MANAGER_ADAPTER_IMPL_H

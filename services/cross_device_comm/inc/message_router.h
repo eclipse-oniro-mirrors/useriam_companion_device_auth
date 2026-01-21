@@ -17,7 +17,7 @@
 #define COMPANION_DEVICE_AUTH_MESSAGE_ROUTER_H
 
 #include <atomic>
-#include <chrono>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -74,7 +74,7 @@ private:
         uint32_t messageSeq;
         MessageType msgType { MessageType::INVALID };
         OnMessageReply replyCallback;
-        std::chrono::steady_clock::time_point sendTime;
+        SteadyTimeMs sendTimeMs { 0 };
     };
 
     struct MessageHeader {

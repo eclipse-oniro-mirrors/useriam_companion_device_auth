@@ -21,6 +21,8 @@
 #include "iam_executor_idriver_manager.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
+#include "ipc_skeleton.h"
+#include "token_setproc.h"
 
 #include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
@@ -41,12 +43,16 @@ bool DriverManagerAdapterImpl::Start(std::shared_ptr<CompanionDeviceAuthDriver> 
 
     IAM_LOGI("start DriverManagerAdapter");
     const uint16_t driverId = 1;
-    const std::map<std::string, UserIam::UserAuth::HdiConfig> hdiName2Config = {
+    const std::map<std::string, UserAuth::HdiConfig> hdiName2Config = {
         { "companion_device_auth", { driverId, driver } },
     };
 
     XCollieHelper xcollie("DriverManagerAdapterImpl-Start", API_CALL_TIMEOUT);
-    int32_t ret = UserIam::UserAuth::IDriverManager::Start(hdiName2Config, false);
+
+    SetFirstCallerTokenID(IPCSkeleton::GetCallingTokenID());
+    int32_t ret = UserAuth::IDriverManager::Start(hdiName2Config, false);
+    SetFirstCallerTokenID(0);
+
     if (ret != UserAuth::SUCCESS) {
         IAM_LOGE("start driver manager failed");
         return false;

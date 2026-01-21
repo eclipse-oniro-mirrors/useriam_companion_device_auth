@@ -114,14 +114,14 @@ std::unique_ptr<Subscription> SystemParamManagerImpl::WatchParam(const std::stri
     subscriptions_[subscriptionId] = std::move(callback);
     keyToSubscriptionIds_[key].push_back(subscriptionId);
 
-    IAM_LOGI("watch key %{public}s, subscription id %{public}" PRIu64, key.c_str(), subscriptionId);
+    IAM_LOGD("watch key %{public}s, subscription id 0x%{public}016" PRIX64, key.c_str(), subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnwatchParam(subscriptionId);
-        IAM_LOGI("system param subscription removed: %{public}" PRIu64, subscriptionId);
+        IAM_LOGD("system param subscription removed: 0x%{public}016" PRIX64 "", subscriptionId);
     });
 }
 
@@ -151,7 +151,7 @@ void SystemParamManagerImpl::UnwatchParam(SubscribeId subscriptionId)
     }
 
     subscriptions_.erase(subscriptionIt);
-    IAM_LOGI("unwatch subscription id %{public}" PRIu64 ", key %{public}s", subscriptionId, keyToRemove.c_str());
+    IAM_LOGD("unwatch subscription id 0x%{public}016" PRIX64 ", key %{public}s", subscriptionId, keyToRemove.c_str());
 }
 
 void SystemParamManagerImpl::OnParamChange(const std::string &key, const std::string &value)

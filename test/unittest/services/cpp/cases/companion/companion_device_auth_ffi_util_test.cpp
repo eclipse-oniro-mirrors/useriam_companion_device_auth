@@ -28,8 +28,13 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+// Test message size constants
 constexpr size_t SIZE_1025 = 1025;
 constexpr size_t SIZE_280 = 280;
+constexpr size_t TEST_MESSAGE_SIZE_MAX = MAX_DATA_LEN_20000;
+constexpr size_t TEST_MESSAGE_SIZE_LARGE = 15000;
+constexpr size_t TEST_MESSAGE_SIZE_MEDIUM = 10000;
+constexpr size_t TEST_MESSAGE_SIZE_OVERFLOW = MAX_DATA_LEN_20000 + 1;
 } // namespace
 
 constexpr int32_t INT32_42 = 42;
@@ -1404,7 +1409,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow, TestSize.Level1
         EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
     }
 
-    // Invalid: initKeyNegotiationReply exceeds max (1024)
+    // Invalid: initKeyNegotiationReply exceeds max (TEST_MESSAGE_SIZE_MAX)
     {
         HostBeginAddCompanionInput input;
         input.requestId = 1;
@@ -1416,7 +1421,8 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow, TestSize.Level1
         input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
         input.companionDeviceKey.deviceUserId = INT32_200;
         input.companionDeviceKey.deviceId = "companion";
-        input.initKeyNegotiationReply.resize(MAX_DATA_LEN_1024 + 1, UINT8_0XCC);
+        // Note: initKeyNegotiationReply maps to secMessage (DataArray20000Ffi, max TEST_MESSAGE_SIZE_MAX)
+        input.initKeyNegotiationReply.resize(TEST_MESSAGE_SIZE_OVERFLOW, UINT8_0XCC);
 
         HostBeginAddCompanionInputFfi ffi = {};
         EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
@@ -1479,6 +1485,239 @@ HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_Overflow, TestSize.Level1
 
         HostEndCompanionCheckInputFfi ffi = {};
         EXPECT_FALSE(EncodeHostEndCompanionCheckInput(input, ffi));
+    }
+}
+
+// ============================================================================
+// Tests for DataArray20000Ffi (20KB message support)
+// ============================================================================
+
+HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_LargeMessage, TestSize.Level1)
+{
+    // Valid: exactly MAX_DATA_LEN_20000 bytes
+    {
+        HostGetInitKeyNegotiationOutputFfi ffi = {};
+        ffi.secMessage.len = TEST_MESSAGE_SIZE_MAX;
+        for (uint32_t i = 0; i < TEST_MESSAGE_SIZE_MAX; ++i) {
+            ffi.secMessage.data[i] = static_cast<uint8_t>(i % INT32_256);
+        }
+
+        HostGetInitKeyNegotiationRequestOutput output;
+        EXPECT_TRUE(DecodeHostInitKeyNegotiationOutput(ffi, output));
+        EXPECT_EQ(output.initKeyNegotiationRequest.size(), TEST_MESSAGE_SIZE_MAX);
+        EXPECT_EQ(output.initKeyNegotiationRequest[0], 0U);
+        EXPECT_EQ(output.initKeyNegotiationRequest[255], 255U);
+    }
+
+    // Valid: large message under limit (TEST_MESSAGE_SIZE_LARGE bytes)
+    {
+        HostGetInitKeyNegotiationOutputFfi ffi = {};
+        ffi.secMessage.len = TEST_MESSAGE_SIZE_LARGE;
+        memset_s(ffi.secMessage.data, sizeof(ffi.secMessage.data), 0xBB, TEST_MESSAGE_SIZE_LARGE);
+
+        HostGetInitKeyNegotiationRequestOutput output;
+        EXPECT_TRUE(DecodeHostInitKeyNegotiationOutput(ffi, output));
+        EXPECT_EQ(output.initKeyNegotiationRequest.size(), TEST_MESSAGE_SIZE_LARGE);
+    }
+
+    // Invalid: exceeds max (TEST_MESSAGE_SIZE_OVERFLOW bytes)
+    {
+        HostGetInitKeyNegotiationOutputFfi ffi = {};
+        ffi.secMessage.len = TEST_MESSAGE_SIZE_OVERFLOW;
+
+        HostGetInitKeyNegotiationRequestOutput output;
+        EXPECT_FALSE(DecodeHostInitKeyNegotiationOutput(ffi, output));
+    }
+}
+
+HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_LargeMessage, TestSize.Level1)
+{
+    // Valid: exactly TEST_MESSAGE_SIZE_MAX bytes
+    {
+        CompanionInitKeyNegotiationInput input;
+        input.requestId = 1;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.hostDeviceKey.deviceUserId = 100;
+        input.hostDeviceKey.deviceId = "host";
+        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.companionDeviceKey.deviceUserId = INT32_200;
+        input.companionDeviceKey.deviceId = "companion";
+        input.initKeyNegotiationRequest.resize(TEST_MESSAGE_SIZE_MAX, UINT8_0XAA);
+
+        CompanionInitKeyNegotiationInputFfi ffi = {};
+        EXPECT_TRUE(EncodeCompanionInitKeyNegotiationInput(input, ffi));
+        EXPECT_EQ(ffi.secMessage.len, TEST_MESSAGE_SIZE_MAX);
+    }
+
+    // Valid: large message under limit (TEST_MESSAGE_SIZE_MEDIUM bytes)
+    {
+        CompanionInitKeyNegotiationInput input;
+        input.requestId = 2;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.hostDeviceKey.deviceUserId = 100;
+        input.hostDeviceKey.deviceId = "host";
+        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.companionDeviceKey.deviceUserId = INT32_200;
+        input.companionDeviceKey.deviceId = "companion";
+        input.initKeyNegotiationRequest.resize(TEST_MESSAGE_SIZE_MEDIUM, UINT8_0XCC);
+
+        CompanionInitKeyNegotiationInputFfi ffi = {};
+        EXPECT_TRUE(EncodeCompanionInitKeyNegotiationInput(input, ffi));
+        EXPECT_EQ(ffi.secMessage.len, TEST_MESSAGE_SIZE_MEDIUM);
+    }
+
+    // Invalid: exceeds max (TEST_MESSAGE_SIZE_OVERFLOW bytes)
+    {
+        CompanionInitKeyNegotiationInput input;
+        input.requestId = 3;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.hostDeviceKey.deviceUserId = 100;
+        input.hostDeviceKey.deviceId = "host";
+        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.companionDeviceKey.deviceUserId = INT32_200;
+        input.companionDeviceKey.deviceId = "companion";
+        input.initKeyNegotiationRequest.resize(TEST_MESSAGE_SIZE_OVERFLOW, UINT8_0XDD);
+
+        CompanionInitKeyNegotiationInputFfi ffi = {};
+        EXPECT_FALSE(EncodeCompanionInitKeyNegotiationInput(input, ffi));
+    }
+}
+
+HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_LargeMessage, TestSize.Level1)
+{
+    // Valid: fwkMsg at max (MAX_DATA_LEN_1024 bytes), secMessage at max (TEST_MESSAGE_SIZE_MAX bytes)
+    {
+        HostBeginAddCompanionInput input;
+        input.requestId = 1;
+        input.scheduleId = 1;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.hostDeviceKey.deviceUserId = 100;
+        input.hostDeviceKey.deviceId = "host";
+        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.companionDeviceKey.deviceUserId = INT32_200;
+        input.companionDeviceKey.deviceId = "companion";
+        input.fwkMsg.resize(MAX_DATA_LEN_1024, UINT8_0X11);
+        input.initKeyNegotiationReply.resize(TEST_MESSAGE_SIZE_MAX, UINT8_0X22);
+
+        HostBeginAddCompanionInputFfi ffi = {};
+        EXPECT_TRUE(EncodeHostBeginAddCompanionInput(input, ffi));
+        EXPECT_EQ(ffi.fwkMessage.len, MAX_DATA_LEN_1024);
+        EXPECT_EQ(ffi.secMessage.len, TEST_MESSAGE_SIZE_MAX);
+    }
+
+    // Invalid: secMessage exceeds max (TEST_MESSAGE_SIZE_OVERFLOW bytes)
+    {
+        HostBeginAddCompanionInput input;
+        input.requestId = 2;
+        input.scheduleId = 2;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.hostDeviceKey.deviceUserId = 100;
+        input.hostDeviceKey.deviceId = "host";
+        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.companionDeviceKey.deviceUserId = INT32_200;
+        input.companionDeviceKey.deviceId = "companion";
+        input.initKeyNegotiationReply.resize(TEST_MESSAGE_SIZE_OVERFLOW, UINT8_0X33);
+
+        HostBeginAddCompanionInputFfi ffi = {};
+        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
+    }
+}
+
+HWTEST_F(FfiUtilTest, DecodeCompanionInitKeyNegotiationOutput_LargeMessage, TestSize.Level1)
+{
+    // Valid: exactly TEST_MESSAGE_SIZE_MAX bytes
+    {
+        CompanionInitKeyNegotiationOutputFfi ffi = {};
+        ffi.secMessage.len = TEST_MESSAGE_SIZE_MAX;
+        for (uint32_t i = 0; i < TEST_MESSAGE_SIZE_MAX; ++i) {
+            ffi.secMessage.data[i] = static_cast<uint8_t>(255 - (i % INT32_256));
+        }
+
+        CompanionInitKeyNegotiationOutput output;
+        EXPECT_TRUE(DecodeCompanionInitKeyNegotiationOutput(ffi, output));
+        EXPECT_EQ(output.initKeyNegotiationReply.size(), TEST_MESSAGE_SIZE_MAX);
+        EXPECT_EQ(output.initKeyNegotiationReply[0], 255U);
+        EXPECT_EQ(output.initKeyNegotiationReply[1], 254U);
+    }
+
+    // Invalid: exceeds max (TEST_MESSAGE_SIZE_OVERFLOW bytes)
+    {
+        CompanionInitKeyNegotiationOutputFfi ffi = {};
+        ffi.secMessage.len = TEST_MESSAGE_SIZE_OVERFLOW;
+
+        CompanionInitKeyNegotiationOutput output;
+        EXPECT_FALSE(DecodeCompanionInitKeyNegotiationOutput(ffi, output));
+    }
+}
+
+// ============================================================================
+// Update existing overflow tests to use new 20000 byte limit
+// ============================================================================
+
+HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow_Updated, TestSize.Level1)
+{
+    // Invalid: fwkMsg exceeds max (MAX_DATA_LEN_1024)
+    {
+        HostBeginAddCompanionInput input;
+        input.requestId = 1;
+        input.scheduleId = 1;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.hostDeviceKey.deviceUserId = 100;
+        input.hostDeviceKey.deviceId = "host";
+        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.companionDeviceKey.deviceUserId = INT32_200;
+        input.companionDeviceKey.deviceId = "companion";
+        input.fwkMsg.resize(MAX_DATA_LEN_1024 + 1, UINT8_0XBB);
+
+        HostBeginAddCompanionInputFfi ffi = {};
+        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
+    }
+
+    // Invalid: initKeyNegotiationReply exceeds NEW max (MAX_DATA_LEN_20000)
+    {
+        HostBeginAddCompanionInput input;
+        input.requestId = 1;
+        input.scheduleId = 1;
+        input.secureProtocolId = SecureProtocolId::DEFAULT;
+        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.hostDeviceKey.deviceUserId = 100;
+        input.hostDeviceKey.deviceId = "host";
+        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+        input.companionDeviceKey.deviceUserId = INT32_200;
+        input.companionDeviceKey.deviceId = "companion";
+        input.initKeyNegotiationReply.resize(TEST_MESSAGE_SIZE_OVERFLOW, UINT8_0XCC);
+
+        HostBeginAddCompanionInputFfi ffi = {};
+        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
+    }
+}
+
+HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_MaxMessage, TestSize.Level1)
+{
+    // Valid: exactly MAX_DATA_LEN_1024 bytes (max for DataArray1024Ffi)
+    {
+        HostBeginAddCompanionOutputFfi ffi = {};
+        ffi.secMessage.len = MAX_DATA_LEN_1024;
+        memset_s(ffi.secMessage.data, sizeof(ffi.secMessage.data), 0xDD, MAX_DATA_LEN_1024);
+
+        HostBeginAddCompanionOutput output;
+        EXPECT_TRUE(DecodeHostBeginAddCompanionOutput(ffi, output));
+        EXPECT_EQ(output.addHostBindingRequest.size(), MAX_DATA_LEN_1024);
+    }
+
+    // Invalid: exceeds max (SIZE_1025 bytes)
+    {
+        HostBeginAddCompanionOutputFfi ffi = {};
+        ffi.secMessage.len = SIZE_1025;
+
+        HostBeginAddCompanionOutput output;
+        EXPECT_FALSE(DecodeHostBeginAddCompanionOutput(ffi, output));
     }
 }
 

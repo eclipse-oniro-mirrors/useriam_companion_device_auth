@@ -19,8 +19,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "adapter_manager.h"
 #include "common_defines.h"
 #include "misc_manager_impl.h"
+#include "mock_time_keeper.h"
 #include "relative_timer.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
@@ -60,6 +62,7 @@ public:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 };
 
@@ -74,13 +77,16 @@ HWTEST_F(MiscManagerImplTest, GetNextGlobalId_001, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
+    // Test that IDs are monotonically increasing
+    // Note: IDs start from a random value to avoid conflicts, not from 1
     uint64_t id1 = manager->GetNextGlobalId();
     uint64_t id2 = manager->GetNextGlobalId();
     uint64_t id3 = manager->GetNextGlobalId();
 
-    EXPECT_EQ(1ULL, id1);
-    EXPECT_EQ(2ULL, id2);
-    EXPECT_EQ(3ULL, id3);
+    EXPECT_LT(id1, id2);
+    EXPECT_LT(id2, id3);
+    EXPECT_EQ(id1 + 1, id2);
+    EXPECT_EQ(id2 + 1, id3);
 }
 
 HWTEST_F(MiscManagerImplTest, GetNextGlobalId_002, TestSize.Level0)

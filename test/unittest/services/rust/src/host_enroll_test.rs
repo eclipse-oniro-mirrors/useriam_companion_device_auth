@@ -15,7 +15,7 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
+    DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
     HostBeginCompanionCheckOutputFfi, HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi,
     HostEndCompanionCheckOutputFfi, HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
     PersistedCompanionStatusFfi,
@@ -211,7 +211,7 @@ fn host_enroll_request_begin_test_wrong_input_type() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -247,7 +247,7 @@ fn host_enroll_request_begin_test_schedule_id_mismatch() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
+        sec_message: DataArray20000Ffi::default(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -283,7 +283,7 @@ fn host_enroll_request_begin_test_atl_try_from_fail() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
+        sec_message: DataArray20000Ffi::default(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -319,7 +319,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_try_from_fail() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
+        sec_message: DataArray20000Ffi::default(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -355,7 +355,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_invalid() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
+        sec_message: DataArray20000Ffi::default(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -391,7 +391,7 @@ fn host_enroll_request_begin_test_sec_message_decode_fail() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
+        sec_message: DataArray20000Ffi::default(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -432,7 +432,7 @@ fn host_enroll_request_begin_test_generate_key_pair_fail() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -476,7 +476,7 @@ fn host_enroll_request_begin_test_x25519_ecdh_fail() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -519,7 +519,7 @@ fn host_enroll_request_begin_test_hkdf_fail() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -565,7 +565,7 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::try_from(fwk_message).unwrap(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -594,7 +594,7 @@ fn host_enroll_request_end_test_wrong_input_type() {
         companion_device_key: DeviceKeyFfi::default(),
         fwk_message: DataArray1024Ffi::default(),
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
+        sec_message: DataArray20000Ffi::default(),
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();

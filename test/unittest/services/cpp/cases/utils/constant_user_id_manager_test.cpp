@@ -17,6 +17,8 @@
 
 #include <gtest/gtest.h>
 
+#include "adapter_manager.h"
+#include "mock_time_keeper.h"
 #include "relative_timer.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
@@ -44,6 +46,7 @@ public:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 };
 
