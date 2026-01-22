@@ -45,18 +45,13 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-const size_t TEST_VAL100 = 100;
+const size_t SIZE_100 = 100;
 }
 
 class MockCompanionManager : public ICompanionManager {
 public:
     explicit MockCompanionManager(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
     {
-    }
-
-    void Reload(const std::vector<PersistedCompanionStatus> &persistedCompanionList) override
-    {
-        (void)persistedCompanionList;
     }
 
     std::optional<CompanionStatus> GetCompanionStatus(TemplateId templateId) override
@@ -315,7 +310,7 @@ public:
         (void)selectPurpose;
         if (resultHandler) {
             std::vector<DeviceKey> results;
-            FillDeviceKeyVector(fuzzData_, results, TEST_VAL100);
+            FillDeviceKeyVector(fuzzData_, results, SIZE_100);
             resultHandler(results);
         }
         return GenerateFuzzBool(fuzzData_);
@@ -919,7 +914,7 @@ public:
     {
         if (onDeviceStatusChange && fuzzData_.ConsumeBool()) {
             std::vector<DeviceStatus> deviceStatuses;
-            FillDeviceStatusVector(fuzzData_, deviceStatuses, TEST_VAL100);
+            FillDeviceStatusVector(fuzzData_, deviceStatuses, SIZE_100);
             onDeviceStatusChange(deviceStatuses);
         }
         // Always return valid subscription to ensure initialization succeeds
@@ -931,9 +926,9 @@ public:
         (void)subscribeMode;
     }
 
-    std::optional<int64_t> GetManageSubscribeTime() const override
+    std::optional<SteadyTimeMs> GetManageSubscribeTime() const override
     {
-        return std::optional<int64_t>();
+        return std::optional<SteadyTimeMs>();
     }
 
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey,
@@ -942,7 +937,7 @@ public:
         (void)deviceKey;
         if (onDeviceStatusChange && fuzzData_.ConsumeBool()) {
             std::vector<DeviceStatus> deviceStatuses;
-            FillDeviceStatusVector(fuzzData_, deviceStatuses, TEST_VAL100);
+            FillDeviceStatusVector(fuzzData_, deviceStatuses, SIZE_100);
             onDeviceStatusChange(deviceStatuses);
         }
         // Always return valid subscription to ensure initialization succeeds

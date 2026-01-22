@@ -30,12 +30,14 @@
 #include "task_runner_manager.h"
 #include "user_id_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_companion_manager.h"
 #include "mock_host_binding_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -125,6 +127,9 @@ public:
         auto activeUserIdMgr = std::make_shared<FakeUserIdManager>();
         SingletonManager::GetInstance().SetUserIdManager(activeUserIdMgr);
 
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
         uint32_t maxTemplateAcl = 3;
         ON_CALL(mockSecurityAgent_, HostGetExecutorInfo(_))
             .WillByDefault(Invoke([maxTemplateAcl](HostGetExecutorInfoOutput &output) {
@@ -144,6 +149,7 @@ public:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:

@@ -158,12 +158,10 @@ std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeActiveUserId(Active
     SubscribeId subscribeId = GetMiscManager().GetNextGlobalId();
     subscribers_[subscribeId] = std::move(callback);
 
-    std::weak_ptr<DefaultUserIdManager> weakThis = weak_from_this();
-    return std::make_unique<Subscription>([weakThis, subscribeId]() {
-        auto strongThis = weakThis.lock();
-        if (strongThis != nullptr) {
-            strongThis->UnsubscribeActiveUserId(subscribeId);
-        }
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscribeId]() {
+        auto self = weakSelf.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        self->UnsubscribeActiveUserId(subscribeId);
     });
 }
 

@@ -18,9 +18,12 @@
 
 #include <gtest/gtest.h>
 
+#include "adapter_manager.h"
 #include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
 #include "fwk_common.h"
+#include "mock_idm_adapter.h"
+#include "mock_time_keeper.h"
 #include "singleton_manager.h"
 #include "user_id_manager.h"
 
@@ -74,6 +77,10 @@ public:
         SingletonManager::GetInstance().Reset();
         auto activeUserIdMgr = std::make_shared<FakeUserIdManager>();
         SingletonManager::GetInstance().SetUserIdManager(activeUserIdMgr);
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+        auto idmAdapter = std::make_shared<MockIdmAdapter>();
+        AdapterManager::GetInstance().SetIdmAdapter(idmAdapter);
         adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
     }
 
@@ -81,6 +88,7 @@ public:
     {
         adapter_.reset();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:

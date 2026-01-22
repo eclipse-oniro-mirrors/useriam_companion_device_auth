@@ -23,12 +23,14 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_cross_device_comm_manager.h"
 #include "mock_host_binding_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -64,7 +66,32 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
         ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
+
+        DeviceKey companionDeviceKey = { .deviceId = "companion_device_id", .deviceUserId = 200 };
+        ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
+            .WillByDefault(Return(std::make_optional(companionDeviceKey)));
+        ON_CALL(mockCrossDeviceCommManager_, CompanionGetSecureProtocolId())
+            .WillByDefault(Return(SecureProtocolId::DEFAULT));
+        ON_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, MessageType::BEGIN_ADD_HOST_BINDING, _))
+            .WillByDefault(Invoke(
+                [](const std::string &, MessageType, OnMessage &&) { return std::make_unique<Subscription>([] {}); }));
+        ON_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, MessageType::END_ADD_HOST_BINDING, _))
+            .WillByDefault(Invoke(
+                [](const std::string &, MessageType, OnMessage &&) { return std::make_unique<Subscription>([] {}); }));
+        ON_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _))
+            .WillByDefault(Return(ByMove(std::make_unique<Subscription>([] {}))));
+        ON_CALL(mockCrossDeviceCommManager_, GetConnectionStatus(_)).WillByDefault(Return(ConnectionStatus::CONNECTED));
+        ON_CALL(mockSecurityAgent_, CompanionInitKeyNegotiation(_, _))
+            .WillByDefault(
+                Invoke([](const CompanionInitKeyNegotiationInput &, CompanionInitKeyNegotiationOutput &output) {
+                    output.initKeyNegotiationReply = { 5, 6, 7, 8 };
+                    return ResultCode::SUCCESS;
+                }));
+        ON_CALL(mockHostBindingManager_, EndAddHostBinding(_, _, _)).WillByDefault(Return(ResultCode::SUCCESS));
 
         handler_ = std::make_unique<CompanionInitKeyNegotiationHandler>();
     }
@@ -74,6 +101,7 @@ public:
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:
@@ -90,28 +118,47 @@ HWTEST_F(CompanionInitKeyNegotiationHandlerTest, HandleRequest_001, TestSize.Lev
 {
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
+
+    // Manually set all required DeviceKey attributes
     DeviceKey hostDeviceKey = {};
-    EncodeHostDeviceKey(hostDeviceKey, request);
+    hostDeviceKey.deviceUserId = 100;
+    hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    hostDeviceKey.deviceId = "test_host_device";
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey.deviceUserId);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey.deviceId);
+    // Set extraInfo for InitKeyNegotiationRequest
+    request.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, { 1, 2, 3, 4 });
 
-    EXPECT_CALL(mockRequestFactory_, CreateCompanionAddCompanionRequest(_, _, _, _))
-        .WillOnce(Invoke([this](const std::string &connectionName, const Attributes &request, OnMessageReply firstReply,
-                             const DeviceKey &deviceKey) {
-            return std::make_shared<CompanionAddCompanionRequest>(connectionName, request, std::move(firstReply),
+    std::shared_ptr<IRequest> capturedRequest;
+    ON_CALL(mockRequestFactory_, CreateCompanionAddCompanionRequest(_, _, _, _))
+        .WillByDefault(Invoke([this, &capturedRequest](const std::string &connectionName, const Attributes &request,
+                                  OnMessageReply firstReply, const DeviceKey &deviceKey) {
+            auto req = std::make_shared<CompanionAddCompanionRequest>(connectionName, request, std::move(firstReply),
                 deviceKey);
+            capturedRequest = req;
+            return req;
         }));
-    EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Return(true));
 
-    bool replyCalled = false;
-    OnMessageReply onMessageReply = [&replyCalled](const Attributes &reply) {
-        replyCalled = true;
+    EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Invoke([](const std::shared_ptr<IRequest> &request) -> bool {
+        request->Start();
+        return true;
+    }));
+
+    int replyCallCount = 0;
+    int32_t lastResult = -1;
+    OnMessageReply onMessageReply = [&replyCallCount, &lastResult](const Attributes &reply) {
+        ++replyCallCount;
         int32_t result = 0;
         EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result));
-        EXPECT_EQ(result, static_cast<int32_t>(ResultCode::SUCCESS));
+        lastResult = result;
     };
 
     handler_->HandleRequest(request, onMessageReply);
 
-    EXPECT_FALSE(replyCalled);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_EQ(replyCallCount, 1);
+    EXPECT_EQ(lastResult, static_cast<int32_t>(ResultCode::SUCCESS));
 }
 
 HWTEST_F(CompanionInitKeyNegotiationHandlerTest, HandleRequest_002, TestSize.Level0)
@@ -135,8 +182,15 @@ HWTEST_F(CompanionInitKeyNegotiationHandlerTest, HandleRequest_003, TestSize.Lev
 {
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
+
+    // Manually set all required DeviceKey attributes
     DeviceKey hostDeviceKey = {};
-    EncodeHostDeviceKey(hostDeviceKey, request);
+    hostDeviceKey.deviceUserId = 100;
+    hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    hostDeviceKey.deviceId = "test_host_device";
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey.deviceUserId);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey.deviceId);
 
     EXPECT_CALL(mockRequestFactory_, CreateCompanionAddCompanionRequest(_, _, _, _)).WillOnce(Return(nullptr));
 
@@ -157,8 +211,15 @@ HWTEST_F(CompanionInitKeyNegotiationHandlerTest, HandleRequest_004, TestSize.Lev
 {
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
+
+    // Manually set all required DeviceKey attributes
     DeviceKey hostDeviceKey = {};
-    EncodeHostDeviceKey(hostDeviceKey, request);
+    hostDeviceKey.deviceUserId = 100;
+    hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    hostDeviceKey.deviceId = "test_host_device";
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey.deviceUserId);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey.deviceId);
 
     EXPECT_CALL(mockRequestFactory_, CreateCompanionAddCompanionRequest(_, _, _, _))
         .WillOnce(Invoke([this](const std::string &connectionName, const Attributes &request, OnMessageReply firstReply,

@@ -18,10 +18,10 @@ config("companion_device_auth_common_config") {
   include_dirs = [ "inc" ]
 }
 
-ohos_source_set("companion_device_auth_common") {
-  sources = [ "src/iam_para2str.cpp" ]
+ohos_static_library("companion_device_auth_common") {
+  sanitize = companion_device_auth_sanitize
 
-  configs = [ ":companion_device_auth_common_config" ]
+  sources = [ "src/iam_para2str.cpp" ]
 
   public_configs = [ ":companion_device_auth_common_config" ]
 

@@ -15,8 +15,6 @@
 
 #include "companion_delegate_auth_request.h"
 
-#include "ipc_skeleton.h"
-
 #include "iam_check.h"
 #include "iam_logger.h"
 
@@ -30,7 +28,6 @@
 #include "service_common.h"
 #include "service_converter.h"
 #include "singleton_manager.h"
-#include "token_setproc.h"
 #include "user_auth_adapter.h"
 
 #define LOG_TAG "CDA_SA"
@@ -57,7 +54,7 @@ std::weak_ptr<InboundRequest> CompanionDelegateAuthRequest::GetWeakPtr()
 
 bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
 
     hostDeviceKey_ = PeerDeviceKey();
 
@@ -76,7 +73,7 @@ bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 
 bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     uint64_t challenge = 0;
     Atl atl = 0;
     bool ret = SecureAgentBeginDelegateAuth(challenge, atl);
@@ -93,8 +90,6 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
         self->HandleDelegateAuthResult(resultCode, token);
     };
 
-    auto callerTokenId = IPCSkeleton::GetCallingTokenID();
-    SetFirstCallerTokenID(callerTokenId);
     uint64_t contextId = GetUserAuthAdapter().BeginDelegateAuth(localDeviceKey->deviceUserId,
         ConvertUint64ToUint8Vec(challenge), static_cast<uint32_t>(atl), callback);
     ENSURE_OR_RETURN_VAL(contextId != 0, false);
@@ -128,7 +123,7 @@ void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCod
 {
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     contextId_.reset();
 
     std::vector<uint8_t> delegateAuthResult;
@@ -188,7 +183,7 @@ bool CompanionDelegateAuthRequest::SecurityAgentEndDelegateAuth(ResultCode resul
 
 void CompanionDelegateAuthRequest::HandleSendDelegateAuthResultReply(const Attributes &message)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     auto replyOpt = DecodeSendDelegateAuthResultReply(message);
     ENSURE_OR_RETURN(replyOpt.has_value());
     if (replyOpt->result != ResultCode::SUCCESS) {

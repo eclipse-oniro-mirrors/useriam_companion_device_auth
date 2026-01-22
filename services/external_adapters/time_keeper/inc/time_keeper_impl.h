@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,32 +13,33 @@
  * limitations under the License.
  */
 
-#ifndef COMMAND_INVOKER_H
-#define COMMAND_INVOKER_H
+#ifndef COMPANION_DEVICE_AUTH_TIME_KEEPER_IMPL_H
+#define COMPANION_DEVICE_AUTH_TIME_KEEPER_IMPL_H
 
-#include <cstddef>
-#include <cstdint>
+#include <memory>
+#include <optional>
 
-#include "icommand_invoker.h"
+#include "time_keeper.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class CommandInvoker : public ICommandInvoker {
-public:
-    CommandInvoker();
-    ~CommandInvoker();
 
-    ResultCode Initialize() override;
-    void Finalize() override;
-    ResultCode InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen, uint8_t *outputData,
-        uint32_t outputDataLen) override;
+class TimeKeeperImpl final : public ITimeKeeper, public std::enable_shared_from_this<TimeKeeperImpl> {
+public:
+    static std::shared_ptr<TimeKeeperImpl> Create();
+
+    ~TimeKeeperImpl() override = default;
+
+    std::optional<SystemTimeMs> GetSystemTimeMs() override;
+    std::optional<SteadyTimeMs> GetSteadyTimeMs() override;
 
 private:
-    bool inited_ = false;
+    TimeKeeperImpl() = default;
 };
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
 
-#endif // COMMAND_INVOKER_H
+#endif // COMPANION_DEVICE_AUTH_TIME_KEEPER_IMPL_H

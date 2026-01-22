@@ -22,11 +22,13 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_companion_manager.h"
 #include "mock_cross_device_comm_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_time_keeper.h"
 #include "mock_user_id_manager.h"
 
 using namespace testing;
@@ -67,6 +69,9 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
         companionStatus_.companionDeviceStatus.deviceKey = companionDeviceKey_;
 
         ON_CALL(mockCompanionManager_, GetCompanionStatus(_))
@@ -102,6 +107,7 @@ public:
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
     void CreateDefaultRequest()

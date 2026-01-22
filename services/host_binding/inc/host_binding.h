@@ -55,9 +55,9 @@ public:
     {
         return status_;
     }
-    std::string GetDescription() const
+    const char *GetDescription() const
     {
-        return description_;
+        return description_.c_str();
     }
     void SetTokenValid(bool isTokenValid);
 

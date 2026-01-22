@@ -23,8 +23,10 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_cross_device_comm_manager.h"
 #include "mock_host_binding_manager.h"
+#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -50,6 +52,9 @@ public:
             std::shared_ptr<IHostBindingManager>(&mockHostBindingManager_, [](IHostBindingManager *) {});
         SingletonManager::GetInstance().SetHostBindingManager(hostBindingMgr);
 
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
         ON_CALL(mockHostBindingManager_, RemoveHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
 
         handler_ = std::make_unique<CompanionRemoveHostBindingHandler>();
@@ -60,6 +65,7 @@ public:
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:

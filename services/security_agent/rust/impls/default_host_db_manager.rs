@@ -280,7 +280,7 @@ impl DefaultHostDbManager {
         Ok(())
     }
 
-    fn wirte_device_extra_file(
+    fn write_device_extra_file(
         &self,
         template_id: u64,
         base_info: &CompanionDeviceBaseInfo,
@@ -323,7 +323,7 @@ impl HostDbManager for DefaultHostDbManager {
             return Err(ErrorCode::BadParam);
         }
 
-        if let Err(err) = self.wirte_device_extra_file(device_info.template_id, base_info, capability_info, sk_info) {
+        if let Err(err) = self.write_device_extra_file(device_info.template_id, base_info, capability_info, sk_info) {
             log_e!("write device extra file fail:{:?}", err);
             self.remove_device_extra_file(device_info.template_id);
             return Err(err);

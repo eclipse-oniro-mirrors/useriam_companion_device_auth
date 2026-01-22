@@ -46,7 +46,7 @@ bool RequestManagerImpl::Start(const std::shared_ptr<IRequest> &request)
 
     RequestId requestId = request->GetRequestId();
     if (Get(requestId) != nullptr) {
-        IAM_LOGE("request already exists, requestId:%{public}u", requestId);
+        IAM_LOGE("request already exists, requestId:0x%{public}08X", requestId);
         return false;
     }
 
@@ -77,7 +77,7 @@ bool RequestManagerImpl::Start(const std::shared_ptr<IRequest> &request)
     });
 
     if (subsequentSameTypeCount > request->GetMaxConcurrency()) {
-        IAM_LOGE("request max concurrency reached, requestId:%{public}u", requestId);
+        IAM_LOGE("request max concurrency reached, requestId:0x%{public}08X", requestId);
         waitingRequests_.push_back(request);
         return true;
     }
@@ -93,7 +93,7 @@ bool RequestManagerImpl::Cancel(RequestId requestId)
     if (request != nullptr) {
         return request->Cancel(ResultCode::CANCELED);
     }
-    IAM_LOGE("request not found, requestId:%{public}u", requestId);
+    IAM_LOGE("request not found, requestId:0x%{public}08X", requestId);
     return false;
 }
 
@@ -115,7 +115,7 @@ bool RequestManagerImpl::CancelRequestByScheduleId(ScheduleId scheduleId)
         }
     }
 
-    IAM_LOGE("request not found, scheduleId:%" PRIu64, scheduleId);
+    IAM_LOGE("request not found, scheduleId:0x%{public}016" PRIX64, scheduleId);
     return false;
 }
 
@@ -127,7 +127,7 @@ void RequestManagerImpl::CancelAll()
         }
         RequestId requestId = request->GetRequestId();
         if (!request->Cancel(ResultCode::CANCELED)) {
-            IAM_LOGE("cancel request %{public}u failed", requestId);
+            IAM_LOGE("cancel request 0x%{public}08X failed", requestId);
         }
     }
 
@@ -137,7 +137,7 @@ void RequestManagerImpl::CancelAll()
         }
         RequestId requestId = request->GetRequestId();
         if (!request->Cancel(ResultCode::CANCELED)) {
-            IAM_LOGE("cancel request %{public}u failed", requestId);
+            IAM_LOGE("cancel request 0x%{public}08X failed", requestId);
         }
     }
 }

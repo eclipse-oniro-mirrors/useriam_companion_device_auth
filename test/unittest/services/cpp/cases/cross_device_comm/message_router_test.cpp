@@ -20,6 +20,7 @@
 
 #include <gtest/gtest.h>
 
+#include "adapter_manager.h"
 #include "channel_manager.h"
 #include "common_defines.h"
 #include "connection_manager.h"
@@ -29,8 +30,10 @@
 #include "message_router.h"
 #include "misc/misc_manager.h"
 #include "misc/user_id_manager.h"
+#include "mock_time_keeper.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -39,6 +42,17 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+
+constexpr uint64_t UINT64_INITIAL_GLOBAL_ID = 1;
+constexpr int32_t INT32_TEST_ACTIVE_USER_ID = 100;
+constexpr uint32_t UINT32_TEST_INVALID_MESSAGE_SEQ = 99999;
+constexpr uint32_t UINT32_TEST_INVALID_MESSAGE_SEQ_ALT = 999;
+constexpr int32_t INT32_TEST_TIMEOUT_OFFSET_MS = 6000;
+
+inline std::vector<uint8_t> GetTestInvalidMessageBytes()
+{
+    return { 0x01, 0x02, 0x03 };
+}
 
 class FakeMiscManager : public IMiscManager {
 public:
@@ -72,7 +86,7 @@ public:
     }
 
 private:
-    uint64_t nextGlobalId_ { 1 };
+    uint64_t nextGlobalId_ { UINT64_INITIAL_GLOBAL_ID };
 };
 
 class FakeUserIdManager : public IUserIdManager {
@@ -104,7 +118,7 @@ public:
     }
 
 private:
-    int32_t activeUserId_ { 100 };
+    int32_t activeUserId_ { INT32_TEST_ACTIVE_USER_ID };
     ActiveUserIdCallback activeUserIdCallback_ {};
 };
 
@@ -244,10 +258,22 @@ public:
     {
         SingletonManager::GetInstance().SetMiscManager(std::make_shared<FakeMiscManager>());
         SingletonManager::GetInstance().SetUserIdManager(std::make_shared<FakeUserIdManager>());
+
+        staticTimeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(staticTimeKeeper);
+    }
+
+    static void TearDownTestCase()
+    {
+        AdapterManager::GetInstance().Reset();
     }
 
     void SetUp() override
     {
+        // Use the static timeKeeper for tests
+        timeKeeper_ = staticTimeKeeper;
+        ASSERT_NE(timeKeeper_, nullptr);
+
         channel_ = std::make_shared<FakeCrossDeviceChannel>(ChannelId::SOFTBUS);
         channelManager_ =
             std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> { channel_ });
@@ -267,13 +293,17 @@ public:
     }
 
 protected:
+    static std::shared_ptr<MockTimeKeeper> staticTimeKeeper;
     std::string connectionName_ { "test-connection" };
+    std::shared_ptr<MockTimeKeeper> timeKeeper_;
     std::shared_ptr<FakeCrossDeviceChannel> channel_;
     std::shared_ptr<ChannelManager> channelManager_;
     std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusManager_;
     std::shared_ptr<ConnectionManager> connectionManager_;
     std::shared_ptr<MessageRouter> router_;
 };
+
+std::shared_ptr<MockTimeKeeper> MessageRouterTest::staticTimeKeeper = nullptr;
 
 HWTEST_F(MessageRouterTest, SendMessage_001, TestSize.Level1)
 {
@@ -343,7 +373,7 @@ HWTEST_F(MessageRouterTest, SendMessage_004, TestSize.Level0)
 
     Attributes reply;
     reply.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
-    reply.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 99999);
+    reply.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, UINT32_TEST_INVALID_MESSAGE_SEQ);
     reply.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, true);
     reply.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::KEEP_ALIVE));
 
@@ -515,7 +545,7 @@ HWTEST_F(MessageRouterTest, HandleRawMessage_001, TestSize.Level0)
 {
     Attributes msg;
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
-    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 999);
+    msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, UINT32_TEST_INVALID_MESSAGE_SEQ_ALT);
     msg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
     msg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, static_cast<uint16_t>(MessageType::TOKEN_AUTH));
 
@@ -524,7 +554,7 @@ HWTEST_F(MessageRouterTest, HandleRawMessage_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleRawMessage_002, TestSize.Level0)
 {
-    std::vector<uint8_t> invalidMsg = { 0x01, 0x02, 0x03 };
+    std::vector<uint8_t> invalidMsg = GetTestInvalidMessageBytes();
     router_->HandleRawMessage(connectionName_, invalidMsg);
 }
 
@@ -758,7 +788,7 @@ HWTEST_F(MessageRouterTest, HandleMessageTimeout_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleMessageTimeout_002, TestSize.Level0)
 {
-    uint32_t nonExistentSeq = 99999;
+    uint32_t nonExistentSeq = UINT32_TEST_INVALID_MESSAGE_SEQ;
 
     router_->HandleMessageTimeout(nonExistentSeq);
 }
@@ -814,7 +844,13 @@ HWTEST_F(MessageRouterTest, HandleTimeoutCheck_002, TestSize.Level0)
     EXPECT_EQ(router_->pendingReplyMessages_.size(), 1);
 
     auto &pendingMsg = router_->pendingReplyMessages_.begin()->second;
-    pendingMsg.sendTime = std::chrono::steady_clock::now() - std::chrono::milliseconds(6000);
+
+    // Advance time to ensure sendTimeMs is in the past
+    timeKeeper_->AdvanceSteadyTime(INT32_TEST_TIMEOUT_OFFSET_MS);
+
+    auto currentTimeMs = GetTimeKeeper().GetSteadyTimeMs();
+    ASSERT_TRUE(currentTimeMs.has_value());
+    pendingMsg.sendTimeMs = currentTimeMs.value() - INT32_TEST_TIMEOUT_OFFSET_MS;
 
     router_->HandleTimeoutCheck();
 
@@ -855,7 +891,9 @@ HWTEST_F(MessageRouterTest, HandleTimeoutCheck_003, TestSize.Level0)
     EXPECT_EQ(router_->pendingReplyMessages_.size(), 2);
 
     auto it = router_->pendingReplyMessages_.begin();
-    it->second.sendTime = std::chrono::steady_clock::now() - std::chrono::milliseconds(6000);
+    auto currentTimeMs = GetTimeKeeper().GetSteadyTimeMs();
+    ASSERT_TRUE(currentTimeMs.has_value());
+    it->second.sendTimeMs = currentTimeMs.value() - INT32_TEST_TIMEOUT_OFFSET_MS;
 
     router_->HandleTimeoutCheck();
 

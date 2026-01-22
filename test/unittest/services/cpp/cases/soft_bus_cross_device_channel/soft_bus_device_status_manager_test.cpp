@@ -26,6 +26,7 @@
 #include "mock_device_manager_adapter.h"
 #include "mock_misc_manager.h"
 #include "mock_system_param_manager.h"
+#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -54,6 +55,9 @@ public:
         auto systemParamMgr =
             std::shared_ptr<ISystemParamManager>(&mockSystemParamManager_, [](ISystemParamManager *) {});
         SingletonManager::GetInstance().SetSystemParamManager(systemParamMgr);
+
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
 
         // Initialize DeviceManagerAdapter mock
         auto deviceManagerAdapter =

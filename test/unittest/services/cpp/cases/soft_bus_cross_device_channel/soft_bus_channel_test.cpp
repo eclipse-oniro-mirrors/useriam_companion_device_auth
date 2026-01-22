@@ -21,8 +21,10 @@
 #include "soft_bus_channel.h"
 #include "task_runner_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_system_param_manager.h"
+#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -52,6 +54,9 @@ public:
             std::shared_ptr<ISystemParamManager>(&mockSystemParamManager_, [](ISystemParamManager *) {});
         SingletonManager::GetInstance().SetSystemParamManager(systemParamMgr);
 
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
         ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
         ON_CALL(mockMiscManager_, GetLocalUdid()).WillByDefault(Return(std::optional<std::string>("test-local-udid")));
         ON_CALL(mockSystemParamManager_, WatchParam(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
@@ -63,6 +68,7 @@ public:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:

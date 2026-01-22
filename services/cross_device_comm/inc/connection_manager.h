@@ -16,7 +16,7 @@
 #ifndef COMPANION_DEVICE_AUTH_CONNECTION_MANAGER_H
 #define COMPANION_DEVICE_AUTH_CONNECTION_MANAGER_H
 
-#include <chrono>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
@@ -46,8 +46,8 @@ struct Connection {
     ChannelId channelId;
     ConnectionStatus connectionStatus;
     bool isInbound { false };
-    std::chrono::steady_clock::time_point createTime;
-    std::chrono::steady_clock::time_point lastActivityTime;
+    SteadyTimeMs createTimeMs { 0 };
+    SteadyTimeMs lastActivityTimeMs { 0 };
 };
 
 class ConnectionManager : public NoCopyable, public std::enable_shared_from_this<ConnectionManager> {
@@ -97,7 +97,6 @@ private:
     // Resource limits
     static constexpr size_t MAX_GLOBAL_CONNECTIONS = 100;
     static constexpr size_t MAX_DEVICE_CONNECTIONS = 10;
-    static constexpr std::chrono::minutes IDLE_TIMEOUT { 1 };
 
     std::weak_ptr<MessageRouter> weakMessageRouter_;
 
@@ -133,6 +132,7 @@ private:
     void CheckIdleMonitoring();
     void StopIdleMonitoring();
     void HandleIdleMonitorTimer();
+
     void HandleChannelConnectionEstablished(const std::string &connectionName);
     void HandleChannelConnectionClosed(const std::string &connectionName, const std::string &reason);
     void HandleIncomingConnectionFromChannel(ChannelId channelId, const std::string &connectionName,

@@ -69,9 +69,6 @@ use crate::{log_e, log_i, p};
 use core::mem::size_of;
 use core::slice;
 
-const ERR_INVALID_CMD: i32 = -1;
-const ERR_INVALID_INPUT: i32 = -2;
-
 struct CmdInfo {
     command_id: CommandId,
     handler: &'static dyn CmdHandler,

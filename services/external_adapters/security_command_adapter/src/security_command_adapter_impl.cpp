@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "command_invoker.h"
+#include "security_command_adapter_impl.h"
 
 #include "securec.h"
 
@@ -74,7 +74,7 @@ static constexpr RustErrorCodeMapping RUST_ERROR_CODE_MAPPINGS[] = {
 
 static constexpr size_t RUST_ERROR_CODE_MAPPING_COUNT = sizeof(RUST_ERROR_CODE_MAPPINGS) / sizeof(RustErrorCodeMapping);
 
-ResultCode ConvertRustErrorCode(int32_t rustErrorCode)
+static ResultCode ConvertRustErrorCode(int32_t rustErrorCode)
 {
     RustErrorCode rustErrCode = static_cast<RustErrorCode>(rustErrorCode);
     for (size_t i = 0; i < RUST_ERROR_CODE_MAPPING_COUNT; ++i) {
@@ -85,47 +85,57 @@ ResultCode ConvertRustErrorCode(int32_t rustErrorCode)
     return ResultCode::GENERAL_ERROR;
 }
 
-std::shared_ptr<ICommandInvoker> ICommandInvoker::Create()
+SecurityCommandAdapterImpl::SecurityCommandAdapterImpl()
 {
-    return std::make_shared<CommandInvoker>();
 }
 
-CommandInvoker::CommandInvoker()
+std::shared_ptr<SecurityCommandAdapterImpl> SecurityCommandAdapterImpl::Create()
 {
-    init_rust_env();
+    auto adapter = std::shared_ptr<SecurityCommandAdapterImpl>(new SecurityCommandAdapterImpl());
+    if (adapter == nullptr) {
+        IAM_LOGE("Failed to create SecurityCommandAdapterImpl");
+        return nullptr;
+    }
+    ResultCode ret = adapter->Initialize();
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("Failed to initialize SecurityCommandAdapterImpl");
+        return nullptr;
+    }
+    return adapter;
 }
 
-CommandInvoker::~CommandInvoker()
+SecurityCommandAdapterImpl::~SecurityCommandAdapterImpl()
 {
     uninit_rust_env();
 }
 
-ResultCode CommandInvoker::Initialize()
+ResultCode SecurityCommandAdapterImpl::Initialize()
 {
     if (inited_) {
-        IAM_LOGE("CommandInvoker is already inited");
+        IAM_LOGE("SecurityCommandAdapter is already inited");
         return ResultCode::SUCCESS;
     }
+    init_rust_env();
     inited_ = true;
-    IAM_LOGI("initialize command invoker success");
+    IAM_LOGI("initialize security command adapter success");
     return ResultCode::SUCCESS;
 }
 
-void CommandInvoker::Finalize()
+void SecurityCommandAdapterImpl::Finalize()
 {
     if (!inited_) {
-        IAM_LOGI("CommandInvoker is not inited");
+        IAM_LOGI("SecurityCommandAdapter is not inited");
         return;
     }
     inited_ = false;
-    IAM_LOGI("uninitialize command invoker success");
+    IAM_LOGI("uninitialize security command adapter success");
 }
 
-ResultCode CommandInvoker::InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen,
+ResultCode SecurityCommandAdapterImpl::InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen,
     uint8_t *outputData, uint32_t outputDataLen)
 {
     if (!inited_) {
-        IAM_LOGE("CommandInvoker is not inited");
+        IAM_LOGE("SecurityCommandAdapter is not inited");
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -160,6 +170,7 @@ ResultCode CommandInvoker::InvokeCommand(int32_t commandId, const uint8_t *input
     IAM_LOGI("command %{public}d invoke success", commandId);
     return ResultCode::SUCCESS;
 }
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

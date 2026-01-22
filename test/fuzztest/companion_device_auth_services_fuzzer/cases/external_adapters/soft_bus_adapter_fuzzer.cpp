@@ -29,7 +29,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-const size_t TEST_VAL1024 = 1024;
+const size_t SIZE_1024 = 1024;
 constexpr size_t SIZE_64 = 64;
 } // namespace
 
@@ -79,7 +79,7 @@ static void FuzzMultipleSocketOperations(FuzzedDataProvider &fuzzData)
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
     for (uint8_t i = 0; i < count; ++i) {
         int32_t socketId = fuzzData.ConsumeIntegral<int32_t>();
-        std::vector<uint8_t> data = GenerateFuzzVector<uint8_t>(fuzzData, TEST_VAL1024);
+        std::vector<uint8_t> data = GenerateFuzzVector<uint8_t>(fuzzData, SIZE_1024);
         (void)socketId;
         (void)data;
     }
@@ -91,7 +91,7 @@ static void FuzzSocketDataTransfer(FuzzedDataProvider &fuzzData)
     uint32_t dataCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, 100);
 
     for (uint32_t i = 0; i < dataCount; ++i) {
-        std::vector<uint8_t> data = GenerateFuzzVector<uint8_t>(fuzzData, TEST_VAL1024);
+        std::vector<uint8_t> data = GenerateFuzzVector<uint8_t>(fuzzData, SIZE_1024);
         (void)data;
     }
     (void)socketId;

@@ -24,13 +24,19 @@
 
 #ifdef HAS_USER_AUTH_FRAMEWORK
 #include "driver_manager_adapter_impl.h"
+#include "idm_adapter_impl.h"
 #include "user_auth_adapter_impl.h"
 #endif
 
 #include "access_token_kit_adapter_impl.h"
+#include "event_manager_adapter_impl.h"
 #include "sa_manager_adapter_impl.h"
+#include "security_command_adapter_impl.h"
+#include "time_keeper_impl.h"
 
 #include "driver_manager_adapter.h"
+#include "idm_adapter.h"
+#include "subscription.h"
 #include "user_auth_adapter.h"
 
 #undef LOG_DOMAIN
@@ -74,6 +80,39 @@ public:
     }
 };
 
+class IdmAdapterDummy : public IIdmAdapter {
+public:
+    IdmAdapterDummy() = default;
+    ~IdmAdapterDummy() override = default;
+
+    std::vector<uint64_t> GetUserTemplates(int32_t userId) override
+    {
+        IAM_LOGE("IDM framework is not supported, GetUserTemplates will return empty");
+        return {};
+    }
+
+    std::unique_ptr<Subscription> SubscribeUserTemplateChange(int32_t userId, TemplateChangeCallback callback) override
+    {
+        IAM_LOGE("IDM framework is not supported, SubscribeUserTemplateChange will return nullptr");
+        return nullptr;
+    }
+};
+
+class EventManagerAdapterDummy : public IEventManagerAdapter {
+public:
+    EventManagerAdapterDummy() = default;
+    ~EventManagerAdapterDummy() override = default;
+
+    void ReportSystemFault(const char *fileName, uint32_t lineNum, FaultType faultType, std::string &faultInfo) override
+    {
+        (void)fileName;
+        (void)lineNum;
+        (void)faultType;
+        (void)faultInfo;
+        // Empty implementation - no actual fault reporting
+    }
+};
+
 AdapterManager &AdapterManager::GetInstance()
 {
     static AdapterManager instance;
@@ -102,6 +141,11 @@ bool AdapterManager::CreateAndRegisterAllAdapters()
     auto driverManagerAdapter = std::make_shared<DriverManagerAdapterImpl>();
     ENSURE_OR_RETURN_VAL(driverManagerAdapter != nullptr, false);
     SetDriverManagerAdapter(driverManagerAdapter);
+
+    // IdmAdapter
+    auto idmAdapter = IdmAdapterImpl::Create();
+    ENSURE_OR_RETURN_VAL(idmAdapter != nullptr, false);
+    SetIdmAdapter(idmAdapter);
 #else
     // Dummy implementations
     auto userAuthAdapter = std::make_shared<UserAuthAdapterDummy>();
@@ -109,7 +153,25 @@ bool AdapterManager::CreateAndRegisterAllAdapters()
 
     auto driverManagerAdapter = std::make_shared<DriverManagerAdapterDummy>();
     SetDriverManagerAdapter(driverManagerAdapter);
+
+    auto idmAdapter = std::make_shared<IdmAdapterDummy>();
+    SetIdmAdapter(idmAdapter);
 #endif
+
+    // SecurityCommandAdapter
+    auto securityCommandAdapter = SecurityCommandAdapterImpl::Create();
+    ENSURE_OR_RETURN_VAL(securityCommandAdapter != nullptr, false);
+    SetSecurityCommandAdapter(securityCommandAdapter);
+
+    // EventManagerAdapter
+    auto eventManagerAdapter = std::make_shared<EventManagerAdapterImpl>();
+    ENSURE_OR_RETURN_VAL(eventManagerAdapter != nullptr, false);
+    SetEventManagerAdapter(eventManagerAdapter);
+
+    // TimeKeeper
+    auto timeKeeper = TimeKeeperImpl::Create();
+    ENSURE_OR_RETURN_VAL(timeKeeper != nullptr, false);
+    SetTimeKeeper(timeKeeper);
 
     IAM_LOGI("General adapters created and registered successfully");
     return true;
@@ -157,6 +219,20 @@ void AdapterManager::SetDriverManagerAdapter(std::shared_ptr<IDriverManagerAdapt
     driverManagerAdapter_ = adapter;
 }
 
+IIdmAdapter &AdapterManager::GetIdmAdapter()
+{
+    if (idmAdapter_ == nullptr) {
+        IAM_LOGE("IDM adapter is not initialized");
+        AbortIfAdapterUninitialized("IDM");
+    }
+    return *idmAdapter_;
+}
+
+void AdapterManager::SetIdmAdapter(std::shared_ptr<IIdmAdapter> adapter)
+{
+    idmAdapter_ = adapter;
+}
+
 ISaManagerAdapter &AdapterManager::GetSaManagerAdapter()
 {
     if (saManagerAdapter_ == nullptr) {
@@ -171,6 +247,48 @@ void AdapterManager::SetSaManagerAdapter(std::shared_ptr<ISaManagerAdapter> adap
     saManagerAdapter_ = adapter;
 }
 
+ISecurityCommandAdapter &AdapterManager::GetSecurityCommandAdapter()
+{
+    if (securityCommandAdapter_ == nullptr) {
+        IAM_LOGE("SecurityCommand adapter is not initialized");
+        AbortIfAdapterUninitialized("SecurityCommand");
+    }
+    return *securityCommandAdapter_;
+}
+
+void AdapterManager::SetSecurityCommandAdapter(std::shared_ptr<ISecurityCommandAdapter> adapter)
+{
+    securityCommandAdapter_ = adapter;
+}
+
+IEventManagerAdapter &AdapterManager::GetEventManagerAdapter()
+{
+    if (eventManagerAdapter_ == nullptr) {
+        IAM_LOGE("EventManager adapter is not initialized");
+        AbortIfAdapterUninitialized("EventManager");
+    }
+    return *eventManagerAdapter_;
+}
+
+void AdapterManager::SetEventManagerAdapter(std::shared_ptr<IEventManagerAdapter> adapter)
+{
+    eventManagerAdapter_ = adapter;
+}
+
+ITimeKeeper &AdapterManager::GetTimeKeeper()
+{
+    if (timeKeeperAdapter_ == nullptr) {
+        IAM_LOGE("TimeKeeper adapter is not initialized");
+        AbortIfAdapterUninitialized("TimeKeeper");
+    }
+    return *timeKeeperAdapter_;
+}
+
+void AdapterManager::SetTimeKeeper(std::shared_ptr<ITimeKeeper> adapter)
+{
+    timeKeeperAdapter_ = adapter;
+}
+
 void AdapterManager::AbortIfAdapterUninitialized(const char *adapterName)
 {
     IAM_LOGF("%{public}s adapter is not initialized, abort", adapterName);
@@ -183,7 +301,11 @@ void AdapterManager::Reset()
     userAuthAdapter_ = nullptr;
     accessTokenKitAdapter_ = nullptr;
     driverManagerAdapter_ = nullptr;
+    idmAdapter_ = nullptr;
     saManagerAdapter_ = nullptr;
+    securityCommandAdapter_ = nullptr;
+    eventManagerAdapter_ = nullptr;
+    timeKeeperAdapter_ = nullptr;
 }
 #endif // ENABLE_TEST
 

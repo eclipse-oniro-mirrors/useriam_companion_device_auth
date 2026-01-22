@@ -26,7 +26,7 @@ namespace CompanionDeviceAuth {
 
 class MockCompanionManager : public ICompanionManager {
 public:
-    MOCK_METHOD(void, Reload, (const std::vector<PersistedCompanionStatus> &persistedCompanionList), (override));
+    MOCK_METHOD(void, Initialize, (), (override));
     MOCK_METHOD(std::optional<CompanionStatus>, GetCompanionStatus, (TemplateId templateId), (override));
     MOCK_METHOD(std::optional<CompanionStatus>, GetCompanionStatus,
         (UserId hostUserId, const DeviceKey &companionDeviceKey), (override));
@@ -51,7 +51,6 @@ public:
         (const std::vector<TemplateId> &templateIds, const std::vector<uint8_t> &fwkUnlockMsg), (override));
     MOCK_METHOD(void, NotifyCompanionStatusChange, (), (override));
     MOCK_METHOD(void, HandleRemoveHostBindingComplete, (TemplateId templateId), (override));
-    MOCK_METHOD(void, Initialize, (), (override));
 };
 
 } // namespace CompanionDeviceAuth

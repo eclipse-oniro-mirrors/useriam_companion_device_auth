@@ -185,7 +185,7 @@ void HostSingleMixAuthRequest::Destroy()
     auto requestId = GetRequestId();
     TaskRunnerManager::GetInstance().PostTaskOnResident([requestId]() {
         GetRequestManager().Remove(requestId);
-        IAM_LOGI("request %{public}u removed", requestId);
+        IAM_LOGI("request 0x%{public}08X removed", requestId);
     });
 }
 } // namespace CompanionDeviceAuth

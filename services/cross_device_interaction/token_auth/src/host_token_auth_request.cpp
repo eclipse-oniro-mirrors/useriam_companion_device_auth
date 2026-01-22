@@ -48,7 +48,7 @@ HostTokenAuthRequest::~HostTokenAuthRequest()
 
 bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     auto companionStatus = GetCompanionManager().GetCompanionStatus(templateId_);
     if (!companionStatus.has_value()) {
         return false;
@@ -71,7 +71,7 @@ bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
 
 void HostTokenAuthRequest::OnConnected()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     HostBeginTokenAuth();
 }
 
@@ -138,7 +138,7 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
 
 void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeTokenAuthReply(reply);

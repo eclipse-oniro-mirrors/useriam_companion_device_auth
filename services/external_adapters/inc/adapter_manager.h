@@ -23,8 +23,13 @@
 // External adapters
 #include "access_token_kit_adapter.h"
 #include "driver_manager_adapter.h"
+#include "event_manager_adapter.h"
+#include "idm_adapter.h"
 #include "sa_manager_adapter.h"
+#include "security_command_adapter.h"
 #include "user_auth_adapter.h"
+
+#include "time_keeper.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -45,8 +50,20 @@ public:
     IDriverManagerAdapter &GetDriverManagerAdapter();
     void SetDriverManagerAdapter(std::shared_ptr<IDriverManagerAdapter> adapter);
 
+    IIdmAdapter &GetIdmAdapter();
+    void SetIdmAdapter(std::shared_ptr<IIdmAdapter> adapter);
+
     ISaManagerAdapter &GetSaManagerAdapter();
     void SetSaManagerAdapter(std::shared_ptr<ISaManagerAdapter> adapter);
+
+    ISecurityCommandAdapter &GetSecurityCommandAdapter();
+    void SetSecurityCommandAdapter(std::shared_ptr<ISecurityCommandAdapter> adapter);
+
+    IEventManagerAdapter &GetEventManagerAdapter();
+    void SetEventManagerAdapter(std::shared_ptr<IEventManagerAdapter> adapter);
+
+    ITimeKeeper &GetTimeKeeper();
+    void SetTimeKeeper(std::shared_ptr<ITimeKeeper> adapter);
 
 #ifdef ENABLE_TEST
     void Reset();
@@ -61,7 +78,11 @@ private:
     std::shared_ptr<IUserAuthAdapter> userAuthAdapter_;
     std::shared_ptr<IAccessTokenKitAdapter> accessTokenKitAdapter_;
     std::shared_ptr<IDriverManagerAdapter> driverManagerAdapter_;
+    std::shared_ptr<IIdmAdapter> idmAdapter_;
     std::shared_ptr<ISaManagerAdapter> saManagerAdapter_;
+    std::shared_ptr<ISecurityCommandAdapter> securityCommandAdapter_;
+    std::shared_ptr<IEventManagerAdapter> eventManagerAdapter_;
+    std::shared_ptr<ITimeKeeper> timeKeeperAdapter_;
 };
 
 inline IUserAuthAdapter &GetUserAuthAdapter()
@@ -79,9 +100,29 @@ inline IDriverManagerAdapter &GetDriverManagerAdapter()
     return AdapterManager::GetInstance().GetDriverManagerAdapter();
 }
 
+inline IIdmAdapter &GetIdmAdapter()
+{
+    return AdapterManager::GetInstance().GetIdmAdapter();
+}
+
 inline ISaManagerAdapter &GetSaManagerAdapter()
 {
     return AdapterManager::GetInstance().GetSaManagerAdapter();
+}
+
+inline ISecurityCommandAdapter &GetSecurityCommandAdapter()
+{
+    return AdapterManager::GetInstance().GetSecurityCommandAdapter();
+}
+
+inline IEventManagerAdapter &GetEventManagerAdapter()
+{
+    return AdapterManager::GetInstance().GetEventManagerAdapter();
+}
+
+inline ITimeKeeper &GetTimeKeeper()
+{
+    return AdapterManager::GetInstance().GetTimeKeeper();
 }
 
 } // namespace CompanionDeviceAuth

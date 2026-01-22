@@ -40,7 +40,7 @@ HostRemoveHostBindingRequest::HostRemoveHostBindingRequest(UserId hostUserId, Te
 
 bool HostRemoveHostBindingRequest::OnStart(ErrorGuard &errorGuard)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     SetPeerDeviceKey(companionDeviceKey_);
     if (!OpenConnection()) {
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
@@ -51,7 +51,7 @@ bool HostRemoveHostBindingRequest::OnStart(ErrorGuard &errorGuard)
 
 void HostRemoveHostBindingRequest::OnConnected()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     SendRemoveHostBindingRequest();
 }
 
@@ -92,7 +92,7 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
 
 void HostRemoveHostBindingRequest::HandleRemoveHostBindingReply(const Attributes &message)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeRemoveHostBindingReply(message);

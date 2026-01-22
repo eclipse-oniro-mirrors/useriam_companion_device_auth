@@ -24,6 +24,7 @@
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "adapter_manager.h"
 #include "common_defines.h"
 #include "device_status_manager.h"
 #include "local_device_status_manager.h"
@@ -32,6 +33,7 @@
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "time_keeper.h"
 
 #define LOG_TAG "CDA_SA"
 
@@ -134,8 +136,10 @@ bool ConnectionManager::OpenConnection(const PhysicalDeviceKey &physicalDeviceKe
     connection.channelId = channel->GetChannelId();
     connection.connectionStatus = ConnectionStatus::ESTABLISHING;
     connection.isInbound = false;
-    connection.createTime = std::chrono::steady_clock::now();
-    connection.lastActivityTime = connection.createTime;
+    auto createTimeMs = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN_VAL(createTimeMs.has_value(), false);
+    connection.createTimeMs = createTimeMs.value();
+    connection.lastActivityTimeMs = connection.createTimeMs;
 
     bool success = channel->OpenConnection(connectionName, physicalDeviceKey);
     if (!success) {
@@ -223,8 +227,10 @@ bool ConnectionManager::HandleIncomingConnection(const std::string &connectionNa
     connection.channelId = channel->GetChannelId();
     connection.connectionStatus = ConnectionStatus::CONNECTED;
     connection.isInbound = true;
-    connection.createTime = std::chrono::steady_clock::now();
-    connection.lastActivityTime = connection.createTime;
+    auto createTimeMs = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN_VAL(createTimeMs.has_value(), false);
+    connection.createTimeMs = createTimeMs.value();
+    connection.lastActivityTimeMs = connection.createTimeMs;
 
     connectionMap_[connectionName] = connection;
     CheckIdleMonitoring();
@@ -258,8 +264,10 @@ void ConnectionManager::HandleIncomingConnectionFromChannel(ChannelId channelId,
     connection.channelId = channelId;
     connection.connectionStatus = ConnectionStatus::CONNECTED;
     connection.isInbound = true;
-    connection.createTime = std::chrono::steady_clock::now();
-    connection.lastActivityTime = connection.createTime;
+    auto createTimeMs = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN(createTimeMs.has_value());
+    connection.createTimeMs = createTimeMs.value();
+    connection.lastActivityTimeMs = connection.createTimeMs;
 
     connectionMap_[connectionName] = connection;
     CheckIdleMonitoring();
@@ -280,7 +288,7 @@ std::unique_ptr<Subscription> ConnectionManager::SubscribeConnectionStatus(const
     subscription.callback = std::move(callback);
     connectionStatusSubscribers_[subscriptionId] = std::move(subscription);
 
-    IAM_LOGI("connection status subscription added: id=%{public}" PRIu64 ", connection=%{public}s", subscriptionId,
+    IAM_LOGD("connection status subscription added: id=0x%{public}016" PRIX64 ", connection=%{public}s", subscriptionId,
         connectionName.empty() ? "all" : connectionName.c_str());
 
     auto weakSelf = weak_from_this();
@@ -312,7 +320,9 @@ void ConnectionManager::HandleChannelConnectionEstablished(const std::string &co
     }
 
     it->second.connectionStatus = ConnectionStatus::CONNECTED;
-    it->second.lastActivityTime = std::chrono::steady_clock::now();
+    auto lastActivityTimeMs = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN(lastActivityTimeMs.has_value());
+    it->second.lastActivityTimeMs = lastActivityTimeMs.value();
 
     NotifyConnectionStatus(connectionName, ConnectionStatus::CONNECTED, "established");
 }
@@ -406,14 +416,14 @@ void ConnectionManager::StopIdleMonitoring()
 
 void ConnectionManager::HandleIdleMonitorTimer()
 {
-    auto now = std::chrono::steady_clock::now();
+    auto now = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN(now.has_value());
 
     for (const auto &pair : connectionMap_) {
         const Connection &connection = pair.second;
-        auto idleTime = std::chrono::duration_cast<std::chrono::seconds>(now - connection.lastActivityTime);
-
-        if (idleTime >= IDLE_THRESHOLD) {
-            IAM_LOGW("connection idle for %{public}zu seconds: %{public}s", static_cast<size_t>(idleTime.count()),
+        auto idleTimeMs = now.value() - connection.lastActivityTimeMs;
+        if (idleTimeMs >= IDLE_THRESHOLD_MS) {
+            IAM_LOGW("connection idle for %{public}llu ms: %{public}s", static_cast<unsigned long long>(idleTimeMs),
                 connection.connectionName.c_str());
             auto messageRouter = weakMessageRouter_.lock();
             ENSURE_OR_RETURN(messageRouter != nullptr);
@@ -448,7 +458,9 @@ void ConnectionManager::HandleKeepAliveReply(const std::string &connectionName, 
         return;
     }
 
-    it->second.lastActivityTime = std::chrono::steady_clock::now();
+    auto lastActivityTimeMs = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN(lastActivityTimeMs.has_value());
+    it->second.lastActivityTimeMs = lastActivityTimeMs.value();
 }
 
 void ConnectionManager::NotifyConnectionStatus(const std::string &connectionName, ConnectionStatus status,
@@ -483,7 +495,7 @@ void ConnectionManager::NotifyConnectionStatus(const std::string &connectionName
 void ConnectionManager::UnsubscribeConnectionStatus(SubscribeId subscriptionId)
 {
     connectionStatusSubscribers_.erase(subscriptionId);
-    IAM_LOGI("connection status subscription removed: id=%{public}" PRIu64, subscriptionId);
+    IAM_LOGD("connection status subscription removed: id=0x%{public}016" PRIX64 "", subscriptionId);
 }
 
 void ConnectionManager::HandlePhysicalDeviceStatusChange(ChannelId channelId,

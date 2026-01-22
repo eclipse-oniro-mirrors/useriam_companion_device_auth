@@ -16,7 +16,6 @@
 #ifndef COMPANION_DEVICE_AUTH_SERVICE_COMMON_H
 #define COMPANION_DEVICE_AUTH_SERVICE_COMMON_H
 
-#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -42,6 +41,8 @@ using UserId = int32_t;
 using BindingId = uint32_t;
 using SubscribeId = uint64_t;
 using Atl = int32_t;
+using SystemTimeMs = uint64_t;
+using SteadyTimeMs = uint64_t;
 
 enum class ChannelId : int32_t {
     INVALID = 0,
@@ -146,7 +147,7 @@ public:
 
     DeviceIdType idType { DeviceIdType::UNKNOWN };
     std::string deviceId {};
-    UserId deviceUserId { -1 };
+    UserId deviceUserId { INVALID_USER_ID };
 };
 
 class DeviceStatus {
@@ -187,7 +188,7 @@ struct LocalDeviceAuthState {
 
 struct PersistedCompanionStatus {
     TemplateId templateId { 0 };
-    UserId hostUserId { -1 };
+    UserId hostUserId { INVALID_USER_ID };
     DeviceKey companionDeviceKey {};
     bool isValid { false };
     std::vector<BusinessId> enabledBusinessIds {};
@@ -234,18 +235,18 @@ struct CompanionStatus {
     }
 
     TemplateId templateId { 0 };
-    UserId hostUserId { -1 };
+    UserId hostUserId { INVALID_USER_ID };
     DeviceStatus companionDeviceStatus {};
     bool isValid { true };
     std::optional<Atl> tokenAtl { std::nullopt };
     std::vector<BusinessId> enabledBusinessIds {};
     int64_t addedTime { 0 };
-    int64_t lastCheckTime { 0 };
+    uint64_t lastCheckTime { 0 };
 };
 
 struct HostBindingStatus {
     BindingId bindingId { 0 };
-    UserId companionUserId { -1 };
+    UserId companionUserId { INVALID_USER_ID };
     DeviceStatus hostDeviceStatus {};
     bool isTokenValid { false };
     bool localAuthMaintainActive { false };
@@ -253,7 +254,7 @@ struct HostBindingStatus {
 
 struct PersistedHostBindingStatus {
     BindingId bindingId { 0 };
-    UserId companionUserId { -1 };
+    UserId companionUserId { INVALID_USER_ID };
     DeviceKey hostDeviceKey {};
     bool isTokenValid { false };
 };
@@ -272,14 +273,17 @@ struct SyncDeviceStatus {
     std::string deviceUserName {};
 };
 
-constexpr uint32_t DEFAULT_REQUEST_TIMEOUT_MS = 60 * 1000; // 60 seconds
-constexpr uint32_t TOKEN_TIMEOUT_MS = 4 * 60 * 60 * 1000;  // 4 hours
-constexpr std::chrono::seconds IDLE_THRESHOLD { 10 };
-constexpr uint32_t IDLE_MONITOR_INTERVAL_MS = 10 * 1000; // 10 seconds
-constexpr uint32_t MAX_SYNC_WAIT_TIME_SEC = 2;           // 2 second
+constexpr uint32_t DEFAULT_REQUEST_TIMEOUT_MS = 60 * 1000;  // 60 seconds
+constexpr uint32_t TOKEN_TIMEOUT_MS = 4 * 60 * 60 * 1000;   // 4 hours
+constexpr uint32_t IDM_ADD_TEMPLATE_TIMEOUT_MS = 10 * 1000; // 10 seconds
+constexpr uint64_t IDLE_THRESHOLD_MS = 10 * 1000;           // 10 seconds
+constexpr uint32_t IDLE_MONITOR_INTERVAL_MS = 10 * 1000;    // 10 seconds
+constexpr uint32_t MAX_SYNC_WAIT_TIME_SEC = 2;              // 2 second
 constexpr uint32_t MAX_ON_START_WAIT_TIME_SEC = UINT32_MAX;
 constexpr uint32_t ADAPTER_CALL_TIMEOUT_SEC = 3; // 3 seconds
-constexpr size_t MAX_MESSAGE_SIZE = 4096;
+constexpr size_t MAX_MESSAGE_SIZE = 20000;
+constexpr int32_t MS_PER_SEC = 1000;
+constexpr int32_t NS_PER_MS = 1000 * 1000;
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

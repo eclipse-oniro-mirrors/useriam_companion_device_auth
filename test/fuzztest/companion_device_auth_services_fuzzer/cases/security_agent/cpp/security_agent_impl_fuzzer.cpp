@@ -19,7 +19,6 @@
 
 #include "fuzzer/FuzzedDataProvider.h"
 
-#include "command_invoker.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
 #include "fuzz_registry.h"
@@ -29,7 +28,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-const size_t TEST_VAL1024 = 1024;
+const size_t SIZE_T_1024 = 1024;
 }
 
 using SecurityAgentFuzzFunction = void (*)(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData);
@@ -70,7 +69,7 @@ static void FuzzHostOnRegisterFinish(std::shared_ptr<SecurityAgentImpl> &agent, 
     size_t leftRange = 0;
     size_t rightRange = 32;
     input.fwkPublicKey = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(leftRange, rightRange));
-    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     agent->HostOnRegisterFinish(input);
 }
 
@@ -111,7 +110,7 @@ static void FuzzHostEndCompanionCheck(std::shared_ptr<SecurityAgentImpl> &agent,
         input.capabilityList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
     }
     input.companionCheckResponse =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     agent->HostEndCompanionCheck(input);
 }
 
@@ -126,7 +125,7 @@ static void FuzzCompanionProcessCheck(std::shared_ptr<SecurityAgentImpl> &agent,
 {
     CompanionProcessCheckInput input;
     input.companionCheckRequest =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionProcessCheckOutput output;
     agent->CompanionProcessCheck(input, output);
 }
@@ -149,9 +148,9 @@ static void FuzzHostBeginAddCompanion(std::shared_ptr<SecurityAgentImpl> &agent,
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     input.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     input.initKeyNegotiationReply =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostBeginAddCompanionOutput output;
     agent->HostBeginAddCompanion(input, output);
 }
@@ -163,8 +162,7 @@ static void FuzzHostEndAddCompanion(std::shared_ptr<SecurityAgentImpl> &agent, F
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.companionStatus.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     input.companionStatus.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
-    input.addHostBindingReply =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.addHostBindingReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostEndAddCompanionOutput output;
     agent->HostEndAddCompanion(input, output);
 }
@@ -184,7 +182,7 @@ static void FuzzCompanionInitKeyNegotiation(std::shared_ptr<SecurityAgentImpl> &
     input.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     input.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     input.initKeyNegotiationRequest =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionInitKeyNegotiationOutput output;
     agent->CompanionInitKeyNegotiation(input, output);
 }
@@ -195,7 +193,7 @@ static void FuzzCompanionBeginAddHostBinding(std::shared_ptr<SecurityAgentImpl> 
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.addHostBindingRequest =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionBeginAddHostBindingOutput output;
     agent->CompanionBeginAddHostBinding(input, output);
 }
@@ -205,7 +203,7 @@ static void FuzzCompanionEndAddHostBinding(std::shared_ptr<SecurityAgentImpl> &a
     CompanionEndAddHostBindingInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.resultCode = static_cast<ResultCode>(fuzzData.ConsumeIntegral<int32_t>());
-    input.tokenData = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.tokenData = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionEndAddHostBindingOutput output;
     agent->CompanionEndAddHostBinding(input, output);
 }
@@ -231,7 +229,7 @@ static void FuzzHostBeginDelegateAuth(std::shared_ptr<SecurityAgentImpl> &agent,
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.scheduleId = fuzzData.ConsumeIntegral<uint64_t>();
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostBeginDelegateAuthOutput output;
     agent->HostBeginDelegateAuth(input, output);
 }
@@ -241,7 +239,7 @@ static void FuzzHostEndDelegateAuth(std::shared_ptr<SecurityAgentImpl> &agent, F
     HostEndDelegateAuthInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    input.delegateAuthResult = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.delegateAuthResult = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostEndDelegateAuthOutput output;
     agent->HostEndDelegateAuth(input, output);
 }
@@ -260,7 +258,7 @@ static void FuzzCompanionBeginDelegateAuth(std::shared_ptr<SecurityAgentImpl> &a
     input.bindingId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.startDelegateAuthRequest =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionDelegateAuthBeginOutput output;
     agent->CompanionBeginDelegateAuth(input, output);
 }
@@ -270,7 +268,7 @@ static void FuzzCompanionEndDelegateAuth(std::shared_ptr<SecurityAgentImpl> &age
     CompanionDelegateAuthEndInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.resultCode = static_cast<ResultCode>(fuzzData.ConsumeIntegral<int32_t>());
-    input.authToken = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.authToken = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionDelegateAuthEndOutput output;
     agent->CompanionEndDelegateAuth(input, output);
 }
@@ -280,7 +278,7 @@ static void FuzzHostPreIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, Fuz
     HostPreIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-    input.fwkUnlockMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.fwkUnlockMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostPreIssueTokenOutput output;
     agent->HostPreIssueToken(input, output);
 }
@@ -290,7 +288,7 @@ static void FuzzHostBeginIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, F
     HostBeginIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    input.preIssueTokenReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.preIssueTokenReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostBeginIssueTokenOutput output;
     agent->HostBeginIssueToken(input, output);
 }
@@ -300,7 +298,7 @@ static void FuzzHostEndIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, Fuz
     HostEndIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    input.issueTokenReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.issueTokenReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostEndIssueTokenOutput output;
     agent->HostEndIssueToken(input, output);
 }
@@ -319,7 +317,7 @@ static void FuzzCompanionPreIssueToken(std::shared_ptr<SecurityAgentImpl> &agent
     input.bindingId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.preIssueTokenRequest =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionPreIssueTokenOutput output;
     agent->CompanionPreIssueToken(input, output);
 }
@@ -329,7 +327,7 @@ static void FuzzCompanionProcessIssueToken(std::shared_ptr<SecurityAgentImpl> &a
     CompanionProcessIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    input.issueTokenRequest = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.issueTokenRequest = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionProcessIssueTokenOutput output;
     agent->CompanionProcessIssueToken(input, output);
 }
@@ -357,7 +355,7 @@ static void FuzzHostProcessObtainToken(std::shared_ptr<SecurityAgentImpl> &agent
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    input.obtainTokenRequest = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.obtainTokenRequest = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostProcessObtainTokenOutput output;
     agent->HostProcessObtainToken(input, output);
 }
@@ -375,9 +373,8 @@ static void FuzzCompanionBeginObtainToken(std::shared_ptr<SecurityAgentImpl> &ag
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.bindingId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    input.fwkUnlockMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
-    input.preObtainTokenReply =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.fwkUnlockMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
+    input.preObtainTokenReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionBeginObtainTokenOutput output;
     agent->CompanionBeginObtainToken(input, output);
 }
@@ -387,7 +384,7 @@ static void FuzzCompanionEndObtainToken(std::shared_ptr<SecurityAgentImpl> &agen
     CompanionEndObtainTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    input.obtainTokenReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.obtainTokenReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     agent->CompanionEndObtainToken(input);
 }
 
@@ -403,7 +400,7 @@ static void FuzzHostBeginTokenAuth(std::shared_ptr<SecurityAgentImpl> &agent, Fu
     HostBeginTokenAuthInput input;
     input.scheduleId = fuzzData.ConsumeIntegral<uint64_t>();
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostBeginTokenAuthOutput output;
     agent->HostBeginTokenAuth(input, output);
 }
@@ -413,7 +410,7 @@ static void FuzzHostEndTokenAuth(std::shared_ptr<SecurityAgentImpl> &agent, Fuzz
     HostEndTokenAuthInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    input.tokenAuthReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.tokenAuthReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostEndTokenAuthOutput output;
     agent->HostEndTokenAuth(input, output);
 }
@@ -421,7 +418,7 @@ static void FuzzHostEndTokenAuth(std::shared_ptr<SecurityAgentImpl> &agent, Fuzz
 static void FuzzCompanionProcessTokenAuth(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionProcessTokenAuthInput input;
-    input.tokenAuthRequest = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, TEST_VAL1024));
+    input.tokenAuthRequest = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionProcessTokenAuthOutput output;
     agent->CompanionProcessTokenAuth(input, output);
 }
@@ -514,8 +511,8 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunctio
 
 void FuzzSecurityAgentImpl(FuzzedDataProvider &fuzzData)
 {
-    auto invoker = std::make_shared<CommandInvoker>();
-    auto agent = std::make_shared<SecurityAgentImpl>(invoker);
+    auto agentBase = SecurityAgentImpl::Create();
+    auto agent = std::static_pointer_cast<SecurityAgentImpl>(agentBase);
     if (!agent) {
         return;
     }

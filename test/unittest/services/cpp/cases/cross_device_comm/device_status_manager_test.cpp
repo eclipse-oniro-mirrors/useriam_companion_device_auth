@@ -24,6 +24,7 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_companion_manager.h"
 #include "mock_cross_device_channel.h"
 #include "mock_cross_device_comm_manager.h"
@@ -31,6 +32,7 @@
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_time_keeper.h"
 #include "mock_user_id_manager.h"
 
 using namespace testing;
@@ -87,6 +89,9 @@ protected:
         auto securityAgent = std::shared_ptr<ISecurityAgent>(&securityAgent_, [](ISecurityAgent *) {});
         SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
 
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
         mockChannel_ = InitMockChannel();
         channelMgr_ = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
             std::static_pointer_cast<ICrossDeviceChannel>(mockChannel_) });
@@ -109,6 +114,7 @@ protected:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
     DeviceKey MakeDeviceKey(const PhysicalDeviceKey &physicalKey) const

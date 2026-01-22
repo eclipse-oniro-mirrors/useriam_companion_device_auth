@@ -16,9 +16,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "adapter_manager.h"
 #include "auth_maintain_state_change_message.h"
 #include "error_guard.h"
 #include "host_auth_maintain_state_change_handler.h"
+#include "mock_time_keeper.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -41,6 +43,7 @@ public:
     {
         TaskRunnerManager::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:

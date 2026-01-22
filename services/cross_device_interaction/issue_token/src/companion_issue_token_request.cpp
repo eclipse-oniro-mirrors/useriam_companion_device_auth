@@ -43,7 +43,7 @@ CompanionIssueTokenRequest::CompanionIssueTokenRequest(const std::string &connec
 
 bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
 
     if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
         IAM_LOGE("%{public}s local auth maintain inactive", GetDescription());
@@ -94,7 +94,7 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 
 bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &preIssueTokenReply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     auto preIssueRequestOpt = DecodePreIssueTokenRequest(request_);
     ENSURE_OR_RETURN_VAL(preIssueRequestOpt.has_value(), false);
     const auto &preIssueRequest = *preIssueRequestOpt;
@@ -147,7 +147,7 @@ void CompanionIssueTokenRequest::SendPreIssueTokenReply(ResultCode result,
 
 void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
         Attributes reply;
         IssueTokenReply replyMsg = { .result = code, .extraInfo = {} };
@@ -178,7 +178,7 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
 bool CompanionIssueTokenRequest::SecureAgentCompanionIssueToken(const std::vector<uint8_t> &issueTokenRequest,
     std::vector<uint8_t> &issueTokenReply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     CompanionProcessIssueTokenInput input = { .requestId = GetRequestId(),
         .secureProtocolId = secureProtocolId_,
         .issueTokenRequest = issueTokenRequest };

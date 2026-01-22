@@ -77,7 +77,7 @@ void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceK
 
 void HostAddCompanionRequest::OnConnected()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto hostDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
@@ -129,7 +129,7 @@ std::weak_ptr<OutboundRequest> HostAddCompanionRequest::GetWeakPtr()
 
 void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &reply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto initReplyOpt = DecodeInitKeyNegotiationReply(reply);
@@ -195,7 +195,7 @@ bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &r
 
 void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &reply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto beginReplyOpt = DecodeBeginAddHostBindingReply(reply);
@@ -291,7 +291,7 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
 {
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     auto replyMsgOpt = DecodeEndAddHostBindingReply(reply);
     ENSURE_OR_RETURN(replyMsgOpt.has_value());
 

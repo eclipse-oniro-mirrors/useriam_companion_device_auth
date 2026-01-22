@@ -40,8 +40,6 @@ public:
 
     ~CompanionManagerImpl() override;
 
-    void Reload(const std::vector<PersistedCompanionStatus> &persistedCompanionList) override;
-
     std::optional<CompanionStatus> GetCompanionStatus(TemplateId templateId) override;
     std::optional<CompanionStatus> GetCompanionStatus(UserId hostUserId, const DeviceKey &companionDeviceKey) override;
     std::vector<CompanionStatus> GetAllCompanionStatus() override;
@@ -74,6 +72,11 @@ private:
     CompanionManagerImpl();
     void Initialize() override;
     void OnActiveUserIdChanged(UserId userId);
+    void OnTemplateListChanged(UserId userId, const std::vector<TemplateId> &templateIds);
+    void Reload(const std::vector<PersistedCompanionStatus> &persistedCompanionList,
+        const std::vector<TemplateId> &activeUserTemplateIds);
+    void ReloadSingleCompanion(const PersistedCompanionStatus &persistedStatus,
+        const std::vector<TemplateId> &activeUserTemplateIds, uint64_t nowMs);
 
     std::shared_ptr<Companion> FindCompanionByTemplateId(TemplateId templateId);
     std::shared_ptr<Companion> FindCompanionByDeviceUser(UserId hostUserId, const DeviceKey &deviceKey);
@@ -83,11 +86,9 @@ private:
 
     UserId hostUserId_ { INVALID_USER_ID };
     std::vector<std::shared_ptr<Companion>> companions_;
-
     std::map<SubscribeId, OnCompanionDeviceStatusChange> statusSubscribers_;
-    std::atomic<SubscribeId> nextSubscriptionId_ { 1 };
-
     std::unique_ptr<Subscription> activeUserIdSubscription_;
+    std::unique_ptr<Subscription> templateChangeSubscription_;
 };
 
 } // namespace CompanionDeviceAuth

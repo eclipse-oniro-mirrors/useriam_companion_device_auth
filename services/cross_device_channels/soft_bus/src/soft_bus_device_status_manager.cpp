@@ -361,7 +361,7 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribePhysicalDevic
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
     physicalDeviceStatusSubscribers_[subscriptionId] = std::move(callback);
 
-    IAM_LOGI("physical device status subscription added: %{public}" PRIu64, subscriptionId);
+    IAM_LOGD("physical device status subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -374,7 +374,7 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribePhysicalDevic
 void SoftBusDeviceStatusManager::UnsubscribePhysicalDeviceStatus(SubscribeId subscriptionId)
 {
     physicalDeviceStatusSubscribers_.erase(subscriptionId);
-    IAM_LOGI("physical device status subscription removed: %{public}" PRIu64, subscriptionId);
+    IAM_LOGD("physical device status subscription removed: 0x%{public}016" PRIX64 "", subscriptionId);
 }
 
 std::vector<PhysicalDeviceStatus> SoftBusDeviceStatusManager::GetAllPhysicalDevices() const
@@ -390,7 +390,7 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribeAuthMaintainA
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
     authMaintainActiveSubscribers_[subscriptionId] = std::move(callback);
 
-    IAM_LOGI("auth maintain active subscription added: %{public}" PRIu64, subscriptionId);
+    IAM_LOGD("auth maintain active subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
     auto weakSelf = weak_from_this();
     return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
@@ -403,7 +403,7 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribeAuthMaintainA
 void SoftBusDeviceStatusManager::UnsubscribeAuthMaintainActive(SubscribeId subscriptionId)
 {
     authMaintainActiveSubscribers_.erase(subscriptionId);
-    IAM_LOGI("auth maintain active subscription removed: %{public}" PRIu64, subscriptionId);
+    IAM_LOGD("auth maintain active subscription removed: 0x%{public}016" PRIX64 "", subscriptionId);
 }
 
 std::optional<PhysicalDeviceStatus> SoftBusDeviceStatusManager::GetPhysicalDeviceStatus(const PhysicalDeviceKey &key)

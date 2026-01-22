@@ -22,7 +22,9 @@
 #include "system_param_manager_impl.h"
 #include "task_runner_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_misc_manager.h"
+#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -43,6 +45,9 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
         ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([]() {
             static uint64_t id = 1;
             return id++;
@@ -54,6 +59,7 @@ public:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:

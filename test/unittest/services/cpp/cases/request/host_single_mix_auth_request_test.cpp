@@ -21,9 +21,11 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
+#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -50,6 +52,9 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
         ON_CALL(mockRequestFactory_, CreateHostTokenAuthRequest(_, _, _, _, _))
             .WillByDefault(Invoke([this](ScheduleId scheduleId, std::vector<uint8_t> fwkMsg, UserId hostUserId,
                                       TemplateId templateId, FwkResultCallback &&requestCallback) {
@@ -73,6 +78,7 @@ public:
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
     void CreateDefaultRequest()

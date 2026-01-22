@@ -16,7 +16,7 @@
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     CompanionBeginAddHostBindingInputFfi, CompanionEndAddHostBindingInputFfi, CompanionInitKeyNegotiationInputFfi,
-    DataArray1024Ffi, DeviceKeyFfi,
+    DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi,
 };
 use crate::log_i;
 use crate::request::enroll::companion_enroll::CompanionDeviceEnrollRequest;
@@ -41,7 +41,7 @@ fn genereate_companion_init_key_negotiation_input_ffi() -> CompanionInitKeyNegot
         secure_protocol_id: 1,
         companion_device_key: DeviceKeyFfi::default(),
         host_device_key: DeviceKeyFfi::default(),
-        sec_message: DataArray1024Ffi::default(),
+        sec_message: DataArray20000Ffi::default(),
     }
 }
 
@@ -128,7 +128,7 @@ fn companion_enroll_request_prepare_test_algorithm_not_supported() {
         secure_protocol_id: 1,
         companion_device_key: DeviceKeyFfi::default(),
         host_device_key: DeviceKeyFfi::default(),
-        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
     let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();
 
@@ -156,7 +156,7 @@ fn companion_enroll_request_prepare_test_generate_key_pair_fail() {
         secure_protocol_id: 1,
         companion_device_key: DeviceKeyFfi::default(),
         host_device_key: DeviceKeyFfi::default(),
-        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
     let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();
 

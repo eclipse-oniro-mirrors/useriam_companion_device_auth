@@ -58,7 +58,6 @@ private:
     LocalDeviceAuthState authState_;
 
     std::map<int32_t, std::function<void(bool)>> statusSubscribers_;
-    std::atomic<int32_t> nextSubscriptionId_ { 1 };
     std::unique_ptr<Subscription> authMaintainSubscription_;
     std::unique_ptr<Subscription> activeUserIdSubscription_;
 

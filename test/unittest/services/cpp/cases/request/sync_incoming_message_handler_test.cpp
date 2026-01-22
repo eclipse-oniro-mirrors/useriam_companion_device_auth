@@ -22,7 +22,9 @@
 #include "sync_incoming_message_handler.h"
 #include "task_runner_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_cross_device_comm_manager.h"
+#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -56,6 +58,9 @@ public:
             std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
         SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
 
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
         ON_CALL(mockCrossDeviceCommManager_, SubscribeIncomingConnection(_, _))
             .WillByDefault(Return(ByMove(MakeSubscription())));
     }
@@ -65,6 +70,7 @@ public:
         TaskRunnerManager::GetInstance().ExecuteAll();
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:

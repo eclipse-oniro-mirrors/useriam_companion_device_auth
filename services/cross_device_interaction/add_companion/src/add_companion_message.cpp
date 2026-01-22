@@ -29,6 +29,9 @@ namespace CompanionDeviceAuth {
 bool EncodeInitKeyNegotiationRequest(const InitKeyNegotiationRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(request.hostDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
     return true;
 }

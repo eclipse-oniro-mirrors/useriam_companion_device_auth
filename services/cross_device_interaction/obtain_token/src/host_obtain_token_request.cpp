@@ -75,7 +75,7 @@ bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
 
 bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     if (!ParsePreObtainTokenRequest(errorGuard)) {
         IAM_LOGE("%{public}s ParsePreObtainTokenRequest failed", GetDescription());
         SendPreObtainTokenReply(ResultCode::GENERAL_ERROR, {});
@@ -142,7 +142,7 @@ void HostObtainTokenRequest::SendPreObtainTokenReply(ResultCode result, const st
 
 void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN(onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
         Attributes reply;

@@ -21,8 +21,10 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
+#include "adapter_manager.h"
 #include "mock_cross_device_channel.h"
 #include "mock_misc_manager.h"
+#include "mock_time_keeper.h"
 #include "mock_user_id_manager.h"
 
 using namespace testing;
@@ -51,6 +53,9 @@ public:
 
         auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
         SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
+
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
 
         ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
         ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
@@ -91,6 +96,7 @@ public:
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
     }
 
 protected:

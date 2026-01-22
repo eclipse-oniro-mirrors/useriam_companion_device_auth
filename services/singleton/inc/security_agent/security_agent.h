@@ -131,6 +131,7 @@ struct HostEndAddCompanionOutput {
     TemplateId templateId;
     std::vector<uint8_t> tokenData;
     Atl atl;
+    int64_t addedTime;
 };
 
 struct HostCancelAddCompanionInput {

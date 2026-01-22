@@ -37,7 +37,7 @@ CompanionRevokeTokenRequest::CompanionRevokeTokenRequest(int32_t companionUserId
 
 void CompanionRevokeTokenRequest::OnConnected()
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     SendRevokeTokenRequest();
 }
 
@@ -80,7 +80,7 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
 
 void CompanionRevokeTokenRequest::HandleRevokeTokenReply(const Attributes &message)
 {
-    IAM_LOGI("%{public}s", GetDescription());
+    IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeRevokeTokenReply(message);

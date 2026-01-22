@@ -27,6 +27,7 @@
 #include "mock_misc_manager.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_time_keeper.h"
 #include "mock_user_auth_adapter.h"
 
 using namespace testing;
@@ -61,6 +62,9 @@ public:
 
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
+
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
 
         // Initialize UserAuthAdapter to prevent crash
         auto userAuthAdapter = std::shared_ptr<IUserAuthAdapter>(&mockUserAuthAdapter_, [](IUserAuthAdapter *) {});

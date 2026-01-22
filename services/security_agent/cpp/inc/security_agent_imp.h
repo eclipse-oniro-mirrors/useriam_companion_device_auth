@@ -26,8 +26,8 @@
 #include "iam_logger.h"
 
 #include "common_defines.h"
-#include "icommand_invoker.h"
 #include "security_agent.h"
+#include "security_command_adapter.h"
 #include "subscription.h"
 
 namespace OHOS {
@@ -130,9 +130,8 @@ public:
         HostCheckTemplateEnrolledOutput &output) override;
 
 private:
-    explicit SecurityAgentImpl(std::shared_ptr<ICommandInvoker> invoker);
+    SecurityAgentImpl();
     void Initialize() override;
-    std::shared_ptr<ICommandInvoker> invoker_;
     std::unique_ptr<Subscription> activeUserSubscription_;
 };
 } // namespace CompanionDeviceAuth

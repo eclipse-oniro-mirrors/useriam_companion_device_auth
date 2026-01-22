@@ -35,10 +35,6 @@ ohos_unittest("companion_device_auth_client_test") {
     "${companion_device_auth_path}/frameworks/native/ipc/inc",
   ]
 
-  configs = [
-    "${companion_device_auth_path}/common:companion_device_auth_common_config",
-  ]
-
   deps = companion_device_auth_client_deps
 
   external_deps = companion_device_auth_client_external_deps +

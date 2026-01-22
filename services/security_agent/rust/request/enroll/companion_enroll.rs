@@ -18,7 +18,7 @@ use crate::common::types::*;
 use crate::entry::companion_device_auth_ffi::{
     CompanionBeginAddHostBindingInputFfi, CompanionBeginAddHostBindingOutputFfi, CompanionEndAddHostBindingInputFfi,
     CompanionEndAddHostBindingOutputFfi, CompanionInitKeyNegotiationInputFfi, CompanionInitKeyNegotiationOutputFfi,
-    CompanionProcessCheckInputFfi, DataArray1024Ffi, DeviceKeyFfi, PersistedHostBindingStatusFfi,
+    CompanionProcessCheckInputFfi, DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi, PersistedHostBindingStatusFfi,
 };
 use crate::impls::default_companion_db_manager::CURRENT_VERSION;
 use crate::jobs::companion_db_helper;
@@ -289,7 +289,7 @@ impl CompanionRequest for CompanionDeviceEnrollRequest {
 
         self.parse_key_nego_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_key_nego_sec_message()?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message = DataArray20000Ffi::try_from(sec_message).map_err(|e| p!(e))?;
         Ok(())
     }
 

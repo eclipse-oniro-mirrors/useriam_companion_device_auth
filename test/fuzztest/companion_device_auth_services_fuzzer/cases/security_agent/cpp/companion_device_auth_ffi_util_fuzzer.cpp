@@ -27,13 +27,6 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-namespace {
-const uint32_t TEST_VAL256 = 256;
-const uint32_t TEST_VAL64 = 64;
-const uint32_t TEST_VAL10 = 10;
-const uint32_t TEST_VAL16 = 16;
-const uint32_t TEST_VAL1024 = 1024;
-} // namespace
 
 using CompanionDeviceAuthFfiUtilFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 

@@ -60,14 +60,13 @@ ohos_source_set("companion_device_auth_proxy") {
       filter_include(output_file_path,
                      [ "*ipc_set_device_select_result_callback_proxy.cpp" ])
 
-  configs = [
-    "${companion_device_auth_path}/common:companion_device_auth_common_config",
-  ]
-
   public_configs = [ ":companion_device_auth_native_ipc_config" ]
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
 
-  deps = [ ":companion_device_auth_ipc_interface" ]
+  deps = [
+    ":companion_device_auth_ipc_interface",
+    "${companion_device_auth_path}/common:companion_device_auth_common",
+  ]
 
   external_deps = [
     "c_utils:utils",
@@ -102,14 +101,13 @@ ohos_source_set("companion_device_auth_stub") {
       filter_include(output_file_path,
                      [ "*ipc_set_device_select_result_callback_stub.cpp" ])
 
-  configs = [
-    "${companion_device_auth_path}/common:companion_device_auth_common_config",
-  ]
-
   public_configs = [ ":companion_device_auth_native_ipc_config" ]
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
 
-  deps = [ ":companion_device_auth_ipc_interface" ]
+  deps = [
+    ":companion_device_auth_ipc_interface",
+    "${companion_device_auth_path}/common:companion_device_auth_common",
+  ]
 
   external_deps = [
     "c_utils:utils",

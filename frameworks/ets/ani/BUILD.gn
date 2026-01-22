@@ -69,10 +69,6 @@ taihe_shared_library("companiondeviceauth_ani") {
 
   sanitize = companion_device_auth_sanitize
 
-  configs = [
-    "${companion_device_auth_path}/common:companion_device_auth_common_config",
-  ]
-
   deps = [
     ":companion_device_auth_taihe",
     "${companion_device_auth_path}/frameworks/native/client:companion_device_auth_client",

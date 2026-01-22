@@ -211,6 +211,12 @@ ResultCode CompanionDeviceAuthServiceInner::SubscribeAvailableDeviceStatus(int32
         return ResultCode::INVALID_PARAMETERS;
     }
 
+    if (localUserId != GetUserIdManager().GetActiveUserId()) {
+        IAM_LOGE("userId %{public}d is not the active user id %{public}d", localUserId,
+            GetUserIdManager().GetActiveUserId());
+        return ResultCode::GENERAL_ERROR;
+    }
+
     subscriptionManager_.AddAvailableDeviceStatusCallback(localUserId, deviceStatusCallback);
     IAM_LOGI("End");
     return ResultCode::SUCCESS;
@@ -237,6 +243,12 @@ ResultCode CompanionDeviceAuthServiceInner::SubscribeTemplateStatusChange(int32_
     if (templateStatusCallback == nullptr) {
         IAM_LOGE("templateStatusCallback is nullptr");
         return ResultCode::INVALID_PARAMETERS;
+    }
+
+    if (localUserId != GetUserIdManager().GetActiveUserId()) {
+        IAM_LOGE("userId %{public}d is not the active user id %{public}d", localUserId,
+            GetUserIdManager().GetActiveUserId());
+        return ResultCode::GENERAL_ERROR;
     }
 
     subscriptionManager_.AddTemplateStatusCallback(localUserId, templateStatusCallback);
@@ -266,6 +278,12 @@ ResultCode CompanionDeviceAuthServiceInner::SubscribeContinuousAuthStatusChange(
     if (continuousAuthStatusCallback == nullptr) {
         IAM_LOGE("continuousAuthStatusCallback is nullptr");
         return ResultCode::INVALID_PARAMETERS;
+    }
+
+    if (subscribeContinuousAuthStatusParam.localUserId != GetUserIdManager().GetActiveUserId()) {
+        IAM_LOGE("userId %{public}d is not the active user id %{public}d",
+            subscribeContinuousAuthStatusParam.localUserId, GetUserIdManager().GetActiveUserId());
+        return ResultCode::GENERAL_ERROR;
     }
 
     std::optional<TemplateId> subscriptionTemplateId = std::nullopt;
@@ -336,8 +354,15 @@ ResultCode CompanionDeviceAuthServiceInner::GetTemplateStatus(int32_t localUserI
     std::vector<IpcTemplateStatus> &templateStatusArray)
 {
     IAM_LOGI("Start");
+
+    if (localUserId != GetUserIdManager().GetActiveUserId()) {
+        IAM_LOGE("userId %{public}d is not the active user id %{public}d", localUserId,
+            GetUserIdManager().GetActiveUserId());
+        return ResultCode::GENERAL_ERROR;
+    }
+
     std::vector<CompanionStatus> companionStatusList = GetCompanionManager().GetAllCompanionStatus();
-    std::optional<int64_t> manageSubscribeTime = GetCrossDeviceCommManager().GetManageSubscribeTime();
+    std::optional<SteadyTimeMs> manageSubscribeTime = GetCrossDeviceCommManager().GetManageSubscribeTime();
 
     for (const auto &status : companionStatusList) {
         if (status.hostUserId != localUserId) {

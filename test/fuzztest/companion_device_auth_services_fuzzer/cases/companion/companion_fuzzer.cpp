@@ -28,9 +28,6 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-namespace {
-const uint32_t TEST_VAL64 = 64;
-}
 
 using CompanionFuzzFunction = void (*)(std::shared_ptr<Companion> &companion, FuzzedDataProvider &fuzzData);
 
@@ -126,7 +123,7 @@ void FuzzCompanion(FuzzedDataProvider &fuzzData)
     auto mockManager = std::make_shared<CompanionManagerImpl>();
     auto managerWeakPtr = std::weak_ptr<CompanionManagerImpl>(mockManager);
 
-    auto companion = Companion::Create(persistedStatus, managerWeakPtr);
+    auto companion = Companion::Create(persistedStatus, false, managerWeakPtr);
     if (!companion) {
         return;
     }
