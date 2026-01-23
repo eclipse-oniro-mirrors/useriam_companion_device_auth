@@ -16,6 +16,7 @@
 extern crate alloc;
 
 use crate::commands::common_command::{companion_status_vec_to_ffi, host_binding_status_vec_to_ffi};
+use crate::ensure_or_return_val;
 use crate::common::constants::*;
 use crate::common::types::*;
 use crate::entry::companion_device_auth_ffi::CommandId;
@@ -35,13 +36,10 @@ use crate::request::token_issue::host_issue_token::HostDeviceIssueTokenRequest;
 use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainTokenRequest;
 use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenRequest;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{
-    CompanionRequest, CompanionRequestManagerRegistry, CompanionRequestParam,
-};
+use crate::traits::request_manager::{Request, RequestManagerRegistry, RequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::CompanionDeviceInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::{HostRequest, HostRequestManagerRegistry, HostRequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::message_codec::MessageCodec;
@@ -147,9 +145,9 @@ pub fn host_begin_companion_check(
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_companion_check start");
     let mut sync_status_request = HostDeviceSyncStatusRequest::new(&input)?;
-    let param = HostRequestParam::SyncStatusBegin(&input, output);
+    let param = RequestParam::HostSyncStatusBegin(&input, output);
     sync_status_request.begin(param)?;
-    HostRequestManagerRegistry::get_mut().add_request(Box::new(sync_status_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(sync_status_request))?;
     Ok(())
 }
 
@@ -159,8 +157,8 @@ pub fn host_end_companion_check(
     output: &mut HostEndCompanionCheckOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_companion_check start");
-    let mut sync_status_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = HostRequestParam::SyncStatusEnd(&input, output);
+    let mut sync_status_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::HostSyncStatusEnd(&input, output);
     sync_status_request.end(param)?;
     Ok(())
 }
@@ -171,7 +169,7 @@ pub fn host_cancel_companion_check(
     _output: &mut HostCancelCompanionCheckOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_companion_check start");
-    HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     Ok(())
 }
 
@@ -182,9 +180,9 @@ pub fn host_get_init_key_negotiation(
 ) -> Result<(), ErrorCode> {
     log_i!("host_get_init_key_negotiation start");
     let mut enroll_request = HostDeviceEnrollRequest::new(&input)?;
-    let param = HostRequestParam::KeyNego(&input, output);
+    let param = RequestParam::HostKeyNego(&input, output);
     enroll_request.prepare(param)?;
-    HostRequestManagerRegistry::get_mut().add_request(Box::new(enroll_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(enroll_request))?;
     Ok(())
 }
 
@@ -194,8 +192,8 @@ pub fn host_begin_add_companion(
     output: &mut HostBeginAddCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_add_companion start");
-    let enroll_request = HostRequestManagerRegistry::get_mut().get_request(input.request_id)?;
-    let param = HostRequestParam::EnrollBegin(&input, output);
+    let enroll_request = RequestManagerRegistry::get_mut().get_request(input.request_id)?;
+    let param = RequestParam::HostEnrollBegin(&input, output);
     enroll_request.begin(param)?;
     Ok(())
 }
@@ -206,8 +204,8 @@ pub fn host_end_add_companion(
     output: &mut HostEndAddCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_add_companion start");
-    let mut enroll_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = HostRequestParam::EnrollEnd(&input, output);
+    let mut enroll_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::HostEnrollEnd(&input, output);
     enroll_request.end(param)?;
     Ok(())
 }
@@ -218,7 +216,7 @@ pub fn host_cancel_add_companion(
     _output: &mut HostCancelAddCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_add_companion start");
-    HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     Ok(())
 }
 
@@ -244,9 +242,9 @@ pub fn host_pre_issue_token(
 ) -> Result<(), ErrorCode> {
     log_i!("host_pre_issue_token start");
     let mut issue_token_request = HostDeviceIssueTokenRequest::new(&input)?;
-    let param = HostRequestParam::IssueTokenPrepare(&input, output);
+    let param = RequestParam::HostIssueTokenPrepare(&input, output);
     issue_token_request.prepare(param)?;
-    HostRequestManagerRegistry::get_mut().add_request(Box::new(issue_token_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(issue_token_request))?;
     Ok(())
 }
 
@@ -256,9 +254,9 @@ pub fn host_begin_issue_token(
     output: &mut HostBeginIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_issue_token start");
-    let issue_token_request: &mut dyn HostRequest =
-        HostRequestManagerRegistry::get_mut().get_request(input.request_id)?;
-    let param = HostRequestParam::IssueTokenBegin(&input, output);
+    let issue_token_request: &mut dyn Request =
+        RequestManagerRegistry::get_mut().get_request(input.request_id)?;
+    let param = RequestParam::HostIssueTokenBegin(&input, output);
     issue_token_request.begin(param)?;
     Ok(())
 }
@@ -269,8 +267,8 @@ pub fn host_end_issue_token(
     output: &mut HostEndIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_issue_token start");
-    let mut issue_token_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = HostRequestParam::IssueTokenEnd(&input, output);
+    let mut issue_token_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::HostIssueTokenEnd(&input, output);
     issue_token_request.end(param)?;
     Ok(())
 }
@@ -281,7 +279,7 @@ pub fn host_cancel_issue_token(
     _output: &mut HostCancelIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_issue_token start");
-    HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     Ok(())
 }
 
@@ -292,9 +290,9 @@ pub fn host_begin_token_auth(
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_token_auth start");
     let mut token_auth_request = HostTokenAuthRequest::new(&input)?;
-    let param = HostRequestParam::TokenAuthBegin(&input, output);
+    let param = RequestParam::HostTokenAuthBegin(&input, output);
     token_auth_request.begin(param)?;
-    HostRequestManagerRegistry::get_mut().add_request(Box::new(token_auth_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(token_auth_request))?;
     Ok(())
 }
 
@@ -304,8 +302,8 @@ pub fn host_end_token_auth(
     output: &mut HostEndTokenAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_token_auth start");
-    let mut token_auth_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = HostRequestParam::TokenAuthEnd(&input, output);
+    let mut token_auth_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::HostTokenAuthEnd(&input, output);
     token_auth_request.end(param)?;
     Ok(())
 }
@@ -354,9 +352,9 @@ pub fn host_begin_delegate_auth(
 ) -> Result<(), ErrorCode> {
     log_i!("host_begin_delegate_auth start");
     let mut delegate_auth_request = HostDelegateAuthRequest::new(&input)?;
-    let param = HostRequestParam::DelegateAuthBegin(&input, output);
+    let param = RequestParam::HostDelegateAuthBegin(&input, output);
     delegate_auth_request.begin(param)?;
-    HostRequestManagerRegistry::get_mut().add_request(Box::new(delegate_auth_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(delegate_auth_request))?;
     Ok(())
 }
 
@@ -366,8 +364,8 @@ pub fn host_end_delegate_auth(
     output: &mut HostEndDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_end_delegate_auth start");
-    let mut delegate_auth_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = HostRequestParam::DelegateAuthEnd(&input, output);
+    let mut delegate_auth_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::HostDelegateAuthEnd(&input, output);
     delegate_auth_request.end(param)?;
     Ok(())
 }
@@ -378,7 +376,7 @@ pub fn host_cancel_delegate_auth(
     _output: &mut HostCancelDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_delegate_auth start");
-    HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     Ok(())
 }
 
@@ -389,9 +387,9 @@ pub fn host_process_pre_obtain_token(
 ) -> Result<(), ErrorCode> {
     log_i!("host_process_pre_obtain_token start");
     let mut obtain_token_request = HostDeviceObtainTokenRequest::new(&input)?;
-    let param = HostRequestParam::ObtainTokenBegin(&input, output);
+    let param = RequestParam::HostObtainTokenBegin(&input, output);
     obtain_token_request.begin(param)?;
-    HostRequestManagerRegistry::get_mut().add_request(Box::new(obtain_token_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(obtain_token_request))?;
     Ok(())
 }
 
@@ -401,8 +399,8 @@ pub fn host_process_obtain_token(
     output: &mut HostProcessObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_process_obtain_token start");
-    let mut obtain_token_request = HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = HostRequestParam::ObtainTokenEnd(&input, output);
+    let mut obtain_token_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::HostObtainTokenEnd(&input, output);
     obtain_token_request.end(param)?;
     Ok(())
 }
@@ -413,7 +411,7 @@ pub fn host_cancel_obtain_token(
     _output: &mut HostCancelObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("host_cancel_obtain_token start");
-    HostRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     Ok(())
 }
 
@@ -498,7 +496,7 @@ pub fn companion_process_check(
 ) -> Result<(), ErrorCode> {
     log_i!("companion_process_check start");
     let mut sync_status_request = CompanionDeviceSyncStatusRequest::new(&input)?;
-    let param = CompanionRequestParam::SyncStatus(&input, output);
+    let param = RequestParam::CompanionSyncStatus(&input, output);
     sync_status_request.begin(param)?;
     Ok(())
 }
@@ -510,9 +508,9 @@ pub fn companion_init_key_negotiation(
 ) -> Result<(), ErrorCode> {
     log_i!("companion_init_key_negotiation start");
     let mut enroll_request = CompanionDeviceEnrollRequest::new(&input)?;
-    let param = CompanionRequestParam::KeyNego(&input, output);
+    let param = RequestParam::CompanionKeyNego(&input, output);
     enroll_request.prepare(param)?;
-    CompanionRequestManagerRegistry::get_mut().add_request(Box::new(enroll_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(enroll_request))?;
     Ok(())
 }
 
@@ -522,8 +520,8 @@ pub fn companion_begin_add_host_binding(
     output: &mut CompanionBeginAddHostBindingOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_begin_add_host_binding start");
-    let enroll_request = CompanionRequestManagerRegistry::get_mut().get_request(input.request_id)?;
-    let param = CompanionRequestParam::EnrollBegin(&input, output);
+    let enroll_request = RequestManagerRegistry::get_mut().get_request(input.request_id)?;
+    let param = RequestParam::CompanionEnrollBegin(&input, output);
     enroll_request.begin(param)?;
     Ok(())
 }
@@ -534,8 +532,8 @@ pub fn companion_end_add_host_binding(
     output: &mut CompanionEndAddHostBindingOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_end_add_host_binding start");
-    let mut enroll_request = CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = CompanionRequestParam::EnrollEnd(&input, output);
+    let mut enroll_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::CompanionEnrollEnd(&input, output);
     enroll_request.end(param)?;
     Ok(())
 }
@@ -556,9 +554,9 @@ pub fn companion_pre_issue_token(
     output: &mut CompanionPreIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     let mut issue_token_request = CompanionDeviceIssueTokenRequest::new(&input)?;
-    let param = CompanionRequestParam::IssueTokenBegin(&input, output);
+    let param = RequestParam::CompanionIssueTokenBegin(&input, output);
     issue_token_request.begin(param)?;
-    CompanionRequestManagerRegistry::get_mut().add_request(Box::new(issue_token_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(issue_token_request))?;
     Ok(())
 }
 
@@ -568,8 +566,8 @@ pub fn companion_process_issue_token(
     output: &mut CompanionProcessIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_process_issue_token start");
-    let mut issue_token_request = CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = CompanionRequestParam::IssueTokenEnd(&input, output);
+    let mut issue_token_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::CompanionIssueTokenEnd(&input, output);
     issue_token_request.end(param)?;
     Ok(())
 }
@@ -580,7 +578,7 @@ pub fn companion_cancel_issue_token(
     _output: &mut CompanionCancelIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_cancel_issue_token start");
-    CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     Ok(())
 }
 
@@ -591,7 +589,7 @@ pub fn companion_process_token_auth(
 ) -> Result<(), ErrorCode> {
     log_i!("companion_process_token_auth start");
     let mut token_auth_request = CompanionTokenAuthRequest::new(&input)?;
-    let param = CompanionRequestParam::TokenAuthBegin(&input, output);
+    let param = RequestParam::CompanionTokenAuthBegin(&input, output);
     token_auth_request.begin(param)?;
     Ok(())
 }
@@ -613,9 +611,9 @@ pub fn companion_begin_delegate_auth(
 ) -> Result<(), ErrorCode> {
     log_i!("companion_begin_delegate_auth start");
     let mut delagate_auth_request = CompanionDelegateAuthRequest::new(&input)?;
-    let param = CompanionRequestParam::DelegateAuthBegin(&input, output);
+    let param = RequestParam::CompanionDelegateAuthBegin(&input, output);
     delagate_auth_request.begin(param)?;
-    CompanionRequestManagerRegistry::get_mut().add_request(Box::new(delagate_auth_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(delagate_auth_request))?;
     Ok(())
 }
 
@@ -625,8 +623,8 @@ pub fn companion_end_delegate_auth(
     output: &mut CompanionEndDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_end_delegate_auth start");
-    let mut delagate_auth_request = CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = CompanionRequestParam::DelegateAuthEnd(&input, output);
+    let mut delagate_auth_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::CompanionDelegateAuthEnd(&input, output);
     delagate_auth_request.end(param)?;
     Ok(())
 }
@@ -638,9 +636,9 @@ pub fn companion_begin_obtain_token(
 ) -> Result<(), ErrorCode> {
     log_i!("companion_begin_obtain_token start");
     let mut obtain_token_request = CompanionDeviceObtainTokenRequest::new(&input)?;
-    let param = CompanionRequestParam::ObtainTokenBegin(&input, output);
+    let param = RequestParam::CompanionObtainTokenBegin(&input, output);
     obtain_token_request.begin(param)?;
-    CompanionRequestManagerRegistry::get_mut().add_request(Box::new(obtain_token_request))?;
+    RequestManagerRegistry::get_mut().add_request(Box::new(obtain_token_request))?;
     Ok(())
 }
 
@@ -650,8 +648,8 @@ pub fn companion_end_obtain_token(
     output: &mut CompanionEndObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_end_obtain_token start");
-    let mut obtain_token_request = CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
-    let param = CompanionRequestParam::ObtainTokenEnd(&input, output);
+    let mut obtain_token_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    let param = RequestParam::CompanionObtainTokenEnd(&input, output);
     obtain_token_request.end(param)?;
     Ok(())
 }
@@ -662,6 +660,6 @@ pub fn companion_cancel_obtain_token(
     _output: &mut CompanionCancelObtainTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     log_i!("companion_cancel_obtain_token start");
-    CompanionRequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     Ok(())
 }

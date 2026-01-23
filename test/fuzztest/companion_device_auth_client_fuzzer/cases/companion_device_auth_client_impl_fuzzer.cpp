@@ -34,7 +34,6 @@ namespace CompanionDeviceAuth {
 
 // Fuzz test constants
 constexpr int32_t INT32_NEG10 = -10;
-constexpr int32_t INT32_5 = 5;
 constexpr int32_t INT32_10 = 10;
 constexpr int32_t INT32_100000 = 100000;
 constexpr uint32_t UINT32_1 = 1;
@@ -215,7 +214,7 @@ private:
 // Fuzz test callbacks
 class FuzzMockDeviceSelectCallback : public IDeviceSelectCallback {
 public:
-    ~FuzzMockDeviceSelectCallback() = default;
+    ~FuzzMockDeviceSelectCallback() override = default;
     void OnDeviceSelect(int32_t selectPurpose, const std::shared_ptr<SetDeviceSelectResultCallback> &callback) override
     {
         (void)selectPurpose;
@@ -228,7 +227,7 @@ public:
     explicit FuzzMockTemplateStatusCallback(int32_t userId) : userId_(userId)
     {
     }
-    ~FuzzMockTemplateStatusCallback() = default;
+    ~FuzzMockTemplateStatusCallback() override = default;
     int32_t GetUserId() override
     {
         return userId_;
@@ -247,7 +246,7 @@ public:
     explicit FuzzMockAvailableDeviceStatusCallback(int32_t userId) : userId_(userId)
     {
     }
-    ~FuzzMockAvailableDeviceStatusCallback() = default;
+    ~FuzzMockAvailableDeviceStatusCallback() override = default;
     int32_t GetUserId() override
     {
         return userId_;
@@ -268,7 +267,7 @@ public:
           templateId_(templateId)
     {
     }
-    ~FuzzMockContinuousAuthStatusCallback() = default;
+    ~FuzzMockContinuousAuthStatusCallback() override = default;
     int32_t GetUserId() override
     {
         return userId_;
@@ -711,7 +710,7 @@ static void FuzzOp18(FuzzedDataProvider &fuzzData)
     std::vector<int32_t> businessIds;
     size_t vectorSize = fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_5);
     for (size_t i = 0; i < vectorSize; ++i) {
-        businessIds.push_back(fuzzData.ConsumeIntegralInRange<int32_t>(INT32_1, INT32_10));
+        businessIds.push_back(fuzzData.ConsumeIntegralInRange<int32_t>(1, INT32_10));
     }
     client.UpdateTemplateEnabledBusinessIds(templateId, businessIds);
 

@@ -17,6 +17,7 @@
 
 #include "securec.h"
 
+#include "iam_check.h"
 #include "iam_logger.h"
 
 #include "common_defines.h"
@@ -91,11 +92,8 @@ SecurityCommandAdapterImpl::SecurityCommandAdapterImpl()
 
 std::shared_ptr<SecurityCommandAdapterImpl> SecurityCommandAdapterImpl::Create()
 {
-    auto adapter = std::shared_ptr<SecurityCommandAdapterImpl>(new SecurityCommandAdapterImpl());
-    if (adapter == nullptr) {
-        IAM_LOGE("Failed to create SecurityCommandAdapterImpl");
-        return nullptr;
-    }
+    auto adapter = std::shared_ptr<SecurityCommandAdapterImpl>(new (std::nothrow) SecurityCommandAdapterImpl());
+    ENSURE_OR_RETURN_VAL(adapter != nullptr, nullptr);
     ResultCode ret = adapter->Initialize();
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("Failed to initialize SecurityCommandAdapterImpl");
@@ -156,7 +154,7 @@ ResultCode SecurityCommandAdapterImpl::InvokeCommand(int32_t commandId, const ui
         return ConvertRustErrorCode(result);
     }
 
-    CommonOutput commonOutput;
+    CommonOutput commonOutput {};
     if (!DecodeCommonOutput(commonOutputFfi, commonOutput)) {
         IAM_LOGE("command %{public}d failed to convert CommonOutputFfi", commandId);
         return ResultCode::GENERAL_ERROR;

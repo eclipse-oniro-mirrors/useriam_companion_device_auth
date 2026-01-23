@@ -24,7 +24,7 @@ use crate::request::token_auth::host_auth::{HostTokenAuthRequest, TOKEN_VALID_PE
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo, DeviceKey, UserInfo};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
-use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
@@ -168,7 +168,7 @@ fn host_token_auth_request_prepare_test_not_implemented() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -199,7 +199,7 @@ fn host_token_auth_request_begin_test_wrong_input_type() {
     };
 
     let mut output = HostEndTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthEnd(&wrong_input, &mut output);
+    let param = RequestParam::HostTokenAuthEnd(&wrong_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -223,7 +223,7 @@ fn host_token_auth_request_begin_test_schedule_id_mismatch() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -247,7 +247,7 @@ fn host_token_auth_request_begin_test_template_id_not_found() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -271,7 +271,7 @@ fn host_token_auth_request_begin_test_atl_try_from_fail() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -299,7 +299,7 @@ fn host_token_auth_request_begin_test_get_device_fail() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
@@ -329,7 +329,7 @@ fn host_token_auth_request_begin_test_secure_protocol_id_not_support() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -360,7 +360,7 @@ fn host_token_auth_request_begin_test_get_token_fail() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
@@ -399,7 +399,7 @@ fn host_token_auth_request_begin_test_get_rtc_time_fail() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -433,7 +433,7 @@ fn host_token_auth_request_begin_test_token_time_bad() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -467,7 +467,7 @@ fn host_token_auth_request_begin_test_token_expired() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -504,7 +504,7 @@ fn host_token_auth_request_begin_test_get_session_key_fail() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
@@ -552,7 +552,7 @@ fn host_token_auth_request_begin_test_aes_gcm_encrypt_fail() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -576,7 +576,7 @@ fn host_token_auth_request_end_test_wrong_input_type() {
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -614,7 +614,7 @@ fn host_token_auth_request_end_test_get_token_fail() {
     };
 
     let mut output = HostEndTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostTokenAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -657,7 +657,7 @@ fn host_token_auth_request_end_test_hmac_sha256_fail() {
     };
 
     let mut output = HostEndTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostTokenAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -700,7 +700,7 @@ fn host_token_auth_request_end_test_hmac_verification_fail() {
     };
 
     let mut output = HostEndTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostTokenAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -749,7 +749,7 @@ fn host_token_auth_request_end_test_get_local_key_pair_fail() {
     };
 
     let mut output = HostEndTokenAuthOutputFfi::default();
-    let param = HostRequestParam::TokenAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostTokenAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

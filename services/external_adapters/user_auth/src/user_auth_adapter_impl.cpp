@@ -25,11 +25,10 @@
 
 #include "xcollie_helper.h"
 
+#include "task_runner_manager.h"
 #include "user_auth_client.h"
 #include "user_auth_client_callback.h"
 
-#undef LOG_DOMAIN
-#define LOG_DOMAIN 0xD002510
 #undef LOG_TAG
 #define LOG_TAG "CDA_SA"
 
@@ -55,15 +54,24 @@ public:
         }
         std::vector<uint8_t> token;
         if (result != UserAuth::ResultCode::SUCCESS) {
-            callback_(result, token);
+            PostCallbackToResident(result, token);
             return;
         }
         if (!extraInfo.GetUint8ArrayValue(UserAuth::Attributes::AttributeKey::ATTR_SIGNATURE, token)) {
             IAM_LOGE("Get token fail");
-            callback_(UserAuth::ResultCode::GENERAL_ERROR, token);
+            PostCallbackToResident(UserAuth::ResultCode::GENERAL_ERROR, token);
             return;
         }
-        callback_(result, token);
+        PostCallbackToResident(result, token);
+    }
+
+    void PostCallbackToResident(int32_t result, const std::vector<uint8_t> &token)
+    {
+        TaskRunnerManager::GetInstance().PostTaskOnResident([cb = callback_, result, tokenCopy = token]() {
+            if (cb) {
+                cb(result, tokenCopy);
+            }
+        });
     }
 
     void OnAcquireInfo(int32_t module, uint32_t acquireInfo, const UserAuth::Attributes &extraInfo) override

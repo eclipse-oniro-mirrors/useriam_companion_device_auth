@@ -61,6 +61,7 @@ public:
     virtual ~ICompanionManager() = default;
 
     virtual void Initialize() = 0;
+
     virtual std::optional<CompanionStatus> GetCompanionStatus(TemplateId templateId) = 0;
     virtual std::optional<CompanionStatus> GetCompanionStatus(UserId hostUserId,
         const DeviceKey &companionDeviceKey) = 0;
@@ -83,11 +84,9 @@ public:
 
     virtual ResultCode UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg,
         bool &needRedistribute) = 0;
-
-    virtual ResultCode HandleCompanionCheckFail(TemplateId templateId) = 0;
-
     virtual void StartIssueTokenRequests(const std::vector<TemplateId> &templateIds,
         const std::vector<uint8_t> &fwkUnlockMsg) = 0;
+    virtual ResultCode HandleCompanionCheckFail(TemplateId templateId) = 0;
 
     virtual void NotifyCompanionStatusChange() = 0;
     virtual void HandleRemoveHostBindingComplete(TemplateId templateId) = 0;

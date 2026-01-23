@@ -289,7 +289,7 @@ ResultCode CompanionDeviceAuthServiceInner::SubscribeContinuousAuthStatusChange(
     std::optional<TemplateId> subscriptionTemplateId = std::nullopt;
     if (subscribeContinuousAuthStatusParam.hasTemplateId) {
         HostCheckTemplateEnrolledInput checkInput { .templateId = subscribeContinuousAuthStatusParam.templateId };
-        HostCheckTemplateEnrolledOutput checkOutput;
+        HostCheckTemplateEnrolledOutput checkOutput {};
         ResultCode ret = GetSecurityAgent().HostCheckTemplateEnrolled(checkInput, checkOutput);
         ENSURE_OR_RETURN_VAL(ret == ResultCode::SUCCESS, ResultCode::GENERAL_ERROR);
         if (!checkOutput.enrolled) {
@@ -370,7 +370,7 @@ ResultCode CompanionDeviceAuthServiceInner::GetTemplateStatus(int32_t localUserI
             continue;
         }
 
-        IpcTemplateStatus ipcStatus;
+        IpcTemplateStatus ipcStatus {};
         ipcStatus.templateId = status.templateId;
         ipcStatus.isConfirmed =
             manageSubscribeTime.has_value() && (status.lastCheckTime >= manageSubscribeTime.value());
@@ -382,7 +382,7 @@ ResultCode CompanionDeviceAuthServiceInner::GetTemplateStatus(int32_t localUserI
             ipcStatus.enabledBusinessIds.push_back(static_cast<int>(id));
         }
 
-        IpcDeviceStatus ipcDeviceStatus;
+        IpcDeviceStatus ipcDeviceStatus {};
         ipcDeviceStatus.deviceKey.deviceIdType = static_cast<int32_t>(status.companionDeviceStatus.deviceKey.idType);
         ipcDeviceStatus.deviceKey.deviceId = status.companionDeviceStatus.deviceKey.deviceId;
         ipcDeviceStatus.deviceKey.deviceUserId = status.companionDeviceStatus.deviceKey.deviceUserId;

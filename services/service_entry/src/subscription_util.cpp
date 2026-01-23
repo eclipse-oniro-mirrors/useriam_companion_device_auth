@@ -24,7 +24,7 @@ namespace CompanionDeviceAuth {
 
 IpcDeviceStatus ConvertToIpcDeviceStatus(const DeviceStatus &status)
 {
-    IpcDeviceStatus ipcStatus;
+    IpcDeviceStatus ipcStatus {};
     ipcStatus.deviceKey.deviceIdType = static_cast<int32_t>(status.deviceKey.idType);
     ipcStatus.deviceKey.deviceId = status.deviceKey.deviceId;
     ipcStatus.deviceKey.deviceUserId = status.deviceKey.deviceUserId;
@@ -43,7 +43,7 @@ IpcDeviceStatus ConvertToIpcDeviceStatus(const DeviceStatus &status)
 IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionStatus,
     const std::optional<int64_t> &manageSubscribeTime)
 {
-    IpcTemplateStatus ipcStatus;
+    IpcTemplateStatus ipcStatus {};
     ipcStatus.templateId = companionStatus.templateId;
     ipcStatus.isConfirmed =
         manageSubscribeTime.has_value() && (companionStatus.lastCheckTime >= manageSubscribeTime.value());

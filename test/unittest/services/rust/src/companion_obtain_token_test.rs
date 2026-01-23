@@ -23,7 +23,7 @@ use crate::request::jobs::common_message::SecIssueToken;
 use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainTokenRequest;
 use crate::request::token_obtain::token_obtain_message::{FwkObtainTokenRequest, SecPreObtainTokenRequest};
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{HostDeviceSk, HostTokenInfo};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
@@ -120,7 +120,7 @@ fn companion_obtain_token_request_prepare_test_not_implemented() {
     let mut request = CompanionDeviceObtainTokenRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenBegin(&input, &mut output);
+    let param = RequestParam::CompanionObtainTokenBegin(&input, &mut output);
     let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -147,7 +147,7 @@ fn companion_obtain_token_request_begin_test_wrong_input_type() {
     };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&wrong_input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&wrong_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -174,7 +174,7 @@ fn companion_obtain_token_request_begin_test_property_mode_not_unfreeze() {
     let mut request = CompanionDeviceObtainTokenRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenBegin(&input, &mut output);
+    let param = RequestParam::CompanionObtainTokenBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -200,7 +200,7 @@ fn companion_obtain_token_request_begin_test_auth_type_not_companion_device() {
     let mut request = CompanionDeviceObtainTokenRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenBegin(&input, &mut output);
+    let param = RequestParam::CompanionObtainTokenBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -227,7 +227,7 @@ fn companion_obtain_token_request_begin_test_atl_try_from_fail() {
     let mut request = CompanionDeviceObtainTokenRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenBegin(&input, &mut output);
+    let param = RequestParam::CompanionObtainTokenBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -257,7 +257,7 @@ fn companion_obtain_token_request_begin_test_decode_sec_message_fail() {
     let mut request = CompanionDeviceObtainTokenRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenBegin(&input, &mut output);
+    let param = RequestParam::CompanionObtainTokenBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -296,7 +296,7 @@ fn companion_obtain_token_request_begin_test_get_session_key_fail() {
     let mut request = CompanionDeviceObtainTokenRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenBegin(&input, &mut output);
+    let param = RequestParam::CompanionObtainTokenBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
@@ -346,7 +346,7 @@ fn companion_obtain_token_request_begin_test_aes_gcm_encrypt_fail() {
     let mut request = CompanionDeviceObtainTokenRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenBegin(&input, &mut output);
+    let param = RequestParam::CompanionObtainTokenBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -367,7 +367,7 @@ fn companion_obtain_token_request_end_test_wrong_input_type() {
     let mut request = CompanionDeviceObtainTokenRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenBegin(&input, &mut output);
+    let param = RequestParam::CompanionObtainTokenBegin(&input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -398,7 +398,7 @@ fn companion_obtain_token_request_end_test_challenge_mismatch() {
     };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionEndObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let param = RequestParam::CompanionObtainTokenEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -429,7 +429,7 @@ fn companion_obtain_token_request_end_test_atl_try_from_fail() {
     };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionEndObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let param = RequestParam::CompanionObtainTokenEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -466,7 +466,7 @@ fn companion_obtain_token_request_end_test_store_token_fail() {
     };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionEndObtainTokenOutputFfi::default();
-    let param = CompanionRequestParam::ObtainTokenEnd(&end_input, &mut output);
+    let param = RequestParam::CompanionObtainTokenEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

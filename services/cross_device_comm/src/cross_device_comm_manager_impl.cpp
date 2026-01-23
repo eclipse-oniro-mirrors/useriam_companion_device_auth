@@ -53,7 +53,7 @@ std::shared_ptr<CrossDeviceCommManagerImpl> CrossDeviceCommManagerImpl::Create(
     auto deviceStatusMgr = DeviceStatusManager::Create(connectionMgr, channelMgr, localDeviceStatusMgr);
     ENSURE_OR_RETURN_VAL(deviceStatusMgr != nullptr, nullptr);
 
-    auto manager = std::shared_ptr<CrossDeviceCommManagerImpl>(new CrossDeviceCommManagerImpl(channelMgr,
+    auto manager = std::shared_ptr<CrossDeviceCommManagerImpl>(new (std::nothrow) CrossDeviceCommManagerImpl(channelMgr,
         localDeviceStatusMgr, connectionMgr, messageRouter, deviceStatusMgr));
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
 
@@ -148,7 +148,7 @@ bool CrossDeviceCommManagerImpl::OpenConnection(const DeviceKey &deviceKey, std:
         return false;
     }
 
-    PhysicalDeviceKey physicalDeviceKey;
+    PhysicalDeviceKey physicalDeviceKey {};
     physicalDeviceKey.idType = deviceKey.idType;
     physicalDeviceKey.deviceId = deviceKey.deviceId;
 

@@ -365,7 +365,7 @@ assert_max_size!(HostBeginCompanionCheckOutputFfi);
 pub struct HostEndCompanionCheckInputFfi {
     pub request_id: i32,
     pub template_id: u64,
-    pub protocal_list: Uint16Array64Ffi,
+    pub protocol_list: Uint16Array64Ffi,
     pub capability_list: Uint16Array64Ffi,
     pub secure_protocol_id: u16,
     pub sec_message: DataArray1024Ffi, /* algorithm, capability_list, challenge*/

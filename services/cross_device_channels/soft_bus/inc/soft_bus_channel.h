@@ -30,31 +30,28 @@ public:
     ~SoftBusChannel() override = default;
 
     bool Start() override;
-
     ChannelId GetChannelId() const override;
     std::optional<PhysicalDeviceKey> GetLocalPhysicalDeviceKey() const override;
 
+    SecureProtocolId GetCompanionSecureProtocolId() const override;
+    bool RequiresDisconnectNotification() const override;
+
     bool OpenConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey) override;
     void CloseConnection(const std::string &connectionName) override;
+    void OnRemoteDisconnect(const std::string &connectionName, const std::string &reason) override;
     bool SendMessage(const std::string &connectionName, const std::vector<uint8_t> &rawMsg) override;
 
     std::unique_ptr<Subscription> SubscribePhysicalDeviceStatus(OnPhysicalDeviceStatusChange &&callback) override;
+    std::unique_ptr<Subscription> SubscribeAuthMaintainActive(OnAuthMaintainActiveChange &&callback) override;
     std::unique_ptr<Subscription> SubscribeRawMessage(OnRawMessage &&callback) override;
     std::unique_ptr<Subscription> SubscribeConnectionStatus(OnConnectionStatusChange &&callback) override;
     std::unique_ptr<Subscription> SubscribeIncomingConnection(OnIncomingConnection &&callback) override;
+
     std::vector<PhysicalDeviceStatus> GetAllPhysicalDevices() const override;
-
     bool GetAuthMaintainActive() const override;
-    std::unique_ptr<Subscription> SubscribeAuthMaintainActive(OnAuthMaintainActiveChange &&callback) override;
-
-    SecureProtocolId GetCompanionSecureProtocolId() const override;
 
     bool CheckOperationIntent(const DeviceKey &deviceKey, uint32_t tokenId,
         OnCheckOperationIntentResult &&resultCallback) override;
-
-    bool RequiresDisconnectNotification() const override;
-
-    void OnRemoteDisconnect(const std::string &connectionName, const std::string &reason) override;
 
 private:
     SoftBusChannel();

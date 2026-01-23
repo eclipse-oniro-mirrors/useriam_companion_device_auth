@@ -21,7 +21,6 @@
 #include "soft_bus_adapter.h"
 #include "soft_bus_adapter_manager.h"
 #include "soft_bus_connection_manager.h"
-#include "soft_bus_global_callbacks.h"
 #include "soft_bus_socket.h"
 #include "task_runner_manager.h"
 

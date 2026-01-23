@@ -19,7 +19,6 @@ companion_device_auth_service_include_dirs = [
   "cross_device_comm/inc",
   "cross_device_interaction",
   "cross_device_interaction/add_companion/inc",
-  "cross_device_interaction/auth_maintain_state_change/inc",
   "cross_device_interaction/common/inc",
   "cross_device_interaction/handler/inc",
   "request/inc",
@@ -71,9 +70,6 @@ companion_device_auth_service_local_sources = [
   "cross_device_interaction/add_companion/src/companion_add_companion_request.cpp",
   "cross_device_interaction/add_companion/src/companion_init_key_negotiation_handler.cpp",
   "cross_device_interaction/add_companion/src/host_add_companion_request.cpp",
-  "cross_device_interaction/auth_maintain_state_change/src/auth_maintain_state_change_message.cpp",
-  "cross_device_interaction/auth_maintain_state_change/src/companion_auth_maintain_state_change_request.cpp",
-  "cross_device_interaction/auth_maintain_state_change/src/host_auth_maintain_state_change_handler.cpp",
   "cross_device_interaction/common/src/common_message.cpp",
   "cross_device_interaction/common/src/inbound_request.cpp",
   "cross_device_interaction/common/src/outbound_request.cpp",
@@ -191,7 +187,6 @@ if (companion_device_auth_has_soft_bus_channel) {
     "cross_device_channels/soft_bus/src/soft_bus_channel.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_connection_manager.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_device_status_manager.cpp",
-    "cross_device_channels/soft_bus/src/soft_bus_global_callbacks.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_socket.cpp",
   ]
   companion_device_auth_service_external_deps += [

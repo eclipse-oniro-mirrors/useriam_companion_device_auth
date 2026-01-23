@@ -103,7 +103,7 @@ std::optional<DeviceStatus> DeviceStatusManager::GetDeviceStatus(const DeviceKey
 {
     ENSURE_OR_RETURN_VAL(deviceKey.deviceUserId == activeUserId_, std::nullopt);
 
-    PhysicalDeviceKey physicalKey;
+    PhysicalDeviceKey physicalKey {};
     physicalKey.idType = deviceKey.idType;
     physicalKey.deviceId = deviceKey.deviceId;
 
@@ -119,7 +119,7 @@ std::optional<ChannelId> DeviceStatusManager::GetChannelIdByDeviceKey(const Devi
 {
     ENSURE_OR_RETURN_VAL(deviceKey.deviceUserId == activeUserId_, std::nullopt);
 
-    PhysicalDeviceKey physicalKey;
+    PhysicalDeviceKey physicalKey {};
     physicalKey.idType = deviceKey.idType;
     physicalKey.deviceId = deviceKey.deviceId;
 
@@ -145,7 +145,7 @@ std::vector<DeviceStatus> DeviceStatusManager::GetAllDeviceStatus()
 std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(OnDeviceStatusChange &&callback)
 {
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
-    DeviceStatusSubscriptionInfo info;
+    DeviceStatusSubscriptionInfo info {};
     info.subscriptionId = subscriptionId;
     info.deviceKey = std::nullopt;
     info.callback = std::move(callback);
@@ -171,7 +171,7 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
         return;
     }
 
-    PhysicalDeviceKey physicalKey;
+    PhysicalDeviceKey physicalKey {};
     physicalKey.idType = deviceKey.idType;
     physicalKey.deviceId = deviceKey.deviceId;
 
@@ -242,7 +242,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(const D
     OnDeviceStatusChange &&callback)
 {
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
-    DeviceStatusSubscriptionInfo info;
+    DeviceStatusSubscriptionInfo info {};
     info.subscriptionId = subscriptionId;
     info.deviceKey = deviceKey; // specific device
     info.callback = std::move(callback);

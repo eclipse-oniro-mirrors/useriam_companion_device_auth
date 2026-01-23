@@ -18,6 +18,7 @@
 #include <ctime>
 #include <optional>
 
+#include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_safe_arithmetic.h"
 #include "service_common.h"
@@ -31,10 +32,7 @@ namespace CompanionDeviceAuth {
 std::shared_ptr<TimeKeeperImpl> TimeKeeperImpl::Create()
 {
     auto keeper = std::shared_ptr<TimeKeeperImpl>(new (std::nothrow) TimeKeeperImpl());
-    if (keeper == nullptr) {
-        IAM_LOGE("failed to create TimeKeeperImpl");
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(keeper != nullptr, nullptr);
     return keeper;
 }
 

@@ -141,7 +141,7 @@ bool FfiArrayToVectorWithConvert(const FfiArrayType &ffiArr, std::vector<ItemTyp
             return false;
         }
         for (uint32_t i = 0; i < ffiArr.len; ++i) {
-            ItemType item;
+            ItemType item {};
             if (!convertFunc(ffiArr.data[i], item)) {
                 IAM_LOGE("Failed to convert %{public}s at index %{public}u", name, i);
                 return false;
@@ -314,7 +314,7 @@ bool EncodeHostEndCompanionCheckInput(const HostEndCompanionCheckInput &input, H
     ffi.templateId = input.templateId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
 
-    if (!VectorToFfiArray(input.protocolVersionList, ffi.protocalList, "protocal list") ||
+    if (!VectorToFfiArray(input.protocolVersionList, ffi.protocolList, "protocol list") ||
         !VectorToFfiArray(input.capabilityList, ffi.capabilityList, "capability list")) {
         return false;
     }
@@ -775,7 +775,7 @@ bool DecodeEventArray(const EventArrayFfi &ffi, std::vector<Event> &events)
     events.reserve(ffi.len);
 
     for (uint32_t i = 0; i < ffi.len; ++i) {
-        Event event;
+        Event event {};
         if (!DecodeEvent(ffi.data[i], event)) {
             IAM_LOGE("Failed to convert event at index %{public}u", i);
             return false;

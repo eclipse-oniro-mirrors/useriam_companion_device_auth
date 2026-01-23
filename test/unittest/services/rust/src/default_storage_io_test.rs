@@ -18,7 +18,25 @@ use crate::impls::default_storage_io::DefaultStorageIo;
 use crate::log_i;
 use crate::traits::storage_io::StorageIo;
 use crate::ut_registry_guard;
+use std::fs;
 use std::path::Path;
+
+/// RAII guard to ensure test files are deleted even if the test panics
+struct FileGuard<'a> {
+    file_path: &'a str,
+}
+
+impl<'a> FileGuard<'a> {
+    fn new(file_path: &'a str) -> Self {
+        Self { file_path }
+    }
+}
+
+impl<'a> Drop for FileGuard<'a> {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(self.file_path);
+    }
+}
 
 #[test]
 fn default_storage_io_new_test() {
@@ -37,8 +55,12 @@ fn default_storage_io_write_test_success() {
 
     let storage = DefaultStorageIo::new();
     let data = vec![1u8, 2, 3, 4, 5];
+    let test_file = "non_existence_file.txt";
 
-    let result = storage.write("non_existence_file.txt", &data);
+    // RAII guard ensures file is deleted even if test panics
+    let _file_guard = FileGuard::new(test_file);
+
+    let result = storage.write(test_file, &data);
     assert!(result.is_ok(), "write operation should succeed");
 }
 

@@ -24,7 +24,7 @@ use crate::request::jobs::common_message::SecCommonReply;
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
-use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::ut_registry_guard;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -173,7 +173,7 @@ fn host_delegate_auth_request_prepare_test_not_implemented() {
     let mut request = HostDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::HostDelegateAuthBegin(&input, &mut output);
     let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -200,7 +200,7 @@ fn host_delegate_auth_request_begin_test_wrong_input_type() {
         HostEndDelegateAuthInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&wrong_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&wrong_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -224,7 +224,7 @@ fn host_delegate_auth_request_end_test_wrong_input_type() {
     let mut request = HostDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::HostDelegateAuthBegin(&input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -248,7 +248,7 @@ fn host_delegate_auth_request_begin_test_schedule_id_mismatch() {
     let mut request = HostDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::HostDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -272,7 +272,7 @@ fn host_delegate_auth_request_begin_test_atl_try_from_fail() {
     let mut request = HostDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::HostDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -297,7 +297,7 @@ fn host_delegate_auth_request_begin_test_success() {
     let mut request = HostDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::HostDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert!(result.is_ok());
 }
@@ -327,7 +327,7 @@ fn host_delegate_auth_request_begin_test_read_device_capability_info_fail() {
     let mut request = HostDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::HostDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
@@ -364,7 +364,7 @@ fn host_delegate_auth_request_begin_test_get_session_key_fail() {
     let mut request = HostDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = HostBeginDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::HostDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -396,7 +396,7 @@ fn host_delegate_auth_request_end_test_success() {
     };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert!(result.is_ok());
 }
@@ -428,7 +428,7 @@ fn host_delegate_auth_request_end_test_challenge_mismatch() {
     };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -460,7 +460,7 @@ fn host_delegate_auth_request_end_test_atl_try_from_fail() {
     };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -497,7 +497,7 @@ fn host_delegate_auth_request_end_test_sec_message_decode_fail() {
         HostEndDelegateAuthInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -541,7 +541,7 @@ fn host_delegate_auth_request_end_test_get_session_key_fail() {
     };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -578,7 +578,7 @@ fn host_delegate_auth_request_end_test_try_from_bytes_fail() {
     };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -619,7 +619,7 @@ fn host_delegate_auth_request_end_test_get_type_fail() {
     };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -660,7 +660,7 @@ fn host_delegate_auth_request_end_test_get_atl_fail() {
     };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -701,7 +701,7 @@ fn host_delegate_auth_request_end_test_get_challenge_fail() {
     };
 
     let mut output = HostEndDelegateAuthOutputFfi::default();
-    let param = HostRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::HostDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

@@ -25,7 +25,7 @@ use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest, SecIssueToken};
 use crate::request::token_obtain::token_obtain_message::{FwkObtainTokenRequest, SecPreObtainTokenRequest};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostTokenInfo;
 use crate::traits::misc_manager::MiscManagerRegistry;
@@ -156,19 +156,19 @@ impl CompanionDeviceObtainTokenRequest {
     }
 }
 
-impl CompanionRequest for CompanionDeviceObtainTokenRequest {
+impl Request for CompanionDeviceObtainTokenRequest {
     fn get_request_id(&self) -> i32 {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionDeviceObtainTokenRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceObtainTokenRequest begin start");
-        let CompanionRequestParam::ObtainTokenBegin(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionObtainTokenBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -181,9 +181,9 @@ impl CompanionRequest for CompanionDeviceObtainTokenRequest {
         Ok(())
     }
 
-    fn end(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceObtainTokenRequest end start");
-        let CompanionRequestParam::ObtainTokenEnd(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionObtainTokenEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };

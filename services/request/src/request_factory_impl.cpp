@@ -21,7 +21,6 @@
 #include "iam_logger.h"
 
 #include "companion_add_companion_request.h"
-#include "companion_auth_maintain_state_change_request.h"
 #include "companion_delegate_auth_request.h"
 #include "companion_issue_token_request.h"
 #include "companion_obtain_token_request.h"
@@ -123,12 +122,6 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRevokeTokenRequest(
     const DeviceKey &hostDeviceKey)
 {
     return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey);
-}
-
-std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionAuthMaintainStateChangeRequest(
-    const DeviceKey &hostDeviceKey, bool authStateMaintain)
-{
-    return std::make_shared<CompanionAuthMaintainStateChangeRequest>(hostDeviceKey, authStateMaintain);
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostMixAuthRequest(ScheduleId scheduleId,

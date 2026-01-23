@@ -17,6 +17,7 @@ import("//build/test.gni")
 group("companion_device_auth_fuzztest") {
   testonly = true
   deps = [
+    "companion_device_auth_client_fuzzer:CompanionDeviceAuthClientFuzzer",
     "companion_device_auth_services_fuzzer:CompanionDeviceAuthServiceFuzzer",
   ]
 }

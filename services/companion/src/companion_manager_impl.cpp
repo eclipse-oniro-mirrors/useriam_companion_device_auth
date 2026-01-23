@@ -109,7 +109,7 @@ void CompanionManagerImpl::ReloadSingleCompanion(const PersistedCompanionStatus 
         ENSURE_OR_RETURN(addedTime.value() > 0);
         if (addedTime.value() >= IDM_ADD_TEMPLATE_TIMEOUT_MS) {
             HostRemoveCompanionInput input { templateId };
-            HostRemoveCompanionOutput output;
+            HostRemoveCompanionOutput output {};
             (void)GetSecurityAgent().HostRemoveCompanion(input, output);
             IAM_LOGW("Companion %{public}s not in IDM and timed out, remove companion",
                 GET_MASKED_NUM_CSTR(templateId));
@@ -296,7 +296,7 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
 ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId)
 {
     HostRemoveCompanionInput input { templateId };
-    HostRemoveCompanionOutput output;
+    HostRemoveCompanionOutput output {};
     ResultCode ret = GetSecurityAgent().HostRemoveCompanion(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("security agent failed to remove companion %{public}s, ret %{public}d",
@@ -454,7 +454,7 @@ void CompanionManagerImpl::OnActiveUserIdChanged(UserId userId)
     IAM_LOGI("Got %{public}zu templates for user %{public}d", activeUserTemplateIds.size(), hostUserId_);
 
     HostGetPersistedCompanionStatusInput input { hostUserId_ };
-    HostGetPersistedCompanionStatusOutput output;
+    HostGetPersistedCompanionStatusOutput output {};
     ResultCode ret = GetSecurityAgent().HostGetPersistedCompanionStatus(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("failed to get persisted companion status, ret %{public}d", ret);

@@ -97,9 +97,6 @@ enum class MessageType : uint16_t {
     // Revoke token (0x08xx)
     COMPANION_REVOKE_TOKEN = 0x0801,
 
-    // Auth state maintenance (0x09xx)
-    AUTH_MAINTAIN_STATE_CHANGE = 0x0901,
-
     // Companion pbtain token (0x0Axx)
     PRE_OBTAIN_TOKEN = 0x0A01,
     OBTAIN_TOKEN = 0x0A02,
@@ -275,7 +272,7 @@ struct SyncDeviceStatus {
 
 constexpr uint32_t DEFAULT_REQUEST_TIMEOUT_MS = 60 * 1000;  // 60 seconds
 constexpr uint32_t TOKEN_TIMEOUT_MS = 4 * 60 * 60 * 1000;   // 4 hours
-constexpr uint32_t IDM_ADD_TEMPLATE_TIMEOUT_MS = 10 * 1000; // 10 seconds
+constexpr uint32_t IDM_ADD_TEMPLATE_TIMEOUT_MS = 30 * 1000; // 30 seconds
 constexpr uint64_t IDLE_THRESHOLD_MS = 10 * 1000;           // 10 seconds
 constexpr uint32_t IDLE_MONITOR_INTERVAL_MS = 10 * 1000;    // 10 seconds
 constexpr uint32_t MAX_SYNC_WAIT_TIME_SEC = 2;              // 2 second

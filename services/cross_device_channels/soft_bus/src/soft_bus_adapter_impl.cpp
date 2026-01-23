@@ -25,8 +25,6 @@
 #include "softbus_error_code.h"
 #include "xcollie_helper.h"
 
-#undef LOG_DOMAIN
-#define LOG_DOMAIN 0xD002510
 #undef LOG_TAG
 #define LOG_TAG "CDA_SA"
 
@@ -119,7 +117,7 @@ std::optional<SocketId> SoftBusAdapterImpl::CreateServerSocket()
         { .qos = QOS_TYPE_MAX_WAIT_TIMEOUT, .value = QOS_MAX_WAIT_TIMEOUT },
     };
 
-    ISocketListener listener;
+    ISocketListener listener {};
     listener.OnBind = SoftBusAdapterOnBind;
     listener.OnBytes = SoftBusAdapterOnBytes;
     listener.OnShutdown = SoftBusAdapterOnShutdown;
@@ -165,7 +163,7 @@ std::optional<SocketId> SoftBusAdapterImpl::CreateClientSocket(const std::string
         { .qos = QOS_TYPE_MIN_LATENCY, .value = QOS_MIN_LATENCY },
     };
 
-    ISocketListener listener;
+    ISocketListener listener {};
     listener.OnBind = SoftBusAdapterOnBind;
     listener.OnBytes = SoftBusAdapterOnBytes;
     listener.OnShutdown = SoftBusAdapterOnShutdown;

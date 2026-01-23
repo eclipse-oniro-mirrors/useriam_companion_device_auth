@@ -39,8 +39,6 @@
 #include "misc_manager.h"
 #include "singleton_manager.h"
 
-#undef LOG_DOMAIN
-#define LOG_DOMAIN 0xD002510
 #undef LOG_TAG
 #define LOG_TAG "COMPANION_DEVICE_AUTH"
 
@@ -146,10 +144,7 @@ void IdmAdapterImpl::OnUserIdmServiceUnavailable()
 std::shared_ptr<IdmAdapterImpl> IdmAdapterImpl::Create()
 {
     auto adapter = std::shared_ptr<IdmAdapterImpl>(new (std::nothrow) IdmAdapterImpl());
-    if (adapter == nullptr) {
-        IAM_LOGE("Failed to create IdmAdapterImpl");
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(adapter != nullptr, nullptr);
 
     if (!adapter->Initialize()) {
         IAM_LOGE("Failed to initialize IdmAdapterImpl");

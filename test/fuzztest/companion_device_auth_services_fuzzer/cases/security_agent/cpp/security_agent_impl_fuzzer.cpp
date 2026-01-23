@@ -22,6 +22,7 @@
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
 #include "fuzz_registry.h"
+#include "security_agent.h"
 #include "security_agent_imp.h"
 
 namespace OHOS {
@@ -31,35 +32,35 @@ namespace {
 const size_t SIZE_T_1024 = 1024;
 }
 
-using SecurityAgentFuzzFunction = void (*)(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData);
+using SecurityAgentFuzzFunction = void (*)(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData);
 
-static void FuzzInit(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzInit(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     agent->Init();
 }
 
-static void FuzzInitialize(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzInitialize(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     agent->Initialize();
 }
 
-static void FuzzSetActiveUser(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzSetActiveUser(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     SetActiveUserInput input;
     input.userId = fuzzData.ConsumeIntegral<int32_t>();
     agent->SetActiveUser(input);
 }
 
-static void FuzzHostGetExecutorInfo(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostGetExecutorInfo(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     HostGetExecutorInfoOutput output;
     agent->HostGetExecutorInfo(output);
 }
 
-static void FuzzHostOnRegisterFinish(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostOnRegisterFinish(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     RegisterFinishInput input;
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
@@ -73,7 +74,7 @@ static void FuzzHostOnRegisterFinish(std::shared_ptr<SecurityAgentImpl> &agent, 
     agent->HostOnRegisterFinish(input);
 }
 
-static void FuzzHostGetPersistedCompanionStatus(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostGetPersistedCompanionStatus(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostGetPersistedCompanionStatusInput input;
     input.userId = fuzzData.ConsumeIntegral<int32_t>();
@@ -81,7 +82,7 @@ static void FuzzHostGetPersistedCompanionStatus(std::shared_ptr<SecurityAgentImp
     agent->HostGetPersistedCompanionStatus(input, output);
 }
 
-static void FuzzCompanionGetPersistedHostBindingStatus(std::shared_ptr<SecurityAgentImpl> &agent,
+static void FuzzCompanionGetPersistedHostBindingStatus(std::shared_ptr<ISecurityAgent> &agent,
     FuzzedDataProvider &fuzzData)
 {
     CompanionGetPersistedHostBindingStatusInput input;
@@ -90,7 +91,7 @@ static void FuzzCompanionGetPersistedHostBindingStatus(std::shared_ptr<SecurityA
     agent->CompanionGetPersistedHostBindingStatus(input, output);
 }
 
-static void FuzzHostBeginCompanionCheck(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostBeginCompanionCheck(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostBeginCompanionCheckInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -98,7 +99,7 @@ static void FuzzHostBeginCompanionCheck(std::shared_ptr<SecurityAgentImpl> &agen
     agent->HostBeginCompanionCheck(input, output);
 }
 
-static void FuzzHostEndCompanionCheck(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostEndCompanionCheck(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostEndCompanionCheckInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -114,14 +115,14 @@ static void FuzzHostEndCompanionCheck(std::shared_ptr<SecurityAgentImpl> &agent,
     agent->HostEndCompanionCheck(input);
 }
 
-static void FuzzHostCancelCompanionCheck(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostCancelCompanionCheck(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostCancelCompanionCheckInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     agent->HostCancelCompanionCheck(input);
 }
 
-static void FuzzCompanionProcessCheck(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionProcessCheck(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionProcessCheckInput input;
     input.companionCheckRequest =
@@ -130,8 +131,7 @@ static void FuzzCompanionProcessCheck(std::shared_ptr<SecurityAgentImpl> &agent,
     agent->CompanionProcessCheck(input, output);
 }
 
-static void FuzzHostGetInitKeyNegotiationRequest(std::shared_ptr<SecurityAgentImpl> &agent,
-    FuzzedDataProvider &fuzzData)
+static void FuzzHostGetInitKeyNegotiationRequest(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostGetInitKeyNegotiationRequestInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -140,7 +140,7 @@ static void FuzzHostGetInitKeyNegotiationRequest(std::shared_ptr<SecurityAgentIm
     agent->HostGetInitKeyNegotiationRequest(input, output);
 }
 
-static void FuzzHostBeginAddCompanion(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostBeginAddCompanion(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostBeginAddCompanionInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -155,7 +155,7 @@ static void FuzzHostBeginAddCompanion(std::shared_ptr<SecurityAgentImpl> &agent,
     agent->HostBeginAddCompanion(input, output);
 }
 
-static void FuzzHostEndAddCompanion(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostEndAddCompanion(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostEndAddCompanionInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -167,14 +167,14 @@ static void FuzzHostEndAddCompanion(std::shared_ptr<SecurityAgentImpl> &agent, F
     agent->HostEndAddCompanion(input, output);
 }
 
-static void FuzzHostCancelAddCompanion(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostCancelAddCompanion(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostCancelAddCompanionInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     agent->HostCancelAddCompanion(input);
 }
 
-static void FuzzCompanionInitKeyNegotiation(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionInitKeyNegotiation(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionInitKeyNegotiationInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -187,7 +187,7 @@ static void FuzzCompanionInitKeyNegotiation(std::shared_ptr<SecurityAgentImpl> &
     agent->CompanionInitKeyNegotiation(input, output);
 }
 
-static void FuzzCompanionBeginAddHostBinding(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionBeginAddHostBinding(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionBeginAddHostBindingInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -198,7 +198,7 @@ static void FuzzCompanionBeginAddHostBinding(std::shared_ptr<SecurityAgentImpl> 
     agent->CompanionBeginAddHostBinding(input, output);
 }
 
-static void FuzzCompanionEndAddHostBinding(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionEndAddHostBinding(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionEndAddHostBindingInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -208,7 +208,7 @@ static void FuzzCompanionEndAddHostBinding(std::shared_ptr<SecurityAgentImpl> &a
     agent->CompanionEndAddHostBinding(input, output);
 }
 
-static void FuzzHostRemoveCompanion(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostRemoveCompanion(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostRemoveCompanionInput input;
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
@@ -216,14 +216,14 @@ static void FuzzHostRemoveCompanion(std::shared_ptr<SecurityAgentImpl> &agent, F
     agent->HostRemoveCompanion(input, output);
 }
 
-static void FuzzCompanionRemoveHostBinding(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionRemoveHostBinding(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionRemoveHostBindingInput input;
     input.bindingId = fuzzData.ConsumeIntegral<uint32_t>();
     agent->CompanionRemoveHostBinding(input);
 }
 
-static void FuzzHostBeginDelegateAuth(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostBeginDelegateAuth(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostBeginDelegateAuthInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -234,7 +234,7 @@ static void FuzzHostBeginDelegateAuth(std::shared_ptr<SecurityAgentImpl> &agent,
     agent->HostBeginDelegateAuth(input, output);
 }
 
-static void FuzzHostEndDelegateAuth(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostEndDelegateAuth(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostEndDelegateAuthInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -244,14 +244,14 @@ static void FuzzHostEndDelegateAuth(std::shared_ptr<SecurityAgentImpl> &agent, F
     agent->HostEndDelegateAuth(input, output);
 }
 
-static void FuzzHostCancelDelegateAuth(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostCancelDelegateAuth(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostCancelDelegateAuthInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     agent->HostCancelDelegateAuth(input);
 }
 
-static void FuzzCompanionBeginDelegateAuth(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionBeginDelegateAuth(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionDelegateAuthBeginInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -263,7 +263,7 @@ static void FuzzCompanionBeginDelegateAuth(std::shared_ptr<SecurityAgentImpl> &a
     agent->CompanionBeginDelegateAuth(input, output);
 }
 
-static void FuzzCompanionEndDelegateAuth(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionEndDelegateAuth(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionDelegateAuthEndInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -273,7 +273,7 @@ static void FuzzCompanionEndDelegateAuth(std::shared_ptr<SecurityAgentImpl> &age
     agent->CompanionEndDelegateAuth(input, output);
 }
 
-static void FuzzHostPreIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostPreIssueToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostPreIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -283,7 +283,7 @@ static void FuzzHostPreIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, Fuz
     agent->HostPreIssueToken(input, output);
 }
 
-static void FuzzHostBeginIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostBeginIssueToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostBeginIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -293,7 +293,7 @@ static void FuzzHostBeginIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, F
     agent->HostBeginIssueToken(input, output);
 }
 
-static void FuzzHostEndIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostEndIssueToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostEndIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -303,14 +303,14 @@ static void FuzzHostEndIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, Fuz
     agent->HostEndIssueToken(input, output);
 }
 
-static void FuzzHostCancelIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostCancelIssueToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostCancelIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     agent->HostCancelIssueToken(input);
 }
 
-static void FuzzCompanionPreIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionPreIssueToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionPreIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -322,7 +322,7 @@ static void FuzzCompanionPreIssueToken(std::shared_ptr<SecurityAgentImpl> &agent
     agent->CompanionPreIssueToken(input, output);
 }
 
-static void FuzzCompanionProcessIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionProcessIssueToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionProcessIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -332,14 +332,14 @@ static void FuzzCompanionProcessIssueToken(std::shared_ptr<SecurityAgentImpl> &a
     agent->CompanionProcessIssueToken(input, output);
 }
 
-static void FuzzCompanionCancelIssueToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionCancelIssueToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionCancelIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     agent->CompanionCancelIssueToken(input);
 }
 
-static void FuzzHostProcessPreObtainToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostProcessPreObtainToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostProcessPreObtainTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -349,7 +349,7 @@ static void FuzzHostProcessPreObtainToken(std::shared_ptr<SecurityAgentImpl> &ag
     agent->HostProcessPreObtainToken(input, output);
 }
 
-static void FuzzHostProcessObtainToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostProcessObtainToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostProcessObtainTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -360,14 +360,14 @@ static void FuzzHostProcessObtainToken(std::shared_ptr<SecurityAgentImpl> &agent
     agent->HostProcessObtainToken(input, output);
 }
 
-static void FuzzHostCancelObtainToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostCancelObtainToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostCancelObtainTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     agent->HostCancelObtainToken(input);
 }
 
-static void FuzzCompanionBeginObtainToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionBeginObtainToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionBeginObtainTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -379,7 +379,7 @@ static void FuzzCompanionBeginObtainToken(std::shared_ptr<SecurityAgentImpl> &ag
     agent->CompanionBeginObtainToken(input, output);
 }
 
-static void FuzzCompanionEndObtainToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionEndObtainToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionEndObtainTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -388,14 +388,14 @@ static void FuzzCompanionEndObtainToken(std::shared_ptr<SecurityAgentImpl> &agen
     agent->CompanionEndObtainToken(input);
 }
 
-static void FuzzCompanionCancelObtainToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionCancelObtainToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionCancelObtainTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     agent->CompanionCancelObtainToken(input);
 }
 
-static void FuzzHostBeginTokenAuth(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostBeginTokenAuth(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostBeginTokenAuthInput input;
     input.scheduleId = fuzzData.ConsumeIntegral<uint64_t>();
@@ -405,7 +405,7 @@ static void FuzzHostBeginTokenAuth(std::shared_ptr<SecurityAgentImpl> &agent, Fu
     agent->HostBeginTokenAuth(input, output);
 }
 
-static void FuzzHostEndTokenAuth(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostEndTokenAuth(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostEndTokenAuthInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
@@ -415,7 +415,7 @@ static void FuzzHostEndTokenAuth(std::shared_ptr<SecurityAgentImpl> &agent, Fuzz
     agent->HostEndTokenAuth(input, output);
 }
 
-static void FuzzCompanionProcessTokenAuth(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionProcessTokenAuth(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionProcessTokenAuthInput input;
     input.tokenAuthRequest = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
@@ -423,21 +423,21 @@ static void FuzzCompanionProcessTokenAuth(std::shared_ptr<SecurityAgentImpl> &ag
     agent->CompanionProcessTokenAuth(input, output);
 }
 
-static void FuzzHostRevokeToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostRevokeToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostRevokeTokenInput input;
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     agent->HostRevokeToken(input);
 }
 
-static void FuzzCompanionRevokeToken(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzCompanionRevokeToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionRevokeTokenInput input;
     input.bindingId = fuzzData.ConsumeIntegral<uint32_t>();
     agent->CompanionRevokeToken(input);
 }
 
-static void FuzzHostUpdateCompanionStatus(std::shared_ptr<SecurityAgentImpl> &agent, FuzzedDataProvider &fuzzData)
+static void FuzzHostUpdateCompanionStatus(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostUpdateCompanionStatusInput input;
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
@@ -447,7 +447,7 @@ static void FuzzHostUpdateCompanionStatus(std::shared_ptr<SecurityAgentImpl> &ag
     agent->HostUpdateCompanionStatus(input);
 }
 
-static void FuzzHostUpdateCompanionEnabledBusinessIds(std::shared_ptr<SecurityAgentImpl> &agent,
+static void FuzzHostUpdateCompanionEnabledBusinessIds(std::shared_ptr<ISecurityAgent> &agent,
     FuzzedDataProvider &fuzzData)
 {
     HostUpdateCompanionEnabledBusinessIdsInput input;
@@ -511,8 +511,7 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunctio
 
 void FuzzSecurityAgentImpl(FuzzedDataProvider &fuzzData)
 {
-    auto agentBase = SecurityAgentImpl::Create();
-    auto agent = std::static_pointer_cast<SecurityAgentImpl>(agentBase);
+    auto agent = SecurityAgentImpl::Create();
     if (!agent) {
         return;
     }

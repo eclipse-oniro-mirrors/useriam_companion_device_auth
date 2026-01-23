@@ -181,15 +181,6 @@ static void FuzzCreateCompanionRevokeTokenRequest(std::shared_ptr<RequestFactory
     (void)request;
 }
 
-static void FuzzCreateCompanionAuthMaintainStateChangeRequest(std::shared_ptr<RequestFactoryImpl> &factory,
-    FuzzedDataProvider &fuzzData)
-{
-    DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    bool authStateMaintain = fuzzData.ConsumeBool();
-    auto request = factory->CreateCompanionAuthMaintainStateChangeRequest(hostDeviceKey, authStateMaintain);
-    (void)request;
-}
-
 static void FuzzCreateHostMixAuthRequest(std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
@@ -248,7 +239,6 @@ static const RequestFactoryImplFuzzFunction g_fuzzFuncs[] = {
     FuzzCreateCompanionObtainTokenRequest,
     FuzzCreateCompanionDelegateAuthRequest,
     FuzzCreateCompanionRevokeTokenRequest,
-    FuzzCreateCompanionAuthMaintainStateChangeRequest,
     FuzzCreateHostMixAuthRequest,
     FuzzCreateHostSingleMixAuthRequest,
     FuzzCreate,

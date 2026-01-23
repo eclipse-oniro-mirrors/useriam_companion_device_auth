@@ -66,8 +66,6 @@ static const char *GetRequestTypeAbbr(RequestType requestType)
             return "HMixS";
         case RequestType::HOST_MIX_AUTH_REQUEST:
             return "HMixA";
-        case RequestType::COMPANION_AUTH_MAINTAIN_STATE_CHANGE_REQUEST:
-            return "CState";
         default:
             return "?";
     }

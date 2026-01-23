@@ -22,13 +22,12 @@ pub mod test_utils {
     use crate::entry::companion_device_auth_ffi::CommandId;
     use crate::traits::{
         companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager},
-        companion_request_manager::{CompanionRequestManagerRegistry, MockCompanionRequestManager},
         crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine},
         event_manager::{Event, EventManagerRegistry, MockEventManager},
         host_db_manager::{HostDbManagerRegistry, MockHostDbManager},
-        host_request_manager::{HostRequestManagerRegistry, MockHostRequestManager},
         logger::{LogLevel, Logger, LoggerRegistry},
         misc_manager::{MiscManagerRegistry, MockMiscManager},
+        request_manager::{MockRequestManager, RequestManagerRegistry},
         storage_io::{MockStorageIo, StorageIo, StorageIoRegistry},
         time_keeper::{MockTimeKeeper, TimeKeeper, TimeKeeperRegistry},
     };
@@ -82,10 +81,8 @@ pub mod test_utils {
             HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
             let mock_companion_db_manager = MockCompanionDbManager::new();
             CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
-            let mock_host_request_manager = MockHostRequestManager::new();
-            HostRequestManagerRegistry::set(Box::new(mock_host_request_manager));
-            let mock_companion_request_manager = MockCompanionRequestManager::new();
-            CompanionRequestManagerRegistry::set(Box::new(mock_companion_request_manager));
+            let mock_request_manager = MockRequestManager::new();
+            RequestManagerRegistry::set(Box::new(mock_request_manager));
             Self {}
         }
     }
@@ -101,8 +98,7 @@ pub mod test_utils {
             EventManagerRegistry::reset();
             HostDbManagerRegistry::reset();
             CompanionDbManagerRegistry::reset();
-            HostRequestManagerRegistry::reset();
-            CompanionRequestManagerRegistry::reset();
+            RequestManagerRegistry::reset();
         }
     }
 }

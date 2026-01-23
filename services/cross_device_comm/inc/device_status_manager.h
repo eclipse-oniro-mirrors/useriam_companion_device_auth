@@ -54,20 +54,19 @@ public:
     std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey);
     std::optional<ChannelId> GetChannelIdByDeviceKey(const DeviceKey &deviceKey);
     std::vector<DeviceStatus> GetAllDeviceStatus();
-
-    std::unique_ptr<Subscription> SubscribeDeviceStatus(OnDeviceStatusChange &&callback);
-
-    void SetSubscribeMode(SubscribeMode mode);
     SubscribeMode GetCurrentMode() const
     {
         return currentMode_;
     }
     std::optional<SteadyTimeMs> GetManageSubscribeTime() const;
 
+    std::unique_ptr<Subscription> SubscribeDeviceStatus(OnDeviceStatusChange &&callback);
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, OnDeviceStatusChange &&callback);
 
+    void SetSubscribeMode(SubscribeMode mode);
+
 private:
-    static constexpr int32_t PERIODIC_SYNC_INTERVAL_MS = 10000; // 10 seconds
+    static constexpr int32_t PERIODIC_SYNC_INTERVAL_MS = 60 * 1000; // 60 seconds
 
     struct DeviceStatusSubscriptionInfo {
         SubscribeId subscriptionId;

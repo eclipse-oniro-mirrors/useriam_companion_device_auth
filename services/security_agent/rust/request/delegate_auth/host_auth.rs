@@ -26,7 +26,7 @@ use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -170,19 +170,19 @@ impl HostDelegateAuthRequest {
     }
 }
 
-impl HostRequest for HostDelegateAuthRequest {
+impl Request for HostDelegateAuthRequest {
     fn get_request_id(&self) -> i32 {
         self.auth_param.request_id
     }
 
-    fn prepare(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("HostDelegateAuthRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDelegateAuthRequest begin start");
-        let HostRequestParam::DelegateAuthBegin(ffi_input, ffi_output) = param else {
+        let RequestParam::HostDelegateAuthBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -193,9 +193,9 @@ impl HostRequest for HostDelegateAuthRequest {
         Ok(())
     }
 
-    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDelegateAuthRequest end start");
-        let HostRequestParam::DelegateAuthEnd(ffi_input, ffi_output) = param else {
+        let RequestParam::HostDelegateAuthEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };

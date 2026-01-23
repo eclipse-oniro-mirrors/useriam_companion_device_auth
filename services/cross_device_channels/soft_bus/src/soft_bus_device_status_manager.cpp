@@ -47,7 +47,8 @@ public:
 
 std::shared_ptr<SoftBusDeviceStatusManager> SoftBusDeviceStatusManager::Create()
 {
-    auto monitor = std::shared_ptr<SoftBusDeviceStatusManager>(new SoftBusDeviceStatusManager());
+    auto monitor = std::shared_ptr<SoftBusDeviceStatusManager>(new (std::nothrow) SoftBusDeviceStatusManager());
+    ENSURE_OR_RETURN_VAL(monitor != nullptr, nullptr);
     if (!monitor->Initialize()) {
         IAM_LOGE("Initialize SoftBusDeviceStatusManager failed");
         return nullptr;
@@ -431,7 +432,7 @@ std::optional<PhysicalDeviceKey> SoftBusDeviceStatusManager::GetLocalPhysicalDev
     }
 
     const auto &deviceId = localUdid.value();
-    PhysicalDeviceKey key;
+    PhysicalDeviceKey key {};
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = deviceId;
     IAM_LOGI("GetLocalPhysicalDeviceKey success, deviceId: %{public}s", GetMaskedString(deviceId).c_str());

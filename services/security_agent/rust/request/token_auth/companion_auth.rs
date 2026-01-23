@@ -23,7 +23,7 @@ use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::auth_message::SecAuthReply;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostTokenInfo;
 use crate::utils::{Attribute, AttributeKey};
@@ -89,19 +89,19 @@ impl CompanionTokenAuthRequest {
     }
 }
 
-impl CompanionRequest for CompanionTokenAuthRequest {
+impl Request for CompanionTokenAuthRequest {
     fn get_request_id(&self) -> i32 {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionTokenAuthRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionTokenAuthRequest begin start");
-        let CompanionRequestParam::TokenAuthBegin(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionTokenAuthBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -116,7 +116,7 @@ impl CompanionRequest for CompanionTokenAuthRequest {
         Ok(())
     }
 
-    fn end(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionTokenAuthRequest end not implemented");
         Err(ErrorCode::GeneralError)
     }

@@ -43,7 +43,7 @@ SecurityAgentImpl::SecurityAgentImpl()
 
 std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 {
-    auto agent = std::shared_ptr<SecurityAgentImpl>(new SecurityAgentImpl());
+    auto agent = std::shared_ptr<SecurityAgentImpl>(new (std::nothrow) SecurityAgentImpl());
     ENSURE_OR_RETURN_VAL(agent != nullptr, nullptr);
     agent->Initialize();
     agent->Init();

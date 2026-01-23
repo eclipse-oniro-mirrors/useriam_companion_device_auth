@@ -91,7 +91,7 @@ bool MessageRouter::Initialize()
 
 std::unique_ptr<Subscription> MessageRouter::SubscribeIncomingConnection(MessageType msgType, OnMessage &&onMessage)
 {
-    SubscriptionKey key;
+    SubscriptionKey key {};
     key.connectionName = "";
     key.msgType = msgType;
 
@@ -109,7 +109,7 @@ std::unique_ptr<Subscription> MessageRouter::SubscribeIncomingConnection(Message
 std::unique_ptr<Subscription> MessageRouter::SubscribeMessage(const std::string &connectionName, MessageType msgType,
     OnMessage &&onMessage)
 {
-    SubscriptionKey key;
+    SubscriptionKey key {};
     key.connectionName = connectionName;
     key.msgType = msgType;
 
@@ -144,7 +144,7 @@ void MessageRouter::UnregisterSubscription(const SubscriptionKey &key)
 OnMessage MessageRouter::FindMessageSubscriber(const std::string &connectionName, MessageType msgType)
 {
     if (!connectionName.empty()) {
-        SubscriptionKey connectionKey;
+        SubscriptionKey connectionKey {};
         connectionKey.connectionName = connectionName;
         connectionKey.msgType = msgType;
 
@@ -154,7 +154,7 @@ OnMessage MessageRouter::FindMessageSubscriber(const std::string &connectionName
         }
     }
 
-    SubscriptionKey incomingConnectionKey;
+    SubscriptionKey incomingConnectionKey {};
     incomingConnectionKey.connectionName = "";
     incomingConnectionKey.msgType = msgType;
 
@@ -180,7 +180,7 @@ bool MessageRouter::SendMessage(const std::string &connectionName, MessageType m
     IAM_LOGI("sending message: seq=0x%{public}08X, conn=%{public}s, type=0x%{public}04x", messageSeq,
         connectionName.c_str(), static_cast<uint16_t>(msgType));
 
-    MessageHeader header;
+    MessageHeader header {};
     header.connectionName = connectionName;
     header.messageSeq = messageSeq;
     header.isReply = false;
@@ -210,7 +210,7 @@ bool MessageRouter::SendMessage(const std::string &connectionName, MessageType m
         return false;
     }
 
-    PendingReplyMessage pending;
+    PendingReplyMessage pending {};
     pending.connectionName = connectionName;
     pending.messageSeq = messageSeq;
     pending.msgType = msgType;
@@ -237,8 +237,8 @@ void MessageRouter::HandleRawMessage(const std::string &connectionName, const st
         return;
     }
 
-    MessageHeader header;
-    Attributes payload;
+    MessageHeader header {};
+    Attributes payload {};
     if (!DecodeMessage(rawMsg, header, payload)) {
         IAM_LOGE("failed to decode message");
         return;
@@ -344,7 +344,7 @@ void MessageRouter::SendErrorReply(const MessageHeader &requestHeader, ChannelId
     MessageHeader replyHeader = requestHeader;
     replyHeader.isReply = true;
 
-    Attributes errorReply;
+    Attributes errorReply {};
     errorReply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, GENERAL_ERROR);
 
     channel->SendMessage(replyHeader.connectionName, EncodeMessage(replyHeader, errorReply));
@@ -404,7 +404,7 @@ void MessageRouter::HandleMessageTimeout(uint32_t messageSeq)
     std::string connectionName = it->second.connectionName;
 
     auto pending = std::move(it->second);
-    Attributes errorReply;
+    Attributes errorReply {};
     errorReply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, TIMEOUT);
 
     pendingReplyMessages_.erase(it);

@@ -21,7 +21,7 @@ use crate::log_i;
 use crate::request::delegate_auth::companion_auth::CompanionDelegateAuthRequest;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::{DeviceKey, HostDeviceSk, UserInfo};
 use crate::ut_registry_guard;
@@ -67,7 +67,7 @@ fn companion_delegate_auth_request_prepare_test_not_implemented() {
 
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthBegin(&input, &mut output);
     let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -90,7 +90,7 @@ fn companion_delegate_auth_request_begin_test_wrong_input_type() {
         CompanionEndDelegateAuthInputFfi { request_id: 1, result: 0, auth_token: DataArray1024Ffi::default() };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionEndDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthEnd(&wrong_input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthEnd(&wrong_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -117,7 +117,7 @@ fn companion_delegate_auth_request_end_test_wrong_input_type() {
     };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthBegin(&wrong_input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthBegin(&wrong_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -140,7 +140,7 @@ fn companion_delegate_auth_request_end_test_wrong_auth_token_len() {
         CompanionEndDelegateAuthInputFfi { request_id: 1, result: 0, auth_token: DataArray1024Ffi::default() };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionEndDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthEnd(&end_input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -178,7 +178,7 @@ fn parse_begin_sec_message_test_get_session_key_fail() {
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
@@ -223,7 +223,7 @@ fn parse_begin_sec_message_test_decrypt_sec_message_fail() {
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -264,7 +264,7 @@ fn parse_begin_sec_message_test_try_from_bytes_fail() {
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -308,7 +308,7 @@ fn parse_begin_sec_message_test_get_challenge_fail() {
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -352,7 +352,7 @@ fn parse_begin_sec_message_test_get_atl_fail() {
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -397,7 +397,7 @@ fn parse_begin_sec_message_test_atl_try_from_fail() {
     let mut request = CompanionDelegateAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthOutputFfi::default();
-    let param = CompanionRequestParam::DelegateAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionDelegateAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

@@ -41,7 +41,7 @@ std::optional<RequestAbortedRequest> DecodeRequestAbortedRequest(const Attribute
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, resultCode);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
 
-    RequestAbortedRequest request;
+    RequestAbortedRequest request {};
     request.result = static_cast<ResultCode>(resultCode);
 
     // Reason is optional
@@ -62,7 +62,7 @@ std::optional<RequestAbortedReply> DecodeRequestAbortedReply(const Attributes &a
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, resultCode);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
 
-    RequestAbortedReply reply;
+    RequestAbortedReply reply {};
     reply.result = static_cast<ResultCode>(resultCode);
     return reply;
 }

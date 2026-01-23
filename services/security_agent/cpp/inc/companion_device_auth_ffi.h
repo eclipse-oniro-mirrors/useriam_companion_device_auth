@@ -270,7 +270,7 @@ typedef struct Uint16Array64Ffi {
 typedef struct HostEndCompanionCheckInputFfi {
     int32_t requestId;
     uint64_t templateId;
-    struct Uint16Array64Ffi protocalList;
+    struct Uint16Array64Ffi protocolList;
     struct Uint16Array64Ffi capabilityList;
     uint16_t secureProtocolId;
     struct DataArray1024Ffi secMessage;

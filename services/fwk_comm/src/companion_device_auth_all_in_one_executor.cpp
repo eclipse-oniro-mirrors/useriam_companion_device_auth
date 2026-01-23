@@ -116,7 +116,7 @@ FwkResultCode Inner::OnRegisterFinish(const std::vector<uint64_t> &templateIdLis
     const std::vector<uint8_t> &frameworkPublicKey, const std::vector<uint8_t> &extraInfo)
 {
     IAM_LOGI("start");
-    RegisterFinishInput input;
+    RegisterFinishInput input {};
     input.templateIdList.assign(templateIdList.begin(), templateIdList.end());
     input.fwkPublicKey = frameworkPublicKey;
     input.fwkMsg = extraInfo;
@@ -264,7 +264,7 @@ FwkResultCode Inner::SendCommand(FwkPropertyMode commandId, const std::vector<ui
 
 std::optional<FreezeCommand> Inner::DecodeFreezeCommand(const std::vector<uint8_t> &dataTlv)
 {
-    FreezeCommand freezeCommand;
+    FreezeCommand freezeCommand {};
     Attributes dataTlvAttrs(dataTlv);
     bool getAuthTypeRet =
         dataTlvAttrs.GetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_AUTH_TYPE), freezeCommand.authTypeValue);

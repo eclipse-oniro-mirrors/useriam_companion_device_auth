@@ -46,10 +46,7 @@ void OnParamChg(const char *key, const char *value, void *context)
 std::shared_ptr<SystemParamManagerImpl> SystemParamManagerImpl::Create()
 {
     auto manager = std::shared_ptr<SystemParamManagerImpl>(new (std::nothrow) SystemParamManagerImpl());
-    if (manager == nullptr) {
-        IAM_LOGE("failed to create SystemParamManagerImpl");
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
     return manager;
 }
 

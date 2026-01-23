@@ -31,6 +31,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class IAvailableDeviceStatusCallback {
 public:
+    virtual ~IAvailableDeviceStatusCallback() = default;
+
     /**
      * @brief Callback invoked when available device status changes.
      *

@@ -21,7 +21,7 @@ use crate::log_i;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::companion_auth::CompanionTokenAuthRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::{HostDeviceSk, HostTokenInfo};
 use crate::ut_registry_guard;
@@ -70,7 +70,7 @@ fn companion_token_auth_request_prepare_test_not_implemented() {
     let mut request = CompanionTokenAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&input, &mut output);
     let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -98,7 +98,7 @@ fn companion_token_auth_request_begin_test_wrong_input_type() {
     };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessCheckOutputFfi::default();
-    let param = CompanionRequestParam::SyncStatus(&wrong_input, &mut output);
+    let param = RequestParam::CompanionSyncStatus(&wrong_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -124,7 +124,7 @@ fn companion_token_auth_request_begin_test_get_session_key_fail() {
     let mut request = CompanionTokenAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -157,7 +157,7 @@ fn companion_token_auth_request_begin_test_aes_gcm_decrypt_fail() {
     let mut request = CompanionTokenAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -191,7 +191,7 @@ fn companion_token_auth_request_begin_test_attribute_try_from_bytes_fail() {
     let mut request = CompanionTokenAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -234,7 +234,7 @@ fn companion_token_auth_request_begin_test_get_challenge_fail() {
     let mut request = CompanionTokenAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -270,7 +270,7 @@ fn companion_token_auth_request_begin_test_read_device_token_fail() {
     let mut request = CompanionTokenAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
@@ -309,7 +309,7 @@ fn companion_token_auth_request_begin_test_hmac_sha256_fail() {
     let mut request = CompanionTokenAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -328,7 +328,7 @@ fn companion_token_auth_request_end_test_not_implemented() {
     let mut request = CompanionTokenAuthRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

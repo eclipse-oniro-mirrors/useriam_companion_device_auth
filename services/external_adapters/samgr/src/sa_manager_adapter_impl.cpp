@@ -23,8 +23,6 @@
 #include "if_system_ability_manager.h"
 #include "xcollie_helper.h"
 
-#undef LOG_DOMAIN
-#define LOG_DOMAIN 0xD002510
 #undef LOG_TAG
 #define LOG_TAG "CDA_SA"
 

@@ -15,27 +15,26 @@
 
 use crate::common::constants::*;
 use crate::common::types::*;
-use crate::traits::host_request_manager::DynHostRequest;
-use crate::traits::host_request_manager::HostRequestManager;
+use crate::traits::request_manager::{DynRequest, RequestManager};
+use crate::traits::db_manager::DeviceKey;
 use crate::{log_e, log_i, p, Box, Vec};
 
 const MAX_REQUEST_NUM: usize = 50;
 
-pub struct DefaultHostRequestManager {
-    requests: Vec<Box<DynHostRequest>>,
+pub struct DefaultRequestManager {
+    requests: Vec<Box<DynRequest>>,
 }
 
-impl DefaultHostRequestManager {
+impl DefaultRequestManager {
     pub fn new() -> Self {
         Self { requests: Vec::with_capacity(MAX_REQUEST_NUM) }
     }
 }
 
-impl HostRequestManager for DefaultHostRequestManager {
-    fn add_request(&mut self, request: Box<DynHostRequest>) -> Result<(), ErrorCode> {
+impl RequestManager for DefaultRequestManager {
+    fn add_request(&mut self, request: Box<DynRequest>) -> Result<(), ErrorCode> {
         log_i!("add_request start");
         let request_id = request.get_request_id();
-
         if self.requests.iter().any(|req| req.get_request_id() == request_id) {
             log_e!("request with id {} already exists", request_id);
             return Err(ErrorCode::IdExists);
@@ -50,7 +49,7 @@ impl HostRequestManager for DefaultHostRequestManager {
         Ok(())
     }
 
-    fn remove_request(&mut self, request_id: i32) -> Result<Box<DynHostRequest>, ErrorCode> {
+    fn remove_request(&mut self, request_id: i32) -> Result<Box<DynRequest>, ErrorCode> {
         log_i!("remove_request start");
         let pos = self
             .requests
@@ -61,7 +60,7 @@ impl HostRequestManager for DefaultHostRequestManager {
         Ok(self.requests.remove(pos))
     }
 
-    fn get_request<'a>(&'a mut self, request_id: i32) -> Result<&'a mut DynHostRequest, ErrorCode> {
+    fn get_request<'a>(&'a mut self, request_id: i32) -> Result<&'a mut DynRequest, ErrorCode> {
         log_i!("get_request start");
         for request in &mut self.requests {
             if request.get_request_id() == request_id {

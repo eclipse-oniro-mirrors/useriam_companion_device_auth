@@ -22,7 +22,6 @@
 #include "singleton_manager.h"
 #include "soft_bus_adapter_manager.h"
 #include "soft_bus_channel_common.h"
-#include "soft_bus_global_callbacks.h"
 #include "soft_bus_socket.h"
 #include "softbus_error_code.h"
 #include "subscription.h"
@@ -40,14 +39,14 @@ constexpr const char *SOFTBUS_SA_NAME = "SoftBusServer";
 
 std::shared_ptr<SoftBusConnectionManager> SoftBusConnectionManager::Create()
 {
-    auto adapter = std::shared_ptr<SoftBusConnectionManager>(new SoftBusConnectionManager());
+    auto adapter = std::shared_ptr<SoftBusConnectionManager>(new (std::nothrow) SoftBusConnectionManager());
+    ENSURE_OR_RETURN_VAL(adapter != nullptr, nullptr);
     bool ret = adapter->Initialize();
     if (!ret) {
         IAM_LOGE("Initialize SoftBusConnectionManager failed");
         return nullptr;
     }
 
-    SetGlobalSoftBusConnectionManager(adapter);
     return adapter;
 }
 
@@ -58,7 +57,6 @@ SoftBusConnectionManager::SoftBusConnectionManager()
 SoftBusConnectionManager::~SoftBusConnectionManager()
 {
     CloseAllSockets("destroy");
-    ClearGlobalSoftBusConnectionManager(this);
     IAM_LOGI("SoftBusConnectionManager destroyed");
 }
 

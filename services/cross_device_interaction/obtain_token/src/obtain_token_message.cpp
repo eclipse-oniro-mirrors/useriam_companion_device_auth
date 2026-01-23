@@ -37,7 +37,7 @@ bool EncodePreObtainTokenRequest(const PreObtainTokenRequest &request, Attribute
 
 std::optional<PreObtainTokenRequest> DecodePreObtainTokenRequest(const Attributes &attributes)
 {
-    PreObtainTokenRequest request;
+    PreObtainTokenRequest request {};
     bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
     ENSURE_OR_RETURN_VAL(getHostUserIdRet, std::nullopt);
     auto companionDeviceKeyOpt = DecodeCompanionDeviceKey(attributes);
@@ -57,7 +57,7 @@ bool EncodePreObtainTokenReply(const PreObtainTokenReply &reply, Attributes &att
 
 std::optional<PreObtainTokenReply> DecodePreObtainTokenReply(const Attributes &attributes)
 {
-    PreObtainTokenReply reply;
+    PreObtainTokenReply reply {};
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, reply.result);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
     if (reply.result != ResultCode::SUCCESS) {
@@ -78,7 +78,7 @@ bool EncodeObtainTokenRequest(const ObtainTokenRequest &request, Attributes &att
 
 std::optional<ObtainTokenRequest> DecodeObtainTokenRequest(const Attributes &attributes)
 {
-    ObtainTokenRequest request;
+    ObtainTokenRequest request {};
     bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
     ENSURE_OR_RETURN_VAL(getHostUserIdRet, std::nullopt);
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
@@ -98,7 +98,7 @@ bool EncodeObtainTokenReply(const ObtainTokenReply &reply, Attributes &attribute
 
 std::optional<ObtainTokenReply> DecodeObtainTokenReply(const Attributes &attributes)
 {
-    ObtainTokenReply reply;
+    ObtainTokenReply reply {};
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, reply.result);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
     if (reply.result != ResultCode::SUCCESS) {

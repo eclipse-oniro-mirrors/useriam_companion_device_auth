@@ -96,7 +96,7 @@ void ContinuousAuthSubscription::OnCallbackAdded(const sptr<IIpcContinuousAuthSt
 
     std::optional<Atl> authTrustLevel = cachedAuthTrustLevel_;
 
-    IpcContinuousAuthStatus status;
+    IpcContinuousAuthStatus status {};
     status.isAuthPassed = authTrustLevel.has_value();
     status.hasAuthTrustLevel = authTrustLevel.has_value();
     status.authTrustLevel = authTrustLevel.value_or(0);
@@ -155,7 +155,7 @@ void ContinuousAuthSubscription::NotifyAuthStatus(std::optional<Atl> authTrustLe
 
     auto callbacks = callbacks_;
 
-    IpcContinuousAuthStatus status;
+    IpcContinuousAuthStatus status {};
     status.isAuthPassed = authTrustLevel.has_value();
     status.hasAuthTrustLevel = authTrustLevel.has_value();
     status.authTrustLevel = authTrustLevel.value_or(0);

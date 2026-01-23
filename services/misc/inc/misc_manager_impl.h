@@ -41,6 +41,7 @@ public:
     bool GetDeviceDeviceSelectResult(uint32_t tokenId, SelectPurpose selectPurpose,
         DeviceSelectResultHandler &&resultHandler) override;
     void ClearDeviceSelectCallback(uint32_t tokenId) override;
+
     std::optional<std::string> GetLocalUdid() override;
     bool CheckBusinessIds(const std::vector<BusinessId> &businessIds) override;
 

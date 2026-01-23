@@ -1328,16 +1328,6 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateCompanionAuthMaintainStateChangeRequest(const DeviceKey &hostDeviceKey,
-        bool authStateMaintain) override
-    {
-        (void)hostDeviceKey;
-        (void)authStateMaintain;
-        return fuzzData_.ConsumeIntegral<uint32_t>() > 0
-            ? std::make_shared<MockFuzzIRequest>(fuzzData_, requestCounter_++, 0)
-            : nullptr;
-    }
-
     std::shared_ptr<IRequest> CreateHostMixAuthRequest(ScheduleId scheduleId, std::vector<uint8_t> fwkMsg,
         UserId hostUserId, std::vector<TemplateId> templateIdList, FwkResultCallback &&requestCallback) override
     {

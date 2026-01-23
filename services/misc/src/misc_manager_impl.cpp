@@ -47,7 +47,7 @@ std::vector<DeviceKey> ConvertIpcDeviceSelectResultToDeviceKeys(const IpcDeviceS
     deviceKeys.reserve(ipcResult.deviceKeys.size());
 
     for (const auto &ipcDeviceKey : ipcResult.deviceKeys) {
-        DeviceKey deviceKey;
+        DeviceKey deviceKey {};
         deviceKey.idType = static_cast<DeviceIdType>(ipcDeviceKey.deviceIdType);
         deviceKey.deviceId = ipcDeviceKey.deviceId;
         deviceKey.deviceUserId = ipcDeviceKey.deviceUserId;
@@ -94,7 +94,7 @@ public:
     }
 
 private:
-    DeviceSelectResultHandler handler_;
+    DeviceSelectResultHandler handler_ {};
 };
 } // namespace
 

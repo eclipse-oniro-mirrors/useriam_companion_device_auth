@@ -225,7 +225,7 @@ pub struct SecBindingReplyInfo {
     pub esl: i32,
     pub track_ability_level: i32,
     pub challenge: u64,
-    pub protocal_list: Vec<u16>,
+    pub protocol_list: Vec<u16>,
     pub capability_list: Vec<u16>,
 }
 
@@ -237,7 +237,7 @@ impl SecBindingReplyInfo {
         attribute.set_i32(AttributeKey::AttrEsl, self.esl);
         attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, self.track_ability_level);
         attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
-        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocal_list);
+        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocol_list);
         attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.capability_list);
         Ok(attribute.to_bytes()?)
     }
@@ -249,9 +249,9 @@ impl SecBindingReplyInfo {
         let esl = attribute.get_i32(AttributeKey::AttrEsl).map_err(|e| p!(e))?;
         let track_ability_level = attribute.get_i32(AttributeKey::AttrTrackAbilityLevel).map_err(|e| p!(e))?;
         let challenge = attribute.get_u64(AttributeKey::AttrChallenge).map_err(|e| p!(e))?;
-        let protocal_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
+        let protocol_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
         let capability_list = attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
 
-        Ok(Self { device_id, user_id, esl, track_ability_level, challenge, protocal_list, capability_list })
+        Ok(Self { device_id, user_id, esl, track_ability_level, challenge, protocol_list, capability_list })
     }
 }

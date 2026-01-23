@@ -52,11 +52,10 @@ use crate::impls::default_storage_io;
 use crate::impls::default_time_keeper;
 use crate::impls::openssl_crypto_engine;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::CompanionRequestManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::event_manager::EventManagerRegistry;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::HostRequestManagerRegistry;
+use crate::traits::request_manager::RequestManagerRegistry;
 use crate::traits::logger::LoggerRegistry;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::storage_io::StorageIoRegistry;
@@ -253,15 +252,11 @@ pub fn handle_rust_env_init() -> Result<(), ErrorCode> {
         crate::impls::default_companion_db_manager::DefaultCompaniomDbManager::new(),
     ));
 
-    CompanionRequestManagerRegistry::set(Box::new(
-        crate::impls::default_companion_request_manager::DefaultCompanionRequestManager::new(),
+    RequestManagerRegistry::set(Box::new(
+        crate::impls::default_request_manager::DefaultRequestManager::new(),
     ));
 
     HostDbManagerRegistry::set(Box::new(crate::impls::default_host_db_manager::DefaultHostDbManager::new()));
-
-    HostRequestManagerRegistry::set(Box::new(
-        crate::impls::default_host_request_manager::DefaultHostRequestManager::new(),
-    ));
 
     crate::log_i!("init_rust_env: all trait implementations registered successfully");
     Ok(())
@@ -277,9 +272,8 @@ pub fn handle_rust_env_uninit() -> Result<(), ErrorCode> {
     EventManagerRegistry::reset();
     MiscManagerRegistry::reset();
     CompanionDbManagerRegistry::reset();
-    CompanionRequestManagerRegistry::reset();
+    RequestManagerRegistry::reset();
     HostDbManagerRegistry::reset();
-    HostRequestManagerRegistry::reset();
 
     crate::log_i!("uninit_rust_env end");
     Ok(())

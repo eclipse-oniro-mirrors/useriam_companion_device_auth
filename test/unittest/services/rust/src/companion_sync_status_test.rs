@@ -21,7 +21,7 @@ use crate::entry::companion_device_auth_ffi::{
 use crate::log_i;
 use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::HostDeviceSk;
 use crate::ut_registry_guard;
@@ -55,7 +55,7 @@ fn companion_sync_status_request_new_test_success() {
     let request = result.unwrap();
     assert_eq!(request.get_request_id(), 123);
     assert_eq!(request.challenge, 0);
-    assert_eq!(request.protocal_list, PROTOCAL_VERSION.to_vec());
+    assert_eq!(request.protocol_list, PROTOCOL_VERSION.to_vec());
     assert_eq!(request.capability_list, vec![0x01, 0x02]);
 }
 
@@ -88,7 +88,7 @@ fn companion_sync_status_request_prepare_test_not_implemented() {
     let mut request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessCheckOutputFfi::default();
-    let param = CompanionRequestParam::SyncStatus(&input, &mut output);
+    let param = RequestParam::CompanionSyncStatus(&input, &mut output);
     let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -108,7 +108,7 @@ fn companion_sync_status_request_begin_test_wrong_input_type() {
     };
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthOutputFfi::default();
-    let param = CompanionRequestParam::TokenAuthBegin(&wrong_input, &mut output);
+    let param = RequestParam::CompanionTokenAuthBegin(&wrong_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -135,7 +135,7 @@ fn companion_sync_status_request_begin_test_encrypt_sec_message_fail() {
     let mut request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessCheckOutputFfi::default();
-    let param = CompanionRequestParam::SyncStatus(&input, &mut output);
+    let param = RequestParam::CompanionSyncStatus(&input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -149,7 +149,7 @@ fn companion_sync_status_request_end_test_not_implemented() {
     let mut request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
 
     let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessCheckOutputFfi::default();
-    let param = CompanionRequestParam::SyncStatus(&input, &mut output);
+    let param = RequestParam::CompanionSyncStatus(&input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

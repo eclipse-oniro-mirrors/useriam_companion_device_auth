@@ -26,7 +26,7 @@ use crate::request::token_auth::auth_message::{FwkAuthReply, FwkAuthRequest, Sec
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -180,19 +180,19 @@ impl HostTokenAuthRequest {
     }
 }
 
-impl HostRequest for HostTokenAuthRequest {
+impl Request for HostTokenAuthRequest {
     fn get_request_id(&self) -> i32 {
         self.auth_param.request_id
     }
 
-    fn prepare(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("HostTokenAuthRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostTokenAuthRequest begin start");
-        let HostRequestParam::TokenAuthBegin(ffi_input, ffi_output) = param else {
+        let RequestParam::HostTokenAuthBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -203,9 +203,9 @@ impl HostRequest for HostTokenAuthRequest {
         Ok(())
     }
 
-    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostTokenAuthRequest end start");
-        let HostRequestParam::TokenAuthEnd(ffi_input, ffi_output) = param else {
+        let RequestParam::HostTokenAuthEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };

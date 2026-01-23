@@ -78,7 +78,7 @@ void HostBindingManagerImpl::OnActiveUserIdChanged(UserId userId)
     }
 
     CompanionGetPersistedHostBindingStatusInput input { activeUserId_ };
-    CompanionGetPersistedHostBindingStatusOutput output;
+    CompanionGetPersistedHostBindingStatusOutput output {};
     ResultCode ret = GetSecurityAgent().CompanionGetPersistedHostBindingStatus(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("failed to get persisted host binding status, ret %{public}d", ret);

@@ -101,24 +101,6 @@ static void FuzzGetDescription(std::shared_ptr<HostDelegateAuthRequest> &request
     (void)request->GetDescription();
 }
 
-static void FuzzHandleDeviceSelectResult(std::shared_ptr<HostDelegateAuthRequest> &request,
-    FuzzedDataProvider &fuzzData)
-{
-    uint8_t deviceCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_DEVICE_KEY_COUNT);
-    std::vector<DeviceKey> selectedDevices;
-    for (uint8_t i = 0; i < deviceCount; ++i) {
-        selectedDevices.push_back(GenerateFuzzDeviceKey(fuzzData));
-    }
-    (void)request->HandleDeviceSelectResult(selectedDevices);
-}
-
-static void FuzzSendDelegateAuthRequest(std::shared_ptr<HostDelegateAuthRequest> &request, FuzzedDataProvider &fuzzData)
-{
-    uint32_t requestSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
-    std::vector<uint8_t> startDelegateAuthRequest = fuzzData.ConsumeBytes<uint8_t>(requestSize);
-    (void)request->SendDelegateAuthRequest(startDelegateAuthRequest);
-}
-
 static void FuzzHandleStartDelegateAuthReply(std::shared_ptr<HostDelegateAuthRequest> &request,
     FuzzedDataProvider &fuzzData)
 {
@@ -137,8 +119,6 @@ static const HostDelegateAuthRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzGetPeerInfo,
     FuzzHostBeginDelegateAuth,
     FuzzGetDescription,
-    FuzzHandleDeviceSelectResult,
-    FuzzSendDelegateAuthRequest,
     FuzzHandleStartDelegateAuthReply,
 };
 

@@ -120,7 +120,7 @@ void InboundRequest::SendRequestAborted(ResultCode result, const std::string &re
     IAM_LOGI("%{public}s sending RequestAborted: result=%{public}d, reason=%{public}s", GetDescription(),
         static_cast<int32_t>(result), reason.c_str());
 
-    RequestAbortedRequest abortReq;
+    RequestAbortedRequest abortReq {};
     abortReq.result = result;
     abortReq.reason = reason;
 

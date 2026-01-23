@@ -24,8 +24,6 @@
 
 #include "xcollie_helper.h"
 
-#undef LOG_DOMAIN
-#define LOG_DOMAIN 0xD002510
 #undef LOG_TAG
 #define LOG_TAG "CDA_SA"
 
@@ -48,7 +46,8 @@ public:
 
 std::shared_ptr<DeviceManagerAdapterImpl> DeviceManagerAdapterImpl::Create()
 {
-    auto adapter = std::shared_ptr<DeviceManagerAdapterImpl>(new DeviceManagerAdapterImpl());
+    auto adapter = std::shared_ptr<DeviceManagerAdapterImpl>(new (std::nothrow) DeviceManagerAdapterImpl());
+    ENSURE_OR_RETURN_VAL(adapter != nullptr, nullptr);
     if (!adapter->Initialize()) {
         IAM_LOGE("Failed to initialize DeviceManagerAdapterImpl");
         return nullptr;

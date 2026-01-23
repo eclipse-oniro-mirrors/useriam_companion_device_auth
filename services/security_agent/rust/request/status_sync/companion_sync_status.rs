@@ -22,7 +22,7 @@ use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
 use crate::utils::{Attribute, AttributeKey};
@@ -33,7 +33,7 @@ pub struct CompanionDeviceSyncStatusRequest {
     pub binding_id: i32,
     pub challenge: u64,
     pub salt: Vec<u8>,
-    pub protocal_list: Vec<u16>,
+    pub protocol_list: Vec<u16>,
     pub capability_list: Vec<u16>,
 }
 
@@ -49,7 +49,7 @@ impl CompanionDeviceSyncStatusRequest {
             binding_id: input.binding_id,
             challenge: input.challenge,
             salt: input.salt.data[..input.salt.len as usize].to_vec(),
-            protocal_list: PROTOCAL_VERSION.to_vec(),
+            protocol_list: PROTOCOL_VERSION.to_vec(),
             capability_list: input.capability_list.try_into().map_err(|e| p!(e))?,
         })
     }
@@ -57,7 +57,7 @@ impl CompanionDeviceSyncStatusRequest {
     fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
-        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocal_list);
+        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocol_list);
         encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.capability_list);
 
         let attribute_bytes = encrypt_attribute.to_bytes()?;
@@ -72,19 +72,19 @@ impl CompanionDeviceSyncStatusRequest {
     }
 }
 
-impl CompanionRequest for CompanionDeviceSyncStatusRequest {
+impl Request for CompanionDeviceSyncStatusRequest {
     fn get_request_id(&self) -> i32 {
         self.binding_id
     }
 
-    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionDeviceSyncStatusRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceSyncStatusRequest begin start");
-        let CompanionRequestParam::SyncStatus(_ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionSyncStatus(_ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -94,7 +94,7 @@ impl CompanionRequest for CompanionDeviceSyncStatusRequest {
         Ok(())
     }
 
-    fn end(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionDeviceSyncStatusRequest end not implemented");
         Err(ErrorCode::GeneralError)
     }

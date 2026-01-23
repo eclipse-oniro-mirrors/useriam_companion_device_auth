@@ -33,24 +33,17 @@ public:
     ~SoftBusConnectionManager();
 
     bool Start();
-
     bool OpenConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey,
         const std::string &networkId);
-
     void CloseConnection(const std::string &connectionName);
-
     bool SendMessage(const std::string &connectionName, const std::vector<uint8_t> &rawMsg);
-
-    // ISoftBusSocketCallback implementation
     void HandleBind(int32_t socketId, const std::string &peerNetworkId) override;
     void HandleBytes(int32_t socketId, const void *data, uint32_t dataLen) override;
     void HandleShutdown(int32_t socketId, int32_t reason) override;
     void HandleError(int32_t socketId, int32_t errCode) override;
-
     std::unique_ptr<Subscription> SubscribeRawMessage(OnRawMessage &&callback);
     std::unique_ptr<Subscription> SubscribeConnectionStatus(OnConnectionStatusChange &&callback);
     std::unique_ptr<Subscription> SubscribeIncomingConnection(OnIncomingConnection &&callback);
-
     void ReportConnectionEstablished(const std::string &connectionName);
     void ReportConnectionClosed(const std::string &connectionName, const std::string &reason);
 

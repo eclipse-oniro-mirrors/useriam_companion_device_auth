@@ -33,7 +33,7 @@ use crate::traits::db_manager::{
     DeviceKey, UserInfo,
 };
 use crate::traits::host_db_manager::{CompanionDeviceFilter, HostDbManagerRegistry};
-use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -243,8 +243,8 @@ impl HostDeviceEnrollRequest {
             log_e!("user_id check fail, {}, {}", self.enroll_param.companion_device_key.user_id, reply_info.user_id);
             return Err(ErrorCode::GeneralError);
         }
-        if reply_info.protocal_list != PROTOCAL_VERSION {
-            log_e!("protocal version is error, {:?}", reply_info.protocal_list);
+        if reply_info.protocol_list != PROTOCOL_VERSION {
+            log_e!("protocol version is error, {:?}", reply_info.protocol_list);
             return Err(ErrorCode::GeneralError);
         }
 
@@ -386,14 +386,14 @@ impl HostDeviceEnrollRequest {
     }
 }
 
-impl HostRequest for HostDeviceEnrollRequest {
+impl Request for HostDeviceEnrollRequest {
     fn get_request_id(&self) -> i32 {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceEnrollRequest prepare start");
-        let HostRequestParam::KeyNego(_ffi_input, ffi_output) = param else {
+        let RequestParam::HostKeyNego(_ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -403,9 +403,9 @@ impl HostRequest for HostDeviceEnrollRequest {
         Ok(())
     }
 
-    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceEnrollRequest begin start");
-        let HostRequestParam::EnrollBegin(ffi_input, ffi_output) = param else {
+        let RequestParam::HostEnrollBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -424,9 +424,9 @@ impl HostRequest for HostDeviceEnrollRequest {
         Ok(())
     }
 
-    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceEnrollRequest end start");
-        let HostRequestParam::EnrollEnd(ffi_input, ffi_output) = param else {
+        let RequestParam::HostEnrollEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };

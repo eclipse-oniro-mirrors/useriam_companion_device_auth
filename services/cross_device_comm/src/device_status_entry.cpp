@@ -42,7 +42,7 @@ void DeviceStatusEntry::OnUserIdChange()
 
 DeviceKey DeviceStatusEntry::BuildDeviceKey(UserId userId) const
 {
-    DeviceKey deviceKey;
+    DeviceKey deviceKey {};
     deviceKey.idType = physicalDeviceKey.idType;
     deviceKey.deviceId = physicalDeviceKey.deviceId;
     deviceKey.deviceUserId = userId;
@@ -51,7 +51,7 @@ DeviceKey DeviceStatusEntry::BuildDeviceKey(UserId userId) const
 
 DeviceStatus DeviceStatusEntry::BuildDeviceStatus(UserId userId) const
 {
-    DeviceStatus status;
+    DeviceStatus status {};
     status.deviceKey.idType = physicalDeviceKey.idType;
     status.deviceKey.deviceId = physicalDeviceKey.deviceId;
     status.deviceKey.deviceUserId = userId;

@@ -36,14 +36,17 @@ public:
     ~SoftBusDeviceStatusManager();
 
     bool Start();
+
     std::unique_ptr<Subscription> SubscribePhysicalDeviceStatus(OnPhysicalDeviceStatusChange &&callback);
     std::unique_ptr<Subscription> SubscribeAuthMaintainActive(OnAuthMaintainActiveChange &&callback);
+
     std::optional<PhysicalDeviceStatus> GetPhysicalDeviceStatus(const PhysicalDeviceKey &key);
     std::vector<PhysicalDeviceStatus> GetAllPhysicalDevices() const;
-    void RefreshDeviceStatus();
-    void HandleLocalIsAuthMaintainActiveChange(bool isAuthMaintainActive);
     bool GetAuthMaintainActive() const;
     std::optional<PhysicalDeviceKey> GetLocalPhysicalDeviceKey() const;
+
+    void RefreshDeviceStatus();
+    void HandleLocalIsAuthMaintainActiveChange(bool isAuthMaintainActive);
 
 private:
     static std::string DeviceTypeIdToString(DistributedHardware::DmDeviceType deviceTypeId);

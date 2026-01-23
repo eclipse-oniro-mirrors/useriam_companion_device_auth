@@ -49,7 +49,7 @@ std::optional<SyncDeviceStatusRequest> DecodeSyncDeviceStatusRequest(const Attri
     auto hostDeviceKey = DecodeHostDeviceKey(attributes);
     ENSURE_OR_RETURN_VAL(hostDeviceKey.has_value(), std::nullopt);
 
-    SyncDeviceStatusRequest request;
+    SyncDeviceStatusRequest request {};
     request.hostDeviceKey = *hostDeviceKey;
     bool getSaltRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_SALT, request.salt);
     ENSURE_OR_RETURN_VAL(getSaltRet, std::nullopt);
@@ -81,7 +81,7 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, resultCode);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
 
-    SyncDeviceStatusReply reply;
+    SyncDeviceStatusReply reply {};
     reply.result = static_cast<ResultCode>(resultCode);
     if (reply.result != ResultCode::SUCCESS) {
         return reply;

@@ -16,7 +16,7 @@
 use crate::common::constants::ErrorCode;
 use crate::log_e;
 use crate::traits::storage_io::StorageIo;
-use crate::Vec;
+use crate::{CString, Vec};
 #[cfg(not(any(test, feature = "test-utils")))]
 use alloc::format;
 #[cfg(any(test, feature = "test-utils"))]
@@ -58,7 +58,7 @@ impl StorageIo for DefaultStorageIo {
         }
 
         let final_path = format!("{}{}", DEFAULT_FILE_HEAD, file_name);
-        let context = fs::read(final_path).map_err(|e| {
+        let context = fs::read(&final_path).map_err(|e| {
             log_e!("failed to read file: {}, result: {:?}", file_name, e);
             ErrorCode::GeneralError
         })?;
@@ -67,10 +67,29 @@ impl StorageIo for DefaultStorageIo {
 
     fn write(&self, file_name: &str, data: &[u8]) -> Result<(), ErrorCode> {
         let final_path = format!("{}{}", DEFAULT_FILE_HEAD, file_name);
-        fs::write(final_path, data).map_err(|e| {
+        fs::write(&final_path, data).map_err(|e| {
             log_e!("failed to write file: {}, result: {:?}", file_name, e);
             ErrorCode::GeneralError
         })?;
+
+        #[cfg(unix)]
+        {
+            use libc::{chmod, S_IRUSR, S_IWUSR};
+            let c_path = CString::new(final_path.as_str()).map_err(|e| {
+                log_e!("failed to create CString: {}, result: {:?}", file_name, e);
+                ErrorCode::GeneralError
+            })?;
+
+            unsafe {
+                // 0o600 = S_IRUSR | S_IWUSR (owner read/write)
+                let mode = S_IRUSR | S_IWUSR;
+                if chmod(c_path.as_ptr(), mode) != 0 {
+                    log_e!("failed to set file permissions: {}", file_name);
+                    return Err(ErrorCode::GeneralError);
+                }
+            }
+        }
+
         Ok(())
     }
 

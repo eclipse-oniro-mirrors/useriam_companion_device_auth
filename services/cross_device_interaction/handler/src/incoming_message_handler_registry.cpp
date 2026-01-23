@@ -37,10 +37,9 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 std::shared_ptr<IncomingMessageHandlerRegistry> IncomingMessageHandlerRegistry::Create()
 {
-    auto registry = std::shared_ptr<IncomingMessageHandlerRegistry>(new IncomingMessageHandlerRegistry());
-    if (registry == nullptr) {
-        return nullptr;
-    }
+    auto registry =
+        std::shared_ptr<IncomingMessageHandlerRegistry>(new (std::nothrow) IncomingMessageHandlerRegistry());
+    ENSURE_OR_RETURN_VAL(registry != nullptr, nullptr);
     if (!registry->Initialize()) {
         IAM_LOGE("IncomingMessageHandlerRegistry initialize failed");
         return nullptr;

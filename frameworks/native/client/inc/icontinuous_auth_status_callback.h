@@ -30,6 +30,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class IContinuousAuthStatusCallback {
 public:
+    virtual ~IContinuousAuthStatusCallback() = default;
+
     /**
      * @brief Callback invoked when continuous authentication results change.
      *

@@ -27,10 +27,9 @@ mod companion_device_auth_ffi_test;
 
 // impls
 mod default_companion_db_manager_test;
-mod default_companion_request_manager_test;
+mod default_request_manager_test;
 mod default_event_manager_test;
 mod default_host_db_manager_test;
-mod default_host_request_manager_test;
 mod default_misc_manager_test;
 mod default_storage_io_test;
 mod default_time_keeper_test;
@@ -76,11 +75,10 @@ mod token_obtain_message_test;
 
 // traits
 mod companion_db_manager_test;
-mod companion_request_manager_test;
+mod request_manager_test;
 mod crypto_engine_test;
 mod event_manager_test;
 mod host_db_manager_test;
-mod host_request_manager_test;
 mod misc_manager_test;
 mod storage_io_test;
 mod time_keeper_test;

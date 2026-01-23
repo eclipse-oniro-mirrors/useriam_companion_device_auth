@@ -26,6 +26,7 @@ pub mod jobs;
 pub mod request;
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils;
+#[macro_use]
 pub mod traits;
 pub mod utils;
 

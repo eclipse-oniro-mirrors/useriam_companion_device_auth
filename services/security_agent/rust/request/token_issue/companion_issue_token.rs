@@ -25,7 +25,7 @@ use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest, Sec
 use crate::request::token_issue::token_issue_message::SecIssueTokenReply;
 use crate::request::token_issue::token_issue_message::SecPreIssueRequest;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostTokenInfo;
 use crate::traits::misc_manager::MiscManagerRegistry;
@@ -149,19 +149,19 @@ impl CompanionDeviceIssueTokenRequest {
     }
 }
 
-impl CompanionRequest for CompanionDeviceIssueTokenRequest {
+impl Request for CompanionDeviceIssueTokenRequest {
     fn get_request_id(&self) -> i32 {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionDeviceIssueTokenRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceIssueTokenRequest begin start");
-        let CompanionRequestParam::IssueTokenBegin(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionIssueTokenBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -173,9 +173,9 @@ impl CompanionRequest for CompanionDeviceIssueTokenRequest {
         Ok(())
     }
 
-    fn end(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceIssueTokenRequest end start");
-        let CompanionRequestParam::IssueTokenEnd(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionIssueTokenEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };

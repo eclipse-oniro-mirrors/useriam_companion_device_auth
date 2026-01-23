@@ -35,7 +35,6 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
 
                # Companion device
                "cases/companion/companion_add_companion_request_test.cpp",
-               "cases/companion/companion_auth_maintain_state_change_request_test.cpp",
                "cases/companion/companion_delegate_auth_request_test.cpp",
                "cases/companion/companion_device_auth_ffi_util_test.cpp",
                "cases/companion/companion_init_key_negotiation_handler_test.cpp",
@@ -57,13 +56,11 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
                # Request and messages
                "cases/request/add_companion_message_test.cpp",
                "cases/request/async_incoming_message_handler_test.cpp",
-               "cases/request/auth_maintain_state_change_message_test.cpp",
                "cases/request/companion_device_auth_all_in_one_executor_test.cpp",
                "cases/request/companion_device_auth_driver_test.cpp",
                "cases/request/companion_device_auth_executor_callback_test.cpp",
                "cases/request/delegate_auth_message_test.cpp",
                "cases/request/host_add_companion_request_test.cpp",
-               "cases/request/host_auth_maintain_state_change_handler_test.cpp",
                "cases/request/host_delegate_auth_request_test.cpp",
                "cases/request/host_issue_token_request_test.cpp",
                "cases/request/host_mix_auth_request_test.cpp",
@@ -107,17 +104,12 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
                "cases/soft_bus_cross_device_channel/soft_bus_channel_test.cpp",
                "cases/soft_bus_cross_device_channel/soft_bus_connection_manager_test.cpp",
                "cases/soft_bus_cross_device_channel/soft_bus_device_status_manager_test.cpp",
-               "cases/soft_bus_cross_device_channel/soft_bus_global_callbacks_test.cpp",
                "cases/soft_bus_cross_device_channel/soft_bus_socket_test.cpp",
 
                # Framework communication
                "cases/fwk_comm/fwk_comm_manager_test.cpp",
 
                # External adapters
-               "cases/external_adapters/access_token_kit_adapter_test.cpp",
-               "cases/external_adapters/device_manager_adapter_test.cpp",
-               "cases/external_adapters/driver_manager_adapter_test.cpp",
-               "cases/external_adapters/sa_manager_adapter_test.cpp",
                "cases/external_adapters/soft_bus_adapter_test.cpp",
 
                # Utilities

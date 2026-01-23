@@ -38,7 +38,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 class CompanionDeviceAuthService : public SystemAbility, public CompanionDeviceAuthStub, public NoCopyable {
-    DECLEAR_SYSTEM_ABILITY(CompanionDeviceAuthService);
+    DECLARE_SYSTEM_ABILITY(CompanionDeviceAuthService);
 
 public:
     CompanionDeviceAuthService();
@@ -48,39 +48,28 @@ public:
     ErrCode SubscribeAvailableDeviceStatus(int32_t localUserId,
         const sptr<IIpcAvailableDeviceStatusCallback> &deviceStatusCallback,
         int32_t &companionDeviceAuthResult) override;
-
     ErrCode UnsubscribeAvailableDeviceStatus(const sptr<IIpcAvailableDeviceStatusCallback> &deviceStatusCallback,
         int32_t &companionDeviceAuthResult) override;
-
     ErrCode SubscribeTemplateStatusChange(int32_t localUserId,
         const sptr<IIpcTemplateStatusCallback> &templateStatusCallback, int32_t &companionDeviceAuthResult) override;
-
     ErrCode UnsubscribeTemplateStatusChange(const sptr<IIpcTemplateStatusCallback> &templateStatusCallback,
         int32_t &companionDeviceAuthResult) override;
-
     ErrCode SubscribeContinuousAuthStatusChange(
         const IpcSubscribeContinuousAuthStatusParam &subscribeContinuousAuthStatusParam,
         const sptr<IIpcContinuousAuthStatusCallback> &continuousAuthStatusCallback,
         int32_t &companionDeviceAuthResult) override;
-
     ErrCode UnsubscribeContinuousAuthStatusChange(
         const sptr<IIpcContinuousAuthStatusCallback> &continuousAuthStatusCallback,
         int32_t &companionDeviceAuthResult) override;
-
     ErrCode UpdateTemplateEnabledBusinessIds(uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds,
         int32_t &companionDeviceAuthResult) override;
-
     ErrCode GetTemplateStatus(int32_t localUserId, std::vector<IpcTemplateStatus> &templateStatusArray,
         int32_t &companionDeviceAuthResult) override;
-
     ErrCode RegisterDeviceSelectCallback(const sptr<IIpcDeviceSelectCallback> &deviceSelectCallback,
         int32_t &companionDeviceAuthResult) override;
-
     ErrCode UnregisterDeviceSelectCallback(int32_t &companionDeviceAuthResult) override;
-
     ErrCode CheckLocalUserIdValid(int32_t localUserId, bool &isUserIdValid,
         int32_t &companionDeviceAuthResult) override;
-
     int32_t CallbackEnter(uint32_t code) override;
     int32_t CallbackExit(uint32_t code, int32_t result) override;
 

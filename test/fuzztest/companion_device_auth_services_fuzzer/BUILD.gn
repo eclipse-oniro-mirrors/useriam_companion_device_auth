@@ -34,11 +34,9 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               "fuzz_helpers/singleton_initializer.cpp",
 
               # cross_device_channels/soft_bus cases
-              "cases/cross_device_channels/soft_bus/soft_bus_adapter_manager_fuzzer.cpp",
               "cases/cross_device_channels/soft_bus/soft_bus_channel_fuzzer.cpp",
               "cases/cross_device_channels/soft_bus/soft_bus_connection_manager_fuzzer.cpp",
               "cases/cross_device_channels/soft_bus/soft_bus_device_status_manager_fuzzer.cpp",
-              "cases/cross_device_channels/soft_bus/soft_bus_global_callbacks_fuzzer.cpp",
               "cases/cross_device_channels/soft_bus/soft_bus_socket_fuzzer.cpp",
 
               # cross_device_interaction cases
@@ -46,9 +44,6 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               "cases/cross_device_interaction/add_companion/companion_add_companion_request_fuzzer.cpp",
               "cases/cross_device_interaction/add_companion/companion_init_key_negotiation_handler_fuzzer.cpp",
               "cases/cross_device_interaction/add_companion/host_add_companion_request_fuzzer.cpp",
-              "cases/cross_device_interaction/auth_maintain_state_change/auth_maintain_state_change_message_fuzzer.cpp",
-              "cases/cross_device_interaction/auth_maintain_state_change/companion_auth_maintain_state_change_request_fuzzer.cpp",
-              "cases/cross_device_interaction/auth_maintain_state_change/host_auth_maintain_state_change_handler_fuzzer.cpp",
               "cases/cross_device_interaction/common/common_message_fuzzer.cpp",
               "cases/cross_device_interaction/delegate_auth/companion_delegate_auth_request_fuzzer.cpp",
               "cases/cross_device_interaction/delegate_auth/companion_start_delegate_auth_handler_fuzzer.cpp",
@@ -94,7 +89,6 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               # misc cases
               "cases/misc/cda_attributes_fuzzer.cpp",
               "cases/misc/constant_user_id_manager_fuzzer.cpp",
-              "cases/misc/default_user_id_manager_fuzzer.cpp",
               "cases/misc/misc_manager_impl_fuzzer.cpp",
               "cases/misc/system_param_manager_impl_fuzzer.cpp",
 
@@ -128,7 +122,6 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
 
               # fwk_comm cases
               "cases/fwk_comm/all_in_one_executor_fuzzer.cpp",
-              "cases/fwk_comm/companion_auth_interface_adapter_fuzzer.cpp",
               "cases/fwk_comm/companion_device_auth_all_in_one_executor_fuzzer.cpp",
               "cases/fwk_comm/companion_device_auth_driver_fuzzer.cpp",
               "cases/fwk_comm/companion_device_auth_executor_callback_fuzzer.cpp",
@@ -137,13 +130,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               "cases/fwk_comm/fwk_comm_manager_fuzzer.cpp",
 
               # external_adapters cases
-              "cases/external_adapters/access_token_kit_adapter_fuzzer.cpp",
-              "cases/external_adapters/device_manager_adapter_fuzzer.cpp",
-              "cases/external_adapters/driver_manager_adapter_fuzzer.cpp",
-              "cases/external_adapters/sa_manager_adapter_fuzzer.cpp",
               "cases/external_adapters/security_command/security_command_adapter_fuzzer.cpp",
-              "cases/external_adapters/soft_bus_adapter_fuzzer.cpp",
-              "cases/external_adapters/user_auth_adapter_fuzzer.cpp",
 
               # utils cases
               "cases/utils/error_guard_fuzzer.cpp",

@@ -130,7 +130,7 @@ bool ConnectionManager::OpenConnection(const PhysicalDeviceKey &physicalDeviceKe
 
     std::string connectionName = GenerateConnectionName(localPhysicalKey, physicalDeviceKey);
 
-    Connection connection;
+    Connection connection {};
     connection.connectionName = connectionName;
     connection.remotePhysicalDeviceKey = physicalDeviceKey;
     connection.channelId = channel->GetChannelId();
@@ -221,7 +221,7 @@ bool ConnectionManager::HandleIncomingConnection(const std::string &connectionNa
     auto channel = channelManager_->GetChannelById(ChannelId::SOFTBUS);
     ENSURE_OR_RETURN_VAL(channel != nullptr, false);
 
-    Connection connection;
+    Connection connection {};
     connection.connectionName = connectionName;
     connection.remotePhysicalDeviceKey = physicalDeviceKey;
     connection.channelId = channel->GetChannelId();
@@ -258,7 +258,7 @@ void ConnectionManager::HandleIncomingConnectionFromChannel(ChannelId channelId,
     }
 
     // Create Connection
-    Connection connection;
+    Connection connection {};
     connection.connectionName = connectionName;
     connection.remotePhysicalDeviceKey = remotePhysicalDeviceKey;
     connection.channelId = channelId;
@@ -283,7 +283,7 @@ std::unique_ptr<Subscription> ConnectionManager::SubscribeConnectionStatus(const
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
-    ConnectionStatusSubscription subscription;
+    ConnectionStatusSubscription subscription {};
     subscription.connectionName = connectionName;
     subscription.callback = std::move(callback);
     connectionStatusSubscribers_[subscriptionId] = std::move(subscription);

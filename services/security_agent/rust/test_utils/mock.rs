@@ -1263,18 +1263,18 @@ impl crate::traits::companion_db_manager::CompanionDbManager for MockCompanionDb
 
 // ============== Request Manager Mocks ==============
 
-/// Mock implementation for HostRequestManager trait
+/// Mock implementation for RequestManager trait
 #[cfg(any(test, feature = "test-utils"))]
-pub struct MockHostRequestManager {
+pub struct MockRequestManager {
     add_request: Expectation0<Result<(), ErrorCode>>,
-    remove_request: Expectation0<Result<Box<crate::traits::host_request_manager::DynHostRequest>, ErrorCode>>,
+    remove_request: Expectation0<Result<Box<crate::traits::request_manager::DynRequest>, ErrorCode>>,
     // Internal storage for get_request to return &mut reference
-    stored_request: RefCell<Option<Box<crate::traits::host_request_manager::DynHostRequest>>>,
+    stored_request: RefCell<Option<Box<crate::traits::request_manager::DynRequest>>>,
     get_request_result: Cell<Result<(), ErrorCode>>,
 }
 
 #[cfg(any(test, feature = "test-utils"))]
-impl MockHostRequestManager {
+impl MockRequestManager {
     pub fn new() -> Self {
         Self {
             add_request: Expectation0::new(),
@@ -1290,7 +1290,7 @@ impl MockHostRequestManager {
 
     pub fn expect_remove_request(
         &mut self,
-    ) -> &mut Expectation0<Result<Box<crate::traits::host_request_manager::DynHostRequest>, ErrorCode>> {
+    ) -> &mut Expectation0<Result<Box<crate::traits::request_manager::DynRequest>, ErrorCode>> {
         &mut self.remove_request
     }
 
@@ -1303,17 +1303,17 @@ impl MockHostRequestManager {
     /// Set a specific request to be returned by get_request
     pub fn set_get_request_return(
         &mut self,
-        request: Option<Box<crate::traits::host_request_manager::DynHostRequest>>,
+        request: Option<Box<crate::traits::request_manager::DynRequest>>,
     ) {
         *self.stored_request.borrow_mut() = request;
     }
 }
 
 #[cfg(any(test, feature = "test-utils"))]
-impl crate::traits::host_request_manager::HostRequestManager for MockHostRequestManager {
+impl crate::traits::request_manager::RequestManager for MockRequestManager {
     fn add_request(
         &mut self,
-        _request: Box<crate::traits::host_request_manager::DynHostRequest>,
+        _request: Box<crate::traits::request_manager::DynRequest>,
     ) -> Result<(), ErrorCode> {
         self.add_request.call()
     }
@@ -1321,14 +1321,14 @@ impl crate::traits::host_request_manager::HostRequestManager for MockHostRequest
     fn remove_request(
         &mut self,
         _request_id: i32,
-    ) -> Result<Box<crate::traits::host_request_manager::DynHostRequest>, ErrorCode> {
+    ) -> Result<Box<crate::traits::request_manager::DynRequest>, ErrorCode> {
         self.remove_request.call()
     }
 
     fn get_request<'a>(
         &'a mut self,
         _request_id: i32,
-    ) -> Result<&'a mut crate::traits::host_request_manager::DynHostRequest, ErrorCode> {
+    ) -> Result<&'a mut crate::traits::request_manager::DynRequest, ErrorCode> {
         // Check if we should return error
         self.get_request_result.get()?;
 
@@ -1339,92 +1339,8 @@ impl crate::traits::host_request_manager::HostRequestManager for MockHostRequest
             self.stored_request
                 .borrow()
                 .as_ref()
-                .map(|r| r.as_ref() as *const crate::traits::host_request_manager::DynHostRequest)
-                .ok_or(ErrorCode::NotFound)? as *mut crate::traits::host_request_manager::DynHostRequest;
-
-        unsafe { Ok(&mut *raw_ptr) }
-    }
-}
-
-/// Mock implementation for CompanionRequestManager trait
-#[cfg(any(test, feature = "test-utils"))]
-pub struct MockCompanionRequestManager {
-    add_request: Expectation0<Result<(), ErrorCode>>,
-    remove_request: Expectation0<Result<Box<crate::traits::companion_request_manager::DynCompanionRequest>, ErrorCode>>,
-    // Internal storage for get_request to return &mut reference
-    stored_request: RefCell<Option<Box<crate::traits::companion_request_manager::DynCompanionRequest>>>,
-    get_request_result: Cell<Result<(), ErrorCode>>,
-}
-
-#[cfg(any(test, feature = "test-utils"))]
-impl MockCompanionRequestManager {
-    pub fn new() -> Self {
-        Self {
-            add_request: Expectation0::new(),
-            remove_request: Expectation0::new(),
-            stored_request: RefCell::new(None),
-            get_request_result: Cell::new(Ok(())),
-        }
-    }
-
-    pub fn expect_add_request(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
-        &mut self.add_request
-    }
-
-    pub fn expect_remove_request(
-        &mut self,
-    ) -> &mut Expectation0<Result<Box<crate::traits::companion_request_manager::DynCompanionRequest>, ErrorCode>> {
-        &mut self.remove_request
-    }
-
-    /// Set the result for get_request call
-    /// Returns Ok(()) to return the stored request, or Err(code) to return an error
-    pub fn expect_get_request(&mut self, result: Result<(), ErrorCode>) {
-        self.get_request_result.set(result);
-    }
-
-    /// Set a specific request to be returned by get_request
-    pub fn set_get_request_return(
-        &mut self,
-        request: Option<Box<crate::traits::companion_request_manager::DynCompanionRequest>>,
-    ) {
-        *self.stored_request.borrow_mut() = request;
-    }
-}
-
-#[cfg(any(test, feature = "test-utils"))]
-impl crate::traits::companion_request_manager::CompanionRequestManager for MockCompanionRequestManager {
-    fn add_request(
-        &mut self,
-        _request: Box<crate::traits::companion_request_manager::DynCompanionRequest>,
-    ) -> Result<(), ErrorCode> {
-        self.add_request.call()
-    }
-
-    fn remove_request(
-        &mut self,
-        _request_id: i32,
-    ) -> Result<Box<crate::traits::companion_request_manager::DynCompanionRequest>, ErrorCode> {
-        self.remove_request.call()
-    }
-
-    fn get_request<'a>(
-        &'a mut self,
-        _request_id: i32,
-    ) -> Result<&'a mut crate::traits::companion_request_manager::DynCompanionRequest, ErrorCode> {
-        // Check if we should return error
-        self.get_request_result.get()?;
-
-        // Get raw pointer to stored request
-        // SAFETY: In test context, we assume single-threaded usage and proper lifecycle.
-        // The Mock object outlives the returned reference.
-        let raw_ptr = self
-            .stored_request
-            .borrow()
-            .as_ref()
-            .map(|r| r.as_ref() as *const crate::traits::companion_request_manager::DynCompanionRequest)
-            .ok_or(ErrorCode::NotFound)?
-            as *mut crate::traits::companion_request_manager::DynCompanionRequest;
+                .map(|r| r.as_ref() as *const crate::traits::request_manager::DynRequest)
+                .ok_or(ErrorCode::NotFound)? as *mut crate::traits::request_manager::DynRequest;
 
         unsafe { Ok(&mut *raw_ptr) }
     }

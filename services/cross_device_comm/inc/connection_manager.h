@@ -62,7 +62,6 @@ public:
     bool OpenConnection(const PhysicalDeviceKey &physicalDeviceKey, ChannelId channelId,
         std::string &outConnectionName);
     void CloseConnection(const std::string &connectionName, const std::string &reason = "not_set");
-
     bool HandleIncomingConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey);
 
     std::optional<Connection> GetConnection(const std::string &connectionName)
@@ -73,7 +72,6 @@ public:
         }
         return std::nullopt;
     }
-
     ConnectionStatus GetConnectionStatus(const std::string &connectionName)
     {
         auto connection = GetConnection(connectionName);
@@ -85,6 +83,7 @@ public:
 
     std::unique_ptr<Subscription> SubscribeConnectionStatus(const std::string &connectionName,
         OnConnectionStatusChange &&callback);
+
     void HandleChannelConnectionStatusChange(const std::string &connectionName, ConnectionStatus status,
         const std::string &reason);
     void HandleKeepAliveReply(const std::string &connectionName, const Attributes &reply);

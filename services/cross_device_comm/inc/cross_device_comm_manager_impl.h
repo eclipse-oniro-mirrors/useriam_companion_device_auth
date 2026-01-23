@@ -51,16 +51,19 @@ public:
     ~CrossDeviceCommManagerImpl() override = default;
 
     bool Start() override;
+
     bool IsAuthMaintainActive() override;
-    std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) override;
     LocalDeviceProfile GetLocalDeviceProfile() override;
+    std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) override;
+
     std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey) override;
     std::vector<DeviceStatus> GetAllDeviceStatus() override;
     std::unique_ptr<Subscription> SubscribeAllDeviceStatus(OnDeviceStatusChange &&onDeviceStatusChange) override;
-    void SetSubscribeMode(SubscribeMode subscribeMode) override;
-    std::optional<SteadyTimeMs> GetManageSubscribeTime() const override;
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey,
         OnDeviceStatusChange &&onDeviceStatusChange) override;
+    void SetSubscribeMode(SubscribeMode subscribeMode) override;
+    std::optional<SteadyTimeMs> GetManageSubscribeTime() const override;
+
     bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) override;
     void CloseConnection(const std::string &connectionName) override;
     bool IsConnectionOpen(const std::string &connectionName) override;
@@ -69,10 +72,12 @@ public:
     std::unique_ptr<Subscription> SubscribeConnectionStatus(const std::string &connectionName,
         OnConnectionStatusChange &&onConnectionStatusChange) override;
     std::unique_ptr<Subscription> SubscribeIncomingConnection(MessageType msgType, OnMessage &&onMessage) override;
+
     bool SendMessage(const std::string &connectionName, MessageType msgType, Attributes &request,
         OnMessageReply &&onMessageReply) override;
     std::unique_ptr<Subscription> SubscribeMessage(const std::string &connectionName, MessageType msgType,
         OnMessage &&onMessage) override;
+
     bool CheckOperationIntent(const DeviceKey &deviceKey, uint32_t tokenId,
         OnCheckOperationIntentResult &&resultCallback) override;
 

@@ -23,7 +23,7 @@ use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{CompanionRequest, CompanionRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostTokenInfo;
 use crate::utils::auth_token::UserAuthToken;
@@ -96,19 +96,19 @@ impl CompanionDelegateAuthRequest {
     }
 }
 
-impl CompanionRequest for CompanionDelegateAuthRequest {
+impl Request for CompanionDelegateAuthRequest {
     fn get_request_id(&self) -> i32 {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, _param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("CompanionDelegateAuthRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDelegateAuthRequest begin start");
-        let CompanionRequestParam::DelegateAuthBegin(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionDelegateAuthBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -120,9 +120,9 @@ impl CompanionRequest for CompanionDelegateAuthRequest {
         Ok(())
     }
 
-    fn end(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDelegateAuthRequest end start");
-        let CompanionRequestParam::DelegateAuthEnd(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionDelegateAuthEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };

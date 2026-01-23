@@ -38,14 +38,15 @@ class LocalDeviceStatusManager : public NoCopyable, public std::enable_shared_fr
 public:
     static std::shared_ptr<LocalDeviceStatusManager> Create(std::shared_ptr<ChannelManager> channelMgr);
 
-    ~LocalDeviceStatusManager() = default;
+    virtual ~LocalDeviceStatusManager() = default;
 
     virtual bool IsAuthMaintainActive();
-    virtual std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback);
 
     virtual std::map<ChannelId, DeviceKey> GetLocalDeviceKeys();
     virtual std::optional<DeviceKey> GetLocalDeviceKey(ChannelId channelId);
     virtual LocalDeviceProfile GetLocalDeviceProfile();
+
+    virtual std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback);
 
     virtual void SetAuthMaintainActive(bool isActive);
 

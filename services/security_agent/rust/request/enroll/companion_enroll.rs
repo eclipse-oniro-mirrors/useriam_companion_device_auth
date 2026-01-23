@@ -28,9 +28,7 @@ use crate::request::enroll::enroll_message::{
 };
 use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::companion_request_manager::{
-    CompanionRequest, CompanionRequestManagerRegistry, CompanionRequestParam,
-};
+use crate::traits::request_manager::{Request, RequestManagerRegistry, RequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::crypto_engine::KeyPair;
 use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, HostTokenInfo, UserInfo};
@@ -224,7 +222,7 @@ impl CompanionDeviceEnrollRequest {
             esl: ExecutorSecurityLevel::Esl3 as i32,
             track_ability_level: 0,
             challenge: self.get_challenge(),
-            protocal_list: PROTOCAL_VERSION.to_vec(),
+            protocol_list: PROTOCOL_VERSION.to_vec(),
             capability_list: SUPPORT_CAPABILITY.to_vec(),
         };
         let (encrypt_data, tag, iv) =
@@ -275,14 +273,14 @@ impl CompanionDeviceEnrollRequest {
     }
 }
 
-impl CompanionRequest for CompanionDeviceEnrollRequest {
+impl Request for CompanionDeviceEnrollRequest {
     fn get_request_id(&self) -> i32 {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceEnrollRequest prepare start");
-        let CompanionRequestParam::KeyNego(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionKeyNego(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -293,9 +291,9 @@ impl CompanionRequest for CompanionDeviceEnrollRequest {
         Ok(())
     }
 
-    fn begin(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceEnrollRequest begin start");
-        let CompanionRequestParam::EnrollBegin(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionEnrollBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -317,9 +315,9 @@ impl CompanionRequest for CompanionDeviceEnrollRequest {
         Ok(())
     }
 
-    fn end(&mut self, param: CompanionRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("CompanionDeviceEnrollRequest end start");
-        let CompanionRequestParam::EnrollEnd(ffi_input, ffi_output) = param else {
+        let RequestParam::CompanionEnrollEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };

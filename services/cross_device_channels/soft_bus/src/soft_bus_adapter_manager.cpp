@@ -24,8 +24,6 @@
 
 #include "soft_bus_adapter_impl.h"
 
-#undef LOG_DOMAIN
-#define LOG_DOMAIN 0xD002510
 #undef LOG_TAG
 #define LOG_TAG "CDA_SA"
 

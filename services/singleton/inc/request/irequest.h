@@ -53,8 +53,6 @@ enum class RequestType : int32_t {
 
     HOST_SINGLE_MIX_AUTH_REQUEST = 90,
     HOST_MIX_AUTH_REQUEST = 91,
-
-    COMPANION_AUTH_MAINTAIN_STATE_CHANGE_REQUEST = 100,
 };
 
 class IRequest {

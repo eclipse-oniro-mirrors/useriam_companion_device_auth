@@ -26,7 +26,7 @@ use crate::request::enroll::host_enroll::{HostDeviceEnrollRequest, KeyNegotialPa
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk, DeviceKey};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
-use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
@@ -55,7 +55,7 @@ fn create_valid_key_nego_reply(challenge: u64) -> Vec<u8> {
 fn create_valid_binding_reply(
     device_id: &str,
     user_id: i32,
-    protocal: &[u16],
+    protocol: &[u16],
     capability: &[u16],
     esl: i32,
 ) -> Vec<u8> {
@@ -65,7 +65,7 @@ fn create_valid_binding_reply(
         esl,
         track_ability_level: 0,
         challenge: 0,
-        protocal_list: protocal.to_vec(),
+        protocol_list: protocol.to_vec(),
         capability_list: capability.to_vec(),
     };
 
@@ -132,7 +132,7 @@ fn host_enroll_request_prepare_test_wrong_input_type() {
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
     let mut output = HostGetInitKeyNegotiationOutputFfi::default();
-    let param = HostRequestParam::KeyNego(&input, &mut output);
+    let param = RequestParam::HostKeyNego(&input, &mut output);
     let result = request.prepare(param);
     assert!(result.is_ok());
 }
@@ -151,7 +151,7 @@ fn host_enroll_request_prepare_test_secure_protocol_id_try_from_fail() {
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
     let mut output = HostGetInitKeyNegotiationOutputFfi::default();
-    let param = HostRequestParam::KeyNego(&input, &mut output);
+    let param = RequestParam::HostKeyNego(&input, &mut output);
     let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -170,7 +170,7 @@ fn host_enroll_request_prepare_test_secure_protocol_id_invalid() {
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
     let mut output = HostGetInitKeyNegotiationOutputFfi::default();
-    let param = HostRequestParam::KeyNego(&input, &mut output);
+    let param = RequestParam::HostKeyNego(&input, &mut output);
     let result = request.prepare(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -215,7 +215,7 @@ fn host_enroll_request_begin_test_wrong_input_type() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert!(result.is_ok());
 }
@@ -251,7 +251,7 @@ fn host_enroll_request_begin_test_schedule_id_mismatch() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -287,7 +287,7 @@ fn host_enroll_request_begin_test_atl_try_from_fail() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -323,7 +323,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_try_from_fail() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -359,7 +359,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_invalid() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -395,7 +395,7 @@ fn host_enroll_request_begin_test_sec_message_decode_fail() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -436,7 +436,7 @@ fn host_enroll_request_begin_test_generate_key_pair_fail() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -480,7 +480,7 @@ fn host_enroll_request_begin_test_x25519_ecdh_fail() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -523,7 +523,7 @@ fn host_enroll_request_begin_test_hkdf_fail() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -569,7 +569,7 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&begin_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
     let result = request.begin(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -598,7 +598,7 @@ fn host_enroll_request_end_test_wrong_input_type() {
     };
 
     let mut output = HostBeginAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollBegin(&wrong_input, &mut output);
+    let param = RequestParam::HostEnrollBegin(&wrong_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
@@ -625,7 +625,7 @@ fn host_enroll_request_end_test_sec_message_decode_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -648,7 +648,7 @@ fn host_enroll_request_end_test_hkdf_fail() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -660,7 +660,7 @@ fn host_enroll_request_end_test_hkdf_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -686,7 +686,7 @@ fn host_enroll_request_end_test_decrypt_sec_message_fail() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -698,7 +698,7 @@ fn host_enroll_request_end_test_decrypt_sec_message_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -719,7 +719,7 @@ fn host_enroll_request_end_test_device_id_mismatch() {
     let sec_message = create_valid_binding_reply(
         "wrong_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -731,7 +731,7 @@ fn host_enroll_request_end_test_device_id_mismatch() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -752,7 +752,7 @@ fn host_enroll_request_end_test_user_id_mismatch() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         -1,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -764,15 +764,15 @@ fn host_enroll_request_end_test_user_id_mismatch() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
 #[test]
-fn host_enroll_request_end_test_protocal_list_mismatch() {
+fn host_enroll_request_end_test_protocol_list_mismatch() {
     let _guard = ut_registry_guard!();
-    log_i!("host_enroll_request_end_test_protocal_list_mismatch start");
+    log_i!("host_enroll_request_end_test_protocol_list_mismatch start");
 
     mock_set_crypto_engine();
 
@@ -797,7 +797,7 @@ fn host_enroll_request_end_test_protocal_list_mismatch() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -816,7 +816,7 @@ fn host_enroll_request_end_test_capability_list_mismatch() {
     request.key_negotial_param.push(create_key_negotial_param());
 
     let sec_message =
-        create_valid_binding_reply("companion_device", 100, PROTOCAL_VERSION, &[], ExecutorSecurityLevel::Esl2 as i32);
+        create_valid_binding_reply("companion_device", 100, PROTOCOL_VERSION, &[], ExecutorSecurityLevel::Esl2 as i32);
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
@@ -825,7 +825,7 @@ fn host_enroll_request_end_test_capability_list_mismatch() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -858,7 +858,7 @@ fn host_enroll_request_end_test_secure_random_fail() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -870,7 +870,7 @@ fn host_enroll_request_end_test_secure_random_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -902,7 +902,7 @@ fn host_enroll_request_end_test_get_rtc_time_fail() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -914,7 +914,7 @@ fn host_enroll_request_end_test_get_rtc_time_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -944,7 +944,7 @@ fn host_enroll_request_end_test_add_device_fail() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -956,7 +956,7 @@ fn host_enroll_request_end_test_add_device_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -987,7 +987,7 @@ fn host_enroll_request_end_test_add_token_fail() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -999,7 +999,7 @@ fn host_enroll_request_end_test_add_token_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -1034,7 +1034,7 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -1046,7 +1046,7 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -1079,7 +1079,7 @@ fn host_enroll_request_end_test_get_session_key_fail() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -1091,7 +1091,7 @@ fn host_enroll_request_end_test_get_session_key_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
@@ -1137,7 +1137,7 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        PROTOCAL_VERSION,
+        PROTOCOL_VERSION,
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -1149,7 +1149,7 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
     };
 
     let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = HostRequestParam::EnrollEnd(&end_input, &mut output);
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

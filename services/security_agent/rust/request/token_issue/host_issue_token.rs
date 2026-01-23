@@ -29,7 +29,7 @@ use crate::request::token_issue::token_issue_message::{FwkIssueTokenRequest, Sec
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -205,14 +205,14 @@ impl HostDeviceIssueTokenRequest {
     }
 }
 
-impl HostRequest for HostDeviceIssueTokenRequest {
+impl Request for HostDeviceIssueTokenRequest {
     fn get_request_id(&self) -> i32 {
         self.get_request_id()
     }
 
-    fn prepare(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceIssueTokenRequest prepare start");
-        let HostRequestParam::IssueTokenPrepare(ffi_input, ffi_output) = param else {
+        let RequestParam::HostIssueTokenPrepare(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -223,9 +223,9 @@ impl HostRequest for HostDeviceIssueTokenRequest {
         Ok(())
     }
 
-    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceIssueTokenRequest begin start");
-        let HostRequestParam::IssueTokenBegin(ffi_input, ffi_output) = param else {
+        let RequestParam::HostIssueTokenBegin(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -236,9 +236,9 @@ impl HostRequest for HostDeviceIssueTokenRequest {
         Ok(())
     }
 
-    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceIssueTokenRequest end start");
-        let HostRequestParam::IssueTokenEnd(ffi_input, ffi_output) = param else {
+        let RequestParam::HostIssueTokenEnd(ffi_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };

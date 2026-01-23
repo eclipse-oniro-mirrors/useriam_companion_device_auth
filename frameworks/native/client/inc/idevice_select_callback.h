@@ -32,6 +32,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class IDeviceSelectCallback {
 public:
+    virtual ~IDeviceSelectCallback() = default;
+
     /**
      * @brief Device selection callback signature that returns appropriate devices for the requested purpose.
      *

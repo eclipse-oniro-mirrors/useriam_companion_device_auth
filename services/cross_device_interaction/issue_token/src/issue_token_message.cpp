@@ -40,7 +40,7 @@ std::optional<PreIssueTokenRequest> DecodePreIssueTokenRequest(const Attributes 
     auto hostKeyOpt = DecodeHostDeviceKey(attributes);
     ENSURE_OR_RETURN_VAL(hostKeyOpt.has_value(), std::nullopt);
 
-    PreIssueTokenRequest request;
+    PreIssueTokenRequest request {};
     request.hostDeviceKey = *hostKeyOpt;
     bool getCompanionUserIdRet =
         attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
@@ -66,7 +66,7 @@ std::optional<PreIssueTokenReply> DecodePreIssueTokenReply(const Attributes &att
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
 
-    PreIssueTokenReply reply;
+    PreIssueTokenReply reply {};
     reply.result = static_cast<ResultCode>(result);
     if (reply.result != ResultCode::SUCCESS) {
         return reply;
@@ -89,7 +89,7 @@ std::optional<IssueTokenRequest> DecodeIssueTokenRequest(const Attributes &attri
     auto hostKeyOpt = DecodeHostDeviceKey(attributes);
     ENSURE_OR_RETURN_VAL(hostKeyOpt.has_value(), std::nullopt);
 
-    IssueTokenRequest request;
+    IssueTokenRequest request {};
     request.hostDeviceKey = *hostKeyOpt;
     bool getCompanionUserIdRet =
         attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
@@ -115,7 +115,7 @@ std::optional<IssueTokenReply> DecodeIssueTokenReply(const Attributes &attribute
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
 
-    IssueTokenReply reply;
+    IssueTokenReply reply {};
     reply.result = static_cast<ResultCode>(result);
     if (reply.result != ResultCode::SUCCESS) {
         return reply;

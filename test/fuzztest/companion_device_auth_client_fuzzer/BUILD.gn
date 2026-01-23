@@ -40,7 +40,6 @@ ohos_fuzztest("CompanionDeviceAuthClientFuzzer") {
                    "${companion_device_auth_path}/frameworks/native/client/inc",
                    "${companion_device_auth_path}/services/utils/inc",
                    "${companion_device_auth_path}/services/common/inc",
-
                    ".",
                    "cases",
                  ]
@@ -49,10 +48,13 @@ ohos_fuzztest("CompanionDeviceAuthClientFuzzer") {
 
   external_deps = [
     "c_utils:utils",
+    "dsoftbus:softbus_client",
     "hilog:libhilog",
+    "init:libbegetutil",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "user_auth_framework:userauth_client",
   ]
 
   remove_configs = [ "//build/config/compiler:no_exceptions" ]

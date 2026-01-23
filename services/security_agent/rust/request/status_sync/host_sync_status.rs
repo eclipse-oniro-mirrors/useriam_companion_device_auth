@@ -25,7 +25,7 @@ use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::host_request_manager::{HostRequest, HostRequestParam};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
 use crate::utils::{Attribute, AttributeKey};
@@ -38,7 +38,7 @@ pub struct HostDeviceSyncStatusRequest {
     pub challenge: u64,
     pub salt: [u8; HKDF_SALT_SIZE],
     pub template_id: u64,
-    pub protocal_list: Vec<u16>,
+    pub protocol_list: Vec<u16>,
     pub capability_list: Vec<u16>,
 }
 
@@ -61,7 +61,7 @@ impl HostDeviceSyncStatusRequest {
             challenge: u64::from_ne_bytes(challenge),
             salt,
             template_id: 0,
-            protocal_list: Vec::new(),
+            protocol_list: Vec::new(),
             capability_list: SUPPORT_CAPABILITY.to_vec(),
         })
     }
@@ -81,7 +81,7 @@ impl HostDeviceSyncStatusRequest {
         let protocol_list = decrypt_attribute
             .get_u16_vec(AttributeKey::AttrProtocolList)
             .map_err(|e| p!(e))?;
-        if protocol_list != self.protocal_list {
+        if protocol_list != self.protocol_list {
             log_e!("Protocol verification failed");
             return Err(ErrorCode::GeneralError);
         }
@@ -108,19 +108,19 @@ impl HostDeviceSyncStatusRequest {
     }
 }
 
-impl HostRequest for HostDeviceSyncStatusRequest {
+impl Request for HostDeviceSyncStatusRequest {
     fn get_request_id(&self) -> i32 {
         self.request_id
     }
 
-    fn prepare(&mut self, _param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn prepare(&mut self, _param: RequestParam) -> Result<(), ErrorCode> {
         log_e!("HostDeviceSyncStatusRequest prepare not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn begin(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn begin(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceSyncStatusRequest begin start");
-        let HostRequestParam::SyncStatusBegin(_input, ffi_output) = param else {
+        let RequestParam::HostSyncStatusBegin(_input, ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
@@ -130,16 +130,16 @@ impl HostRequest for HostDeviceSyncStatusRequest {
         Ok(())
     }
 
-    fn end(&mut self, param: HostRequestParam) -> Result<(), ErrorCode> {
+    fn end(&mut self, param: RequestParam) -> Result<(), ErrorCode> {
         log_i!("HostDeviceSyncStatusRequest end start");
-        let HostRequestParam::SyncStatusEnd(ffi_input, _ffi_output) = param else {
+        let RequestParam::HostSyncStatusEnd(ffi_input, _ffi_output) = param else {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
 
         self.template_id = ffi_input.template_id;
-        self.protocal_list = Vec::<u16>::try_from(ffi_input.protocal_list).map_err(|e| {
-            log_e!("Failed to convert protocal_list: {:?}", e);
+        self.protocol_list = Vec::<u16>::try_from(ffi_input.protocol_list).map_err(|e| {
+            log_e!("Failed to convert protocol_list: {:?}", e);
             ErrorCode::GeneralError
         })?;
 

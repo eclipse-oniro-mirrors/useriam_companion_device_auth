@@ -41,28 +41,26 @@ public:
     virtual bool Start() = 0;
 
     virtual bool IsAuthMaintainActive() = 0;
-    virtual std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) = 0;
     virtual LocalDeviceProfile GetLocalDeviceProfile() = 0;
+    virtual std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) = 0;
 
     virtual std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey) = 0;
     virtual std::vector<DeviceStatus> GetAllDeviceStatus() = 0;
     virtual std::unique_ptr<Subscription> SubscribeAllDeviceStatus(OnDeviceStatusChange &&onDeviceStatusChange) = 0;
-
-    virtual void SetSubscribeMode(SubscribeMode subscribeMode) = 0;
-    virtual std::optional<SteadyTimeMs> GetManageSubscribeTime() const = 0;
     virtual std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey,
         OnDeviceStatusChange &&onDeviceStatusChange) = 0;
+    virtual void SetSubscribeMode(SubscribeMode subscribeMode) = 0;
+    virtual std::optional<SteadyTimeMs> GetManageSubscribeTime() const = 0;
 
     virtual bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) = 0;
     virtual void CloseConnection(const std::string &connectionName) = 0;
     virtual bool IsConnectionOpen(const std::string &connectionName) = 0;
     virtual ConnectionStatus GetConnectionStatus(const std::string &connectionName) = 0;
     virtual std::optional<DeviceKey> GetLocalDeviceKeyByConnectionName(const std::string &connectionName) = 0;
-
     virtual std::unique_ptr<Subscription> SubscribeConnectionStatus(const std::string &connectionName,
         OnConnectionStatusChange &&onConnectionStatusChange) = 0;
-
     virtual std::unique_ptr<Subscription> SubscribeIncomingConnection(MessageType msgType, OnMessage &&onMessage) = 0;
+
     virtual bool SendMessage(const std::string &connectionName, MessageType msgType, Attributes &request,
         OnMessageReply &&onMessageReply) = 0;
     virtual std::unique_ptr<Subscription> SubscribeMessage(const std::string &connectionName, MessageType msgType,

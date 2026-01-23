@@ -36,7 +36,7 @@ bool EncodeRevokeTokenRequest(const RevokeTokenRequest &request, Attributes &att
 
 std::optional<RevokeTokenRequest> DecodeRevokeTokenRequest(const Attributes &attributes)
 {
-    RevokeTokenRequest request;
+    RevokeTokenRequest request {};
     bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
     ENSURE_OR_RETURN_VAL(getHostUserIdRet, std::nullopt);
     auto companionKeyOpt = DecodeCompanionDeviceKey(attributes);
@@ -57,7 +57,7 @@ std::optional<RevokeTokenReply> DecodeRevokeTokenReply(const Attributes &attribu
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);
 
-    RevokeTokenReply reply;
+    RevokeTokenReply reply {};
     reply.result = static_cast<ResultCode>(result);
     return reply;
 }

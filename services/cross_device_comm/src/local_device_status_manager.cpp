@@ -146,7 +146,7 @@ std::optional<DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKey(ChannelId c
     }
 
     const auto &physicalKey = physicalKeyOpt.value();
-    DeviceKey deviceKey;
+    DeviceKey deviceKey {};
     deviceKey.idType = physicalKey.idType;
     deviceKey.deviceId = physicalKey.deviceId;
     deviceKey.deviceUserId = GetUserIdManager().GetActiveUserId();

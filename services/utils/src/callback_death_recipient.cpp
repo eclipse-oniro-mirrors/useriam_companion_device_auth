@@ -36,10 +36,7 @@ sptr<CallbackDeathRecipient> CallbackDeathRecipient::Register(const sptr<IRemote
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
     sptr<CallbackDeathRecipient> recipient(new (std::nothrow) CallbackDeathRecipient(std::move(callback)));
-    if (recipient == nullptr) {
-        IAM_LOGE("failed to create CallbackDeathRecipient");
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(recipient != nullptr, nullptr);
 
 #ifndef ENABLE_TEST
     if (!remoteObj->AddDeathRecipient(recipient)) {

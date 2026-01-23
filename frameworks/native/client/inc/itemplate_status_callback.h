@@ -31,6 +31,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class ITemplateStatusCallback {
 public:
+    virtual ~ITemplateStatusCallback() = default;
+
     /**
      * @brief Callback invoked when template statuses change.
      *
