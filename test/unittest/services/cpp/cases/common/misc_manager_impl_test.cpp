@@ -98,7 +98,7 @@ HWTEST_F(MiscManagerImplTest, GetNextGlobalId_002, TestSize.Level0)
     uint64_t prevId = 0;
     for (int i = 0; i < 100; i++) {
         uint64_t id = manager->GetNextGlobalId();
-        EXPECT_GT(id, prevId);
+        ASSERT_GT(id, prevId);
         prevId = id;
     }
 }

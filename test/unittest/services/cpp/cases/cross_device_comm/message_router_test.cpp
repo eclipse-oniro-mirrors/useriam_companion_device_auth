@@ -790,6 +790,8 @@ HWTEST_F(MessageRouterTest, HandleMessageTimeout_002, TestSize.Level0)
 {
     uint32_t nonExistentSeq = UINT32_TEST_INVALID_MESSAGE_SEQ;
 
+    ASSERT_NE(router_, nullptr);
+
     router_->HandleMessageTimeout(nonExistentSeq);
 }
 

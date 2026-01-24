@@ -247,6 +247,8 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_001, TestSize.Level0)
 {
     CreateDefaultRequest();
 
+    ASSERT_NE(request_, nullptr);
+
     request_->HandleConnectionStatus("test_connection", ConnectionStatus::ESTABLISHING, "establishing");
 }
 
