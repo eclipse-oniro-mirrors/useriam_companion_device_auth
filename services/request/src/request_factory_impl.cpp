@@ -51,92 +51,123 @@ std::shared_ptr<RequestFactoryImpl> RequestFactoryImpl::Create()
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostAddCompanionRequest(ScheduleId scheduleId,
     const std::vector<uint8_t> &fwkMsg, uint32_t tokenId, FwkResultCallback &&requestCallback)
 {
-    return std::make_shared<HostAddCompanionRequest>(scheduleId, fwkMsg, tokenId, std::move(requestCallback));
+    auto request = std::make_shared<HostAddCompanionRequest>(scheduleId, fwkMsg, tokenId, std::move(requestCallback));
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostTokenAuthRequest(ScheduleId scheduleId,
     const std::vector<uint8_t> &fwkMsg, UserId hostUserId, TemplateId templateId, FwkResultCallback &&requestCallback)
 {
-    return std::make_shared<HostTokenAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
-        std::move(requestCallback));
+    auto request =
+        std::make_shared<HostTokenAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId, std::move(requestCallback));
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostRemoveHostBindingRequest(UserId hostUserId,
     TemplateId templateId, const DeviceKey &companionDeviceKey)
 {
-    return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostSyncDeviceStatusRequest(UserId hostUserId,
     const DeviceKey &companionDeviceKey, const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback)
 {
-    return std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, companionDeviceKey, companionDeviceName,
+    auto request = std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, companionDeviceKey, companionDeviceName,
         std::move(callback));
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostIssueTokenRequest(UserId hostUserId, TemplateId templateId,
     const std::vector<uint8_t> &fwkUnlockMsg)
 {
-    return std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, fwkUnlockMsg);
+    auto request = std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, fwkUnlockMsg);
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostDelegateAuthRequest(ScheduleId scheduleId,
     const std::vector<uint8_t> &fwkMsg, UserId hostUserId, TemplateId templateId, FwkResultCallback &&requestCallback)
 {
-    return std::make_shared<HostDelegateAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
+    auto request = std::make_shared<HostDelegateAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
         std::move(requestCallback));
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionAddCompanionRequest(const std::string &connectionName,
-    const Attributes &request, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey)
+    const Attributes &requestAttr, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey)
 {
-    return std::make_shared<CompanionAddCompanionRequest>(connectionName, request, replyCallback, hostDeviceKey);
+    auto requestObj =
+        std::make_shared<CompanionAddCompanionRequest>(connectionName, requestAttr, replyCallback, hostDeviceKey);
+    ENSURE_OR_RETURN_VAL(requestObj != nullptr, nullptr);
+    return requestObj;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionIssueTokenRequest(const std::string &connectionName,
-    const Attributes &request, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey)
+    const Attributes &requestAttr, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey)
 {
-    return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, replyCallback, hostDeviceKey);
+    auto requestObj =
+        std::make_shared<CompanionIssueTokenRequest>(connectionName, requestAttr, replyCallback, hostDeviceKey);
+    ENSURE_OR_RETURN_VAL(requestObj != nullptr, nullptr);
+    return requestObj;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostObtainTokenRequest(const std::string &connectionName,
-    const Attributes &request, OnMessageReply replyCallback, const DeviceKey &companionDeviceKey)
+    const Attributes &requestAttr, OnMessageReply replyCallback, const DeviceKey &companionDeviceKey)
 {
-    return std::make_shared<HostObtainTokenRequest>(connectionName, request, replyCallback, companionDeviceKey);
+    auto requestObj =
+        std::make_shared<HostObtainTokenRequest>(connectionName, requestAttr, replyCallback, companionDeviceKey);
+    ENSURE_OR_RETURN_VAL(requestObj != nullptr, nullptr);
+    return requestObj;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionObtainTokenRequest(const DeviceKey &hostDeviceKey,
     const std::vector<uint8_t> &fwkUnlockMsg)
 {
-    return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, fwkUnlockMsg);
+    auto request = std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, fwkUnlockMsg);
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionDelegateAuthRequest(const std::string &connectionName,
     UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest)
 {
-    return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserId, hostDeviceKey,
+    auto request = std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserId, hostDeviceKey,
         startDelegateAuthRequest);
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRevokeTokenRequest(UserId companionUserId,
     const DeviceKey &hostDeviceKey)
 {
-    return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey);
+    auto request = std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey);
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostMixAuthRequest(ScheduleId scheduleId,
     std::vector<uint8_t> fwkMsg, UserId hostUserId, std::vector<TemplateId> templateIdList,
     FwkResultCallback &&requestCallback)
 {
-    return std::make_shared<HostMixAuthRequest>(scheduleId, fwkMsg, hostUserId, templateIdList,
+    auto request = std::make_shared<HostMixAuthRequest>(scheduleId, fwkMsg, hostUserId, templateIdList,
         std::move(requestCallback));
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostSingleMixAuthRequest(ScheduleId scheduleId,
     std::vector<uint8_t> fwkMsg, UserId hostUserId, TemplateId templateId, FwkResultCallback &&requestCallback)
 {
-    return std::make_shared<HostSingleMixAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
+    auto request = std::make_shared<HostSingleMixAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
         std::move(requestCallback));
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

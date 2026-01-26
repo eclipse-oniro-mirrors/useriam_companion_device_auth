@@ -31,8 +31,8 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class NapiDeviceSelectCallback : public IDeviceSelectCallback,
-                                 public std::enable_shared_from_this<NapiDeviceSelectCallback>,
+class NapiDeviceSelectCallback : public std::enable_shared_from_this<NapiDeviceSelectCallback>,
+                                 public IDeviceSelectCallback,
                                  public NoCopyable {
 public:
     explicit NapiDeviceSelectCallback(napi_env env);

@@ -34,7 +34,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class LocalDeviceStatusManager : public NoCopyable, public std::enable_shared_from_this<LocalDeviceStatusManager> {
+class LocalDeviceStatusManager : public std::enable_shared_from_this<LocalDeviceStatusManager>, public NoCopyable {
 public:
     static std::shared_ptr<LocalDeviceStatusManager> Create(std::shared_ptr<ChannelManager> channelMgr);
 

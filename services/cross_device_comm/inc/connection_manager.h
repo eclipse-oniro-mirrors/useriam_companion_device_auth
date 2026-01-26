@@ -50,7 +50,7 @@ struct Connection {
     SteadyTimeMs lastActivityTimeMs { 0 };
 };
 
-class ConnectionManager : public NoCopyable, public std::enable_shared_from_this<ConnectionManager> {
+class ConnectionManager : public std::enable_shared_from_this<ConnectionManager>, public NoCopyable {
 public:
     static std::shared_ptr<ConnectionManager> Create(std::shared_ptr<ChannelManager> channelManager,
         std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusManager);

@@ -41,7 +41,7 @@ std::unique_ptr<Subscription> MakeSubscription()
     return std::make_unique<Subscription>([]() {});
 }
 
-class SoftBusChannelTest : public Test {
+class SoftBusChannelTest : public testing::Test {
 public:
     void SetUp() override
     {

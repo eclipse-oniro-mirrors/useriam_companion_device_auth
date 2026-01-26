@@ -28,7 +28,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class HostObtainTokenRequest : public InboundRequest, public std::enable_shared_from_this<HostObtainTokenRequest> {
+class HostObtainTokenRequest : public std::enable_shared_from_this<HostObtainTokenRequest>, public InboundRequest {
 public:
     HostObtainTokenRequest(const std::string &connectionName, const Attributes &request, OnMessageReply replyCallback,
         const DeviceKey &companionDeviceKey);

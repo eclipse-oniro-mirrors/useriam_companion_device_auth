@@ -28,7 +28,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class HostIssueTokenRequest : public OutboundRequest, public std::enable_shared_from_this<HostIssueTokenRequest> {
+class HostIssueTokenRequest : public std::enable_shared_from_this<HostIssueTokenRequest>, public OutboundRequest {
 public:
     HostIssueTokenRequest(UserId hostUserId, TemplateId templateId, const std::vector<uint8_t> &fwkUnlockMsg);
     ~HostIssueTokenRequest() override = default;

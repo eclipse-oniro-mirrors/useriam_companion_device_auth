@@ -26,7 +26,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class HostTokenAuthRequest : public OutboundRequest, public std::enable_shared_from_this<HostTokenAuthRequest> {
+class HostTokenAuthRequest : public std::enable_shared_from_this<HostTokenAuthRequest>, public OutboundRequest {
 public:
     HostTokenAuthRequest(ScheduleId scheduleId, const std::vector<uint8_t> &fwkMsg, UserId hostUserId,
         TemplateId templateId, FwkResultCallback &&requestCallback);

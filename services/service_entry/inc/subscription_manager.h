@@ -36,7 +36,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class SubscriptionManager : public NoCopyable, public std::enable_shared_from_this<SubscriptionManager> {
+class SubscriptionManager : public std::enable_shared_from_this<SubscriptionManager>, public NoCopyable {
 public:
     SubscriptionManager();
     ~SubscriptionManager() = default;

@@ -24,8 +24,8 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class HostRemoveHostBindingRequest : public OutboundRequest,
-                                     public std::enable_shared_from_this<HostRemoveHostBindingRequest> {
+class HostRemoveHostBindingRequest : public std::enable_shared_from_this<HostRemoveHostBindingRequest>,
+                                     public OutboundRequest {
 public:
     HostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId, const DeviceKey &companionDeviceKey);
     ~HostRemoveHostBindingRequest() override = default;

@@ -20,8 +20,8 @@
 #include "singleton_manager.h"
 #include "soft_bus_adapter.h"
 #include "soft_bus_adapter_manager.h"
+#include "soft_bus_connection.h"
 #include "soft_bus_connection_manager.h"
-#include "soft_bus_socket.h"
 #include "task_runner_manager.h"
 
 #include "adapter_manager.h"
@@ -40,6 +40,9 @@ namespace {
 constexpr int32_t INT32_1 = 1;
 constexpr int32_t INT32_2 = 2;
 constexpr uint64_t UINT64_1 = 1;
+constexpr int32_t DEFAULT_TEST_SOCKET_ID = 100;
+constexpr const char *DEFAULT_TEST_CONNECTION_NAME = "test-connection";
+constexpr const char *NON_EXISTENT_CONNECTION_NAME = "non-existent-connection";
 
 class SoftBusConnectionManagerTest : public Test {
 public:
@@ -61,7 +64,7 @@ public:
         ON_CALL(mockSoftBusAdapter_, SendBytes(_, _)).WillByDefault(Return(true));
 
         auto softBusAdapter = std::shared_ptr<ISoftBusAdapter>(&mockSoftBusAdapter_, [](ISoftBusAdapter *) {});
-        SoftBusAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
+        SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
     }
 
     void TearDown() override
@@ -70,7 +73,7 @@ public:
         RelativeTimer::GetInstance().ExecuteAll();
         SingletonManager::GetInstance().Reset();
         AdapterManager::GetInstance().Reset();
-        SoftBusAdapterManager::GetInstance().SetSoftBusAdapter(nullptr);
+        SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(nullptr);
     }
 
 protected:
@@ -173,7 +176,7 @@ HWTEST_F(SoftBusConnectionManagerTest, SendMessage_001, TestSize.Level0)
     ASSERT_NE(manager, nullptr);
 
     std::vector<uint8_t> message = { 1, 2, 3, 4 };
-    bool result = manager->SendMessage("non-existent-connection", message);
+    bool result = manager->SendMessage(NON_EXISTENT_CONNECTION_NAME, message);
     EXPECT_FALSE(result);
 }
 
@@ -186,11 +189,12 @@ HWTEST_F(SoftBusConnectionManagerTest, SendMessage_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    manager->connections_.push_back(connection);
 
     std::vector<uint8_t> message = { 1, 2, 3, 4 };
-    bool result = manager->SendMessage("test-connection", message);
+    bool result = manager->SendMessage(DEFAULT_TEST_CONNECTION_NAME, message);
     EXPECT_FALSE(result);
 }
 
@@ -203,12 +207,13 @@ HWTEST_F(SoftBusConnectionManagerTest, SendMessage_003, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    socket->isConnected_ = true;
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    connection->isConnected_ = true;
+    manager->connections_.push_back(connection);
 
     std::vector<uint8_t> message = { 1, 2, 3, 4 };
-    bool result = manager->SendMessage("test-connection", message);
+    bool result = manager->SendMessage(DEFAULT_TEST_CONNECTION_NAME, message);
     EXPECT_TRUE(result);
 }
 
@@ -221,12 +226,13 @@ HWTEST_F(SoftBusConnectionManagerTest, SendMessage_004, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    socket->isConnected_ = true;
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    connection->isConnected_ = true;
+    manager->connections_.push_back(connection);
 
     std::vector<uint8_t> message = {};
-    bool result = manager->SendMessage("test-connection", message);
+    bool result = manager->SendMessage(DEFAULT_TEST_CONNECTION_NAME, message);
     EXPECT_TRUE(result);
 }
 
@@ -247,12 +253,13 @@ HWTEST_F(SoftBusConnectionManagerTest, CloseConnection_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    manager->connections_.push_back(connection);
 
     manager->CloseConnection("test-connection");
 
-    EXPECT_TRUE(manager->sockets_.empty());
+    EXPECT_TRUE(manager->connections_.empty());
 }
 
 HWTEST_F(SoftBusConnectionManagerTest, ReportConnectionEstablished_001, TestSize.Level0)
@@ -321,8 +328,9 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBind_001, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    manager->connections_.push_back(connection);
 
     manager->HandleBind(100, "test-network-id");
 }
@@ -344,12 +352,13 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleError_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    manager->connections_.push_back(connection);
 
     manager->HandleError(100, 0);
 
-    EXPECT_TRUE(manager->sockets_.empty());
+    EXPECT_TRUE(manager->connections_.empty());
 }
 
 HWTEST_F(SoftBusConnectionManagerTest, HandleShutdown_001, TestSize.Level0)
@@ -369,12 +378,13 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleShutdown_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    manager->connections_.push_back(connection);
 
     manager->HandleShutdown(100, 0);
 
-    EXPECT_TRUE(manager->sockets_.empty());
+    EXPECT_TRUE(manager->connections_.empty());
 }
 
 HWTEST_F(SoftBusConnectionManagerTest, HandleBytes_001, TestSize.Level0)
@@ -395,8 +405,8 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBytes_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    manager->connections_.push_back(connection);
 
     std::vector<uint8_t> data = { 1, 2, 3, 4 };
     manager->HandleBytes(100, data.data(), data.size());
@@ -411,8 +421,8 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBytes_003, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    manager->connections_.push_back(connection);
 
     Attributes message;
     message.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test-connection");
@@ -430,8 +440,9 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBytes_004, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    manager->connections_.push_back(connection);
 
     std::vector<uint8_t> data = { 1, 2, 3, 4 };
     manager->HandleBytes(100, data.data(), data.size());
@@ -450,8 +461,8 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBytes_005, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    manager->connections_.push_back(connection);
 
     Attributes message;
     message.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test-connection");
@@ -476,8 +487,9 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBytes_006, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    manager->connections_.push_back(connection);
 
     std::vector<uint8_t> data = { 1, 2, 3, 4 };
     manager->HandleBytes(100, data.data(), data.size());
@@ -549,8 +561,9 @@ HWTEST_F(SoftBusConnectionManagerTest, Destructor_002, TestSize.Level0)
         key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
         key.deviceId = "test-device";
 
-        auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-        manager->sockets_.push_back(socket);
+        auto connection =
+            std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+        manager->connections_.push_back(connection);
 
         manager->serverSocketId_ = 1;
     }
@@ -583,8 +596,9 @@ HWTEST_F(SoftBusConnectionManagerTest, OpenConnection_001, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto socket = std::make_shared<SoftBusSocket>(100, "test-connection", key, manager);
-    manager->sockets_.push_back(socket);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    manager->connections_.push_back(connection);
 
     bool result = manager->OpenConnection("test-connection", key, "network-id");
 
@@ -603,7 +617,7 @@ HWTEST_F(SoftBusConnectionManagerTest, OpenConnection_002, TestSize.Level0)
     bool result = manager->OpenConnection("test-connection", key, "network-id");
 
     EXPECT_TRUE(result);
-    EXPECT_FALSE(manager->sockets_.empty());
+    EXPECT_FALSE(manager->connections_.empty());
 }
 
 HWTEST_F(SoftBusConnectionManagerTest, HandleSoftBusServiceUnavailable_001, TestSize.Level0)

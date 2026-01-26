@@ -31,7 +31,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class HostBindingManagerImpl : public IHostBindingManager, public std::enable_shared_from_this<HostBindingManagerImpl> {
+class HostBindingManagerImpl : public std::enable_shared_from_this<HostBindingManagerImpl>, public IHostBindingManager {
 public:
     static std::shared_ptr<HostBindingManagerImpl> Create();
 

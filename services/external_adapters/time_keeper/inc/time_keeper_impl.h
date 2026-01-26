@@ -25,7 +25,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class TimeKeeperImpl final : public ITimeKeeper, public std::enable_shared_from_this<TimeKeeperImpl> {
+class TimeKeeperImpl final : public std::enable_shared_from_this<TimeKeeperImpl>, public ITimeKeeper {
 public:
     static std::shared_ptr<TimeKeeperImpl> Create();
 

@@ -63,6 +63,7 @@ bool DeviceManagerAdapterImpl::Initialize()
 bool DeviceManagerAdapterImpl::InitDeviceManager()
 {
     auto callback = std::make_shared<DmInitCallbackImpl>();
+    ENSURE_OR_RETURN_VAL(callback != nullptr, false);
     XCollieHelper xcollie("DeviceManagerAdapterImpl-InitDeviceManager", API_CALL_TIMEOUT);
     int32_t ret = DeviceManager::GetInstance().InitDeviceManager(PKG_NAME, callback);
     if (ret != 0) {

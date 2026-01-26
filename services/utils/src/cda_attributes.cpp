@@ -158,17 +158,23 @@ template <typename T>
 bool EncodeNumericArrayValue(const std::vector<T> &src, std::vector<uint8_t> &dst)
 {
     using Traits = EncodingTraits<T>;
+    using LEType = decltype(Traits::toLE(T()));
 
     // Use safe multiplication to prevent overflow
     auto outSize = safe_mul(src.size(), Traits::size);
     ENSURE_OR_RETURN_VAL(outSize.has_value(), false);
 
     std::vector<uint8_t> out(outSize.value());
-    using LEType = decltype(Traits::toLE(T()));
 
-    LEType *outPtr = reinterpret_cast<LEType *>(out.data());
+    std::vector<LEType> temp(src.size());
     for (size_t i = 0; i < src.size(); i++) {
-        outPtr[i] = Traits::toLE(src[i]);
+        temp[i] = Traits::toLE(src[i]);
+    }
+
+    if (memcpy_s(out.data(), out.size(), temp.data(), src.size() * sizeof(LEType)) != EOK) {
+        IAM_LOGE("EncodeNumericArrayValue memcpy_s failed, count: %{public}zu, element_size: %{public}zu", src.size(),
+            sizeof(LEType));
+        return false;
     }
 
     dst = std::move(out);

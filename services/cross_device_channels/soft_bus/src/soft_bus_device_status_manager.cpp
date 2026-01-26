@@ -35,16 +35,6 @@ namespace CompanionDeviceAuth {
 using namespace DistributedHardware;
 using json = nlohmann::json;
 
-namespace {
-class IamDmInitCallback final : public DmInitCallback {
-public:
-    void OnRemoteDied() override
-    {
-        IAM_LOGE("device manager remote died");
-    }
-};
-} // namespace
-
 std::shared_ptr<SoftBusDeviceStatusManager> SoftBusDeviceStatusManager::Create()
 {
     auto monitor = std::shared_ptr<SoftBusDeviceStatusManager>(new (std::nothrow) SoftBusDeviceStatusManager());
@@ -194,7 +184,9 @@ bool SoftBusDeviceStatusManager::Start()
             });
         });
     ENSURE_OR_RETURN_VAL(systemParamSubscription_ != nullptr, false);
-    isLocalAuthMaintainActive_ = GetSystemParamManager().GetParam(IS_AUTH_MAINTAIN_ACTIVE_KEY, FALSE_STR) == TRUE_STR;
+    auto initialIsLocalAuthMaintainActive =
+        GetSystemParamManager().GetParam(IS_AUTH_MAINTAIN_ACTIVE_KEY, FALSE_STR) == TRUE_STR;
+    HandleLocalIsAuthMaintainActiveChange(initialIsLocalAuthMaintainActive);
 
     started_ = true;
     return true;
@@ -226,7 +218,6 @@ void SoftBusDeviceStatusManager::UnInitDeviceManager()
     GetDeviceManagerAdapter().UnInitDeviceManager();
 
     dmInitialized_ = false;
-    dmInitCallback_ = nullptr;
     IAM_LOGI("DeviceManager uninitialized");
 }
 
@@ -288,32 +279,14 @@ bool SoftBusDeviceStatusManager::ConvertToPhysicalDevices(const std::vector<DmDe
             IAM_LOGE("GetUdidByNetworkId failed for networkId %{public}s", GetMaskedString(networkId).c_str());
             continue;
         }
-        std::string deviceId = std::move(deviceIdResult.value());
-
-        auto duplicateIt = std::find_if(retPhysicalDeviceStatuses.begin(), retPhysicalDeviceStatuses.end(),
-            [&deviceId, &networkId](const PhysicalDeviceStatus &status) {
-                if (status.physicalDeviceKey.deviceId == deviceId) {
-                    IAM_LOGE("duplicate deviceId found");
-                    return true;
-                }
-                if (status.networkId == networkId) {
-                    IAM_LOGE("duplicate networkId found");
-                    return true;
-                }
-                return false;
-            });
-        if (duplicateIt != retPhysicalDeviceStatuses.end()) {
-            continue;
-        }
-
         std::string deviceModelInfo =
             SoftBusDeviceStatusManager::GenerateDeviceModelInfo(static_cast<DmDeviceType>(device.deviceTypeId));
-        IAM_LOGI("Device %{public}s model info: %{public}s", GetMaskedString(deviceId).c_str(),
+        IAM_LOGI("Device %{public}s model info: %{public}s", GetMaskedString(deviceIdResult.value()).c_str(),
             deviceModelInfo.c_str());
 
         retPhysicalDeviceStatuses.emplace_back(
-            PhysicalDeviceStatus { PhysicalDeviceKey { DeviceIdType::UNIFIED_DEVICE_ID, deviceId }, ChannelId::SOFTBUS,
-                device.deviceName, deviceModelInfo, networkId, true });
+            PhysicalDeviceStatus { PhysicalDeviceKey { DeviceIdType::UNIFIED_DEVICE_ID, deviceIdResult.value() },
+                ChannelId::SOFTBUS, device.deviceName, deviceModelInfo, networkId, true });
     }
 
     return true;
@@ -472,18 +445,18 @@ void SoftBusDeviceStatusManager::HandleDeviceManagerServiceUnavailable()
 {
     IAM_LOGI("DeviceManager SA is unavailable");
 
-    UnregisterDeviceStatusCallback();
-    UnInitDeviceManager();
-
     physicalDeviceStatus_.clear();
     NotifyDeviceStatusChange();
+
+    UnregisterDeviceStatusCallback();
+    UnInitDeviceManager();
 }
 
 bool SoftBusDeviceStatusManager::RegisterDeviceStatusCallback()
 {
     if (dsCallback_ != nullptr) {
         IAM_LOGE("dsCallback is already set");
-        return false;
+        return true;
     }
 
     auto dsCallback = std::make_shared<DeviceStatusCallbackImpl>(weak_from_this());

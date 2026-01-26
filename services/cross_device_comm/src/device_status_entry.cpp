@@ -15,6 +15,9 @@
 
 #include "device_status_entry.h"
 
+#include <cstdint>
+
+#include "iam_check.h"
 #include "iam_logger.h"
 
 #define LOG_TAG "CDA_SA"
@@ -22,7 +25,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus)
+DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus, std::function<void()> &&retrySync)
     : physicalDeviceKey(physicalStatus.physicalDeviceKey),
       channelId(physicalStatus.channelId),
       deviceModelInfo(physicalStatus.deviceModelInfo),
@@ -31,6 +34,28 @@ DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus)
       isSynced(false),
       isSyncInProgress(false)
 {
+    constexpr uint32_t syncRetryBaseDelayMs = 1000;          // 1 second
+    constexpr uint32_t syncRetryMaxDelayMs = 30 * 60 * 1000; // 30 minutes
+    BackoffRetryTimer::Config config { .baseDelayMs = syncRetryBaseDelayMs, .maxDelayMs = syncRetryMaxDelayMs };
+    syncRetryTimer_ = std::make_unique<BackoffRetryTimer>(config, std::move(retrySync));
+    ENSURE_OR_RETURN(syncRetryTimer_ != nullptr);
+}
+
+DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
+    : physicalDeviceKey(std::move(other.physicalDeviceKey)),
+      channelId(other.channelId),
+      deviceModelInfo(std::move(other.deviceModelInfo)),
+      deviceUserName(std::move(other.deviceUserName)),
+      deviceName(std::move(other.deviceName)),
+      protocolId(other.protocolId),
+      secureProtocolId(other.secureProtocolId),
+      capabilities(std::move(other.capabilities)),
+      supportedBusinessIds(std::move(other.supportedBusinessIds)),
+      isAuthMaintainActive(other.isAuthMaintainActive),
+      isSynced(other.isSynced),
+      isSyncInProgress(other.isSyncInProgress),
+      syncRetryTimer_(std::move(other.syncRetryTimer_))
+{
 }
 
 void DeviceStatusEntry::OnUserIdChange()
@@ -38,6 +63,23 @@ void DeviceStatusEntry::OnUserIdChange()
     isSynced = false;
     isSyncInProgress = false;
     deviceName.clear();
+    if (syncRetryTimer_ != nullptr) {
+        syncRetryTimer_->Reset();
+    }
+}
+
+void DeviceStatusEntry::OnSyncSuccess()
+{
+    if (syncRetryTimer_ != nullptr) {
+        syncRetryTimer_->Reset();
+    }
+}
+
+void DeviceStatusEntry::OnSyncFailure()
+{
+    if (syncRetryTimer_ != nullptr) {
+        syncRetryTimer_->OnFailure();
+    }
 }
 
 DeviceKey DeviceStatusEntry::BuildDeviceKey(UserId userId) const

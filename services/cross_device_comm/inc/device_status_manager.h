@@ -44,7 +44,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 // Remote device status management and subscription mode control
-class DeviceStatusManager : public NoCopyable, public std::enable_shared_from_this<DeviceStatusManager> {
+class DeviceStatusManager : public std::enable_shared_from_this<DeviceStatusManager>, public NoCopyable {
 public:
     static std::shared_ptr<DeviceStatusManager> Create(std::shared_ptr<ConnectionManager> connectionMgr,
         std::shared_ptr<ChannelManager> channelMgr, std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr);

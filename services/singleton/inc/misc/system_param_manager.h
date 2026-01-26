@@ -43,6 +43,7 @@ public:
     virtual void SetParam(const std::string &key, const std::string &value) = 0;
     virtual void SetParamTwice(const std::string &key, const std::string &value1, const std::string &value2) = 0;
     virtual std::unique_ptr<Subscription> WatchParam(const std::string &key, SystemParamCallback &&callback) = 0;
+    virtual void OnParamChange(const std::string &key, const std::string &value) = 0;
 
 protected:
     ISystemParamManager() = default;

@@ -282,12 +282,12 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
     auto driverMgr = std::make_shared<MockDriverManagerAdapter>(fuzzData);
     adapterMgr.SetDriverManagerAdapter(driverMgr);
 
-    // Note: DeviceManagerAdapter and SoftBusAdapter are managed by SoftBusAdapterManager
+    // Note: DeviceManagerAdapter and SoftBusAdapter are managed by SoftBusChannelAdapterManager
     auto softBusAdapter = std::make_shared<MockSoftBusAdapter>(fuzzData);
-    SoftBusAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
 
     auto deviceMgrAdapter = std::make_shared<MockDeviceManagerAdapter>(fuzzData);
-    SoftBusAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceMgrAdapter);
+    SoftBusChannelAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceMgrAdapter);
 
     auto accessTokenAdapter = std::make_shared<MockAccessTokenKitAdapter>(fuzzData);
     adapterMgr.SetAccessTokenKitAdapter(accessTokenAdapter);
@@ -310,7 +310,7 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 void CleanupAdapterManager()
 {
     AdapterManager::GetInstance().Reset();
-    SoftBusAdapterManager::GetInstance().Reset();
+    SoftBusChannelAdapterManager::GetInstance().Reset();
 }
 
 } // namespace CompanionDeviceAuth

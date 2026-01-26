@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include "cross_device_common.h"
 #include "icross_device_channel.h"
 #include "sa_status_listener.h"
 #include "singleton_manager.h"
@@ -24,7 +25,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class SoftBusSocket;
+class SoftbusConnection;
 
 class SoftBusConnectionManager : public std::enable_shared_from_this<SoftBusConnectionManager>,
                                  public ISoftBusSocketCallback {
@@ -54,8 +55,8 @@ private:
 
     bool SendBytesWithRetry(int32_t socketId, const std::vector<uint8_t> &data);
 
-    std::shared_ptr<SoftBusSocket> FindSocketByConnectionName(const std::string &connectionName);
-    std::shared_ptr<SoftBusSocket> FindSocketBySocketId(int32_t socketId);
+    std::shared_ptr<SoftbusConnection> FindSocketByConnectionName(const std::string &connectionName);
+    std::shared_ptr<SoftbusConnection> FindSocketBySocketId(int32_t socketId);
     void RemoveSocket(int32_t socketId, const std::string &closeReason = "");
     void CloseAllSockets(const std::string &reason = "");
     void HandleSoftBusServiceReady();
@@ -65,16 +66,15 @@ private:
     void UnsubscribeIncomingConnection(SubscribeId subscriptionId);
     void NotifyIncomingConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey);
 
-    friend class SoftBusSocket;
+    friend class SoftbusConnection;
 
     struct RawMessageSubscription {
         SubscribeId subscriptionId;
-        std::string connectionName;
         OnRawMessage callback;
     };
 
     std::optional<int32_t> serverSocketId_;
-    std::vector<std::shared_ptr<SoftBusSocket>> sockets_;
+    std::vector<std::shared_ptr<SoftbusConnection>> connections_;
 
     std::vector<RawMessageSubscription> rawMessageSubscribers_;
     std::map<int32_t, OnConnectionStatusChange> connectionStatusSubscribers_;

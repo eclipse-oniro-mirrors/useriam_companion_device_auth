@@ -33,7 +33,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class IdmAdapterImpl : public IIdmAdapter, public std::enable_shared_from_this<IdmAdapterImpl> {
+class IdmAdapterImpl : public std::enable_shared_from_this<IdmAdapterImpl>, public IIdmAdapter {
 public:
     static std::shared_ptr<IdmAdapterImpl> Create();
     ~IdmAdapterImpl() override;

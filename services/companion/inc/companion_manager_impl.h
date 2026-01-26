@@ -34,7 +34,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class CompanionManagerImpl : public ICompanionManager, public std::enable_shared_from_this<CompanionManagerImpl> {
+class CompanionManagerImpl : public std::enable_shared_from_this<CompanionManagerImpl>, public ICompanionManager {
 public:
     static std::shared_ptr<CompanionManagerImpl> Create();
 

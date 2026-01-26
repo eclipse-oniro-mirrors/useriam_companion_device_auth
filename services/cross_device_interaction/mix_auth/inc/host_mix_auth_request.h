@@ -26,7 +26,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class HostMixAuthRequest : public BaseRequest, public std::enable_shared_from_this<HostMixAuthRequest> {
+class HostMixAuthRequest : public std::enable_shared_from_this<HostMixAuthRequest>, public BaseRequest {
 public:
     HostMixAuthRequest(ScheduleId scheduleId, std::vector<uint8_t> fwkMsg, UserId hostUserId,
         std::vector<TemplateId> templateIdList, FwkResultCallback &&requestCallback);

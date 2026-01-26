@@ -132,6 +132,9 @@ void SecurityCommandAdapterImpl::Finalize()
 ResultCode SecurityCommandAdapterImpl::InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen,
     uint8_t *outputData, uint32_t outputDataLen)
 {
+    ENSURE_OR_RETURN_VAL(inputData != nullptr && inputDataLen != 0, ResultCode::GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(outputData != nullptr && outputDataLen != 0, ResultCode::GENERAL_ERROR);
+
     if (!inited_) {
         IAM_LOGE("SecurityCommandAdapter is not inited");
         return ResultCode::GENERAL_ERROR;

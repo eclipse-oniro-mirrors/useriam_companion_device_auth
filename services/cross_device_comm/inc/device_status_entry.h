@@ -16,9 +16,14 @@
 #ifndef COMPANION_DEVICE_AUTH_DEVICE_STATUS_ENTRY_H
 #define COMPANION_DEVICE_AUTH_DEVICE_STATUS_ENTRY_H
 
+#include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "nocopyable.h"
+
+#include "backoff_retry_timer.h"
 #include "cross_device_common.h"
 #include "service_common.h"
 
@@ -26,11 +31,14 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class DeviceStatusEntry {
+class DeviceStatusEntry : public NoCopyable {
 public:
-    explicit DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus);
+    DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus, std::function<void()> &&retrySync);
+    DeviceStatusEntry(DeviceStatusEntry &&other) noexcept;
 
     void OnUserIdChange();
+    void OnSyncSuccess();
+    void OnSyncFailure();
     DeviceKey BuildDeviceKey(UserId userId) const;
     DeviceStatus BuildDeviceStatus(UserId userId) const;
     bool IsSameDevice(const PhysicalDeviceKey &key, ChannelId id) const;
@@ -47,6 +55,9 @@ public:
     bool isAuthMaintainActive { false };
     bool isSynced { false };
     bool isSyncInProgress { false };
+
+private:
+    std::unique_ptr<BackoffRetryTimer> syncRetryTimer_;
 };
 
 } // namespace CompanionDeviceAuth

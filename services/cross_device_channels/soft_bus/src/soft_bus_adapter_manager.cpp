@@ -31,13 +31,13 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-SoftBusAdapterManager &SoftBusAdapterManager::GetInstance()
+SoftBusChannelAdapterManager &SoftBusChannelAdapterManager::GetInstance()
 {
-    static SoftBusAdapterManager instance;
+    static SoftBusChannelAdapterManager instance;
     return instance;
 }
 
-bool SoftBusAdapterManager::CreateAndRegisterAdapters()
+bool SoftBusChannelAdapterManager::CreateAndRegisterAdapters()
 {
     IAM_LOGI("Starting to create and register SoftBus adapters");
 
@@ -55,7 +55,7 @@ bool SoftBusAdapterManager::CreateAndRegisterAdapters()
     return true;
 }
 
-IDeviceManagerAdapter &SoftBusAdapterManager::GetDeviceManagerAdapter()
+IDeviceManagerAdapter &SoftBusChannelAdapterManager::GetDeviceManagerAdapter()
 {
     if (deviceManagerAdapter_ == nullptr) {
         IAM_LOGE("DeviceManager adapter is not initialized");
@@ -64,12 +64,12 @@ IDeviceManagerAdapter &SoftBusAdapterManager::GetDeviceManagerAdapter()
     return *deviceManagerAdapter_;
 }
 
-void SoftBusAdapterManager::SetDeviceManagerAdapter(std::shared_ptr<IDeviceManagerAdapter> adapter)
+void SoftBusChannelAdapterManager::SetDeviceManagerAdapter(std::shared_ptr<IDeviceManagerAdapter> adapter)
 {
     deviceManagerAdapter_ = adapter;
 }
 
-ISoftBusAdapter &SoftBusAdapterManager::GetSoftBusAdapter()
+ISoftBusAdapter &SoftBusChannelAdapterManager::GetSoftBusAdapter()
 {
     if (softBusAdapter_ == nullptr) {
         IAM_LOGE("SoftBus adapter is not initialized");
@@ -78,19 +78,19 @@ ISoftBusAdapter &SoftBusAdapterManager::GetSoftBusAdapter()
     return *softBusAdapter_;
 }
 
-void SoftBusAdapterManager::SetSoftBusAdapter(std::shared_ptr<ISoftBusAdapter> adapter)
+void SoftBusChannelAdapterManager::SetSoftBusAdapter(std::shared_ptr<ISoftBusAdapter> adapter)
 {
     softBusAdapter_ = adapter;
 }
 
-void SoftBusAdapterManager::AbortIfAdapterUninitialized(const char *adapterName)
+void SoftBusChannelAdapterManager::AbortIfAdapterUninitialized(const char *adapterName)
 {
     IAM_LOGF("%{public}s adapter is not initialized, abort", adapterName);
     std::abort();
 }
 
 #ifdef ENABLE_TEST
-void SoftBusAdapterManager::Reset()
+void SoftBusChannelAdapterManager::Reset()
 {
     deviceManagerAdapter_ = nullptr;
     softBusAdapter_ = nullptr;

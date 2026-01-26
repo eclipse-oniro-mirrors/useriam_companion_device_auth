@@ -31,8 +31,8 @@ namespace CompanionDeviceAuth {
 
 using SyncDeviceStatusCallback = std::function<void(ResultCode result, const SyncDeviceStatus &syncDeviceStatus)>;
 
-class HostSyncDeviceStatusRequest : public OutboundRequest,
-                                    public std::enable_shared_from_this<HostSyncDeviceStatusRequest> {
+class HostSyncDeviceStatusRequest : public std::enable_shared_from_this<HostSyncDeviceStatusRequest>,
+                                    public OutboundRequest {
 public:
     HostSyncDeviceStatusRequest(int32_t hostUserId, const DeviceKey &companionDeviceKey,
         const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback);

@@ -33,7 +33,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class HostBinding : public NoCopyable, public std::enable_shared_from_this<HostBinding> {
+class HostBinding : public std::enable_shared_from_this<HostBinding>, public NoCopyable {
 public:
     static std::shared_ptr<HostBinding> Create(const PersistedHostBindingStatus &persistedStatus);
 

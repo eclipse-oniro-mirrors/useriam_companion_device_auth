@@ -4,11 +4,12 @@
  * you may not use this file except in compliance with the License.
  */
 
-#include "soft_bus_socket.h"
+#include "soft_bus_connection.h"
 
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "soft_bus_adapter_manager.h"
 #include "soft_bus_connection_manager.h"
 #include "task_runner_manager.h"
 
@@ -22,8 +23,8 @@ namespace {
 constexpr int32_t INVALID_SOCKET_ID = -1;
 } // namespace
 
-SoftBusSocket::SoftBusSocket(int32_t socketId, const std::string &connectionName,
-    const PhysicalDeviceKey &physicalDeviceKey, std::weak_ptr<SoftBusConnectionManager> adapter)
+SoftbusConnection::SoftbusConnection(int32_t socketId, const std::string &connectionName,
+    const PhysicalDeviceKey &physicalDeviceKey, std::weak_ptr<SoftBusConnectionManager> manager)
     : socketId_(socketId),
       connectionName_(connectionName),
       physicalDeviceKey_(physicalDeviceKey),
@@ -31,12 +32,12 @@ SoftBusSocket::SoftBusSocket(int32_t socketId, const std::string &connectionName
       isInbound_(false),
       isShutdownByPeer_(false),
       closeReason_(""),
-      adapter_(std::move(adapter))
+      manager_(std::move(manager))
 {
 }
 
-SoftBusSocket::SoftBusSocket(int32_t socketId, const PhysicalDeviceKey &physicalDeviceKey,
-    std::weak_ptr<SoftBusConnectionManager> adapter)
+SoftbusConnection::SoftbusConnection(int32_t socketId, const PhysicalDeviceKey &physicalDeviceKey,
+    std::weak_ptr<SoftBusConnectionManager> manager)
     : socketId_(socketId),
       connectionName_(""),
       physicalDeviceKey_(physicalDeviceKey),
@@ -44,26 +45,26 @@ SoftBusSocket::SoftBusSocket(int32_t socketId, const PhysicalDeviceKey &physical
       isInbound_(true),
       isShutdownByPeer_(false),
       closeReason_(""),
-      adapter_(std::move(adapter))
+      manager_(std::move(manager))
 {
 }
 
-SoftBusSocket::~SoftBusSocket()
+SoftbusConnection::~SoftbusConnection()
 {
     Cleanup();
 }
 
-void SoftBusSocket::SetCloseReason(const std::string &reason)
+void SoftbusConnection::SetCloseReason(const std::string &reason)
 {
     closeReason_ = reason;
 }
 
-void SoftBusSocket::SetConnectionName(const std::string &connectionName)
+void SoftbusConnection::SetConnectionName(const std::string &connectionName)
 {
     connectionName_ = connectionName;
 }
 
-void SoftBusSocket::HandleOutboundConnected()
+void SoftbusConnection::HandleOutboundConnected()
 {
     if (isConnected_ == true) {
         return;
@@ -72,7 +73,7 @@ void SoftBusSocket::HandleOutboundConnected()
     NotifyConnectionEstablished();
 }
 
-void SoftBusSocket::HandleInboundConnected(const std::string &connectionName)
+void SoftbusConnection::HandleInboundConnected(const std::string &connectionName)
 {
     if (isConnected_ == true) {
         return;
@@ -86,12 +87,27 @@ void SoftBusSocket::HandleInboundConnected(const std::string &connectionName)
     NotifyIncomingConnection();
 }
 
-void SoftBusSocket::MarkShutdownByPeer()
+void SoftbusConnection::MarkShutdownByPeer()
 {
     isShutdownByPeer_ = true;
 }
 
-void SoftBusSocket::Cleanup()
+bool SoftbusConnection::SendMessage(const std::vector<uint8_t> &data)
+{
+    if (!isConnected_) {
+        IAM_LOGE("Connection not established: %{public}s", connectionName_.c_str());
+        return false;
+    }
+
+    if (!GetSoftBusAdapter().SendBytes(socketId_, data)) {
+        IAM_LOGE("SendBytes failed: %{public}s", connectionName_.c_str());
+        return false;
+    }
+
+    return true;
+}
+
+void SoftbusConnection::Cleanup()
 {
     if (socketId_ > INVALID_SOCKET_ID) {
         if (!isShutdownByPeer_) {
@@ -103,35 +119,35 @@ void SoftBusSocket::Cleanup()
     NotifyConnectionClosed();
 }
 
-void SoftBusSocket::NotifyConnectionEstablished()
+void SoftbusConnection::NotifyConnectionEstablished()
 {
     ENSURE_OR_RETURN(!connectionName_.empty());
 
-    auto adapter = adapter_.lock();
-    ENSURE_OR_RETURN(adapter != nullptr);
+    auto manager = manager_.lock();
+    ENSURE_OR_RETURN(manager != nullptr);
 
-    adapter->ReportConnectionEstablished(connectionName_);
+    manager->ReportConnectionEstablished(connectionName_);
 }
 
-void SoftBusSocket::NotifyConnectionClosed()
+void SoftbusConnection::NotifyConnectionClosed()
 {
     ENSURE_OR_RETURN(!connectionName_.empty());
 
-    auto adapter = adapter_.lock();
-    ENSURE_OR_RETURN(adapter != nullptr);
+    auto manager = manager_.lock();
+    ENSURE_OR_RETURN(manager != nullptr);
 
-    adapter->ReportConnectionClosed(connectionName_, closeReason_);
+    manager->ReportConnectionClosed(connectionName_, closeReason_);
 }
 
-void SoftBusSocket::NotifyIncomingConnection()
+void SoftbusConnection::NotifyIncomingConnection()
 {
     ENSURE_OR_RETURN(isInbound_);
     ENSURE_OR_RETURN(!connectionName_.empty());
 
-    auto adapter = adapter_.lock();
-    ENSURE_OR_RETURN(adapter != nullptr);
+    auto manager = manager_.lock();
+    ENSURE_OR_RETURN(manager != nullptr);
 
-    adapter->NotifyIncomingConnection(connectionName_, physicalDeviceKey_);
+    manager->NotifyIncomingConnection(connectionName_, physicalDeviceKey_);
 }
 
 } // namespace CompanionDeviceAuth

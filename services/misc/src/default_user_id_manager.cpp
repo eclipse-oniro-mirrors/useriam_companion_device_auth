@@ -41,7 +41,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class DefaultUserIdManager final : public IUserIdManager, public std::enable_shared_from_this<DefaultUserIdManager> {
+class DefaultUserIdManager final : public std::enable_shared_from_this<DefaultUserIdManager>, public IUserIdManager {
 public:
     DefaultUserIdManager();
     ~DefaultUserIdManager() override;

@@ -103,8 +103,8 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
                # SoftBus channel
                "cases/soft_bus_cross_device_channel/soft_bus_channel_test.cpp",
                "cases/soft_bus_cross_device_channel/soft_bus_connection_manager_test.cpp",
+               "cases/soft_bus_cross_device_channel/soft_bus_connection_test.cpp",
                "cases/soft_bus_cross_device_channel/soft_bus_device_status_manager_test.cpp",
-               "cases/soft_bus_cross_device_channel/soft_bus_socket_test.cpp",
 
                # Framework communication
                "cases/fwk_comm/fwk_comm_manager_test.cpp",
@@ -113,6 +113,7 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
                "cases/external_adapters/soft_bus_adapter_test.cpp",
 
                # Utilities
+               "cases/utils/backoff_retry_timer_test.cpp",
                "cases/utils/constant_user_id_manager_test.cpp",
                "cases/utils/request_manager_impl_test.cpp",
                "cases/utils/system_param_manager_impl_test.cpp",

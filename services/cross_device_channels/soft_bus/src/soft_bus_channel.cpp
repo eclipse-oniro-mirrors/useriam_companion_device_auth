@@ -46,7 +46,7 @@ SoftBusChannel::SoftBusChannel()
 
 bool SoftBusChannel::Initialize()
 {
-    if (!SoftBusAdapterManager::GetInstance().CreateAndRegisterAdapters()) {
+    if (!SoftBusChannelAdapterManager::GetInstance().CreateAndRegisterAdapters()) {
         IAM_LOGE("Failed to initialize SoftBus adapter manager");
         return false;
     }

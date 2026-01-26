@@ -28,8 +28,8 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class CompanionObtainTokenRequest : public OutboundRequest,
-                                    public std::enable_shared_from_this<CompanionObtainTokenRequest> {
+class CompanionObtainTokenRequest : public std::enable_shared_from_this<CompanionObtainTokenRequest>,
+                                    public OutboundRequest {
 public:
     CompanionObtainTokenRequest(const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &fwkUnlockMsg);
     ~CompanionObtainTokenRequest() override = default;

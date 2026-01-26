@@ -371,6 +371,12 @@ public:
         return std::make_unique<Subscription>([] {});
     }
 
+    void OnParamChange(const std::string &key, const std::string &value) override
+    {
+        (void)key;
+        (void)value;
+    }
+
 private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };

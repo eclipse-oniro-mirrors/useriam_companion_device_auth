@@ -126,6 +126,7 @@ companion_device_auth_service_local_sources = [
   "service_entry/src/subscription_util.cpp",
   "service_entry/src/template_status_subscription.cpp",
   "singleton/src/singleton_manager.cpp",
+  "utils/src/backoff_retry_timer.cpp",
   "utils/src/callback_death_recipient.cpp",
   "utils/src/cda_attributes.cpp",
   "utils/src/relative_timer.cpp",
@@ -185,9 +186,9 @@ if (companion_device_auth_has_soft_bus_channel) {
     "cross_device_channels/soft_bus/src/soft_bus_adapter_impl.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_adapter_manager.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_channel.cpp",
+    "cross_device_channels/soft_bus/src/soft_bus_connection.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_connection_manager.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_device_status_manager.cpp",
-    "cross_device_channels/soft_bus/src/soft_bus_socket.cpp",
   ]
   companion_device_auth_service_external_deps += [
     "device_manager:devicemanagersdk",

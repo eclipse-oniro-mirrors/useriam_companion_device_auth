@@ -75,7 +75,7 @@ public:
     Attributes &operator=(const Attributes &other);
     Attributes(Attributes &&other) noexcept;
     Attributes &operator=(Attributes &&other) noexcept;
-    virtual ~Attributes();
+    ~Attributes();
 
     void SetBoolValue(AttributeKey key, bool value);
     void SetUint64Value(AttributeKey key, uint64_t value);

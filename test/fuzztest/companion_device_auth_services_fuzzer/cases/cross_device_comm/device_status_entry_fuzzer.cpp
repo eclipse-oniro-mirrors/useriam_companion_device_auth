@@ -28,7 +28,12 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-}
+constexpr int32_t INT32_10 = 10;
+constexpr int32_t INT32_50 = 50;
+constexpr int32_t INT32_100 = 100;
+constexpr int32_t INT32_1000 = 1000;
+constexpr int32_t INT32_99999 = 99999;
+} // namespace
 
 using DeviceStatusEntryFuzzFunction = void (*)(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData);
 
@@ -74,7 +79,7 @@ static void FuzzIsSameDevice(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDa
 static void FuzzBuildDeviceKeyBoundary(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
 {
     if (entry) {
-        std::vector<UserId> testUserIds = { 0, 100, 99999, INT32_MAX, fuzzData.ConsumeIntegral<UserId>() };
+        std::vector<UserId> testUserIds = { 0, INT32_100, INT32_99999, INT32_MAX, fuzzData.ConsumeIntegral<UserId>() };
         for (auto userId : testUserIds) {
             auto key = entry->BuildDeviceKey(userId);
             (void)key;
@@ -86,7 +91,7 @@ static void FuzzBuildDeviceKeyBoundary(std::shared_ptr<DeviceStatusEntry> &entry
 static void FuzzBuildDeviceStatusBoundary(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
 {
     if (entry) {
-        std::vector<UserId> testUserIds = { 0, 50, 1000, INT32_MAX, fuzzData.ConsumeIntegral<UserId>() };
+        std::vector<UserId> testUserIds = { 0, INT32_50, INT32_1000, INT32_MAX, fuzzData.ConsumeIntegral<UserId>() };
         for (auto userId : testUserIds) {
             auto status = entry->BuildDeviceStatus(userId);
             (void)status;
@@ -98,7 +103,7 @@ static void FuzzBuildDeviceStatusBoundary(std::shared_ptr<DeviceStatusEntry> &en
 static void FuzzOnUserIdChangeRepeated(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    int num = 10;
+    int num = INT32_10;
     if (entry) {
         for (int i = 0; i < num; ++i) {
             entry->OnUserIdChange();
@@ -144,8 +149,8 @@ static void FuzzIsSameDeviceLongId(std::shared_ptr<DeviceStatusEntry> &entry, Fu
     if (entry) {
         PhysicalDeviceKey key;
         key.idType = GenerateFuzzDeviceIdType(fuzzData);
-        // Generate a very long device ID (1024 characters)
-        key.deviceId = GenerateFuzzString(fuzzData, 1024);
+        // Generate a very long device ID (TEST_VAL1024 characters)
+        key.deviceId = GenerateFuzzString(fuzzData, TEST_VAL1024);
         ChannelId channelId = GenerateFuzzChannelId(fuzzData);
         bool isSame = entry->IsSameDevice(key, channelId);
         (void)isSame;
@@ -209,7 +214,7 @@ void FuzzDeviceStatusEntry(FuzzedDataProvider &fuzzData)
     physicalStatus.deviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
     physicalStatus.isAuthMaintainActive = fuzzData.ConsumeBool();
 
-    auto entry = std::make_shared<DeviceStatusEntry>(physicalStatus);
+    auto entry = std::make_shared<DeviceStatusEntry>(physicalStatus, []() {});
     if (!entry) {
         return;
     }

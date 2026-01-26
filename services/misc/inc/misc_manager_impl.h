@@ -29,7 +29,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class MiscManagerImpl : public IMiscManager, public std::enable_shared_from_this<MiscManagerImpl> {
+class MiscManagerImpl : public std::enable_shared_from_this<MiscManagerImpl>, public IMiscManager {
 public:
     static std::shared_ptr<MiscManagerImpl> Create();
 

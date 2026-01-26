@@ -29,8 +29,8 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class NapiContinuousAuthStatusCallback : public IContinuousAuthStatusCallback,
-                                         public std::enable_shared_from_this<NapiContinuousAuthStatusCallback>,
+class NapiContinuousAuthStatusCallback : public std::enable_shared_from_this<NapiContinuousAuthStatusCallback>,
+                                         public IContinuousAuthStatusCallback,
                                          public NoCopyable {
 public:
     NapiContinuousAuthStatusCallback(napi_env env);

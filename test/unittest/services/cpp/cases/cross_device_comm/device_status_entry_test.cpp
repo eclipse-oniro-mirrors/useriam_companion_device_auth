@@ -24,6 +24,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+constexpr int32_t INT32_100 = 100;
+}
 
 class DeviceStatusEntryTest : public Test {
 public:
@@ -47,7 +49,7 @@ protected:
 
 HWTEST_F(DeviceStatusEntryTest, Constructor_001, TestSize.Level0)
 {
-    DeviceStatusEntry entry(physicalStatus_);
+    DeviceStatusEntry entry(physicalStatus_, []() {});
 
     EXPECT_EQ(entry.physicalDeviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(entry.physicalDeviceKey.deviceId, "test-device-id");
@@ -61,7 +63,7 @@ HWTEST_F(DeviceStatusEntryTest, Constructor_001, TestSize.Level0)
 
 HWTEST_F(DeviceStatusEntryTest, OnUserIdChange_001, TestSize.Level0)
 {
-    DeviceStatusEntry entry(physicalStatus_);
+    DeviceStatusEntry entry(physicalStatus_, []() {});
 
     entry.isSynced = true;
     entry.isSyncInProgress = true;
@@ -75,19 +77,19 @@ HWTEST_F(DeviceStatusEntryTest, OnUserIdChange_001, TestSize.Level0)
 
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceKey_001, TestSize.Level0)
 {
-    DeviceStatusEntry entry(physicalStatus_);
+    DeviceStatusEntry entry(physicalStatus_, []() {});
 
-    UserId userId = 100;
+    UserId userId = INT32_100;
     DeviceKey deviceKey = entry.BuildDeviceKey(userId);
 
     EXPECT_EQ(deviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(deviceKey.deviceId, "test-device-id");
-    EXPECT_EQ(deviceKey.deviceUserId, 100);
+    EXPECT_EQ(deviceKey.deviceUserId, INT32_100);
 }
 
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
 {
-    DeviceStatusEntry entry(physicalStatus_);
+    DeviceStatusEntry entry(physicalStatus_, []() {});
 
     entry.protocolId = ProtocolId::VERSION_1;
     entry.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -95,12 +97,12 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
     entry.supportedBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2), static_cast<BusinessId>(3) };
     entry.isSynced = true;
 
-    UserId userId = 100;
+    UserId userId = INT32_100;
     DeviceStatus status = entry.BuildDeviceStatus(userId);
 
     EXPECT_EQ(status.deviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(status.deviceKey.deviceId, "test-device-id");
-    EXPECT_EQ(status.deviceKey.deviceUserId, 100);
+    EXPECT_EQ(status.deviceKey.deviceUserId, INT32_100);
     EXPECT_EQ(status.channelId, ChannelId::SOFTBUS);
     EXPECT_EQ(status.deviceName, "TestDevice");
     EXPECT_EQ(status.deviceModelInfo, "TestModel");
@@ -114,7 +116,7 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
 
 HWTEST_F(DeviceStatusEntryTest, IsSameDevice_001, TestSize.Level0)
 {
-    DeviceStatusEntry entry(physicalStatus_);
+    DeviceStatusEntry entry(physicalStatus_, []() {});
 
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -126,7 +128,7 @@ HWTEST_F(DeviceStatusEntryTest, IsSameDevice_001, TestSize.Level0)
 
 HWTEST_F(DeviceStatusEntryTest, IsSameDevice_002, TestSize.Level0)
 {
-    DeviceStatusEntry entry(physicalStatus_);
+    DeviceStatusEntry entry(physicalStatus_, []() {});
 
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -138,7 +140,7 @@ HWTEST_F(DeviceStatusEntryTest, IsSameDevice_002, TestSize.Level0)
 
 HWTEST_F(DeviceStatusEntryTest, IsSameDevice_003, TestSize.Level0)
 {
-    DeviceStatusEntry entry(physicalStatus_);
+    DeviceStatusEntry entry(physicalStatus_, []() {});
 
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -150,7 +152,7 @@ HWTEST_F(DeviceStatusEntryTest, IsSameDevice_003, TestSize.Level0)
 
 HWTEST_F(DeviceStatusEntryTest, IsSameDevice_004, TestSize.Level0)
 {
-    DeviceStatusEntry entry(physicalStatus_);
+    DeviceStatusEntry entry(physicalStatus_, []() {});
 
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNKNOWN;
@@ -160,7 +162,6 @@ HWTEST_F(DeviceStatusEntryTest, IsSameDevice_004, TestSize.Level0)
     EXPECT_FALSE(result);
 }
 
-} // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

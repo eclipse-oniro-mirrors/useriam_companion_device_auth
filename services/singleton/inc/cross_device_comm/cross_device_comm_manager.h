@@ -34,7 +34,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class ICrossDeviceCommManager : public NoCopyable, public std::enable_shared_from_this<ICrossDeviceCommManager> {
+class ICrossDeviceCommManager : public std::enable_shared_from_this<ICrossDeviceCommManager>, public NoCopyable {
 public:
     virtual ~ICrossDeviceCommManager() = default;
 

@@ -129,17 +129,17 @@ private:
 bool InitSoftBusAdapter(FuzzedDataProvider &fuzzData)
 {
     auto softBusAdapter = std::make_shared<MockSoftBusAdapterForChannel>(fuzzData);
-    SoftBusAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
 
     auto deviceMgrAdapter = std::make_shared<MockDeviceManagerAdapterForChannel>(fuzzData);
-    SoftBusAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceMgrAdapter);
+    SoftBusChannelAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceMgrAdapter);
 
     return true;
 }
 
 void CleanupSoftBusAdapter()
 {
-    SoftBusAdapterManager::GetInstance().Reset();
+    SoftBusChannelAdapterManager::GetInstance().Reset();
 }
 
 bool InitializeChannelAdapters(FuzzedDataProvider &fuzzData)

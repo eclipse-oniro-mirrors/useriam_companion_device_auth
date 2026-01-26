@@ -84,7 +84,8 @@ impl StorageIo for DefaultStorageIo {
                 // 0o600 = S_IRUSR | S_IWUSR (owner read/write)
                 let mode = S_IRUSR | S_IWUSR;
                 if chmod(c_path.as_ptr(), mode) != 0 {
-                    log_e!("failed to set file permissions: {}", file_name);
+                    let err = std::io::Error::last_os_error();
+                    log_e!("failed to set file permissions: {}, result: {:?}", file_name, err);
                     return Err(ErrorCode::GeneralError);
                 }
             }

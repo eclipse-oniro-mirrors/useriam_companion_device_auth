@@ -37,9 +37,6 @@ public:
         const std::string &networkId) override;
     bool SendBytes(int32_t socketId, const std::vector<uint8_t> &data) override;
     void ShutdownSocket(int32_t socketId) override;
-
-private:
-    std::shared_ptr<ISoftBusSocketCallback> callback_;
 };
 
 } // namespace CompanionDeviceAuth

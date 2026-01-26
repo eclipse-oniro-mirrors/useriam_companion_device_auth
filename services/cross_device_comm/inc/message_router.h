@@ -39,7 +39,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class MessageRouter : public NoCopyable, public std::enable_shared_from_this<MessageRouter> {
+class MessageRouter : public std::enable_shared_from_this<MessageRouter>, public NoCopyable {
 public:
     static std::shared_ptr<MessageRouter> Create(std::shared_ptr<ConnectionManager> connectionMgr,
         std::shared_ptr<ChannelManager> channelMgr);

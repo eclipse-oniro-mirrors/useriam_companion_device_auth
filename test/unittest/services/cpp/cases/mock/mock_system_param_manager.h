@@ -32,6 +32,7 @@ public:
         (override));
     MOCK_METHOD(std::unique_ptr<Subscription>, WatchParam, (const std::string &key, SystemParamCallback &&callback),
         (override));
+    MOCK_METHOD(void, OnParamChange, (const std::string &key, const std::string &value), (override));
 };
 
 } // namespace CompanionDeviceAuth

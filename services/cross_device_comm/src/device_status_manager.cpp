@@ -190,9 +190,11 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
 
     if (resultCode != SUCCESS) {
         IAM_LOGE("sync failed: %{public}d", resultCode);
+        deviceStatus.OnSyncFailure();
         return;
     }
 
+    deviceStatus.OnSyncSuccess();
     auto negotiatedProtocol = NegotiateProtocol(syncDeviceStatus.protocolIdList);
     ENSURE_OR_RETURN(negotiatedProtocol.has_value());
     auto negotiatedCapabilities = NegotiateCapabilities(syncDeviceStatus.capabilityList);
@@ -297,6 +299,7 @@ void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey
         entry.isSyncInProgress = false;
         entry.isSynced = false;
         IAM_LOGE("device %{public}s sync failed", companionDeviceKey.GetDesc().c_str());
+        entry.OnSyncFailure();
     });
 
     SyncDeviceStatusCallback callback = [weakSelf = weak_from_this(), companionDeviceKey](ResultCode result,
@@ -511,7 +514,12 @@ bool DeviceStatusManager::AddOrUpdateDevices(
 
         auto it = deviceStatusMap_.find(key);
         if (it == deviceStatusMap_.end()) {
-            deviceStatusMap_.emplace(key, status);
+            DeviceStatusEntry entry(status, [weakSelf = weak_from_this(), key]() {
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->TriggerDeviceSync(key);
+            });
+            deviceStatusMap_.emplace(key, std::move(entry));
             deviceChanged = true;
             IAM_LOGI("device added: %{public}s, channel=%{public}d", GET_MASKED_STR_CSTR(key.deviceId),
                 status.channelId);

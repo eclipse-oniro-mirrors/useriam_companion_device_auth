@@ -37,9 +37,12 @@ void OnParamChg(const char *key, const char *value, void *context)
 {
     ENSURE_OR_RETURN(key != nullptr);
     ENSURE_OR_RETURN(value != nullptr);
-    ENSURE_OR_RETURN(context != nullptr);
-    auto *manager = static_cast<SystemParamManagerImpl *>(context);
-    manager->OnParamChange(std::string(key), std::string(value));
+    (void)context;
+
+    TaskRunnerManager::GetInstance().PostTaskOnResident([key = std::string(key), value = std::string(value)]() {
+        auto &manager = GetSystemParamManager();
+        manager.OnParamChange(key, value);
+    });
 }
 } // namespace
 
@@ -97,11 +100,9 @@ std::unique_ptr<Subscription> SystemParamManagerImpl::WatchParam(const std::stri
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
-    bool isFirstSubscriptionForKey = false;
-
-    isFirstSubscriptionForKey = keyToSubscriptionIds_.find(key) == keyToSubscriptionIds_.end();
+    bool isFirstSubscriptionForKey = keyToSubscriptionIds_.find(key) == keyToSubscriptionIds_.end();
     if (isFirstSubscriptionForKey) {
-        int32_t ret = WatchParameter(key.c_str(), OnParamChg, this);
+        int32_t ret = WatchParameter(key.c_str(), OnParamChg, nullptr);
         if (ret != 0) {
             IAM_LOGE("WatchParameter failed, key %{public}s, ret %{public}d", key.c_str(), ret);
             return nullptr;

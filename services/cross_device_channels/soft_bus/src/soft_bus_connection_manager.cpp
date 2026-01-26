@@ -8,6 +8,8 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <iomanip>
+#include <sstream>
 #include <utility>
 
 #include "system_ability_definition.h"
@@ -22,7 +24,7 @@
 #include "singleton_manager.h"
 #include "soft_bus_adapter_manager.h"
 #include "soft_bus_channel_common.h"
-#include "soft_bus_socket.h"
+#include "soft_bus_connection.h"
 #include "softbus_error_code.h"
 #include "subscription.h"
 #include "task_runner_manager.h"
@@ -129,14 +131,14 @@ bool SoftBusConnectionManager::OpenConnection(const std::string &connectionName,
         return false;
     }
 
-    auto socket =
-        std::make_shared<SoftBusSocket>(socketId.value(), connectionName, physicalDeviceKey, weak_from_this());
-    if (socket == nullptr) {
-        IAM_LOGE("Failed to create socket object");
+    auto connection =
+        std::make_shared<SoftbusConnection>(socketId.value(), connectionName, physicalDeviceKey, weak_from_this());
+    if (connection == nullptr) {
+        IAM_LOGE("Failed to create connection object");
         GetSoftBusAdapter().ShutdownSocket(socketId.value());
         return false;
     }
-    sockets_.push_back(socket);
+    connections_.push_back(connection);
 
     IAM_LOGI("OpenConnection initiated: %{public}s, socketId=%{public}d", connectionName.c_str(), socketId.value());
     return true;
@@ -157,18 +159,13 @@ void SoftBusConnectionManager::CloseConnection(const std::string &connectionName
 
 bool SoftBusConnectionManager::SendMessage(const std::string &connectionName, const std::vector<uint8_t> &rawMsg)
 {
-    auto entry = FindSocketByConnectionName(connectionName);
-    if (entry == nullptr || !entry->IsConnected()) {
-        IAM_LOGE("Connection not found or not connected: %{public}s", connectionName.c_str());
+    auto connection = FindSocketByConnectionName(connectionName);
+    if (connection == nullptr) {
+        IAM_LOGE("Connection not found: %{public}s", connectionName.c_str());
         return false;
     }
 
-    if (!GetSoftBusAdapter().SendBytes(entry->GetSocketId(), rawMsg)) {
-        IAM_LOGE("SendBytes failed");
-        return false;
-    }
-
-    return true;
+    return connection->SendMessage(rawMsg);
 }
 
 void SoftBusConnectionManager::HandleBind(int32_t socketId, const std::string &peerNetworkId)
@@ -184,21 +181,16 @@ void SoftBusConnectionManager::HandleBind(int32_t socketId, const std::string &p
 
     // inbound connection
     ScopeGuard guard([socketId]() { GetSoftBusAdapter().ShutdownSocket(socketId); });
-    auto udidResult = GetDeviceManagerAdapter().GetUdidByNetworkId(peerNetworkId);
-    ENSURE_OR_RETURN(udidResult.has_value());
-    std::string udid = udidResult.value();
-    ENSURE_OR_RETURN(!udid.empty());
+    auto udid = GetDeviceManagerAdapter().GetUdidByNetworkId(peerNetworkId);
+    ENSURE_OR_RETURN(udid.has_value() && !udid.value().empty());
 
     PhysicalDeviceKey physicalDeviceKey = {
         .idType = DeviceIdType::UNIFIED_DEVICE_ID,
-        .deviceId = udid,
+        .deviceId = udid.value(),
     };
-    auto socket = std::make_shared<SoftBusSocket>(socketId, physicalDeviceKey, weak_from_this());
-    if (socket == nullptr) {
-        IAM_LOGE("Failed to create socket object for inbound connection");
-        return;
-    }
-    sockets_.push_back(socket);
+    auto connection = std::make_shared<SoftbusConnection>(socketId, physicalDeviceKey, weak_from_this());
+    ENSURE_OR_RETURN(connection != nullptr);
+    connections_.push_back(connection);
     guard.Cancel();
 
     IAM_LOGI("Inbound connection accepted: socketId=%{public}d", socketId);
@@ -206,6 +198,7 @@ void SoftBusConnectionManager::HandleBind(int32_t socketId, const std::string &p
 
 void SoftBusConnectionManager::HandleError(int32_t socketId, int32_t errCode)
 {
+    const uint32_t UINT32_8 = 8;
     IAM_LOGE("HandleError: socketId=%{public}d, errCode=%{public}d", socketId, errCode);
 
     auto entry = FindSocketBySocketId(socketId);
@@ -214,7 +207,9 @@ void SoftBusConnectionManager::HandleError(int32_t socketId, int32_t errCode)
         return;
     }
 
-    RemoveSocket(socketId, "error_" + std::to_string(errCode));
+    std::stringstream ss;
+    ss << "softbus_error_0x" << std::hex << std::setfill('0') << std::setw(UINT32_8) << errCode;
+    RemoveSocket(socketId, ss.str());
 }
 
 void SoftBusConnectionManager::HandleShutdown(int32_t socketId, int32_t reason)
@@ -235,9 +230,6 @@ void SoftBusConnectionManager::HandleBytes(int32_t socketId, const void *data, u
 {
     IAM_LOGI("HandleBytes: socketId=%{public}d, len=%{public}u", socketId, dataLen);
 
-    auto socket = FindSocketBySocketId(socketId);
-    ENSURE_OR_RETURN(socket != nullptr);
-
     if (data == nullptr || dataLen == 0) {
         IAM_LOGE("received empty data");
         return;
@@ -245,26 +237,33 @@ void SoftBusConnectionManager::HandleBytes(int32_t socketId, const void *data, u
 
     std::vector<uint8_t> message(static_cast<const uint8_t *>(data), static_cast<const uint8_t *>(data) + dataLen);
 
-    if (socket->IsInbound() && socket->GetConnectionName().empty()) {
+    auto connection = FindSocketBySocketId(socketId);
+    if (connection == nullptr) {
+        IAM_LOGW("Connection not found for bytes handling");
+        return;
+    }
+
+    if (connection->IsInbound() && connection->GetConnectionName().empty()) {
         Attributes attributes(message);
         std::string connectionName;
         if (attributes.GetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName) &&
             !connectionName.empty()) {
             IAM_LOGI("Updated connectionName from message: %{public}s", connectionName.c_str());
-            socket->HandleInboundConnected(connectionName);
+            connection->HandleInboundConnected(connectionName);
         }
     }
 
-    std::string connectionName = socket->GetConnectionName();
+    ENSURE_OR_RETURN(!connection->GetConnectionName().empty());
+    std::string connectionName = connection->GetConnectionName();
+
+    // Post to Resident thread for callback processing
     std::vector<RawMessageSubscription> subscribers = rawMessageSubscribers_;
-    TaskRunnerManager::GetInstance().PostTaskOnResident(
-        [subscribers, connectionName, message = std::move(message)]() mutable {
-            for (const auto &sub : subscribers) {
-                if (sub.callback != nullptr && (sub.connectionName.empty() || sub.connectionName == connectionName)) {
-                    sub.callback(connectionName, message);
-                }
-            }
-        });
+    TaskRunnerManager::GetInstance().PostTaskOnResident([connectionName, message, subscribers]() mutable {
+        for (const auto &sub : subscribers) {
+            ENSURE_OR_CONTINUE(sub.callback != nullptr);
+            sub.callback(connectionName, message);
+        }
+    });
 }
 
 std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeRawMessage(OnRawMessage &&callback)
@@ -272,7 +271,7 @@ std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeRawMessage(OnRa
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
 
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
-    rawMessageSubscribers_.push_back({ subscriptionId, "", std::move(callback) });
+    rawMessageSubscribers_.push_back({ subscriptionId, std::move(callback) });
 
     IAM_LOGD("raw message subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
@@ -357,33 +356,36 @@ void SoftBusConnectionManager::NotifyIncomingConnection(const std::string &conne
     });
 }
 
-std::shared_ptr<SoftBusSocket> SoftBusConnectionManager::FindSocketByConnectionName(const std::string &connectionName)
+std::shared_ptr<SoftbusConnection> SoftBusConnectionManager::FindSocketByConnectionName(
+    const std::string &connectionName)
 {
-    auto it =
-        std::find_if(sockets_.begin(), sockets_.end(), [&connectionName](const std::shared_ptr<SoftBusSocket> &socket) {
+    auto it = std::find_if(connections_.begin(), connections_.end(),
+        [&connectionName](const std::shared_ptr<SoftbusConnection> &socket) {
             return socket != nullptr && socket->GetConnectionName() == connectionName;
         });
-    return it != sockets_.end() && *it != nullptr ? *it : nullptr;
+    return it != connections_.end() ? *it : nullptr;
 }
 
-std::shared_ptr<SoftBusSocket> SoftBusConnectionManager::FindSocketBySocketId(int32_t socketId)
+std::shared_ptr<SoftbusConnection> SoftBusConnectionManager::FindSocketBySocketId(int32_t socketId)
 {
-    auto it = std::find_if(sockets_.begin(), sockets_.end(), [&socketId](const std::shared_ptr<SoftBusSocket> &socket) {
-        return socket != nullptr && socket->GetSocketId() == socketId;
-    });
-    return it != sockets_.end() && *it != nullptr ? *it : nullptr;
+    auto it = std::find_if(connections_.begin(), connections_.end(),
+        [&socketId](const std::shared_ptr<SoftbusConnection> &socket) {
+            return socket != nullptr && socket->GetSocketId() == socketId;
+        });
+    return it != connections_.end() ? *it : nullptr;
 }
 
 void SoftBusConnectionManager::RemoveSocket(int32_t socketId, const std::string &closeReason)
 {
-    auto it = std::find_if(sockets_.begin(), sockets_.end(), [&socketId](const std::shared_ptr<SoftBusSocket> &socket) {
-        return socket != nullptr && socket->GetSocketId() == socketId;
-    });
-    if (it != sockets_.end()) {
+    auto it = std::find_if(connections_.begin(), connections_.end(),
+        [&socketId](const std::shared_ptr<SoftbusConnection> &socket) {
+            return socket != nullptr && socket->GetSocketId() == socketId;
+        });
+    if (it != connections_.end()) {
         if (*it != nullptr) {
             (*it)->SetCloseReason(closeReason);
         }
-        sockets_.erase(it);
+        connections_.erase(it);
     }
 }
 
@@ -398,7 +400,7 @@ void SoftBusConnectionManager::HandleSoftBusServiceReady()
 
 void SoftBusConnectionManager::CloseAllSockets(const std::string &reason)
 {
-    for (auto &socket : sockets_) {
+    for (auto &socket : connections_) {
         if (socket != nullptr) {
             socket->SetCloseReason(reason);
         }
@@ -408,7 +410,7 @@ void SoftBusConnectionManager::CloseAllSockets(const std::string &reason)
         GetSoftBusAdapter().ShutdownSocket(serverSocketId_.value());
         serverSocketId_.reset();
     }
-    sockets_.clear();
+    connections_.clear();
 }
 
 void SoftBusConnectionManager::HandleSoftBusServiceUnavailable()

@@ -72,7 +72,6 @@ private:
     void UnsubscribeAuthMaintainActive(SubscribeId subscriptionId);
 
     std::unique_ptr<SaStatusListener> saStatusListener_;
-    std::shared_ptr<DistributedHardware::DmInitCallback> dmInitCallback_;
     std::shared_ptr<DistributedHardware::DeviceStatusCallback> dsCallback_;
     std::map<int32_t, OnPhysicalDeviceStatusChange> physicalDeviceStatusSubscribers_;
     std::map<int32_t, OnAuthMaintainActiveChange> authMaintainActiveSubscribers_;

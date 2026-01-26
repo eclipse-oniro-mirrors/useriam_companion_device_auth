@@ -43,7 +43,7 @@ std::unique_ptr<Subscription> MakeSubscription()
     return std::make_unique<Subscription>([]() {});
 }
 
-class SoftBusDeviceStatusManagerTest : public Test {
+class SoftBusDeviceStatusManagerTest : public testing::Test {
 public:
     void SetUp() override
     {
@@ -62,7 +62,7 @@ public:
         // Initialize DeviceManagerAdapter mock
         auto deviceManagerAdapter =
             std::shared_ptr<IDeviceManagerAdapter>(&mockDeviceManagerAdapter_, [](IDeviceManagerAdapter *) {});
-        SoftBusAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceManagerAdapter);
+        SoftBusChannelAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceManagerAdapter);
         ON_CALL(mockDeviceManagerAdapter_, InitDeviceManager()).WillByDefault(Return(true));
         ON_CALL(mockDeviceManagerAdapter_, RegisterDevStatusCallback(_)).WillByDefault(Return(true));
         ON_CALL(mockDeviceManagerAdapter_, QueryTrustedDevices(_)).WillByDefault(Return(true));

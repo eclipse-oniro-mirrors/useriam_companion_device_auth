@@ -4,11 +4,12 @@
  * you may not use this file except in compliance with the License.
  */
 
-#ifndef SOFT_BUS_SOCKET_H
-#define SOFT_BUS_SOCKET_H
+#ifndef SOFT_BUS_CONNECTION_H
+#define SOFT_BUS_CONNECTION_H
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "nocopyable.h"
 
@@ -20,13 +21,13 @@ namespace CompanionDeviceAuth {
 
 class SoftBusConnectionManager;
 
-class SoftBusSocket : public NoCopyable {
+class SoftbusConnection : public NoCopyable {
 public:
-    SoftBusSocket(int32_t socketId, const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey,
-        std::weak_ptr<SoftBusConnectionManager> adapter);
-    SoftBusSocket(int32_t socketId, const PhysicalDeviceKey &physicalDeviceKey,
-        std::weak_ptr<SoftBusConnectionManager> adapter);
-    ~SoftBusSocket();
+    SoftbusConnection(int32_t socketId, const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey,
+        std::weak_ptr<SoftBusConnectionManager> manager);
+    SoftbusConnection(int32_t socketId, const PhysicalDeviceKey &physicalDeviceKey,
+        std::weak_ptr<SoftBusConnectionManager> manager);
+    ~SoftbusConnection();
 
     int32_t GetSocketId() const
     {
@@ -54,6 +55,7 @@ public:
     void HandleOutboundConnected();
     void HandleInboundConnected(const std::string &connectionName);
     void MarkShutdownByPeer();
+    bool SendMessage(const std::vector<uint8_t> &data);
 
 private:
     void Cleanup();
@@ -68,11 +70,11 @@ private:
     bool isInbound_;
     bool isShutdownByPeer_;
     std::string closeReason_;
-    std::weak_ptr<SoftBusConnectionManager> adapter_;
+    std::weak_ptr<SoftBusConnectionManager> manager_;
 };
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
 
-#endif // SOFT_BUS_SOCKET_H
+#endif // SOFT_BUS_CONNECTION_H

@@ -31,7 +31,7 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class HostAddCompanionRequest : public OutboundRequest, public std::enable_shared_from_this<HostAddCompanionRequest> {
+class HostAddCompanionRequest : public std::enable_shared_from_this<HostAddCompanionRequest>, public OutboundRequest {
 public:
     HostAddCompanionRequest(ScheduleId scheduleId, const std::vector<uint8_t> &fwkMsg, uint32_t tokenId,
         FwkResultCallback &&requestCallback);

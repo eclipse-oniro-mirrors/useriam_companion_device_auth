@@ -147,12 +147,15 @@ bool AdapterManager::CreateAndRegisterAllAdapters()
 #else
     // Dummy implementations
     auto userAuthAdapter = std::make_shared<UserAuthAdapterDummy>();
+    ENSURE_OR_RETURN_VAL(userAuthAdapter != nullptr, false);
     SetUserAuthAdapter(userAuthAdapter);
 
     auto driverManagerAdapter = std::make_shared<DriverManagerAdapterDummy>();
+    ENSURE_OR_RETURN_VAL(driverManagerAdapter != nullptr, false);
     SetDriverManagerAdapter(driverManagerAdapter);
 
     auto idmAdapter = std::make_shared<IdmAdapterDummy>();
+    ENSURE_OR_RETURN_VAL(idmAdapter != nullptr, false);
     SetIdmAdapter(idmAdapter);
 #endif
 

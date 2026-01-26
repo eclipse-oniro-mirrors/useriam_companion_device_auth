@@ -16,6 +16,8 @@
 #include "base_request.h"
 
 #include <cinttypes>
+#include <iomanip>
+#include <sstream>
 
 #include "iam_check.h"
 #include "iam_logger.h"
@@ -70,11 +72,19 @@ static const char *GetRequestTypeAbbr(RequestType requestType)
             return "?";
     }
 }
+
+static std::string FormatRequestId(RequestId requestId)
+{
+    const uint32_t UINT32_8 = 8;
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::setfill('0') << std::setw(UINT32_8) << requestId;
+    return ss.str();
+}
 } // namespace
 
 std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId requestId)
 {
-    return std::string("CdaRequest(") + GetRequestTypeAbbr(requestType) + "," + std::to_string(requestId) + ")";
+    return std::string("CdaRequest(") + GetRequestTypeAbbr(requestType) + "," + FormatRequestId(requestId) + ")";
 }
 
 std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId requestId,
@@ -83,7 +93,7 @@ std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId 
     if (connectionName.empty() || connectionName == "-") {
         return GenerateDescription(requestType, requestId);
     }
-    return std::string("CdaRequest(") + GetRequestTypeAbbr(requestType) + "," + std::to_string(requestId) + "," +
+    return std::string("CdaRequest(") + GetRequestTypeAbbr(requestType) + "," + FormatRequestId(requestId) + "," +
         connectionName + ")";
 }
 

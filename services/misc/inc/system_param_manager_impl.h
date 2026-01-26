@@ -28,8 +28,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class SystemParamManagerImpl final : public ISystemParamManager,
-                                     public std::enable_shared_from_this<SystemParamManagerImpl> {
+class SystemParamManagerImpl final : public std::enable_shared_from_this<SystemParamManagerImpl>,
+                                     public ISystemParamManager {
 public:
     static std::shared_ptr<SystemParamManagerImpl> Create();
 
@@ -39,8 +39,7 @@ public:
     void SetParam(const std::string &key, const std::string &value) override;
     void SetParamTwice(const std::string &key, const std::string &value1, const std::string &value2) override;
     std::unique_ptr<Subscription> WatchParam(const std::string &key, SystemParamCallback &&callback) override;
-
-    void OnParamChange(const std::string &key, const std::string &value);
+    void OnParamChange(const std::string &key, const std::string &value) override;
 
 private:
     SystemParamManagerImpl();
@@ -49,6 +48,7 @@ private:
     std::map<int32_t, SystemParamCallback> subscriptions_;
     std::map<std::string, std::vector<int32_t>> keyToSubscriptionIds_;
 };
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

@@ -37,7 +37,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 template <typename CallbackType, typename DerivedType>
-class CallbackSubscriptionBase : public NoCopyable, public std::enable_shared_from_this<DerivedType> {
+class CallbackSubscriptionBase : public std::enable_shared_from_this<DerivedType>, public NoCopyable {
 public:
     using DeathHandler = std::function<void(const sptr<CallbackType> &)>;
 

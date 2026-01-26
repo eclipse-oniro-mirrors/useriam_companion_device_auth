@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef SOFT_BUS_ADAPTER_MANAGER_H
-#define SOFT_BUS_ADAPTER_MANAGER_H
+#ifndef SOFT_BUS_CHANNEL_ADAPTER_MANAGER_H
+#define SOFT_BUS_CHANNEL_ADAPTER_MANAGER_H
 
 #include <memory>
 
@@ -27,9 +27,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class SoftBusAdapterManager : public NoCopyable {
+class SoftBusChannelAdapterManager : public NoCopyable {
 public:
-    static SoftBusAdapterManager &GetInstance();
+    static SoftBusChannelAdapterManager &GetInstance();
 
     bool CreateAndRegisterAdapters();
 
@@ -44,8 +44,8 @@ public:
 #endif // ENABLE_TEST
 
 private:
-    SoftBusAdapterManager() = default;
-    ~SoftBusAdapterManager() = default;
+    SoftBusChannelAdapterManager() = default;
+    ~SoftBusChannelAdapterManager() = default;
 
     void AbortIfAdapterUninitialized(const char *adapterName);
 
@@ -55,16 +55,16 @@ private:
 
 inline IDeviceManagerAdapter &GetDeviceManagerAdapter()
 {
-    return SoftBusAdapterManager::GetInstance().GetDeviceManagerAdapter();
+    return SoftBusChannelAdapterManager::GetInstance().GetDeviceManagerAdapter();
 }
 
 inline ISoftBusAdapter &GetSoftBusAdapter()
 {
-    return SoftBusAdapterManager::GetInstance().GetSoftBusAdapter();
+    return SoftBusChannelAdapterManager::GetInstance().GetSoftBusAdapter();
 }
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
 
-#endif // SOFT_BUS_ADAPTER_MANAGER_H
+#endif // SOFT_BUS_CHANNEL_ADAPTER_MANAGER_H

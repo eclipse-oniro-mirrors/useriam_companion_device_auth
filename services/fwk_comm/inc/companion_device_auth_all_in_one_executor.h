@@ -33,9 +33,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class CompanionDeviceAuthAllInOneExecutor : public FwkIAuthExecutorHdi,
-                                            public NoCopyable,
-                                            public std::enable_shared_from_this<CompanionDeviceAuthAllInOneExecutor> {
+class CompanionDeviceAuthAllInOneExecutor : public std::enable_shared_from_this<CompanionDeviceAuthAllInOneExecutor>,
+                                            public FwkIAuthExecutorHdi,
+                                            public NoCopyable {
 public:
     CompanionDeviceAuthAllInOneExecutor();
     ~CompanionDeviceAuthAllInOneExecutor() override = default;

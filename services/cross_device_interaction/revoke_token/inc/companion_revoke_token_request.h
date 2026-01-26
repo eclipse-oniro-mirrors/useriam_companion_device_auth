@@ -24,8 +24,8 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class CompanionRevokeTokenRequest : public OutboundRequest,
-                                    public std::enable_shared_from_this<CompanionRevokeTokenRequest> {
+class CompanionRevokeTokenRequest : public std::enable_shared_from_this<CompanionRevokeTokenRequest>,
+                                    public OutboundRequest {
 public:
     CompanionRevokeTokenRequest(int32_t companionUserId, const DeviceKey &hostDeviceKey);
     ~CompanionRevokeTokenRequest() override = default;

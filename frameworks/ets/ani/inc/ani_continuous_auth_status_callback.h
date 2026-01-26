@@ -33,8 +33,8 @@ namespace CompanionDeviceAuth {
 using ContinuousAuthStatusCallback = ::taihe::callback<void(bool isAuthPassed,
     ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>;
 using ContinuousAuthStatusCallbackPtr = std::shared_ptr<taihe::optional<ContinuousAuthStatusCallback>>;
-class AniContinuousAuthStatusCallback : public IContinuousAuthStatusCallback,
-                                        public std::enable_shared_from_this<AniContinuousAuthStatusCallback>,
+class AniContinuousAuthStatusCallback : public std::enable_shared_from_this<AniContinuousAuthStatusCallback>,
+                                        public IContinuousAuthStatusCallback,
                                         public NoCopyable {
 public:
     explicit AniContinuousAuthStatusCallback();

@@ -34,7 +34,7 @@ namespace CompanionDeviceAuth {
 
 class CompanionManagerImpl;
 
-class Companion : public NoCopyable, public std::enable_shared_from_this<Companion> {
+class Companion : public std::enable_shared_from_this<Companion>, public NoCopyable {
 public:
     static std::shared_ptr<Companion> Create(const PersistedCompanionStatus &persistedStatus, bool addedToIdm,
         const std::weak_ptr<CompanionManagerImpl> &managerWeakPtr);

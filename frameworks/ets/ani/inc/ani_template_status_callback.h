@@ -34,8 +34,8 @@ namespace CompanionDeviceAuth {
 using TemplateStatusCallback = ::taihe::callback<void(
     ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>;
 using TemplateStatusCallbackPtr = std::shared_ptr<taihe::optional<TemplateStatusCallback>>;
-class AniTemplateStatusCallback : public ITemplateStatusCallback,
-                                  public std::enable_shared_from_this<AniTemplateStatusCallback>,
+class AniTemplateStatusCallback : public std::enable_shared_from_this<AniTemplateStatusCallback>,
+                                  public ITemplateStatusCallback,
                                   public NoCopyable {
 public:
     explicit AniTemplateStatusCallback();

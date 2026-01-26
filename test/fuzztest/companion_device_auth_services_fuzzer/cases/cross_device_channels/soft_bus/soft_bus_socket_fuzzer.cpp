@@ -22,8 +22,8 @@
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
 #include "fuzz_registry.h"
+#include "soft_bus_connection.h"
 #include "soft_bus_connection_manager.h"
-#include "soft_bus_socket.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -31,30 +31,30 @@ namespace CompanionDeviceAuth {
 namespace {
 }
 
-using SoftBusSocketFuzzFunction = void (*)(std::unique_ptr<SoftBusSocket> &, FuzzedDataProvider &);
+using SoftbusConnectionFuzzFunction = void (*)(std::unique_ptr<SoftbusConnection> &, FuzzedDataProvider &);
 
-static void FuzzOp0(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &fuzzData)
+static void FuzzOp0(std::unique_ptr<SoftbusConnection> &socket, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test GetSocketId
     (void)socket->GetSocketId();
 }
 
-static void FuzzOp1(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &fuzzData)
+static void FuzzOp1(std::unique_ptr<SoftbusConnection> &socket, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test IsConnected
     (void)socket->IsConnected();
 }
 
-static void FuzzOp2(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &fuzzData)
+static void FuzzOp2(std::unique_ptr<SoftbusConnection> &socket, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test IsInbound
     (void)socket->IsInbound();
 }
 
-static void FuzzOp3(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &fuzzData)
+static void FuzzOp3(std::unique_ptr<SoftbusConnection> &socket, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test SetConnectionName
@@ -62,7 +62,7 @@ static void FuzzOp3(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &
     socket->SetConnectionName(connectionName);
 }
 
-static void FuzzOp4(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &fuzzData)
+static void FuzzOp4(std::unique_ptr<SoftbusConnection> &socket, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test SetCloseReason
@@ -70,14 +70,14 @@ static void FuzzOp4(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &
     socket->SetCloseReason(reason);
 }
 
-static void FuzzOp5(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &fuzzData)
+static void FuzzOp5(std::unique_ptr<SoftbusConnection> &socket, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test HandleOutboundConnected
     socket->HandleOutboundConnected();
 }
 
-static void FuzzOp6(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &fuzzData)
+static void FuzzOp6(std::unique_ptr<SoftbusConnection> &socket, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test HandleInboundConnected
@@ -85,14 +85,14 @@ static void FuzzOp6(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &
     socket->HandleInboundConnected(connectionName);
 }
 
-static void FuzzOp7(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &fuzzData)
+static void FuzzOp7(std::unique_ptr<SoftbusConnection> &socket, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test MarkShutdownByPeer
     socket->MarkShutdownByPeer();
 }
 
-static void FuzzOp8(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &fuzzData)
+static void FuzzOp8(std::unique_ptr<SoftbusConnection> &socket, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test GetConnectionName and GetPhysicalDeviceKey
@@ -100,11 +100,11 @@ static void FuzzOp8(std::unique_ptr<SoftBusSocket> &socket, FuzzedDataProvider &
     (void)socket->GetPhysicalDeviceKey();
 }
 
-static const SoftBusSocketFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5, FuzzOp6,
-    FuzzOp7, FuzzOp8 };
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SoftBusSocketFuzzFunction);
+static const SoftbusConnectionFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4, FuzzOp5,
+    FuzzOp6, FuzzOp7, FuzzOp8 };
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SoftbusConnectionFuzzFunction);
 
-void FuzzSoftBusSocket(FuzzedDataProvider &fuzzData)
+void FuzzSoftbusConnection(FuzzedDataProvider &fuzzData)
 {
     // Create a connection manager for the socket
     auto manager = SoftBusConnectionManager::Create();
@@ -112,14 +112,14 @@ void FuzzSoftBusSocket(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    // Create SoftBusSocket instance (outbound connection)
+    // Create SoftbusConnection instance (outbound connection)
     int32_t socketId = fuzzData.ConsumeIntegral<int32_t>();
     PhysicalDeviceKey physicalKey;
     physicalKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     physicalKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
 
     auto socket =
-        std::make_unique<SoftBusSocket>(socketId, physicalKey, std::weak_ptr<SoftBusConnectionManager>(manager));
+        std::make_unique<SoftbusConnection>(socketId, physicalKey, std::weak_ptr<SoftBusConnectionManager>(manager));
 
     uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
     for (uint32_t i = 0; i < loopCount; ++i) {
@@ -135,7 +135,7 @@ void FuzzSoftBusSocket(FuzzedDataProvider &fuzzData)
 
 } // namespace CompanionDeviceAuth
 
-FUZZ_REGISTER(SoftBusSocket)
+FUZZ_REGISTER(SoftbusConnection)
 
 } // namespace UserIam
 } // namespace OHOS

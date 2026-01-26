@@ -23,6 +23,7 @@
 #include "socket.h"
 #include "soft_bus_channel_common.h"
 #include "softbus_error_code.h"
+#include "task_runner_manager.h"
 #include "xcollie_helper.h"
 
 #undef LOG_TAG
@@ -46,31 +47,58 @@ std::mutex g_callbackMutex;
 
 void SoftBusAdapterOnBind(int32_t socket, PeerSocketInfo info)
 {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    ENSURE_OR_RETURN(g_callback != nullptr);
     std::string networkId(info.networkId ? info.networkId : "");
-    g_callback->HandleBind(socket, networkId);
+
+    std::shared_ptr<ISoftBusSocketCallback> callback;
+    {
+        std::lock_guard<std::mutex> lock(g_callbackMutex);
+        callback = g_callback;
+    }
+    ENSURE_OR_RETURN(callback != nullptr);
+
+    TaskRunnerManager::GetInstance().PostTaskOnResident(
+        [callback, socket, networkId]() { callback->HandleBind(socket, networkId); });
 }
 
 void SoftBusAdapterOnBytes(int32_t socket, const void *data, uint32_t dataLen)
 {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    ENSURE_OR_RETURN(g_callback != nullptr);
-    g_callback->HandleBytes(socket, data, dataLen);
+    std::vector<uint8_t> dataCopy(static_cast<const uint8_t *>(data), static_cast<const uint8_t *>(data) + dataLen);
+
+    std::shared_ptr<ISoftBusSocketCallback> callback;
+    {
+        std::lock_guard<std::mutex> lock(g_callbackMutex);
+        callback = g_callback;
+    }
+    ENSURE_OR_RETURN(callback != nullptr);
+
+    TaskRunnerManager::GetInstance().PostTaskOnResident(
+        [callback, socket, dataCopy]() { callback->HandleBytes(socket, dataCopy.data(), dataCopy.size()); });
 }
 
 void SoftBusAdapterOnShutdown(int32_t socket, ShutdownReason reason)
 {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    ENSURE_OR_RETURN(g_callback != nullptr);
-    g_callback->HandleShutdown(socket, static_cast<int32_t>(reason));
+    std::shared_ptr<ISoftBusSocketCallback> callback;
+    {
+        std::lock_guard<std::mutex> lock(g_callbackMutex);
+        callback = g_callback;
+    }
+    ENSURE_OR_RETURN(callback != nullptr);
+
+    TaskRunnerManager::GetInstance().PostTaskOnResident(
+        [callback, socket, reason]() { callback->HandleShutdown(socket, static_cast<int32_t>(reason)); });
 }
 
 void SoftBusAdapterOnError(int32_t socket, int32_t errorCode)
 {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    ENSURE_OR_RETURN(g_callback != nullptr);
-    g_callback->HandleError(socket, errorCode);
+    std::shared_ptr<ISoftBusSocketCallback> callback;
+    {
+        std::lock_guard<std::mutex> lock(g_callbackMutex);
+        callback = g_callback;
+    }
+    ENSURE_OR_RETURN(callback != nullptr);
+
+    TaskRunnerManager::GetInstance().PostTaskOnResident(
+        [callback, socket, errorCode]() { callback->HandleError(socket, errorCode); });
 }
 
 bool SoftBusAdapterOnNegotiate(int32_t socket, PeerSocketInfo info)
@@ -89,7 +117,6 @@ void SoftBusAdapterImpl::RegisterCallback(std::shared_ptr<ISoftBusSocketCallback
 {
     std::lock_guard<std::mutex> lock(g_callbackMutex);
     g_callback = callback;
-    callback_ = callback;
 }
 
 std::optional<SocketId> SoftBusAdapterImpl::CreateServerSocket()

@@ -41,6 +41,11 @@ using namespace testing::ext;
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+namespace {
+constexpr int32_t INT32_100 = 100;
+constexpr int32_t INT32_999 = 999;
+constexpr int32_t INT32_99999 = 99999;
+} // namespace
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
@@ -151,7 +156,7 @@ protected:
         return mockChannel;
     }
 
-    int32_t activeUserId_ { 100 };
+    int32_t activeUserId_ { INT32_100 };
     uint64_t nextSubscriptionId_ { 1 };
     NiceMock<MockMiscManager> miscManager_;
     NiceMock<MockUserIdManager> userIdManager_;
@@ -188,9 +193,9 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedSta
     (void)subscription;
 
     auto physicalStatus = MakePhysicalStatus("device-1", ChannelId::SOFTBUS, "deviceName");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSyncInProgress = true;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
 
@@ -222,10 +227,10 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedSta
 HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncFailsWhenRequestCreationFails, TestSize.Level0)
 {
     auto physicalStatus = MakePhysicalStatus("device-sync-fail-factory", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = false;
     entry.isSyncInProgress = false;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     bool notified = false;
     auto subscription = manager_->SubscribeDeviceStatus([&](const std::vector<DeviceStatus> &) { notified = true; });
@@ -244,10 +249,10 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncFailsWhenRequestCreationFails
 HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncFailsWhenRequestStartFails, TestSize.Level0)
 {
     auto physicalStatus = MakePhysicalStatus("device-sync-fail-start", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = false;
     entry.isSyncInProgress = false;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     bool notified = false;
     auto subscription = manager_->SubscribeDeviceStatus([&](const std::vector<DeviceStatus> &) { notified = true; });
@@ -272,9 +277,9 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncFailsWhenRequestStartFails, T
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResultFailureMarksEntryAndSkipsNotification, TestSize.Level0)
 {
     auto physicalStatus = MakePhysicalStatus("device-2", ChannelId::SOFTBUS, "deviceName");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSyncInProgress = true;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
 
@@ -369,10 +374,10 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallba
     localStatusManager_->profile_.capabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-sync", ChannelId::SOFTBUS, "DeviceSync");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = false;
     entry.isSyncInProgress = false;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
 
@@ -407,7 +412,7 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallba
     manager_->HandleSyncResult(deviceKey, SUCCESS, syncStatus);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
-    auto storedEntry = manager_->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
+    const auto &storedEntry = manager_->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
     EXPECT_TRUE(storedEntry.isSynced);
     EXPECT_FALSE(storedEntry.isSyncInProgress);
     EXPECT_EQ("remote-user", storedEntry.deviceUserName);
@@ -417,9 +422,9 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallba
 HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_WrongUserId, TestSize.Level0)
 {
     auto physicalStatus = MakePhysicalStatus("device-wrong-user", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = true;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     DeviceKey wrongUserKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
     wrongUserKey.deviceUserId = activeUserId_ + 1;
@@ -431,9 +436,9 @@ HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_WrongUserId, TestSize.Level0)
 HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_NotSynced, TestSize.Level0)
 {
     auto physicalStatus = MakePhysicalStatus("device-not-synced", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = false;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
     auto result = manager_->GetDeviceStatus(deviceKey);
@@ -443,8 +448,8 @@ HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_NotSynced, TestSize.Level0)
 HWTEST_F(DeviceStatusManagerTest, GetChannelIdByDeviceKey_WrongUserId, TestSize.Level0)
 {
     auto physicalStatus = MakePhysicalStatus("device-channel-wrong-user", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    DeviceStatusEntry entry(physicalStatus, []() {});
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     DeviceKey wrongUserKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
     wrongUserKey.deviceUserId = activeUserId_ + 1;
@@ -467,9 +472,9 @@ HWTEST_F(DeviceStatusManagerTest, GetChannelIdByDeviceKey_DeviceNotFound, TestSi
 HWTEST_F(DeviceStatusManagerTest, GetChannelIdByDeviceKey_InvalidChannelId, TestSize.Level0)
 {
     auto physicalStatus = MakePhysicalStatus("device-invalid-channel", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.channelId = ChannelId::INVALID;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
     auto result = manager_->GetChannelIdByDeviceKey(deviceKey);
@@ -479,10 +484,10 @@ HWTEST_F(DeviceStatusManagerTest, GetChannelIdByDeviceKey_InvalidChannelId, Test
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_WrongUserId, TestSize.Level0)
 {
     auto physicalStatus = MakePhysicalStatus("device-sync-wrong-user", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSyncInProgress = true;
     ASSERT_NE(manager_, nullptr);
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     DeviceKey wrongUserKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
     wrongUserKey.deviceUserId = activeUserId_ + 1;
@@ -519,14 +524,14 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocol, TestSize.Le
     localStatusManager_->profile_.capabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-no-protocol", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSyncInProgress = true;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
 
     SyncDeviceStatus syncStatus;
-    syncStatus.protocolIdList = { static_cast<ProtocolId>(999) };
+    syncStatus.protocolIdList = { static_cast<ProtocolId>(INT32_999) };
     syncStatus.capabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -545,9 +550,9 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonCapabilities, TestSiz
     localStatusManager_->profile_.capabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-no-cap", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSyncInProgress = true;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
 
@@ -576,9 +581,9 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSync_DeviceNotInMap, TestSize.Lev
 HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSync_AlreadyInProgress, TestSize.Level0)
 {
     auto physicalStatus = MakePhysicalStatus("device-already-syncing", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(physicalStatus);
+    DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSyncInProgress = true;
-    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     EXPECT_CALL(requestFactory_, CreateHostSyncDeviceStatusRequest(_, _, _, _)).Times(0);
     EXPECT_CALL(requestManager_, Start).Times(0);
@@ -588,7 +593,7 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSync_AlreadyInProgress, TestSize.
 
 HWTEST_F(DeviceStatusManagerTest, UnsubscribeDeviceStatus_NotFound, TestSize.Level0)
 {
-    bool result = manager_->UnsubscribeDeviceStatus(99999);
+    bool result = manager_->UnsubscribeDeviceStatus(INT32_99999);
     EXPECT_FALSE(result);
 }
 
@@ -638,7 +643,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleUserIdChange_DifferentUserId, TestSize.L
 {
     EXPECT_CALL(*mockChannel_, GetAllPhysicalDevices()).WillOnce(Return(std::vector<PhysicalDeviceStatus> {}));
 
-    int32_t newUserId = activeUserId_ + 100;
+    int32_t newUserId = activeUserId_ + INT32_100;
     manager_->HandleUserIdChange(newUserId);
     EXPECT_EQ(newUserId, manager_->activeUserId_);
 }
@@ -661,9 +666,9 @@ HWTEST_F(DeviceStatusManagerTest, RefreshDeviceList_WithResync, TestSize.Level0)
     manager_->currentMode_ = SUBSCRIBE_MODE_MANAGE;
 
     auto statusA = MakePhysicalStatus("device-resync-A", ChannelId::SOFTBUS, "DeviceA");
-    DeviceStatusEntry entryA(statusA);
+    DeviceStatusEntry entryA(statusA, []() {});
     entryA.isSynced = true;
-    manager_->deviceStatusMap_.emplace(statusA.physicalDeviceKey, entryA);
+    manager_->deviceStatusMap_.emplace(statusA.physicalDeviceKey, std::move(entryA));
 
     EXPECT_CALL(*mockChannel_, GetAllPhysicalDevices()).WillOnce(Return(std::vector<PhysicalDeviceStatus> { statusA }));
 
@@ -728,23 +733,23 @@ HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_MultipleSynced, TestSize.Le
     localStatusManager_->profile_.capabilities = { Capability::TOKEN_AUTH };
 
     auto status1 = MakePhysicalStatus("device-all-1", ChannelId::SOFTBUS, "Device1");
-    DeviceStatusEntry entry1(status1);
+    DeviceStatusEntry entry1(status1, []() {});
     entry1.isSynced = true;
     entry1.protocolId = ProtocolId::VERSION_1;
     entry1.capabilities = { Capability::TOKEN_AUTH };
-    manager_->deviceStatusMap_.emplace(status1.physicalDeviceKey, entry1);
+    manager_->deviceStatusMap_.emplace(status1.physicalDeviceKey, std::move(entry1));
 
     auto status2 = MakePhysicalStatus("device-all-2", ChannelId::SOFTBUS, "Device2");
-    DeviceStatusEntry entry2(status2);
+    DeviceStatusEntry entry2(status2, []() {});
     entry2.isSynced = true;
     entry2.protocolId = ProtocolId::VERSION_1;
     entry2.capabilities = { Capability::TOKEN_AUTH };
-    manager_->deviceStatusMap_.emplace(status2.physicalDeviceKey, entry2);
+    manager_->deviceStatusMap_.emplace(status2.physicalDeviceKey, std::move(entry2));
 
     auto status3 = MakePhysicalStatus("device-all-3", ChannelId::SOFTBUS, "Device3");
-    DeviceStatusEntry entry3(status3);
+    DeviceStatusEntry entry3(status3, []() {});
     entry3.isSynced = false;
-    manager_->deviceStatusMap_.emplace(status3.physicalDeviceKey, entry3);
+    manager_->deviceStatusMap_.emplace(status3.physicalDeviceKey, std::move(entry3));
 
     auto allDevices = manager_->GetAllDeviceStatus();
     EXPECT_EQ(2u, allDevices.size());
@@ -770,11 +775,11 @@ HWTEST_F(DeviceStatusManagerTest, NotifySubscribers_WithNullCallback, TestSize.L
     manager_->subscriptions_.push_back({ 1, std::nullopt, nullptr });
 
     auto status = MakePhysicalStatus("device-notify", ChannelId::SOFTBUS, "Device");
-    DeviceStatusEntry entry(status);
+    DeviceStatusEntry entry(status, []() {});
     entry.isSynced = true;
     entry.protocolId = ProtocolId::VERSION_1;
     entry.capabilities = { Capability::TOKEN_AUTH };
-    manager_->deviceStatusMap_.emplace(status.physicalDeviceKey, entry);
+    manager_->deviceStatusMap_.emplace(status.physicalDeviceKey, std::move(entry));
 
     manager_->NotifySubscribers();
     TaskRunnerManager::GetInstance().ExecuteAll();

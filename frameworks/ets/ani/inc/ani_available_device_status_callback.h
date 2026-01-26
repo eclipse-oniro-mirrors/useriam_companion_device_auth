@@ -33,8 +33,8 @@ namespace CompanionDeviceAuth {
 using AvailableDeviceStatusCallback =
     ::taihe::callback<void(::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>;
 using AvailableDeviceStatusCallbackPtr = std::shared_ptr<taihe::optional<AvailableDeviceStatusCallback>>;
-class AniAvailableDeviceStatusCallback : public IAvailableDeviceStatusCallback,
-                                         public std::enable_shared_from_this<AniAvailableDeviceStatusCallback>,
+class AniAvailableDeviceStatusCallback : public std::enable_shared_from_this<AniAvailableDeviceStatusCallback>,
+                                         public IAvailableDeviceStatusCallback,
                                          public NoCopyable {
 public:
     explicit AniAvailableDeviceStatusCallback();

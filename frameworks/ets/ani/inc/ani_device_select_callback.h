@@ -32,8 +32,8 @@ namespace CompanionDeviceAuth {
 using DeviceSelectCallback =
     ::taihe::callback<::ohos::userIAM::companionDeviceAuth::DeviceSelectResult(int32_t selectPurpose)>;
 using DeviceSelectCallbackPtr = std::shared_ptr<taihe::optional<DeviceSelectCallback>>;
-class AniDeviceSelectCallback : public IDeviceSelectCallback,
-                                public std::enable_shared_from_this<AniDeviceSelectCallback>,
+class AniDeviceSelectCallback : public std::enable_shared_from_this<AniDeviceSelectCallback>,
+                                public IDeviceSelectCallback,
                                 public NoCopyable {
 public:
     explicit AniDeviceSelectCallback();
