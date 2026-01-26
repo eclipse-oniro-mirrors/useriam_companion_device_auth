@@ -481,6 +481,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_WrongUserId, TestSize.Level0)
     auto physicalStatus = MakePhysicalStatus("device-sync-wrong-user", ChannelId::SOFTBUS, "Device");
     DeviceStatusEntry entry(physicalStatus);
     entry.isSyncInProgress = true;
+    ASSERT_NE(manager_, nullptr);
     manager_->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, entry);
 
     DeviceKey wrongUserKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
@@ -765,6 +766,7 @@ HWTEST_F(DeviceStatusManagerTest, SubscribeDeviceStatus_SpecificDevice_RefreshTr
 
 HWTEST_F(DeviceStatusManagerTest, NotifySubscribers_WithNullCallback, TestSize.Level0)
 {
+    ASSERT_NE(manager_, nullptr);
     manager_->subscriptions_.push_back({ 1, std::nullopt, nullptr });
 
     auto status = MakePhysicalStatus("device-notify", ChannelId::SOFTBUS, "Device");

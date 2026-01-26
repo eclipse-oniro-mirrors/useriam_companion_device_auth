@@ -1025,6 +1025,7 @@ HWTEST_F(CompanionDeviceAuthClientImplTest, SubscribeCompanionDeviceAuthSaStatus
 {
     // Arrange
     SetUpFakeProxyDefaults();
+    ASSERT_NE(fakeProxy_, nullptr);
     CompanionDeviceAuthClientImpl client;
     client.SetProxy(sptr<ICompanionDeviceAuth>(fakeProxy_));
 

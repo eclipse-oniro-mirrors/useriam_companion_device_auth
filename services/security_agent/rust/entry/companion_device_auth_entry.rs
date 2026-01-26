@@ -249,7 +249,7 @@ pub fn handle_rust_env_init() -> Result<(), ErrorCode> {
     MiscManagerRegistry::set(Box::new(crate::impls::default_misc_manager::DefaultMiscManager::new()));
 
     CompanionDbManagerRegistry::set(Box::new(
-        crate::impls::default_companion_db_manager::DefaultCompaniomDbManager::new(),
+        crate::impls::default_companion_db_manager::DefaultCompanionDbManager::new(),
     ));
 
     RequestManagerRegistry::set(Box::new(

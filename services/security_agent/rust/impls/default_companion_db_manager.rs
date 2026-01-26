@@ -39,13 +39,13 @@ pub const COMPANION_DEVICE_TOKEN: &str = "host_device_token";
 pub const MAX_DEVICE_NUM: usize = 5;
 pub const MAX_DEVICE_NUM_PER_USER: usize = 1;
 
-pub struct DefaultCompaniomDbManager {
+pub struct DefaultCompanionDbManager {
     pub host_device_infos: Vec<HostDeviceInfo>,
 }
 
-impl DefaultCompaniomDbManager {
+impl DefaultCompanionDbManager {
     pub fn new() -> Self {
-        DefaultCompaniomDbManager { host_device_infos: Vec::with_capacity(MAX_DEVICE_NUM) }
+        DefaultCompanionDbManager { host_device_infos: Vec::with_capacity(MAX_DEVICE_NUM) }
     }
 
     fn get_index_by_binding_id(&self, binding_id: i32) -> Option<usize> {
@@ -228,7 +228,7 @@ impl DefaultCompaniomDbManager {
     }
 }
 
-impl CompanionDbManager for DefaultCompaniomDbManager {
+impl CompanionDbManager for DefaultCompanionDbManager {
     fn add_device(&mut self, device_info: &HostDeviceInfo, sk_info: &HostDeviceSk) -> Result<(), ErrorCode> {
         log_i!("add_device start");
         if device_info.device_key.device_id.is_empty() {

@@ -227,12 +227,16 @@ HWTEST_F(InboundRequestTest, HandleConnectionStatus_001, TestSize.Level0)
 {
     CreateDefaultRequest();
 
+    ASSERT_NE(request_, nullptr);
+
     request_->HandleConnectionStatus(connectionName_, ConnectionStatus::ESTABLISHING, "establishing");
 }
 
 HWTEST_F(InboundRequestTest, HandleConnectionStatus_002, TestSize.Level0)
 {
     CreateDefaultRequest();
+
+    ASSERT_NE(request_, nullptr);
 
     request_->HandleConnectionStatus(connectionName_, ConnectionStatus::CONNECTED, "connected");
 }
@@ -249,6 +253,8 @@ HWTEST_F(InboundRequestTest, HandleConnectionStatus_003, TestSize.Level0)
 HWTEST_F(InboundRequestTest, HandleConnectionStatus_004, TestSize.Level0)
 {
     CreateDefaultRequest();
+
+    ASSERT_NE(request_, nullptr);
 
     request_->HandleConnectionStatus(connectionName_, static_cast<ConnectionStatus>(999), "unknown");
 
