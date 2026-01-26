@@ -14,27 +14,23 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, HostProcessObtainTokenInputFfi, HostProcessObtainTokenOutputFfi,
-    HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
-};
+use crate::entry::companion_device_auth_ffi::{DataArray1024Ffi, HostProcessPreObtainTokenInputFfi};
 use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
-use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest, SecIssueToken};
+use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};
 use crate::request::jobs::token_helper;
 use crate::request::jobs::token_helper::DeviceTokenInfo;
-use crate::request::token_obtain::token_obtain_message::{FwkObtainTokenRequest, SecPreObtainTokenRequest};
-use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
+use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenRequest;
+use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-use crate::traits::misc_manager::MiscManagerRegistry;
+
 use crate::traits::time_keeper::TimeKeeperRegistry;
-use crate::utils::message_codec::{MessageCodec, MessageSignParam};
+
 use crate::utils::{Attribute, AttributeKey};
-use crate::vec;
-use crate::{log_e, log_i, p, Box, Vec};
+
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TokenObtainParam {
@@ -65,7 +61,7 @@ impl HostDeviceObtainTokenRequest {
         Ok(HostDeviceObtainTokenRequest {
             obtain_param: TokenObtainParam { request_id: input.request_id, template_id: input.template_id },
             token_infos: Vec::new(),
-            salt: salt,
+            salt,
             challenge: u64::from_ne_bytes(challenge),
         })
     }

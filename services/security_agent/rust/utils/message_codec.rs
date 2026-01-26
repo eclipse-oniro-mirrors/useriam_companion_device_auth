@@ -14,9 +14,9 @@
  */
 
 use crate::common::constants::ErrorCode;
-use crate::common::types::Udid;
+
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
-use crate::traits::misc_manager::MiscManagerRegistry;
+
 use crate::utils::attribute::{Attribute, AttributeKey};
 use crate::Vec;
 use crate::{log_e, p};
@@ -82,7 +82,7 @@ impl MessageCodec {
                     .get_u8_slice(AttributeKey::AttrSignature)
                     .map_err(|e| p!(e))?;
                 CryptoEngineRegistry::get()
-                    .ed25519_verify(&pub_key, data_bytes, signature_bytes)
+                    .ed25519_verify(pub_key, data_bytes, signature_bytes)
                     .map_err(|e| p!(e))?;
             },
         }

@@ -14,28 +14,24 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionBeginAddHostBindingInputFfi, CompanionBeginAddHostBindingOutputFfi, CompanionEndAddHostBindingInputFfi,
-    CompanionEndAddHostBindingOutputFfi, CompanionInitKeyNegotiationInputFfi, CompanionInitKeyNegotiationOutputFfi,
-    CompanionProcessCheckInputFfi, DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi, PersistedHostBindingStatusFfi,
+    CompanionInitKeyNegotiationInputFfi, DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi,
+    PersistedHostBindingStatusFfi,
 };
-use crate::impls::default_companion_db_manager::CURRENT_VERSION;
+
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::enroll::enroll_message::{
     SecBindingReply, SecBindingReplyInfo, SecBindingRequest, SecKeyNegoReply, SecKeyNegoRequest,
 };
-use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};
+use crate::request::jobs::common_message::SecIssueToken;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::request_manager::{Request, RequestManagerRegistry, RequestParam};
-use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::crypto_engine::KeyPair;
+use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
 use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, HostTokenInfo, UserInfo};
-use crate::traits::misc_manager::MiscManagerRegistry;
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct KeyNegoParam {
@@ -82,8 +78,8 @@ impl CompanionDeviceEnrollRequest {
         Ok(Self {
             key_nego_param: KeyNegoParam {
                 request_id: input.request_id,
-                companion_device_key: companion_device_key,
-                host_device_key: host_device_key,
+                companion_device_key,
+                host_device_key,
                 algorithm_list: Vec::from([AlgoType::X25519 as u16]),
                 challenge: u64::from_ne_bytes(challenge),
                 key_pair: None,
@@ -228,7 +224,7 @@ impl CompanionDeviceEnrollRequest {
         let (encrypt_data, tag, iv) =
             message_crypto::encrypt_sec_message(&reply_info.encode()?, &self.session_key).map_err(|e| p!(e))?;
 
-        let binding_reply = SecBindingReply { tag: tag, iv: iv, encrypt_data: encrypt_data };
+        let binding_reply = SecBindingReply { tag, iv, encrypt_data };
         let output = binding_reply.encode(DeviceType::None)?;
         Ok(output)
     }
@@ -307,7 +303,7 @@ impl Request for CompanionDeviceEnrollRequest {
         ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
         ffi_output.binding_id = binding_id;
         ffi_output.binding_status = PersistedHostBindingStatusFfi {
-            binding_id: binding_id,
+            binding_id,
             companion_user_id: device_info.user_info.user_id,
             host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
             is_token_valid: false,

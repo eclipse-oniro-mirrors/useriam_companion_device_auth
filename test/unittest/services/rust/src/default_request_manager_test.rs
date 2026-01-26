@@ -15,8 +15,8 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionProcessCheckInputFfi, DataArray1024Ffi, DataArray32Ffi, Uint16Array64Ffi, SALT_LEN_FFI,
-    HostGetInitKeyNegotiationInputFfi,
+    CompanionProcessCheckInputFfi, DataArray1024Ffi, DataArray32Ffi, HostGetInitKeyNegotiationInputFfi,
+    Uint16Array64Ffi, SALT_LEN_FFI,
 };
 use crate::impls::default_request_manager::DefaultRequestManager;
 use crate::log_i;

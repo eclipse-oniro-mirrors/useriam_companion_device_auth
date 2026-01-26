@@ -14,27 +14,23 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::entry::companion_device_auth_ffi::PROPERTY_MODE_UNFREEZE;
-use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, HostBeginIssueTokenInputFfi, HostBeginIssueTokenOutputFfi, HostEndIssueTokenInputFfi,
-    HostEndIssueTokenOutputFfi, HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi,
-};
+use crate::entry::companion_device_auth_ffi::{DataArray1024Ffi, HostPreIssueTokenInputFfi};
 use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
-use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest, SecIssueToken};
+use crate::request::jobs::common_message::{SecCommonReply, SecIssueToken};
 use crate::request::jobs::token_helper;
 use crate::request::jobs::token_helper::DeviceTokenInfo;
 use crate::request::token_issue::token_issue_message::{FwkIssueTokenRequest, SecIssueTokenReply, SecPreIssueRequest};
-use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
+use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-use crate::traits::misc_manager::MiscManagerRegistry;
+
 use crate::traits::time_keeper::TimeKeeperRegistry;
-use crate::utils::message_codec::{MessageCodec, MessageSignParam};
+
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TokenIssueParam {
@@ -64,7 +60,7 @@ impl HostDeviceIssueTokenRequest {
                 template_id: issue_token_param.template_id,
             },
             token_infos: Vec::new(),
-            salt: salt,
+            salt,
             atl: AuthTrustLevel::Atl0,
         })
     }

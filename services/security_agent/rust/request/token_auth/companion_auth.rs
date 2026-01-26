@@ -14,20 +14,17 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::entry::companion_device_auth_ffi::{
-    CompanionProcessTokenAuthInputFfi, CompanionProcessTokenAuthOutputFfi, DataArray1024Ffi,
-};
+use crate::entry::companion_device_auth_ffi::{CompanionProcessTokenAuthInputFfi, DataArray1024Ffi};
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::auth_message::SecAuthReply;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::HostTokenInfo;
+use crate::traits::request_manager::{Request, RequestParam};
+
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionTokenAuthRequest {

@@ -25,8 +25,8 @@ use crate::request::token_issue::token_issue_message::SecIssueTokenReply;
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
-use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
@@ -113,7 +113,7 @@ fn host_issue_token_request_prepare_test_wrong_input_type() {
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let wrong_input =
-        HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1 , sec_message: DataArray1024Ffi::default() };
+        HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostBeginIssueTokenOutputFfi::default();
     let param = RequestParam::HostIssueTokenBegin(&wrong_input, &mut output);
@@ -306,7 +306,7 @@ fn host_issue_token_request_begin_test_wrong_input_type() {
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let wrong_input =
-        HostEndIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1 , sec_message: DataArray1024Ffi::default() };
+        HostEndIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostEndIssueTokenOutputFfi::default();
     let param = RequestParam::HostIssueTokenEnd(&wrong_input, &mut output);
@@ -329,7 +329,7 @@ fn host_issue_token_request_begin_test_decode_sec_message_fail() {
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let begin_input =
-        HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1 , sec_message: DataArray1024Ffi::default() };
+        HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostBeginIssueTokenOutputFfi::default();
     let param = RequestParam::HostIssueTokenBegin(&begin_input, &mut output);
@@ -652,7 +652,7 @@ fn host_issue_token_request_end_test_wrong_input_type() {
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
 
     let wrong_input =
-        HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1 , sec_message: DataArray1024Ffi::default() };
+        HostBeginIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostBeginIssueTokenOutputFfi::default();
     let param = RequestParam::HostIssueTokenBegin(&wrong_input, &mut output);
@@ -680,7 +680,7 @@ fn host_issue_token_request_end_test_decode_sec_message_fail() {
     });
 
     let end_input =
-        HostEndIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1 , sec_message: DataArray1024Ffi::default() };
+        HostEndIssueTokenInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
 
     let mut output = HostEndIssueTokenOutputFfi::default();
     let param = RequestParam::HostIssueTokenEnd(&end_input, &mut output);

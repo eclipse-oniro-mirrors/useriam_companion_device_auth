@@ -14,9 +14,7 @@
  */
 
 use crate::common::constants::*;
-use crate::traits::request_manager::{
-    DummyRequestManager, Request, RequestManager, RequestParam,
-};
+use crate::traits::request_manager::{DummyRequestManager, Request, RequestManager, RequestParam};
 use crate::ut_registry_guard;
 use crate::{log_e, log_i};
 
@@ -82,10 +80,7 @@ fn dummy_host_request_manager_test() {
     log_i!("dummy_host_request_manager_test start");
 
     let mut dummy_host_request_manager = DummyRequestManager;
-    assert_eq!(
-        dummy_host_request_manager.add_request(Box::new(DummyHostRequest)),
-        Err(ErrorCode::GeneralError)
-    );
+    assert_eq!(dummy_host_request_manager.add_request(Box::new(DummyHostRequest)), Err(ErrorCode::GeneralError));
     assert!(dummy_host_request_manager.remove_request(0).is_err());
     assert!(dummy_host_request_manager.get_request(0).is_err());
 }

@@ -47,51 +47,51 @@ impl Parcel {
         self.read_pos < self.data.len()
     }
 
-    pub fn write_u8(&mut self, value: u8) -> () {
+    pub fn write_u8(&mut self, value: u8) {
         self.write_bytes(&value.to_ne_bytes());
     }
 
-    pub fn write_u16(&mut self, value: u16) -> () {
+    pub fn write_u16(&mut self, value: u16) {
         self.write_bytes(&value.to_ne_bytes());
     }
 
-    pub fn write_u16_le(&mut self, value: u16) -> () {
+    pub fn write_u16_le(&mut self, value: u16) {
         self.write_bytes(&value.to_le_bytes());
     }
 
-    pub fn write_u32(&mut self, value: u32) -> () {
+    pub fn write_u32(&mut self, value: u32) {
         self.write_bytes(&value.to_ne_bytes());
     }
 
-    pub fn write_u32_le(&mut self, value: u32) -> () {
+    pub fn write_u32_le(&mut self, value: u32) {
         self.write_bytes(&value.to_le_bytes());
     }
 
-    pub fn write_u64(&mut self, value: u64) -> () {
+    pub fn write_u64(&mut self, value: u64) {
         self.write_bytes(&value.to_ne_bytes());
     }
 
-    pub fn write_i8(&mut self, value: i8) -> () {
+    pub fn write_i8(&mut self, value: i8) {
         self.write_bytes(&value.to_ne_bytes());
     }
 
-    pub fn write_i32(&mut self, value: i32) -> () {
+    pub fn write_i32(&mut self, value: i32) {
         self.write_bytes(&value.to_ne_bytes());
     }
 
-    pub fn write_i32_le(&mut self, value: i32) -> () {
+    pub fn write_i32_le(&mut self, value: i32) {
         self.write_bytes(&value.to_le_bytes());
     }
 
-    pub fn write_i64(&mut self, value: i64) -> () {
+    pub fn write_i64(&mut self, value: i64) {
         self.write_bytes(&value.to_ne_bytes());
     }
 
-    pub fn write_bytes(&mut self, value: &[u8]) -> () {
+    pub fn write_bytes(&mut self, value: &[u8]) {
         self.data.extend_from_slice(value);
     }
 
-    pub fn write_string(&mut self, value: &str) -> () {
+    pub fn write_string(&mut self, value: &str) {
         let bytes = value.as_bytes();
         self.write_u32(bytes.len() as u32);
         self.write_bytes(bytes);

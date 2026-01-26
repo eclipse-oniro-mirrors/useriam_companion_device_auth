@@ -21,9 +21,9 @@ use crate::entry::companion_device_auth_ffi::{
 use crate::log_i;
 use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::HostDeviceSk;
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
 use std::boxed::Box;
 

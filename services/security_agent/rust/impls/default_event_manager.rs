@@ -68,3 +68,9 @@ impl EventManager for DefaultEventManager {
         events
     }
 }
+
+impl Default for DefaultEventManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}

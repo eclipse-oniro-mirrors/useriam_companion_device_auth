@@ -14,8 +14,6 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::jobs::host_db_helper;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::{
     CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo,
@@ -23,14 +21,10 @@ use crate::traits::db_manager::{
 };
 use crate::traits::host_db_manager::{CompanionDeviceFilter, HostDbManager};
 use crate::traits::storage_io::StorageIoRegistry;
-use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::parcel::Parcel;
-use crate::vec;
-use crate::String;
-use crate::{log_e, log_i, p, singleton_registry, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 #[cfg(not(any(test, feature = "test-utils")))]
-use alloc::format;
-use core::mem;
+use alloc::{format, vec};
 #[cfg(any(test, feature = "test-utils"))]
 use std::format;
 
@@ -62,6 +56,7 @@ impl DefaultHostDbManager {
             .position(|device_info| template_id == device_info.template_id)
     }
 
+    #[allow(dead_code)]
     fn find_device_index_by_filter(&self, filter: &CompanionDeviceFilter) -> Option<usize> {
         self.companion_device_infos.iter().position(|device| filter(device))
     }
@@ -191,7 +186,7 @@ impl DefaultHostDbManager {
 
     fn serialize_device_capability_info(
         &self,
-        capability_infos: &Vec<CompanionDeviceCapability>,
+        capability_infos: &[CompanionDeviceCapability],
         parcel: &mut Parcel,
     ) -> Result<(), ErrorCode> {
         parcel.write_i32(CURRENT_VERSION);
@@ -232,7 +227,7 @@ impl DefaultHostDbManager {
         Ok(capability_infos)
     }
 
-    fn serialize_device_sk(&self, sk_infos: &Vec<CompanionDeviceSk>, parcel: &mut Parcel) -> Result<(), ErrorCode> {
+    fn serialize_device_sk(&self, sk_infos: &[CompanionDeviceSk], parcel: &mut Parcel) -> Result<(), ErrorCode> {
         parcel.write_i32(CURRENT_VERSION);
         parcel.write_i32(sk_infos.len() as i32);
 
@@ -284,8 +279,8 @@ impl DefaultHostDbManager {
         &self,
         template_id: u64,
         base_info: &CompanionDeviceBaseInfo,
-        capability_info: &Vec<CompanionDeviceCapability>,
-        sk_info: &Vec<CompanionDeviceSk>,
+        capability_info: &[CompanionDeviceCapability],
+        sk_info: &[CompanionDeviceSk],
     ) -> Result<(), ErrorCode> {
         self.write_device_base_info(template_id, base_info)?;
         self.write_device_capability_info(template_id, capability_info)?;
@@ -304,8 +299,8 @@ impl HostDbManager for DefaultHostDbManager {
         &mut self,
         device_info: &CompanionDeviceInfo,
         base_info: &CompanionDeviceBaseInfo,
-        capability_info: &Vec<CompanionDeviceCapability>,
-        sk_info: &Vec<CompanionDeviceSk>,
+        capability_info: &[CompanionDeviceCapability],
+        sk_info: &[CompanionDeviceSk],
     ) -> Result<(), ErrorCode> {
         log_i!("add_device start");
         if device_info.device_key.device_id.is_empty() {
@@ -547,7 +542,7 @@ impl HostDbManager for DefaultHostDbManager {
     fn write_device_capability_info(
         &self,
         template_id: u64,
-        capability_info: &Vec<CompanionDeviceCapability>,
+        capability_info: &[CompanionDeviceCapability],
     ) -> Result<(), ErrorCode> {
         log_i!("write_device_capability_info start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_CAPABILTY_INFO);
@@ -579,7 +574,7 @@ impl HostDbManager for DefaultHostDbManager {
         self.deserialize_device_sk(&mut parcel)
     }
 
-    fn write_device_sk(&self, template_id: u64, sk_info: &Vec<CompanionDeviceSk>) -> Result<(), ErrorCode> {
+    fn write_device_sk(&self, template_id: u64, sk_info: &[CompanionDeviceSk]) -> Result<(), ErrorCode> {
         log_i!("write_device_sk start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_SK);
         let mut parcel = Parcel::new();
@@ -595,5 +590,11 @@ impl HostDbManager for DefaultHostDbManager {
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_SK);
         StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))?;
         Ok(())
+    }
+}
+
+impl Default for DefaultHostDbManager {
+    fn default() -> Self {
+        Self::new()
     }
 }

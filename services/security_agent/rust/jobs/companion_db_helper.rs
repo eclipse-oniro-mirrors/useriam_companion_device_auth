@@ -14,12 +14,11 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, HostDeviceFilter};
+use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::{HostDeviceInfo, HostDeviceSk};
 use crate::traits::time_keeper::TimeKeeperRegistry;
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, p, Vec};
 
 pub fn add_host_device(device_info: &HostDeviceInfo, sk_info: &HostDeviceSk) -> Result<(), ErrorCode> {
     if let Ok(info) = CompanionDbManagerRegistry::get()
@@ -42,5 +41,5 @@ pub fn get_session_key(binding_id: i32, salt: &[u8]) -> Result<Vec<u8>, ErrorCod
     let sk = CompanionDbManagerRegistry::get_mut()
         .read_device_sk(binding_id)
         .map_err(|e| p!(e))?;
-    Ok(CryptoEngineRegistry::get().hkdf(&salt, &sk.sk).map_err(|e| p!(e))?)
+    CryptoEngineRegistry::get().hkdf(salt, &sk.sk).map_err(|e| p!(e))
 }

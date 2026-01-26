@@ -14,10 +14,8 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::traits::request_manager::{DynRequest, RequestManager};
-use crate::traits::db_manager::DeviceKey;
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, Box, Vec};
 
 const MAX_REQUEST_NUM: usize = 50;
 
@@ -60,7 +58,7 @@ impl RequestManager for DefaultRequestManager {
         Ok(self.requests.remove(pos))
     }
 
-    fn get_request<'a>(&'a mut self, request_id: i32) -> Result<&'a mut DynRequest, ErrorCode> {
+    fn get_request(&mut self, request_id: i32) -> Result<&mut DynRequest, ErrorCode> {
         log_i!("get_request start");
         for request in &mut self.requests {
             if request.get_request_id() == request_id {
@@ -68,5 +66,11 @@ impl RequestManager for DefaultRequestManager {
             }
         }
         Err(ErrorCode::NotFound)
+    }
+}
+
+impl Default for DefaultRequestManager {
+    fn default() -> Self {
+        Self::new()
     }
 }

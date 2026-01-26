@@ -992,8 +992,8 @@ impl crate::traits::host_db_manager::HostDbManager for MockHostDbManager {
         &mut self,
         _device_info: &crate::traits::db_manager::CompanionDeviceInfo,
         _base_info: &crate::traits::db_manager::CompanionDeviceBaseInfo,
-        _capability_info: &Vec<crate::traits::db_manager::CompanionDeviceCapability>,
-        _sk_info: &Vec<crate::traits::db_manager::CompanionDeviceSk>,
+        _capability_info: &[crate::traits::db_manager::CompanionDeviceCapability],
+        _sk_info: &[crate::traits::db_manager::CompanionDeviceSk],
     ) -> Result<(), ErrorCode> {
         self.add_device.call()
     }
@@ -1069,7 +1069,7 @@ impl crate::traits::host_db_manager::HostDbManager for MockHostDbManager {
     fn write_device_capability_info(
         &self,
         _template_id: u64,
-        _capability_info: &Vec<crate::traits::db_manager::CompanionDeviceCapability>,
+        _capability_info: &[crate::traits::db_manager::CompanionDeviceCapability],
     ) -> Result<(), ErrorCode> {
         self.write_device_capability_info.call()
     }
@@ -1085,7 +1085,7 @@ impl crate::traits::host_db_manager::HostDbManager for MockHostDbManager {
     fn write_device_sk(
         &self,
         _template_id: u64,
-        _sk_info: &Vec<crate::traits::db_manager::CompanionDeviceSk>,
+        _sk_info: &[crate::traits::db_manager::CompanionDeviceSk],
     ) -> Result<(), ErrorCode> {
         self.write_device_sk.call()
     }
@@ -1301,20 +1301,14 @@ impl MockRequestManager {
     }
 
     /// Set a specific request to be returned by get_request
-    pub fn set_get_request_return(
-        &mut self,
-        request: Option<Box<crate::traits::request_manager::DynRequest>>,
-    ) {
+    pub fn set_get_request_return(&mut self, request: Option<Box<crate::traits::request_manager::DynRequest>>) {
         *self.stored_request.borrow_mut() = request;
     }
 }
 
 #[cfg(any(test, feature = "test-utils"))]
 impl crate::traits::request_manager::RequestManager for MockRequestManager {
-    fn add_request(
-        &mut self,
-        _request: Box<crate::traits::request_manager::DynRequest>,
-    ) -> Result<(), ErrorCode> {
+    fn add_request(&mut self, _request: Box<crate::traits::request_manager::DynRequest>) -> Result<(), ErrorCode> {
         self.add_request.call()
     }
 
@@ -1325,22 +1319,19 @@ impl crate::traits::request_manager::RequestManager for MockRequestManager {
         self.remove_request.call()
     }
 
-    fn get_request<'a>(
-        &'a mut self,
-        _request_id: i32,
-    ) -> Result<&'a mut crate::traits::request_manager::DynRequest, ErrorCode> {
+    fn get_request(&mut self, _request_id: i32) -> Result<&mut crate::traits::request_manager::DynRequest, ErrorCode> {
         // Check if we should return error
         self.get_request_result.get()?;
 
         // Get raw pointer to stored request
         // SAFETY: In test context, we assume single-threaded usage and proper lifecycle.
         // The Mock object outlives the returned reference.
-        let raw_ptr =
-            self.stored_request
-                .borrow()
-                .as_ref()
-                .map(|r| r.as_ref() as *const crate::traits::request_manager::DynRequest)
-                .ok_or(ErrorCode::NotFound)? as *mut crate::traits::request_manager::DynRequest;
+        let raw_ptr = self
+            .stored_request
+            .borrow()
+            .as_ref()
+            .map(|r| r.as_ref() as *const crate::traits::request_manager::DynRequest)
+            .ok_or(ErrorCode::NotFound)? as *mut crate::traits::request_manager::DynRequest;
 
         unsafe { Ok(&mut *raw_ptr) }
     }

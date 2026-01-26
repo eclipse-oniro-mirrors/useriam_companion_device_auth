@@ -16,14 +16,13 @@
 extern crate alloc;
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::entry::companion_device_auth_ffi::*;
 use crate::traits::db_manager::DeviceKey;
 use crate::traits::event_manager::*;
 use crate::CString;
 use crate::String;
 use crate::Vec;
-use crate::{log_e, p, Box};
+use crate::{log_e, p};
 use core::convert::TryFrom;
 
 // Common

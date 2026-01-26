@@ -26,8 +26,8 @@ use crate::request::enroll::host_enroll::{HostDeviceEnrollRequest, KeyNegotialPa
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk, DeviceKey};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
-use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};

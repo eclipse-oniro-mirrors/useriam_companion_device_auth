@@ -16,7 +16,7 @@
 use crate::common::constants::ErrorCode;
 use crate::ensure_or_return_val;
 use crate::entry::companion_device_auth_entry::{handle_rust_command, handle_rust_env_init, handle_rust_env_uninit};
-use crate::{log_e, CString, Vec};
+use crate::log_e;
 use core::mem;
 use core::slice;
 
@@ -197,18 +197,13 @@ impl Default for EventArrayFfi {
 #[repr(C)]
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+#[derive(Default)]
 pub struct CommonOutputFfi {
     pub result: i32,
     pub has_fatal_error: u8,
     pub events: EventArrayFfi,
 }
 assert_max_size!(CommonOutputFfi);
-
-impl Default for CommonOutputFfi {
-    fn default() -> Self {
-        CommonOutputFfi { result: 0, has_fatal_error: 0, events: EventArrayFfi::default() }
-    }
-}
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]

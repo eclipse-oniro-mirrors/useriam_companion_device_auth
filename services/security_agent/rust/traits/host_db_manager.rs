@@ -14,12 +14,11 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
+
 use crate::traits::db_manager::{
     CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo,
-    DeviceKey,
 };
-use crate::CString;
+
 use crate::{log_e, singleton_registry, Box, Vec};
 
 pub type CompanionDeviceFilter = Box<dyn Fn(&CompanionDeviceInfo) -> bool>;
@@ -30,8 +29,8 @@ pub trait HostDbManager {
         &mut self,
         device_info: &CompanionDeviceInfo,
         base_info: &CompanionDeviceBaseInfo,
-        capability_info: &Vec<CompanionDeviceCapability>,
-        sk_info: &Vec<CompanionDeviceSk>,
+        capability_info: &[CompanionDeviceCapability],
+        sk_info: &[CompanionDeviceSk],
     ) -> Result<(), ErrorCode>;
     fn get_device(&self, template_id: u64) -> Result<CompanionDeviceInfo, ErrorCode>;
     fn get_device_list(&self, filter: CompanionDeviceFilter) -> Vec<CompanionDeviceInfo>;
@@ -54,11 +53,11 @@ pub trait HostDbManager {
     fn write_device_capability_info(
         &self,
         template_id: u64,
-        capability_info: &Vec<CompanionDeviceCapability>,
+        capability_info: &[CompanionDeviceCapability],
     ) -> Result<(), ErrorCode>;
     fn delete_device_capability_info(&self, template_id: u64) -> Result<(), ErrorCode>;
     fn read_device_sk(&self, template_id: u64) -> Result<Vec<CompanionDeviceSk>, ErrorCode>;
-    fn write_device_sk(&self, template_id: u64, sk_info: &Vec<CompanionDeviceSk>) -> Result<(), ErrorCode>;
+    fn write_device_sk(&self, template_id: u64, sk_info: &[CompanionDeviceSk]) -> Result<(), ErrorCode>;
     fn delete_device_sk(&self, template_id: u64) -> Result<(), ErrorCode>;
 }
 
@@ -69,8 +68,8 @@ impl HostDbManager for DummyHostDbManager {
         &mut self,
         _device_info: &CompanionDeviceInfo,
         _base_info: &CompanionDeviceBaseInfo,
-        _capability_info: &Vec<CompanionDeviceCapability>,
-        _sk_info: &Vec<CompanionDeviceSk>,
+        _capability_info: &[CompanionDeviceCapability],
+        _sk_info: &[CompanionDeviceSk],
     ) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
@@ -136,7 +135,7 @@ impl HostDbManager for DummyHostDbManager {
     fn write_device_capability_info(
         &self,
         _template_id: u64,
-        _capability_info: &Vec<CompanionDeviceCapability>,
+        _capability_info: &[CompanionDeviceCapability],
     ) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
@@ -150,7 +149,7 @@ impl HostDbManager for DummyHostDbManager {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
-    fn write_device_sk(&self, _template_id: u64, _sk_info: &Vec<CompanionDeviceSk>) -> Result<(), ErrorCode> {
+    fn write_device_sk(&self, _template_id: u64, _sk_info: &[CompanionDeviceSk]) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }

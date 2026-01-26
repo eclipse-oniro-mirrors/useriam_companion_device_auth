@@ -14,23 +14,16 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 
 use crate::entry::companion_device_auth_ffi::DeviceKeyFfi;
 use crate::String;
-use crate::{log_e, singleton_registry, Box, Vec};
+use crate::Vec;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct DeviceKey {
     pub device_id: String,
     pub device_id_type: i32,
     pub user_id: i32,
-}
-
-impl Default for DeviceKey {
-    fn default() -> Self {
-        DeviceKey { device_id: String::new(), device_id_type: 0, user_id: 0 }
-    }
 }
 
 impl TryFrom<&DeviceKeyFfi> for DeviceKey {
@@ -83,16 +76,14 @@ pub struct CompanionDeviceBaseInfo {
     pub business_ids: Vec<i32>,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDeviceCapability {
     pub device_type: DeviceType,
     pub esl: ExecutorSecurityLevel,
     pub track_ability_level: i32,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDeviceSk {
     pub device_type: DeviceType,
     pub sk: Vec<u8>,

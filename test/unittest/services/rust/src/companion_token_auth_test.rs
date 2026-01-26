@@ -15,15 +15,16 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi, DataArray32Ffi, Uint16Array64Ffi,
+    CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi, DataArray32Ffi,
+    Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::companion_auth::CompanionTokenAuthRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::{HostDeviceSk, HostTokenInfo};
+use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
 use crate::utils::{Attribute, AttributeKey};
 use std::boxed::Box;

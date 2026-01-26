@@ -22,6 +22,7 @@ use crate::Vec;
 use core::mem::size_of;
 
 pub struct DefaultMiscManager {
+    #[allow(dead_code)]
     udid: Option<Udid>,
     key_pair: Option<KeyPair>,
     fwk_pub_key: Option<Vec<u8>>,
@@ -82,5 +83,11 @@ impl MiscManager for DefaultMiscManager {
             log_e!("framework public key not set");
             ErrorCode::GeneralError
         })
+    }
+}
+
+impl Default for DefaultMiscManager {
+    fn default() -> Self {
+        Self::new()
     }
 }

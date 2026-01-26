@@ -58,7 +58,7 @@ impl TryFrom<&Vec<u8>> for Udid {
             return Err(ErrorCode::BadParam);
         }
         let mut udid = [0u8; UDID_LEN];
-        udid.copy_from_slice(&value);
+        udid.copy_from_slice(value);
         Ok(Udid(udid))
     }
 }

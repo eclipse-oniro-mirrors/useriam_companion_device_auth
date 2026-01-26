@@ -14,23 +14,18 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, HostBeginCompanionCheckInputFfi, HostBeginCompanionCheckOutputFfi, HostEndCompanionCheckInputFfi,
-    HostEndCompanionCheckOutputFfi,
-};
+use crate::entry::companion_device_auth_ffi::HostBeginCompanionCheckInputFfi;
 use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
-use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
-use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
-use crate::traits::db_manager::CompanionTokenInfo;
+use crate::request::jobs::common_message::SecCommonReply;
+use crate::traits::crypto_engine::CryptoEngineRegistry;
+
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-use crate::traits::misc_manager::MiscManagerRegistry;
-use crate::utils::message_codec::{MessageCodec, MessageSignParam};
+
 use crate::utils::{Attribute, AttributeKey};
-use crate::vec;
-use crate::{log_e, log_i, p, Box, Vec};
+
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct HostDeviceSyncStatusRequest {

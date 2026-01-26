@@ -19,8 +19,13 @@ use crate::traits::crypto_engine::AesGcmParam;
 use crate::traits::crypto_engine::AesGcmResult;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::misc_manager::MiscManagerRegistry;
-use crate::String;
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, p, Vec};
+#[cfg(not(any(test, feature = "test-utils")))]
+use alloc::borrow::ToOwned;
+#[cfg(any(test, feature = "test-utils"))]
+use std::borrow::ToOwned;
+
+type EncryptedMessage = (Vec<u8>, [u8; AES_GCM_TAG_SIZE], [u8; AES_GCM_IV_SIZE]);
 
 fn init_aes_gcm_param(key: Vec<u8>, iv: [u8; AES_GCM_IV_SIZE]) -> Result<AesGcmParam, ErrorCode> {
     let aad = AES_GCM_AAD.as_bytes().to_vec();
@@ -28,10 +33,7 @@ fn init_aes_gcm_param(key: Vec<u8>, iv: [u8; AES_GCM_IV_SIZE]) -> Result<AesGcmP
     Ok(aes_param)
 }
 
-pub fn encrypt_sec_message(
-    message: &[u8],
-    key: &[u8],
-) -> Result<(Vec<u8>, [u8; AES_GCM_TAG_SIZE], [u8; AES_GCM_IV_SIZE]), ErrorCode> {
+pub fn encrypt_sec_message(message: &[u8], key: &[u8]) -> Result<EncryptedMessage, ErrorCode> {
     let mut tag = [0u8; AES_GCM_TAG_SIZE];
     let mut iv = [0u8; AES_GCM_IV_SIZE];
     CryptoEngineRegistry::get().secure_random(&mut iv).map_err(|_| {
@@ -69,12 +71,12 @@ pub fn decrypt_sec_message(sec_message: &[u8], key: &[u8], tag: &[u8], iv: &[u8]
     Ok(decrypted_data)
 }
 
-pub fn get_distribute_key(local_device_id: &String, peer_device_id: &String) -> Result<Vec<u8>, ErrorCode> {
-    let local_udid: Udid = local_device_id.clone().try_into().map_err(|e| {
+pub fn get_distribute_key(local_device_id: &str, peer_device_id: &str) -> Result<Vec<u8>, ErrorCode> {
+    let local_udid: Udid = local_device_id.to_owned().try_into().map_err(|e| {
         log_e!("Failed to convert device_id to Udid: {:?}", e);
         ErrorCode::GeneralError
     })?;
-    let peer_udid: Udid = peer_device_id.clone().try_into().map_err(|e| {
+    let peer_udid: Udid = peer_device_id.to_owned().try_into().map_err(|e| {
         log_e!("Failed to convert device_id to Udid: {:?}", e);
         ErrorCode::GeneralError
     })?;

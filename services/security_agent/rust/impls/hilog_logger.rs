@@ -19,23 +19,27 @@ use crate::String;
 use alloc::format;
 use core::fmt;
 use core::fmt::Write;
-use std::ffi::{c_char, CStr, CString};
+use std::ffi::{c_char, CString};
 #[cfg(any(test, feature = "test-utils"))]
 use std::format;
 
 #[allow(unused_extern_crates)]
 extern crate std;
 
-use hilog_rust::{error, hilog, info, HiLogLabel, LogType};
+use hilog_rust::{hilog, HiLogLabel, LogType};
 
-const LOG_LABEL: HiLogLabel =
-    HiLogLabel { log_type: LogType::LogCore, domain: 0xD002401, tag: "CDA_SEC" };
+const LOG_LABEL: HiLogLabel = HiLogLabel { log_type: LogType::LogCore, domain: 0xD002401, tag: "CDA_SEC" };
 
 pub struct HilogLogger;
 
 impl HilogLogger {
     pub fn new() -> Self {
         HilogLogger
+    }
+}
+impl Default for HilogLogger {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

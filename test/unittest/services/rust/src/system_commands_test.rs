@@ -35,7 +35,6 @@ use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainT
 use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenRequest;
 use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::request_manager::{RequestManagerRegistry, MockRequestManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{
     CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo,
@@ -43,6 +42,7 @@ use crate::traits::db_manager::{
 };
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
+use crate::traits::request_manager::{MockRequestManager, RequestManagerRegistry};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
 use crate::utils::auth_token::{TokenDataPlain, UserAuthToken, AUTH_TOKEN_CIPHER_LEN};
@@ -458,7 +458,10 @@ fn host_begin_companion_check_test_success() {
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
-    let mut output = HostBeginCompanionCheckOutputFfi { challenge: 0, salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 } };
+    let mut output = HostBeginCompanionCheckOutputFfi {
+        challenge: 0,
+        salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
+    };
     let result = host_begin_companion_check(&input, &mut output);
     assert!(result.is_ok());
 }
@@ -475,7 +478,10 @@ fn host_begin_companion_check_test_request_new_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
-    let mut output = HostBeginCompanionCheckOutputFfi { challenge: 0, salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 } };
+    let mut output = HostBeginCompanionCheckOutputFfi {
+        challenge: 0,
+        salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
+    };
     let result = host_begin_companion_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -496,7 +502,10 @@ fn host_begin_companion_check_test_add_request_fail() {
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1 };
-    let mut output = HostBeginCompanionCheckOutputFfi { challenge: 0, salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 } };
+    let mut output = HostBeginCompanionCheckOutputFfi {
+        challenge: 0,
+        salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
+    };
     let result = host_begin_companion_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -730,9 +739,7 @@ fn host_begin_add_companion_test_success() {
 
     let nego_input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
     let enroll_request = HostDeviceEnrollRequest::new(&nego_input).unwrap();
-    RequestManagerRegistry::get_mut()
-        .add_request(Box::new(enroll_request))
-        .unwrap();
+    RequestManagerRegistry::get_mut().add_request(Box::new(enroll_request)).unwrap();
 
     let mut mock_misc_manager = MockMiscManager::new();
     mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(vec![1u8, 2, 3]));
@@ -799,9 +806,7 @@ fn host_begin_add_companion_test_request_begin_fail() {
 
     let nego_input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
     let enroll_request = HostDeviceEnrollRequest::new(&nego_input).unwrap();
-    RequestManagerRegistry::get_mut()
-        .add_request(Box::new(enroll_request))
-        .unwrap();
+    RequestManagerRegistry::get_mut().add_request(Box::new(enroll_request)).unwrap();
 
     let mut mock_misc_manager = MockMiscManager::new();
     mock_misc_manager
@@ -861,7 +866,12 @@ fn host_end_add_companion_test_success() {
         .returning(|| Ok(create_mock_key_pair()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
-    let input = HostEndAddCompanionInputFfi { request_id: 1, companion_status: PersistedCompanionStatusFfi::default(), secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
+    let input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi::default(),
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
     let mut output = HostEndAddCompanionOutputFfi::default();
     let result = host_end_add_companion(&input, &mut output);
     assert!(result.is_ok());
@@ -878,7 +888,12 @@ fn host_end_add_companion_test_remove_request_fail() {
         .returning(|| Err(ErrorCode::GeneralError));
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
-    let input = HostEndAddCompanionInputFfi { request_id: 1, companion_status: PersistedCompanionStatusFfi::default(), secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
+    let input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi::default(),
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
     let mut output = HostEndAddCompanionOutputFfi::default();
     let result = host_end_add_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
@@ -910,7 +925,12 @@ fn host_end_add_companion_test_request_end_fail() {
         .returning(|| Err(ErrorCode::GeneralError));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostEndAddCompanionInputFfi { request_id: 1, companion_status: PersistedCompanionStatusFfi::default(), secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
+    let input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi::default(),
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::default(),
+    };
     let mut output = HostEndAddCompanionOutputFfi::default();
     let result = host_end_add_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
@@ -2705,9 +2725,7 @@ fn companion_begin_add_host_binding_test_success() {
     enroll_request.key_nego_param.host_device_key.device_id = "test-device-id".to_string();
     enroll_request.key_nego_param.host_device_key.user_id = 100;
     enroll_request.key_nego_param.challenge = 0;
-    RequestManagerRegistry::get_mut()
-        .add_request(Box::new(enroll_request))
-        .unwrap();
+    RequestManagerRegistry::get_mut().add_request(Box::new(enroll_request)).unwrap();
 
     let mut attr = Attribute::new();
     attr.set_string(AttributeKey::AttrDeviceId, "test-device-id".to_string());
@@ -2781,9 +2799,7 @@ fn companion_begin_add_host_binding_test_request_begin_fail() {
         sec_message: DataArray20000Ffi::default(),
     };
     let enroll_request = CompanionDeviceEnrollRequest::new(&init_input).unwrap();
-    RequestManagerRegistry::get_mut()
-        .add_request(Box::new(enroll_request))
-        .unwrap();
+    RequestManagerRegistry::get_mut().add_request(Box::new(enroll_request)).unwrap();
 
     let input = CompanionBeginAddHostBindingInputFfi {
         request_id: 1,

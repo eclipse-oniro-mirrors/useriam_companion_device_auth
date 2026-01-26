@@ -14,7 +14,7 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
+
 use crate::entry::companion_device_auth_ffi::{
     CompanionBeginAddHostBindingInputFfi, CompanionBeginAddHostBindingOutputFfi, CompanionBeginDelegateAuthInputFfi,
     CompanionBeginDelegateAuthOutputFfi, CompanionBeginObtainTokenInputFfi, CompanionBeginObtainTokenOutputFfi,
@@ -23,22 +23,18 @@ use crate::entry::companion_device_auth_ffi::{
     CompanionInitKeyNegotiationInputFfi, CompanionInitKeyNegotiationOutputFfi, CompanionPreIssueTokenInputFfi,
     CompanionPreIssueTokenOutputFfi, CompanionProcessCheckInputFfi, CompanionProcessCheckOutputFfi,
     CompanionProcessIssueTokenInputFfi, CompanionProcessIssueTokenOutputFfi, CompanionProcessTokenAuthInputFfi,
-    CompanionProcessTokenAuthOutputFfi,
-    HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi, HostBeginCompanionCheckInputFfi,
-    HostBeginCompanionCheckOutputFfi, HostBeginDelegateAuthInputFfi, HostBeginDelegateAuthOutputFfi,
-    HostBeginIssueTokenInputFfi, HostBeginIssueTokenOutputFfi, HostBeginTokenAuthInputFfi, HostBeginTokenAuthOutputFfi,
-    HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi, HostEndCompanionCheckInputFfi,
-    HostEndCompanionCheckOutputFfi, HostEndDelegateAuthInputFfi, HostEndDelegateAuthOutputFfi,
-    HostEndIssueTokenInputFfi, HostEndIssueTokenOutputFfi, HostEndTokenAuthInputFfi, HostEndTokenAuthOutputFfi,
-    HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi, HostPreIssueTokenInputFfi,
-    HostPreIssueTokenOutputFfi, HostProcessObtainTokenInputFfi, HostProcessObtainTokenOutputFfi,
-    HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
+    CompanionProcessTokenAuthOutputFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
+    HostBeginCompanionCheckInputFfi, HostBeginCompanionCheckOutputFfi, HostBeginDelegateAuthInputFfi,
+    HostBeginDelegateAuthOutputFfi, HostBeginIssueTokenInputFfi, HostBeginIssueTokenOutputFfi,
+    HostBeginTokenAuthInputFfi, HostBeginTokenAuthOutputFfi, HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi,
+    HostEndCompanionCheckInputFfi, HostEndCompanionCheckOutputFfi, HostEndDelegateAuthInputFfi,
+    HostEndDelegateAuthOutputFfi, HostEndIssueTokenInputFfi, HostEndIssueTokenOutputFfi, HostEndTokenAuthInputFfi,
+    HostEndTokenAuthOutputFfi, HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
+    HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi, HostProcessObtainTokenInputFfi,
+    HostProcessObtainTokenOutputFfi, HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
 };
 
-use crate::traits::crypto_engine::KeyPair;
-use crate::traits::db_manager::DeviceKey;
-use crate::String;
-use crate::{log_e, singleton_registry, Box, Vec};
+use crate::{log_e, singleton_registry, Box};
 
 pub enum RequestParam<'a> {
     CompanionSyncStatus(&'a CompanionProcessCheckInputFfi, &'a mut CompanionProcessCheckOutputFfi),
@@ -93,7 +89,7 @@ pub type DynRequest = dyn Request;
 pub trait RequestManager {
     fn add_request(&mut self, request: Box<DynRequest>) -> Result<(), ErrorCode>;
     fn remove_request(&mut self, request_id: i32) -> Result<Box<DynRequest>, ErrorCode>;
-    fn get_request<'a>(&'a mut self, request_id: i32) -> Result<&'a mut DynRequest, ErrorCode>;
+    fn get_request(&mut self, request_id: i32) -> Result<&mut DynRequest, ErrorCode>;
 }
 
 pub struct DummyRequestManager;
@@ -107,7 +103,7 @@ impl RequestManager for DummyRequestManager {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
-    fn get_request<'a>(&'a mut self, _request_id: i32) -> Result<&'a mut DynRequest, ErrorCode> {
+    fn get_request(&mut self, _request_id: i32) -> Result<&mut DynRequest, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }

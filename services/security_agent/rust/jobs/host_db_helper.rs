@@ -14,14 +14,10 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::{
-    CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk,
-};
-use crate::traits::host_db_manager::{CompanionDeviceFilter, HostDbManagerRegistry};
-use crate::String;
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::traits::db_manager::CompanionDeviceInfo;
+use crate::traits::host_db_manager::HostDbManagerRegistry;
+use crate::{log_e, log_i, p, Box, String, Vec};
 
 pub fn update_companion_device_valid_flag(template_id: u64, is_valid: bool) -> Result<(), ErrorCode> {
     let mut device_info = HostDbManagerRegistry::get_mut().get_device(template_id)?;
@@ -71,11 +67,11 @@ pub fn get_session_key(template_id: u64, device_type: DeviceType, salt: &[u8]) -
         .map_err(|e| p!(e))?;
     for sk_info in sk_infos {
         if sk_info.device_type == device_type {
-            return Ok(CryptoEngineRegistry::get().hkdf(&salt, &sk_info.sk).map_err(|e| p!(e))?);
+            return CryptoEngineRegistry::get().hkdf(salt, &sk_info.sk).map_err(|e| p!(e));
         }
     }
     log_e!("get_session_key fail");
-    return Err(ErrorCode::GeneralError);
+    Err(ErrorCode::GeneralError)
 }
 
 pub fn verify_template(template_ids: Vec<u64>) -> Result<(), ErrorCode> {

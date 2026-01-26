@@ -38,7 +38,7 @@ pub struct Event {
 }
 
 pub trait EventManager {
-    fn record_event(&mut self, event: &Event) -> ();
+    fn record_event(&mut self, event: &Event);
     fn has_fatal_error(&self) -> bool;
     fn drain_all_events(&mut self) -> Vec<Event>;
 }
@@ -46,7 +46,7 @@ pub trait EventManager {
 pub struct DummyEventManager;
 
 impl EventManager for DummyEventManager {
-    fn record_event(&mut self, _event: &Event) -> () {
+    fn record_event(&mut self, _event: &Event) {
         log_e!("not implemented");
     }
 

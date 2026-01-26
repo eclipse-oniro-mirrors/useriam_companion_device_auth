@@ -13,33 +13,28 @@
  * limitations under the License.
  */
 
-use crate::common::{constants::*, types::*};
-use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, DataArray20000Ffi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi, HostEndAddCompanionInputFfi,
-    HostEndAddCompanionOutputFfi, HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
-};
-use crate::impls::default_host_db_manager::CURRENT_VERSION;
+use crate::common::constants::*;
+use crate::entry::companion_device_auth_ffi::{DataArray1024Ffi, DataArray20000Ffi, HostGetInitKeyNegotiationInputFfi};
+
 use crate::jobs::{host_db_helper, message_crypto};
 use crate::request::enroll::enroll_message::{
     FwkEnrollReply, FwkEnrollRequest, SecBindingReply, SecBindingReplyInfo, SecBindingRequest, SecKeyNegoReply,
     SecKeyNegoRequest,
 };
-use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};
+use crate::request::jobs::common_message::SecIssueToken;
 use crate::request::jobs::token_helper::DeviceTokenInfo;
-use crate::traits::crypto_engine::KeyPair;
-use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
+use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
 use crate::traits::db_manager::{
     CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo,
     DeviceKey, UserInfo,
 };
-use crate::traits::host_db_manager::{CompanionDeviceFilter, HostDbManagerRegistry};
+use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
-use crate::utils::message_codec::{MessageCodec, MessageSignParam};
+
 use crate::utils::{Attribute, AttributeKey};
 use crate::String;
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct KeyNegotialParam {
@@ -96,7 +91,7 @@ impl HostDeviceEnrollRequest {
             key_negotial_param: Vec::new(),
             device_capability: Vec::new(),
             token_infos: Vec::new(),
-            salt: salt,
+            salt,
             acl: AuthCapabilityLevel::Acl0,
             atl: AuthTrustLevel::Atl0,
         })
@@ -113,7 +108,7 @@ impl HostDeviceEnrollRequest {
             }
         }
         log_e!("get_aes_gcm_param fail");
-        return Err(ErrorCode::GeneralError);
+        Err(ErrorCode::GeneralError)
     }
 
     fn create_prepare_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
@@ -204,13 +199,8 @@ impl HostDeviceEnrollRequest {
                 message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
                     .map_err(|e| p!(e))?;
 
-            let binding_request = SecBindingRequest {
-                pub_key: key_pair.pub_key.clone(),
-                salt: self.salt,
-                tag: tag,
-                iv: iv,
-                encrypt_data: encrypt_data,
-            };
+            let binding_request =
+                SecBindingRequest { pub_key: key_pair.pub_key.clone(), salt: self.salt, tag, iv, encrypt_data };
 
             output.extend(binding_request.encode(key_nego_param.device_type)?);
         }
@@ -311,7 +301,7 @@ impl HostDeviceEnrollRequest {
     fn create_end_fwk_message(&mut self, result: i32, template_id: u64) -> Result<Vec<u8>, ErrorCode> {
         let fwk_enroll_reply = FwkEnrollReply {
             schedule_id: self.enroll_param.schedule_id,
-            template_id: template_id,
+            template_id,
             result_code: result,
             acl: self.acl as u32,
             pin_sub_type: 0,
@@ -373,7 +363,7 @@ impl HostDeviceEnrollRequest {
     fn store_token(&self, template_id: u64) -> Result<(), ErrorCode> {
         for token_info in &self.token_infos {
             let companion_token = CompanionTokenInfo {
-                template_id: template_id,
+                template_id,
                 device_type: token_info.device_type,
                 token: token_info.token.clone(),
                 atl: self.atl,

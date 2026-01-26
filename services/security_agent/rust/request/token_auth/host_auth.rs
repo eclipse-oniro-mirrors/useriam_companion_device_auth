@@ -14,24 +14,20 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::entry::companion_device_auth_ffi::{
-    DataArray1024Ffi, HostBeginTokenAuthInputFfi, HostBeginTokenAuthOutputFfi, HostEndTokenAuthInputFfi,
-    HostEndTokenAuthOutputFfi,
-};
+use crate::entry::companion_device_auth_ffi::{DataArray1024Ffi, HostBeginTokenAuthInputFfi};
 use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::auth_message::{FwkAuthReply, FwkAuthRequest, SecAuthReply};
-use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
-use crate::traits::db_manager::CompanionTokenInfo;
+use crate::traits::crypto_engine::CryptoEngineRegistry;
+
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-use crate::traits::misc_manager::MiscManagerRegistry;
+
 use crate::traits::time_keeper::TimeKeeperRegistry;
-use crate::utils::message_codec::{MessageCodec, MessageSignParam};
+
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 
 pub const TOKEN_VALID_PERIOD: u64 = 4 * 60 * 60 * 1000;
 
@@ -75,7 +71,7 @@ impl HostTokenAuthRequest {
             challenge: u64::from_ne_bytes(challenge),
             atl: AuthTrustLevel::Atl0,
             acl: AuthCapabilityLevel::Acl0,
-            salt: salt,
+            salt,
             device_type: DeviceType::None,
         })
     }
@@ -129,7 +125,7 @@ impl HostTokenAuthRequest {
                 .map_err(|e| p!(e))?;
 
         let auth_request = SecCommonRequest { salt: self.salt, tag, iv, encrypt_data };
-        Ok(auth_request.encode(self.device_type)?)
+        auth_request.encode(self.device_type)
     }
 
     fn parse_token_auth_reply(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {

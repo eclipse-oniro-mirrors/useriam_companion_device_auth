@@ -19,14 +19,14 @@ use crate::commands::system_commands::{
     companion_end_delegate_auth, companion_end_obtain_token, companion_get_persisted_status,
     companion_init_key_negotiation, companion_pre_issue_token, companion_process_check, companion_process_issue_token,
     companion_process_token_auth, companion_remove_host_binding, companion_revoke_token, get_executor_info,
-    host_begin_add_companion, host_begin_companion_check, host_begin_delegate_auth,
-    host_begin_issue_token, host_begin_token_auth, host_cancel_add_companion, host_cancel_companion_check,
-    host_cancel_delegate_auth, host_cancel_issue_token, host_cancel_obtain_token, host_check_template_enrolled,
-    host_end_add_companion, host_end_companion_check, host_end_delegate_auth, host_end_issue_token,
-    host_end_token_auth, host_get_init_key_negotiation, host_get_persisted_status, host_on_register_finish,
-    host_pre_issue_token, host_process_obtain_token, host_process_pre_obtain_token, host_remove_companion,
-    host_revoke_token, host_update_companion_enabled_business_ids, host_update_companion_status, host_update_token,
-    init, set_active_user_id,
+    host_begin_add_companion, host_begin_companion_check, host_begin_delegate_auth, host_begin_issue_token,
+    host_begin_token_auth, host_cancel_add_companion, host_cancel_companion_check, host_cancel_delegate_auth,
+    host_cancel_issue_token, host_cancel_obtain_token, host_check_template_enrolled, host_end_add_companion,
+    host_end_companion_check, host_end_delegate_auth, host_end_issue_token, host_end_token_auth,
+    host_get_init_key_negotiation, host_get_persisted_status, host_on_register_finish, host_pre_issue_token,
+    host_process_obtain_token, host_process_pre_obtain_token, host_remove_companion, host_revoke_token,
+    host_update_companion_enabled_business_ids, host_update_companion_status, host_update_token, init,
+    set_active_user_id,
 };
 use crate::common::constants::ErrorCode;
 use crate::ensure_or_return_val;
@@ -35,38 +35,26 @@ use crate::entry::companion_device_auth_ffi::CommandId::{
     CompanionCancelObtainToken, CompanionEndAddHostBinding, CompanionEndDelegateAuth, CompanionEndObtainToken,
     CompanionGetPersistedStatus, CompanionInitKeyNegotiation, CompanionPreIssueToken, CompanionProcessCheck,
     CompanionProcessIssueToken, CompanionProcessTokenAuth, CompanionRemoveHostBinding, CompanionRevokeToken,
-    GetExecutorInfo, HostBeginAddCompanion, HostBeginCompanionCheck, HostBeginDelegateAuth,
-    HostBeginIssueToken, HostBeginTokenAuth, HostCancelAddCompanion, HostCancelCompanionCheck, HostCancelDelegateAuth,
-    HostCancelIssueToken, HostCancelObtainToken, HostCheckTemplateEnrolled, HostEndAddCompanion, HostEndCompanionCheck,
-    HostEndDelegateAuth, HostEndIssueToken, HostEndTokenAuth, HostGetInitKeyNegotiation, HostGetPersistedStatus,
-    HostPreIssueToken, HostProcessObtainToken, HostProcessPreObtainToken, HostRegisterFinish, HostRemoveCompanion,
-    HostRevokeToken, HostUpdateCompanionEnabledBusinessIds, HostUpdateCompanionStatus, HostUpdateToken, Init,
-    SetActiveUserId,
+    GetExecutorInfo, HostBeginAddCompanion, HostBeginCompanionCheck, HostBeginDelegateAuth, HostBeginIssueToken,
+    HostBeginTokenAuth, HostCancelAddCompanion, HostCancelCompanionCheck, HostCancelDelegateAuth, HostCancelIssueToken,
+    HostCancelObtainToken, HostCheckTemplateEnrolled, HostEndAddCompanion, HostEndCompanionCheck, HostEndDelegateAuth,
+    HostEndIssueToken, HostEndTokenAuth, HostGetInitKeyNegotiation, HostGetPersistedStatus, HostPreIssueToken,
+    HostProcessObtainToken, HostProcessPreObtainToken, HostRegisterFinish, HostRemoveCompanion, HostRevokeToken,
+    HostUpdateCompanionEnabledBusinessIds, HostUpdateCompanionStatus, HostUpdateToken, Init, SetActiveUserId,
 };
-use crate::entry::companion_device_auth_ffi::{
-    CommandId, CommonOutputFfi, DataArray256Ffi, DataArray64Ffi, EventFfi, RustCommandParam, MAX_EVENT_NUM_FFI,
-};
-use crate::impls::default_event_manager;
-use crate::impls::default_misc_manager;
-use crate::impls::default_storage_io;
-use crate::impls::default_time_keeper;
-use crate::impls::openssl_crypto_engine;
+use crate::entry::companion_device_auth_ffi::{CommandId, CommonOutputFfi};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::event_manager::EventManagerRegistry;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
-use crate::traits::request_manager::RequestManagerRegistry;
 use crate::traits::logger::LoggerRegistry;
 use crate::traits::misc_manager::MiscManagerRegistry;
+use crate::traits::request_manager::RequestManagerRegistry;
 use crate::traits::storage_io::StorageIoRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
-use crate::BTreeMap;
 use crate::Box;
-use crate::Vec;
-use crate::UUID_LEN;
-use crate::{log_e, log_i, p};
+use crate::{log_e, log_i};
 use core::mem::size_of;
-use core::slice;
 
 struct CmdInfo {
     command_id: CommandId,
@@ -110,17 +98,15 @@ where
 
 macro_rules! impl_cmd_trait {
     () => {};
-    ($cmd: expr, $handle: path) => {
-        (|| -> CmdInfo {
-            struct Foo;
-            impl CmdHandler for Foo {
-                fn handle(&self, input: &[u8], output: &mut [u8]) -> Result<(), ErrorCode> {
-                    invoke_cmd_handle(input, output, $handle)
-                }
+    ($cmd: expr, $handle: path) => {{
+        struct Foo;
+        impl CmdHandler for Foo {
+            fn handle(&self, input: &[u8], output: &mut [u8]) -> Result<(), ErrorCode> {
+                invoke_cmd_handle(input, output, $handle)
             }
-            CmdInfo { command_id: $cmd, handler: &Foo }
-        })()
-    };
+        }
+        CmdInfo { command_id: $cmd, handler: &Foo }
+    }};
 }
 
 macro_rules! count_args {
@@ -216,19 +202,17 @@ pub fn handle_rust_command(
     common_output: &mut [u8],
 ) -> Result<(), ErrorCode> {
     ensure_or_return_val!(common_output.len() == size_of::<CommonOutputFfi>(), ErrorCode::BadParam);
-    let result: ErrorCode;
-    match handle_rust_command_inner(command_id, input, output) {
+    let result: ErrorCode = match handle_rust_command_inner(command_id, input, output) {
         Ok(()) => {
             log_i!("handle command id {:?} success", command_id);
-            result = ErrorCode::Success;
+            ErrorCode::Success
         },
         Err(e) => {
             log_e!("handle command id {:?} error:{:?}", command_id, e);
-            result = e;
+            e
         },
-    }
-    let mut common_output_ffi = CommonOutputFfi::default();
-    common_output_ffi.result = result as i32;
+    };
+    let common_output_ffi = CommonOutputFfi { result: result as i32, ..Default::default() };
 
     unsafe {
         core::ptr::write_unaligned(common_output.as_mut_ptr() as *mut CommonOutputFfi, common_output_ffi);
@@ -252,9 +236,7 @@ pub fn handle_rust_env_init() -> Result<(), ErrorCode> {
         crate::impls::default_companion_db_manager::DefaultCompanionDbManager::new(),
     ));
 
-    RequestManagerRegistry::set(Box::new(
-        crate::impls::default_request_manager::DefaultRequestManager::new(),
-    ));
+    RequestManagerRegistry::set(Box::new(crate::impls::default_request_manager::DefaultRequestManager::new()));
 
     HostDbManagerRegistry::set(Box::new(crate::impls::default_host_db_manager::DefaultHostDbManager::new()));
 

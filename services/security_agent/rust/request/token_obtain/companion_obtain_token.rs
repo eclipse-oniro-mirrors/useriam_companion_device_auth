@@ -14,26 +14,21 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::entry::companion_device_auth_ffi::PROPERTY_MODE_UNFREEZE;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionBeginObtainTokenInputFfi, CompanionBeginObtainTokenOutputFfi, CompanionEndObtainTokenInputFfi,
-    CompanionEndObtainTokenOutputFfi, DataArray1024Ffi,
+    CompanionBeginObtainTokenInputFfi, CompanionEndObtainTokenOutputFfi, DataArray1024Ffi,
 };
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
-use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest, SecIssueToken};
+use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};
 use crate::request::token_obtain::token_obtain_message::{FwkObtainTokenRequest, SecPreObtainTokenRequest};
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-use crate::traits::crypto_engine::CryptoEngineRegistry;
+
 use crate::traits::db_manager::HostTokenInfo;
-use crate::traits::misc_manager::MiscManagerRegistry;
-use crate::traits::time_keeper::TimeKeeperRegistry;
-use crate::utils::message_codec::MessageCodec;
-use crate::utils::message_codec::MessageSignParam;
+
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObtainParam {
@@ -115,8 +110,7 @@ impl CompanionDeviceObtainTokenRequest {
             message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
                 .map_err(|e| p!(e))?;
 
-        let obtain_token_request =
-            SecCommonRequest { salt: self.obtain_param.salt, tag: tag, iv: iv, encrypt_data: encrypt_data };
+        let obtain_token_request = SecCommonRequest { salt: self.obtain_param.salt, tag, iv, encrypt_data };
 
         let output = obtain_token_request.encode(DeviceType::None)?;
         Ok(output)

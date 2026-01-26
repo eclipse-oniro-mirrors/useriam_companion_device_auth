@@ -14,21 +14,14 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::entry::companion_device_auth_ffi::{
-    CompanionBeginDelegateAuthInputFfi, CompanionBeginDelegateAuthOutputFfi, CompanionEndDelegateAuthInputFfi,
-    CompanionEndDelegateAuthOutputFfi, DataArray1024Ffi,
-};
+use crate::entry::companion_device_auth_ffi::{CompanionBeginDelegateAuthInputFfi, DataArray1024Ffi};
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
-use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::HostTokenInfo;
 use crate::utils::auth_token::UserAuthToken;
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDelegateAuthRequest {
@@ -127,17 +120,22 @@ impl Request for CompanionDelegateAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        if (ffi_input.result != ErrorCode::Success as i32) {
+        if ffi_input.result != ErrorCode::Success as i32 {
             log_e!("delegate auth fail {}", ffi_input.result);
             return Ok(());
         }
 
         if ffi_input.auth_token.len as usize != core::mem::size_of::<UserAuthToken>() {
-            log_e!("auth_token length mismatch: expected {}, got {}", core::mem::size_of::<UserAuthToken>(), ffi_input.auth_token.len);
+            log_e!(
+                "auth_token length mismatch: expected {}, got {}",
+                core::mem::size_of::<UserAuthToken>(),
+                ffi_input.auth_token.len
+            );
             return Err(ErrorCode::GeneralError);
         }
 
-        let auth_token = UserAuthToken::deserialize(&ffi_input.auth_token.data[..ffi_input.auth_token.len as usize]).map_err(|e| p!(e))?;
+        let auth_token = UserAuthToken::deserialize(&ffi_input.auth_token.data[..ffi_input.auth_token.len as usize])
+            .map_err(|e| p!(e))?;
         self.atl = auth_token.token_data_plain.auth_trust_level;
 
         let sec_message = self.create_end_sec_message()?;

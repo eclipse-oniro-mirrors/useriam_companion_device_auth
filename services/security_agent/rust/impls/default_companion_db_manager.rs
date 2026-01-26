@@ -14,19 +14,14 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::traits::companion_db_manager::{CompanionDbManager, HostDeviceFilter};
+use crate::traits::companion_db_manager::CompanionDbManager;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, HostTokenInfo, UserInfo};
 use crate::traits::storage_io::StorageIoRegistry;
-use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::parcel::Parcel;
-use crate::vec;
-use crate::String;
-use crate::{log_e, log_i, p, singleton_registry, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 #[cfg(not(any(test, feature = "test-utils")))]
-use alloc::format;
-use core::mem;
+use alloc::{format, vec};
 #[cfg(any(test, feature = "test-utils"))]
 use std::format;
 
@@ -188,7 +183,7 @@ impl DefaultCompanionDbManager {
         let mut parcel = Parcel::new();
         self.serialize_device_db(&mut parcel)?;
         StorageIoRegistry::get()
-            .write(&COMPANION_DEVICE_DB, parcel.as_slice())
+            .write(COMPANION_DEVICE_DB, parcel.as_slice())
             .map_err(|e| p!(e))?;
         Ok(())
     }
@@ -348,7 +343,7 @@ impl CompanionDbManager for DefaultCompanionDbManager {
 
     fn read_device_db(&mut self) -> Result<(), ErrorCode> {
         log_i!("read_device_db start");
-        let device_infos: Vec<u8> = StorageIoRegistry::get().read(&COMPANION_DEVICE_DB).map_err(|e| p!(e))?;
+        let device_infos: Vec<u8> = StorageIoRegistry::get().read(COMPANION_DEVICE_DB).map_err(|e| p!(e))?;
         if device_infos.is_empty() {
             log_i!("db is empty");
             return Ok(());
@@ -430,5 +425,11 @@ impl CompanionDbManager for DefaultCompanionDbManager {
             .filter(|device_info| device_info.user_info.user_id == user_id)
             .cloned()
             .collect()
+    }
+}
+
+impl Default for DefaultCompanionDbManager {
+    fn default() -> Self {
+        Self::new()
     }
 }

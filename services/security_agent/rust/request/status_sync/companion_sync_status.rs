@@ -14,19 +14,15 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::entry::companion_device_auth_ffi::{
-    CompanionProcessCheckInputFfi, CompanionProcessCheckOutputFfi, DataArray1024Ffi,
-};
+use crate::entry::companion_device_auth_ffi::{CompanionProcessCheckInputFfi, DataArray1024Ffi};
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
-use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
-use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
+use crate::request::jobs::common_message::SecCommonReply;
+
 use crate::traits::request_manager::{Request, RequestParam};
-use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngineRegistry};
-use crate::utils::message_codec::{MessageCodec, MessageSignParam};
+
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDeviceSyncStatusRequest {
@@ -66,7 +62,7 @@ impl CompanionDeviceSyncStatusRequest {
         let (encrypt_data, tag, iv) =
             message_crypto::encrypt_sec_message(&attribute_bytes, &session_key).map_err(|e| p!(e))?;
 
-        let status_sync_reply = SecCommonReply { tag: tag, iv: iv, encrypt_data: encrypt_data };
+        let status_sync_reply = SecCommonReply { tag, iv, encrypt_data };
         let output = status_sync_reply.encode(DeviceType::None)?;
         Ok(output)
     }

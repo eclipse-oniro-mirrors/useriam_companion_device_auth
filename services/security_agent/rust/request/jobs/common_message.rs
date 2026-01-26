@@ -14,13 +14,11 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
+
 use crate::jobs::message_crypto;
-use crate::traits::misc_manager::MiscManagerRegistry;
-use crate::utils::message_codec::MessageCodec;
-use crate::utils::message_codec::MessageSignParam;
+
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SecCommonRequest {
@@ -60,7 +58,7 @@ impl SecCommonRequest {
 
         let mut final_attribute = Attribute::new();
         final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
-        Ok(final_attribute.to_bytes()?)
+        final_attribute.to_bytes()
     }
 }
 
@@ -98,7 +96,7 @@ impl SecCommonReply {
 
         let mut final_attribute = Attribute::new();
         final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
-        Ok(final_attribute.to_bytes()?)
+        final_attribute.to_bytes()
     }
 }
 
@@ -118,7 +116,7 @@ impl SecIssueToken {
         let output = SecCommonRequest::decode(sec_message, device_type)?;
 
         let decrypt_data =
-            message_crypto::decrypt_sec_message(&output.encrypt_data, &session_key, &output.tag, &output.iv)
+            message_crypto::decrypt_sec_message(&output.encrypt_data, session_key, &output.tag, &output.iv)
                 .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
 
@@ -141,15 +139,11 @@ impl SecIssueToken {
         encrypt_attribute.set_i32(AttributeKey::AttrAuthTrustLevel, self.atl);
 
         let (encrypt_data, tag, iv) =
-            message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
+            message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), session_key)
                 .map_err(|e| p!(e))?;
 
-        let issue_token_request = SecCommonRequest {
-            salt: salt.try_into().map_err(|_| ErrorCode::GeneralError)?,
-            tag: tag,
-            iv: iv,
-            encrypt_data: encrypt_data,
-        };
+        let issue_token_request =
+            SecCommonRequest { salt: salt.try_into().map_err(|_| ErrorCode::GeneralError)?, tag, iv, encrypt_data };
         let output = issue_token_request.encode(device_type)?;
         Ok(output)
     }

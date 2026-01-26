@@ -104,6 +104,12 @@ pub struct Attribute {
     map: BTreeMap<AttributeKey, Vec<u8>>,
 }
 
+impl Default for Attribute {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Attribute {
     pub fn new() -> Self {
         Attribute { map: BTreeMap::new() }
@@ -242,7 +248,7 @@ impl Attribute {
     pub fn get_u64_vec(&self, key: AttributeKey) -> Result<Vec<u64>, ErrorCode> {
         let data = self.get_u8_slice(key).map_err(|e| p!(e))?;
         let chunks = data.chunks_exact(mem::size_of::<u64>());
-        if chunks.remainder().len() != 0 {
+        if !chunks.remainder().is_empty() {
             log_e!("u8 slice length {} is incorrect", data.len());
             return Err(ErrorCode::GeneralError);
         }
@@ -254,8 +260,8 @@ impl Attribute {
         Ok(u64_vec)
     }
 
-    pub fn set_u64_slice(&mut self, key: AttributeKey, data: &[u64]) -> () {
-        let mut bytes = Vec::with_capacity(data.len() * mem::size_of::<u64>());
+    pub fn set_u64_slice(&mut self, key: AttributeKey, data: &[u64]) {
+        let mut bytes = Vec::with_capacity(mem::size_of_val(data));
         for &value in data {
             bytes.extend_from_slice(&value.to_le_bytes());
         }
@@ -265,7 +271,7 @@ impl Attribute {
     pub fn get_u16_vec(&self, key: AttributeKey) -> Result<Vec<u16>, ErrorCode> {
         let data = self.get_u8_slice(key).map_err(|e| p!(e))?;
         let chunks = data.chunks_exact(mem::size_of::<u16>());
-        if chunks.remainder().len() != 0 {
+        if !chunks.remainder().is_empty() {
             log_e!("u8 slice length {} is incorrect", data.len());
             return Err(ErrorCode::GeneralError);
         }
@@ -277,8 +283,8 @@ impl Attribute {
         Ok(u16_vec)
     }
 
-    pub fn set_u16_slice(&mut self, key: AttributeKey, data: &[u16]) -> () {
-        let mut bytes = Vec::with_capacity(data.len() * mem::size_of::<u16>());
+    pub fn set_u16_slice(&mut self, key: AttributeKey, data: &[u16]) {
+        let mut bytes = Vec::with_capacity(mem::size_of_val(data));
         for &value in data {
             bytes.extend_from_slice(&value.to_le_bytes());
         }
@@ -300,7 +306,7 @@ impl Attribute {
         Ok(u8_vecs)
     }
 
-    pub fn set_u8_slices(&mut self, key: AttributeKey, u8_slices: &[&[u8]]) -> () {
+    pub fn set_u8_slices(&mut self, key: AttributeKey, u8_slices: &[&[u8]]) {
         let mut parcel = Parcel::new();
         for &slice in u8_slices {
             parcel.write_u32_le(slice.len() as u32);

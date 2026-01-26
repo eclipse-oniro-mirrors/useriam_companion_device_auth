@@ -14,9 +14,6 @@
  */
 
 use crate::log_e;
-use crate::vec;
-use crate::Vec;
-use core::ops;
 
 pub const PUBLIC_KEY_LEN: usize = 32;
 pub const CHALLENGE_LEN: usize = 8;
@@ -38,9 +35,11 @@ pub const ABANDON_PIN_VALID_PERIOD: u64 = 96 * 3600 * 1000;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[repr(i32)]
+#[derive(Default)]
 pub enum ErrorCode {
     Success = 0,
     Fail = 1,
+    #[default]
     GeneralError = 2,
     Canceled = 3,
     Timeout = 4,
@@ -54,12 +53,6 @@ pub enum ErrorCode {
     BadSign = 12,
     IdExists = 13,
     ExceedLimit = 14,
-}
-
-impl Default for ErrorCode {
-    fn default() -> Self {
-        ErrorCode::GeneralError
-    }
 }
 
 impl TryFrom<i32> for ErrorCode {
@@ -91,18 +84,14 @@ impl TryFrom<i32> for ErrorCode {
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
 #[repr(i32)]
+#[derive(Default)]
 pub enum AuthSecurityLevel {
+    #[default]
     Asl0 = 0,
     Asl1 = 1,
     Asl2 = 2,
     Asl3 = 3,
     MaxAsl = 4,
-}
-
-impl Default for AuthSecurityLevel {
-    fn default() -> Self {
-        AuthSecurityLevel::Asl0
-    }
 }
 
 impl TryFrom<i32> for AuthSecurityLevel {
@@ -124,18 +113,14 @@ impl TryFrom<i32> for AuthSecurityLevel {
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
 #[repr(i32)]
+#[derive(Default)]
 pub enum ExecutorSecurityLevel {
+    #[default]
     Esl0 = 0,
     Esl1 = 1,
     Esl2 = 2,
     Esl3 = 3,
     MaxEsl = 4,
-}
-
-impl Default for ExecutorSecurityLevel {
-    fn default() -> Self {
-        ExecutorSecurityLevel::Esl0
-    }
 }
 
 impl TryFrom<i32> for ExecutorSecurityLevel {
@@ -157,18 +142,14 @@ impl TryFrom<i32> for ExecutorSecurityLevel {
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
 #[repr(u32)]
+#[derive(Default)]
 pub enum AuthCapabilityLevel {
+    #[default]
     Acl0 = 0,
     Acl1 = 1,
     Acl2 = 2,
     Acl3 = 3,
     MaxAcl = 4,
-}
-
-impl Default for AuthCapabilityLevel {
-    fn default() -> Self {
-        AuthCapabilityLevel::Acl0
-    }
 }
 
 impl TryFrom<i32> for AuthCapabilityLevel {
@@ -189,19 +170,15 @@ impl TryFrom<i32> for AuthCapabilityLevel {
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Debug)]
 #[repr(i32)]
+#[derive(Default)]
 pub enum AuthTrustLevel {
+    #[default]
     Atl0 = 0,
     Atl1 = 10000,
     Atl2 = 20000,
     Atl3 = 30000,
     Atl4 = 40000,
     MaxAtl = 5,
-}
-
-impl Default for AuthTrustLevel {
-    fn default() -> Self {
-        AuthTrustLevel::Atl0
-    }
 }
 
 impl TryFrom<i32> for AuthTrustLevel {
@@ -250,15 +227,11 @@ pub struct DeviceCapability {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u16)]
+#[derive(Default)]
 pub enum AlgoType {
+    #[default]
     None = 0,
     X25519 = 1,
-}
-
-impl Default for AlgoType {
-    fn default() -> Self {
-        AlgoType::None
-    }
 }
 
 impl TryFrom<u16> for AlgoType {
@@ -276,15 +249,11 @@ impl TryFrom<u16> for AlgoType {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u16)]
+#[derive(Default)]
 pub enum SecureProtocolId {
+    #[default]
     Invalid = 0,
     Default = 1,
-}
-
-impl Default for SecureProtocolId {
-    fn default() -> Self {
-        SecureProtocolId::Invalid
-    }
 }
 
 impl TryFrom<u16> for SecureProtocolId {
@@ -303,18 +272,14 @@ impl TryFrom<u16> for SecureProtocolId {
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
 #[repr(u32)]
+#[derive(Default)]
 pub enum AuthType {
+    #[default]
     Default = 0,
     Pin = 1,
     Face = 2,
     Fingerprint = 4,
     CompanionDevice = 64,
-}
-
-impl Default for AuthType {
-    fn default() -> Self {
-        AuthType::Default
-    }
 }
 
 impl TryFrom<u32> for AuthType {
@@ -336,16 +301,12 @@ impl TryFrom<u32> for AuthType {
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
 #[repr(u16)]
+#[derive(Default)]
 pub enum Capability {
+    #[default]
     Invalid = 0,
     DelegateAuth = 1,
     TokenAuth = 2,
-}
-
-impl Default for Capability {
-    fn default() -> Self {
-        Capability::Invalid
-    }
 }
 
 impl TryFrom<u16> for Capability {

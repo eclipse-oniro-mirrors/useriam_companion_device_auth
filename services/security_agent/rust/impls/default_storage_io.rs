@@ -58,7 +58,7 @@ impl StorageIo for DefaultStorageIo {
         }
 
         let final_path = format!("{}{}", DEFAULT_FILE_HEAD, file_name);
-        let context = fs::read(&final_path).map_err(|e| {
+        let context = fs::read(final_path).map_err(|e| {
             log_e!("failed to read file: {}, result: {:?}", file_name, e);
             ErrorCode::GeneralError
         })?;
@@ -104,5 +104,11 @@ impl StorageIo for DefaultStorageIo {
             ErrorCode::GeneralError
         })?;
         Ok(())
+    }
+}
+
+impl Default for DefaultStorageIo {
+    fn default() -> Self {
+        Self::new()
     }
 }

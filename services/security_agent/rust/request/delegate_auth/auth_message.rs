@@ -14,15 +14,11 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::jobs::companion_db_helper;
-use crate::jobs::host_db_helper;
-use crate::jobs::message_crypto;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkAuthRequest {

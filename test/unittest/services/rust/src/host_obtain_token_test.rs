@@ -94,7 +94,7 @@ fn host_obtain_token_request_new_test_secure_random_challenge_fail() {
         .returning(|_| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let result = HostDeviceObtainTokenRequest::new(&input);
     assert_eq!(result, Err(ErrorCode::GeneralError));
@@ -109,7 +109,7 @@ fn host_obtain_token_request_get_request_id_test() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let request = HostDeviceObtainTokenRequest::new(&input).unwrap();
     assert_eq!(request.get_request_id(), 1);
@@ -124,7 +124,7 @@ fn host_obtain_token_request_prepare_test_not_implemented() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
@@ -143,7 +143,7 @@ fn host_obtain_token_request_begin_test_wrong_input_type() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
@@ -175,11 +175,11 @@ fn host_obtain_token_request_begin_test_success() {
         .returning(|| Ok(vec![create_mock_companion_device_capability()]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
-    let begin_input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let begin_input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut output = HostProcessPreObtainTokenOutputFfi::default();
     let param = RequestParam::HostObtainTokenBegin(&begin_input, &mut output);
@@ -196,7 +196,7 @@ fn host_obtain_token_request_end_test_wrong_input_type() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
@@ -221,7 +221,7 @@ fn host_obtain_token_request_end_test_read_device_capability_info_fail() {
         .returning(|| Err(ErrorCode::NotFound));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
@@ -253,7 +253,7 @@ fn host_obtain_token_request_end_test_decode_sec_message_fail() {
         .returning(|| Ok(vec![create_mock_companion_device_capability()]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
@@ -288,7 +288,7 @@ fn host_obtain_token_request_end_test_get_session_key_fail() {
         .returning(|| Err(ErrorCode::NotFound));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
@@ -321,7 +321,7 @@ fn host_obtain_token_request_end_test_decrypt_fail() {
 
     mock_set_host_db_manager();
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
@@ -347,7 +347,7 @@ fn host_obtain_token_request_end_test_challenge_mismatch() {
     mock_set_crypto_engine();
     mock_set_host_db_manager();
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
     request.challenge = 999;
@@ -374,7 +374,7 @@ fn host_obtain_token_request_end_test_atl_try_from_fail() {
     mock_set_crypto_engine();
     mock_set_host_db_manager();
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
     request.challenge = 0;
@@ -412,7 +412,7 @@ fn host_obtain_token_request_end_test_secure_random_fail() {
 
     mock_set_host_db_manager();
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
     request.challenge = 0;
@@ -450,7 +450,7 @@ fn host_obtain_token_request_end_test_generate_token_fail() {
 
     mock_set_host_db_manager();
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
     request.challenge = 0;
@@ -485,7 +485,7 @@ fn host_obtain_token_request_end_test_sec_message_get_session_key_fail() {
 
     mock_set_host_db_manager();
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
     request.challenge = 0;
@@ -522,7 +522,7 @@ fn host_obtain_token_request_end_test_sec_message_encrypt_fail() {
 
     mock_set_host_db_manager();
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
     request.challenge = 0;
@@ -555,7 +555,7 @@ fn host_obtain_token_request_end_test_get_rtc_time_fail() {
         .returning(|| Err(ErrorCode::GeneralError));
     TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
     request.challenge = 0;
@@ -594,7 +594,7 @@ fn host_obtain_token_request_end_test_add_token_fail() {
         .returning(|| Err(ErrorCode::GeneralError));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 
@@ -621,7 +621,7 @@ fn host_obtain_token_request_end_test_success() {
     mock_set_host_db_manager();
     mock_set_time_keeper();
 
-    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1  };
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
 
     let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
 

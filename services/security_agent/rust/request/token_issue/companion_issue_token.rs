@@ -14,24 +14,19 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::entry::companion_device_auth_ffi::{
-    CompanionPreIssueTokenInputFfi, CompanionPreIssueTokenOutputFfi, CompanionProcessIssueTokenInputFfi,
-    CompanionProcessIssueTokenOutputFfi, DataArray1024Ffi,
-};
+use crate::entry::companion_device_auth_ffi::{CompanionPreIssueTokenInputFfi, DataArray1024Ffi};
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
-use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest, SecIssueToken};
+use crate::request::jobs::common_message::{SecCommonReply, SecIssueToken};
 use crate::request::token_issue::token_issue_message::SecIssueTokenReply;
 use crate::request::token_issue::token_issue_message::SecPreIssueRequest;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
-use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostTokenInfo;
-use crate::traits::misc_manager::MiscManagerRegistry;
-use crate::traits::time_keeper::TimeKeeperRegistry;
+use crate::traits::request_manager::{Request, RequestParam};
+
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PreIssueParam {
@@ -101,14 +96,14 @@ impl CompanionDeviceIssueTokenRequest {
             message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
                 .map_err(|e| p!(e))?;
 
-        let sec_pre_issue_reply = SecCommonReply { tag: tag, iv: iv, encrypt_data: encrypt_data };
+        let sec_pre_issue_reply = SecCommonReply { tag, iv, encrypt_data };
 
         let output = sec_pre_issue_reply.encode(DeviceType::None)?;
         Ok(output)
     }
 
     fn parse_issue_token_request(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        let issue_token = SecIssueToken::decrypt_issue_token(&sec_message, device_type, &self.session_key)?;
+        let issue_token = SecIssueToken::decrypt_issue_token(sec_message, device_type, &self.session_key)?;
 
         if issue_token.challenge != self.pre_issue_param.challenge {
             log_e!("Challenge verification failed");

@@ -14,16 +14,12 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
-use crate::jobs::companion_db_helper;
-use crate::jobs::host_db_helper;
-use crate::jobs::message_crypto;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
 use crate::String;
-use crate::{log_e, log_i, p, Box, Vec};
+use crate::{log_e, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkEnrollRequest {
@@ -84,7 +80,7 @@ impl SecKeyNegoRequest {
 
         let mut final_attribute = Attribute::new();
         final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
-        Ok(final_attribute.to_bytes()?)
+        final_attribute.to_bytes()
     }
 
     pub fn decode(message: &[u8], _device_type: DeviceType) -> Result<Self, ErrorCode> {
@@ -116,7 +112,7 @@ impl SecKeyNegoReply {
         let mut final_attribute = Attribute::new();
         final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
 
-        Ok(final_attribute.to_bytes()?)
+        final_attribute.to_bytes()
     }
 
     pub fn decode(message: &[u8], _device_type: DeviceType) -> Result<Self, ErrorCode> {
@@ -156,7 +152,7 @@ impl SecBindingRequest {
         let mut final_attribute = Attribute::new();
         final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
 
-        Ok(final_attribute.to_bytes()?)
+        final_attribute.to_bytes()
     }
 
     pub fn decode(message: &[u8], _device_type: DeviceType) -> Result<Self, ErrorCode> {
@@ -197,7 +193,7 @@ impl SecBindingReply {
         let mut final_attribute = Attribute::new();
         final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
 
-        Ok(final_attribute.to_bytes()?)
+        final_attribute.to_bytes()
     }
 
     pub fn decode(message: &[u8], _device_type: DeviceType) -> Result<Self, ErrorCode> {
@@ -239,11 +235,11 @@ impl SecBindingReplyInfo {
         attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
         attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocol_list);
         attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.capability_list);
-        Ok(attribute.to_bytes()?)
+        attribute.to_bytes()
     }
 
     pub fn decode(decrypt_data: &[u8]) -> Result<Self, ErrorCode> {
-        let attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
+        let attribute = Attribute::try_from_bytes(decrypt_data).map_err(|e| p!(e))?;
         let device_id = attribute.get_string(AttributeKey::AttrDeviceId).map_err(|e| p!(e))?;
         let user_id = attribute.get_i32(AttributeKey::AttrUserId).map_err(|e| p!(e))?;
         let esl = attribute.get_i32(AttributeKey::AttrEsl).map_err(|e| p!(e))?;

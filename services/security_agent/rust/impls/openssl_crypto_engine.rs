@@ -29,7 +29,6 @@ use openssl::md::Md;
 use openssl::nid::Nid;
 use openssl::pkey::Id;
 use openssl::pkey::PKey;
-use openssl::pkey::Private;
 use openssl::pkey_ctx::PkeyCtx;
 use openssl::rand::rand_bytes;
 use openssl::sign::{Signer, Verifier};
@@ -40,6 +39,11 @@ pub struct OpenSSLCryptoEngine;
 impl OpenSSLCryptoEngine {
     pub fn new() -> Self {
         Self
+    }
+}
+impl Default for OpenSSLCryptoEngine {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -301,7 +305,7 @@ impl CryptoEngine for OpenSSLCryptoEngine {
             ErrorCode::GeneralError
         })?;
 
-        public_point.mul_generator(&group, &priv_bn, &mut ctx).map_err(|e| {
+        public_point.mul_generator(&group, &priv_bn, &ctx).map_err(|e| {
             log_e!("Failed to generate public key from private key: {}", e);
             ErrorCode::GeneralError
         })?;
