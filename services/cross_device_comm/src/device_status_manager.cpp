@@ -364,6 +364,7 @@ std::optional<ProtocolId> DeviceStatusManager::NegotiateProtocol(const std::vect
 
 std::vector<Capability> DeviceStatusManager::NegotiateCapabilities(const std::vector<Capability> &remoteCapabilities)
 {
+    ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, std::vector<Capability> {});
     auto localProfile = localDeviceStatusMgr_->GetLocalDeviceProfile();
 
     std::vector<Capability> intersection;
@@ -450,10 +451,7 @@ std::map<PhysicalDeviceKey, PhysicalDeviceStatus> DeviceStatusManager::CollectFi
     std::map<PhysicalDeviceKey, PhysicalDeviceStatus> filteredDevicesMap;
 
     for (const auto &channel : channelMgr_->GetAllChannels()) {
-        if (channel == nullptr) {
-            IAM_LOGE("channel is null");
-            continue;
-        }
+        ENSURE_OR_CONTINUE(channel != nullptr);
         ChannelId channelId = channel->GetChannelId();
         if (channelId == ChannelId::INVALID) {
             IAM_LOGE("channel id is invalid");

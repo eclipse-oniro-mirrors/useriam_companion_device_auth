@@ -18,6 +18,7 @@
 #include "napi/native_node_api.h"
 #include <uv.h>
 
+#include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
 
@@ -114,9 +115,10 @@ napi_status NapiContinuousAuthStatusCallback::DoCallback(const bool isAuthPassed
     }
 
     for (size_t i = 0; i < callbacks_.size(); ++i) {
+        ENSURE_OR_CONTINUE(callbacks_[i] != nullptr);
         status = CompanionDeviceAuthNapiHelper::CallVoidNapiFunc(env_, callbacks_[i]->Get(), argc, argv);
         if (status != napi_ok) {
-            IAM_LOGE("CallVoidNapiFunc fail at index: %{puiblic}zu", i);
+            IAM_LOGE("CallVoidNapiFunc fail at index: %{public}zu", i);
         }
     }
 

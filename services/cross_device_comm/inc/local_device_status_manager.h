@@ -52,7 +52,7 @@ public:
 
 private:
     explicit LocalDeviceStatusManager(std::shared_ptr<ChannelManager> channelMgr);
-    bool Init();
+    bool Initialize();
 
     std::shared_ptr<ChannelManager> channelMgr_;
     LocalDeviceProfile profile_;

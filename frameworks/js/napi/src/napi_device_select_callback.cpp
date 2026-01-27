@@ -67,6 +67,11 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
         napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
         return;
     }
+    if (deviceSelectCallbackHolder->setCallback == nullptr) {
+        IAM_LOGE("setCallback is null");
+        napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
+        return;
+    }
     deviceSelectCallbackHolder->setCallback->OnSetDeviceSelectResult(result);
     napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
 }

@@ -18,6 +18,7 @@
 #include "napi/native_node_api.h"
 #include <uv.h>
 
+#include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_ptr.h"
 
@@ -100,6 +101,7 @@ napi_status NapiTemplateStatusCallback::DoCallback(const std::vector<ClientTempl
     }
 
     for (size_t i = 0; i < callbacks_.size(); ++i) {
+        ENSURE_OR_CONTINUE(callbacks_[i] != nullptr);
         napi_status status = CompanionDeviceAuthNapiHelper::CallVoidNapiFunc(env_, callbacks_[i]->Get(), ARGS_ONE,
             &templateStatusListValue);
         if (status != napi_ok) {

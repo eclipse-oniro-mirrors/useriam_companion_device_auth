@@ -79,8 +79,9 @@ bool CrossDeviceCommManagerImpl::Start()
         return true;
     }
 
+    ENSURE_OR_RETURN_VAL(channelMgr_ != nullptr, false);
     for (const auto &channel : channelMgr_->GetAllChannels()) {
-        ENSURE_OR_RETURN_VAL(channel != nullptr, false);
+        ENSURE_OR_CONTINUE(channel != nullptr);
         if (!channel->Start()) {
             IAM_LOGE("failed to start channel %{public}d", static_cast<int32_t>(channel->GetChannelId()));
             return false;
@@ -94,54 +95,64 @@ bool CrossDeviceCommManagerImpl::Start()
 
 bool CrossDeviceCommManagerImpl::IsAuthMaintainActive()
 {
+    ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, false);
     return localDeviceStatusMgr_->IsAuthMaintainActive();
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeIsAuthMaintainActive(
     OnAuthMaintainActiveChange &&callback)
 {
+    ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, nullptr);
     return localDeviceStatusMgr_->SubscribeIsAuthMaintainActive(std::move(callback));
 }
 
 LocalDeviceProfile CrossDeviceCommManagerImpl::GetLocalDeviceProfile()
 {
+    ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, (LocalDeviceProfile {}));
     return localDeviceStatusMgr_->GetLocalDeviceProfile();
 }
 
 std::optional<DeviceStatus> CrossDeviceCommManagerImpl::GetDeviceStatus(const DeviceKey &deviceKey)
 {
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, std::nullopt);
     return deviceStatusMgr_->GetDeviceStatus(deviceKey);
 }
 
 std::vector<DeviceStatus> CrossDeviceCommManagerImpl::GetAllDeviceStatus()
 {
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, (std::vector<DeviceStatus> {}));
     return deviceStatusMgr_->GetAllDeviceStatus();
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeAllDeviceStatus(
     OnDeviceStatusChange &&onDeviceStatusChange)
 {
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, nullptr);
     return deviceStatusMgr_->SubscribeDeviceStatus(std::move(onDeviceStatusChange));
 }
 
 void CrossDeviceCommManagerImpl::SetSubscribeMode(SubscribeMode subscribeMode)
 {
+    ENSURE_OR_RETURN(deviceStatusMgr_ != nullptr);
     deviceStatusMgr_->SetSubscribeMode(subscribeMode);
 }
 
 std::optional<SteadyTimeMs> CrossDeviceCommManagerImpl::GetManageSubscribeTime() const
 {
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, std::nullopt);
     return deviceStatusMgr_->GetManageSubscribeTime();
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeDeviceStatus(const DeviceKey &deviceKey,
     OnDeviceStatusChange &&onDeviceStatusChange)
 {
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, nullptr);
     return deviceStatusMgr_->SubscribeDeviceStatus(deviceKey, std::move(onDeviceStatusChange));
 }
 
 bool CrossDeviceCommManagerImpl::OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName)
 {
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, false);
     auto channelId = deviceStatusMgr_->GetChannelIdByDeviceKey(deviceKey);
     if (!channelId.has_value()) {
         IAM_LOGE("failed to get channel id for device: %{public}s", deviceKey.GetDesc().c_str());
@@ -152,11 +163,13 @@ bool CrossDeviceCommManagerImpl::OpenConnection(const DeviceKey &deviceKey, std:
     physicalDeviceKey.idType = deviceKey.idType;
     physicalDeviceKey.deviceId = deviceKey.deviceId;
 
+    ENSURE_OR_RETURN_VAL(connectionMgr_ != nullptr, false);
     return connectionMgr_->OpenConnection(physicalDeviceKey, channelId.value(), outConnectionName);
 }
 
 void CrossDeviceCommManagerImpl::CloseConnection(const std::string &connectionName)
 {
+    ENSURE_OR_RETURN(connectionMgr_ != nullptr);
     connectionMgr_->CloseConnection(connectionName);
 }
 
@@ -167,6 +180,7 @@ bool CrossDeviceCommManagerImpl::IsConnectionOpen(const std::string &connectionN
 
 ConnectionStatus CrossDeviceCommManagerImpl::GetConnectionStatus(const std::string &connectionName)
 {
+    ENSURE_OR_RETURN_VAL(connectionMgr_ != nullptr, ConnectionStatus::DISCONNECTED);
     return connectionMgr_->GetConnectionStatus(connectionName);
 }
 
@@ -174,36 +188,42 @@ std::optional<DeviceKey> CrossDeviceCommManagerImpl::GetLocalDeviceKeyByConnecti
     const std::string &connectionName)
 {
     ENSURE_OR_RETURN_VAL(!connectionName.empty(), std::nullopt);
+    ENSURE_OR_RETURN_VAL(connectionMgr_ != nullptr, std::nullopt);
     auto connection = connectionMgr_->GetConnection(connectionName);
     if (!connection.has_value()) {
         IAM_LOGE("connection not found %{public}s", connectionName.c_str());
         return std::nullopt;
     }
 
+    ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, std::nullopt);
     return localDeviceStatusMgr_->GetLocalDeviceKey(connection->channelId);
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeConnectionStatus(const std::string &connectionName,
     OnConnectionStatusChange &&onConnectionStatusChange)
 {
+    ENSURE_OR_RETURN_VAL(connectionMgr_ != nullptr, nullptr);
     return connectionMgr_->SubscribeConnectionStatus(connectionName, std::move(onConnectionStatusChange));
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeIncomingConnection(MessageType msgType,
     OnMessage &&onMessage)
 {
+    ENSURE_OR_RETURN_VAL(messageRouter_ != nullptr, nullptr);
     return messageRouter_->SubscribeIncomingConnection(msgType, std::move(onMessage));
 }
 
 bool CrossDeviceCommManagerImpl::SendMessage(const std::string &connectionName, MessageType msgType,
     Attributes &request, OnMessageReply &&onMessageReply)
 {
+    ENSURE_OR_RETURN_VAL(messageRouter_ != nullptr, false);
     return messageRouter_->SendMessage(connectionName, msgType, request, std::move(onMessageReply));
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeMessage(const std::string &connectionName,
     MessageType msgType, OnMessage &&onMessage)
 {
+    ENSURE_OR_RETURN_VAL(messageRouter_ != nullptr, nullptr);
     return messageRouter_->SubscribeMessage(connectionName, msgType, std::move(onMessage));
 }
 
@@ -215,9 +235,11 @@ bool CrossDeviceCommManagerImpl::CheckOperationIntent(const DeviceKey &deviceKey
         return false;
     }
 
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, false);
     auto channelId = deviceStatusMgr_->GetChannelIdByDeviceKey(deviceKey);
     ENSURE_OR_RETURN_VAL(channelId.has_value(), false);
 
+    ENSURE_OR_RETURN_VAL(channelMgr_ != nullptr, false);
     auto channel = channelMgr_->GetChannelById(channelId.value());
     ENSURE_OR_RETURN_VAL(channel != nullptr, false);
     return channel->CheckOperationIntent(deviceKey, tokenId, std::move(resultCallback));

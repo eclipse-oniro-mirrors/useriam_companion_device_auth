@@ -191,8 +191,9 @@ public:
     }
 
 private:
-    void Initialize() override
+    bool Initialize() override
     {
+        return true;
     }
 
     FuzzedDataProvider &fuzzData_;
@@ -278,8 +279,9 @@ public:
     }
 
 private:
-    void Initialize() override
+    bool Initialize() override
     {
+        return true;
     }
 
     FuzzedDataProvider &fuzzData_;
@@ -867,8 +869,9 @@ public:
     }
 
 private:
-    void Initialize() override
+    bool Initialize() override
     {
+        return true;
     }
 
     FuzzedDataProvider &fuzzData_;

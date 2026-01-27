@@ -518,7 +518,7 @@ public:
     virtual ResultCode CompanionRevokeToken(const CompanionRevokeTokenInput &input) = 0;
 
 private:
-    virtual void Initialize() = 0;
+    virtual bool Initialize() = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

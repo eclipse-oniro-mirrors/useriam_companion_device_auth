@@ -60,7 +60,7 @@ class ICompanionManager : public NoCopyable {
 public:
     virtual ~ICompanionManager() = default;
 
-    virtual void Initialize() = 0;
+    virtual bool Initialize() = 0;
 
     virtual std::optional<CompanionStatus> GetCompanionStatus(TemplateId templateId) = 0;
     virtual std::optional<CompanionStatus> GetCompanionStatus(UserId hostUserId,

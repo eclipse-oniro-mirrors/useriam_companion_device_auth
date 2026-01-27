@@ -75,10 +75,11 @@ static void FuzzSubscribeIsAuthMaintainActive(std::shared_ptr<LocalDeviceStatusM
     (void)subscription;
 }
 
-static void FuzzInit(std::shared_ptr<LocalDeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
+// Note: These functions access private members, enabled by -Dprivate=public in fuzzer build
+static void FuzzInitialize(std::shared_ptr<LocalDeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    mgr->Init();
+    mgr->Initialize();
 }
 
 static void FuzzNotifyStatusChange(std::shared_ptr<LocalDeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
@@ -106,7 +107,7 @@ static const LocalDeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzIsAuthMaintainActive,
     FuzzSetAuthMaintainActive,
     FuzzSubscribeIsAuthMaintainActive,
-    FuzzInit,
+    FuzzInitialize,
     FuzzNotifyStatusChange,
     FuzzUnsubscribe,
     FuzzOnActiveUserIdChanged,

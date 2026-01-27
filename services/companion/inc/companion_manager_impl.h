@@ -70,7 +70,7 @@ public:
 
 private:
     CompanionManagerImpl();
-    void Initialize() override;
+    bool Initialize() override;
     void OnActiveUserIdChanged(UserId userId);
     void OnTemplateListChanged(UserId userId, const std::vector<TemplateId> &templateIds);
     void Reload(const std::vector<PersistedCompanionStatus> &persistedCompanionList,

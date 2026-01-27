@@ -39,7 +39,9 @@ public:
     MOCK_METHOD(bool, SetHostBindingTokenValid, (BindingId bindingId, bool isTokenValid), (override));
     MOCK_METHOD(void, StartObtainTokenRequests, (UserId userId, const std::vector<uint8_t> &fwkUnlockMsg), (override));
     MOCK_METHOD(void, RevokeTokens, (UserId userId), (override));
-    MOCK_METHOD(void, Initialize, (), (override));
+
+private:
+    MOCK_METHOD(bool, Initialize, (), (override));
 };
 
 } // namespace CompanionDeviceAuth

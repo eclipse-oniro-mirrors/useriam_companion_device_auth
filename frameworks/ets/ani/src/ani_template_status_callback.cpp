@@ -66,6 +66,10 @@ void AniTemplateStatusCallback::DoCallback(const std::vector<ClientTemplateStatu
     std::vector<companionDeviceAuth::TemplateStatus> temp;
     ani_env *env = nullptr;
     ani_options aniArgs { 0, nullptr };
+    if (vm_ == nullptr) {
+        IAM_LOGE("vm_ is null");
+        return;
+    }
     auto status = vm_->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env);
     if (status != ANI_OK) {
         IAM_LOGE("get ani env fail");

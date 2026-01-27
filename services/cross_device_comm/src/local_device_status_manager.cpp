@@ -36,7 +36,7 @@ std::shared_ptr<LocalDeviceStatusManager> LocalDeviceStatusManager::Create(std::
     auto manager = std::shared_ptr<LocalDeviceStatusManager>(new (std::nothrow) LocalDeviceStatusManager(channelMgr));
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
 
-    if (!manager->Init()) {
+    if (!manager->Initialize()) {
         IAM_LOGE("failed to initialize LocalDeviceStatusManager");
         return nullptr;
     }
@@ -54,7 +54,7 @@ LocalDeviceStatusManager::LocalDeviceStatusManager(std::shared_ptr<ChannelManage
     authState_.isAuthMaintainActive = false;
 }
 
-bool LocalDeviceStatusManager::Init()
+bool LocalDeviceStatusManager::Initialize()
 {
     ENSURE_OR_RETURN_VAL(channelMgr_ != nullptr, false);
 
@@ -115,13 +115,12 @@ std::unique_ptr<Subscription> LocalDeviceStatusManager::SubscribeIsAuthMaintainA
 
 std::map<ChannelId, DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKeys()
 {
+    ENSURE_OR_RETURN_VAL(channelMgr_ != nullptr, (std::map<ChannelId, DeviceKey> {}));
     std::map<ChannelId, DeviceKey> result;
     auto channels = channelMgr_->GetAllChannels();
 
     for (const auto &channel : channels) {
-        if (channel == nullptr) {
-            continue;
-        }
+        ENSURE_OR_CONTINUE(channel != nullptr);
         auto deviceKeyOpt = GetLocalDeviceKey(channel->GetChannelId());
         if (deviceKeyOpt.has_value()) {
             result[channel->GetChannelId()] = deviceKeyOpt.value();
@@ -133,6 +132,7 @@ std::map<ChannelId, DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKeys()
 
 std::optional<DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKey(ChannelId channelId)
 {
+    ENSURE_OR_RETURN_VAL(channelMgr_ != nullptr, std::nullopt);
     auto channel = channelMgr_->GetChannelById(channelId);
     if (channel == nullptr) {
         IAM_LOGW("Channel not found: %{public}d", static_cast<int32_t>(channelId));

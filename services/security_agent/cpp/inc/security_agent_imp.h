@@ -131,7 +131,7 @@ public:
 
 private:
     SecurityAgentImpl();
-    void Initialize() override;
+    bool Initialize() override;
     std::unique_ptr<Subscription> activeUserSubscription_;
 };
 } // namespace CompanionDeviceAuth

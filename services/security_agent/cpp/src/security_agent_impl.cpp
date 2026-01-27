@@ -50,7 +50,7 @@ std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
     return agent;
 }
 
-void SecurityAgentImpl::Initialize()
+bool SecurityAgentImpl::Initialize()
 {
     auto &userIdManager = SingletonManager::GetInstance().GetUserIdManager();
     UserId currentUserId = userIdManager.GetActiveUserId();
@@ -60,15 +60,13 @@ void SecurityAgentImpl::Initialize()
             IAM_LOGE("failed to update active user %{public}d", result);
         }
     });
-    if (subscription == nullptr) {
-        IAM_LOGE("failed to subscribe active user id updates");
-    } else {
-        activeUserSubscription_ = std::move(subscription);
-    }
+    ENSURE_OR_RETURN_VAL(subscription != nullptr, false);
+    activeUserSubscription_ = std::move(subscription);
+
     auto result = SetActiveUser(SetActiveUserInput { currentUserId });
-    if (result != SUCCESS) {
-        IAM_LOGE("failed to set active user during initialize %{public}d", result);
-    }
+    ENSURE_OR_RETURN_VAL(result == SUCCESS, false);
+
+    return true;
 }
 
 ResultCode SecurityAgentImpl::Init()

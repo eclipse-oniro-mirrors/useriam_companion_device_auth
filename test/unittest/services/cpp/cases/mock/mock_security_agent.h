@@ -116,7 +116,9 @@ public:
         (const HostUpdateCompanionEnabledBusinessIdsInput &input), (override));
     MOCK_METHOD(ResultCode, HostCheckTemplateEnrolled,
         (const HostCheckTemplateEnrolledInput &input, HostCheckTemplateEnrolledOutput &output), (override));
-    MOCK_METHOD(void, Initialize, (), (override));
+
+private:
+    MOCK_METHOD(bool, Initialize, (), (override));
 };
 
 } // namespace CompanionDeviceAuth

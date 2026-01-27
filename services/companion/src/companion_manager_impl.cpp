@@ -58,13 +58,13 @@ CompanionManagerImpl::~CompanionManagerImpl()
 {
 }
 
-void CompanionManagerImpl::Initialize()
+bool CompanionManagerImpl::Initialize()
 {
     IAM_LOGI("initialize companion manager begin");
 
     if (activeUserIdSubscription_ != nullptr) {
         IAM_LOGI("already subscribed to active user id");
-        return;
+        return true;
     }
 
     auto weakSelf = weak_from_this();
@@ -73,9 +73,10 @@ void CompanionManagerImpl::Initialize()
         ENSURE_OR_RETURN(self != nullptr);
         self->OnActiveUserIdChanged(userId);
     });
-    ENSURE_OR_RETURN(activeUserIdSubscription_ != nullptr);
+    ENSURE_OR_RETURN_VAL(activeUserIdSubscription_ != nullptr, false);
 
     IAM_LOGI("initialize companion manager success");
+    return true;
 }
 
 void CompanionManagerImpl::Reload(const std::vector<PersistedCompanionStatus> &persistedCompanionList,

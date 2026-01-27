@@ -39,13 +39,13 @@ std::shared_ptr<HostBindingManagerImpl> HostBindingManagerImpl::Create()
     return manager;
 }
 
-void HostBindingManagerImpl::Initialize()
+bool HostBindingManagerImpl::Initialize()
 {
     IAM_LOGI("begin");
 
     if (activeUserIdSubscription_ != nullptr) {
         IAM_LOGI("already subscribed to active user id");
-        return;
+        return true;
     }
 
     auto weakSelf = weak_from_this();
@@ -54,12 +54,10 @@ void HostBindingManagerImpl::Initialize()
         ENSURE_OR_RETURN(self != nullptr);
         self->OnActiveUserIdChanged(userId);
     });
-    if (activeUserIdSubscription_ == nullptr) {
-        IAM_LOGE("subscribe failed");
-        return;
-    }
+    ENSURE_OR_RETURN_VAL(activeUserIdSubscription_ != nullptr, false);
 
     IAM_LOGI("success");
+    return true;
 }
 
 void HostBindingManagerImpl::OnActiveUserIdChanged(UserId userId)

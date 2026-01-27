@@ -56,7 +56,7 @@ public:
 
 private:
     HostBindingManagerImpl() = default;
-    void Initialize() override;
+    bool Initialize() override;
     void OnActiveUserIdChanged(UserId userId);
     ResultCode ReloadBindings(UserId userId);
 
