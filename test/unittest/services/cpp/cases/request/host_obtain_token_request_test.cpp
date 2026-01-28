@@ -135,11 +135,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_001, TestSize.Level0)
     int32_t receivedResult = -1;
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreObtainTokenReply preObtainTokenReply;
-        auto result = DecodePreObtainTokenReply(reply);
-        EXPECT_TRUE(result.has_value());
-        preObtainTokenReply = result.value();
-        receivedResult = preObtainTokenReply.result;
+        auto decodedReply = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(decodedReply.has_value());
+        receivedResult = decodedReply.value().result;
     };
 
     request_ = std::make_shared<HostObtainTokenRequest>(connectionName_, preObtainTokenRequest_, onMessageReply_,
@@ -166,11 +164,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_002, TestSize.Level0)
     int32_t receivedResult = -1;
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreObtainTokenReply preObtainTokenReply;
-        auto result = DecodePreObtainTokenReply(reply);
-        EXPECT_TRUE(result.has_value());
-        preObtainTokenReply = result.value();
-        receivedResult = preObtainTokenReply.result;
+        auto decodedReply = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(decodedReply.has_value());
+        receivedResult = decodedReply.value().result;
     };
 
     Attributes emptyRequest;
@@ -191,11 +187,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_003, TestSize.Level0)
     int32_t receivedResult = -1;
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreObtainTokenReply preObtainTokenReply;
-        auto result = DecodePreObtainTokenReply(reply);
-        EXPECT_TRUE(result.has_value());
-        preObtainTokenReply = result.value();
-        receivedResult = preObtainTokenReply.result;
+        auto decodedReply = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(decodedReply.has_value());
+        receivedResult = decodedReply.value().result;
     };
 
     request_ = std::make_shared<HostObtainTokenRequest>(connectionName_, preObtainTokenRequest_, onMessageReply_,
@@ -218,11 +212,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_004, TestSize.Level0)
     int32_t receivedResult = -1;
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreObtainTokenReply preObtainTokenReply;
-        auto result = DecodePreObtainTokenReply(reply);
-        EXPECT_TRUE(result.has_value());
-        preObtainTokenReply = result.value();
-        receivedResult = preObtainTokenReply.result;
+        auto decodedReply = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(decodedReply.has_value());
+        receivedResult = decodedReply.value().result;
     };
 
     request_ = std::make_shared<HostObtainTokenRequest>(connectionName_, preObtainTokenRequest_, onMessageReply_,
@@ -246,11 +238,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_005, TestSize.Level0)
     int32_t receivedResult = -1;
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreObtainTokenReply preObtainTokenReply;
-        auto result = DecodePreObtainTokenReply(reply);
-        EXPECT_TRUE(result.has_value());
-        preObtainTokenReply = result.value();
-        receivedResult = preObtainTokenReply.result;
+        auto decodedReply = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(decodedReply.has_value());
+        receivedResult = decodedReply.value().result;
     };
 
     request_ = std::make_shared<HostObtainTokenRequest>(connectionName_, preObtainTokenRequest_, onMessageReply_,
@@ -276,11 +266,9 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_006, TestSize.Level0)
     int32_t receivedResult = -1;
     onMessageReply_ = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
-        PreObtainTokenReply preObtainTokenReply;
-        auto result = DecodePreObtainTokenReply(reply);
-        EXPECT_TRUE(result.has_value());
-        preObtainTokenReply = result.value();
-        receivedResult = preObtainTokenReply.result;
+        auto decodedReply = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(decodedReply.has_value());
+        receivedResult = decodedReply.value().result;
     };
 
     request_ = std::make_shared<HostObtainTokenRequest>(connectionName_, preObtainTokenRequest_, onMessageReply_,
@@ -318,7 +306,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_001, TestSize.Leve
 
     bool replyCalled = false;
     int32_t receivedResult = -1;
-    OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
+    OnMessageReply messageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, receivedResult));
     };
@@ -326,7 +314,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_001, TestSize.Leve
     EXPECT_CALL(mockSecurityAgent_, HostProcessObtainToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, _)).WillOnce(Return(true));
 
-    request_->HandleObtainTokenMessage(request, onMessageReply);
+    request_->HandleObtainTokenMessage(request, messageReply);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(replyCalled);
@@ -337,8 +325,8 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_002, TestSize.Leve
 {
     CreateDefaultRequest();
     Attributes request;
-    OnMessageReply onMessageReply = nullptr;
-    request_->HandleObtainTokenMessage(request, onMessageReply);
+    OnMessageReply messageReply = nullptr;
+    request_->HandleObtainTokenMessage(request, messageReply);
 }
 
 HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_003, TestSize.Level0)
@@ -349,13 +337,13 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_003, TestSize.Leve
 
     bool replyCalled = false;
     int32_t receivedResult = -1;
-    OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
+    OnMessageReply messageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, receivedResult));
     };
 
     Attributes request;
-    request_->HandleObtainTokenMessage(request, onMessageReply);
+    request_->HandleObtainTokenMessage(request, messageReply);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(replyCalled);
@@ -379,12 +367,12 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_004, TestSize.Leve
 
     bool replyCalled = false;
     int32_t receivedResult = -1;
-    OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
+    OnMessageReply messageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, receivedResult));
     };
 
-    request_->HandleObtainTokenMessage(request, onMessageReply);
+    request_->HandleObtainTokenMessage(request, messageReply);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(replyCalled);
@@ -409,12 +397,12 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_005, TestSize.Leve
 
     bool replyCalled = false;
     int32_t receivedResult = -1;
-    OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
+    OnMessageReply messageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, receivedResult));
     };
 
-    request_->HandleObtainTokenMessage(request, onMessageReply);
+    request_->HandleObtainTokenMessage(request, messageReply);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(replyCalled);
@@ -439,12 +427,12 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_006, TestSize.Leve
 
     bool replyCalled = false;
     int32_t receivedResult = -1;
-    OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
+    OnMessageReply messageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, receivedResult));
     };
 
-    request_->HandleObtainTokenMessage(request, onMessageReply);
+    request_->HandleObtainTokenMessage(request, messageReply);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(replyCalled);
@@ -468,14 +456,14 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_007, TestSize.Leve
 
     bool replyCalled = false;
     int32_t receivedResult = -1;
-    OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
+    OnMessageReply messageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
         replyCalled = true;
         EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, receivedResult));
     };
 
     EXPECT_CALL(mockSecurityAgent_, HostProcessObtainToken(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
-    request_->HandleObtainTokenMessage(request, onMessageReply);
+    request_->HandleObtainTokenMessage(request, messageReply);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(replyCalled);

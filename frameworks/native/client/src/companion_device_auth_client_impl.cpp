@@ -62,7 +62,7 @@ int32_t CompanionDeviceAuthClientImpl::RegisterDeviceSelectCallback(
         return GENERAL_ERROR;
     }
 
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->RegisterDeviceSelectCallback(wrapper, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -89,7 +89,7 @@ int32_t CompanionDeviceAuthClientImpl::UnregisterDeviceSelectCallback()
         return GENERAL_ERROR;
     }
 
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->UnregisterDeviceSelectCallback(ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -118,7 +118,7 @@ int32_t CompanionDeviceAuthClientImpl::UpdateTemplateEnabledBusinessIds(const ui
         return GENERAL_ERROR;
     }
 
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->UpdateTemplateEnabledBusinessIds(templateId, enabledBusinessIds, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -163,7 +163,7 @@ int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(const int32_t localUser
         return GENERAL_ERROR;
     }
 
-    int32_t ret;
+    int32_t ret {};
     std::vector<IpcTemplateStatus> ipcTemplateStatusList;
     int32_t ipcRet = proxy->GetTemplateStatus(localUserId, ipcTemplateStatusList, ret);
     if (ipcRet != SUCCESS) {
@@ -227,7 +227,7 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChange(const int32
         return GENERAL_ERROR;
     }
 
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->SubscribeTemplateStatusChange(localUserId, wrapper, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -259,16 +259,19 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeTemplateStatusChange(
         return GENERAL_ERROR;
     }
 
-    auto it = std::find_if(templateStatusCallbacks_.begin(), templateStatusCallbacks_.end(),
-        [&callback](const auto &item) { return item && item->GetCallback() == callback; });
-    if (it == templateStatusCallbacks_.end()) {
-        IAM_LOGE("callback not found");
-        return GENERAL_ERROR;
+    sptr<IpcTemplateStatusCallbackService> ipcCallback(nullptr);
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        auto it = std::find_if(templateStatusCallbacks_.begin(), templateStatusCallbacks_.end(),
+            [&callback](const auto &item) { return item && item->GetCallback() == callback; });
+        if (it == templateStatusCallbacks_.end()) {
+            IAM_LOGE("callback not found");
+            return GENERAL_ERROR;
+        }
+        ipcCallback = *it;
     }
 
-    auto ipcCallback = *it;
-
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->UnsubscribeTemplateStatusChange(ipcCallback, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -282,7 +285,11 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeTemplateStatusChange(
 
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
-        templateStatusCallbacks_.erase(it);
+        auto it = std::find_if(templateStatusCallbacks_.begin(), templateStatusCallbacks_.end(),
+            [&ipcCallback](const auto &item) { return item == ipcCallback; });
+        if (it != templateStatusCallbacks_.end()) {
+            templateStatusCallbacks_.erase(it);
+        }
     }
     return ret;
 }
@@ -308,7 +315,7 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeAvailableDeviceStatus(const int3
         return GENERAL_ERROR;
     }
 
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->SubscribeAvailableDeviceStatus(localUserId, wrapper, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -340,15 +347,18 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeAvailableDeviceStatus(
         return GENERAL_ERROR;
     }
 
-    auto it = std::find_if(availableDeviceStatusCallbacks_.begin(), availableDeviceStatusCallbacks_.end(),
-        [&callback](const auto &item) { return item && item->GetCallback() == callback; });
-    if (it == availableDeviceStatusCallbacks_.end()) {
-        IAM_LOGE("callback not found");
-        return GENERAL_ERROR;
+    sptr<IpcAvailableDeviceStatusCallbackService> ipcCallback(nullptr);
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        auto it = std::find_if(availableDeviceStatusCallbacks_.begin(), availableDeviceStatusCallbacks_.end(),
+            [&callback](const auto &item) { return item && item->GetCallback() == callback; });
+        if (it == availableDeviceStatusCallbacks_.end()) {
+            IAM_LOGE("callback not found");
+            return GENERAL_ERROR;
+        }
+        ipcCallback = *it;
     }
-
-    auto ipcCallback = *it;
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->UnsubscribeAvailableDeviceStatus(ipcCallback, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -362,7 +372,11 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeAvailableDeviceStatus(
 
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
-        availableDeviceStatusCallbacks_.erase(it);
+        auto it = std::find_if(availableDeviceStatusCallbacks_.begin(), availableDeviceStatusCallbacks_.end(),
+            [&ipcCallback](const auto &item) { return item == ipcCallback; });
+        if (it != availableDeviceStatusCallbacks_.end()) {
+            availableDeviceStatusCallbacks_.erase(it);
+        }
     }
     return ret;
 }
@@ -398,7 +412,7 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(const
         IAM_LOGI("templateId not exist");
     }
 
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->SubscribeContinuousAuthStatusChange(param, wrapper, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -429,15 +443,18 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeContinuousAuthStatusChange(
         IAM_LOGE("proxy is nullptr");
         return GENERAL_ERROR;
     }
-    auto it = std::find_if(continuousAuthStatusCallbacks_.begin(), continuousAuthStatusCallbacks_.end(),
-        [&callback](const auto &item) { return item && item->GetCallback() == callback; });
-    if (it == continuousAuthStatusCallbacks_.end()) {
-        IAM_LOGE("callback not found");
-        return GENERAL_ERROR;
+    sptr<IpcContinuousAuthStatusCallbackService> ipcCallback(nullptr);
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        auto it = std::find_if(continuousAuthStatusCallbacks_.begin(), continuousAuthStatusCallbacks_.end(),
+            [&callback](const auto &item) { return item && item->GetCallback() == callback; });
+        if (it == continuousAuthStatusCallbacks_.end()) {
+            IAM_LOGE("callback not found");
+            return GENERAL_ERROR;
+        }
+        ipcCallback = *it;
     }
-
-    auto ipcCallback = *it;
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->UnsubscribeContinuousAuthStatusChange(ipcCallback, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -451,7 +468,11 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeContinuousAuthStatusChange(
 
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
-        continuousAuthStatusCallbacks_.erase(it);
+        auto it = std::find_if(continuousAuthStatusCallbacks_.begin(), continuousAuthStatusCallbacks_.end(),
+            [&ipcCallback](const auto &item) { return item == ipcCallback; });
+        if (it != continuousAuthStatusCallbacks_.end()) {
+            continuousAuthStatusCallbacks_.erase(it);
+        }
     }
     return ret;
 }
@@ -464,7 +485,7 @@ int32_t CompanionDeviceAuthClientImpl::CheckLocalUserIdValid(const int32_t local
         IAM_LOGE("proxy is nullptr");
         return GENERAL_ERROR;
     }
-    int32_t ret;
+    int32_t ret {};
     int32_t ipcRet = proxy->CheckLocalUserIdValid(localUserId, isUserIdValid, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -541,6 +562,7 @@ void CompanionDeviceAuthClientImpl::ResubscribeTemplateStatusChange()
 
     for (const auto &ipcCallback : callbacksCopy) {
         const auto callback = ipcCallback->GetCallback();
+        ENSURE_OR_CONTINUE(callback != nullptr);
         int32_t userId = callback->GetUserId();
         SubscribeTemplateStatusChange(userId, callback);
     }
@@ -557,6 +579,7 @@ void CompanionDeviceAuthClientImpl::ResubscribeContinuousAuthStatusChange()
     }
     for (const auto &ipcCallback : callbacksCopy) {
         const auto callback = ipcCallback->GetCallback();
+        ENSURE_OR_CONTINUE(callback != nullptr);
         int32_t userId = callback->GetUserId();
         std::optional<uint64_t> templateId = callback->GetTemplateId();
         SubscribeContinuousAuthStatusChange(userId, callback, templateId);
@@ -574,6 +597,7 @@ void CompanionDeviceAuthClientImpl::ResubscribeAvailableDeviceStatus()
     }
     for (const auto &ipcCallback : callbacksCopy) {
         const auto callback = ipcCallback->GetCallback();
+        ENSURE_OR_CONTINUE(callback != nullptr);
         int32_t userId = callback->GetUserId();
         SubscribeAvailableDeviceStatus(userId, callback);
     }
@@ -616,6 +640,7 @@ CompanionDeviceAuthClientImpl::~CompanionDeviceAuthClientImpl()
     IAM_LOGI("start");
     // Unsubscribe from system ability status changes to prevent callback from being invoked
     // after the client is destroyed
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (companionDeviceAuthSaStatusListener_ != nullptr) {
         SystemAbilityListener::UnSubscribe(SUBSYS_USERIAM_SYS_ABILITY_COMPANIONDEVICEAUTH,
             companionDeviceAuthSaStatusListener_);

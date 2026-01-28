@@ -23,8 +23,8 @@
 #include "securec.h"
 #include <uv.h>
 
+#include "iam_check.h"
 #include "iam_logger.h"
-#include "iam_ptr.h"
 
 #include "common_defines.h"
 
@@ -81,11 +81,8 @@ JsRefHolder::~JsRefHolder()
         IAM_LOGE("napi_get_uv_event_loop fail");
         return;
     }
-    std::shared_ptr<DeleteRefHolder> deleteRefHolder = MakeShared<DeleteRefHolder>();
-    if (deleteRefHolder == nullptr) {
-        IAM_LOGE("deleteRefHolder is null");
-        return;
-    }
+    std::shared_ptr<DeleteRefHolder> deleteRefHolder = std::make_shared<DeleteRefHolder>();
+    ENSURE_OR_RETURN(deleteRefHolder != nullptr);
     deleteRefHolder->env = env_;
     deleteRefHolder->ref = ref_;
     auto task = [deleteRefHolder]() {
@@ -141,7 +138,7 @@ bool JsRefHolder::Equals(const std::shared_ptr<JsRefHolder> &other) const
 napi_status CompanionDeviceAuthNapiHelper::GetUint8ArrayValue(napi_env env, napi_value value,
     std::vector<uint8_t> &array)
 {
-    bool isTypedarray;
+    bool isTypedarray {};
     napi_status result = napi_is_typedarray(env, value, &isTypedarray);
     if (result != napi_ok) {
         IAM_LOGE("napi_is_typedarray fail");
@@ -176,15 +173,14 @@ napi_status CompanionDeviceAuthNapiHelper::GetUint8ArrayValue(napi_env env, napi
 napi_status CompanionDeviceAuthNapiHelper::GetInt32Array(napi_env env, napi_value obj, std::vector<int32_t> &vec)
 {
     vec.clear();
-    uint32_t len;
+    uint32_t len {};
     napi_get_array_length(env, obj, &len);
     IAM_LOGI("GetInt32Array length: %{public}d", len);
     for (uint32_t index = 0; index < len; index++) {
         napi_value value;
-        int32_t getValue;
+        int32_t getValue {};
         NAPI_CALL_BASE(env, napi_get_element(env, obj, index, &value), napi_generic_failure);
         NAPI_CALL_BASE(env, napi_get_value_int32(env, value, &getValue), napi_generic_failure);
-        IAM_LOGI("vec[%{public}d]: %{public}d", index, len);
         vec.emplace_back(getValue);
     }
     return napi_ok;
@@ -291,12 +287,6 @@ napi_value CompanionDeviceAuthNapiHelper::ConVertDeviceStatusToNapiValue(napi_en
     status = SetStringPropertyUtf8(env, deviceStatusValue, "deviceName", deviceStatus.deviceName);
     if (status != napi_ok) {
         IAM_LOGE("SetStringPropertyUtf8 fail ret:%{public}d", status);
-        return nullptr;
-    }
-
-    status = SetBoolProperty(env, deviceStatusValue, "isOnline", deviceStatus.isOnline);
-    if (status != napi_ok) {
-        IAM_LOGE("SetBoolProperty fail ret:%{public}d", status);
         return nullptr;
     }
 
@@ -463,7 +453,7 @@ napi_status CompanionDeviceAuthNapiHelper::ConvertNapiValueToDeviceKeys(napi_env
         return status;
     }
 
-    uint32_t arrayLength;
+    uint32_t arrayLength {};
     status = napi_get_array_length(env, deviceKeyArray, &arrayLength);
     if (status != napi_ok) {
         IAM_LOGE("get array length fail");
@@ -658,8 +648,15 @@ napi_status CompanionDeviceAuthNapiHelper::ConvertNapiUint8ArrayToUint64(napi_en
         IAM_LOGE("GetUint8ArrayValue fail, ret:%{public}d", status);
         return status;
     }
+    if (outArray.size() < sizeof(uint64_t)) {
+        IAM_LOGE("Invalid array size: %{public}zu, expected at least %{public}zu", outArray.size(), sizeof(uint64_t));
+        return napi_generic_failure;
+    }
 
-    memcpy_s(&out, sizeof(out), outArray.data(), sizeof(uint64_t));
+    if (memcpy_s(&out, sizeof(out), outArray.data(), sizeof(uint64_t)) != EOK) {
+        IAM_LOGE("memcpy_s failed for uint64 conversion");
+        return napi_generic_failure;
+    }
     return napi_ok;
 }
 

@@ -405,7 +405,8 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBytes_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
     manager->connections_.push_back(connection);
 
     std::vector<uint8_t> data = { 1, 2, 3, 4 };
@@ -421,7 +422,8 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBytes_003, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
     manager->connections_.push_back(connection);
 
     Attributes message;
@@ -461,7 +463,8 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBytes_005, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
     manager->connections_.push_back(connection);
 
     Attributes message;

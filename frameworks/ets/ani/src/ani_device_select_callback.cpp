@@ -18,7 +18,6 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
-#include "iam_ptr.h"
 
 #include "common_defines.h"
 #include "companion_device_auth_ani_helper.h"
@@ -64,7 +63,8 @@ void AniDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
 void AniDeviceSelectCallback::SetCallback(taihe::optional<DeviceSelectCallback> callback)
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    callback_ = MakeShared<taihe::optional<DeviceSelectCallback>>(callback);
+    callback_ = std::make_shared<taihe::optional<DeviceSelectCallback>>(callback);
+    ENSURE_OR_RETURN(callback_ != nullptr);
 }
 
 void AniDeviceSelectCallback::ClearCallback()

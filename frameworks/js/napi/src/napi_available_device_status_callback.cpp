@@ -20,7 +20,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
-#include "iam_ptr.h"
+#include "scope_guard.h"
 
 #include "companion_device_auth_napi_helper.h"
 
@@ -103,7 +103,7 @@ napi_status NapiAvailableDeviceStatusCallback::DoCallback(const std::vector<Clie
         napi_status status = CompanionDeviceAuthNapiHelper::CallVoidNapiFunc(env_, callbacks_[i]->Get(), ARGS_ONE,
             &deviceStatusListValue);
         if (status != napi_ok) {
-            IAM_LOGE("CallVoidNapiFunc fail at index:%{puiblic}zu", i);
+            IAM_LOGE("CallVoidNapiFunc fail at index:%{public}zu", i);
         }
     }
 
@@ -140,11 +140,8 @@ void NapiAvailableDeviceStatusCallback::OnAvailableDeviceStatusChange(
         return;
     }
     std::shared_ptr<AvailableDeviceStatusCallbackHolder> availableDeviceStatusCallbackHolder =
-        MakeShared<AvailableDeviceStatusCallbackHolder>();
-    if (availableDeviceStatusCallbackHolder == nullptr) {
-        IAM_LOGE("availableDeviceStatusCallbackHolder is null");
-        return;
-    }
+        std::make_shared<AvailableDeviceStatusCallbackHolder>();
+    ENSURE_OR_RETURN(availableDeviceStatusCallbackHolder != nullptr);
     availableDeviceStatusCallbackHolder->callback = shared_from_this();
     availableDeviceStatusCallbackHolder->deviceStatusList = deviceStatusList;
     availableDeviceStatusCallbackHolder->env = env_;
@@ -155,19 +152,17 @@ void NapiAvailableDeviceStatusCallback::OnAvailableDeviceStatusChange(
             return;
         }
         napi_handle_scope scope = nullptr;
-        napi_open_handle_scope(availableDeviceStatusCallbackHolder->env, &scope);
-        if (scope == nullptr) {
-            IAM_LOGE("scope is invalid");
-            return;
-        }
+        napi_status status = napi_open_handle_scope(availableDeviceStatusCallbackHolder->env, &scope);
+        ENSURE_OR_RETURN(status == napi_ok);
+        ENSURE_OR_RETURN(scope != nullptr);
+        ScopeGuard scopeGuard([&]() { napi_close_handle_scope(availableDeviceStatusCallbackHolder->env, scope); });
+        ENSURE_OR_RETURN(availableDeviceStatusCallbackHolder->callback != nullptr);
         napi_status ret = availableDeviceStatusCallbackHolder->callback->DoCallback(
             availableDeviceStatusCallbackHolder->deviceStatusList);
         if (ret != napi_ok) {
             IAM_LOGE("DoCallback fail ret = %{public}d", ret);
-            napi_close_handle_scope(availableDeviceStatusCallbackHolder->env, scope);
             return;
         }
-        napi_close_handle_scope(availableDeviceStatusCallbackHolder->env, scope);
     };
     // clang-format off
     if (napi_send_event(env_, task, napi_eprio_immediate,

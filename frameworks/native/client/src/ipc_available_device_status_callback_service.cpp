@@ -17,9 +17,9 @@
 
 #include <memory>
 
+#include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
-#include "iam_ptr.h"
 
 #include "common_defines.h"
 #include "companion_device_auth_common_defines.h"
@@ -40,10 +40,7 @@ int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
 {
     IAM_LOGI("start, deviceStatusList size:%{public}d", static_cast<int32_t>(deviceStatusList.size()));
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (callback_ == nullptr) {
-        IAM_LOGE("callback is nullptr");
-        return GENERAL_ERROR;
-    }
+    ENSURE_OR_RETURN_VAL(callback_ != nullptr, GENERAL_ERROR);
 
     std::vector<ClientDeviceStatus> clientDeviceStatusList;
     for (const auto &deviceStatus : deviceStatusList) {
@@ -77,6 +74,7 @@ int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
 
 std::shared_ptr<IAvailableDeviceStatusCallback> IpcAvailableDeviceStatusCallbackService::GetCallback()
 {
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
     return callback_;
 }
 

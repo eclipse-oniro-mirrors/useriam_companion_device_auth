@@ -50,11 +50,17 @@ impl EventManager for DefaultEventManager {
         }
 
         self.events.push(event.clone());
-        if self.events.len() > MAX_EVENT_NUM {
+        while self.events.len() > MAX_EVENT_NUM {
+            // avoid infinite loop
+            let mut removed = false;
             for event_type in [EventType::Command, EventType::Error, EventType::BigData, EventType::FatalError] {
                 if let Some(_event) = self.remove_first_event(event_type) {
+                    removed = true;
                     break;
                 }
+            }
+            if !removed {
+                break;
             }
         }
     }

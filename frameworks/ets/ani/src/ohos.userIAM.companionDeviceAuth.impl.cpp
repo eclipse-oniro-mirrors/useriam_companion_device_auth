@@ -20,7 +20,6 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
-#include "iam_ptr.h"
 
 #include "ani_device_select_callback.h"
 #include "companion_device_auth_ani_helper.h"
@@ -66,7 +65,7 @@ bool CheckCallerIsSystemApp()
 class StatusMonitorImpl {
 public:
     explicit StatusMonitorImpl(int32_t localUserId)
-        : statusMonitor_(CompanionDeviceAuth::MakeShared<CompanionDeviceAuth::StatusMonitor>(localUserId))
+        : statusMonitor_(std::make_shared<CompanionDeviceAuth::StatusMonitor>(localUserId))
     {
     }
 
@@ -390,7 +389,7 @@ void registerDeviceSelectCallback(
         return;
     }
 
-    auto deviceSelectCallback = CompanionDeviceAuth::MakeShared<CompanionDeviceAuth::AniDeviceSelectCallback>();
+    auto deviceSelectCallback = std::make_shared<CompanionDeviceAuth::AniDeviceSelectCallback>();
     if (deviceSelectCallback == nullptr) {
         IAM_LOGE("deviceSelectCallback is null");
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(

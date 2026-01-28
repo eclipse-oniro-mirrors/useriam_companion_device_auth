@@ -77,7 +77,8 @@ public:
         ON_CALL(mockCompanionManager_, GetCompanionStatus(_))
             .WillByDefault(Return(std::make_optional(companionStatus_)));
         ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_))
-            .WillByDefault(Return(std::make_optional(deviceStatus_)));
+            .WillByDefault(Return(
+                std::make_optional(DeviceStatus { .deviceKey = companionDeviceKey_, .isAuthMaintainActive = true })));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _))
             .WillByDefault(Return(ByMove(MakeSubscription())));
         ON_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
@@ -90,11 +91,6 @@ public:
         ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
             .WillByDefault(Return(std::make_optional(hostDeviceKey_)));
         ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
-        ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_))
-            .WillByDefault(Return(
-                std::make_optional(DeviceStatus { .deviceKey = companionDeviceKey_, .isAuthMaintainActive = true })));
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
         ON_CALL(mockSecurityAgent_, HostPreIssueToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostBeginIssueToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostEndIssueToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));

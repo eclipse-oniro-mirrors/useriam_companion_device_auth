@@ -18,8 +18,8 @@
 #include "napi/native_node_api.h"
 #include <uv.h>
 
+#include "iam_check.h"
 #include "iam_logger.h"
-#include "iam_ptr.h"
 
 #include "companion_device_auth_napi_helper.h"
 
@@ -31,7 +31,7 @@ namespace CompanionDeviceAuth {
 namespace {
 struct DeviceSelectCallbackHolder {
     std::shared_ptr<NapiDeviceSelectCallback> callback { nullptr };
-    int32_t selectPurpose;
+    int32_t selectPurpose {};
     std::shared_ptr<SetDeviceSelectResultCallback> setCallback;
     napi_env env { nullptr };
 };
@@ -52,6 +52,7 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
 
     ClientDeviceSelectResult result;
     napi_value napiDeviceSelectResult;
+    ENSURE_OR_RETURN(deviceSelectCallbackHolder->callback != nullptr);
     napi_status status = deviceSelectCallbackHolder->callback->DoCallback(deviceSelectCallbackHolder->selectPurpose,
         &napiDeviceSelectResult);
     if (status != napi_ok) {
@@ -124,11 +125,9 @@ void NapiDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
         IAM_LOGE("napi_get_uv_event_loop fail");
         return;
     }
-    std::shared_ptr<DeviceSelectCallbackHolder> deviceSelectCallbackHolder = MakeShared<DeviceSelectCallbackHolder>();
-    if (deviceSelectCallbackHolder == nullptr) {
-        IAM_LOGE("deviceSelectCallbackHolder is null");
-        return;
-    }
+    std::shared_ptr<DeviceSelectCallbackHolder> deviceSelectCallbackHolder =
+        std::make_shared<DeviceSelectCallbackHolder>();
+    ENSURE_OR_RETURN(deviceSelectCallbackHolder != nullptr);
     deviceSelectCallbackHolder->callback = shared_from_this();
     deviceSelectCallbackHolder->selectPurpose = selectPurpose;
     deviceSelectCallbackHolder->setCallback = callback;

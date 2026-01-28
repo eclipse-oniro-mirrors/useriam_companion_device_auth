@@ -41,15 +41,15 @@ constexpr const char *SOFTBUS_SA_NAME = "SoftBusServer";
 
 std::shared_ptr<SoftBusConnectionManager> SoftBusConnectionManager::Create()
 {
-    auto adapter = std::shared_ptr<SoftBusConnectionManager>(new (std::nothrow) SoftBusConnectionManager());
-    ENSURE_OR_RETURN_VAL(adapter != nullptr, nullptr);
-    bool ret = adapter->Initialize();
+    auto manager = std::shared_ptr<SoftBusConnectionManager>(new (std::nothrow) SoftBusConnectionManager());
+    ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
+    bool ret = manager->Initialize();
     if (!ret) {
         IAM_LOGE("Initialize SoftBusConnectionManager failed");
         return nullptr;
     }
 
-    return adapter;
+    return manager;
 }
 
 SoftBusConnectionManager::SoftBusConnectionManager()

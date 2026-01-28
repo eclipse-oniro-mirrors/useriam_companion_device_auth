@@ -17,7 +17,6 @@
 
 #include "iam_logger.h"
 #include "iam_para2str.h"
-#include "iam_ptr.h"
 
 #include "common_defines.h"
 

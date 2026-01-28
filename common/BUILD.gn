@@ -26,6 +26,7 @@ ohos_static_library("companion_device_auth_common") {
   public_configs = [ ":companion_device_auth_common_config" ]
 
   external_deps = [
+    "c_utils:utils",
     "hilog:libhilog",
     "ipc:ipc_single",
   ]

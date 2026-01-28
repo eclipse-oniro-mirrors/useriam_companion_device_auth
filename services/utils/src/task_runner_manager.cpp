@@ -24,7 +24,6 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
-#include "iam_ptr.h"
 
 #include "resident_task_runner.h"
 #include "temporary_task_runner.h"
@@ -66,7 +65,9 @@ void TaskRunnerManager::AssertRunningOnResidentThread() const
 
 TaskRunnerManager::TaskRunnerManager()
 {
-    taskRunnerMap_.emplace(RESIDENT_TASK_RUNNER_NAME, MakeShared<ResidentTaskRunner>());
+    auto taskRunner = std::make_shared<ResidentTaskRunner>();
+    ENSURE_OR_RETURN(taskRunner != nullptr);
+    taskRunnerMap_.emplace(RESIDENT_TASK_RUNNER_NAME, taskRunner);
 }
 
 bool TaskRunnerManager::CreateTaskRunner(const std::string &name)
@@ -76,7 +77,7 @@ bool TaskRunnerManager::CreateTaskRunner(const std::string &name)
         IAM_LOGE("task runner %{public}s already exist", name.c_str());
         return false;
     }
-    auto taskRunner = MakeShared<TemporaryTaskRunner>(name, true);
+    auto taskRunner = std::make_shared<TemporaryTaskRunner>(name, true);
     ENSURE_OR_RETURN_VAL(taskRunner != nullptr, false);
     taskRunnerMap_.emplace(name, taskRunner);
     IAM_LOGI("task runner %{public}s create success", name.c_str());
@@ -149,7 +150,7 @@ void TaskRunnerManager::PostTask(const std::string &name, std::function<void()> 
     auto taskRunner = taskRunnerMap_[name];
     ENSURE_OR_RETURN(taskRunner != nullptr);
 
-    auto taskBlockMonitor = MakeShared<XCollieHelper>("taskBlockMonitor", TASK_BLOCK_MONITOR_TIMEOUT);
+    auto taskBlockMonitor = std::make_shared<XCollieHelper>("taskBlockMonitor", TASK_BLOCK_MONITOR_TIMEOUT);
     ENSURE_OR_RETURN(taskBlockMonitor != nullptr);
 
     taskRunner->PostTask([taskRunner, taskBlockMonitor, originalTask = std::move(task)]() mutable {

@@ -242,7 +242,7 @@ Attributes::Attributes(const std::vector<uint8_t> &raw)
             return;
         }
 
-        uint32_t type;
+        uint32_t type {};
         if (memcpy_s(&type, sizeof(type), curr, sizeof(uint32_t)) != EOK) {
             IAM_LOGE("memcpy_s failed for type");
             return;
@@ -251,7 +251,7 @@ Attributes::Attributes(const std::vector<uint8_t> &raw)
         curr += sizeof(uint32_t);
         remaining -= sizeof(uint32_t);
 
-        uint32_t length;
+        uint32_t length {};
         if (memcpy_s(&length, sizeof(length), curr, sizeof(uint32_t)) != EOK) {
             IAM_LOGE("memcpy_s failed for length");
             return;
@@ -518,7 +518,7 @@ bool Attributes::GetStringValue(AttributeKey key, std::string &value) const
     }
 
     if (iter->second.back() != 0) {
-        IAM_LOGE("GetStringValue invalid format, has_null_terminator: %{public}d", iter->second.back() == 0);
+        IAM_LOGE("GetStringValue invalid format, last_byte: %{public}d", iter->second.back());
         return false;
     }
     value.assign(iter->second.begin(), iter->second.end() - 1);
@@ -599,7 +599,7 @@ bool Attributes::GetAttributesArrayValue(AttributeKey key, std::vector<Attribute
             return false;
         }
 
-        uint32_t arrayLenLE;
+        uint32_t arrayLenLE {};
         if (memcpy_s(&arrayLenLE, sizeof(arrayLenLE), data.data() + i, sizeof(uint32_t)) != EOK) {
             IAM_LOGE("GetAttributesArrayValue memcpy_s failed for array length at offset %{public}zu", i);
             return false;

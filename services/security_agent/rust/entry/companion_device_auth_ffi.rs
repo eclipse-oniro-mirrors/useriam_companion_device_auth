@@ -1173,17 +1173,6 @@ mod ffi {
 
 pub use ffi::RustCommandParam;
 
-// #[repr(C)]
-// pub struct RustCommandParam {
-//     pub command_id: i32,
-//     pub input_data: *const u8,
-//     pub input_data_len: u32,
-//     pub output_data: *mut u8,
-//     pub output_data_len: u32,
-//     pub common_output_data: *mut u8,
-//     pub common_output_data_len: u32,
-// }
-
 #[no_mangle]
 pub extern "C" fn init_rust_env() -> i32 {
     match handle_rust_env_init() {

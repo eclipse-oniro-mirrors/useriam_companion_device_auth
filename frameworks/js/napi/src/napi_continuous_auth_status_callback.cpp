@@ -20,7 +20,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
-#include "iam_ptr.h"
+#include "scope_guard.h"
 
 #include "companion_device_auth_napi_helper.h"
 
@@ -136,11 +136,8 @@ void NapiContinuousAuthStatusCallback::OnContinuousAuthStatusChange(const bool i
         return;
     }
     std::shared_ptr<ContinuousAuthStatusCallbackHolder> continuousAuthStatusCallbackHolder =
-        MakeShared<ContinuousAuthStatusCallbackHolder>();
-    if (continuousAuthStatusCallbackHolder == nullptr) {
-        IAM_LOGE("continuousAuthStatusCallbackHolder is null");
-        return;
-    }
+        std::make_shared<ContinuousAuthStatusCallbackHolder>();
+    ENSURE_OR_RETURN(continuousAuthStatusCallbackHolder != nullptr);
     continuousAuthStatusCallbackHolder->callback = shared_from_this();
     continuousAuthStatusCallbackHolder->isAuthPassed = isAuthPassed;
     continuousAuthStatusCallbackHolder->authTrustLevel = authTrustLevel;
@@ -151,19 +148,17 @@ void NapiContinuousAuthStatusCallback::OnContinuousAuthStatusChange(const bool i
             return;
         }
         napi_handle_scope scope = nullptr;
-        napi_open_handle_scope(continuousAuthStatusCallbackHolder->env, &scope);
-        if (scope == nullptr) {
-            IAM_LOGE("scope is invalid");
-            return;
-        }
+        napi_status status = napi_open_handle_scope(continuousAuthStatusCallbackHolder->env, &scope);
+        ENSURE_OR_RETURN(status == napi_ok);
+        ENSURE_OR_RETURN(scope != nullptr);
+        ScopeGuard scopeGuard([&]() { napi_close_handle_scope(continuousAuthStatusCallbackHolder->env, scope); });
+        ENSURE_OR_RETURN(continuousAuthStatusCallbackHolder->callback != nullptr);
         napi_status ret = continuousAuthStatusCallbackHolder->callback->DoCallback(
             continuousAuthStatusCallbackHolder->isAuthPassed, continuousAuthStatusCallbackHolder->authTrustLevel);
         if (ret != napi_ok) {
             IAM_LOGE("DoCallback fail ret = %{public}d", ret);
-            napi_close_handle_scope(continuousAuthStatusCallbackHolder->env, scope);
             return;
         }
-        napi_close_handle_scope(continuousAuthStatusCallbackHolder->env, scope);
     };
     // clang-format off
     if (napi_send_event(env_, task, napi_eprio_immediate,

@@ -17,7 +17,6 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
-#include "iam_ptr.h"
 
 #include "companion_device_auth_all_in_one_executor.h"
 #include "singleton_manager.h"
@@ -37,11 +36,8 @@ CompanionDeviceAuthDriver::CompanionDeviceAuthDriver(
 void CompanionDeviceAuthDriver::GetExecutorList(std::vector<std::shared_ptr<FwkIAuthExecutorHdi>> &executorList)
 {
     IAM_LOGI("start GetExecutorList");
-    auto executor = MakeShared<CompanionDeviceAuthAllInOneExecutor>();
-    if (executor == nullptr) {
-        IAM_LOGE("make shared failed");
-        return;
-    }
+    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    ENSURE_OR_RETURN(executor != nullptr);
     executorList.push_back(executor);
 }
 

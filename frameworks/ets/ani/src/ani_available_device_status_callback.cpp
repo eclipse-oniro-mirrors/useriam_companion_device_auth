@@ -18,7 +18,6 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
-#include "iam_ptr.h"
 
 #include "common_defines.h"
 #include "companion_device_auth_ani_helper.h"
@@ -74,7 +73,8 @@ int32_t AniAvailableDeviceStatusCallback::SetCallback(taihe::optional<AvailableD
         IAM_LOGI("has same callback");
         return SUCCESS;
     }
-    auto callbackPtr = MakeShared<taihe::optional<AvailableDeviceStatusCallback>>(callback);
+    auto callbackPtr = std::make_shared<taihe::optional<AvailableDeviceStatusCallback>>(callback);
+    ENSURE_OR_RETURN_VAL(callbackPtr != nullptr, GENERAL_ERROR);
     callbacks_.push_back(callbackPtr);
     IAM_LOGI("success");
     return SUCCESS;
@@ -98,7 +98,8 @@ bool AniAvailableDeviceStatusCallback::HasCallback()
 bool AniAvailableDeviceStatusCallback::HasSameCallback(taihe::optional<AvailableDeviceStatusCallback> callback)
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackPtr = MakeShared<taihe::optional<AvailableDeviceStatusCallback>>(callback);
+    auto callbackPtr = std::make_shared<taihe::optional<AvailableDeviceStatusCallback>>(callback);
+    ENSURE_OR_RETURN_VAL(callbackPtr != nullptr, false);
     if (!HasCallback()) {
         return false;
     }
@@ -124,7 +125,8 @@ void AniAvailableDeviceStatusCallback::RemoveSingleCallback(taihe::optional<Avai
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackPtr = MakeShared<taihe::optional<AvailableDeviceStatusCallback>>(callback);
+    auto callbackPtr = std::make_shared<taihe::optional<AvailableDeviceStatusCallback>>(callback);
+    ENSURE_OR_RETURN(callbackPtr != nullptr);
     if (!HasCallback()) {
         IAM_LOGE("callbacks_ is empty");
         return;

@@ -88,11 +88,12 @@ static void FuzzMultipleHandleRequests(std::shared_ptr<HostPreObtainTokenHandler
 static void FuzzCreateNewHandler(std::shared_ptr<HostPreObtainTokenHandler> &handler, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    handler = std::make_shared<HostPreObtainTokenHandler>();
-    if (!handler) {
+    auto newHandler = std::make_shared<HostPreObtainTokenHandler>();
+    if (!newHandler) {
         return;
     }
-    (void)handler->GetMessageType();
+    (void)newHandler->GetMessageType();
+    (void)handler; // Keep original handler unchanged
 }
 
 static void FuzzGetMessageTypeMultiple(std::shared_ptr<HostPreObtainTokenHandler> &handler,

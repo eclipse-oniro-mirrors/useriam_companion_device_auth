@@ -17,8 +17,8 @@
 
 #include <memory>
 
+#include "iam_check.h"
 #include "iam_logger.h"
-#include "iam_ptr.h"
 
 #include "common_defines.h"
 #include "companion_device_auth_common_defines.h"
@@ -44,7 +44,8 @@ int32_t IpcDeviceSelectCallbackService::OnDeviceSelect(const int32_t selectPurpo
         return GENERAL_ERROR;
     }
 
-    auto setDeviceSelectResultCallback = MakeShared<SetDeviceSelectResultCallback>(callback);
+    auto setDeviceSelectResultCallback = std::make_shared<SetDeviceSelectResultCallback>(callback);
+    ENSURE_OR_RETURN_VAL(setDeviceSelectResultCallback != nullptr, GENERAL_ERROR);
     callback_->OnDeviceSelect(selectPurpose, setDeviceSelectResultCallback);
     return SUCCESS;
 }

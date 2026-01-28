@@ -474,15 +474,16 @@ static void FuzzOp8(FuzzedDataProvider &fuzzData)
     bool hasTemplateId = fuzzData.ConsumeBool();
 
     std::shared_ptr<IContinuousAuthStatusCallback> callback = nullptr;
+    std::optional<uint64_t> templateId = std::nullopt;
+
     if (!useNullCallback) {
-        std::optional<uint64_t> templateId = std::nullopt;
+        std::optional<uint64_t> callbackTemplateId = std::nullopt;
         if (hasTemplateId) {
-            templateId = fuzzData.ConsumeIntegral<uint64_t>();
+            callbackTemplateId = fuzzData.ConsumeIntegral<uint64_t>();
         }
-        callback = std::make_shared<FuzzMockContinuousAuthStatusCallback>(userId, templateId);
+        callback = std::make_shared<FuzzMockContinuousAuthStatusCallback>(userId, callbackTemplateId);
     }
 
-    std::optional<uint64_t> templateId = std::nullopt;
     if (hasTemplateId) {
         templateId = fuzzData.ConsumeIntegral<uint64_t>();
     }

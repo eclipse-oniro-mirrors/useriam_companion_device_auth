@@ -163,7 +163,11 @@ impl Attribute {
             return Err(ErrorCode::GeneralError);
         }
 
-        Ok(u16::from_le_bytes(data.try_into().unwrap()))
+        let array: [u8; 2] = data.try_into().map_err(|_| {
+            log_e!("Failed to convert slice to [u8; 2] array");
+            ErrorCode::GeneralError
+        })?;
+        Ok(u16::from_le_bytes(array))
     }
 
     pub fn set_u16(&mut self, key: AttributeKey, value: u16) {
@@ -177,7 +181,11 @@ impl Attribute {
             return Err(ErrorCode::GeneralError);
         }
 
-        Ok(u32::from_le_bytes(data.try_into().unwrap()))
+        let array: [u8; 4] = data.try_into().map_err(|_| {
+            log_e!("Failed to convert slice to [u8; 4] array");
+            ErrorCode::GeneralError
+        })?;
+        Ok(u32::from_le_bytes(array))
     }
 
     pub fn set_u32(&mut self, key: AttributeKey, value: u32) {
@@ -191,7 +199,11 @@ impl Attribute {
             return Err(ErrorCode::GeneralError);
         }
 
-        Ok(i32::from_le_bytes(data.try_into().unwrap()))
+        let array: [u8; 4] = data.try_into().map_err(|_| {
+            log_e!("Failed to convert slice to [u8; 4] array");
+            ErrorCode::GeneralError
+        })?;
+        Ok(i32::from_le_bytes(array))
     }
 
     pub fn set_i32(&mut self, key: AttributeKey, value: i32) {
@@ -205,7 +217,11 @@ impl Attribute {
             return Err(ErrorCode::GeneralError);
         }
 
-        Ok(u64::from_le_bytes(data.try_into().unwrap()))
+        let array: [u8; 8] = data.try_into().map_err(|_| {
+            log_e!("Failed to convert slice to [u8; 8] array");
+            ErrorCode::GeneralError
+        })?;
+        Ok(u64::from_le_bytes(array))
     }
 
     pub fn set_u64(&mut self, key: AttributeKey, value: u64) {
@@ -255,7 +271,11 @@ impl Attribute {
 
         let mut u64_vec = Vec::with_capacity(chunks.len());
         for chunk in chunks {
-            u64_vec.push(u64::from_le_bytes(chunk.try_into().unwrap()));
+            let array: [u8; 8] = chunk.try_into().map_err(|_| {
+                log_e!("Failed to convert chunk to [u8; 8] array");
+                ErrorCode::GeneralError
+            })?;
+            u64_vec.push(u64::from_le_bytes(array));
         }
         Ok(u64_vec)
     }
@@ -278,7 +298,11 @@ impl Attribute {
 
         let mut u16_vec = Vec::with_capacity(chunks.len());
         for chunk in chunks {
-            u16_vec.push(u16::from_le_bytes(chunk.try_into().unwrap()));
+            let array: [u8; 2] = chunk.try_into().map_err(|_| {
+                log_e!("Failed to convert chunk to [u8; 2] array");
+                ErrorCode::GeneralError
+            })?;
+            u16_vec.push(u16::from_le_bytes(array));
         }
         Ok(u16_vec)
     }

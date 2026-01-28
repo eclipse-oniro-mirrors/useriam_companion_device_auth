@@ -113,15 +113,7 @@ impl HostDeviceIssueTokenRequest {
                 .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let challenge = decrypt_attribute.get_u64(AttributeKey::AttrChallenge).map_err(|e| p!(e))?;
-
-        let mut token = [0u8; TOKEN_KEY_LEN];
-        CryptoEngineRegistry::get().secure_random(&mut token).map_err(|_| {
-            log_e!("secure_random fail");
-            ErrorCode::GeneralError
-        })?;
-
-        let token_info = token_helper::generate_token(device_type, challenge, self.atl)?;
-        self.token_infos.push(token_info);
+        self.token_infos.push(token_helper::generate_token(device_type, challenge, self.atl)?);
         Ok(())
     }
 

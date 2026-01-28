@@ -632,7 +632,6 @@ bool EncodeCompanionEndAddHostBindingInput(const CompanionEndAddHostBindingInput
     ffi.requestId = input.requestId;
     ffi.result = static_cast<int32_t>(input.resultCode);
     return EncodeMessageArray(input.tokenData, ffi.secMessage);
-    ;
 }
 
 bool DecodeCompanionEndAddHostBindingOutput(const CompanionEndAddHostBindingOutputFfi &ffi,

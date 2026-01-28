@@ -27,7 +27,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-class TokenAuthMessageTes : public Test {
+class TokenAuthMessageTest : public Test {
 public:
     void SetUp() override
     {
@@ -45,7 +45,7 @@ protected:
     std::vector<uint8_t> extraInfo_ = { 1, 2, 3, 4, 5 };
 };
 
-HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthRequest_001, TestSize.Level0)
+HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_001, TestSize.Level0)
 {
     TokenAuthRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
@@ -68,7 +68,7 @@ HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthRequest_001, TestSize.Level0)
     EXPECT_EQ(decodedRequest->extraInfo, request.extraInfo);
 }
 
-HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthRequest_002, TestSize.Level0)
+HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_002, TestSize.Level0)
 {
     Attributes attributes;
 
@@ -76,7 +76,7 @@ HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthRequest_002, TestSize.Level0)
     EXPECT_FALSE(decodedRequest.has_value());
 }
 
-HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthRequest_003, TestSize.Level0)
+HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_003, TestSize.Level0)
 {
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey_.deviceUserId);
@@ -87,7 +87,7 @@ HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthRequest_003, TestSize.Level0)
     EXPECT_FALSE(decodedRequest.has_value());
 }
 
-HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthRequest_004, TestSize.Level0)
+HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_004, TestSize.Level0)
 {
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey_.deviceUserId);
@@ -99,7 +99,7 @@ HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthRequest_004, TestSize.Level0)
     EXPECT_FALSE(decodedRequest.has_value());
 }
 
-HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthReply_001, TestSize.Level0)
+HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_001, TestSize.Level0)
 {
     TokenAuthReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
@@ -113,7 +113,7 @@ HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthReply_001, TestSize.Level0)
     EXPECT_EQ(decodedReply->extraInfo, reply.extraInfo);
 }
 
-HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthReply_002, TestSize.Level0)
+HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_002, TestSize.Level0)
 {
     Attributes attributes;
 
@@ -121,7 +121,7 @@ HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthReply_002, TestSize.Level0)
     EXPECT_FALSE(decodedReply.has_value());
 }
 
-HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthReply_003, TestSize.Level0)
+HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_003, TestSize.Level0)
 {
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
@@ -130,7 +130,7 @@ HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthReply_003, TestSize.Level0)
     EXPECT_FALSE(decodedReply.has_value());
 }
 
-HWTEST_F(TokenAuthMessageTes, EncodeDecodeTokenAuthReply_004, TestSize.Level0)
+HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_004, TestSize.Level0)
 {
     TokenAuthReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = extraInfo_ };
 

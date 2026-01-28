@@ -18,7 +18,6 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
-#include "iam_ptr.h"
 
 #include "sa_status_listener.h"
 #include "service_common.h"
@@ -37,14 +36,14 @@ using json = nlohmann::json;
 
 std::shared_ptr<SoftBusDeviceStatusManager> SoftBusDeviceStatusManager::Create()
 {
-    auto monitor = std::shared_ptr<SoftBusDeviceStatusManager>(new (std::nothrow) SoftBusDeviceStatusManager());
-    ENSURE_OR_RETURN_VAL(monitor != nullptr, nullptr);
-    if (!monitor->Initialize()) {
+    auto manager = std::shared_ptr<SoftBusDeviceStatusManager>(new (std::nothrow) SoftBusDeviceStatusManager());
+    ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
+    if (!manager->Initialize()) {
         IAM_LOGE("Initialize SoftBusDeviceStatusManager failed");
         return nullptr;
     }
     IAM_LOGI("SoftBusDeviceStatusManager created successfully");
-    return monitor;
+    return manager;
 }
 
 SoftBusDeviceStatusManager::SoftBusDeviceStatusManager()
@@ -89,7 +88,7 @@ std::string SoftBusDeviceStatusManager::GenerateDeviceModelInfo(DmDeviceType dev
 
 class DeviceStatusCallbackImpl : public DeviceStatusCallback {
 public:
-    explicit DeviceStatusCallbackImpl(std::weak_ptr<SoftBusDeviceStatusManager> monitor) : monitor_(monitor)
+    explicit DeviceStatusCallbackImpl(std::weak_ptr<SoftBusDeviceStatusManager> manager) : manager_(manager)
     {
     }
 
@@ -125,14 +124,14 @@ public:
 private:
     void RefreshDeviceStatus()
     {
-        TaskRunnerManager::GetInstance().PostTaskOnResident([weak_monitor = monitor_]() {
-            auto monitor = weak_monitor.lock();
-            ENSURE_OR_RETURN(monitor != nullptr);
-            monitor->RefreshDeviceStatus();
+        TaskRunnerManager::GetInstance().PostTaskOnResident([weak_manager = manager_]() {
+            auto manager = weak_manager.lock();
+            ENSURE_OR_RETURN(manager != nullptr);
+            manager->RefreshDeviceStatus();
         });
     }
 
-    std::weak_ptr<SoftBusDeviceStatusManager> monitor_;
+    std::weak_ptr<SoftBusDeviceStatusManager> manager_;
 };
 
 SoftBusDeviceStatusManager::~SoftBusDeviceStatusManager()
@@ -160,16 +159,16 @@ bool SoftBusDeviceStatusManager::Start()
         DEVICE_MANAGER_SA_NAME, DISTRIBUTED_HARDWARE_DEVICEMANAGER_SA_ID,
         [weakSelf]() {
             TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf]() {
-                auto monitor = weakSelf.lock();
-                ENSURE_OR_RETURN(monitor != nullptr);
-                monitor->HandleDeviceManagerServiceReady();
+                auto manager = weakSelf.lock();
+                ENSURE_OR_RETURN(manager != nullptr);
+                manager->HandleDeviceManagerServiceReady();
             });
         },
         [weakSelf]() {
             TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf]() {
-                auto monitor = weakSelf.lock();
-                ENSURE_OR_RETURN(monitor != nullptr);
-                monitor->HandleDeviceManagerServiceUnavailable();
+                auto manager = weakSelf.lock();
+                ENSURE_OR_RETURN(manager != nullptr);
+                manager->HandleDeviceManagerServiceUnavailable();
             });
         });
     ENSURE_OR_RETURN_VAL(saStatusListener_ != nullptr, false);

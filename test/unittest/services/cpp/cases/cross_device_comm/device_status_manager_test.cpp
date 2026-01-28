@@ -75,8 +75,8 @@ protected:
         auto activeUserMgr = std::shared_ptr<IUserIdManager>(&userIdManager_, [](IUserIdManager *) {});
         SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
 
-        auto misc = std::shared_ptr<IMiscManager>(&miscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(misc);
+        auto miscMgr = std::shared_ptr<IMiscManager>(&miscManager_, [](IMiscManager *) {});
+        SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
         auto crossDeviceCommMgr =
             std::shared_ptr<ICrossDeviceCommManager>(&crossDeviceCommMgr_, [](ICrossDeviceCommManager *) {});

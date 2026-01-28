@@ -97,7 +97,7 @@ enum class MessageType : uint16_t {
     // Revoke token (0x08xx)
     COMPANION_REVOKE_TOKEN = 0x0801,
 
-    // Companion pbtain token (0x0Axx)
+    // Companion obtain token (0x0Axx)
     PRE_OBTAIN_TOKEN = 0x0A01,
     OBTAIN_TOKEN = 0x0A02,
 

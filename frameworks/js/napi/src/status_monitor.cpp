@@ -15,8 +15,8 @@
 
 #include "status_monitor.h"
 
+#include "iam_check.h"
 #include "iam_logger.h"
-#include "iam_ptr.h"
 
 #define LOG_TAG "CDA_NAPI"
 
@@ -24,16 +24,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 StatusMonitor::StatusMonitor(napi_env env)
-    : templateStatusCallback_(MakeShared<NapiTemplateStatusCallback>(env)),
-      availableDeviceStatusCallback_(MakeShared<NapiAvailableDeviceStatusCallback>(env))
+    : templateStatusCallback_(std::make_shared<NapiTemplateStatusCallback>(env)),
+      availableDeviceStatusCallback_(std::make_shared<NapiAvailableDeviceStatusCallback>(env))
 {
-    if (templateStatusCallback_ == nullptr) {
-        IAM_LOGE("templateStatusCallback_ is nullptr");
-    }
-
-    if (availableDeviceStatusCallback_ == nullptr) {
-        IAM_LOGE("availableDeviceStatusCallback_ is nullptr");
-    }
 }
 
 int32_t StatusMonitor::SetLocalUserId(napi_env env, napi_callback_info info)
@@ -51,7 +44,7 @@ int32_t StatusMonitor::SetLocalUserId(napi_env env, napi_callback_info info)
         return GENERAL_ERROR;
     }
 
-    int32_t userId;
+    int32_t userId {};
     status = CompanionDeviceAuthNapiHelper::GetInt32Value(env, argv[PARAM0], userId);
     if (status != napi_ok) {
         IAM_LOGE("GetInt32Value fail, ret:%{public}d", status);
@@ -325,8 +318,9 @@ int32_t StatusMonitor::RemoveSingleTemplateStatusChangedCallback(napi_env env, n
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackRef = MakeShared<JsRefHolder>(env, value);
-    if (callbackRef == nullptr || !callbackRef->IsValid()) {
+    auto callbackRef = std::make_shared<JsRefHolder>(env, value);
+    ENSURE_OR_RETURN_VAL(callbackRef != nullptr, INVALID_PARAMETERS);
+    if (!callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");
         return INVALID_PARAMETERS;
     }
@@ -356,8 +350,9 @@ int32_t StatusMonitor::RemoveSingleAvailableDeviceStatusCallback(napi_env env, n
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackRef = MakeShared<JsRefHolder>(env, value);
-    if (callbackRef == nullptr || !callbackRef->IsValid()) {
+    auto callbackRef = std::make_shared<JsRefHolder>(env, value);
+    ENSURE_OR_RETURN_VAL(callbackRef != nullptr, INVALID_PARAMETERS);
+    if (!callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");
         return INVALID_PARAMETERS;
     }
@@ -388,8 +383,9 @@ int32_t StatusMonitor::RemoveSingleContinuousAuthStatusCallback(napi_env env, na
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackRef = MakeShared<JsRefHolder>(env, value);
-    if (callbackRef == nullptr || !callbackRef->IsValid()) {
+    auto callbackRef = std::make_shared<JsRefHolder>(env, value);
+    ENSURE_OR_RETURN_VAL(callbackRef != nullptr, INVALID_PARAMETERS);
+    if (!callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");
         return INVALID_PARAMETERS;
     }
@@ -429,8 +425,9 @@ int32_t StatusMonitor::SetTemplateStatusCallback(napi_env env, napi_value value)
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackRef = MakeShared<JsRefHolder>(env, value);
-    if (callbackRef == nullptr || !callbackRef->IsValid()) {
+    auto callbackRef = std::make_shared<JsRefHolder>(env, value);
+    ENSURE_OR_RETURN_VAL(callbackRef != nullptr, INVALID_PARAMETERS);
+    if (!callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");
         return INVALID_PARAMETERS;
     }
@@ -455,8 +452,9 @@ int32_t StatusMonitor::SetAvailableDeviceStatusCallback(napi_env env, napi_value
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackRef = MakeShared<JsRefHolder>(env, value);
-    if (callbackRef == nullptr || !callbackRef->IsValid()) {
+    auto callbackRef = std::make_shared<JsRefHolder>(env, value);
+    ENSURE_OR_RETURN_VAL(callbackRef != nullptr, INVALID_PARAMETERS);
+    if (!callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");
         return INVALID_PARAMETERS;
     }
@@ -482,8 +480,9 @@ int32_t StatusMonitor::SetContinuousAuthStatusCallback(napi_env env, napi_value 
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackRef = MakeShared<JsRefHolder>(env, callbackValue);
-    if (callbackRef == nullptr || !callbackRef->IsValid()) {
+    auto callbackRef = std::make_shared<JsRefHolder>(env, callbackValue);
+    ENSURE_OR_RETURN_VAL(callbackRef != nullptr, GENERAL_ERROR);
+    if (!callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");
         return GENERAL_ERROR;
     }
@@ -492,7 +491,7 @@ int32_t StatusMonitor::SetContinuousAuthStatusCallback(napi_env env, napi_value 
         return SetContinuousAuthStatusCallbackWithoutTemplateId(env, callbackRef);
     }
 
-    uint64_t templateId;
+    uint64_t templateId {};
     napi_status status = CompanionDeviceAuthNapiHelper::ConvertNapiUint8ArrayToUint64(env, paramValue, templateId);
     if (status != napi_ok) {
         IAM_LOGE("ConvertNapiUint8ArrayToUint64 fail, ret:%{public}d", status);
@@ -512,7 +511,8 @@ int32_t StatusMonitor::SetContinuousAuthStatusCallbackWithTemplateId(napi_env en
         return ret;
     }
     IAM_LOGI("same type callback not set yet");
-    auto callback = MakeShared<NapiContinuousAuthStatusCallback>(env);
+    auto callback = std::make_shared<NapiContinuousAuthStatusCallback>(env);
+    ENSURE_OR_RETURN_VAL(callback != nullptr, GENERAL_ERROR);
     callback->SetTemplateId(templateId);
     callback->SetUserId(localUserId_);
     ret = callback->SetCallback(callbackRef);
@@ -543,7 +543,8 @@ int32_t StatusMonitor::SetContinuousAuthStatusCallbackWithoutTemplateId(napi_env
         return ret;
     }
     IAM_LOGI("same type callback not set yet");
-    auto callback = MakeShared<NapiContinuousAuthStatusCallback>(env);
+    auto callback = std::make_shared<NapiContinuousAuthStatusCallback>(env);
+    ENSURE_OR_RETURN_VAL(callback != nullptr, GENERAL_ERROR);
     callback->SetUserId(localUserId_);
     ret = callback->SetCallback(callbackRef);
     if (ret != SUCCESS) {
@@ -566,7 +567,7 @@ int32_t StatusMonitor::UpdateContinuousAuthStatusCallback(const std::shared_ptr<
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     bool hasSameCallback = false;
-    int32_t ret;
+    int32_t ret {};
     if (!templateId.has_value()) {
         for (auto &callback : continuousAuthStatusCallbacks_) {
             if (callback->GetTemplateId().has_value()) {

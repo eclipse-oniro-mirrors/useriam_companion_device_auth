@@ -121,7 +121,7 @@ impl HostDeviceObtainTokenRequest {
             }
         }
         if self.token_infos.is_empty() {
-            log_e!("obtain token parameters found");
+            log_e!("obtain token parameters not found");
             return Err(ErrorCode::GeneralError);
         }
 

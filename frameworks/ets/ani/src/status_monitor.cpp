@@ -18,7 +18,6 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
-#include "iam_ptr.h"
 
 #include "companion_device_auth_ani_helper.h"
 
@@ -28,17 +27,10 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 StatusMonitor::StatusMonitor(int32_t localUserId)
-    : availableDeviceStatusCallback_(MakeShared<AniAvailableDeviceStatusCallback>()),
-      templateStatusCallback_(MakeShared<AniTemplateStatusCallback>())
+    : availableDeviceStatusCallback_(std::make_shared<AniAvailableDeviceStatusCallback>()),
+      templateStatusCallback_(std::make_shared<AniTemplateStatusCallback>())
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (availableDeviceStatusCallback_ == nullptr) {
-        IAM_LOGE("get null availableDeviceStatusCallback_");
-    }
-
-    if (templateStatusCallback_ == nullptr) {
-        IAM_LOGE("get null templateStatusCallback_");
-    }
     localUserId_ = localUserId;
     availableDeviceStatusCallback_->SetUserId(localUserId);
     templateStatusCallback_->SetUserId(localUserId);
@@ -185,7 +177,9 @@ int32_t StatusMonitor::OnContinuousAuthChange(companionDeviceAuth::ContinuousAut
 
     if (param.templateId.has_value()) {
         uint64_t templateId = CompanionDeviceAuthAniHelper::ConvertAniTemplateId(param.templateId.value());
-        auto continuousAuthStatusCallback = MakeShared<AniContinuousAuthStatusCallback>();
+        auto continuousAuthStatusCallback = std::make_shared<AniContinuousAuthStatusCallback>();
+        ENSURE_OR_RETURN_VAL(continuousAuthStatusCallback != nullptr, GENERAL_ERROR);
+        continuousAuthStatusCallback->SetUserId(localUserId_);
         continuousAuthStatusCallback->SetTemplateId(templateId);
         continuousAuthStatusCallback->SetCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
                 ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
@@ -200,7 +194,9 @@ int32_t StatusMonitor::OnContinuousAuthChange(companionDeviceAuth::ContinuousAut
             return ret;
         }
     } else {
-        auto continuousAuthStatusCallback = MakeShared<AniContinuousAuthStatusCallback>();
+        auto continuousAuthStatusCallback = std::make_shared<AniContinuousAuthStatusCallback>();
+        ENSURE_OR_RETURN_VAL(continuousAuthStatusCallback != nullptr, GENERAL_ERROR);
+        continuousAuthStatusCallback->SetUserId(localUserId_);
         continuousAuthStatusCallback->SetCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
                 ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
             std::in_place_t {}, callback });
@@ -224,7 +220,7 @@ int32_t StatusMonitor::UpdateContinuousAuthStatusCallback(companionDeviceAuth::C
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     bool hasSameCallback = false;
-    int32_t ret;
+    int32_t ret = GENERAL_ERROR;
     if (!param.templateId.has_value()) {
         for (auto &continuousAuthStatusCallback : continuousAuthStatusCallbacks_) {
             if (continuousAuthStatusCallback->GetTemplateId().has_value()) {
@@ -241,7 +237,7 @@ int32_t StatusMonitor::UpdateContinuousAuthStatusCallback(companionDeviceAuth::C
         }
     } else {
         uint64_t templateId = CompanionDeviceAuthAniHelper::ConvertAniTemplateId(param.templateId.value());
-        uint64_t callbackTemplateId;
+        uint64_t callbackTemplateId {};
         for (auto &continuousAuthStatusCallback : continuousAuthStatusCallbacks_) {
             if (!continuousAuthStatusCallback->GetTemplateId().has_value()) {
                 continue;

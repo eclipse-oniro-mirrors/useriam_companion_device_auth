@@ -47,7 +47,7 @@ public:
     static CompanionDeviceAuthClient &GetInstance();
 
     /**
-     * @brief Default deconstructor.
+     * @brief Default destructor.
      */
     virtual ~CompanionDeviceAuthClient() = default;
 

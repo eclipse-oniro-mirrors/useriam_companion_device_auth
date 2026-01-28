@@ -20,6 +20,7 @@
 #include <memory>
 #include <utility>
 
+#include "iam_check.h"
 #include "iam_logger.h"
 
 #include "available_device_subscription.h"

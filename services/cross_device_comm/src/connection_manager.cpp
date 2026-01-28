@@ -450,7 +450,7 @@ void ConnectionManager::HandleKeepAliveReply(const std::string &connectionName, 
         return;
     }
 
-    int32_t result;
+    int32_t result {};
     bool getResultRet = reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
     ENSURE_OR_RETURN(getResultRet);
     if (result != ResultCode::SUCCESS) {

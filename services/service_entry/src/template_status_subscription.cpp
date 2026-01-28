@@ -91,6 +91,7 @@ void TemplateStatusSubscription::OnCallbackAdded(const sptr<IIpcTemplateStatusCa
 {
     ENSURE_OR_RETURN(callback != nullptr);
     TaskRunnerManager::GetInstance().PostTaskOnResident([callback, cachedTemplateStatus = cachedTemplateStatus_]() {
+        ENSURE_OR_RETURN(callback != nullptr);
         int32_t ret = callback->OnTemplateStatusChange(cachedTemplateStatus);
         if (ret != ERR_OK) {
             IAM_LOGE("OnTemplateStatusChange failed, ret %{public}d", ret);
@@ -103,6 +104,7 @@ void TemplateStatusSubscription::OnCallbackRemoteDied(const sptr<IIpcTemplateSta
     ENSURE_OR_RETURN(callback != nullptr);
 
     TaskRunnerManager::GetInstance().PostTaskOnResident([callback, weakManager = subscriptionManager_]() {
+        ENSURE_OR_RETURN(callback != nullptr);
         auto manager = weakManager.lock();
         ENSURE_OR_RETURN(manager != nullptr);
         manager->RemoveTemplateStatusCallback(callback);

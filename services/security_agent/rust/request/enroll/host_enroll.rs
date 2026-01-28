@@ -22,12 +22,13 @@ use crate::request::enroll::enroll_message::{
     SecKeyNegoRequest,
 };
 use crate::request::jobs::common_message::SecIssueToken;
-use crate::request::jobs::token_helper::DeviceTokenInfo;
+use crate::request::jobs::token_helper;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
 use crate::traits::db_manager::{
     CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo,
     DeviceKey, UserInfo,
 };
+use token_helper::DeviceTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::TimeKeeperRegistry;
@@ -247,15 +248,7 @@ impl HostDeviceEnrollRequest {
         let device_capability =
             DeviceCapability { device_type, esl, track_ability_level: reply_info.track_ability_level };
         self.device_capability.push(device_capability);
-
-        let mut token = [0u8; TOKEN_KEY_LEN];
-        CryptoEngineRegistry::get().secure_random(&mut token).map_err(|_| {
-            log_e!("secure_random fail");
-            ErrorCode::GeneralError
-        })?;
-        let token_info =
-            DeviceTokenInfo { device_type, challenge: reply_info.challenge, atl: self.atl, token: token.to_vec() };
-        self.token_infos.push(token_info.clone());
+        self.token_infos.push(token_helper::generate_token(device_type, reply_info.challenge, self.atl)?);
 
         let acl = match esl {
             ExecutorSecurityLevel::Esl0 => AuthCapabilityLevel::Acl0,

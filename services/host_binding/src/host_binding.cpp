@@ -22,7 +22,6 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
-#include "iam_ptr.h"
 
 #include "companion_manager.h"
 #include "cross_device_comm_manager.h"
@@ -84,8 +83,8 @@ bool HostBinding::Initialize()
         return false;
     }
 
-    auto devcieStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus();
-    HandleDeviceStatusChanged(devcieStatusList);
+    auto deviceStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus();
+    HandleDeviceStatusChanged(deviceStatusList);
 
     localDeviceStatusSubscription_ =
         GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive([weakSelf = weak_from_this()](bool isActive) {

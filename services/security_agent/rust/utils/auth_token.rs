@@ -21,6 +21,52 @@ pub const AES_GCM_TOKEN_AAD_BYTES: &[u8] = b"OH_authToken";
 pub const AUTH_TOKEN_CIPHER_LEN: usize = core::mem::size_of::<TokenDataToEncrypt>();
 pub const TOKEN_VERSION: u32 = 0;
 
+// Intermediate structure for deserialization that uses integer types instead of enums.
+// This prevents undefined behavior when reading from untrusted byte sources.
+#[repr(C, packed)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct TokenDataPlainRaw {
+    pub challenge: [u8; AUTH_TOKEN_CHALLENGE_LEN],
+    pub time: u64,
+    pub auth_trust_level: i32,        // AuthTrustLevel discriminant (underlying type: i32)
+    pub auth_type: u32,               // AuthType discriminant (underlying type: u32)
+    pub schedule_mode: i32,
+    pub security_level: i32,          // AuthSecurityLevel discriminant (underlying type: i32)
+    pub token_type: i32,
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct UserAuthTokenRaw {
+    pub version: u32,
+    pub token_data_plain: TokenDataPlainRaw,
+    pub token_data_cipher: [u8; AUTH_TOKEN_CIPHER_LEN],
+    pub tag: [u8; AES_GCM_TAG_SIZE],
+    pub iv: [u8; AES_GCM_IV_SIZE],
+    pub sign: [u8; SHA256_DIGEST_SIZE],
+}
+
+impl UserAuthTokenRaw {
+    fn into_token(self) -> Result<UserAuthToken, ErrorCode> {
+        Ok(UserAuthToken {
+            version: self.version,
+            token_data_plain: TokenDataPlain {
+                challenge: self.token_data_plain.challenge,
+                time: self.token_data_plain.time,
+                auth_trust_level: AuthTrustLevel::try_from(self.token_data_plain.auth_trust_level)?,
+                auth_type: AuthType::try_from(self.token_data_plain.auth_type)?,
+                schedule_mode: self.token_data_plain.schedule_mode,
+                security_level: AuthSecurityLevel::try_from(self.token_data_plain.security_level)?,
+                token_type: self.token_data_plain.token_type,
+            },
+            token_data_cipher: self.token_data_cipher,
+            tag: self.tag,
+            iv: self.iv,
+            sign: self.sign,
+        })
+    }
+}
+
 // Encrypted+signed auth token product
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -45,18 +91,17 @@ impl UserAuthToken {
         Self { version, token_data_plain, token_data_cipher, tag, iv, sign }
     }
 
-    // Struct serialization
     pub fn serialize(&self) -> &[u8] {
         unsafe { core::slice::from_raw_parts(self as *const Self as *const u8, core::mem::size_of::<Self>()) }
     }
 
-    // Struct deserialization
     pub fn deserialize(bytes: &[u8]) -> Result<Self, ErrorCode> {
         if bytes.len() != core::mem::size_of::<Self>() {
             return Err(ErrorCode::GeneralError);
         }
 
-        Ok(unsafe { core::ptr::read_unaligned(bytes.as_ptr() as *const Self) })
+        let raw = unsafe { core::ptr::read_unaligned(bytes.as_ptr() as *const UserAuthTokenRaw) };
+        raw.into_token()
     }
 }
 
