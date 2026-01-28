@@ -40,8 +40,6 @@ public:
     ~AniDeviceSelectCallback() override;
     void OnDeviceSelect(int32_t selectPurpose, const std::shared_ptr<SetDeviceSelectResultCallback> &callback) override;
     void SetCallback(taihe::optional<DeviceSelectCallback> callback);
-    void ClearCallback();
-    bool HasCallback();
 
 private:
     DeviceSelectCallbackPtr GetCallback();

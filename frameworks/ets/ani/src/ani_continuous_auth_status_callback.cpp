@@ -38,6 +38,7 @@ AniContinuousAuthStatusCallback::~AniContinuousAuthStatusCallback()
 void AniContinuousAuthStatusCallback::OnContinuousAuthStatusChange(const bool isAuthPassed,
     const std::optional<int32_t> authTrustLevel)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     for (auto &callback : callbacks_) {
         DoCallback(callback, isAuthPassed, authTrustLevel);
@@ -52,40 +53,40 @@ void AniContinuousAuthStatusCallback::DoCallback(ContinuousAuthStatusCallbackPtr
         return;
     }
 
-    if (authTrustLevel.has_value()) {
-        if (!CompanionDeviceAuthAniHelper::IsAuthTrustLevelValid(authTrustLevel.value())) {
-            IAM_LOGE("invalid atl");
-            return;
-        }
-        ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel aniAuthTrustLevel =
-            CompanionDeviceAuthAniHelper::ConvertAuthTrustLevel(authTrustLevel.value());
-        ::taihe::optional<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> optAuthTrustLevel(std::in_place,
-            aniAuthTrustLevel);
-        (**callback)(isAuthPassed, optAuthTrustLevel);
+    if (!authTrustLevel.has_value()) {
+        (**callback)(isAuthPassed,
+            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> { std::nullopt });
         return;
     }
 
-    (**callback)(isAuthPassed,
-        ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> { std::nullopt });
+    IAM_LOGI("authTrustLevel:%{public}d", authTrustLevel.value());
+    if (!CompanionDeviceAuthAniHelper::IsAuthTrustLevelValid(authTrustLevel.value())) {
+        IAM_LOGE("invalid atl");
+        return;
+    }
+    ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel aniAuthTrustLevel =
+        CompanionDeviceAuthAniHelper::ConvertAuthTrustLevel(authTrustLevel.value());
+    ::taihe::optional<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> optAuthTrustLevel(std::in_place,
+        aniAuthTrustLevel);
+    (**callback)(isAuthPassed, optAuthTrustLevel);
 }
 
-int32_t AniContinuousAuthStatusCallback::SetCallback(taihe::optional<ContinuousAuthStatusCallback> callback)
+void AniContinuousAuthStatusCallback::SetCallback(taihe::optional<ContinuousAuthStatusCallback> callback)
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (HasSameCallback(callback)) {
         IAM_LOGI("has same callback");
-        return SUCCESS;
+        return;
     }
     auto callbackPtr = std::make_shared<taihe::optional<ContinuousAuthStatusCallback>>(callback);
-    ENSURE_OR_RETURN_VAL(callbackPtr != nullptr, GENERAL_ERROR);
+    ENSURE_OR_RETURN(callbackPtr != nullptr);
     callbacks_.push_back(callbackPtr);
-    IAM_LOGI("success");
-    return SUCCESS;
 }
 
 void AniContinuousAuthStatusCallback::ClearCallback()
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     callbacks_.clear();
 }
@@ -99,51 +100,48 @@ bool AniContinuousAuthStatusCallback::HasCallback()
     return true;
 }
 
-void AniContinuousAuthStatusCallback::RemoveSingleCallback(taihe::optional<ContinuousAuthStatusCallback> callback)
+int32_t AniContinuousAuthStatusCallback::RemoveSingleCallback(taihe::optional<ContinuousAuthStatusCallback> callback)
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackPtr = std::make_shared<taihe::optional<ContinuousAuthStatusCallback>>(callback);
-    ENSURE_OR_RETURN(callbackPtr != nullptr);
     if (!HasCallback()) {
         IAM_LOGE("callbacks_ is empty");
-        return;
+        return GENERAL_ERROR;
     }
 
-    IAM_LOGI("begin to find the callback");
+    auto callbackPtr = std::make_shared<taihe::optional<ContinuousAuthStatusCallback>>(callback);
+    ENSURE_OR_RETURN_VAL(callbackPtr != nullptr, GENERAL_ERROR);
     if (!callbackPtr->has_value()) {
-        return;
+        IAM_LOGE("callbackPtr is nullptr");
+        return GENERAL_ERROR;
     }
     auto callbackValue = callbackPtr->value();
-    bool findCallback = false;
     for (size_t i = 0; i < callbacks_.size(); ++i) {
         if (!callbacks_[i]->has_value()) {
             continue;
         }
         if (callbackValue == callbacks_[i]->value()) {
-            IAM_LOGI("find the callback to remove");
             callbacks_.erase(callbacks_.begin() + i);
-            findCallback = true;
-            break;
+            IAM_LOGI("remove success");
+            return SUCCESS;
         }
     }
-
-    if (!findCallback) {
-        IAM_LOGE("fail to find the callback to remove");
-    } else {
-        IAM_LOGI("remove success");
-    }
+    IAM_LOGE("fail to find the callback to remove");
+    return GENERAL_ERROR;
 }
 
 bool AniContinuousAuthStatusCallback::HasSameCallback(taihe::optional<ContinuousAuthStatusCallback> callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     auto callbackPtr = std::make_shared<taihe::optional<ContinuousAuthStatusCallback>>(callback);
     ENSURE_OR_RETURN_VAL(callbackPtr != nullptr, false);
     if (!HasCallback()) {
+        IAM_LOGI("do not have callback");
         return false;
     }
     if (!callbackPtr->has_value()) {
+        IAM_LOGI("callbackPtr is nullptr");
         return false;
     }
     auto callbackValue = callbackPtr->value();

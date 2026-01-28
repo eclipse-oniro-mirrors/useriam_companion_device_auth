@@ -44,13 +44,13 @@ public:
     int32_t GetUserId() override;
     std::optional<uint64_t> GetTemplateId() override;
 
-    int32_t SetCallback(taihe::optional<ContinuousAuthStatusCallback> callback);
+    void SetCallback(taihe::optional<ContinuousAuthStatusCallback> callback);
     void ClearCallback();
     bool HasCallback();
-    void RemoveSingleCallback(taihe::optional<ContinuousAuthStatusCallback> callback);
+    int32_t RemoveSingleCallback(taihe::optional<ContinuousAuthStatusCallback> callback);
     bool HasSameCallback(taihe::optional<ContinuousAuthStatusCallback> callback);
-    void SetUserId(int32_t userId);
     void SetTemplateId(uint64_t templateId);
+    void SetUserId(int32_t userId);
 
 private:
     void DoCallback(ContinuousAuthStatusCallbackPtr callback, const bool isAuthPassed,

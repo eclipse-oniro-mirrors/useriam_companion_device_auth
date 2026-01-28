@@ -42,10 +42,10 @@ public:
     void OnAvailableDeviceStatusChange(const std::vector<ClientDeviceStatus> deviceStatusList) override;
     int32_t GetUserId() override;
 
-    int32_t SetCallback(taihe::optional<AvailableDeviceStatusCallback> callback);
+    void SetCallback(taihe::optional<AvailableDeviceStatusCallback> callback);
     void ClearCallback();
     bool HasCallback();
-    void RemoveSingleCallback(taihe::optional<AvailableDeviceStatusCallback> callback);
+    int32_t RemoveSingleCallback(taihe::optional<AvailableDeviceStatusCallback> callback);
     void SetUserId(int32_t userId);
 
 private:

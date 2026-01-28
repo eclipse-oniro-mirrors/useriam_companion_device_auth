@@ -42,11 +42,11 @@ public:
     std::optional<uint64_t> GetTemplateId() override;
 
     napi_status DoCallback(const bool isAuthPassed, const std::optional<int32_t> authTrustLevel = std::nullopt);
-    ResultCode SetCallback(const std::shared_ptr<JsRefHolder> &callback);
-    ResultCode ClearCallback();
+    void SetCallback(const std::shared_ptr<JsRefHolder> &callback);
+    void ClearCallback();
     bool HasCallback();
-    ResultCode RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback);
-    bool IsCallbackExists(const std::shared_ptr<JsRefHolder> &callback);
+    int32_t RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback);
+    bool HasSameCallback(const std::shared_ptr<JsRefHolder> &callback);
     void SetUserId(int32_t userId);
     void SetTemplateId(uint64_t templateId);
 

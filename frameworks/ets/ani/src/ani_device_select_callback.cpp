@@ -38,8 +38,8 @@ AniDeviceSelectCallback::~AniDeviceSelectCallback()
 void AniDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     const std::shared_ptr<SetDeviceSelectResultCallback> &callback)
 {
+    IAM_LOGI("start");
     ClientDeviceSelectResult result;
-    result.deviceKeys = {};
     auto deviceSelectCallback = GetCallback();
     if (deviceSelectCallback == nullptr) {
         IAM_LOGE("deviceSelectCallback is null");
@@ -47,6 +47,7 @@ void AniDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     }
     companionDeviceAuth::DeviceSelectResult deviceSelectResult = (**deviceSelectCallback)(selectPurpose);
     taihe::array<companionDeviceAuth::DeviceKey> deviceKeys = deviceSelectResult.deviceKeys;
+    result.deviceKeys = {};
     for (auto &deviceKey : deviceKeys) {
         ClientDeviceKey clientDeviceKey = CompanionDeviceAuthAniHelper::ConvertAniDeviceKey(deviceKey);
         result.deviceKeys.push_back(clientDeviceKey);
@@ -62,21 +63,10 @@ void AniDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
 
 void AniDeviceSelectCallback::SetCallback(taihe::optional<DeviceSelectCallback> callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     callback_ = std::make_shared<taihe::optional<DeviceSelectCallback>>(callback);
     ENSURE_OR_RETURN(callback_ != nullptr);
-}
-
-void AniDeviceSelectCallback::ClearCallback()
-{
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    callback_ = nullptr;
-}
-
-bool AniDeviceSelectCallback::HasCallback()
-{
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    return callback_ != nullptr;
 }
 
 DeviceSelectCallbackPtr AniDeviceSelectCallback::GetCallback()

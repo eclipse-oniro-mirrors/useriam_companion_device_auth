@@ -41,28 +41,33 @@ public:
 
     int32_t GetTemplateStatus(std::vector<ClientTemplateStatus> &clientTemplateStatusList);
     int32_t OnTemplateChange(::taihe::callback_view<void(
-            ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>
-            callback);
+        ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>
+        callback);
     int32_t OffTemplateChange(::taihe::optional_view<::taihe::callback<void(
-            ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>>
-            callback);
+        ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>>
+        callback);
     int32_t OnContinuousAuthChange(companionDeviceAuth::ContinuousAuthParam const &param,
         ::taihe::callback_view<void(bool isAuthPassed,
-            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
-            callback);
+        ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
+        callback);
     int32_t OffContinuousAuthChange(::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
-            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
-            callback);
+        ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
+        callback);
     int32_t OnAvailableDeviceChange(::taihe::callback_view<void(
-            ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>
-            callback);
+        ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>
+        callback);
     int32_t OffAvailableDeviceChange(::taihe::optional_view<::taihe::callback<void(
-            ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>>
-            callback);
+        ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>>
+        callback);
     int32_t UpdateContinuousAuthStatusCallback(companionDeviceAuth::ContinuousAuthParam const &param,
         ::taihe::callback_view<void(bool isAuthPassed,
-            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
-            callback);
+        ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
+        callback);
+    int32_t ClearContinuousAuthStatusCallback();
+    int32_t RemoveSingleContinuousAuthStatusCallback(
+        ::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
+        ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
+        callback);
 
 private:
     std::recursive_mutex mutex_;

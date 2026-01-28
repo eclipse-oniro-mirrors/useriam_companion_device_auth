@@ -56,11 +56,9 @@ const std::map<int32_t, std::string> g_result2Str = {
 taihe::array<uint8_t> CompanionDeviceAuthAniHelper::ConvertTemplateId(uint64_t templateId)
 {
     taihe::array<uint8_t> result(UINT64_BYTE_SIZE);
-
     for (size_t i = 0; i < UINT64_BYTE_SIZE; i++) {
         result[i] = static_cast<uint8_t>((templateId >> (i * UINT64_BYTE_SIZE)) & UINT8_BYTE_MASK);
     }
-
     return result;
 }
 

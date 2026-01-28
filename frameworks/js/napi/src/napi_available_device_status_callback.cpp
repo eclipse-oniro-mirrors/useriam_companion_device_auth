@@ -47,8 +47,9 @@ NapiAvailableDeviceStatusCallback::~NapiAvailableDeviceStatusCallback()
 {
 }
 
-bool NapiAvailableDeviceStatusCallback::IsCallbackExists(const std::shared_ptr<JsRefHolder> &callback)
+bool NapiAvailableDeviceStatusCallback::HasSameCallback(const std::shared_ptr<JsRefHolder> &callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
         [&callback](const std::shared_ptr<JsRefHolder> &item) { return item->Equals(callback); });
@@ -56,29 +57,30 @@ bool NapiAvailableDeviceStatusCallback::IsCallbackExists(const std::shared_ptr<J
     return it != callbacks_.end();
 }
 
-ResultCode NapiAvailableDeviceStatusCallback::SetCallback(const std::shared_ptr<JsRefHolder> &callback)
+void NapiAvailableDeviceStatusCallback::SetCallback(const std::shared_ptr<JsRefHolder> &callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (IsCallbackExists(callback)) {
+    if (HasSameCallback(callback)) {
         IAM_LOGI("same callback already exist");
-        return SUCCESS;
+        return;
     }
-
     callbacks_.push_back(callback);
-    return SUCCESS;
 }
 
-ResultCode NapiAvailableDeviceStatusCallback::ClearCallback()
+void NapiAvailableDeviceStatusCallback::ClearCallback()
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     callbacks_.clear();
-    return SUCCESS;
 }
 
 bool NapiAvailableDeviceStatusCallback::HasCallback()
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (callbacks_.empty()) {
+        IAM_LOGI("do not have callback");
         return false;
     }
     return true;
@@ -89,12 +91,14 @@ napi_status NapiAvailableDeviceStatusCallback::DoCallback(const std::vector<Clie
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (!HasCallback()) {
+        IAM_LOGI("do not have callback");
         return napi_ok;
     }
 
     napi_value deviceStatusListValue =
         CompanionDeviceAuthNapiHelper::ConvertDeviceStatusListToNapiValue(env_, deviceStatusList);
     if (deviceStatusListValue == nullptr) {
+        IAM_LOGE("ConvertDeviceStatusListToNapiValue fail");
         return napi_generic_failure;
     }
 
@@ -107,11 +111,13 @@ napi_status NapiAvailableDeviceStatusCallback::DoCallback(const std::vector<Clie
         }
     }
 
+    IAM_LOGI("end");
     return napi_ok;
 }
 
-ResultCode NapiAvailableDeviceStatusCallback::RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback)
+int32_t NapiAvailableDeviceStatusCallback::RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (callback == nullptr) {
         IAM_LOGE("callback is null");
@@ -125,6 +131,7 @@ ResultCode NapiAvailableDeviceStatusCallback::RemoveSingleCallback(const std::sh
         return GENERAL_ERROR;
     }
     callbacks_.erase(it);
+    IAM_LOGI("success");
     return SUCCESS;
 }
 
@@ -164,13 +171,11 @@ void NapiAvailableDeviceStatusCallback::OnAvailableDeviceStatusChange(
             return;
         }
     };
-    // clang-format off
     if (napi_send_event(env_, task, napi_eprio_immediate,
         "CompanionDeviceAuthNapi::NapiAvailableDeviceStatusCallback::OnAvailableDeviceStatusChange") !=
         napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
-    // clang-format on
 }
 
 int32_t NapiAvailableDeviceStatusCallback::GetUserId()

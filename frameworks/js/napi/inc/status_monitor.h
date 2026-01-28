@@ -50,9 +50,6 @@ private:
     int32_t SetAvailableDeviceStatusCallback(napi_env env, napi_value value);
     int32_t SetTemplateStatusCallback(napi_env env, napi_value value);
     int32_t SetContinuousAuthStatusCallback(napi_env env, napi_value paramValue, napi_value callbackValue);
-    int32_t ClearAvailableDeviceStatusCallback();
-    int32_t ClearTemplateStatusCallback();
-    int32_t ClearContinuousAuthStatusCallback();
     int32_t RemoveSingleTemplateStatusChangedCallback(napi_env env, napi_value value);
     int32_t RemoveSingleAvailableDeviceStatusCallback(napi_env env, napi_value value);
     int32_t RemoveSingleContinuousAuthStatusCallback(napi_env env, napi_value value);

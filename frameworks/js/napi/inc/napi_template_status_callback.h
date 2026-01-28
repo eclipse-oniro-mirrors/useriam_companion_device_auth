@@ -39,11 +39,11 @@ public:
     void OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList) override;
     int32_t GetUserId() override;
 
-    bool IsCallbackExists(const std::shared_ptr<JsRefHolder> &callback);
+    bool HasSameCallback(const std::shared_ptr<JsRefHolder> &callback);
     napi_status DoCallback(const std::vector<ClientTemplateStatus> templateStatusList);
-    ResultCode SetCallback(const std::shared_ptr<JsRefHolder> &callback);
-    ResultCode ClearCallback();
-    ResultCode RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback);
+    void SetCallback(const std::shared_ptr<JsRefHolder> &callback);
+    void ClearCallback();
+    int32_t RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback);
     bool HasCallback();
     void SetUserId(int32_t userId);
 

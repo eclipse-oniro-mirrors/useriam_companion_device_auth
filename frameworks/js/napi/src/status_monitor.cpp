@@ -31,6 +31,7 @@ StatusMonitor::StatusMonitor(napi_env env)
 
 int32_t StatusMonitor::SetLocalUserId(napi_env env, napi_callback_info info)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     napi_value argv[ARGS_ONE];
     size_t argc = ARGS_ONE;
@@ -66,6 +67,7 @@ int32_t StatusMonitor::SetLocalUserId(napi_env env, napi_callback_info info)
     localUserId_ = userId;
     templateStatusCallback_->SetUserId(userId);
     availableDeviceStatusCallback_->SetUserId(userId);
+    IAM_LOGI("success");
     return SUCCESS;
 }
 
@@ -127,7 +129,9 @@ int32_t StatusMonitor::OffTemplateChange(napi_env env, napi_callback_info info)
             IAM_LOGE("UnsubscribeTemplateStatusChange fail, ret:%{public}d", ret);
             return ret;
         }
-        return ClearTemplateStatusCallback();
+        templateStatusCallback_->ClearCallback();
+        IAM_LOGI("ClearCallback success");
+        return SUCCESS;
     }
 
     if (argc != ARGS_ONE) {
@@ -184,7 +188,9 @@ int32_t StatusMonitor::OffAvailableDeviceChange(napi_env env, napi_callback_info
             IAM_LOGE("UnsubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
             return ret;
         }
-        return ClearAvailableDeviceStatusCallback();
+        availableDeviceStatusCallback_->ClearCallback();
+        IAM_LOGI("ClearCallback success");
+        return SUCCESS;
     }
 
     if (argc != ARGS_ONE) {
@@ -247,71 +253,23 @@ int32_t StatusMonitor::OffContinuousAuthChange(napi_env env, napi_callback_info 
         IAM_LOGE("napi_get_cb_info fail, ret:%{public}d", status);
         return GENERAL_ERROR;
     }
-    if (argc != 0 && argc != ARGS_ONE) {
+
+    if (argc == 0) {
+        for (auto &continuousAuthStatusCallback : continuousAuthStatusCallbacks_) {
+            int32_t ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(
+                continuousAuthStatusCallback);
+            if (ret != SUCCESS) {
+                IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
+                return ret;
+            }
+            continuousAuthStatusCallback->ClearCallback();
+        }
+    }
+    if (argc != ARGS_ONE) {
         IAM_LOGE("invalid param, argc:%{public}zu", argc);
         return GENERAL_ERROR;
     }
-
-    if (argc == ARGS_ONE) {
-        return RemoveSingleContinuousAuthStatusCallback(env, argv[PARAM0]);
-    }
-
-    for (auto &continuousAuthStatusCallback : continuousAuthStatusCallbacks_) {
-        int32_t ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(
-            continuousAuthStatusCallback);
-        if (ret != SUCCESS) {
-            IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
-            return ret;
-        }
-    }
-    return ClearContinuousAuthStatusCallback();
-}
-
-int32_t StatusMonitor::ClearTemplateStatusCallback()
-{
-    IAM_LOGI("start");
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (!templateStatusCallback_->HasCallback()) {
-        IAM_LOGE("no callback registered yet");
-        return GENERAL_ERROR;
-    }
-    return templateStatusCallback_->ClearCallback();
-}
-
-int32_t StatusMonitor::ClearAvailableDeviceStatusCallback()
-{
-    IAM_LOGI("start");
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (!availableDeviceStatusCallback_->HasCallback()) {
-        IAM_LOGE("no callback registered yet");
-        return GENERAL_ERROR;
-    }
-    return availableDeviceStatusCallback_->ClearCallback();
-}
-
-int32_t StatusMonitor::ClearContinuousAuthStatusCallback()
-{
-    IAM_LOGI("start");
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    bool hasContinuousAuthStatusCallback = false;
-    for (auto &continuousAuthStatusCallback : continuousAuthStatusCallbacks_) {
-        if (continuousAuthStatusCallback->HasCallback()) {
-            hasContinuousAuthStatusCallback = true;
-            int32_t ret = continuousAuthStatusCallback->ClearCallback();
-            if (ret != SUCCESS) {
-                IAM_LOGE("ClearContinuousAuthStatusCallback fail, ret:%{public}d", ret);
-                return ret;
-            }
-        }
-    }
-
-    continuousAuthStatusCallbacks_ = {};
-    if (!hasContinuousAuthStatusCallback) {
-        IAM_LOGE("no callback registered yet");
-        return GENERAL_ERROR;
-    }
-
-    return SUCCESS;
+    return RemoveSingleContinuousAuthStatusCallback(env, argv[PARAM0]);
 }
 
 int32_t StatusMonitor::RemoveSingleTemplateStatusChangedCallback(napi_env env, napi_value value)
@@ -392,7 +350,7 @@ int32_t StatusMonitor::RemoveSingleContinuousAuthStatusCallback(napi_env env, na
 
     int32_t ret = GENERAL_ERROR;
     for (auto it = continuousAuthStatusCallbacks_.begin(); it != continuousAuthStatusCallbacks_.end();) {
-        if (!(*it)->IsCallbackExists(callbackRef)) {
+        if (!(*it)->HasSameCallback(callbackRef)) {
             it++;
             continue;
         }
@@ -438,6 +396,7 @@ int32_t StatusMonitor::SetTemplateStatusCallback(napi_env env, napi_value value)
             templateStatusCallback_);
         if (ret != SUCCESS) {
             IAM_LOGE("SubscribeTemplateStatusChange fail, ret:%{public}d", ret);
+            templateStatusCallback_->ClearCallback();
             return ret;
         }
     } else {
@@ -465,7 +424,7 @@ int32_t StatusMonitor::SetAvailableDeviceStatusCallback(napi_env env, napi_value
             availableDeviceStatusCallback_);
         if (ret != SUCCESS) {
             IAM_LOGE("SubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
-            availableDeviceStatusCallback_->RemoveSingleCallback(callbackRef);
+            availableDeviceStatusCallback_->ClearCallback();
             return ret;
         }
     } else {
@@ -515,11 +474,7 @@ int32_t StatusMonitor::SetContinuousAuthStatusCallbackWithTemplateId(napi_env en
     ENSURE_OR_RETURN_VAL(callback != nullptr, GENERAL_ERROR);
     callback->SetTemplateId(templateId);
     callback->SetUserId(localUserId_);
-    ret = callback->SetCallback(callbackRef);
-    if (ret != SUCCESS) {
-        IAM_LOGE("SetCallback fail, ret:%{public}d", ret);
-        return ret;
-    }
+    callback->SetCallback(callbackRef);
     continuousAuthStatusCallbacks_.push_back(callback);
 
     ret = CompanionDeviceAuthClient::GetInstance().SubscribeContinuousAuthStatusChange(localUserId_, callback,
@@ -546,11 +501,7 @@ int32_t StatusMonitor::SetContinuousAuthStatusCallbackWithoutTemplateId(napi_env
     auto callback = std::make_shared<NapiContinuousAuthStatusCallback>(env);
     ENSURE_OR_RETURN_VAL(callback != nullptr, GENERAL_ERROR);
     callback->SetUserId(localUserId_);
-    ret = callback->SetCallback(callbackRef);
-    if (ret != SUCCESS) {
-        IAM_LOGE("SetCallback fail, ret:%{public}d", ret);
-        return ret;
-    }
+    callback->SetCallback(callbackRef);
     continuousAuthStatusCallbacks_.push_back(callback);
     ret = CompanionDeviceAuthClient::GetInstance().SubscribeContinuousAuthStatusChange(localUserId_, callback);
     if (ret != SUCCESS) {
@@ -566,19 +517,13 @@ int32_t StatusMonitor::UpdateContinuousAuthStatusCallback(const std::shared_ptr<
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    bool hasSameCallback = false;
-    int32_t ret {};
     if (!templateId.has_value()) {
         for (auto &callback : continuousAuthStatusCallbacks_) {
             if (callback->GetTemplateId().has_value()) {
                 continue;
             }
-            ret = callback->SetCallback(callbackRef);
-            if (ret != SUCCESS) {
-                IAM_LOGE("SetCallback fail, ret:%{public}d", ret);
-                return ret;
-            }
-            hasSameCallback = true;
+            callback->SetCallback(callbackRef);
+            return SUCCESS;
         }
     } else {
         uint64_t templateIdValue = templateId.value();
@@ -590,19 +535,11 @@ int32_t StatusMonitor::UpdateContinuousAuthStatusCallback(const std::shared_ptr<
             if (callbackTemplateId != templateIdValue) {
                 continue;
             }
-            ret = callback->SetCallback(callbackRef);
-            if (ret != SUCCESS) {
-                IAM_LOGE("SetCallback fail, ret:%{public}d", ret);
-                return ret;
-            }
-            hasSameCallback = true;
+            callback->SetCallback(callbackRef);
+            return SUCCESS;
         }
     }
-
-    if (!hasSameCallback) {
-        return GENERAL_ERROR;
-    }
-    return SUCCESS;
+    return GENERAL_ERROR;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

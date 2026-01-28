@@ -38,6 +38,7 @@ bool CheckUseUserIdmPermission()
     uint64_t fullTokenId = IPCSkeleton::GetCallingFullTokenID();
     AccessTokenID tokenId = fullTokenId & TOKEN_ID_LOW_MASK;
     if (AccessTokenKit::VerifyAccessToken(tokenId, USE_USER_IDM_PERMISSION) != RET_SUCCESS) {
+        IAM_LOGE("CheckUseUserIdmPermission fail");
         return false;
     }
     return true;
@@ -50,11 +51,12 @@ bool CheckCallerIsSystemApp()
     bool checkRet = TokenIdKit::IsSystemAppByFullTokenID(fullTokenId);
     AccessTokenID tokenId = fullTokenId & TOKEN_ID_LOW_MASK;
     ATokenTypeEnum callingType = AccessTokenKit::GetTokenTypeFlag(tokenId);
-    if (checkRet && callingType == Security::AccessToken::TOKEN_HAP) {
-        IAM_LOGI("the caller is system application");
-        return true;
+    if (!checkRet || callingType != Security::AccessToken::TOKEN_HAP) {
+        IAM_LOGE("the caller is not system application");
+        return false;
     }
-    return false;
+    IAM_LOGI("the caller is system application");
+    return true;
 }
 
 napi_status UnwrapStatusMonitor(napi_env env, napi_callback_info info, StatusMonitor **statusMonitor)

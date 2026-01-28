@@ -38,6 +38,7 @@ struct DeviceSelectCallbackHolder {
 
 void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSelectCallbackHolder)
 {
+    IAM_LOGI("start");
     if (deviceSelectCallbackHolder == nullptr || deviceSelectCallbackHolder->callback == nullptr) {
         IAM_LOGE("deviceSelectCallbackHolder is invalid");
         return;
@@ -75,6 +76,7 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
     }
     deviceSelectCallbackHolder->setCallback->OnSetDeviceSelectResult(result);
     napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
+    IAM_LOGI("end");
 }
 } // namespace
 
@@ -91,6 +93,7 @@ NapiDeviceSelectCallback::~NapiDeviceSelectCallback()
 
 void NapiDeviceSelectCallback::SetCallback(const std::shared_ptr<JsRefHolder> &callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     callback_ = callback;
 }
@@ -133,12 +136,11 @@ void NapiDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     deviceSelectCallbackHolder->setCallback = callback;
     deviceSelectCallbackHolder->env = env_;
     auto task = [deviceSelectCallbackHolder]() { DeviceSelectCallback(deviceSelectCallbackHolder); };
-    // clang-format off
     if (napi_send_event(env_, task, napi_eprio_immediate,
         "CompanionDeviceAuthNapi::NapiDeviceSelectCallback::OnDeviceSelect") != napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
-    // clang-format on
+    IAM_LOGI("end");
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

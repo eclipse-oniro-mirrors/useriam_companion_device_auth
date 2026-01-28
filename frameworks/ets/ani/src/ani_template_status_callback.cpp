@@ -89,23 +89,22 @@ void AniTemplateStatusCallback::DoCallback(const std::vector<ClientTemplateStatu
     IAM_LOGI("success");
 }
 
-int32_t AniTemplateStatusCallback::SetCallback(taihe::optional<TemplateStatusCallback> callback)
+void AniTemplateStatusCallback::SetCallback(taihe::optional<TemplateStatusCallback> callback)
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (HasSameCallback(callback)) {
         IAM_LOGI("has same callback");
-        return SUCCESS;
+        return;
     }
     auto callbackPtr = std::make_shared<taihe::optional<TemplateStatusCallback>>(callback);
-    ENSURE_OR_RETURN_VAL(callbackPtr != nullptr, GENERAL_ERROR);
+    ENSURE_OR_RETURN(callbackPtr != nullptr);
     callbacks_.push_back(callbackPtr);
-    IAM_LOGI("success");
-    return SUCCESS;
 }
 
 void AniTemplateStatusCallback::ClearCallback()
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     callbacks_.clear();
 }
@@ -121,13 +120,16 @@ bool AniTemplateStatusCallback::HasCallback()
 
 bool AniTemplateStatusCallback::HasSameCallback(taihe::optional<TemplateStatusCallback> callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     auto callbackPtr = std::make_shared<taihe::optional<TemplateStatusCallback>>(callback);
     ENSURE_OR_RETURN_VAL(callbackPtr != nullptr, false);
     if (!HasCallback()) {
+        IAM_LOGI("do not have callback");
         return false;
     }
     if (!callbackPtr->has_value()) {
+        IAM_LOGI("callbackPtr is nullptr");
         return false;
     }
     auto callbackValue = callbackPtr->value();
@@ -145,40 +147,34 @@ bool AniTemplateStatusCallback::HasSameCallback(taihe::optional<TemplateStatusCa
     return false;
 }
 
-void AniTemplateStatusCallback::RemoveSingleCallback(taihe::optional<TemplateStatusCallback> callback)
+int32_t AniTemplateStatusCallback::RemoveSingleCallback(taihe::optional<TemplateStatusCallback> callback)
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    auto callbackPtr = std::make_shared<taihe::optional<TemplateStatusCallback>>(callback);
-    ENSURE_OR_RETURN(callbackPtr != nullptr);
     if (!HasCallback()) {
         IAM_LOGE("callbacks_ is empty");
-        return;
+        return GENERAL_ERROR;
     }
 
-    IAM_LOGI("begin to find the callback");
+    auto callbackPtr = std::make_shared<taihe::optional<TemplateStatusCallback>>(callback);
+    ENSURE_OR_RETURN_VAL(callbackPtr != nullptr, GENERAL_ERROR);
     if (!callbackPtr->has_value()) {
-        return;
+        IAM_LOGE("callbackPtr is nullptr");
+        return GENERAL_ERROR;
     }
     auto callbackValue = callbackPtr->value();
-    bool findCallback = false;
     for (size_t i = 0; i < callbacks_.size(); ++i) {
         if (!callbacks_[i]->has_value()) {
             continue;
         }
         if (callbackValue == callbacks_[i]->value()) {
-            IAM_LOGI("find the callback to remove");
             callbacks_.erase(callbacks_.begin() + i);
-            findCallback = true;
-            break;
+            IAM_LOGI("remove success");
+            return SUCCESS;
         }
     }
-
-    if (!findCallback) {
-        IAM_LOGE("fail to find the callback to remove");
-    } else {
-        IAM_LOGI("remove success");
-    }
+    IAM_LOGE("fail to find the callback to remove");
+    return GENERAL_ERROR;
 }
 
 int32_t AniTemplateStatusCallback::GetUserId()

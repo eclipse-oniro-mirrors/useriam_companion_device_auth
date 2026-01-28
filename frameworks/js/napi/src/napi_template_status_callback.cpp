@@ -48,39 +48,43 @@ NapiTemplateStatusCallback::~NapiTemplateStatusCallback()
 {
 }
 
-bool NapiTemplateStatusCallback::IsCallbackExists(const std::shared_ptr<JsRefHolder> &callback)
+bool NapiTemplateStatusCallback::HasSameCallback(const std::shared_ptr<JsRefHolder> &callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-
     auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
         [&callback](const std::shared_ptr<JsRefHolder> &item) { return item->Equals(callback); });
 
     return it != callbacks_.end();
 }
 
-ResultCode NapiTemplateStatusCallback::SetCallback(const std::shared_ptr<JsRefHolder> &callback)
+void NapiTemplateStatusCallback::SetCallback(const std::shared_ptr<JsRefHolder> &callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (IsCallbackExists(callback)) {
+    if (HasSameCallback(callback)) {
         IAM_LOGI("same callback already exist");
-        return SUCCESS;
+        return;
     }
 
     callbacks_.push_back(callback);
-    return SUCCESS;
+    return;
 }
 
-ResultCode NapiTemplateStatusCallback::ClearCallback()
+void NapiTemplateStatusCallback::ClearCallback()
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     callbacks_.clear();
-    return SUCCESS;
+    return;
 }
 
 bool NapiTemplateStatusCallback::HasCallback()
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (callbacks_.empty()) {
+        IAM_LOGI("do not have callback");
         return false;
     }
     return true;
@@ -108,12 +112,13 @@ napi_status NapiTemplateStatusCallback::DoCallback(const std::vector<ClientTempl
             IAM_LOGE("CallVoidNapiFunc fail at index: %{public}zu", i);
         }
     }
-
+    IAM_LOGI("end");
     return napi_ok;
 }
 
-ResultCode NapiTemplateStatusCallback::RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback)
+int32_t NapiTemplateStatusCallback::RemoveSingleCallback(const std::shared_ptr<JsRefHolder> &callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (callback == nullptr) {
         IAM_LOGE("callback is null");
@@ -161,12 +166,11 @@ void NapiTemplateStatusCallback::OnTemplateStatusChange(const std::vector<Client
             return;
         }
     };
-    // clang-format off
     if (napi_send_event(env_, task, napi_eprio_immediate,
         "CompanionDeviceAuthNapi::NapiTemplateStatusCallback::OnTemplateStatusChange") != napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
-    // clang-format on
+    IAM_LOGI("end");
 }
 
 int32_t NapiTemplateStatusCallback::GetUserId()

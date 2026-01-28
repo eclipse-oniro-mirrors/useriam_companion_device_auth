@@ -39,11 +39,13 @@ StatusMonitor::StatusMonitor(int32_t localUserId)
 int32_t StatusMonitor::GetTemplateStatus(std::vector<ClientTemplateStatus> &clientTemplateStatusList)
 {
     IAM_LOGI("start");
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
     int32_t ret = CompanionDeviceAuthClient::GetInstance().GetTemplateStatus(localUserId_, clientTemplateStatusList);
     if (ret != SUCCESS) {
         IAM_LOGE("GetTemplateStatus fail");
         return ret;
     }
+    IAM_LOGI("success");
     return SUCCESS;
 }
 
@@ -59,22 +61,23 @@ int32_t StatusMonitor::OnTemplateChange(::taihe::callback_view<void(
     }
 
     if (!templateStatusCallback_->HasCallback()) {
-        int32_t ret = templateStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
-                ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>> {
+        templateStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
+            ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>> {
             std::in_place_t {}, callback });
-        ret = CompanionDeviceAuthClient::GetInstance().SubscribeTemplateStatusChange(localUserId_,
+        int32_t ret = CompanionDeviceAuthClient::GetInstance().SubscribeTemplateStatusChange(localUserId_,
             templateStatusCallback_);
         if (ret != SUCCESS) {
             IAM_LOGE("SubscribeTemplateStatusChange fail");
             templateStatusCallback_->ClearCallback();
             return ret;
         }
-        return SUCCESS;
-    }
-
-    return templateStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
+    } else {
+        templateStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
             ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>> {
-        std::in_place_t {}, callback });
+            std::in_place_t {}, callback });
+    }
+    IAM_LOGI("success");
+    return SUCCESS;
 }
 
 int32_t StatusMonitor::OffTemplateChange(::taihe::optional_view<::taihe::callback<void(
@@ -88,19 +91,31 @@ int32_t StatusMonitor::OffTemplateChange(::taihe::optional_view<::taihe::callbac
         return GENERAL_ERROR;
     }
 
+    int32_t ret {};
     if (!callback.has_value()) {
-        int32_t ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeTemplateStatusChange(templateStatusCallback_);
+        ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeTemplateStatusChange(templateStatusCallback_);
         if (ret != SUCCESS) {
             IAM_LOGE("UnsubscribeAvailableDeviceStatus fail");
             return ret;
         }
         templateStatusCallback_->ClearCallback();
-        return SUCCESS;
-    }
-
-    templateStatusCallback_->RemoveSingleCallback(::taihe::optional<::taihe::callback<void(
+    } else {
+        ret = templateStatusCallback_->RemoveSingleCallback(::taihe::optional<::taihe::callback<void(
             ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>> {
-        std::in_place_t {}, callback.value() });
+            std::in_place_t {}, callback.value() });
+        if (ret != SUCCESS) {
+            IAM_LOGE("RemoveSingleCallback fail");
+            return ret;
+        }
+        if (!templateStatusCallback_->HasCallback()) {
+            ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeTemplateStatusChange(templateStatusCallback_);
+            if (ret != SUCCESS) {
+                IAM_LOGE("UnsubscribeAvailableDeviceStatus fail");
+                return ret;
+            }
+        }
+    }
+    IAM_LOGI("success");
     return SUCCESS;
 }
 
@@ -116,22 +131,23 @@ int32_t StatusMonitor::OnAvailableDeviceChange(::taihe::callback_view<void(
     }
 
     if (!availableDeviceStatusCallback_->HasCallback()) {
-        int32_t ret = availableDeviceStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
-                ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>> {
+        availableDeviceStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
+            ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>> {
             std::in_place_t {}, callback });
-        ret = CompanionDeviceAuthClient::GetInstance().SubscribeAvailableDeviceStatus(localUserId_,
+        int32_t ret = CompanionDeviceAuthClient::GetInstance().SubscribeAvailableDeviceStatus(localUserId_,
             availableDeviceStatusCallback_);
         if (ret != SUCCESS) {
             IAM_LOGE("SubscribeAvailableDeviceStatus fail");
             availableDeviceStatusCallback_->ClearCallback();
             return ret;
         }
-        return SUCCESS;
-    }
-
-    return availableDeviceStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
+    } else {
+        availableDeviceStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
             ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>> {
-        std::in_place_t {}, callback });
+            std::in_place_t {}, callback });
+    }
+    IAM_LOGI("success");
+    return SUCCESS;
 }
 
 int32_t StatusMonitor::OffAvailableDeviceChange(::taihe::optional_view<
@@ -145,20 +161,33 @@ int32_t StatusMonitor::OffAvailableDeviceChange(::taihe::optional_view<
         return GENERAL_ERROR;
     }
 
+    int32_t ret {};
     if (!callback.has_value()) {
-        int32_t ret =
+        ret =
             CompanionDeviceAuthClient::GetInstance().UnsubscribeAvailableDeviceStatus(availableDeviceStatusCallback_);
         if (ret != SUCCESS) {
             IAM_LOGE("UnsubscribeAvailableDeviceStatus fail");
             return ret;
         }
         availableDeviceStatusCallback_->ClearCallback();
-        return SUCCESS;
-    }
-
-    availableDeviceStatusCallback_->RemoveSingleCallback(::taihe::optional<::taihe::callback<void(
+    } else {
+        ret = availableDeviceStatusCallback_->RemoveSingleCallback(::taihe::optional<::taihe::callback<void(
             ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>> {
-        std::in_place_t {}, callback.value() });
+            std::in_place_t {}, callback.value() });
+        if (ret != SUCCESS) {
+            IAM_LOGE("RemoveSingleCallback fail");
+            return ret;
+        }
+        if (!availableDeviceStatusCallback_->HasCallback()) {
+            ret = CompanionDeviceAuthClient::GetInstance().
+                UnsubscribeAvailableDeviceStatus(availableDeviceStatusCallback_);
+            if (ret != SUCCESS) {
+                IAM_LOGE("UnsubscribeAvailableDeviceStatus fail");
+                return ret;
+            }
+        }
+    }
+    IAM_LOGI("success");
     return SUCCESS;
 }
 
@@ -175,14 +204,14 @@ int32_t StatusMonitor::OnContinuousAuthChange(companionDeviceAuth::ContinuousAut
         return ret;
     }
 
+    auto continuousAuthStatusCallback = std::make_shared<AniContinuousAuthStatusCallback>();
+    ENSURE_OR_RETURN_VAL(continuousAuthStatusCallback != nullptr, GENERAL_ERROR);
     if (param.templateId.has_value()) {
         uint64_t templateId = CompanionDeviceAuthAniHelper::ConvertAniTemplateId(param.templateId.value());
-        auto continuousAuthStatusCallback = std::make_shared<AniContinuousAuthStatusCallback>();
-        ENSURE_OR_RETURN_VAL(continuousAuthStatusCallback != nullptr, GENERAL_ERROR);
         continuousAuthStatusCallback->SetUserId(localUserId_);
         continuousAuthStatusCallback->SetTemplateId(templateId);
         continuousAuthStatusCallback->SetCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
-                ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
+            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
             std::in_place_t {}, callback });
         continuousAuthStatusCallbacks_.push_back(continuousAuthStatusCallback);
         ret = CompanionDeviceAuthClient::GetInstance().SubscribeContinuousAuthStatusChange(localUserId_,
@@ -194,8 +223,6 @@ int32_t StatusMonitor::OnContinuousAuthChange(companionDeviceAuth::ContinuousAut
             return ret;
         }
     } else {
-        auto continuousAuthStatusCallback = std::make_shared<AniContinuousAuthStatusCallback>();
-        ENSURE_OR_RETURN_VAL(continuousAuthStatusCallback != nullptr, GENERAL_ERROR);
         continuousAuthStatusCallback->SetUserId(localUserId_);
         continuousAuthStatusCallback->SetCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
                 ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
@@ -210,6 +237,30 @@ int32_t StatusMonitor::OnContinuousAuthChange(companionDeviceAuth::ContinuousAut
             return ret;
         }
     }
+    IAM_LOGI("success");
+    return SUCCESS;
+}
+
+int32_t StatusMonitor::OffContinuousAuthChange(::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
+        ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
+        callback)
+{
+    IAM_LOGI("start");
+    int32_t ret {};
+    if (!callback.has_value()) {
+        ret = ClearContinuousAuthStatusCallback();
+        if (ret != SUCCESS) {
+            IAM_LOGE("ClearContinuousAuthStatusCallback fail");
+            return ret;
+        }
+    } else {
+        ret = RemoveSingleContinuousAuthStatusCallback(callback);
+        if (ret != SUCCESS) {
+            IAM_LOGE("RemoveSingleContinuousAuthStatusCallback fail");
+            return ret;
+        }
+    }
+    IAM_LOGI("success");
     return SUCCESS;
 }
 
@@ -218,22 +269,18 @@ int32_t StatusMonitor::UpdateContinuousAuthStatusCallback(companionDeviceAuth::C
         ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
         callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    bool hasSameCallback = false;
-    int32_t ret = GENERAL_ERROR;
     if (!param.templateId.has_value()) {
         for (auto &continuousAuthStatusCallback : continuousAuthStatusCallbacks_) {
             if (continuousAuthStatusCallback->GetTemplateId().has_value()) {
                 continue;
             }
-            ret = continuousAuthStatusCallback->SetCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
-                    ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
+            continuousAuthStatusCallback->SetCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
+                ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
                 std::in_place_t {}, callback });
-            if (ret != SUCCESS) {
-                IAM_LOGE("SetCallback fail, ret:%{public}d", ret);
-                return ret;
-            }
-            hasSameCallback = true;
+            IAM_LOGI("update success");
+            return SUCCESS;
         }
     } else {
         uint64_t templateId = CompanionDeviceAuthAniHelper::ConvertAniTemplateId(param.templateId.value());
@@ -246,65 +293,77 @@ int32_t StatusMonitor::UpdateContinuousAuthStatusCallback(companionDeviceAuth::C
             if (templateId != callbackTemplateId) {
                 continue;
             }
-            ret = continuousAuthStatusCallback->SetCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
-                    ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
+            continuousAuthStatusCallback->SetCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
+                ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
                 std::in_place_t {}, callback });
-            if (ret != SUCCESS) {
-                IAM_LOGE("SetCallback fail, ret:%{public}d", ret);
-                return ret;
-            }
-            hasSameCallback = true;
+            IAM_LOGI("update success");
+            return SUCCESS;
         }
     }
+    IAM_LOGI("fail to update");
+    return GENERAL_ERROR;
+}
 
-    if (!hasSameCallback) {
-        return GENERAL_ERROR;
+int32_t StatusMonitor::ClearContinuousAuthStatusCallback()
+{
+    IAM_LOGI("start");
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    for (auto &continuousAuthStatusCallback : continuousAuthStatusCallbacks_) {
+        int32_t ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(
+            continuousAuthStatusCallback);
+        if (ret != SUCCESS) {
+            IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail");
+            return ret;
+        }
+        continuousAuthStatusCallback->ClearCallback();
     }
+    continuousAuthStatusCallbacks_.clear();
+    IAM_LOGI("success");
     return SUCCESS;
 }
 
-int32_t StatusMonitor::OffContinuousAuthChange(::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
+int32_t StatusMonitor::RemoveSingleContinuousAuthStatusCallback(
+    ::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
         ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
-        callback)
+    callback)
 {
+    IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (!callback.has_value()) {
-        for (auto &continuousAuthStatusCallback : continuousAuthStatusCallbacks_) {
-            int32_t ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(
-                continuousAuthStatusCallback);
-            if (ret != SUCCESS) {
-                IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail");
-                return ret;
-            }
-            continuousAuthStatusCallback->ClearCallback();
+    bool isCallbackExist = false;
+    for (auto it = continuousAuthStatusCallbacks_.begin(); it != continuousAuthStatusCallbacks_.end();) {
+        if (!(*it)->HasSameCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
+            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
+                std::in_place_t {}, callback.value()
+            })) {
+            ++it;
+            continue;
         }
-        continuousAuthStatusCallbacks_ = {};
-    } else {
-        for (auto it = continuousAuthStatusCallbacks_.begin(); it != continuousAuthStatusCallbacks_.end();) {
-            // clang-format off
-            if (!(*it)->HasSameCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
+        int32_t ret = (*it)->RemoveSingleCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
                 ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
-                    std::in_place_t {}, callback.value()
-                })) {
-                ++it;
-                continue;
-            }
-            // clang-format on
-            (*it)->RemoveSingleCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
-                    ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
-                std::in_place_t {}, callback.value() });
-            if ((*it)->HasCallback()) {
-                ++it;
-                continue;
-            }
-            int32_t ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(*it);
-            if (ret != SUCCESS) {
-                IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail");
-                return ret;
-            }
-            it = continuousAuthStatusCallbacks_.erase(it);
+            std::in_place_t {}, callback.value() });
+        if (ret != SUCCESS) {
+            IAM_LOGE("RemoveSingleCallback fail");
+            return ret;
         }
+        isCallbackExist = true;
+        
+        if ((*it)->HasCallback()) {
+            ++it;
+            continue;
+        }
+        ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(*it);
+        if (ret != SUCCESS) {
+            IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail");
+            return ret;
+        }
+        it = continuousAuthStatusCallbacks_.erase(it);
     }
+
+    if (!isCallbackExist) {
+        IAM_LOGE("fail to find callback");
+        return GENERAL_ERROR;
+    }
+    IAM_LOGI("success");
     return SUCCESS;
 }
 } // namespace CompanionDeviceAuth

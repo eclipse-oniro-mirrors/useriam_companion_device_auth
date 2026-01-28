@@ -43,10 +43,10 @@ public:
     void OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList) override;
     int32_t GetUserId() override;
 
-    int32_t SetCallback(taihe::optional<TemplateStatusCallback> callback);
+    void SetCallback(taihe::optional<TemplateStatusCallback> callback);
     void ClearCallback();
     bool HasCallback();
-    void RemoveSingleCallback(taihe::optional<TemplateStatusCallback> callback);
+    int32_t RemoveSingleCallback(taihe::optional<TemplateStatusCallback> callback);
     void SetUserId(int32_t userId);
 
 private:
