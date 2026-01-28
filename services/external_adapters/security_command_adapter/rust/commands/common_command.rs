@@ -24,6 +24,7 @@ use crate::String;
 use crate::Vec;
 use crate::{log_e, p};
 use core::convert::TryFrom;
+use core::ptr;
 
 // Common
 pub fn try_vec_from_array_with_len<T: Clone>(array: &[T], len: u32) -> Result<Vec<T>, ErrorCode> {
@@ -68,6 +69,23 @@ macro_rules! impl_data_array {
 
             pub fn to_string(&self) -> Result<String, ErrorCode> {
                 String::from_utf8(self.to_vec()?).map_err(|_| ErrorCode::GeneralError)
+            }
+
+            pub fn copy_from_slice(&mut self, slice: &[u8]) -> Result<(), ErrorCode> {
+                if slice.len() as usize > self.data.len() {
+                    log_e!("input too large: {}, input length: {}", self.data.len(), slice.len());
+                    return Err(ErrorCode::BadParam);
+                }
+
+                unsafe {
+                    ptr::copy_nonoverlapping(slice.as_ptr(), self.data.as_mut_ptr(), slice.len());
+                }
+                self.len = slice.len() as u32;
+                Ok(())
+            }
+
+            pub fn copy_from_vec(&mut self, vec: &Vec<u8>) -> Result<(), ErrorCode> {
+                self.copy_from_slice(vec.as_slice())
             }
         }
 

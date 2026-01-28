@@ -19,12 +19,9 @@ use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonReply;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-
 use crate::utils::{Attribute, AttributeKey};
-
 use crate::{log_e, log_i, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -95,7 +92,11 @@ impl HostDeviceSyncStatusRequest {
         let device_capabilitys = HostDbManagerRegistry::get_mut().read_device_capability_info(self.template_id)?;
         for device_capability in device_capabilitys {
             if let Err(e) = self.parse_status_sync_reply(device_capability.device_type, sec_message) {
-                log_e!("parse sync status reply message fail: {:?}", e);
+                log_e!(
+                    "parse sync status reply message fail: device_type: {:?}, result: {:?}",
+                    device_capability.device_type,
+                    e
+                );
                 return Err(ErrorCode::GeneralError);
             }
         }

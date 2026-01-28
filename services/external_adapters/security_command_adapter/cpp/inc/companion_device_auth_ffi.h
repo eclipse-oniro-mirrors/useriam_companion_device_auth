@@ -645,7 +645,7 @@ int32_t init_rust_env(void);
 
 int32_t uninit_rust_env(void);
 
-int32_t invoke_rust_command(struct RustCommandParam Param);
+int32_t invoke_rust_command(struct RustCommandParam param);
 
 #ifdef __cplusplus
 }

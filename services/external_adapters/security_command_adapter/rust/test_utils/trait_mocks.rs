@@ -70,16 +70,14 @@ pub mod test_utils {
     }
 
     pub struct UtRegistryGuard {
-    _lock_guard: Option<std::sync::MutexGuard<'static, ()>>,
-}
+        _lock_guard: Option<std::sync::MutexGuard<'static, ()>>,
+    }
 
     impl UtRegistryGuard {
         pub fn new() -> Self {
             // Handle poisoned mutex: if a previous thread panicked while holding the lock,
             // we can still recover by using into_inner()
-            let _lock_guard = Some(get_global_test_lock().lock().unwrap_or_else(|poisoned| {
-                poisoned.into_inner()
-            }));
+            let _lock_guard = Some(get_global_test_lock().lock().unwrap_or_else(|poisoned| poisoned.into_inner()));
 
             let mock_logger = TestLogger::new();
             LoggerRegistry::set(Box::new(mock_logger));

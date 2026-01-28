@@ -18,7 +18,7 @@ use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, p, Vec};
+use crate::{log_e, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkAuthRequest {
@@ -28,7 +28,7 @@ pub struct FwkAuthRequest {
 }
 
 impl FwkAuthRequest {
-    pub fn decode(fwk_message: &[u8]) -> Result<Self, ErrorCode> {
+    pub fn decode(fwk_message: &[u8]) -> Result<Box<Self>, ErrorCode> {
         let pub_key = MiscManagerRegistry::get_mut().get_fwk_pub_key().map_err(|e| p!(e))?;
         let message_codec = MessageCodec::new(MessageSignParam::Framework(pub_key));
         let attribute = message_codec.deserialize_attribute(fwk_message).map_err(|e| p!(e))?;
@@ -37,7 +37,7 @@ impl FwkAuthRequest {
         let template_ids = attribute.get_u64_vec(AttributeKey::AttrTemplateIdList).map_err(|e| p!(e))?;
         let atl = attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
 
-        Ok(FwkAuthRequest { schedule_id, template_ids, atl })
+        Ok(Box::new(FwkAuthRequest { schedule_id, template_ids, atl }))
     }
 }
 
@@ -76,22 +76,24 @@ pub struct SecAuthReply {
 }
 
 impl SecAuthReply {
-    pub fn decode(message: &[u8], _device_type: DeviceType) -> Result<Self, ErrorCode> {
+    pub fn decode(message: &[u8], device_type: DeviceType) -> Result<Box<Self>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let attribute = Attribute::try_from_bytes(message).map_err(|e| p!(e))?;
-        let message_data = attribute.get_u8_slice(AttributeKey::AttrMessage).map_err(|e| p!(e))?;
+        let message_data = attribute.get_u8_slice(message_type).map_err(|e| p!(e))?;
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
         let hmac = message_attribute.get_u8_slice(AttributeKey::AttrHmac).map_err(|e| p!(e))?;
 
-        Ok(Self { hmac: hmac.to_vec() })
+        Ok(Box::new(Self { hmac: hmac.to_vec() }))
     }
 
-    pub fn encode(&self, _device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+    pub fn encode(&self, device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let mut attribute = Attribute::new();
         attribute.set_u8_slice(AttributeKey::AttrHmac, &self.hmac);
 
         let mut final_attribute = Attribute::new();
-        final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
+        final_attribute.set_u8_slice(message_type, attribute.to_bytes()?.as_slice());
         final_attribute.to_bytes()
     }
 }

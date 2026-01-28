@@ -19,7 +19,7 @@ use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
 use crate::String;
-use crate::{log_e, p, Vec};
+use crate::{log_e, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkEnrollRequest {
@@ -28,14 +28,14 @@ pub struct FwkEnrollRequest {
 }
 
 impl FwkEnrollRequest {
-    pub fn decode(fwk_message: &[u8]) -> Result<Self, ErrorCode> {
+    pub fn decode(fwk_message: &[u8]) -> Result<Box<Self>, ErrorCode> {
         let pub_key = MiscManagerRegistry::get_mut().get_fwk_pub_key().map_err(|e| p!(e))?;
         let message_codec = MessageCodec::new(MessageSignParam::Framework(pub_key));
         let attribute = message_codec.deserialize_attribute(fwk_message).map_err(|e| p!(e))?;
 
         let schedule_id = attribute.get_u64(AttributeKey::AttrScheduleId).map_err(|e| p!(e))?;
         let atl = attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
-        Ok(FwkEnrollRequest { schedule_id, atl })
+        Ok(Box::new(FwkEnrollRequest { schedule_id, atl }))
     }
 }
 
@@ -74,24 +74,24 @@ pub struct SecKeyNegoRequest {
 }
 
 impl SecKeyNegoRequest {
-    pub fn encode(&self, _device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+    pub fn encode(&self, device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let mut attribute = Attribute::new();
         attribute.set_u16_slice(AttributeKey::AttrAlgoList, &self.algorithm_list);
 
         let mut final_attribute = Attribute::new();
-        final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
+        final_attribute.set_u8_slice(message_type, attribute.to_bytes()?.as_slice());
         final_attribute.to_bytes()
     }
 
-    pub fn decode(message: &[u8], _device_type: DeviceType) -> Result<Self, ErrorCode> {
+    pub fn decode(message: &[u8], device_type: DeviceType) -> Result<Box<Self>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let attribute = Attribute::try_from_bytes(message).map_err(|e| p!(e))?;
-        let message_data = attribute.get_u8_slice(AttributeKey::AttrMessage).map_err(|e| p!(e))?;
+        let message_data = attribute.get_u8_slice(message_type).map_err(|e| p!(e))?;
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
-
         let algorithm_list = message_attribute.get_u16_vec(AttributeKey::AttrAlgoList).map_err(|e| p!(e))?;
-
-        Ok(Self { algorithm_list: algorithm_list.to_vec() })
+        Ok(Box::new(Self { algorithm_list: algorithm_list.to_vec() }))
     }
 }
 
@@ -103,31 +103,28 @@ pub struct SecKeyNegoReply {
 }
 
 impl SecKeyNegoReply {
-    pub fn encode(&self, _device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+    pub fn encode(&self, device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let mut attribute = Attribute::new();
         attribute.set_u16(AttributeKey::AttrAlgoList, self.algorithm);
         attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
         attribute.set_u8_slice(AttributeKey::AttrPublicKey, &self.pub_key);
 
         let mut final_attribute = Attribute::new();
-        final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
-
+        final_attribute.set_u8_slice(message_type, attribute.to_bytes()?.as_slice());
         final_attribute.to_bytes()
     }
 
-    pub fn decode(message: &[u8], _device_type: DeviceType) -> Result<Self, ErrorCode> {
+    pub fn decode(message: &[u8], device_type: DeviceType) -> Result<Box<Self>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let attribute = Attribute::try_from_bytes(message).map_err(|e| p!(e))?;
-        let message_data = attribute.get_u8_slice(AttributeKey::AttrMessage).map_err(|e| p!(e))?;
+        let message_data = attribute.get_u8_slice(message_type).map_err(|e| p!(e))?;
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
-
         let algorithm = message_attribute.get_u16(AttributeKey::AttrAlgoList).map_err(|e| p!(e))?;
-
         let challenge = message_attribute.get_u64(AttributeKey::AttrChallenge).map_err(|e| p!(e))?;
-
         let pub_key = message_attribute.get_u8_slice(AttributeKey::AttrPublicKey).map_err(|e| p!(e))?;
-
-        Ok(Self { algorithm, challenge, pub_key: pub_key.to_vec() })
+        Ok(Box::new(Self { algorithm, challenge, pub_key: pub_key.to_vec() }))
     }
 }
 
@@ -141,7 +138,8 @@ pub struct SecBindingRequest {
 }
 
 impl SecBindingRequest {
-    pub fn encode(&self, _device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+    pub fn encode(&self, device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let mut attribute = Attribute::new();
         attribute.set_u8_slice(AttributeKey::AttrPublicKey, &self.pub_key);
         attribute.set_u8_slice(AttributeKey::AttrSalt, &self.salt);
@@ -150,14 +148,14 @@ impl SecBindingRequest {
         attribute.set_u8_slice(AttributeKey::AttrEncryptData, &self.encrypt_data);
 
         let mut final_attribute = Attribute::new();
-        final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
-
+        final_attribute.set_u8_slice(message_type, attribute.to_bytes()?.as_slice());
         final_attribute.to_bytes()
     }
 
-    pub fn decode(message: &[u8], _device_type: DeviceType) -> Result<Self, ErrorCode> {
+    pub fn decode(message: &[u8], device_type: DeviceType) -> Result<Box<Self>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let attribute = Attribute::try_from_bytes(message).map_err(|e| p!(e))?;
-        let message_data = attribute.get_u8_slice(AttributeKey::AttrMessage).map_err(|e| p!(e))?;
+        let message_data = attribute.get_u8_slice(message_type).map_err(|e| p!(e))?;
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
         let pub_key_slice = message_attribute.get_u8_slice(AttributeKey::AttrPublicKey).map_err(|e| p!(e))?;
@@ -168,11 +166,13 @@ impl SecBindingRequest {
             .get_u8_slice(AttributeKey::AttrEncryptData)
             .map_err(|e| p!(e))?;
 
-        let salt: [u8; HKDF_SALT_SIZE] = salt_slice.try_into().map_err(|_| ErrorCode::GeneralError)?;
-        let tag: [u8; AES_GCM_TAG_SIZE] = tag_slice.try_into().map_err(|_| ErrorCode::GeneralError)?;
-        let iv: [u8; AES_GCM_IV_SIZE] = iv_slice.try_into().map_err(|_| ErrorCode::GeneralError)?;
-
-        Ok(Self { pub_key: pub_key_slice.to_vec(), salt, tag, iv, encrypt_data: encrypt_data_slice.to_vec() })
+        Ok(Box::new(Self {
+            pub_key: pub_key_slice.to_vec(),
+            salt: salt_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
+            tag: tag_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
+            iv: iv_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
+            encrypt_data: encrypt_data_slice.to_vec(),
+        }))
     }
 }
 
@@ -184,33 +184,36 @@ pub struct SecBindingReply {
 }
 
 impl SecBindingReply {
-    pub fn encode(&self, _device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+    pub fn encode(&self, device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let mut attribute = Attribute::new();
         attribute.set_u8_slice(AttributeKey::AttrTag, &self.tag);
         attribute.set_u8_slice(AttributeKey::AttrIv, &self.iv);
         attribute.set_u8_slice(AttributeKey::AttrEncryptData, &self.encrypt_data);
 
         let mut final_attribute = Attribute::new();
-        final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes()?.as_slice());
+        final_attribute.set_u8_slice(message_type, attribute.to_bytes()?.as_slice());
 
         final_attribute.to_bytes()
     }
 
-    pub fn decode(message: &[u8], _device_type: DeviceType) -> Result<Self, ErrorCode> {
+    pub fn decode(message: &[u8], device_type: DeviceType) -> Result<Box<Self>, ErrorCode> {
+        let message_type = AttributeKey::try_from(device_type).map_err(|e| p!(e))?;
         let attribute = Attribute::try_from_bytes(message).map_err(|e| p!(e))?;
-        let message_data = attribute.get_u8_slice(AttributeKey::AttrMessage).map_err(|e| p!(e))?;
+        let message_data = attribute.get_u8_slice(message_type).map_err(|e| p!(e))?;
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
         let tag_slice = message_attribute.get_u8_slice(AttributeKey::AttrTag).map_err(|e| p!(e))?;
         let iv_slice = message_attribute.get_u8_slice(AttributeKey::AttrIv).map_err(|e| p!(e))?;
-        let encrypt_data_slice = message_attribute
-            .get_u8_slice(AttributeKey::AttrEncryptData)
-            .map_err(|e| p!(e))?;
 
-        let tag: [u8; AES_GCM_TAG_SIZE] = tag_slice.try_into().map_err(|_| ErrorCode::GeneralError)?;
-        let iv: [u8; AES_GCM_IV_SIZE] = iv_slice.try_into().map_err(|_| ErrorCode::GeneralError)?;
-
-        Ok(Self { tag, iv, encrypt_data: encrypt_data_slice.to_vec() })
+        Ok(Box::new(Self {
+            tag: tag_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
+            iv: iv_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
+            encrypt_data: message_attribute
+                .get_u8_slice(AttributeKey::AttrEncryptData)
+                .map_err(|e| p!(e))?
+                .to_vec(),
+        }))
     }
 }
 
@@ -238,7 +241,7 @@ impl SecBindingReplyInfo {
         attribute.to_bytes()
     }
 
-    pub fn decode(decrypt_data: &[u8]) -> Result<Self, ErrorCode> {
+    pub fn decode(decrypt_data: &[u8]) -> Result<Box<Self>, ErrorCode> {
         let attribute = Attribute::try_from_bytes(decrypt_data).map_err(|e| p!(e))?;
         let device_id = attribute.get_string(AttributeKey::AttrDeviceId).map_err(|e| p!(e))?;
         let user_id = attribute.get_i32(AttributeKey::AttrUserId).map_err(|e| p!(e))?;
@@ -248,6 +251,6 @@ impl SecBindingReplyInfo {
         let protocol_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
         let capability_list = attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
 
-        Ok(Self { device_id, user_id, esl, track_ability_level, challenge, protocol_list, capability_list })
+        Ok(Box::new(Self { device_id, user_id, esl, track_ability_level, challenge, protocol_list, capability_list }))
     }
 }

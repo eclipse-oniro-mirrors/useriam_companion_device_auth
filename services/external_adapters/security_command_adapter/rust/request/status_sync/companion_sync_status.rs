@@ -18,15 +18,14 @@ use crate::entry::companion_device_auth_ffi::{CompanionProcessCheckInputFfi, Dat
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonReply;
-
 use crate::traits::request_manager::{Request, RequestParam};
-
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Vec};
+use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDeviceSyncStatusRequest {
     pub binding_id: i32,
+    pub secure_protocol_id: u16,
     pub challenge: u64,
     pub salt: Vec<u8>,
     pub protocol_list: Vec<u16>,
@@ -43,6 +42,7 @@ impl CompanionDeviceSyncStatusRequest {
 
         Ok(CompanionDeviceSyncStatusRequest {
             binding_id: input.binding_id,
+            secure_protocol_id: input.secure_protocol_id,
             challenge: input.challenge,
             salt: input.salt.data[..input.salt.len as usize].to_vec(),
             protocol_list: PROTOCOL_VERSION.to_vec(),
@@ -62,8 +62,9 @@ impl CompanionDeviceSyncStatusRequest {
         let (encrypt_data, tag, iv) =
             message_crypto::encrypt_sec_message(&attribute_bytes, &session_key).map_err(|e| p!(e))?;
 
-        let status_sync_reply = SecCommonReply { tag, iv, encrypt_data };
-        let output = status_sync_reply.encode(DeviceType::None)?;
+        let status_sync_reply = Box::new(SecCommonReply { tag, iv, encrypt_data });
+        let output =
+            status_sync_reply.encode(DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?)?;
         Ok(output)
     }
 }
@@ -86,7 +87,7 @@ impl Request for CompanionDeviceSyncStatusRequest {
         };
 
         let reply_sec_message = self.create_begin_sec_message()?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(reply_sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&reply_sec_message)?;
         Ok(())
     }
 

@@ -22,6 +22,7 @@ use crate::utils::parcel::Parcel;
 use crate::{log_e, log_i, p, Vec};
 #[cfg(not(any(test, feature = "test-utils")))]
 use alloc::{format, vec};
+use core::mem;
 #[cfg(any(test, feature = "test-utils"))]
 use std::format;
 
@@ -62,10 +63,8 @@ impl DefaultCompanionDbManager {
         G: Fn(&T) -> i32 + 'a,
     {
         let mut attempts = 0;
-        const MAX_ATTEMPTS: usize = 100;
-
         loop {
-            let mut random_bytes = [0u8; 4];
+            let mut random_bytes = [0u8; mem::size_of::<i32>()];
             CryptoEngineRegistry::get().secure_random(&mut random_bytes).map_err(|_| {
                 log_e!("secure_random fail");
                 ErrorCode::GeneralError
@@ -79,16 +78,16 @@ impl DefaultCompanionDbManager {
             }
 
             attempts += 1;
-            if attempts >= MAX_ATTEMPTS {
-                log_e!("Failed to generate unique ID after {} attempts", MAX_ATTEMPTS);
+            if attempts >= SECURE_RANDOM_MAX_ATTEMPTS {
+                log_e!("Failed to generate unique ID after {} attempts", SECURE_RANDOM_MAX_ATTEMPTS);
                 return Err(ErrorCode::GeneralError);
             }
         }
     }
 
-    fn serialize_device_db(&self, parcel: &mut Parcel) -> Result<(), ErrorCode> {
+    fn serialize_device_db(&self, parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
-        parcel.write_i32(self.host_device_infos.len() as i32);
+        parcel.write_u32(self.host_device_infos.len() as u32);
 
         for host_device_info in &self.host_device_infos {
             parcel.write_string(&host_device_info.device_key.device_id);
@@ -100,21 +99,21 @@ impl DefaultCompanionDbManager {
             parcel.write_u64(host_device_info.binding_time);
             parcel.write_u64(host_device_info.last_used_time);
         }
-
-        Ok(())
     }
 
     fn deserialize_device_db(&mut self, parcel: &mut Parcel) -> Result<(), ErrorCode> {
-        let _version = match parcel.read_i32() {
-            Ok(version) => version,
-            Err(_) => return Err(ErrorCode::ReadParcelError),
-        };
+        let version = parcel.read_i32().map_err(|e| p!(e))?;
+        if version > CURRENT_VERSION {
+            log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
+            return Err(ErrorCode::GeneralError);
+        }
 
         self.host_device_infos.clear();
-        let count = match parcel.read_i32() {
-            Ok(count) if count >= 0 => count as usize,
-            _ => return Err(ErrorCode::ReadParcelError),
-        };
+        let count = parcel.read_u32().map_err(|e| p!(e))? as usize;
+        if count > MAX_DEVICE_NUM {
+            log_e!("count is error, count:{}", count);
+            return Err(ErrorCode::GeneralError);
+        }
 
         for _ in 0..count {
             let device_id = parcel.read_string().map_err(|e| p!(e))?;
@@ -139,49 +138,47 @@ impl DefaultCompanionDbManager {
         Ok(())
     }
 
-    fn serialize_token_info(&self, host_token_info: &HostTokenInfo, parcel: &mut Parcel) -> Result<(), ErrorCode> {
+    fn serialize_token_info(host_token_info: &HostTokenInfo, parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
-        parcel.write_i32(host_token_info.token.len() as i32);
         parcel.write_bytes(&host_token_info.token);
         parcel.write_i32(host_token_info.atl as i32);
-        Ok(())
     }
 
-    fn deserialize_token_info(&self, parcel: &mut Parcel) -> Result<HostTokenInfo, ErrorCode> {
-        let version = parcel.read_i32().map_err(|_| ErrorCode::ReadParcelError)?;
+    fn deserialize_token_info(parcel: &mut Parcel) -> Result<HostTokenInfo, ErrorCode> {
+        let version = parcel.read_i32().map_err(|e| p!(e))?;
         if version > CURRENT_VERSION {
             log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
             return Err(ErrorCode::GeneralError);
         }
-        let token_len = parcel.read_i32().map_err(|e| p!(e))? as usize;
-        let mut token = vec![0u8; token_len];
+        let mut token = vec![0u8; TOKEN_KEY_LEN];
         parcel.read_bytes(&mut token).map_err(|e| p!(e))?;
         let atl_value = parcel.read_i32().map_err(|e| p!(e))?;
         let atl = AuthTrustLevel::try_from(atl_value).map_err(|e| p!(e))?;
-        let host_token_info = HostTokenInfo { token, atl };
+        let host_token_info = HostTokenInfo { token: token.try_into().map_err(|_| ErrorCode::GeneralError)?, atl };
         Ok(host_token_info)
     }
 
-    fn serialize_device_sk(&self, sk_info: &HostDeviceSk, parcel: &mut Parcel) -> Result<(), ErrorCode> {
+    fn serialize_device_sk(sk_info: &HostDeviceSk, parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
-        parcel.write_i32(sk_info.sk.len() as i32);
         parcel.write_bytes(&sk_info.sk);
-        Ok(())
     }
 
-    fn deserialize_device_sk(&self, parcel: &mut Parcel) -> Result<HostDeviceSk, ErrorCode> {
-        let _version = parcel.read_i32().map_err(|_| ErrorCode::ReadParcelError)?;
-        let sk_len = parcel.read_i32().map_err(|e| p!(e))? as usize;
-        let mut sk = vec![0u8; sk_len];
+    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<HostDeviceSk, ErrorCode> {
+        let version = parcel.read_i32().map_err(|e| p!(e))?;
+        if version > CURRENT_VERSION {
+            log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
+            return Err(ErrorCode::GeneralError);
+        }
+        let mut sk = vec![0u8; SHARE_KEY_LEN];
         parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
-        let sk_info = HostDeviceSk { sk };
+        let sk_info = HostDeviceSk { sk: sk.try_into().map_err(|_| ErrorCode::GeneralError)? };
         Ok(sk_info)
     }
 
     fn write_device_db(&self) -> Result<(), ErrorCode> {
         log_i!("write_device_db start");
         let mut parcel = Parcel::new();
-        self.serialize_device_db(&mut parcel)?;
+        self.serialize_device_db(&mut parcel);
         StorageIoRegistry::get()
             .write(COMPANION_DEVICE_DB, parcel.as_slice())
             .map_err(|e| p!(e))?;
@@ -214,11 +211,7 @@ impl DefaultCompanionDbManager {
             .map(|(index, _)| *index)
             .unwrap();
 
-        let binding_id = self.host_device_infos[oldest_index].binding_id;
-        self.delete_device_sk(binding_id)?;
-        self.delete_device_token(binding_id)?;
-
-        self.host_device_infos.remove(oldest_index);
+        let _ = self.remove_device(self.host_device_infos[oldest_index].binding_id)?;
         Ok(())
     }
 }
@@ -257,11 +250,7 @@ impl CompanionDbManager for DefaultCompanionDbManager {
         }
         log_e!("write_device_db fail");
         let _ = self.delete_device_sk(device_info.binding_id);
-        if let Some(index) = self
-            .host_device_infos
-            .iter()
-            .position(|d| d.binding_id == device_info.binding_id)
-        {
+        if let Some(index) = self.get_index_by_binding_id(device_info.binding_id) {
             self.host_device_infos.remove(index);
         }
         result
@@ -289,8 +278,7 @@ impl CompanionDbManager for DefaultCompanionDbManager {
 
     fn remove_device(&mut self, binding_id: i32) -> Result<HostDeviceInfo, ErrorCode> {
         log_i!("remove_device start");
-        let find_result = self.get_index_by_binding_id(binding_id);
-        match find_result {
+        match self.get_index_by_binding_id(binding_id) {
             None => {
                 log_i!("No device matching filter found for removal");
                 Err(ErrorCode::NotFound)
@@ -302,7 +290,7 @@ impl CompanionDbManager for DefaultCompanionDbManager {
                     self.host_device_infos.push(device);
                     return Err(err);
                 }
-                log_i!("Device removed successfully, binding_id: {}", device.binding_id);
+                log_i!("Device removed successfully, binding_id: {:x}", device.binding_id);
                 let _ = self.delete_device_sk(device.binding_id);
                 let _ = self.delete_device_token(device.binding_id);
                 Ok(device)
@@ -367,14 +355,14 @@ impl CompanionDbManager for DefaultCompanionDbManager {
             return Err(ErrorCode::GeneralError);
         }
         let mut parcel = Parcel::from(token_info);
-        self.deserialize_token_info(&mut parcel)
+        Self::deserialize_token_info(&mut parcel)
     }
 
     fn write_device_token(&self, binding_id: i32, token: &HostTokenInfo) -> Result<(), ErrorCode> {
         log_i!("write_device_token start, binding_id:{:x}", binding_id as u16);
         let filename = format!("{:x}_{}", binding_id, COMPANION_DEVICE_TOKEN);
         let mut parcel = Parcel::new();
-        self.serialize_token_info(token, &mut parcel)?;
+        Self::serialize_token_info(token, &mut parcel);
 
         StorageIoRegistry::get().write(&filename, parcel.as_slice()).map_err(|e| p!(e))
     }
@@ -401,14 +389,14 @@ impl CompanionDbManager for DefaultCompanionDbManager {
         }
 
         let mut parcel = Parcel::from(sk_info_data);
-        self.deserialize_device_sk(&mut parcel)
+        Self::deserialize_device_sk(&mut parcel)
     }
 
     fn write_device_sk(&self, binding_id: i32, sk_info: &HostDeviceSk) -> Result<(), ErrorCode> {
         log_i!("write_device_sk start, binding_id:{:x}", binding_id as u16);
         let filename = format!("{:x}_{}", binding_id, COMPANION_DEVICE_SK);
         let mut parcel = Parcel::new();
-        self.serialize_device_sk(sk_info, &mut parcel)?;
+        Self::serialize_device_sk(sk_info, &mut parcel);
         StorageIoRegistry::get().write(&filename, parcel.as_slice()).map_err(|e| p!(e))
     }
 

@@ -14,9 +14,7 @@
  */
 
 use crate::common::constants::*;
-
 use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, HostTokenInfo};
-
 use crate::{log_e, singleton_registry, Box, Vec};
 
 pub type HostDeviceFilter = Box<dyn Fn(&HostDeviceInfo) -> bool>;

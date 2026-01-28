@@ -22,20 +22,25 @@ use crate::request::token_auth::auth_message::SecAuthReply;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Vec};
+use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionTokenAuthRequest {
     pub binding_id: i32,
+    pub secure_protocol_id: u16,
     pub challenge: u64,
     pub salt: [u8; HKDF_SALT_SIZE],
 }
 
 impl CompanionTokenAuthRequest {
     pub fn new(input: &CompanionProcessTokenAuthInputFfi) -> Result<Self, ErrorCode> {
-        Ok(CompanionTokenAuthRequest { binding_id: input.binding_id, challenge: 0, salt: [0u8; HKDF_SALT_SIZE] })
+        Ok(CompanionTokenAuthRequest {
+            binding_id: input.binding_id,
+            secure_protocol_id: input.secure_protocol_id,
+            challenge: 0,
+            salt: [0u8; HKDF_SALT_SIZE],
+        })
     }
 
     fn get_request_id(&self) -> i32 {
@@ -58,7 +63,10 @@ impl CompanionTokenAuthRequest {
     }
 
     fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_device_auth_request(DeviceType::None, sec_message) {
+        if let Err(e) = self.parse_device_auth_request(
+            DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
+            sec_message,
+        ) {
             log_e!("parse device auth fail: {:?}", e);
             return Err(ErrorCode::GeneralError);
         }
@@ -80,8 +88,8 @@ impl CompanionTokenAuthRequest {
             .hmac_sha256(&token_info.token, &data)
             .map_err(|e| p!(e))?;
 
-        let sec_auth_reply = SecAuthReply { hmac: hmac.to_vec() };
-        let output = sec_auth_reply.encode(DeviceType::None)?;
+        let sec_auth_reply = Box::new(SecAuthReply { hmac: hmac.to_vec() });
+        let output = sec_auth_reply.encode(DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?)?;
         Ok(output)
     }
 }
@@ -105,11 +113,7 @@ impl Request for CompanionTokenAuthRequest {
 
         self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_begin_sec_message()?;
-
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|_| {
-            log_e!("sec_message try from fail");
-            ErrorCode::GeneralError
-        })?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 

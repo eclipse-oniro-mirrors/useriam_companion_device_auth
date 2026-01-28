@@ -14,9 +14,11 @@
  */
 
 use crate::common::constants::*;
-
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::{log_e, Vec};
+use crate::traits::db_manager::CompanionTokenInfo;
+use crate::traits::host_db_manager::HostDbManagerRegistry;
+use crate::traits::time_keeper::TimeKeeperRegistry;
+use crate::{log_e, p, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeviceTokenInfo {
@@ -40,4 +42,19 @@ pub fn generate_token(
     let token_info = DeviceTokenInfo { device_type, challenge, atl, token: token.to_vec() };
 
     Ok(token_info)
+}
+
+pub fn add_companion_device_token(template_id: u64, token_infos: &Vec<DeviceTokenInfo>) -> Result<(), ErrorCode> {
+    for token_info in token_infos {
+        let companion_token = CompanionTokenInfo {
+            template_id: template_id,
+            device_type: token_info.device_type,
+            token: token_info.token.clone().try_into().map_err(|_| ErrorCode::GeneralError)?,
+            atl: token_info.atl,
+            added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
+        };
+        HostDbManagerRegistry::get_mut().add_token(&companion_token)?;
+    }
+
+    Ok(())
 }

@@ -31,7 +31,7 @@ pub const MAX_DATA_LEN_128: usize = 128;
 pub const MAX_DATA_LEN_256: usize = 256;
 pub const MAX_DATA_LEN_1024: usize = 1024;
 pub const MAX_DATA_LEN_20000: usize = 20000;
-pub const MAX_STRUCT_SIZE_FFI: usize = 409600;
+pub const MAX_STRUCT_SIZE_FFI: usize = 40960;
 pub const PROPERTY_MODE_FREEZE: u32 = 5;
 pub const PROPERTY_MODE_UNFREEZE: u32 = 6;
 

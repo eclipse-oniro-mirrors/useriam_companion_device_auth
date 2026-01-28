@@ -14,11 +14,9 @@
  */
 
 use crate::common::constants::*;
-
 use crate::traits::db_manager::{
     CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo,
 };
-
 use crate::{log_e, singleton_registry, Box, Vec};
 
 pub type CompanionDeviceFilter = Box<dyn Fn(&CompanionDeviceInfo) -> bool>;

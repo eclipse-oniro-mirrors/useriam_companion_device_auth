@@ -26,7 +26,7 @@ use crate::traits::db_manager::HostTokenInfo;
 use crate::traits::request_manager::{Request, RequestParam};
 
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Vec};
+use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PreIssueParam {
@@ -44,6 +44,7 @@ pub struct TokenInfo {
 pub struct CompanionDeviceIssueTokenRequest {
     pub request_id: i32,
     pub binding_id: i32,
+    pub secure_protocol_id: u16,
     pub pre_issue_param: PreIssueParam,
     pub token_info: TokenInfo,
     pub session_key: Vec<u8>,
@@ -60,6 +61,7 @@ impl CompanionDeviceIssueTokenRequest {
         Ok(CompanionDeviceIssueTokenRequest {
             request_id: input.request_id,
             binding_id: input.binding_id,
+            secure_protocol_id: input.secure_protocol_id,
             pre_issue_param: PreIssueParam { salt: [0u8; HKDF_SALT_SIZE], challenge: u64::from_ne_bytes(challenge) },
             token_info: TokenInfo { token: Vec::new(), atl: AuthTrustLevel::Atl0 },
             session_key: Vec::new(),
@@ -77,7 +79,10 @@ impl CompanionDeviceIssueTokenRequest {
     }
 
     fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_pre_issue_request(DeviceType::None, sec_message) {
+        if let Err(e) = self.parse_pre_issue_request(
+            DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
+            sec_message,
+        ) {
             log_e!("parse pre-issue request message fail: {:?}", e);
             return Err(ErrorCode::GeneralError);
         }
@@ -86,19 +91,18 @@ impl CompanionDeviceIssueTokenRequest {
     }
 
     fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
-        let session_key = companion_db_helper::get_session_key(self.binding_id, &self.pre_issue_param.salt)?;
-        self.session_key = session_key.clone();
+        self.session_key = companion_db_helper::get_session_key(self.binding_id, &self.pre_issue_param.salt)?;
 
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrChallenge, self.pre_issue_param.challenge);
 
         let (encrypt_data, tag, iv) =
-            message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
+            message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &self.session_key)
                 .map_err(|e| p!(e))?;
 
-        let sec_pre_issue_reply = SecCommonReply { tag, iv, encrypt_data };
-
-        let output = sec_pre_issue_reply.encode(DeviceType::None)?;
+        let sec_pre_issue_reply = Box::new(SecCommonReply { tag, iv, encrypt_data });
+        let output =
+            sec_pre_issue_reply.encode(DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?)?;
         Ok(output)
     }
 
@@ -111,7 +115,7 @@ impl CompanionDeviceIssueTokenRequest {
         }
 
         self.token_info = TokenInfo {
-            token: issue_token.token.clone(),
+            token: issue_token.token,
             atl: AuthTrustLevel::try_from(issue_token.atl).map_err(|_| {
                 log_e!("Invalid ATL value: {}", issue_token.atl);
                 ErrorCode::GeneralError
@@ -121,7 +125,10 @@ impl CompanionDeviceIssueTokenRequest {
     }
 
     fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_issue_token_request(DeviceType::None, sec_message) {
+        if let Err(e) = self.parse_issue_token_request(
+            DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
+            sec_message,
+        ) {
             log_e!("parse issue token request message fail: {:?}", e);
             return Err(ErrorCode::GeneralError);
         }
@@ -130,14 +137,17 @@ impl CompanionDeviceIssueTokenRequest {
     }
 
     fn create_end_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
-        let issue_token_reply = SecIssueTokenReply { result: 0 };
-
-        let output = issue_token_reply.encode(DeviceType::None)?;
+        let issue_token_reply = Box::new(SecIssueTokenReply { result: 0 });
+        let output =
+            issue_token_reply.encode(DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?)?;
         Ok(output)
     }
 
     fn store_token(&self) -> Result<(), ErrorCode> {
-        let token_info = HostTokenInfo { token: self.token_info.token.clone(), atl: self.token_info.atl };
+        let token_info = HostTokenInfo {
+            token: self.token_info.token.clone().try_into().map_err(|_| ErrorCode::GeneralError)?,
+            atl: self.token_info.atl,
+        };
 
         CompanionDbManagerRegistry::get_mut().write_device_token(self.binding_id, &token_info)?;
         Ok(())
@@ -164,7 +174,7 @@ impl Request for CompanionDeviceIssueTokenRequest {
         self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
 
         let sec_message = self.create_begin_sec_message()?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 
@@ -180,7 +190,7 @@ impl Request for CompanionDeviceIssueTokenRequest {
         let sec_message = self.create_end_sec_message()?;
         self.store_token()?;
 
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 }

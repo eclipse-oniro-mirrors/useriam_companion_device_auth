@@ -21,12 +21,13 @@ use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::utils::auth_token::UserAuthToken;
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Vec};
+use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDelegateAuthRequest {
     pub request_id: i32,
     pub binding_id: i32,
+    pub secure_protocol_id: u16,
     pub challenge: u64,
     pub atl: AuthTrustLevel,
     pub auth_type: i32,
@@ -39,6 +40,7 @@ impl CompanionDelegateAuthRequest {
         Ok(CompanionDelegateAuthRequest {
             request_id: input.request_id,
             binding_id: input.binding_id,
+            secure_protocol_id: input.secure_protocol_id,
             challenge: 0,
             atl: AuthTrustLevel::Atl2,
             auth_type: 1,
@@ -52,17 +54,18 @@ impl CompanionDelegateAuthRequest {
     }
 
     fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        let output = SecCommonRequest::decode(sec_message, DeviceType::None)?;
+        let output = SecCommonRequest::decode(
+            sec_message,
+            DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
+        )?;
 
-        let session_key = companion_db_helper::get_session_key(self.binding_id, &output.salt)?;
+        self.session_key = companion_db_helper::get_session_key(self.binding_id, &output.salt)?;
         let decrypt_data =
-            message_crypto::decrypt_sec_message(&output.encrypt_data, &session_key, &output.tag, &output.iv)
+            message_crypto::decrypt_sec_message(&output.encrypt_data, &self.session_key, &output.tag, &output.iv)
                 .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let challenge = decrypt_attribute.get_u64(AttributeKey::AttrChallenge).map_err(|e| p!(e))?;
         let atl_value = decrypt_attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
-
-        self.session_key = session_key.clone();
         self.salt = output.salt;
         self.challenge = challenge;
         self.atl = AuthTrustLevel::try_from(atl_value).map_err(|_| {
@@ -83,8 +86,8 @@ impl CompanionDelegateAuthRequest {
             message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &self.session_key)
                 .map_err(|e| p!(e))?;
 
-        let sec_auth_reply = SecCommonReply { tag, iv, encrypt_data };
-        let output = sec_auth_reply.encode(DeviceType::None)?;
+        let sec_auth_reply = Box::new(SecCommonReply { tag, iv, encrypt_data });
+        let output = sec_auth_reply.encode(DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?)?;
         Ok(output)
     }
 }
@@ -141,10 +144,7 @@ impl Request for CompanionDelegateAuthRequest {
         let sec_message = self.create_end_sec_message()?;
         companion_db_helper::update_host_device_last_used_time(self.binding_id)?;
 
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|_| {
-            log_e!("sec_message try from fail");
-            ErrorCode::GeneralError
-        })?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 }

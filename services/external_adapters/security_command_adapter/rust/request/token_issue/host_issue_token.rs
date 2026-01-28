@@ -26,11 +26,9 @@ use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-
 use crate::traits::time_keeper::TimeKeeperRegistry;
-
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Vec};
+use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TokenIssueParam {
@@ -94,7 +92,7 @@ impl HostDeviceIssueTokenRequest {
     }
 
     fn create_prepare_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
-        let pre_issue_request = SecPreIssueRequest { salt: self.salt };
+        let pre_issue_request = Box::new(SecPreIssueRequest { salt: self.salt });
         let mut output = Vec::new();
         let capability_infos =
             HostDbManagerRegistry::get_mut().read_device_capability_info(self.token_issue_param.template_id)?;
@@ -113,7 +111,8 @@ impl HostDeviceIssueTokenRequest {
                 .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let challenge = decrypt_attribute.get_u64(AttributeKey::AttrChallenge).map_err(|e| p!(e))?;
-        self.token_infos.push(token_helper::generate_token(device_type, challenge, self.atl)?);
+        self.token_infos
+            .push(token_helper::generate_token(device_type, challenge, self.atl)?);
         Ok(())
     }
 
@@ -122,7 +121,11 @@ impl HostDeviceIssueTokenRequest {
             HostDbManagerRegistry::get_mut().read_device_capability_info(self.token_issue_param.template_id)?;
         for capability_info in capability_infos {
             if let Err(e) = self.parse_pre_issue_reply(capability_info.device_type, sec_message) {
-                log_e!("parse pre issue token reply message fail: {:?}", e);
+                log_e!(
+                    "parse pre issue token reply message fail: device_type: {:?}, result: {:?}",
+                    capability_info.device_type,
+                    e
+                );
                 return Err(ErrorCode::GeneralError);
             }
         }
@@ -167,9 +170,10 @@ impl HostDeviceIssueTokenRequest {
     }
 
     fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        for token_info in self.token_infos.clone() {
-            if let Err(e) = self.parse_issue_token_reply(token_info.device_type, sec_message) {
-                log_e!("parse issue token replay message fail: {:?}", e);
+        let device_types: Vec<DeviceType> = self.token_infos.iter().map(|param| param.device_type).collect();
+        for device_type in device_types {
+            if let Err(e) = self.parse_issue_token_reply(device_type, sec_message) {
+                log_e!("parse issue token replay message fail: device_type: {:?}, result: {:?}", device_type, e);
                 return Err(ErrorCode::GeneralError);
             }
         }
@@ -178,17 +182,7 @@ impl HostDeviceIssueTokenRequest {
     }
 
     fn store_token(&self) -> Result<(), ErrorCode> {
-        for token_info in &self.token_infos {
-            let companion_token = CompanionTokenInfo {
-                template_id: self.token_issue_param.template_id,
-                device_type: token_info.device_type,
-                token: token_info.token.clone(),
-                atl: self.atl,
-                added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
-            };
-            HostDbManagerRegistry::get_mut().add_token(&companion_token)?;
-        }
-
+        token_helper::add_companion_device_token(self.token_issue_param.template_id, &self.token_infos)?;
         Ok(())
     }
 }
@@ -207,7 +201,7 @@ impl Request for HostDeviceIssueTokenRequest {
 
         self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.create_prepare_sec_message()?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 
@@ -220,7 +214,7 @@ impl Request for HostDeviceIssueTokenRequest {
 
         self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_begin_sec_message()?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 
