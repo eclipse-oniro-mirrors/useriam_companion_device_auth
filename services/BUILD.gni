@@ -32,18 +32,21 @@ companion_device_auth_service_include_dirs = [
   "cross_device_interaction/sync_device_status/inc",
   "cross_device_interaction/token_auth/inc",
   "cross_device_interaction/mix_auth/inc",
-  "external_adapters/inc",
+  "external_adapters/cpp/inc",
   "external_adapters/access_token/inc",
-  "external_adapters/security_command_adapter/inc",
+  "external_adapters/security_command_adapter/cpp/inc",
   "external_adapters/event_manager/inc",
   "external_adapters/samgr/inc",
   "external_adapters/time_keeper/inc",
   "external_adapters/user_auth/inc",
+  "external_adapters/user_id/inc",
+  "external_adapters/system_param/inc",
   "fwk_comm/inc",
   "host_binding/inc",
   "misc/inc",
-  "security_agent/cpp/inc",
+  "security_agent/inc",
   "service_entry/inc",
+  "service_entry/inc/subscription",
   "service_entry/src",
   "singleton/inc",
   "singleton/inc/companion",
@@ -105,26 +108,26 @@ companion_device_auth_service_local_sources = [
   "cross_device_interaction/token_auth/src/host_token_auth_request.cpp",
   "cross_device_interaction/token_auth/src/token_auth_message.cpp",
   "external_adapters/access_token/src/access_token_kit_adapter_impl.cpp",
+  "external_adapters/cpp/src/adapter_manager.cpp",
   "external_adapters/event_manager/src/event_manager_adapter_impl.cpp",
   "external_adapters/samgr/src/sa_manager_adapter_impl.cpp",
-  "external_adapters/security_command_adapter/src/security_command_adapter_impl.cpp",
-  "external_adapters/src/adapter_manager.cpp",
+  "external_adapters/security_command_adapter/cpp/src/security_command_adapter_impl.cpp",
+  "external_adapters/system_param/src/system_param_manager_impl.cpp",
   "external_adapters/time_keeper/src/time_keeper_impl.cpp",
   "host_binding/src/host_binding.cpp",
   "host_binding/src/host_binding_manager_impl.cpp",
   "misc/src/misc_manager_impl.cpp",
-  "misc/src/system_param_manager_impl.cpp",
   "request/src/base_request.cpp",
   "request/src/request_factory_impl.cpp",
   "request/src/request_manager_impl.cpp",
-  "security_agent/cpp/src/companion_device_auth_ffi_util.cpp",
-  "security_agent/cpp/src/security_agent_impl.cpp",
-  "service_entry/src/available_device_subscription.cpp",
+  "security_agent/src/companion_device_auth_ffi_util.cpp",
+  "security_agent/src/security_agent_impl.cpp",
   "service_entry/src/companion_device_auth_service.cpp",
-  "service_entry/src/continuous_auth_subscription.cpp",
-  "service_entry/src/subscription_manager.cpp",
-  "service_entry/src/subscription_util.cpp",
-  "service_entry/src/template_status_subscription.cpp",
+  "service_entry/src/subscription/available_device_subscription.cpp",
+  "service_entry/src/subscription/continuous_auth_subscription.cpp",
+  "service_entry/src/subscription/subscription_manager.cpp",
+  "service_entry/src/subscription/subscription_util.cpp",
+  "service_entry/src/subscription/template_status_subscription.cpp",
   "singleton/src/singleton_manager.cpp",
   "utils/src/backoff_retry_timer.cpp",
   "utils/src/callback_death_recipient.cpp",
@@ -199,12 +202,12 @@ if (companion_device_auth_has_soft_bus_channel) {
 
 if (companion_device_auth_has_account_os_account) {
   companion_device_auth_service_local_sources +=
-      [ "misc/src/default_user_id_manager.cpp" ]
+      [ "external_adapters/user_id/src/default_user_id_manager.cpp" ]
   companion_device_auth_service_external_deps +=
       [ "os_account:os_account_innerkits" ]
 } else {
   companion_device_auth_service_local_sources +=
-      [ "misc/src/constant_user_id_manager.cpp" ]
+      [ "external_adapters/user_id/src/constant_user_id_manager.cpp" ]
 }
 
 companion_device_auth_service_sources = []
@@ -219,10 +222,8 @@ companion_device_auth_service_sources_for_test = companion_device_auth_service_s
                                                  ]
 
 # Tests always use constant_user_id_manager instead of os_account-dependent default_user_id_manager
-companion_device_auth_service_sources_for_test -= [
-  "${companion_device_auth_path}/services/misc/src/default_user_id_manager.cpp",
-]
-companion_device_auth_service_sources_for_test += [ "${companion_device_auth_path}/services/misc/src/constant_user_id_manager.cpp" ]
+companion_device_auth_service_sources_for_test -= [ "${companion_device_auth_path}/services/external_adapters/user_id/src/default_user_id_manager.cpp" ]
+companion_device_auth_service_sources_for_test += [ "${companion_device_auth_path}/services/external_adapters/user_id/src/constant_user_id_manager.cpp" ]
 
 companion_device_auth_test_include_dirs = []
 foreach(dir, companion_device_auth_service_include_dirs) {
@@ -236,8 +237,8 @@ companion_device_auth_service_deps = [
 
 if (!companion_device_auth_enable_extension) {
   companion_device_auth_service_deps += [
-    "${companion_device_auth_path}/services/security_agent:companiondeviceauthservice_rs",
-    "${companion_device_auth_path}/services/security_agent:companiondeviceauthservice_rs_cpp_if",
+    "${companion_device_auth_path}/services/external_adapters/security_command_adapter:companiondeviceauthservice_rs",
+    "${companion_device_auth_path}/services/external_adapters/security_command_adapter:companiondeviceauthservice_rs_cpp_if",
   ]
 }
 

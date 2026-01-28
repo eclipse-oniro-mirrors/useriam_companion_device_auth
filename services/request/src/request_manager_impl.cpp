@@ -175,14 +175,14 @@ void RequestManagerImpl::Remove(RequestId requestId)
 
     auto itToRemove = waitingRequests_.end();
     for (auto it = waitingRequests_.begin(); it != waitingRequests_.end(); ++it) {
-        const auto &request = *it;
-        ENSURE_OR_CONTINUE(request != nullptr);
+        const auto &waitingRequest = *it;
+        ENSURE_OR_CONTINUE(waitingRequest != nullptr);
 
-        if (request->GetRequestType() != removedRunningType) {
+        if (waitingRequest->GetRequestType() != removedRunningType) {
             continue;
         }
 
-        uint32_t maxConcurrency = request->GetMaxConcurrency();
+        uint32_t maxConcurrency = waitingRequest->GetMaxConcurrency();
         if (currentRunningCount <= maxConcurrency) {
             itToRemove = it;
             break;

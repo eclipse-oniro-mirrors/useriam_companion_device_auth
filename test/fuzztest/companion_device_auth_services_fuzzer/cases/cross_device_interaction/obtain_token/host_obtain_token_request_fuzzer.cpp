@@ -88,8 +88,8 @@ static void FuzzParsePreObtainTokenRequest(std::shared_ptr<HostObtainTokenReques
 static void FuzzProcessPreObtainToken(std::shared_ptr<HostObtainTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    std::vector<uint8_t> preObtainTokenReply;
-    (void)request->ProcessPreObtainToken(preObtainTokenReply);
+    std::vector<uint8_t> preObtainTokenReplyData;
+    (void)request->ProcessPreObtainToken(preObtainTokenReplyData);
 }
 
 static void FuzzSendPreObtainTokenReply(std::shared_ptr<HostObtainTokenRequest> &request, FuzzedDataProvider &fuzzData)
@@ -97,8 +97,8 @@ static void FuzzSendPreObtainTokenReply(std::shared_ptr<HostObtainTokenRequest> 
     (void)fuzzData;
     ResultCode result = GenerateFuzzResultCode(fuzzData);
     uint32_t replySize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
-    std::vector<uint8_t> preObtainTokenReply = fuzzData.ConsumeBytes<uint8_t>(replySize);
-    request->SendPreObtainTokenReply(result, preObtainTokenReply);
+    std::vector<uint8_t> preObtainTokenReplyData = fuzzData.ConsumeBytes<uint8_t>(replySize);
+    request->SendPreObtainTokenReply(result, preObtainTokenReplyData);
 }
 
 static void FuzzHandlePeerDeviceStatusChanged(std::shared_ptr<HostObtainTokenRequest> &request,

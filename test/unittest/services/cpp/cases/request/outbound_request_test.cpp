@@ -18,13 +18,9 @@
 
 #include "outbound_request.h"
 #include "request_aborted_message.h"
-#include "singleton_manager.h"
 #include "task_runner_manager.h"
 
-#include "adapter_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_misc_manager.h"
-#include "mock_time_keeper.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -57,36 +53,6 @@ public:
 
 class OutboundRequestTest : public Test {
 public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, _, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockCrossDeviceCommManager_, OpenConnection(_, _)).WillByDefault(Return(true));
-        ON_CALL(mockCrossDeviceCommManager_, CloseConnection(_)).WillByDefault(Return());
-    }
-
-    void TearDown() override
-    {
-        request_.reset();
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
     void CreateDefaultRequest()
     {
         request_ =
@@ -100,8 +66,6 @@ public:
 
 protected:
     std::shared_ptr<MockOutboundRequest> request_;
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockMiscManager> mockMiscManager_;
 
     ScheduleId scheduleId_ = 1;
     uint32_t timeoutMs_ = 30000;
@@ -112,19 +76,30 @@ protected:
 
 HWTEST_F(OutboundRequestTest, Start_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, MessageType::REQUEST_ABORTED, _))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, MessageType::REQUEST_ABORTED, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(mockCrossDeviceCommManager_, OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
 
     request_->Start();
 }
 
 HWTEST_F(OutboundRequestTest, Start_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     request_ = std::make_shared<MockOutboundRequest>(RequestType::HOST_DELEGATE_AUTH_REQUEST, scheduleId_, timeoutMs_);
 
     EXPECT_CALL(*request_, CompleteWithError(_)).WillOnce(Return());
@@ -136,9 +111,18 @@ HWTEST_F(OutboundRequestTest, Start_002, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, OnStart_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _)).WillOnce(Return(nullptr));
 
     ResultCode errorCode = ResultCode::SUCCESS;
     bool result = false;
@@ -153,11 +137,20 @@ HWTEST_F(OutboundRequestTest, OnStart_001, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, OnStart_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, MessageType::REQUEST_ABORTED, _))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, MessageType::REQUEST_ABORTED, _))
         .WillOnce(Return(nullptr));
 
     ResultCode errorCode = ResultCode::SUCCESS;
@@ -173,9 +166,18 @@ HWTEST_F(OutboundRequestTest, OnStart_002, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, OnStart_003, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, OpenConnection(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(false));
 
     ResultCode errorCode = ResultCode::SUCCESS;
     bool result = false;
@@ -190,6 +192,15 @@ HWTEST_F(OutboundRequestTest, OnStart_003, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, Cancel_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
     EXPECT_CALL(*request_, CompleteWithError(_)).WillOnce(Return());
@@ -202,6 +213,15 @@ HWTEST_F(OutboundRequestTest, Cancel_001, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, Cancel_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
     request_->cancelled_ = true;
 
@@ -212,6 +232,8 @@ HWTEST_F(OutboundRequestTest, Cancel_002, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, SetPeerDeviceKey_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     request_ = std::make_shared<MockOutboundRequest>(RequestType::HOST_DELEGATE_AUTH_REQUEST, scheduleId_, timeoutMs_);
 
     request_->SetPeerDeviceKey(peerDeviceKey_);
@@ -223,10 +245,19 @@ HWTEST_F(OutboundRequestTest, SetPeerDeviceKey_001, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, CloseConnection_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
     request_->connectionName_ = "test_connection";
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, CloseConnection(_)).WillOnce(Return());
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillOnce(Return());
 
     request_->CloseConnection();
 
@@ -235,16 +266,34 @@ HWTEST_F(OutboundRequestTest, CloseConnection_001, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, CloseConnection_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
     request_->connectionName_ = "";
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, CloseConnection(_)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).Times(0);
 
     request_->CloseConnection();
 }
 
 HWTEST_F(OutboundRequestTest, HandleConnectionStatus_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
     ASSERT_NE(request_, nullptr);
@@ -254,6 +303,15 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_001, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, HandleConnectionStatus_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
     EXPECT_CALL(*request_, OnConnected()).WillOnce(Return());
@@ -263,6 +321,15 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_002, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, HandleConnectionStatus_003, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
     EXPECT_CALL(*request_, CompleteWithError(_)).WillOnce(Return());
@@ -272,6 +339,15 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_003, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, HandleConnectionStatus_004, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
     request_->HandleConnectionStatus("test_connection", static_cast<ConnectionStatus>(999), "unknown");
@@ -281,6 +357,15 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_004, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, HandleRequestAborted_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
     Attributes request;
@@ -301,6 +386,15 @@ HWTEST_F(OutboundRequestTest, HandleRequestAborted_001, TestSize.Level0)
 
 HWTEST_F(OutboundRequestTest, HandleRequestAborted_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
+
     CreateDefaultRequest();
 
     Attributes request;

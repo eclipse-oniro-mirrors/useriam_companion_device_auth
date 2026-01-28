@@ -29,13 +29,6 @@ namespace {
 
 class RevokeTokenMessageTest : public Test {
 public:
-    void SetUp() override
-    {
-    }
-    void TearDown() override
-    {
-    }
-
 protected:
     DeviceKey companionDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "companion_device_id",

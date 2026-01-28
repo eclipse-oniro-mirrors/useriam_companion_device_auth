@@ -20,6 +20,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "channel_manager.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"

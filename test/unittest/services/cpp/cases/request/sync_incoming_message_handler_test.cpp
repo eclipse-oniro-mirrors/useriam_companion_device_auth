@@ -16,15 +16,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "relative_timer.h"
+#include "mock_guard.h"
 #include "service_common.h"
-#include "singleton_manager.h"
 #include "sync_incoming_message_handler.h"
-#include "task_runner_manager.h"
-
-#include "adapter_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -50,38 +44,14 @@ public:
 
 class SyncIncomingMessageHandlerTest : public Test {
 public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeIncomingConnection(_, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
-    }
-
-    void TearDown() override
-    {
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        RelativeTimer::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
-protected:
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
 };
 
 HWTEST_F(SyncIncomingMessageHandlerTest, Register_001, TestSize.Level0)
 {
+    MockGuard guard;
     auto handler = std::make_shared<NiceMock<MockSyncIncomingMessageHandler>>(MessageType::SYNC_DEVICE_STATUS);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeIncomingConnection(_, _))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeIncomingConnection(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
     handler->Register();
@@ -89,15 +59,17 @@ HWTEST_F(SyncIncomingMessageHandlerTest, Register_001, TestSize.Level0)
 
 HWTEST_F(SyncIncomingMessageHandlerTest, Register_002, TestSize.Level0)
 {
+    MockGuard guard;
     auto handler = std::make_shared<NiceMock<MockSyncIncomingMessageHandler>>(MessageType::SYNC_DEVICE_STATUS);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeIncomingConnection(_, _)).WillOnce(Return(ByMove(nullptr)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeIncomingConnection(_, _)).WillOnce(Return(ByMove(nullptr)));
 
     handler->Register();
 }
 
 HWTEST_F(SyncIncomingMessageHandlerTest, Register_003, TestSize.Level0)
 {
+    MockGuard guard;
     auto handler = std::make_shared<NiceMock<MockSyncIncomingMessageHandler>>(MessageType::SYNC_DEVICE_STATUS);
 
     handler->Register();
@@ -106,6 +78,7 @@ HWTEST_F(SyncIncomingMessageHandlerTest, Register_003, TestSize.Level0)
 
 HWTEST_F(SyncIncomingMessageHandlerTest, HandleIncomingMessage_001, TestSize.Level0)
 {
+    MockGuard guard;
     auto handler = std::make_shared<NiceMock<MockSyncIncomingMessageHandler>>(MessageType::SYNC_DEVICE_STATUS);
 
     Attributes request;
@@ -126,6 +99,7 @@ HWTEST_F(SyncIncomingMessageHandlerTest, HandleIncomingMessage_001, TestSize.Lev
 
 HWTEST_F(SyncIncomingMessageHandlerTest, HandleIncomingMessage_002, TestSize.Level0)
 {
+    MockGuard guard;
     auto handler = std::make_shared<NiceMock<MockSyncIncomingMessageHandler>>(MessageType::SYNC_DEVICE_STATUS);
 
     Attributes request;
@@ -138,6 +112,7 @@ HWTEST_F(SyncIncomingMessageHandlerTest, HandleIncomingMessage_002, TestSize.Lev
 
 HWTEST_F(SyncIncomingMessageHandlerTest, HandleIncomingMessage_003, TestSize.Level0)
 {
+    MockGuard guard;
     auto handler = std::make_shared<NiceMock<MockSyncIncomingMessageHandler>>(MessageType::SYNC_DEVICE_STATUS);
 
     Attributes request;
@@ -161,6 +136,7 @@ HWTEST_F(SyncIncomingMessageHandlerTest, HandleIncomingMessage_003, TestSize.Lev
 
 HWTEST_F(SyncIncomingMessageHandlerTest, GetMessageType_001, TestSize.Level0)
 {
+    MockGuard guard;
     auto handler = std::make_shared<NiceMock<MockSyncIncomingMessageHandler>>(MessageType::SYNC_DEVICE_STATUS);
 
     MessageType type = handler->GetMessageType();

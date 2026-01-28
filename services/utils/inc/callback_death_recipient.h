@@ -38,7 +38,7 @@ public:
 private:
     explicit CallbackDeathRecipient(DeathCallback &&callback);
 
-    DeathCallback callback_;
+    const DeathCallback callback_;
 };
 
 } // namespace CompanionDeviceAuth

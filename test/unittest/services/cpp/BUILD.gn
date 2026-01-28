@@ -119,7 +119,12 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
                "cases/utils/system_param_manager_impl_test.cpp",
              ]
 
+  # Common utilities for unittest
+  sources += [ "../../common/mock_guard.cpp" ]
+
   include_dirs = [
+    "../../common",
+    "common",
     "cases/mock",
     "inc",
   ]

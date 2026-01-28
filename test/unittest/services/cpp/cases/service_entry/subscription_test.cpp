@@ -29,29 +29,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class SubscriptionTest : public testing::Test {
-public:
-    static void SetUpTestCase();
-    static void TearDownTestCase();
-    void SetUp();
-    void TearDown();
-};
-
-void SubscriptionTest::SetUpTestCase()
-{
-}
-
-void SubscriptionTest::TearDownTestCase()
-{
-}
-
-void SubscriptionTest::SetUp()
-{
-}
-
-void SubscriptionTest::TearDown()
-{
-}
+class SubscriptionTest : public testing::Test {};
 
 HWTEST_F(SubscriptionTest, Constructor_001, TestSize.Level0)
 {

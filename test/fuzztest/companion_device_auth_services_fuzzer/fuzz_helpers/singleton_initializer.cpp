@@ -23,6 +23,7 @@
 #include "fuzzer/FuzzedDataProvider.h"
 
 #include "adapter_initializer.h"
+#include "adapter_manager.h"
 #include "channel_adapter_initializer.h"
 #include "companion_manager.h"
 #include "cross_device_comm_manager.h"
@@ -36,10 +37,8 @@
 #include "request_manager.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
-#include "system_param_manager.h"
 #include "task_runner_manager.h"
 #include "user_auth_client_callback.h"
-#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -330,95 +329,6 @@ public:
 
     bool CheckBusinessIds(const std::vector<BusinessId> &) override
     {
-        return fuzzData_.ConsumeIntegral<uint32_t>() > 0;
-    }
-
-private:
-    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
-};
-
-class MockSystemParamManager : public ISystemParamManager {
-public:
-    explicit MockSystemParamManager(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
-    {
-    }
-
-    std::string GetParam(const std::string &key, const std::string &defaultValue) override
-    {
-        (void)key;
-        return defaultValue;
-    }
-
-    void SetParam(const std::string &key, const std::string &value) override
-    {
-        (void)key;
-        (void)value;
-    }
-
-    void SetParamTwice(const std::string &key, const std::string &value1, const std::string &value2) override
-    {
-        (void)key;
-        (void)value1;
-        (void)value2;
-    }
-
-    std::unique_ptr<Subscription> WatchParam(const std::string &key, SystemParamCallback &&callback) override
-    {
-        (void)key;
-        if (callback && fuzzData_.ConsumeBool()) {
-            std::string fuzzedValue = GenerateRandomString(fuzzData_);
-            callback(fuzzedValue);
-        }
-        // Always return valid subscription to ensure initialization succeeds
-        return std::make_unique<Subscription>([] {});
-    }
-
-    void OnParamChange(const std::string &key, const std::string &value) override
-    {
-        (void)key;
-        (void)value;
-    }
-
-private:
-    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
-};
-
-class MockUserIdManager : public IUserIdManager {
-public:
-    explicit MockUserIdManager(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
-    {
-    }
-
-    bool Initialize() override
-    {
-        // Always return true for stability
-        return true;
-    }
-
-    UserId GetActiveUserId() const override
-    {
-        return 0;
-    }
-
-    std::string GetActiveUserName() const override
-    {
-        return "";
-    }
-
-    std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override
-    {
-        if (callback) {
-            UserId userId = fuzzData_.ConsumeIntegral<UserId>();
-            TaskRunnerManager::GetInstance().PostTaskOnResident(
-                [callback = std::move(callback), userId]() { callback(userId); });
-        }
-        // Always return valid subscription to ensure HostBindingManagerImpl::Initialize() succeeds
-        return std::make_unique<Subscription>([] {});
-    }
-
-    bool IsUserIdValid(int32_t userId) override
-    {
-        (void)userId;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0;
     }
 
@@ -1413,20 +1323,6 @@ static bool InitMiscManager(FuzzedDataProvider &fuzzData)
     return true;
 }
 
-static bool InitSystemParamManager(FuzzedDataProvider &fuzzData)
-{
-    auto systemParamMgr = std::make_shared<MockSystemParamManager>(fuzzData);
-    SingletonManager::GetInstance().SetSystemParamManager(systemParamMgr);
-    return true;
-}
-
-static bool InitUserIdManager(FuzzedDataProvider &fuzzData)
-{
-    auto activeUserIdMgr = std::make_shared<MockUserIdManager>(fuzzData);
-    SingletonManager::GetInstance().SetUserIdManager(activeUserIdMgr);
-    return true;
-}
-
 static bool InitSecurityAgent(FuzzedDataProvider &fuzzData)
 {
     auto securityAgent = std::make_shared<MockSecurityAgent>(fuzzData);
@@ -1465,6 +1361,7 @@ static bool InitIncomingMessageHandlerRegistry(FuzzedDataProvider &fuzzData)
 // Singleton cleanup functions
 static void ResetSingletonManagerRegistry()
 {
+    AdapterManager::GetInstance().Reset();
     SingletonManager::GetInstance().Reset();
 }
 
@@ -1487,8 +1384,6 @@ static const bool g_singletonInitializersRegistered = []() {
     REGISTER_SINGLETON_INIT(CompanionManager);
     REGISTER_SINGLETON_INIT(HostBindingManager);
     REGISTER_SINGLETON_INIT(MiscManager);
-    REGISTER_SINGLETON_INIT(SystemParamManager);
-    REGISTER_SINGLETON_INIT(UserIdManager);
     REGISTER_SINGLETON_INIT(SecurityAgent);
     REGISTER_SINGLETON_INIT(CrossDeviceCommManager);
     REGISTER_SINGLETON_INIT(RequestManager);

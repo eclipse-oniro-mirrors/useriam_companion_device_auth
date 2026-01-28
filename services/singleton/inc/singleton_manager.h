@@ -28,8 +28,6 @@
 #include "request_factory.h"
 #include "request_manager.h"
 #include "security_agent.h"
-#include "system_param_manager.h"
-#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -49,12 +47,6 @@ public:
 
     virtual IMiscManager &GetMiscManager() = 0;
     virtual void SetMiscManager(std::shared_ptr<IMiscManager> miscManager) = 0;
-
-    virtual ISystemParamManager &GetSystemParamManager() = 0;
-    virtual void SetSystemParamManager(std::shared_ptr<ISystemParamManager> systemParamManager) = 0;
-
-    virtual IUserIdManager &GetUserIdManager() = 0;
-    virtual void SetUserIdManager(std::shared_ptr<IUserIdManager> userIdManager) = 0;
 
     virtual ISecurityAgent &GetSecurityAgent() = 0;
     virtual void SetSecurityAgent(std::shared_ptr<ISecurityAgent> securityAgent) = 0;
@@ -91,16 +83,6 @@ inline IHostBindingManager &GetHostBindingManager()
 inline IMiscManager &GetMiscManager()
 {
     return SingletonManager::GetInstance().GetMiscManager();
-}
-
-inline ISystemParamManager &GetSystemParamManager()
-{
-    return SingletonManager::GetInstance().GetSystemParamManager();
-}
-
-inline IUserIdManager &GetUserIdManager()
-{
-    return SingletonManager::GetInstance().GetUserIdManager();
 }
 
 inline ISecurityAgent &GetSecurityAgent()

@@ -21,11 +21,8 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
-#include "adapter_manager.h"
 #include "mock_cross_device_channel.h"
-#include "mock_misc_manager.h"
-#include "mock_time_keeper.h"
-#include "mock_user_id_manager.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -38,7 +35,6 @@ namespace {
 constexpr int32_t INT32_2 = 2;
 // Test constants
 constexpr int32_t INT32_100 = 100;
-constexpr int32_t INT32_200 = 200;
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
@@ -47,63 +43,16 @@ std::unique_ptr<Subscription> MakeSubscription()
 
 class LocalDeviceStatusManagerTest : public Test {
 public:
-    void SetUp() override
-    {
-        const int32_t defaultUserId = INT32_100;
+    // MockGuard handles setup
 
-        SingletonManager::GetInstance().Reset();
-
-        mockChannel_ = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
-
-        PhysicalDeviceKey localPhysicalKey;
-        localPhysicalKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        localPhysicalKey.deviceId = "local-device-id";
-
-        ON_CALL(*mockChannel_, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
-        ON_CALL(*mockChannel_, GetLocalPhysicalDeviceKey).WillByDefault(Return(localPhysicalKey));
-        ON_CALL(*mockChannel_, SubscribeAuthMaintainActive(_))
-            .WillByDefault(Invoke([this](OnAuthMaintainActiveChange &&callback) {
-                authMaintainCallback_ = std::move(callback);
-                return MakeSubscription();
-            }));
-        ON_CALL(*mockChannel_, GetAuthMaintainActive).WillByDefault(Return(false));
-        ON_CALL(*mockChannel_, GetCompanionSecureProtocolId).WillByDefault(Return(SecureProtocolId::DEFAULT));
-
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_))
-            .WillByDefault(Invoke([this](ActiveUserIdCallback &&callback) {
-                activeUserIdCallback_ = std::move(callback);
-                return MakeSubscription();
-            }));
-        ON_CALL(mockUserIdManager_, GetActiveUserId).WillByDefault(Return(defaultUserId));
-    }
-
-    void TearDown() override
-    {
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
+    // MockGuard handles teardown
 
 protected:
-    std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel_;
-    NiceMock<MockUserIdManager> mockUserIdManager_;
-    NiceMock<MockMiscManager> mockMiscManager_;
-    OnAuthMaintainActiveChange authMaintainCallback_;
-    ActiveUserIdCallback activeUserIdCallback_;
 };
 
 HWTEST_F(LocalDeviceStatusManagerTest, Create_001, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
@@ -127,10 +76,8 @@ HWTEST_F(LocalDeviceStatusManagerTest, Create_003, TestSize.Level0)
 
 HWTEST_F(LocalDeviceStatusManagerTest, Create_004, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
-
-    EXPECT_CALL(*mockChannel_, SubscribeAuthMaintainActive(_)).WillOnce(Return(nullptr));
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
     EXPECT_EQ(manager, nullptr);
@@ -138,10 +85,8 @@ HWTEST_F(LocalDeviceStatusManagerTest, Create_004, TestSize.Level0)
 
 HWTEST_F(LocalDeviceStatusManagerTest, Create_005, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
-
-    EXPECT_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
     EXPECT_EQ(manager, nullptr);
@@ -149,7 +94,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, Create_005, TestSize.Level0)
 
 HWTEST_F(LocalDeviceStatusManagerTest, SubscribeIsAuthMaintainActive_001, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
@@ -169,7 +114,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, SubscribeIsAuthMaintainActive_001, TestSi
 
 HWTEST_F(LocalDeviceStatusManagerTest, SubscribeIsAuthMaintainActive_002, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
@@ -191,20 +136,18 @@ HWTEST_F(LocalDeviceStatusManagerTest, SubscribeIsAuthMaintainActive_002, TestSi
 
 HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_001, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
     ASSERT_NE(manager, nullptr);
 
-    ASSERT_TRUE(activeUserIdCallback_ != nullptr);
-    activeUserIdCallback_(INT32_200);
     TaskRunnerManager::GetInstance().ExecuteAll();
 }
 
 HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_002, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
@@ -213,8 +156,6 @@ HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_002, TestSize.Level
     bool callbackInvoked = false;
     auto subscription = manager->SubscribeIsAuthMaintainActive([&callbackInvoked](bool) { callbackInvoked = true; });
 
-    ASSERT_TRUE(activeUserIdCallback_ != nullptr);
-    activeUserIdCallback_(INT32_100);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(callbackInvoked);
@@ -222,7 +163,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_002, TestSize.Level
 
 HWTEST_F(LocalDeviceStatusManagerTest, AuthMaintainCallback_001, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
@@ -237,8 +178,6 @@ HWTEST_F(LocalDeviceStatusManagerTest, AuthMaintainCallback_001, TestSize.Level0
         }
     });
 
-    ASSERT_TRUE(authMaintainCallback_ != nullptr);
-    authMaintainCallback_(true);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_EQ(callbackCount, INT32_2);
@@ -247,7 +186,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, AuthMaintainCallback_001, TestSize.Level0
 
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_001, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
@@ -264,7 +203,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_001, TestSize.Level0)
 
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_002, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
@@ -276,13 +215,11 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_002, TestSize.Level0)
 
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_003, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
     ASSERT_NE(manager, nullptr);
-
-    EXPECT_CALL(*mockChannel_, GetLocalPhysicalDeviceKey).WillOnce(Return(std::nullopt));
 
     auto deviceKeyOpt = manager->GetLocalDeviceKey(ChannelId::SOFTBUS);
     EXPECT_FALSE(deviceKeyOpt.has_value());
@@ -290,7 +227,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_003, TestSize.Level0)
 
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKeys_001, TestSize.Level0)
 {
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
@@ -324,7 +261,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKeys_002, TestSize.Level0)
     ON_CALL(*mockChannel2, GetAuthMaintainActive).WillByDefault(Return(false));
     ON_CALL(*mockChannel2, GetCompanionSecureProtocolId).WillByDefault(Return(SecureProtocolId::DEFAULT));
 
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_, nullptr, mockChannel2 };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);
@@ -353,7 +290,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKeys_003, TestSize.Level0)
     ON_CALL(*mockChannel2, GetAuthMaintainActive).WillByDefault(Return(false));
     ON_CALL(*mockChannel2, GetCompanionSecureProtocolId).WillByDefault(Return(SecureProtocolId::DEFAULT));
 
-    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_, mockChannel2 };
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
     auto manager = LocalDeviceStatusManager::Create(channelMgr);

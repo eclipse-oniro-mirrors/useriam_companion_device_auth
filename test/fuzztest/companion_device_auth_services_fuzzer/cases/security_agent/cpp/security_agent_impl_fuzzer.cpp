@@ -511,8 +511,8 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunctio
 
 void FuzzSecurityAgentImpl(FuzzedDataProvider &fuzzData)
 {
-    auto agent = SecurityAgentImpl::Create();
-    if (!agent) {
+    auto securityAgent = SecurityAgentImpl::Create();
+    if (!securityAgent) {
         return;
     }
 
@@ -523,7 +523,7 @@ void FuzzSecurityAgentImpl(FuzzedDataProvider &fuzzData)
         }
 
         uint8_t operation = fuzzData.ConsumeIntegralInRange<uint8_t>(0, NUM_FUZZ_OPERATIONS - 1);
-        g_fuzzFuncs[operation](agent, fuzzData);
+        g_fuzzFuncs[operation](securityAgent, fuzzData);
         EnsureAllTaskExecuted();
     }
 }

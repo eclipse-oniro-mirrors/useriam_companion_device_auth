@@ -35,7 +35,7 @@ public:
     void OnRemoveSystemAbility(int32_t systemAbilityId, const std::string &deviceId) override;
     static sptr<SystemAbilityListener> Subscribe(std::string name, int32_t systemAbilityId, AddFunc addFunc,
         RemoveFunc removeFunc);
-    static int32_t UnSubscribe(int32_t systemAbilityId, sptr<SystemAbilityListener> &listener);
+    static void UnSubscribe(int32_t systemAbilityId, sptr<SystemAbilityListener> &listener);
 
 private:
     std::string name_;

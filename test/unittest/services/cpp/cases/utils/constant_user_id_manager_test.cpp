@@ -17,10 +17,7 @@
 
 #include <gtest/gtest.h>
 
-#include "adapter_manager.h"
-#include "mock_time_keeper.h"
-#include "relative_timer.h"
-#include "singleton_manager.h"
+#include "mock_guard.h"
 #include "task_runner_manager.h"
 #include "user_id_manager.h"
 
@@ -35,29 +32,21 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 class ConstantUserIdManagerTest : public Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-    }
-
-    void TearDown() override
-    {
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        RelativeTimer::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
+    // 不需要SetUp/TearDown，MockGuard自动处理
 };
 
 HWTEST_F(ConstantUserIdManagerTest, CreateUserIdManager_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = IUserIdManager::Create();
     EXPECT_NE(nullptr, manager);
 }
 
 HWTEST_F(ConstantUserIdManagerTest, GetActiveUserId_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = IUserIdManager::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -67,6 +56,8 @@ HWTEST_F(ConstantUserIdManagerTest, GetActiveUserId_001, TestSize.Level0)
 
 HWTEST_F(ConstantUserIdManagerTest, GetActiveUserName_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = IUserIdManager::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -76,6 +67,8 @@ HWTEST_F(ConstantUserIdManagerTest, GetActiveUserName_001, TestSize.Level0)
 
 HWTEST_F(ConstantUserIdManagerTest, SubscribeActiveUserId_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = IUserIdManager::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -97,6 +90,8 @@ HWTEST_F(ConstantUserIdManagerTest, SubscribeActiveUserId_001, TestSize.Level0)
 
 HWTEST_F(ConstantUserIdManagerTest, SubscribeActiveUserId_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = IUserIdManager::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -107,6 +102,8 @@ HWTEST_F(ConstantUserIdManagerTest, SubscribeActiveUserId_002, TestSize.Level0)
 
 HWTEST_F(ConstantUserIdManagerTest, IsUserIdValid_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = IUserIdManager::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -116,6 +113,8 @@ HWTEST_F(ConstantUserIdManagerTest, IsUserIdValid_001, TestSize.Level0)
 
 HWTEST_F(ConstantUserIdManagerTest, IsUserIdValid_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = IUserIdManager::Create();
     ASSERT_NE(nullptr, manager);
 

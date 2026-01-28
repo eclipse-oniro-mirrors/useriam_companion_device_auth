@@ -22,6 +22,7 @@
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "adapter_manager.h"
 #include "host_binding.h"
 #include "singleton_manager.h"
 

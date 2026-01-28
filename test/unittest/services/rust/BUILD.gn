@@ -13,12 +13,13 @@
 
 import("//build/test.gni")
 import("../../../../companion_device_auth.gni")
-import("../../../../services/security_agent/rust/BUILD.gni")
+import(
+    "../../../../services/external_adapters/security_command_adapter/rust/BUILD.gni")
 
 ohos_rust_unittest("companion_device_auth_services_rust_test") {
   module_out_path = "companion_device_auth/services"
 
-  crate_root = "../../../../services/security_agent/rust/lib.rs"
+  crate_root = "../../../../services/external_adapters/security_command_adapter/rust/lib.rs"
 
   # Local rust test source files
   sources = [

@@ -29,13 +29,6 @@ namespace {
 
 class RemoveHostBindingMessageTest : public Test {
 public:
-    void SetUp() override
-    {
-    }
-    void TearDown() override
-    {
-    }
-
 protected:
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",

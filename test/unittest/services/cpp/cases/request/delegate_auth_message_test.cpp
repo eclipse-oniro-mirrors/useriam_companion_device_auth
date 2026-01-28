@@ -16,6 +16,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "mock_guard.h"
+
 #include "common_message.h"
 #include "delegate_auth_message.h"
 
@@ -29,14 +31,6 @@ namespace {
 
 class DelegateAuthMessageTest : public Test {
 public:
-    void SetUp() override
-    {
-    }
-
-    void TearDown() override
-    {
-    }
-
 protected:
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
@@ -47,6 +41,8 @@ protected:
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     StartDelegateAuthRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
         .extraInfo = extraInfo_ };
@@ -70,6 +66,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_001, Test
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     Attributes attributes;
 
     auto decodedRequest = DecodeStartDelegateAuthRequest(attributes);
@@ -78,6 +76,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_002, Test
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_003, TestSize.Level0)
 {
+    MockGuard guard;
+
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey_.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
@@ -89,6 +89,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_003, Test
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_004, TestSize.Level0)
 {
+    MockGuard guard;
+
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey_.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
@@ -101,6 +103,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_004, Test
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthReply_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     StartDelegateAuthReply reply = { .result = ResultCode::SUCCESS };
 
     Attributes attributes;
@@ -114,6 +118,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthReply_001, TestSi
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthReply_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     Attributes attributes;
 
     auto decodedReply = DecodeStartDelegateAuthReply(attributes);
@@ -122,6 +128,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthReply_002, TestSi
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     SendDelegateAuthResultRequest request = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
@@ -136,6 +144,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultRequest_001,
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     Attributes attributes;
 
     auto decodedRequest = DecodeSendDelegateAuthResultRequest(attributes);
@@ -144,6 +154,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultRequest_002,
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultRequest_003, TestSize.Level0)
 {
+    MockGuard guard;
+
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
 
@@ -153,6 +165,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultRequest_003,
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultReply_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     SendDelegateAuthResultReply reply = { .result = ResultCode::SUCCESS };
 
     Attributes attributes;
@@ -166,6 +180,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultReply_001, T
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultReply_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     Attributes attributes;
 
     auto decodedReply = DecodeSendDelegateAuthResultReply(attributes);

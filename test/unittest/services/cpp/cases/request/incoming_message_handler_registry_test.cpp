@@ -18,14 +18,8 @@
 
 #include "incoming_message_handler.h"
 #include "incoming_message_handler_registry.h"
-#include "relative_timer.h"
+#include "mock_guard.h"
 #include "service_common.h"
-#include "singleton_manager.h"
-#include "task_runner_manager.h"
-
-#include "adapter_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -34,11 +28,6 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-
-std::unique_ptr<Subscription> MakeSubscription()
-{
-    return std::make_unique<Subscription>([]() {});
-}
 
 class MockIncomingMessageHandler : public IncomingMessageHandler {
 public:
@@ -49,41 +38,18 @@ public:
 
 class IncomingMessageHandlerRegistryTest : public Test {
 public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeIncomingConnection(_, _))
-            .WillByDefault(Invoke([](MessageType, OnMessage &&) { return MakeSubscription(); }));
-    }
-
-    void TearDown() override
-    {
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        RelativeTimer::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
-protected:
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
 };
 
 HWTEST_F(IncomingMessageHandlerRegistryTest, Create_001, TestSize.Level0)
 {
+    MockGuard guard;
     auto registry = IncomingMessageHandlerRegistry::Create();
     EXPECT_NE(nullptr, registry);
 }
 
 HWTEST_F(IncomingMessageHandlerRegistryTest, Initialize_001, TestSize.Level0)
 {
+    MockGuard guard;
     auto registry = IncomingMessageHandlerRegistry::Create();
     ASSERT_NE(nullptr, registry);
 
@@ -93,6 +59,7 @@ HWTEST_F(IncomingMessageHandlerRegistryTest, Initialize_001, TestSize.Level0)
 
 HWTEST_F(IncomingMessageHandlerRegistryTest, AddHandler_001, TestSize.Level0)
 {
+    MockGuard guard;
     auto registry = IncomingMessageHandlerRegistry::Create();
     ASSERT_NE(nullptr, registry);
 
@@ -104,6 +71,7 @@ HWTEST_F(IncomingMessageHandlerRegistryTest, AddHandler_001, TestSize.Level0)
 
 HWTEST_F(IncomingMessageHandlerRegistryTest, AddHandler_002, TestSize.Level0)
 {
+    MockGuard guard;
     auto registry = IncomingMessageHandlerRegistry::Create();
     ASSERT_NE(nullptr, registry);
 
@@ -112,6 +80,7 @@ HWTEST_F(IncomingMessageHandlerRegistryTest, AddHandler_002, TestSize.Level0)
 
 HWTEST_F(IncomingMessageHandlerRegistryTest, AddHandler_003, TestSize.Level0)
 {
+    MockGuard guard;
     auto registry = IncomingMessageHandlerRegistry::Create();
     ASSERT_NE(nullptr, registry);
 
@@ -125,6 +94,7 @@ HWTEST_F(IncomingMessageHandlerRegistryTest, AddHandler_003, TestSize.Level0)
 
 HWTEST_F(IncomingMessageHandlerRegistryTest, RegisterHandlers_001, TestSize.Level0)
 {
+    MockGuard guard;
     auto registry = IncomingMessageHandlerRegistry::Create();
     ASSERT_NE(nullptr, registry);
 
@@ -134,6 +104,7 @@ HWTEST_F(IncomingMessageHandlerRegistryTest, RegisterHandlers_001, TestSize.Leve
 
 HWTEST_F(IncomingMessageHandlerRegistryTest, RegisterHandlers_002, TestSize.Level0)
 {
+    MockGuard guard;
     auto registry = IncomingMessageHandlerRegistry::Create();
     ASSERT_NE(nullptr, registry);
 

@@ -18,6 +18,7 @@
 #include "add_companion_message.h"
 #include "attributes.h"
 #include "common_message.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -29,13 +30,6 @@ namespace {
 
 class AddCompanionMessageTest : public Test {
 public:
-    void SetUp() override
-    {
-    }
-    void TearDown() override
-    {
-    }
-
 protected:
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
@@ -144,6 +138,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationReply_003, TestS
 
 HWTEST_F(AddCompanionMessageTest, DecodeInitKeyNegotiationReply_001, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
 
     auto decoded = DecodeInitKeyNegotiationReply(attributes);
@@ -152,6 +147,7 @@ HWTEST_F(AddCompanionMessageTest, DecodeInitKeyNegotiationReply_001, TestSize.Le
 
 HWTEST_F(AddCompanionMessageTest, DecodeInitKeyNegotiationReply_002, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
 
@@ -248,6 +244,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingReply_003, Test
 
 HWTEST_F(AddCompanionMessageTest, DecodeBeginAddHostBindingReply_001, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
 
     auto decoded = DecodeBeginAddHostBindingReply(attributes);
@@ -256,6 +253,7 @@ HWTEST_F(AddCompanionMessageTest, DecodeBeginAddHostBindingReply_001, TestSize.L
 
 HWTEST_F(AddCompanionMessageTest, DecodeBeginAddHostBindingReply_002, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
 

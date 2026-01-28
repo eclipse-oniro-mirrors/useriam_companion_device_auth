@@ -58,8 +58,6 @@ bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 
     hostDeviceKey_ = PeerDeviceKey();
 
-    auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), false);
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
     ENSURE_OR_RETURN_VAL(secureProtocolId_ != SecureProtocolId::INVALID, false);
 

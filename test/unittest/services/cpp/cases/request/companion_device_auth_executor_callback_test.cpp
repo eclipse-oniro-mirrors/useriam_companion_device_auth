@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 
 #include "companion_device_auth_executor_callback.h"
+#include "mock_guard.h"
 #include "service_common.h"
 
 using namespace testing;
@@ -40,32 +41,28 @@ public:
 
 class CompanionDeviceAuthExecutorCallbackTest : public Test {
 public:
-    void SetUp() override
+    std::shared_ptr<MockFwkExecuteCallback> CreateMockCallback()
     {
-        mockCallback_ = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
+        return std::make_shared<NiceMock<MockFwkExecuteCallback>>();
     }
-
-    void TearDown() override
-    {
-        mockCallback_.reset();
-    }
-
-protected:
-    std::shared_ptr<MockFwkExecuteCallback> mockCallback_;
 };
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, Constructor_001, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     EXPECT_NE(nullptr, callback);
 }
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, OperatorCall_001, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
-    EXPECT_CALL(*mockCallback_, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+    EXPECT_CALL(*mockCallback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
 
     std::vector<uint8_t> extraInfo = { 1, 2, 3 };
     (*callback)(ResultCode::SUCCESS, extraInfo);
@@ -73,10 +70,12 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, OperatorCall_001, TestSize.Lev
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, OperatorCall_002, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
-    EXPECT_CALL(*mockCallback_, OnResult(FwkResultCode::FAIL, _)).Times(1);
+    EXPECT_CALL(*mockCallback, OnResult(FwkResultCode::FAIL, _)).Times(1);
 
     std::vector<uint8_t> extraInfo;
     (*callback)(ResultCode::COMMUNICATION_ERROR, extraInfo);
@@ -84,11 +83,10 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, OperatorCall_002, TestSize.Lev
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, OperatorCall_003, TestSize.Level0)
 {
+    MockGuard guard;
     auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(nullptr);
     ASSERT_NE(nullptr, callback);
     callback->frameworkCallback_ = nullptr;
-
-    EXPECT_CALL(*mockCallback_, OnResult(_, _)).Times(0);
 
     std::vector<uint8_t> extraInfo;
     (*callback)(ResultCode::FAIL, extraInfo);
@@ -96,7 +94,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, OperatorCall_003, TestSize.Lev
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_001, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::GENERAL_ERROR);
@@ -106,7 +106,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_001, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_002, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::CANCELED);
@@ -116,7 +118,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_002, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_003, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::TIMEOUT);
@@ -126,7 +130,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_003, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_004, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::TYPE_NOT_SUPPORT);
@@ -136,7 +142,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_004, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_005, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::TRUST_LEVEL_NOT_SUPPORT);
@@ -146,7 +154,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_005, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_006, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::BUSY);
@@ -156,7 +166,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_006, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_007, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::INVALID_PARAMETERS);
@@ -166,7 +178,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_007, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_008, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::LOCKED);
@@ -176,7 +190,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_008, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_009, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::NOT_ENROLLED);
@@ -186,7 +202,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_009, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_010, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::CANCELED_FROM_WIDGET);
@@ -196,7 +214,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_010, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_011, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::HARDWARE_NOT_SUPPORTED);
@@ -206,7 +226,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_011, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_012, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::PIN_EXPIRED);
@@ -216,7 +238,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_012, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_013, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::COMPLEXITY_CHECK_FAILED);
@@ -226,7 +250,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_013, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_014, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::AUTH_TOKEN_CHECK_FAILED);
@@ -236,7 +262,9 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_014, TestSiz
 
 HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, ConvertResultCode_015, TestSize.Level0)
 {
-    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback_);
+    MockGuard guard;
+    auto mockCallback = CreateMockCallback();
+    auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
     FwkResultCode result = callback->ConvertResultCode(ResultCode::AUTH_TOKEN_EXPIRED);

@@ -89,15 +89,15 @@ static void FuzzHostPreIssueToken(std::shared_ptr<HostIssueTokenRequest> &reques
 static void FuzzSendPreIssueTokenRequest(std::shared_ptr<HostIssueTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
     uint32_t requestSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
-    std::vector<uint8_t> preIssueTokenRequest = fuzzData.ConsumeBytes<uint8_t>(requestSize);
-    (void)request->SendPreIssueTokenRequest(preIssueTokenRequest);
+    std::vector<uint8_t> preIssueTokenRequestData = fuzzData.ConsumeBytes<uint8_t>(requestSize);
+    (void)request->SendPreIssueTokenRequest(preIssueTokenRequestData);
 }
 
 static void FuzzSendIssueTokenRequest(std::shared_ptr<HostIssueTokenRequest> &request, FuzzedDataProvider &fuzzData)
 {
     uint32_t requestSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
-    std::vector<uint8_t> issueTokenRequest = fuzzData.ConsumeBytes<uint8_t>(requestSize);
-    (void)request->SendIssueTokenRequest(issueTokenRequest);
+    std::vector<uint8_t> issueTokenRequestData = fuzzData.ConsumeBytes<uint8_t>(requestSize);
+    (void)request->SendIssueTokenRequest(issueTokenRequestData);
 }
 
 static void FuzzHandlePreIssueTokenReply(std::shared_ptr<HostIssueTokenRequest> &request, FuzzedDataProvider &fuzzData)

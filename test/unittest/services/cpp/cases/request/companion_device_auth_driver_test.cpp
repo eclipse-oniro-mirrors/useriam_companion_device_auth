@@ -22,10 +22,7 @@
 #include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
 #include "fwk_common.h"
-#include "mock_idm_adapter.h"
-#include "mock_time_keeper.h"
-#include "singleton_manager.h"
-#include "user_id_manager.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -72,37 +69,22 @@ private:
 
 class CompanionDeviceAuthDriverTest : public Test {
 public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-        auto activeUserIdMgr = std::make_shared<FakeUserIdManager>();
-        SingletonManager::GetInstance().SetUserIdManager(activeUserIdMgr);
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-        auto idmAdapter = std::make_shared<MockIdmAdapter>();
-        AdapterManager::GetInstance().SetIdmAdapter(idmAdapter);
-        adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
-    }
-
-    void TearDown() override
-    {
-        adapter_.reset();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
 protected:
     std::shared_ptr<CompanionAuthInterfaceAdapter> adapter_;
 };
 
 HWTEST_F(CompanionDeviceAuthDriverTest, Constructor_001, TestSize.Level0)
 {
+    MockGuard guard;
+    adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
     auto driver = std::make_unique<CompanionDeviceAuthDriver>(adapter_);
     EXPECT_NE(nullptr, driver);
 }
 
 HWTEST_F(CompanionDeviceAuthDriverTest, GetExecutorList_001, TestSize.Level0)
 {
+    MockGuard guard;
+    adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
     auto driver = std::make_unique<CompanionDeviceAuthDriver>(adapter_);
     ASSERT_NE(nullptr, driver);
 
@@ -115,6 +97,8 @@ HWTEST_F(CompanionDeviceAuthDriverTest, GetExecutorList_001, TestSize.Level0)
 
 HWTEST_F(CompanionDeviceAuthDriverTest, OnHdiDisconnect_001, TestSize.Level0)
 {
+    MockGuard guard;
+    adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
     auto driver = std::make_unique<CompanionDeviceAuthDriver>(adapter_);
     ASSERT_NE(nullptr, driver);
 

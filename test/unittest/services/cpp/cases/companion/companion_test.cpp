@@ -20,13 +20,8 @@
 #include "companion_manager_impl.h"
 #include "relative_timer.h"
 #include "service_common.h"
-#include "singleton_manager.h"
-#include "task_runner_manager.h"
 
-#include "adapter_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_security_agent.h"
-#include "mock_time_keeper.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -88,57 +83,34 @@ DeviceStatus MakeDeviceStatus(const DeviceKey &deviceKey, bool isOnline = true, 
 
 class CompanionTest : public Test {
 public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
-        SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        mockCompanionManager_ = std::make_shared<MockCompanionManagerImpl>();
-
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-        ON_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-        ON_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillByDefault(Return());
-    }
-
-    void TearDown() override
-    {
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        RelativeTimer::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
     class MockCompanionManagerImpl : public CompanionManagerImpl {
     public:
         MOCK_METHOD(void, NotifyCompanionStatusChange, (), (override));
         MOCK_METHOD(ResultCode, RemoveCompanion, (TemplateId templateId), (override));
     };
-
-protected:
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockSecurityAgent> mockSecurityAgent_;
-    std::shared_ptr<MockCompanionManagerImpl> mockCompanionManager_;
 };
 
 HWTEST_F(CompanionTest, Create_001, TestSize.Level0)
 {
+    MockGuard mockGuard; // RAII - 自动创建并注册所有AdapterManager和SingletonManager的mock
+
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+
+    // 设置默认行为 - 使用引用访问，用.而不是->
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+    auto &securityAgent = mockGuard.GetSecurityAgent();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(securityAgent, HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillOnce(Return(std::nullopt));
 
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
 
     EXPECT_NE(nullptr, companion);
     EXPECT_EQ(TEMPLATE_ID_12345, companion->GetTemplateId());
@@ -148,14 +120,21 @@ HWTEST_F(CompanionTest, Create_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, Create_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
 
     auto deviceStatus = MakeDeviceStatus(deviceKey);
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
 
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
 
     ASSERT_NE(nullptr, companion);
     auto status = companion->GetStatus();
@@ -165,23 +144,34 @@ HWTEST_F(CompanionTest, Create_002, TestSize.Level0)
 
 HWTEST_F(CompanionTest, Create_003, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillOnce(Return(nullptr));
 
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
 
     EXPECT_EQ(nullptr, companion);
 }
 
 HWTEST_F(CompanionTest, HandleDeviceStatusChanged_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    EXPECT_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillOnce(Return());
 
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
     std::vector<DeviceStatus> statusList { deviceStatus };
@@ -194,9 +184,16 @@ HWTEST_F(CompanionTest, HandleDeviceStatusChanged_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, HandleDeviceStatusChanged_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     std::vector<DeviceStatus> emptyStatusList;
@@ -208,12 +205,19 @@ HWTEST_F(CompanionTest, HandleDeviceStatusChanged_002, TestSize.Level0)
 
 HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    EXPECT_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillOnce(Return());
 
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
     companion->HandleDeviceStatusUpdate(deviceStatus);
@@ -226,9 +230,16 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
@@ -238,12 +249,19 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_002, TestSize.Level0)
 
 HWTEST_F(CompanionTest, HandleDeviceOffline_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    EXPECT_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillOnce(Return());
 
     companion->status_.companionDeviceStatus.isOnline = true;
     companion->HandleDeviceOffline();
@@ -253,13 +271,20 @@ HWTEST_F(CompanionTest, HandleDeviceOffline_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetEnabledBusinessIds_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     std::vector<BusinessId> newBusinessIds = { BUSINESS_ID_3, BUSINESS_ID_4, BUSINESS_ID_5 };
 
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    EXPECT_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillOnce(Return());
 
     companion->SetEnabledBusinessIds(newBusinessIds);
 
@@ -273,8 +298,15 @@ HWTEST_F(CompanionTest, SetEnabledBusinessIds_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetEnabledBusinessIds_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     std::vector<BusinessId> sameBusinessIds = { BUSINESS_ID_1, BUSINESS_ID_2 };
@@ -283,11 +315,18 @@ HWTEST_F(CompanionTest, SetEnabledBusinessIds_002, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetCompanionValid_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    EXPECT_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillOnce(Return());
 
     companion->SetCompanionValid(false);
 
@@ -296,8 +335,15 @@ HWTEST_F(CompanionTest, SetCompanionValid_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetCompanionValid_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
 
     ASSERT_NE(nullptr, companion);
 
@@ -307,8 +353,15 @@ HWTEST_F(CompanionTest, SetCompanionValid_002, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetCompanionTokenAtl_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     companion->SetCompanionTokenAtl(INT32_3);
@@ -320,11 +373,20 @@ HWTEST_F(CompanionTest, SetCompanionTokenAtl_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetCompanionTokenAtl_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+    auto &securityAgent = mockGuard.GetSecurityAgent();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+    ON_CALL(securityAgent, HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
-    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(securityAgent, HostRevokeToken(_)).WillOnce(Return(ResultCode::SUCCESS));
 
     companion->status_.tokenAtl = INT32_1;
     companion->SetCompanionTokenAtl(std::nullopt);
@@ -334,8 +396,15 @@ HWTEST_F(CompanionTest, SetCompanionTokenAtl_002, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetCompanionTokenAtl_003, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     companion->SetCompanionTokenAtl(INT32_3);
@@ -347,11 +416,18 @@ HWTEST_F(CompanionTest, SetCompanionTokenAtl_003, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetDeviceNames_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    EXPECT_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillOnce(Return());
 
     companion->SetDeviceNames("NewDevice", "NewUser");
 
@@ -362,8 +438,15 @@ HWTEST_F(CompanionTest, SetDeviceNames_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetDeviceNames_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     companion->SetDeviceNames("TestDevice", "TestUser");
@@ -371,11 +454,18 @@ HWTEST_F(CompanionTest, SetDeviceNames_002, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetDeviceNames_003, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    EXPECT_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillOnce(Return());
 
     companion->SetDeviceNames("NewDevice", "TestUser");
 
@@ -386,11 +476,18 @@ HWTEST_F(CompanionTest, SetDeviceNames_003, TestSize.Level0)
 
 HWTEST_F(CompanionTest, SetDeviceNames_004, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    EXPECT_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillOnce(Return());
 
     companion->SetDeviceNames("TestDevice", "NewUser");
 
@@ -410,8 +507,15 @@ HWTEST_F(CompanionTest, NotifySubscribersManagerNull, TestSize.Level0)
 
 HWTEST_F(CompanionTest, IsAddedToIdm_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, true, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, true, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     EXPECT_TRUE(companion->IsAddedToIdm());
@@ -419,8 +523,15 @@ HWTEST_F(CompanionTest, IsAddedToIdm_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, IsAddedToIdm_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     EXPECT_FALSE(companion->IsAddedToIdm());
@@ -428,8 +539,15 @@ HWTEST_F(CompanionTest, IsAddedToIdm_002, TestSize.Level0)
 
 HWTEST_F(CompanionTest, MarkAsAddedToIdm_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     EXPECT_FALSE(companion->IsAddedToIdm());
@@ -441,8 +559,15 @@ HWTEST_F(CompanionTest, MarkAsAddedToIdm_001, TestSize.Level0)
 
 HWTEST_F(CompanionTest, MarkAsAddedToIdm_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, true, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, true, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     EXPECT_TRUE(companion->IsAddedToIdm());
@@ -454,34 +579,55 @@ HWTEST_F(CompanionTest, MarkAsAddedToIdm_002, TestSize.Level0)
 
 HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_001, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, true, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, true, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     EXPECT_TRUE(companion->IsAddedToIdm());
 
-    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_)).Times(0);
+    EXPECT_CALL(*mockCompanionManager, RemoveCompanion(_)).Times(0);
 
     companion->HandleTemplateAddToIdmTimeout();
 }
 
 HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_002, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     EXPECT_FALSE(companion->IsAddedToIdm());
 
-    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(TEMPLATE_ID_12345)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(*mockCompanionManager, RemoveCompanion(TEMPLATE_ID_12345)).WillOnce(Return(ResultCode::SUCCESS));
 
     companion->HandleTemplateAddToIdmTimeout();
 }
 
 HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_003, TestSize.Level0)
 {
+    MockGuard mockGuard;
+    auto mockCompanionManager = std::make_shared<MockCompanionManagerImpl>();
+    auto &crossDeviceMgr = mockGuard.GetCrossDeviceCommManager();
+
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(*mockCompanionManager, NotifyCompanionStatusChange()).WillByDefault(Return());
+
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager);
     ASSERT_NE(nullptr, companion);
 
     EXPECT_FALSE(companion->IsAddedToIdm());
@@ -489,7 +635,7 @@ HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_003, TestSize.Level0)
     std::weak_ptr<CompanionManagerImpl> nullWeakPtr;
     auto companionWithNullManager = std::make_shared<Companion>(persistedStatus, false, nullWeakPtr);
 
-    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_)).Times(0);
+    EXPECT_CALL(*mockCompanionManager, RemoveCompanion(_)).Times(0);
 
     companionWithNullManager->HandleTemplateAddToIdmTimeout();
 }

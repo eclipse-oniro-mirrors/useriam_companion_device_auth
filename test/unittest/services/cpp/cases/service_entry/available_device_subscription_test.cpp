@@ -19,18 +19,9 @@
 #include <gtest/gtest.h>
 
 #include "available_device_subscription.h"
-#include "relative_timer.h"
-#include "singleton_manager.h"
+#include "mock_guard.h"
 #include "subscription.h"
 #include "subscription_manager.h"
-#include "task_runner_manager.h"
-
-#include "adapter_manager.h"
-#include "mock_companion_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_remote_object.h"
-#include "mock_time_keeper.h"
-#include "mock_user_id_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -55,82 +46,43 @@ public:
     MOCK_METHOD(sptr<IRemoteObject>, AsObject, (), (override));
 };
 
-class AvailableDeviceSubscriptionTest : public Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
-
-        auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
-        SingletonManager::GetInstance().SetCompanionManager(companionMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeAllDeviceStatus(_))
-            .WillByDefault(Invoke([](OnDeviceStatusChange &&callback) { return MakeSubscription(); }));
-        ON_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
-        ON_CALL(mockUserIdManager_, GetActiveUserId()).WillByDefault(Return(0));
-
-        // Set default behaviors for callback mock methods that are called internally
-        ON_CALL(MockIIpcAvailableDeviceStatusCallback(), OnAvailableDeviceStatusChange(_)).WillByDefault(Return(0));
-        ON_CALL(MockIIpcAvailableDeviceStatusCallback(), AsObject()).WillByDefault(Return(nullptr));
-
-        subscriptionManager_ = std::make_shared<SubscriptionManager>();
-    }
-
-    void TearDown() override
-    {
-        subscriptionManager_.reset();
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
-protected:
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockUserIdManager> mockUserIdManager_;
-    NiceMock<MockCompanionManager> mockCompanionManager_;
-    std::shared_ptr<SubscriptionManager> subscriptionManager_;
-};
+class AvailableDeviceSubscriptionTest : public Test {};
 
 HWTEST_F(AvailableDeviceSubscriptionTest, Create_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeAllDeviceStatus(_))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&callback) { return MakeSubscription(); }));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus()).WillOnce(Return(std::vector<DeviceStatus> {}));
-    EXPECT_CALL(mockUserIdManager_, GetActiveUserId()).WillOnce(Return(0));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus()).WillOnce(Return(std::vector<DeviceStatus> {}));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(0));
 
-    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager_);
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
 
     EXPECT_NE(subscription, nullptr);
 }
 
 HWTEST_F(AvailableDeviceSubscriptionTest, Create_002, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeAllDeviceStatus(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_)).WillOnce(Return(nullptr));
 
-    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager_);
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
 
     EXPECT_EQ(subscription, nullptr);
 }
 
 HWTEST_F(AvailableDeviceSubscriptionTest, GetUserId_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
-    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager_);
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     EXPECT_EQ(subscription->GetUserId(), userId);
@@ -138,8 +90,10 @@ HWTEST_F(AvailableDeviceSubscriptionTest, GetUserId_001, TestSize.Level0)
 
 HWTEST_F(AvailableDeviceSubscriptionTest, GetWeakPtr_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
-    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager_);
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     auto weakPtr = subscription->GetWeakPtr();
@@ -148,8 +102,10 @@ HWTEST_F(AvailableDeviceSubscriptionTest, GetWeakPtr_001, TestSize.Level0)
 
 HWTEST_F(AvailableDeviceSubscriptionTest, OnCallbackAdded_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
-    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager_);
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     sptr<MockIIpcAvailableDeviceStatusCallback> callback = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
@@ -160,8 +116,10 @@ HWTEST_F(AvailableDeviceSubscriptionTest, OnCallbackAdded_001, TestSize.Level0)
 
 HWTEST_F(AvailableDeviceSubscriptionTest, OnCallbackAdded_002, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
-    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager_);
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     sptr<MockIIpcAvailableDeviceStatusCallback> callback = nullptr;
@@ -171,19 +129,21 @@ HWTEST_F(AvailableDeviceSubscriptionTest, OnCallbackAdded_002, TestSize.Level0)
 
 HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
     OnDeviceStatusChange storedCallback;
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeAllDeviceStatus(_))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([&storedCallback](OnDeviceStatusChange &&callback) {
             storedCallback = std::move(callback);
             return MakeSubscription();
         }));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus()).WillOnce(Return(std::vector<DeviceStatus> {}));
-    EXPECT_CALL(mockUserIdManager_, GetActiveUserId()).WillOnce(Return(0)).WillOnce(Return(userId));
-    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus()).WillOnce(Return(std::vector<DeviceStatus> {}));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(0)).WillOnce(Return(userId));
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
 
-    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager_);
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     DeviceKey deviceKey = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
@@ -205,21 +165,23 @@ HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_001, TestSize
 
 HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_002, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
     OnDeviceStatusChange storedCallback;
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeAllDeviceStatus(_))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([&storedCallback](OnDeviceStatusChange &&callback) {
             storedCallback = std::move(callback);
             return MakeSubscription();
         }));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus()).WillOnce(Return(std::vector<DeviceStatus> {}));
-    EXPECT_CALL(mockUserIdManager_, GetActiveUserId()).WillOnce(Return(0)).WillOnce(Return(userId));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus()).WillOnce(Return(std::vector<DeviceStatus> {}));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(0)).WillOnce(Return(userId));
 
     CompanionStatus companionStatus {};
-    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(companionStatus));
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillOnce(Return(companionStatus));
 
-    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager_);
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     DeviceKey deviceKey = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,

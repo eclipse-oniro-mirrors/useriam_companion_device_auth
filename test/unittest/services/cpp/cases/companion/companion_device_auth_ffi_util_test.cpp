@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 
 #include "companion_device_auth_ffi_util.h"
+#include "mock_guard.h"
 #include "security_agent.h"
 
 namespace OHOS {
@@ -100,9 +101,6 @@ class FfiUtilTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
-
-    void SetUp() override;
-    void TearDown() override;
 };
 
 void FfiUtilTest::SetUpTestCase()
@@ -113,20 +111,13 @@ void FfiUtilTest::TearDownTestCase()
 {
 }
 
-void FfiUtilTest::SetUp()
-{
-}
-
-void FfiUtilTest::TearDown()
-{
-}
-
 // ============================================================================
 // Test DecodeDeviceKey - Length Validation
 // ============================================================================
 
 HWTEST_F(FfiUtilTest, DecodeDeviceKeyValid, TestSize.Level1)
 {
+    MockGuard guard;
     DeviceKeyFfi ffi;
     ffi.deviceIdType = 1;
     ffi.userId = 100;
@@ -147,6 +138,7 @@ HWTEST_F(FfiUtilTest, DecodeDeviceKeyValid, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, EncodeDeviceKeyValidAndIdTooLong, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid case
     {
         DeviceKey key;
@@ -179,6 +171,7 @@ HWTEST_F(FfiUtilTest, EncodeDeviceKeyValidAndIdTooLong, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationTrue, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid case
     {
         PersistedCompanionStatusFfi ffi = {};
@@ -198,6 +191,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationTrue, TestSize.
 
 HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationFalse, TestSize.Level1)
 {
+    MockGuard guard;
     // Invalid: Business IDs len exceeds max
     {
         PersistedCompanionStatusFfi ffi = {};
@@ -263,6 +257,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationFalse, TestSize
 
 HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid case
     {
         PersistedCompanionStatus status;
@@ -316,6 +311,7 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
 
 HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusValid, TestSize.Level1)
 {
+    MockGuard guard;
     PersistedHostBindingStatusFfi ffi = {};
 
     ffi.bindingId = INT32_555;
@@ -336,6 +332,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusValid, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, DecodeExecutorInfoLenValidation, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid case
     {
         GetExecutorInfoOutputFfi ffi = {};
@@ -371,6 +368,7 @@ HWTEST_F(FfiUtilTest, DecodeExecutorInfoLenValidation, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, DecodeEventLenValidation, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid case
     {
         EventFfi ffi = {};
@@ -412,6 +410,7 @@ HWTEST_F(FfiUtilTest, DecodeEventLenValidation, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, DecodeEventArrayLenValidation, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid case: at max size
     {
         EventArrayFfi ffi = {};
@@ -461,6 +460,7 @@ HWTEST_F(FfiUtilTest, DecodeEventArrayLenValidation, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, DecodeCommonOutputValid, TestSize.Level1)
 {
+    MockGuard guard;
     CommonOutputFfi ffi = {};
 
     ffi.result = 0;
@@ -479,6 +479,7 @@ HWTEST_F(FfiUtilTest, DecodeCommonOutputValid, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusListLenValidation, TestSize.Level1)
 {
+    MockGuard guard;
     // Invalid: Array len exceeds max
     {
         CompanionStatusArrayFfi ffi = {};
@@ -496,6 +497,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusListLenValidation, TestSize.
 
 HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusListLenValidation, TestSize.Level1)
 {
+    MockGuard guard;
     // Invalid: Array len exceeds max
     {
         HostBindingStatusArrayFfi ffi = {};
@@ -513,6 +515,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusListLenValidation, TestSiz
 
 HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid: Empty salt is allowed
     {
         CompanionProcessCheckInput input;
@@ -562,6 +565,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSi
 
 HWTEST_F(FfiUtilTest, EncodeCompanionEndDelegateAuthInputAuthTokenSizeValidation, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid: Empty token is allowed
     {
         CompanionDelegateAuthEndInput input;
@@ -606,6 +610,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndDelegateAuthInputAuthTokenSizeValidation
 
 HWTEST_F(FfiUtilTest, RoundTripDeviceKey, TestSize.Level1)
 {
+    MockGuard guard;
     DeviceKey originalKey;
     originalKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     originalKey.deviceUserId = 999;
@@ -624,6 +629,7 @@ HWTEST_F(FfiUtilTest, RoundTripDeviceKey, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
 {
+    MockGuard guard;
     PersistedCompanionStatus originalStatus;
     originalStatus.templateId = INT32_555;
     originalStatus.hostUserId = 10;
@@ -653,6 +659,7 @@ HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, EncodeHostRegisterFinishInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     RegisterFinishInput input;
     input.templateIdList = { 1, 2, 3 };
     input.fwkPublicKey = { UINT8_0XAA, UINT8_0XBB, UINT8_0XCC };
@@ -665,6 +672,7 @@ HWTEST_F(FfiUtilTest, EncodeHostRegisterFinishInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostRegisterFinishInput_002, TestSize.Level0)
 {
+    MockGuard guard;
     RegisterFinishInput input;
     for (int i = 0; i < 100; ++i) {
         input.templateIdList.push_back(i);
@@ -676,6 +684,7 @@ HWTEST_F(FfiUtilTest, EncodeHostRegisterFinishInput_002, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostEndCompanionCheckInput input;
     input.requestId = INT32_123;
     input.templateId = INT32_456;
@@ -692,6 +701,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostGetInitKeyNegotiationInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostGetInitKeyNegotiationRequestInput input;
     input.requestId = 111;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -703,6 +713,7 @@ HWTEST_F(FfiUtilTest, EncodeHostGetInitKeyNegotiationInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostGetInitKeyNegotiationOutputFfi ffi = {};
     ffi.secMessage.len = 3;
     ffi.secMessage.data[0] = UINT8_0XAA;
@@ -716,6 +727,7 @@ HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostBeginAddCompanionInput input;
     input.requestId = INT32_222;
     input.scheduleId = INT32_333;
@@ -737,6 +749,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostBeginAddCompanionOutputFfi ffi = {};
     ffi.secMessage.len = 2;
     ffi.secMessage.data[0] = UINT8_0XDD;
@@ -749,6 +762,7 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostEndAddCompanionInput input;
     input.requestId = INT32_444;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -764,6 +778,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostEndAddCompanionOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostEndAddCompanionOutputFfi ffi = {};
     ffi.templateId = 777;
     ffi.fwkMessage.len = 2;
@@ -778,6 +793,7 @@ HWTEST_F(FfiUtilTest, DecodeHostEndAddCompanionOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostPreIssueTokenInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostPreIssueTokenInput input;
     input.requestId = 888;
     input.templateId = 999;
@@ -791,6 +807,7 @@ HWTEST_F(FfiUtilTest, EncodeHostPreIssueTokenInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostPreIssueTokenOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostPreIssueTokenOutputFfi ffi = {};
     ffi.secMessage.len = 3;
     ffi.secMessage.data[0] = UINT8_0XBB;
@@ -804,6 +821,7 @@ HWTEST_F(FfiUtilTest, DecodeHostPreIssueTokenOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostBeginIssueTokenInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostBeginIssueTokenInput input;
     input.requestId = 1000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -816,6 +834,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginIssueTokenInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostBeginIssueTokenOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostBeginIssueTokenOutputFfi ffi = {};
     ffi.secMessage.len = 4;
     for (uint32_t i = 0; i < 4; ++i) {
@@ -829,6 +848,7 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginIssueTokenOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostEndIssueTokenInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostEndIssueTokenInput input;
     input.requestId = 1111;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -841,6 +861,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndIssueTokenInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostEndIssueTokenOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostEndIssueTokenOutputFfi ffi = {};
     ffi.atl = 12345;
 
@@ -851,6 +872,7 @@ HWTEST_F(FfiUtilTest, DecodeHostEndIssueTokenOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostBeginTokenAuthInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostBeginTokenAuthInput input;
     input.requestId = INT32_2222;
     input.scheduleId = INT32_3333;
@@ -866,6 +888,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginTokenAuthInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostBeginTokenAuthOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostBeginTokenAuthOutputFfi ffi = {};
     ffi.secMessage.len = 2;
     ffi.secMessage.data[0] = UINT8_0X9A;
@@ -878,6 +901,7 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginTokenAuthOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostEndTokenAuthInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostEndTokenAuthInput input;
     input.requestId = INT32_5555;
     input.templateId = INT32_6666;
@@ -892,6 +916,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndTokenAuthInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostEndTokenAuthOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostEndTokenAuthOutputFfi ffi = {};
     ffi.fwkMessage.len = 3;
     ffi.fwkMessage.data[0] = UINT8_0X12;
@@ -905,6 +930,7 @@ HWTEST_F(FfiUtilTest, DecodeHostEndTokenAuthOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostUpdateCompanionStatusInput input;
     input.templateId = INT32_7777;
     input.companionDeviceName = "TestDevice";
@@ -917,6 +943,7 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_002, TestSize.Level0)
 {
+    MockGuard guard;
     HostUpdateCompanionStatusInput input;
     input.templateId = 1;
     input.companionDeviceName = std::string(MAX_DATA_LEN_1024 + 1, 'A');
@@ -927,6 +954,7 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_002, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostUpdateCompanionEnabledBusinessIdsInput input;
     input.templateId = INT32_8888;
     input.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2), static_cast<BusinessId>(3),
@@ -940,6 +968,7 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_001, Test
 
 HWTEST_F(FfiUtilTest, EncodeHostBeginDelegateAuthInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostBeginDelegateAuthInput input;
     input.requestId = INT32_9999;
     input.scheduleId = 10000;
@@ -955,6 +984,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginDelegateAuthInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostBeginDelegateAuthOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostBeginDelegateAuthOutputFfi ffi = {};
     ffi.secMessage.len = 2;
     ffi.secMessage.data[0] = UINT8_0XBC;
@@ -967,6 +997,7 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginDelegateAuthOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostEndDelegateAuthInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostEndDelegateAuthInput input;
     input.requestId = 12000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -979,6 +1010,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndDelegateAuthInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostEndDelegateAuthOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostEndDelegateAuthOutputFfi ffi = {};
     ffi.authType = 2;
     ffi.atl = INT32_54321;
@@ -995,6 +1027,7 @@ HWTEST_F(FfiUtilTest, DecodeHostEndDelegateAuthOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostProcessPreObtainTokenInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostProcessPreObtainTokenInput input;
     input.requestId = 13000;
     input.templateId = 14000;
@@ -1008,6 +1041,7 @@ HWTEST_F(FfiUtilTest, EncodeHostProcessPreObtainTokenInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostProcessPreObtainTokenOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostProcessPreObtainTokenOutputFfi ffi = {};
     ffi.secMessage.len = 4;
     ffi.secMessage.data[0] = UINT8_0X9A;
@@ -1022,6 +1056,7 @@ HWTEST_F(FfiUtilTest, DecodeHostProcessPreObtainTokenOutput_001, TestSize.Level0
 
 HWTEST_F(FfiUtilTest, EncodeHostProcessObtainTokenInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostProcessObtainTokenInput input;
     input.requestId = 15000;
     input.templateId = 16000;
@@ -1036,6 +1071,7 @@ HWTEST_F(FfiUtilTest, EncodeHostProcessObtainTokenInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeHostProcessObtainTokenOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostProcessObtainTokenOutputFfi ffi = {};
     ffi.atl = INT32_99999;
     ffi.secMessage.len = 2;
@@ -1051,6 +1087,7 @@ HWTEST_F(FfiUtilTest, DecodeHostProcessObtainTokenOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeCompanionProcessCheckOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionProcessCheckOutputFfi ffi = {};
     ffi.secMessage.len = 3;
     ffi.secMessage.data[0] = UINT8_0XAA;
@@ -1064,6 +1101,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionProcessCheckOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionInitKeyNegotiationInput input;
     input.requestId = 17000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -1082,6 +1120,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_001, TestSize.Level
 
 HWTEST_F(FfiUtilTest, DecodeCompanionInitKeyNegotiationOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionInitKeyNegotiationOutputFfi ffi = {};
     ffi.secMessage.len = 2;
     ffi.secMessage.data[0] = UINT8_0XFF;
@@ -1094,6 +1133,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionInitKeyNegotiationOutput_001, TestSize.Leve
 
 HWTEST_F(FfiUtilTest, EncodeCompanionBeginAddHostBindingInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionBeginAddHostBindingInput input;
     input.requestId = 18000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -1106,6 +1146,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionBeginAddHostBindingInput_001, TestSize.Leve
 
 HWTEST_F(FfiUtilTest, DecodeCompanionBeginAddHostBindingOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionBeginAddHostBindingOutputFfi ffi = {};
     ffi.bindingId = INT32_123;
     ffi.bindingStatus.bindingId = INT32_123;
@@ -1127,6 +1168,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionBeginAddHostBindingOutput_001, TestSize.Lev
 
 HWTEST_F(FfiUtilTest, DecodeCompanionBeginAddHostBindingOutput_002, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionBeginAddHostBindingOutputFfi ffi = {};
     ffi.bindingId = 0;
     ffi.bindingStatus.bindingId = INT32_555;
@@ -1144,6 +1186,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionBeginAddHostBindingOutput_002, TestSize.Lev
 
 HWTEST_F(FfiUtilTest, EncodeCompanionEndAddHostBindingInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionEndAddHostBindingInput input;
     input.requestId = 19000;
     input.resultCode = ResultCode::SUCCESS;
@@ -1155,6 +1198,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndAddHostBindingInput_001, TestSize.Level0
 
 HWTEST_F(FfiUtilTest, DecodeCompanionEndAddHostBindingOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionEndAddHostBindingOutputFfi ffi = {};
     ffi.bindingId = 888;
 
@@ -1165,6 +1209,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionEndAddHostBindingOutput_001, TestSize.Level
 
 HWTEST_F(FfiUtilTest, EncodeCompanionPreIssueTokenInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionPreIssueTokenInput input;
     input.requestId = INT32_20000;
     input.bindingId = INT32_21000;
@@ -1179,6 +1224,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionPreIssueTokenInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeCompanionPreIssueTokenOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionPreIssueTokenOutputFfi ffi = {};
     ffi.secMessage.len = 3;
     ffi.secMessage.data[0] = UINT8_0X77;
@@ -1192,6 +1238,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionPreIssueTokenOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeCompanionProcessIssueTokenInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionProcessIssueTokenInput input;
     input.requestId = INT32_22000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -1204,6 +1251,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessIssueTokenInput_001, TestSize.Level0
 
 HWTEST_F(FfiUtilTest, DecodeCompanionProcessIssueTokenOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionProcessIssueTokenOutputFfi ffi = {};
     ffi.secMessage.len = 2;
     ffi.secMessage.data[0] = UINT8_0XCC;
@@ -1216,6 +1264,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionProcessIssueTokenOutput_001, TestSize.Level
 
 HWTEST_F(FfiUtilTest, EncodeCompanionProcessTokenAuthInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionProcessTokenAuthInput input;
     input.bindingId = INT32_23000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -1228,6 +1277,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessTokenAuthInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeCompanionProcessTokenAuthOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionProcessTokenAuthOutputFfi ffi = {};
     ffi.secMessage.len = 4;
     for (uint32_t i = 0; i < 4; ++i) {
@@ -1241,6 +1291,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionProcessTokenAuthOutput_001, TestSize.Level0
 
 HWTEST_F(FfiUtilTest, EncodeCompanionBeginDelegateAuthInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionDelegateAuthBeginInput input;
     input.requestId = INT32_24000;
     input.bindingId = INT32_25000;
@@ -1255,6 +1306,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionBeginDelegateAuthInput_001, TestSize.Level0
 
 HWTEST_F(FfiUtilTest, DecodeCompanionBeginDelegateAuthOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionBeginDelegateAuthOutputFfi ffi = {};
     ffi.challenge = 88888;
     ffi.atl = 77777;
@@ -1267,6 +1319,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionBeginDelegateAuthOutput_001, TestSize.Level
 
 HWTEST_F(FfiUtilTest, DecodeCompanionEndDelegateAuthOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionEndDelegateAuthOutputFfi ffi = {};
     ffi.secMessage.len = 3;
     ffi.secMessage.data[0] = UINT8_0X22;
@@ -1280,6 +1333,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionEndDelegateAuthOutput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeCompanionBeginObtainTokenInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionBeginObtainTokenInput input;
     input.requestId = INT32_26000;
     input.bindingId = INT32_27000;
@@ -1295,6 +1349,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionBeginObtainTokenInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodeCompanionBeginObtainTokenOutput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionBeginObtainTokenOutputFfi ffi = {};
     ffi.secMessage.len = 5;
     for (uint32_t i = 0; i < 5; ++i) {
@@ -1308,6 +1363,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionBeginObtainTokenOutput_001, TestSize.Level0
 
 HWTEST_F(FfiUtilTest, EncodeCompanionEndObtainTokenInput_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionEndObtainTokenInput input;
     input.requestId = INT32_28000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -1320,6 +1376,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndObtainTokenInput_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusList_001, TestSize.Level0)
 {
+    MockGuard guard;
     CompanionStatusArrayFfi ffi = {};
     ffi.len = 2;
 
@@ -1348,6 +1405,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusList_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusList_001, TestSize.Level0)
 {
+    MockGuard guard;
     HostBindingStatusArrayFfi ffi = {};
     ffi.len = 2;
 
@@ -1378,6 +1436,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusList_001, TestSize.Level0)
 
 HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_002, TestSize.Level1)
 {
+    MockGuard guard;
     // Invalid: enabledBusinessIds exceeds max (64)
     HostUpdateCompanionEnabledBusinessIdsInput input;
     input.templateId = 1;
@@ -1391,6 +1450,7 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_002, Test
 
 HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow, TestSize.Level1)
 {
+    MockGuard guard;
     // Invalid: fwkMsg exceeds max (1024)
     {
         HostBeginAddCompanionInput input;
@@ -1431,6 +1491,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow, TestSize.Level1
 
 HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_002, TestSize.Level1)
 {
+    MockGuard guard;
     // Invalid: enabledBusinessIds exceeds max (64)
     HostEndAddCompanionInput input;
     input.requestId = 1;
@@ -1447,6 +1508,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_002, TestSize.Level1)
 
 HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_Overflow, TestSize.Level1)
 {
+    MockGuard guard;
     // Invalid: protocolVersionList exceeds max (64)
     {
         HostEndCompanionCheckInput input;
@@ -1494,6 +1556,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_Overflow, TestSize.Level1
 
 HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_LargeMessage, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid: exactly MAX_DATA_LEN_20000 bytes
     {
         HostGetInitKeyNegotiationOutputFfi ffi = {};
@@ -1532,6 +1595,7 @@ HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_LargeMessage, TestSize.
 
 HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_LargeMessage, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid: exactly TEST_MESSAGE_SIZE_MAX bytes
     {
         CompanionInitKeyNegotiationInput input;
@@ -1588,6 +1652,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_LargeMessage, TestS
 
 HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_LargeMessage, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid: fwkMsg at max (MAX_DATA_LEN_1024 bytes), secMessage at max (TEST_MESSAGE_SIZE_MAX bytes)
     {
         HostBeginAddCompanionInput input;
@@ -1630,6 +1695,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_LargeMessage, TestSize.Le
 
 HWTEST_F(FfiUtilTest, DecodeCompanionInitKeyNegotiationOutput_LargeMessage, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid: exactly TEST_MESSAGE_SIZE_MAX bytes
     {
         CompanionInitKeyNegotiationOutputFfi ffi = {};
@@ -1661,6 +1727,7 @@ HWTEST_F(FfiUtilTest, DecodeCompanionInitKeyNegotiationOutput_LargeMessage, Test
 
 HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow_Updated, TestSize.Level1)
 {
+    MockGuard guard;
     // Invalid: fwkMsg exceeds max (MAX_DATA_LEN_1024)
     {
         HostBeginAddCompanionInput input;
@@ -1700,6 +1767,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow_Updated, TestSiz
 
 HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_MaxMessage, TestSize.Level1)
 {
+    MockGuard guard;
     // Valid: exactly MAX_DATA_LEN_1024 bytes (max for DataArray1024Ffi)
     {
         HostBeginAddCompanionOutputFfi ffi = {};

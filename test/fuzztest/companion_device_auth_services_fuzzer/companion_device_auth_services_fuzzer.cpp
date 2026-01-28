@@ -30,7 +30,7 @@ namespace CompanionDeviceAuth {
 
 static std::mutex g_fuzzMutex;
 
-extern "C" int32_t LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+__attribute__((used)) extern "C" int32_t LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     // Acquire mutex to ensure single-threaded fuzzing execution
     std::lock_guard<std::mutex> lock(g_fuzzMutex);

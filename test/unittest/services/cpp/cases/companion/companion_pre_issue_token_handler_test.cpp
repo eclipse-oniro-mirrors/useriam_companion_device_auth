@@ -20,17 +20,8 @@
 #include "companion_issue_token_request.h"
 #include "companion_pre_issue_token_handler.h"
 #include "issue_token_message.h"
-#include "singleton_manager.h"
-#include "task_runner_manager.h"
 
-#include "adapter_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_host_binding_manager.h"
-#include "mock_misc_manager.h"
-#include "mock_request_factory.h"
-#include "mock_request_manager.h"
-#include "mock_security_agent.h"
-#include "mock_time_keeper.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -41,67 +32,25 @@ namespace CompanionDeviceAuth {
 namespace {
 
 class CompanionPreIssueTokenHandlerTest : public Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto requestFactory = std::shared_ptr<IRequestFactory>(&mockRequestFactory_, [](IRequestFactory *) {});
-        SingletonManager::GetInstance().SetRequestFactory(requestFactory);
-
-        auto requestMgr = std::shared_ptr<IRequestManager>(&mockRequestManager_, [](IRequestManager *) {});
-        SingletonManager::GetInstance().SetRequestManager(requestMgr);
-
-        auto hostBindingMgr =
-            std::shared_ptr<IHostBindingManager>(&mockHostBindingManager_, [](IHostBindingManager *) {});
-        SingletonManager::GetInstance().SetHostBindingManager(hostBindingMgr);
-
-        auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
-        SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockRequestFactory_, CreateCompanionIssueTokenRequest(_, _, _, _))
-            .WillByDefault(Invoke([this](const std::string &connectionName, const Attributes &request,
-                                      OnMessageReply replyCallback, const DeviceKey &) {
-                auto result = DecodePreIssueTokenRequest(request);
-                PreIssueTokenRequest preRequest = result.value_or(PreIssueTokenRequest {});
-                return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
-                    preRequest.hostDeviceKey);
-            }));
-        ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
-
-        handler_ = std::make_unique<CompanionPreIssueTokenHandler>();
-    }
-
-    void TearDown() override
-    {
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
 protected:
     std::unique_ptr<CompanionPreIssueTokenHandler> handler_;
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockRequestFactory> mockRequestFactory_;
-    NiceMock<MockRequestManager> mockRequestManager_;
-    NiceMock<MockHostBindingManager> mockHostBindingManager_;
-    NiceMock<MockSecurityAgent> mockSecurityAgent_;
-    NiceMock<MockMiscManager> mockMiscManager_;
 };
 
 HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetRequestFactory(), CreateCompanionIssueTokenRequest(_, _, _, _))
+        .WillByDefault(Invoke([this](const std::string &connectionName, const Attributes &request,
+                                  OnMessageReply replyCallback, const DeviceKey &) {
+            auto result = DecodePreIssueTokenRequest(request);
+            PreIssueTokenRequest preRequest = result.value_or(PreIssueTokenRequest {});
+            return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
+                preRequest.hostDeviceKey);
+        }));
+    ON_CALL(guard.GetRequestManager(), Start(_)).WillByDefault(Return(true));
+
+    handler_ = std::make_unique<CompanionPreIssueTokenHandler>();
+
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
     DeviceKey hostDeviceKey = {};
@@ -111,7 +60,7 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_001, TestSize.Level0)
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &) { replyCalled = true; };
 
-    EXPECT_CALL(mockRequestFactory_, CreateCompanionIssueTokenRequest(_, _, _, _))
+    EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionIssueTokenRequest(_, _, _, _))
         .WillOnce(Invoke([this](const std::string &connectionName, const Attributes &request,
                              OnMessageReply replyCallback, const DeviceKey &) {
             auto result = DecodePreIssueTokenRequest(request);
@@ -119,7 +68,7 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_001, TestSize.Level0)
             return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
                 preRequest.hostDeviceKey);
         }));
-    EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
     handler_->HandleRequest(request, onMessageReply);
 
@@ -128,6 +77,19 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_001, TestSize.Level0)
 
 HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetRequestFactory(), CreateCompanionIssueTokenRequest(_, _, _, _))
+        .WillByDefault(Invoke([this](const std::string &connectionName, const Attributes &request,
+                                  OnMessageReply replyCallback, const DeviceKey &) {
+            auto result = DecodePreIssueTokenRequest(request);
+            PreIssueTokenRequest preRequest = result.value_or(PreIssueTokenRequest {});
+            return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
+                preRequest.hostDeviceKey);
+        }));
+    ON_CALL(guard.GetRequestManager(), Start(_)).WillByDefault(Return(true));
+
+    handler_ = std::make_unique<CompanionPreIssueTokenHandler>();
+
     Attributes request;
 
     bool replyCalled = false;
@@ -145,6 +107,19 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_002, TestSize.Level0)
 
 HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_003, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetRequestFactory(), CreateCompanionIssueTokenRequest(_, _, _, _))
+        .WillByDefault(Invoke([this](const std::string &connectionName, const Attributes &request,
+                                  OnMessageReply replyCallback, const DeviceKey &) {
+            auto result = DecodePreIssueTokenRequest(request);
+            PreIssueTokenRequest preRequest = result.value_or(PreIssueTokenRequest {});
+            return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
+                preRequest.hostDeviceKey);
+        }));
+    ON_CALL(guard.GetRequestManager(), Start(_)).WillByDefault(Return(true));
+
+    handler_ = std::make_unique<CompanionPreIssueTokenHandler>();
+
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
 
@@ -163,6 +138,19 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_003, TestSize.Level0)
 
 HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_004, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetRequestFactory(), CreateCompanionIssueTokenRequest(_, _, _, _))
+        .WillByDefault(Invoke([this](const std::string &connectionName, const Attributes &request,
+                                  OnMessageReply replyCallback, const DeviceKey &) {
+            auto result = DecodePreIssueTokenRequest(request);
+            PreIssueTokenRequest preRequest = result.value_or(PreIssueTokenRequest {});
+            return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
+                preRequest.hostDeviceKey);
+        }));
+    ON_CALL(guard.GetRequestManager(), Start(_)).WillByDefault(Return(true));
+
+    handler_ = std::make_unique<CompanionPreIssueTokenHandler>();
+
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
     DeviceKey hostDeviceKey = {};
@@ -177,7 +165,7 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_004, TestSize.Level0)
         EXPECT_EQ(result, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
     };
 
-    EXPECT_CALL(mockRequestFactory_, CreateCompanionIssueTokenRequest(_, _, _, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionIssueTokenRequest(_, _, _, _)).WillOnce(Return(nullptr));
 
     handler_->HandleRequest(request, onMessageReply);
 
@@ -186,6 +174,19 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_004, TestSize.Level0)
 
 HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_005, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetRequestFactory(), CreateCompanionIssueTokenRequest(_, _, _, _))
+        .WillByDefault(Invoke([this](const std::string &connectionName, const Attributes &request,
+                                  OnMessageReply replyCallback, const DeviceKey &) {
+            auto result = DecodePreIssueTokenRequest(request);
+            PreIssueTokenRequest preRequest = result.value_or(PreIssueTokenRequest {});
+            return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
+                preRequest.hostDeviceKey);
+        }));
+    ON_CALL(guard.GetRequestManager(), Start(_)).WillByDefault(Return(true));
+
+    handler_ = std::make_unique<CompanionPreIssueTokenHandler>();
+
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
     DeviceKey hostDeviceKey = {};
@@ -200,7 +201,7 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_005, TestSize.Level0)
         EXPECT_EQ(result, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
     };
 
-    EXPECT_CALL(mockRequestFactory_, CreateCompanionIssueTokenRequest(_, _, _, _))
+    EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionIssueTokenRequest(_, _, _, _))
         .WillOnce(Invoke([this](const std::string &connectionName, const Attributes &request,
                              OnMessageReply replyCallback, const DeviceKey &) {
             auto result = DecodePreIssueTokenRequest(request);
@@ -208,7 +209,7 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_005, TestSize.Level0)
             return std::make_shared<CompanionIssueTokenRequest>(connectionName, request, std::move(replyCallback),
                 preRequest.hostDeviceKey);
         }));
-    EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Return(false));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(false));
 
     handler_->HandleRequest(request, onMessageReply);
 

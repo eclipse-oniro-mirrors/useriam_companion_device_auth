@@ -17,6 +17,7 @@
 
 #include "cda_attributes.h"
 #include "issue_token_message.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -27,14 +28,6 @@ namespace CompanionDeviceAuth {
 namespace {
 
 class IssueTokenMessageTest : public Test {
-public:
-    void SetUp() override
-    {
-    }
-    void TearDown() override
-    {
-    }
-
 protected:
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
@@ -45,6 +38,7 @@ protected:
 
 HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
     PreIssueTokenRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
         .extraInfo = extraInfo_ };
@@ -68,6 +62,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenRequest_001, TestSize.L
 
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
 
     auto result = DecodePreIssueTokenRequest(attributes);
@@ -76,6 +71,7 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_001, TestSize.Level0)
 
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, 100);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, 1);
@@ -87,6 +83,7 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_002, TestSize.Level0)
 
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_003, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, 100);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, 1);
@@ -99,6 +96,7 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_003, TestSize.Level0)
 
 HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenReply_001, TestSize.Level0)
 {
+    MockGuard guard;
     PreIssueTokenReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
@@ -115,6 +113,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenReply_001, TestSize.Lev
 
 HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenReply_002, TestSize.Level0)
 {
+    MockGuard guard;
     PreIssueTokenReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = {} };
 
     Attributes attributes;
@@ -131,6 +130,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenReply_002, TestSize.Lev
 
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenReply_001, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
 
     auto result = DecodePreIssueTokenReply(attributes);
@@ -139,6 +139,7 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenReply_001, TestSize.Level0)
 
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenReply_002, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, 0);
 
@@ -148,6 +149,7 @@ HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenReply_002, TestSize.Level0)
 
 HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
     IssueTokenRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
         .extraInfo = extraInfo_ };
@@ -171,6 +173,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_001, TestSize.Leve
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
 
     auto result = DecodeIssueTokenRequest(attributes);
@@ -179,6 +182,7 @@ HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_001, TestSize.Level0)
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, 100);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, 1);
@@ -190,6 +194,7 @@ HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_002, TestSize.Level0)
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_003, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, 100);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, 1);
@@ -202,6 +207,7 @@ HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_003, TestSize.Level0)
 
 HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenReply_001, TestSize.Level0)
 {
+    MockGuard guard;
     IssueTokenReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
@@ -218,6 +224,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenReply_001, TestSize.Level0
 
 HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenReply_Error_002, TestSize.Level0)
 {
+    MockGuard guard;
     IssueTokenReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = {} };
 
     Attributes attributes;
@@ -234,6 +241,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenReply_Error_002, TestSize.
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenReply_001, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
 
     auto result = DecodeIssueTokenReply(attributes);
@@ -242,6 +250,7 @@ HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenReply_001, TestSize.Level0)
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenReply_002, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, 0);
 

@@ -39,11 +39,11 @@ struct EncodingTraits;
 template <>
 struct EncodingTraits<uint64_t> {
     static constexpr size_t size = sizeof(uint64_t);
-    static uint64_t toLE(uint64_t value)
+    static uint64_t ToLE(uint64_t value)
     {
         return htole64(value);
     }
-    static uint64_t fromLE(uint64_t value)
+    static uint64_t FromLE(uint64_t value)
     {
         return le64toh(value);
     }
@@ -52,11 +52,11 @@ struct EncodingTraits<uint64_t> {
 template <>
 struct EncodingTraits<uint32_t> {
     static constexpr size_t size = sizeof(uint32_t);
-    static uint32_t toLE(uint32_t value)
+    static uint32_t ToLE(uint32_t value)
     {
         return htole32(value);
     }
-    static uint32_t fromLE(uint32_t value)
+    static uint32_t FromLE(uint32_t value)
     {
         return le32toh(value);
     }
@@ -65,11 +65,11 @@ struct EncodingTraits<uint32_t> {
 template <>
 struct EncodingTraits<uint16_t> {
     static constexpr size_t size = sizeof(uint16_t);
-    static uint16_t toLE(uint16_t value)
+    static uint16_t ToLE(uint16_t value)
     {
         return htole16(value);
     }
-    static uint16_t fromLE(uint16_t value)
+    static uint16_t FromLE(uint16_t value)
     {
         return le16toh(value);
     }
@@ -78,11 +78,11 @@ struct EncodingTraits<uint16_t> {
 template <>
 struct EncodingTraits<uint8_t> {
     static constexpr size_t size = sizeof(uint8_t);
-    static uint8_t toLE(uint8_t value)
+    static uint8_t ToLE(uint8_t value)
     {
         return value;
     }
-    static uint8_t fromLE(uint8_t value)
+    static uint8_t FromLE(uint8_t value)
     {
         return value;
     }
@@ -91,11 +91,11 @@ struct EncodingTraits<uint8_t> {
 template <>
 struct EncodingTraits<int64_t> {
     static constexpr size_t size = sizeof(int64_t);
-    static uint64_t toLE(int64_t value)
+    static uint64_t ToLE(int64_t value)
     {
         return htole64(static_cast<uint64_t>(value));
     }
-    static int64_t fromLE(uint64_t value)
+    static int64_t FromLE(uint64_t value)
     {
         return static_cast<int64_t>(le64toh(value));
     }
@@ -104,11 +104,11 @@ struct EncodingTraits<int64_t> {
 template <>
 struct EncodingTraits<int32_t> {
     static constexpr size_t size = sizeof(int32_t);
-    static uint32_t toLE(int32_t value)
+    static uint32_t ToLE(int32_t value)
     {
         return htole32(static_cast<uint32_t>(value));
     }
-    static int32_t fromLE(uint32_t value)
+    static int32_t FromLE(uint32_t value)
     {
         return static_cast<int32_t>(le32toh(value));
     }
@@ -116,11 +116,11 @@ struct EncodingTraits<int32_t> {
 
 template <>
 struct EncodingTraits<Attributes::AttributeKey> {
-    static uint32_t toLE(Attributes::AttributeKey value)
+    static uint32_t ToLE(Attributes::AttributeKey value)
     {
         return htole32(static_cast<uint32_t>(value));
     }
-    static Attributes::AttributeKey fromLE(uint32_t value)
+    static Attributes::AttributeKey FromLE(uint32_t value)
     {
         return static_cast<Attributes::AttributeKey>(le32toh(value));
     }
@@ -130,7 +130,7 @@ template <typename T>
 bool EncodeNumericValue(const T &src, std::vector<uint8_t> &dst)
 {
     using Traits = EncodingTraits<T>;
-    auto srcLE = Traits::toLE(src);
+    auto srcLE = Traits::ToLE(src);
     const uint8_t *srcPtr = reinterpret_cast<const uint8_t *>(&srcLE);
     dst.assign(srcPtr, srcPtr + sizeof(srcLE));
     return true;
@@ -145,12 +145,12 @@ bool DecodeNumericValue(const std::vector<uint8_t> &src, T &dst)
             src.size());
         return false;
     }
-    decltype(Traits::toLE(dst)) dstLE;
+    decltype(Traits::ToLE(dst)) dstLE;
     if (memcpy_s(&dstLE, sizeof(dstLE), src.data(), src.size()) != EOK) {
         IAM_LOGE("DecodeNumericValue memcpy_s failed, size: %{public}zu", src.size());
         return false;
     }
-    dst = Traits::fromLE(dstLE);
+    dst = Traits::FromLE(dstLE);
     return true;
 }
 
@@ -158,7 +158,7 @@ template <typename T>
 bool EncodeNumericArrayValue(const std::vector<T> &src, std::vector<uint8_t> &dst)
 {
     using Traits = EncodingTraits<T>;
-    using LEType = decltype(Traits::toLE(T()));
+    using LeType = decltype(Traits::ToLE(T()));
 
     // Use safe multiplication to prevent overflow
     auto outSize = safe_mul(src.size(), Traits::size);
@@ -166,14 +166,14 @@ bool EncodeNumericArrayValue(const std::vector<T> &src, std::vector<uint8_t> &ds
 
     std::vector<uint8_t> out(outSize.value());
 
-    std::vector<LEType> temp(src.size());
+    std::vector<LeType> temp(src.size());
     for (size_t i = 0; i < src.size(); i++) {
-        temp[i] = Traits::toLE(src[i]);
+        temp[i] = Traits::ToLE(src[i]);
     }
 
-    if (memcpy_s(out.data(), out.size(), temp.data(), src.size() * sizeof(LEType)) != EOK) {
+    if (memcpy_s(out.data(), out.size(), temp.data(), src.size() * sizeof(LeType)) != EOK) {
         IAM_LOGE("EncodeNumericArrayValue memcpy_s failed, count: %{public}zu, element_size: %{public}zu", src.size(),
-            sizeof(LEType));
+            sizeof(LeType));
         return false;
     }
 
@@ -192,23 +192,23 @@ bool DecodeNumericArrayValue(const std::vector<uint8_t> &src, std::vector<T> &ds
         return false;
     }
 
-    using LEType = decltype(Traits::toLE(T()));
+    using LeType = decltype(Traits::ToLE(T()));
     size_t count = src.size() / Traits::size;
 
     std::vector<T> out(count);
 
     for (size_t i = 0; i < count; i++) {
         // Use safe multiplication for offset calculation
-        auto offset = safe_mul(i, sizeof(LEType));
-        ENSURE_OR_RETURN_VAL(offset.has_value() && offset.value() <= src.size() - sizeof(LEType), false);
+        auto offset = safe_mul(i, sizeof(LeType));
+        ENSURE_OR_RETURN_VAL(offset.has_value() && offset.value() <= src.size() - sizeof(LeType), false);
 
-        LEType temp;
-        if (memcpy_s(&temp, sizeof(temp), src.data() + offset.value(), sizeof(LEType)) != EOK) {
+        LeType temp;
+        if (memcpy_s(&temp, sizeof(temp), src.data() + offset.value(), sizeof(LeType)) != EOK) {
             IAM_LOGE("DecodeNumericArrayValue memcpy_s failed at index %{public}zu, element_size: %{public}zu", i,
-                sizeof(LEType));
+                sizeof(LeType));
             return false;
         }
-        out[i] = Traits::fromLE(temp);
+        out[i] = Traits::FromLE(temp);
     }
 
     dst = std::move(out);
@@ -397,8 +397,9 @@ void Attributes::SetUint8ArrayValue(AttributeKey key, const std::vector<uint8_t>
 void Attributes::SetAttributesValue(AttributeKey key, const Attributes &value)
 {
     std::vector<uint8_t> dest = value.Serialize();
-    if (dest.empty()) {
-        IAM_LOGE("Serialize empty");
+    if (dest.empty() && !value.GetKeys().empty()) {
+        IAM_LOGE("SetAttributesValue: Serialize failed for non-empty Attributes");
+        return;
     }
     map_[key] = std::move(dest);
 }

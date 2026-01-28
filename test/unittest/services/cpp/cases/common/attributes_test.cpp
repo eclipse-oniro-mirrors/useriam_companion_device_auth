@@ -25,6 +25,7 @@
 #include "iam_logger.h"
 
 #include "cda_attributes.h"
+#include "mock_guard.h"
 
 #define LOG_TAG "CDA_SA"
 
@@ -41,9 +42,6 @@ class AttributesTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
-
-    void SetUp() override;
-    void TearDown() override;
 };
 
 void AttributesTest::SetUpTestCase()
@@ -54,22 +52,16 @@ void AttributesTest::TearDownTestCase()
 {
 }
 
-void AttributesTest::SetUp()
-{
-}
-
-void AttributesTest::TearDown()
-{
-}
-
 HWTEST_F(AttributesTest, AttributesInit, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     EXPECT_EQ(attrs.Serialize().size(), 0U);
 }
 
 HWTEST_F(AttributesTest, AttributesSerialize, TestSize.Level0)
 {
+    MockGuard guard;
     const std::vector<Attributes::AttributeKey> desired = { Attributes::ATTR_SIGNATURE,
         Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
         Attributes::ATTR_CDA_SA_RESULT, Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, Attributes::ATTR_CDA_SA_CHALLENGE,
@@ -86,8 +78,8 @@ HWTEST_F(AttributesTest, AttributesSerialize, TestSize.Level0)
     attrs.SetStringValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, "iam");
 
     EXPECT_THAT(attrs.GetKeys(), ElementsAreArray(desired));
-    auto buff = attrs.Serialize();
-    Attributes attrs2(buff);
+    auto buffer = attrs.Serialize();
+    Attributes attrs2(buffer);
     EXPECT_THAT(attrs2.GetKeys(), ElementsAreArray(desired));
 
     bool boolValue;
@@ -120,6 +112,7 @@ HWTEST_F(AttributesTest, AttributesSerialize, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesBoolValue, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     attrs.SetBoolValue(Attributes::ATTR_CDA_SA_RESULT, true);
     attrs.SetBoolValue(Attributes::ATTR_SIGNATURE, false);
@@ -134,6 +127,7 @@ HWTEST_F(AttributesTest, AttributesBoolValue, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesUint64Value, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     uint64_t value1;
     uint64_t value2;
@@ -151,6 +145,7 @@ HWTEST_F(AttributesTest, AttributesUint64Value, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesUint32Value, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     attrs.SetUint32Value(Attributes::ATTR_CDA_SA_RESULT, UINT16_MAX);
     attrs.SetUint32Value(Attributes::ATTR_SIGNATURE, UINT32_MAX);
@@ -165,6 +160,7 @@ HWTEST_F(AttributesTest, AttributesUint32Value, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesUint16Value, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     attrs.SetUint16Value(Attributes::ATTR_CDA_SA_RESULT, UINT8_MAX);
     attrs.SetUint16Value(Attributes::ATTR_SIGNATURE, UINT16_MAX);
@@ -179,6 +175,7 @@ HWTEST_F(AttributesTest, AttributesUint16Value, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesUint8Value, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
 
     uint8_t value1;
@@ -196,6 +193,7 @@ HWTEST_F(AttributesTest, AttributesUint8Value, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesStringValue, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     attrs.SetStringValue(Attributes::ATTR_CDA_SA_RESULT, "hello iam");
     attrs.SetStringValue(Attributes::ATTR_SIGNATURE, "");
@@ -210,6 +208,7 @@ HWTEST_F(AttributesTest, AttributesStringValue, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesUint64ByteArray, TestSize.Level0)
 {
+    MockGuard guard;
     {
         constexpr int arraySize = 4096;
 
@@ -237,6 +236,7 @@ HWTEST_F(AttributesTest, AttributesUint64ByteArray, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesUint32ByteArray, TestSize.Level0)
 {
+    MockGuard guard;
     {
         constexpr int arraySize = 4096;
 
@@ -266,6 +266,7 @@ HWTEST_F(AttributesTest, AttributesUint32ByteArray, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesUint16ByteArray, TestSize.Level0)
 {
+    MockGuard guard;
     {
         constexpr int arraySize = 4096;
 
@@ -293,6 +294,7 @@ HWTEST_F(AttributesTest, AttributesUint16ByteArray, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesUint8ByteArray, TestSize.Level0)
 {
+    MockGuard guard;
     {
         constexpr int arraySize = 4096;
 
@@ -320,6 +322,7 @@ HWTEST_F(AttributesTest, AttributesUint8ByteArray, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesDeserializeMismatch, TestSize.Level0)
 {
+    MockGuard guard;
     const std::vector<uint8_t> raw = { 0, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0, 0, 20, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0,
         0, 0, 7, 0, 0, 0, 9, 0, 0, 0, 3, 0, 0, 0, 40, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0,
         0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 0, 5, 0, 0, 0, 4, 0, 0,
@@ -339,6 +342,7 @@ HWTEST_F(AttributesTest, AttributesDeserializeMismatch, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEmptyArrays, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs1;
     bool value = true;
     attrs1.SetBoolValue(Attributes::ATTR_CDA_SA_RESULT, value);
@@ -353,9 +357,9 @@ HWTEST_F(AttributesTest, AttributesEmptyArrays, TestSize.Level0)
     std::vector<uint8_t> u8Vector;
     attrs1.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_CHALLENGE, u8Vector);
 
-    auto buff = attrs1.Serialize();
-    EXPECT_FALSE(buff.empty());
-    Attributes attrs2(buff);
+    auto buffer = attrs1.Serialize();
+    EXPECT_FALSE(buffer.empty());
+    Attributes attrs2(buffer);
     EXPECT_TRUE(attrs1.GetBoolValue(Attributes::ATTR_CDA_SA_RESULT, value));
     EXPECT_TRUE(value);
 
@@ -371,6 +375,7 @@ HWTEST_F(AttributesTest, AttributesEmptyArrays, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesCopyAndMove, TestSize.Level0)
 {
+    MockGuard guard;
     EXPECT_TRUE(std::is_copy_assignable<Attributes>::value);
     EXPECT_TRUE(std::is_copy_constructible<Attributes>::value);
 
@@ -391,6 +396,7 @@ HWTEST_F(AttributesTest, AttributesCopyAndMove, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesSetAndGetAttributesArray, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs1;
     Attributes attrs2;
     attrs1.SetBoolValue(Attributes::ATTR_CDA_SA_RESULT, true);
@@ -423,6 +429,7 @@ HWTEST_F(AttributesTest, AttributesSetAndGetAttributesArray, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesSetAndGetAttributesArray01, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs1;
     int64_t value1 = 1;
     int64_t value2 = 2;
@@ -446,6 +453,7 @@ HWTEST_F(AttributesTest, AttributesSetAndGetAttributesArray01, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint64Value, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     uint64_t encodeVal64 = 0x0102030405060708;
     uint64_t encodeVal32 = 0x01020304;
@@ -465,6 +473,7 @@ HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint64Value, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint32Value, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     uint32_t encodeVal32 = 0x01020304;
     uint32_t encodeVal16 = 0x0102;
@@ -484,6 +493,7 @@ HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint32Value, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint16Value, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     uint16_t encodeVal16 = 0x0102;
     uint16_t encodeVal8 = 0x01;
@@ -503,6 +513,7 @@ HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint16Value, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEncodeAndDecodeInt64Value, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     int64_t encodeVal64 = 0x0102030405060708;
     int64_t encodeVal32 = 0x01020304;
@@ -522,6 +533,7 @@ HWTEST_F(AttributesTest, AttributesEncodeAndDecodeInt64Value, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEncodeAndDecodeInt32Value, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attrs;
     int32_t encodeVal32 = 0x01020304;
     int32_t encodeVal16 = 0x0102;
@@ -541,6 +553,7 @@ HWTEST_F(AttributesTest, AttributesEncodeAndDecodeInt32Value, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint64Array, TestSize.Level0)
 {
+    MockGuard guard;
     {
         Attributes attrsEmpty;
         std::vector<uint64_t> encodeEmptyArray;
@@ -567,6 +580,7 @@ HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint64Array, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint32Array, TestSize.Level0)
 {
+    MockGuard guard;
     {
         Attributes attrsEmpty;
         std::vector<uint32_t> encodeEmptyArray;
@@ -593,6 +607,7 @@ HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint32Array, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint16Array, TestSize.Level0)
 {
+    MockGuard guard;
     {
         Attributes attrsEmpty;
         std::vector<uint16_t> encodeEmptyArray;
@@ -619,6 +634,7 @@ HWTEST_F(AttributesTest, AttributesEncodeAndDecodeUint16Array, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesEncodeAndDecodeInt32Array, TestSize.Level0)
 {
+    MockGuard guard;
     {
         Attributes attrsEmpty;
         std::vector<int32_t> encodeEmptyArray;
@@ -645,6 +661,7 @@ HWTEST_F(AttributesTest, AttributesEncodeAndDecodeInt32Array, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize01, TestSize.Level0)
 {
+    MockGuard guard;
     const uint64_t constU64Val = 0x0102030405060708;
     const uint32_t constU32Val = 0x01020304;
     const uint16_t constU16Val = 0x0102;
@@ -689,6 +706,7 @@ HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize01, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize02, TestSize.Level0)
 {
+    MockGuard guard;
     const uint32_t constU32Val = 0x01020304;
     const uint16_t constU16Val = 0x0102;
     const uint8_t constU8Val = 0x01;
@@ -736,6 +754,7 @@ HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize02, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesRawSerializeTest01, TestSize.Level0)
 {
+    MockGuard guard;
     std::vector<uint8_t> raw = { 160, 134, 1, 0, 1, 0, 0, 0, 255, 175, 134, 1, 0, 14, 0, 0, 0, 105, 97, 109, 95, 117,
         110, 105, 116, 95, 116, 101, 115, 116, 0, 180, 134, 1, 0, 5, 0, 0, 0, 255, 255, 255, 255, 255, 182, 134, 1, 0,
         4, 0, 0, 0, 255, 255, 255, 255, 197, 134, 1, 0, 20, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -751,6 +770,7 @@ HWTEST_F(AttributesTest, AttributesRawSerializeTest01, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesRawSerializeTest03, TestSize.Level0)
 {
+    MockGuard guard;
     std::vector<uint8_t> raw = { 169, 134, 1, 0, 4, 0, 0, 0, 255, 255, 255, 127, 170, 134, 1, 0, 40, 0, 0, 0, 255, 255,
         255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 177, 134, 1, 0, 8, 0, 0, 0, 255,
@@ -768,6 +788,7 @@ HWTEST_F(AttributesTest, AttributesRawSerializeTest03, TestSize.Level0)
 
 HWTEST_F(AttributesTest, AttributesTest01, TestSize.Level0)
 {
+    MockGuard guard;
     IAM_LOGI("AttributesTest01 begin\n");
     std::vector<uint8_t> extraInfo = { 0 };
     Attributes attribute = Attributes(extraInfo);
@@ -799,8 +820,8 @@ HWTEST_F(AttributesTest, AttributesTest01, TestSize.Level0)
     attribute.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, uint8ArrayValue);
     std::vector<int32_t> int32ArrayValue = {};
     attribute.SetInt32ArrayValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, int32ArrayValue);
-    Attributes AttributesValue = Attributes(extraInfo);
-    attribute.SetAttributesValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, AttributesValue);
+    Attributes attributesValue = Attributes(extraInfo);
+    attribute.SetAttributesValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, attributesValue);
     IAM_LOGI("AttributesTest01 end\n");
 }
 

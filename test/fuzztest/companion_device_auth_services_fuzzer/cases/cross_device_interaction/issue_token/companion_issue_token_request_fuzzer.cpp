@@ -93,8 +93,8 @@ static void FuzzSendPreIssueTokenReply(std::shared_ptr<CompanionIssueTokenReques
 {
     ResultCode result = GenerateFuzzResultCode(fuzzData);
     uint32_t replySize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
-    std::vector<uint8_t> preIssueTokenReply = fuzzData.ConsumeBytes<uint8_t>(replySize);
-    request->SendPreIssueTokenReply(result, preIssueTokenReply);
+    std::vector<uint8_t> preIssueTokenReplyData = fuzzData.ConsumeBytes<uint8_t>(replySize);
+    request->SendPreIssueTokenReply(result, preIssueTokenReplyData);
 }
 
 static const CompanionIssueTokenRequestFuzzFunction g_fuzzFuncs[] = {

@@ -34,7 +34,9 @@
 #include "soft_bus_adapter.h"
 #include "soft_bus_adapter_manager.h"
 #include "subscription.h"
+#include "system_param_manager.h"
 #include "user_auth_adapter.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -275,6 +277,85 @@ private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };
 
+class MockSystemParamManager : public ISystemParamManager {
+public:
+    explicit MockSystemParamManager(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    std::string GetParam(const std::string &key, const std::string &defaultValue) override
+    {
+        (void)key;
+        return defaultValue;
+    }
+
+    void SetParam(const std::string &key, const std::string &value) override
+    {
+        (void)key;
+        (void)value;
+    }
+
+    void SetParamTwice(const std::string &key, const std::string &value1, const std::string &value2) override
+    {
+        (void)key;
+        (void)value1;
+        (void)value2;
+    }
+
+    std::unique_ptr<Subscription> WatchParam(const std::string &key, SystemParamCallback &&callback) override
+    {
+        (void)key;
+        (void)callback;
+        return std::make_unique<Subscription>([] {});
+    }
+
+    void OnParamChange(const std::string &key, const std::string &value) override
+    {
+        (void)key;
+        (void)value;
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+class MockUserIdManager : public IUserIdManager {
+public:
+    explicit MockUserIdManager(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    bool Initialize() override
+    {
+        return true;
+    }
+
+    UserId GetActiveUserId() const override
+    {
+        return 0;
+    }
+
+    std::string GetActiveUserName() const override
+    {
+        return "";
+    }
+
+    std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override
+    {
+        (void)callback;
+        return std::make_unique<Subscription>([] {});
+    }
+
+    bool IsUserIdValid(int32_t userId) override
+    {
+        (void)userId;
+        return fuzzData_.ConsumeBool();
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
 bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 {
     AdapterManager &adapterMgr = AdapterManager::GetInstance();
@@ -303,6 +384,12 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 
     auto eventMgrAdapter = std::make_shared<MockEventManagerAdapter>(fuzzData);
     adapterMgr.SetEventManagerAdapter(eventMgrAdapter);
+
+    auto systemParamMgr = std::make_shared<MockSystemParamManager>(fuzzData);
+    adapterMgr.SetSystemParamManager(systemParamMgr);
+
+    auto userIdMgr = std::make_shared<MockUserIdManager>(fuzzData);
+    adapterMgr.SetUserIdManager(userIdMgr);
 
     return true;
 }

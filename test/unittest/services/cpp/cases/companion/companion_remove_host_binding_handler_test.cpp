@@ -18,15 +18,9 @@
 
 #include "companion_remove_host_binding_handler.h"
 #include "error_guard.h"
-#include "relative_timer.h"
 #include "remove_host_binding_message.h"
-#include "singleton_manager.h"
-#include "task_runner_manager.h"
 
-#include "adapter_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_host_binding_manager.h"
-#include "mock_time_keeper.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -39,39 +33,8 @@ namespace {
 constexpr int32_t INT32_200 = 200;
 
 class CompanionRemoveHostBindingHandlerTest : public Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto hostBindingMgr =
-            std::shared_ptr<IHostBindingManager>(&mockHostBindingManager_, [](IHostBindingManager *) {});
-        SingletonManager::GetInstance().SetHostBindingManager(hostBindingMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockHostBindingManager_, RemoveHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-
-        handler_ = std::make_unique<CompanionRemoveHostBindingHandler>();
-    }
-
-    void TearDown() override
-    {
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
 protected:
     std::unique_ptr<CompanionRemoveHostBindingHandler> handler_;
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockHostBindingManager> mockHostBindingManager_;
 
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
@@ -80,6 +43,11 @@ protected:
 
 HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetHostBindingManager(), RemoveHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+
+    handler_ = std::make_unique<CompanionRemoveHostBindingHandler>();
+
     Attributes request;
     RemoveHostBindingRequest removeHostBindingRequest = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = INT32_200,
@@ -89,7 +57,7 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_001, TestSize.Leve
         static_cast<int32_t>(removeHostBindingRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, removeHostBindingRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(mockHostBindingManager_, RemoveHostBinding(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(guard.GetHostBindingManager(), RemoveHostBinding(_, _)).WillOnce(Return(ResultCode::SUCCESS));
 
     Attributes reply;
     ErrorGuard errorGuard([](ResultCode) {});
@@ -102,6 +70,11 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_001, TestSize.Leve
 
 HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetHostBindingManager(), RemoveHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+
+    handler_ = std::make_unique<CompanionRemoveHostBindingHandler>();
+
     Attributes request;
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {
@@ -116,6 +89,11 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_002, TestSize.Leve
 
 HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_003, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetHostBindingManager(), RemoveHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+
+    handler_ = std::make_unique<CompanionRemoveHostBindingHandler>();
+
     Attributes request;
     RemoveHostBindingRequest removeHostBindingRequest = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = INT32_200,
@@ -125,7 +103,7 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_003, TestSize.Leve
         static_cast<int32_t>(removeHostBindingRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, removeHostBindingRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(mockHostBindingManager_, RemoveHostBinding(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(guard.GetHostBindingManager(), RemoveHostBinding(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {

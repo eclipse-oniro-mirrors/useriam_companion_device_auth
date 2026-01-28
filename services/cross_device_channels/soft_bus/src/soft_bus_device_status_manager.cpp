@@ -19,6 +19,7 @@
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "adapter_manager.h"
 #include "sa_status_listener.h"
 #include "service_common.h"
 #include "singleton_manager.h"

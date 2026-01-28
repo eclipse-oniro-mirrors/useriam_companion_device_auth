@@ -17,17 +17,8 @@
 #include <gtest/gtest.h>
 
 #include "companion_token_auth_handler.h"
-#include "relative_timer.h"
-#include "singleton_manager.h"
-#include "task_runner_manager.h"
+#include "mock_guard.h"
 #include "token_auth_message.h"
-
-#include "adapter_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_host_binding_manager.h"
-#include "mock_misc_manager.h"
-#include "mock_security_agent.h"
-#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -38,50 +29,8 @@ namespace CompanionDeviceAuth {
 namespace {
 
 class CompanionTokenAuthHandlerTest : public Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto hostBindingMgr =
-            std::shared_ptr<IHostBindingManager>(&mockHostBindingManager_, [](IHostBindingManager *) {});
-        SingletonManager::GetInstance().SetHostBindingManager(hostBindingMgr);
-
-        auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
-        SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _))
-            .WillByDefault(Return(std::make_optional(hostBindingStatus_)));
-        ON_CALL(mockSecurityAgent_, CompanionProcessTokenAuth(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-
-        handler_ = std::make_unique<CompanionTokenAuthHandler>();
-    }
-
-    void TearDown() override
-    {
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
 protected:
     std::unique_ptr<CompanionTokenAuthHandler> handler_;
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockHostBindingManager> mockHostBindingManager_;
-    NiceMock<MockSecurityAgent> mockSecurityAgent_;
-    NiceMock<MockMiscManager> mockMiscManager_;
-
     int32_t companionUserId_ = 200;
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
@@ -92,6 +41,10 @@ protected:
 
 HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    handler_ = std::make_unique<CompanionTokenAuthHandler>();
+
     Attributes request;
     TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
@@ -101,9 +54,9 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_001, TestSize.Level0)
         static_cast<int32_t>(tokenAuthRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, tokenAuthRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _))
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
         .WillOnce(Return(std::make_optional(hostBindingStatus_)));
-    EXPECT_CALL(mockSecurityAgent_, CompanionProcessTokenAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionProcessTokenAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
 
     Attributes reply;
     handler_->HandleRequest(request, reply);
@@ -115,6 +68,10 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_001, TestSize.Level0)
 
 HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    handler_ = std::make_unique<CompanionTokenAuthHandler>();
+
     Attributes request;
     Attributes reply;
     handler_->HandleRequest(request, reply);
@@ -126,6 +83,10 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_002, TestSize.Level0)
 
 HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_003, TestSize.Level0)
 {
+    MockGuard guard;
+
+    handler_ = std::make_unique<CompanionTokenAuthHandler>();
+
     Attributes request;
     TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
@@ -135,7 +96,7 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_003, TestSize.Level0)
         static_cast<int32_t>(tokenAuthRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, tokenAuthRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
 
     Attributes reply;
     handler_->HandleRequest(request, reply);
@@ -147,6 +108,10 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_003, TestSize.Level0)
 
 HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_004, TestSize.Level0)
 {
+    MockGuard guard;
+
+    handler_ = std::make_unique<CompanionTokenAuthHandler>();
+
     Attributes request;
     TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
@@ -156,9 +121,9 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_004, TestSize.Level0)
         static_cast<int32_t>(tokenAuthRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, tokenAuthRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(mockHostBindingManager_, GetHostBindingStatus(_, _))
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
         .WillOnce(Return(std::make_optional(hostBindingStatus_)));
-    EXPECT_CALL(mockSecurityAgent_, CompanionProcessTokenAuth(_, _)).WillOnce(Return(ResultCode::FAIL));
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionProcessTokenAuth(_, _)).WillOnce(Return(ResultCode::FAIL));
 
     Attributes reply;
     handler_->HandleRequest(request, reply);

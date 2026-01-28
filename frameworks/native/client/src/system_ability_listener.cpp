@@ -17,6 +17,8 @@
 
 #include "iservice_registry.h"
 
+#include "iam_check.h"
+
 #include "if_system_ability_manager.h"
 
 #define LOG_TAG "CDA_SDK"
@@ -65,19 +67,13 @@ sptr<SystemAbilityListener> SystemAbilityListener::Subscribe(std::string name, i
     RemoveFunc removeFunc)
 {
     IAM_LOGI("start name:%{public}s, systemAbilityId::%{public}d", name.c_str(), systemAbilityId);
-    auto sam = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
-    if (sam == nullptr) {
-        IAM_LOGE("sam is null");
-        return nullptr;
-    }
-
     sptr<SystemAbilityListener> listener(
         new (std::nothrow) SystemAbilityListener(name, systemAbilityId, addFunc, removeFunc));
-    if (listener == nullptr) {
-        IAM_LOGE("listener is null");
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(listener != nullptr, nullptr);
 
+#ifndef ENABLE_TEST
+    auto sam = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
+    ENSURE_OR_RETURN_VAL(sam != nullptr, nullptr);
     int32_t ret = sam->SubscribeSystemAbility(systemAbilityId, listener);
     if (ret != ERR_OK) {
         IAM_LOGE("SubscribeSystemAbility fail, name:%{public}s, systemAbilityId::%{public}d", name.c_str(),
@@ -86,26 +82,26 @@ sptr<SystemAbilityListener> SystemAbilityListener::Subscribe(std::string name, i
     }
 
     IAM_LOGI("Subscribe service name:%{public}s success", name.c_str());
+#endif // ENABLE_TEST
     return listener;
 }
 
-int32_t SystemAbilityListener::UnSubscribe(int32_t systemAbilityId, sptr<SystemAbilityListener> &listener)
+void SystemAbilityListener::UnSubscribe(int32_t systemAbilityId, sptr<SystemAbilityListener> &listener)
 {
     IAM_LOGI("start systemAbilityId::%{public}d", systemAbilityId);
+
+#ifndef ENABLE_TEST
     auto sam = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
-    if (sam == nullptr) {
-        IAM_LOGE("sam is null");
-        return ERR_OK;
-    }
+    ENSURE_OR_RETURN(sam != nullptr);
 
     int32_t ret = sam->UnSubscribeSystemAbility(systemAbilityId, listener);
     if (ret != ERR_OK) {
         IAM_LOGE("UnSubscribeSystemAbility fail.");
-        return ret;
+        return;
     }
 
     IAM_LOGI("UnSubscribe service success");
-    return ret;
+#endif // ENABLE_TEST
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

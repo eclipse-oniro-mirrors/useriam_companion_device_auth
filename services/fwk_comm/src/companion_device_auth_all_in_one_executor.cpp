@@ -23,6 +23,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "cda_attributes.h"
 #include "common_defines.h"
 #include "companion_device_auth_executor_callback.h"

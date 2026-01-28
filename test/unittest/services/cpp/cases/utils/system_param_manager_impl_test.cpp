@@ -4,7 +4,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,14 +17,9 @@
 
 #include <gtest/gtest.h>
 
-#include "relative_timer.h"
-#include "singleton_manager.h"
+#include "mock_guard.h"
 #include "system_param_manager_impl.h"
 #include "task_runner_manager.h"
-
-#include "adapter_manager.h"
-#include "mock_misc_manager.h"
-#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -37,43 +32,21 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 class SystemParamManagerImplTest : public Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([]() {
-            static uint64_t id = 1;
-            return id++;
-        });
-    }
-
-    void TearDown() override
-    {
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        RelativeTimer::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
-protected:
-    NiceMock<MockMiscManager> mockMiscManager_;
+    // 不需要SetUp/TearDown，MockGuard自动处理
 };
 
 HWTEST_F(SystemParamManagerImplTest, Create_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SystemParamManagerImpl::Create();
     EXPECT_NE(nullptr, manager);
 }
 
 HWTEST_F(SystemParamManagerImplTest, GetParam_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -83,6 +56,8 @@ HWTEST_F(SystemParamManagerImplTest, GetParam_001, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, SetParam_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -91,6 +66,8 @@ HWTEST_F(SystemParamManagerImplTest, SetParam_001, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, SetParam_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -99,6 +76,8 @@ HWTEST_F(SystemParamManagerImplTest, SetParam_002, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, SetParamTwice_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -107,6 +86,8 @@ HWTEST_F(SystemParamManagerImplTest, SetParamTwice_001, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, SetParamTwice_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -115,6 +96,14 @@ HWTEST_F(SystemParamManagerImplTest, SetParamTwice_002, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, WatchParam_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto &miscManager = guard.GetMiscManager();
+
+    ON_CALL(miscManager, GetNextGlobalId()).WillByDefault([]() {
+        static uint64_t id = 1;
+        return id++;
+    });
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -132,6 +121,8 @@ HWTEST_F(SystemParamManagerImplTest, WatchParam_001, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, WatchParam_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -141,6 +132,14 @@ HWTEST_F(SystemParamManagerImplTest, WatchParam_002, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, WatchParam_003, TestSize.Level0)
 {
+    MockGuard guard;
+    auto &miscManager = guard.GetMiscManager();
+
+    ON_CALL(miscManager, GetNextGlobalId()).WillByDefault([]() {
+        static uint64_t id = 1;
+        return id++;
+    });
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -159,6 +158,14 @@ HWTEST_F(SystemParamManagerImplTest, WatchParam_003, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, WatchParam_004, TestSize.Level0)
 {
+    MockGuard guard;
+    auto &miscManager = guard.GetMiscManager();
+
+    ON_CALL(miscManager, GetNextGlobalId()).WillByDefault([]() {
+        static uint64_t id = 1;
+        return id++;
+    });
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -170,6 +177,14 @@ HWTEST_F(SystemParamManagerImplTest, WatchParam_004, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, OnParamChange_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto &miscManager = guard.GetMiscManager();
+
+    ON_CALL(miscManager, GetNextGlobalId()).WillByDefault([]() {
+        static uint64_t id = 1;
+        return id++;
+    });
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -194,6 +209,8 @@ HWTEST_F(SystemParamManagerImplTest, OnParamChange_001, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, OnParamChange_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -204,6 +221,14 @@ HWTEST_F(SystemParamManagerImplTest, OnParamChange_002, TestSize.Level0)
 
 HWTEST_F(SystemParamManagerImplTest, OnParamChange_003, TestSize.Level0)
 {
+    MockGuard guard;
+    auto &miscManager = guard.GetMiscManager();
+
+    ON_CALL(miscManager, GetNextGlobalId()).WillByDefault([]() {
+        static uint64_t id = 1;
+        return id++;
+    });
+
     auto manager = SystemParamManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 

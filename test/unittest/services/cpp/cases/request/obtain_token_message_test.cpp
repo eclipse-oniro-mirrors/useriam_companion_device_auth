@@ -30,14 +30,6 @@ constexpr int32_t INT32_100 = 100;
 constexpr int32_t INT32_200 = 200;
 
 class ObtainTokenMessageTest : public Test {
-public:
-    void SetUp() override
-    {
-    }
-    void TearDown() override
-    {
-    }
-
 protected:
     DeviceKey companionDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "companion_device_id",

@@ -29,7 +29,6 @@ using namespace OHOS::UserIam::CompanionDeviceAuth;
 
 constexpr int32_t INT32_2 = 2;
 namespace {
-constexpr int32_t INT32_0 = 0;
 constexpr int32_t INT32_8888 = 8888;
 constexpr int32_t INT32_9999 = 9999;
 } // namespace
@@ -229,9 +228,8 @@ HWTEST_F(SystemAbilityListenerTest, UnSubscribeSucceeds, TestSize.Level0)
 
     ASSERT_NE(listener, nullptr);
 
-    // Act - UnSubscribe should succeed
-    int32_t result = SystemAbilityListener::UnSubscribe(SUBSYS_USERIAM_SYS_ABILITY_COMPANIONDEVICEAUTH, listener);
+    // Act - UnSubscribe should succeed (void return, no throw)
+    SystemAbilityListener::UnSubscribe(SUBSYS_USERIAM_SYS_ABILITY_COMPANIONDEVICEAUTH, listener);
 
-    // Assert - Should return success (0)
-    EXPECT_EQ(result, INT32_0);
+    // Assert - call completed without crashing
 }

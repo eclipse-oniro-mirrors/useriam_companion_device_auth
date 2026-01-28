@@ -29,6 +29,7 @@ companion_device_auth_fuzzer_cflags = [
   "-fno-omit-frame-pointer",
   "-Dprivate=public",
   "-Dprotected=public",
+  "-fno-lto",
 ]
 
 companion_device_auth_test_external_deps = [

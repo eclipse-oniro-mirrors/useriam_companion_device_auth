@@ -16,17 +16,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "adapter_manager.h"
-#include "relative_timer.h"
-#include "singleton_manager.h"
+#include "mock_device_manager_adapter.h"
+#include "mock_guard.h"
 #include "soft_bus_adapter_manager.h"
 #include "soft_bus_device_status_manager.h"
 #include "task_runner_manager.h"
-
-#include "mock_device_manager_adapter.h"
-#include "mock_misc_manager.h"
-#include "mock_system_param_manager.h"
-#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -38,58 +32,16 @@ namespace {
 
 constexpr uint64_t UINT64_1 = 1;
 
-std::unique_ptr<Subscription> MakeSubscription()
-{
-    return std::make_unique<Subscription>([]() {});
-}
-
 class SoftBusDeviceStatusManagerTest : public testing::Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto systemParamMgr =
-            std::shared_ptr<ISystemParamManager>(&mockSystemParamManager_, [](ISystemParamManager *) {});
-        SingletonManager::GetInstance().SetSystemParamManager(systemParamMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        // Initialize DeviceManagerAdapter mock
-        auto deviceManagerAdapter =
-            std::shared_ptr<IDeviceManagerAdapter>(&mockDeviceManagerAdapter_, [](IDeviceManagerAdapter *) {});
-        SoftBusChannelAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceManagerAdapter);
-        ON_CALL(mockDeviceManagerAdapter_, InitDeviceManager()).WillByDefault(Return(true));
-        ON_CALL(mockDeviceManagerAdapter_, RegisterDevStatusCallback(_)).WillByDefault(Return(true));
-        ON_CALL(mockDeviceManagerAdapter_, QueryTrustedDevices(_)).WillByDefault(Return(true));
-
-        ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
-        ON_CALL(mockMiscManager_, GetLocalUdid()).WillByDefault(Return(std::optional<std::string>("test-local-udid")));
-        ON_CALL(mockSystemParamManager_, WatchParam(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockSystemParamManager_, GetParam(_, _)).WillByDefault(Return(std::string(FALSE_STR)));
-    }
-
-    void TearDown() override
-    {
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        RelativeTimer::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
 protected:
     uint64_t nextGlobalId_ = UINT64_1;
-    NiceMock<MockMiscManager> mockMiscManager_;
-    NiceMock<MockSystemParamManager> mockSystemParamManager_;
     NiceMock<MockDeviceManagerAdapter> mockDeviceManagerAdapter_;
 };
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, Create_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     {
         auto manager = SoftBusDeviceStatusManager::Create();
         EXPECT_NE(manager, nullptr);
@@ -98,6 +50,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, Create_001, TestSize.Level0)
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, Start_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -107,6 +61,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, Start_001, TestSize.Level0)
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, Start_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -118,6 +74,10 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, Start_002, TestSize.Level0)
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, GetLocalPhysicalDeviceKey_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto &miscManager = guard.GetMiscManager();
+    ON_CALL(miscManager, GetLocalUdid()).WillByDefault(Return(std::optional<std::string>("test-local-udid")));
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -129,10 +89,13 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, GetLocalPhysicalDeviceKey_001, TestSize
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, GetLocalPhysicalDeviceKey_002, TestSize.Level0)
 {
+    MockGuard guard;
+    auto &miscManager = guard.GetMiscManager();
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
-    EXPECT_CALL(mockMiscManager_, GetLocalUdid()).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(miscManager, GetLocalUdid()).WillOnce(Return(std::nullopt));
 
     auto key = manager->GetLocalPhysicalDeviceKey();
     EXPECT_FALSE(key.has_value());
@@ -140,6 +103,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, GetLocalPhysicalDeviceKey_002, TestSize
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, GetAuthMaintainActive_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -153,6 +118,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, GetAuthMaintainActive_001, TestSize.Lev
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, GetAllPhysicalDevices_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -162,6 +129,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, GetAllPhysicalDevices_001, TestSize.Lev
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, GetPhysicalDeviceStatus_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -175,6 +144,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, GetPhysicalDeviceStatus_001, TestSize.L
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, GetPhysicalDeviceStatus_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -192,6 +163,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, GetPhysicalDeviceStatus_002, TestSize.L
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, SubscribePhysicalDeviceStatus_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -204,6 +177,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, SubscribePhysicalDeviceStatus_001, Test
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, SubscribePhysicalDeviceStatus_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -213,6 +188,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, SubscribePhysicalDeviceStatus_002, Test
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, SubscribeAuthMaintainActive_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -224,6 +201,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, SubscribeAuthMaintainActive_001, TestSi
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, SubscribeAuthMaintainActive_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -233,6 +212,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, SubscribeAuthMaintainActive_002, TestSi
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, HandleLocalIsAuthMaintainActiveChange_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -252,6 +233,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, HandleLocalIsAuthMaintainActiveChange_0
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, HandleLocalIsAuthMaintainActiveChange_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
     manager->isLocalAuthMaintainActive_ = true;
@@ -267,6 +250,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, HandleLocalIsAuthMaintainActiveChange_0
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, HandleLocalIsAuthMaintainActiveChange_003, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -278,6 +263,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, HandleLocalIsAuthMaintainActiveChange_0
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, UnsubscribePhysicalDeviceStatus_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -294,6 +281,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, UnsubscribePhysicalDeviceStatus_001, Te
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, UnsubscribeAuthMaintainActive_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -309,6 +298,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, UnsubscribeAuthMaintainActive_001, Test
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, NotifyDeviceStatusChange_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -317,6 +308,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, NotifyDeviceStatusChange_001, TestSize.
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, NotifyDeviceStatusChange_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -333,6 +326,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, NotifyDeviceStatusChange_002, TestSize.
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, NotifyDeviceStatusChange_003, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -344,6 +339,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, NotifyDeviceStatusChange_003, TestSize.
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, Destructor_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     {
         auto manager = SoftBusDeviceStatusManager::Create();
         ASSERT_NE(manager, nullptr);
@@ -352,6 +349,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, Destructor_001, TestSize.Level0)
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, IsDeviceTypeIdSupport_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -367,6 +366,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, IsDeviceTypeIdSupport_001, TestSize.Lev
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, DeviceTypeIdToString_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -382,6 +383,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, DeviceTypeIdToString_001, TestSize.Leve
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, GenerateDeviceModelInfo_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -391,6 +394,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, GenerateDeviceModelInfo_001, TestSize.L
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, HandleDeviceManagerServiceReady_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -400,6 +405,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, HandleDeviceManagerServiceReady_001, Te
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, HandleDeviceManagerServiceUnavailable_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -408,6 +415,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, HandleDeviceManagerServiceUnavailable_0
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, HandleDeviceManagerServiceUnavailable_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -417,6 +426,8 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, HandleDeviceManagerServiceUnavailable_0
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, RefreshDeviceStatus_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 

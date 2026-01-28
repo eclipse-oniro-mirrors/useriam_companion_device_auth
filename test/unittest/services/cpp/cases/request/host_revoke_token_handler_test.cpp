@@ -18,16 +18,9 @@
 
 #include "error_guard.h"
 #include "host_revoke_token_handler.h"
-#include "relative_timer.h"
 #include "revoke_token_message.h"
-#include "singleton_manager.h"
-#include "task_runner_manager.h"
 
-#include "adapter_manager.h"
-#include "mock_companion_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_security_agent.h"
-#include "mock_time_keeper.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -39,43 +32,13 @@ namespace {
 
 class HostRevokeTokenHandlerTest : public Test {
 public:
-    void SetUp() override
+    void CreateDefaultHandler()
     {
-        SingletonManager::GetInstance().Reset();
-
-        auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
-        SingletonManager::GetInstance().SetCompanionManager(companionMgr);
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
-        SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
-            .WillByDefault(Return(std::make_optional(companionStatus_)));
-        ON_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-
         handler_ = std::make_unique<HostRevokeTokenHandler>();
-    }
-
-    void TearDown() override
-    {
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
     }
 
 protected:
     std::unique_ptr<HostRevokeTokenHandler> handler_;
-    NiceMock<MockCompanionManager> mockCompanionManager_;
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockSecurityAgent> mockSecurityAgent_;
 
     DeviceKey companionDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "companion_device_id",
@@ -85,12 +48,15 @@ protected:
 
 HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
+    CreateDefaultHandler();
     Attributes request;
     RevokeTokenRequest revokeTokenRequest = { .hostUserId = 100, .companionDeviceKey = companionDeviceKey_ };
     EncodeRevokeTokenRequest(revokeTokenRequest, request);
 
-    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, Eq(std::nullopt))).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
+        .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAtl(_, Eq(std::nullopt))).WillOnce(Return(true));
 
     Attributes reply;
     ErrorGuard errorGuard([](ResultCode) {});
@@ -103,6 +69,8 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_001, TestSize.Level0)
 
 HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
+    CreateDefaultHandler();
     Attributes request;
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {
@@ -117,6 +85,8 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_002, TestSize.Level0)
 
 HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_003, TestSize.Level0)
 {
+    MockGuard guard;
+    CreateDefaultHandler();
     Attributes request;
     RevokeTokenRequest revokeTokenRequest = { .hostUserId = 100, .companionDeviceKey = companionDeviceKey_ };
     EncodeRevokeTokenRequest(revokeTokenRequest, request);
@@ -124,7 +94,7 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_003, TestSize.Level0)
         static_cast<int32_t>(revokeTokenRequest.companionDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, revokeTokenRequest.companionDeviceKey.deviceId);
 
-    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
 
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {
@@ -139,12 +109,15 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_003, TestSize.Level0)
 
 HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_004, TestSize.Level0)
 {
+    MockGuard guard;
+    CreateDefaultHandler();
     Attributes request;
     RevokeTokenRequest revokeTokenRequest = { .hostUserId = 100, .companionDeviceKey = companionDeviceKey_ };
     EncodeRevokeTokenRequest(revokeTokenRequest, request);
 
-    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, Eq(std::nullopt))).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
+        .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAtl(_, Eq(std::nullopt))).WillOnce(Return(true));
 
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {

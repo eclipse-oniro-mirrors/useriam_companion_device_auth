@@ -16,15 +16,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "relative_timer.h"
-#include "singleton_manager.h"
+#include "mock_guard.h"
 #include "soft_bus_connection.h"
 #include "soft_bus_connection_manager.h"
-#include "task_runner_manager.h"
-
-#include "adapter_manager.h"
-#include "mock_misc_manager.h"
-#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -40,40 +34,19 @@ constexpr const char *DEFAULT_TEST_CONNECTION_NAME = "test-connection";
 constexpr const char *TEST_DEVICE_ID = "test-device";
 
 class SoftbusConnectionTest : public Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
-
-        manager_ = SoftBusConnectionManager::Create();
-        ASSERT_NE(manager_, nullptr);
-    }
-
-    void TearDown() override
-    {
-        manager_.reset();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        RelativeTimer::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
 protected:
     uint64_t nextGlobalId_ = UINT64_1;
-    NiceMock<MockMiscManager> mockMiscManager_;
     std::shared_ptr<SoftBusConnectionManager> manager_;
 };
 
 HWTEST_F(SoftbusConnectionTest, Constructor_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -91,6 +64,12 @@ HWTEST_F(SoftbusConnectionTest, Constructor_001, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, Constructor_002, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -107,6 +86,12 @@ HWTEST_F(SoftbusConnectionTest, Constructor_002, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, SetCloseReason_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -122,6 +107,12 @@ HWTEST_F(SoftbusConnectionTest, SetCloseReason_001, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, SetConnectionName_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -135,6 +126,12 @@ HWTEST_F(SoftbusConnectionTest, SetConnectionName_001, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -152,7 +149,6 @@ HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_001, TestSize.Level0)
     ASSERT_NE(connection, nullptr);
 
     connection->HandleOutboundConnected();
-    TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(connection->IsConnected());
     EXPECT_TRUE(callbackInvoked);
@@ -160,6 +156,12 @@ HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_001, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_002, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -174,6 +176,12 @@ HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_002, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -189,7 +197,6 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_001, TestSize.Level0)
     ASSERT_NE(connection, nullptr);
 
     connection->HandleInboundConnected("test-connection");
-    TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(connection->IsConnected());
     EXPECT_EQ(connection->GetConnectionName(), DEFAULT_TEST_CONNECTION_NAME);
@@ -198,6 +205,12 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_001, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_002, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -211,6 +224,12 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_002, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_003, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -224,6 +243,12 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_003, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, MarkShutdownByPeer_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -239,6 +264,12 @@ HWTEST_F(SoftbusConnectionTest, MarkShutdownByPeer_001, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, Destructor_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -257,12 +288,17 @@ HWTEST_F(SoftbusConnectionTest, Destructor_001, TestSize.Level0)
         ASSERT_NE(connection, nullptr);
     }
 
-    TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(callbackInvoked);
 }
 
 HWTEST_F(SoftbusConnectionTest, Destructor_002, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -276,6 +312,12 @@ HWTEST_F(SoftbusConnectionTest, Destructor_002, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, Destructor_003, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -291,6 +333,12 @@ HWTEST_F(SoftbusConnectionTest, Destructor_003, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, NotifyConnectionEstablished_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -303,6 +351,12 @@ HWTEST_F(SoftbusConnectionTest, NotifyConnectionEstablished_001, TestSize.Level0
 
 HWTEST_F(SoftbusConnectionTest, NotifyConnectionClosed_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -315,6 +369,12 @@ HWTEST_F(SoftbusConnectionTest, NotifyConnectionClosed_001, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
@@ -328,6 +388,12 @@ HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_001, TestSize.Level0)
 
 HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_002, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;

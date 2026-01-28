@@ -23,12 +23,7 @@
 #include "task_runner_manager.h"
 
 #include "adapter_manager.h"
-#include "mock_companion_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_misc_manager.h"
-#include "mock_request_manager.h"
-#include "mock_security_agent.h"
-#include "mock_time_keeper.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -45,45 +40,6 @@ std::unique_ptr<Subscription> MakeSubscription()
 
 class HostRemoveHostBindingRequestTest : public Test {
 public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto requestMgr = std::shared_ptr<IRequestManager>(&mockRequestManager_, [](IRequestManager *) {});
-        SingletonManager::GetInstance().SetRequestManager(requestMgr);
-
-        auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
-        SingletonManager::GetInstance().SetCompanionManager(companionMgr);
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, _, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockCrossDeviceCommManager_, OpenConnection(_, _)).WillByDefault(Return(true));
-        ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
-            .WillByDefault(Return(std::make_optional(hostDeviceKey_)));
-        ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
-    }
-
-    void TearDown() override
-    {
-        request_.reset();
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
     void CreateDefaultRequest()
     {
         UserId hostUserId = 100;
@@ -96,11 +52,6 @@ public:
 
 protected:
     std::shared_ptr<HostRemoveHostBindingRequest> request_;
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockRequestManager> mockRequestManager_;
-    NiceMock<MockCompanionManager> mockCompanionManager_;
-    NiceMock<MockMiscManager> mockMiscManager_;
-
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
         .deviceUserId = 100 };
@@ -108,11 +59,12 @@ protected:
 
 HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_001, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(mockCrossDeviceCommManager_, OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request_->OnStart(errorGuard);
@@ -122,9 +74,10 @@ HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_001, TestSize.Level0)
 
 HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_002, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, OpenConnection(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(false));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request_->OnStart(errorGuard);
@@ -134,9 +87,10 @@ HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_002, TestSize.Level0)
 
 HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_003, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeConnectionStatus(_, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _)).WillOnce(Return(nullptr));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request_->OnStart(errorGuard);
@@ -146,35 +100,39 @@ HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_003, TestSize.Level0)
 
 HWTEST_F(HostRemoveHostBindingRequestTest, OnConnected_001, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
     request_->SetPeerDeviceKey(hostDeviceKey_);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillOnce(Return(std::make_optional(hostDeviceKey_)));
-    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillOnce(Return(true));
 
     request_->OnConnected();
 }
 
 HWTEST_F(HostRemoveHostBindingRequestTest, SendRemoveHostBindingRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
     request_->SendRemoveHostBindingRequest();
 }
 
 HWTEST_F(HostRemoveHostBindingRequestTest, SendRemoveHostBindingRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
     request_->SetPeerDeviceKey(hostDeviceKey_);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
-    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillOnce(Return(false));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillOnce(Return(false));
 
     request_->SendRemoveHostBindingRequest();
 }
 
 HWTEST_F(HostRemoveHostBindingRequestTest, HandleRemoveHostBindingReply_001, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
 
     Attributes message;
@@ -186,6 +144,7 @@ HWTEST_F(HostRemoveHostBindingRequestTest, HandleRemoveHostBindingReply_001, Tes
 
 HWTEST_F(HostRemoveHostBindingRequestTest, HandleRemoveHostBindingReply_002, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
 
     Attributes message;
@@ -194,6 +153,7 @@ HWTEST_F(HostRemoveHostBindingRequestTest, HandleRemoveHostBindingReply_002, Tes
 
 HWTEST_F(HostRemoveHostBindingRequestTest, HandleRemoveHostBindingReply_003, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
 
     Attributes message;
@@ -205,6 +165,7 @@ HWTEST_F(HostRemoveHostBindingRequestTest, HandleRemoveHostBindingReply_003, Tes
 
 HWTEST_F(HostRemoveHostBindingRequestTest, GetMaxConcurrency_001, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
 
     EXPECT_EQ(request_->GetMaxConcurrency(), 10);
@@ -212,6 +173,7 @@ HWTEST_F(HostRemoveHostBindingRequestTest, GetMaxConcurrency_001, TestSize.Level
 
 HWTEST_F(HostRemoveHostBindingRequestTest, ShouldCancelOnNewRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
 
     bool result = request_->ShouldCancelOnNewRequest(RequestType::HOST_REMOVE_HOST_BINDING_REQUEST, std::nullopt, 0);
@@ -220,6 +182,7 @@ HWTEST_F(HostRemoveHostBindingRequestTest, ShouldCancelOnNewRequest_001, TestSiz
 
 HWTEST_F(HostRemoveHostBindingRequestTest, ShouldCancelOnNewRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
     CreateDefaultRequest();
 
     bool result = request_->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);

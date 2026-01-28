@@ -18,18 +18,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "relative_timer.h"
-#include "singleton_manager.h"
+#include "mock_guard.h"
 #include "subscription.h"
 #include "subscription_manager.h"
-#include "task_runner_manager.h"
 #include "template_status_subscription.h"
-
-#include "adapter_manager.h"
-#include "mock_companion_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_remote_object.h"
-#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -54,75 +46,44 @@ public:
     MOCK_METHOD(sptr<IRemoteObject>, AsObject, (), (override));
 };
 
-class TemplateStatusSubscriptionTest : public Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
-        SingletonManager::GetInstance().SetCompanionManager(companionMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockCompanionManager_, SubscribeCompanionDeviceStatusChange(_))
-            .WillByDefault(Invoke([](OnCompanionDeviceStatusChange &&callback) { return MakeSubscription(); }));
-        ON_CALL(mockCompanionManager_, GetAllCompanionStatus()).WillByDefault(Return(std::vector<CompanionStatus> {}));
-        ON_CALL(mockCrossDeviceCommManager_, GetManageSubscribeTime()).WillByDefault(Return(std::nullopt));
-
-        subscriptionManager_ = std::make_shared<SubscriptionManager>();
-    }
-
-    void TearDown() override
-    {
-        subscriptionManager_.reset();
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
-protected:
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockCompanionManager> mockCompanionManager_;
-    std::shared_ptr<SubscriptionManager> subscriptionManager_;
-};
+class TemplateStatusSubscriptionTest : public Test {};
 
 HWTEST_F(TemplateStatusSubscriptionTest, Create_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
 
-    EXPECT_CALL(mockCompanionManager_, SubscribeCompanionDeviceStatusChange(_))
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&callback) { return MakeSubscription(); }));
-    EXPECT_CALL(mockCompanionManager_, GetAllCompanionStatus()).WillOnce(Return(std::vector<CompanionStatus> {}));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetManageSubscribeTime()).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus()).WillOnce(Return(std::vector<CompanionStatus> {}));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetManageSubscribeTime()).WillOnce(Return(std::nullopt));
 
-    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager_);
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
 
     EXPECT_NE(subscription, nullptr);
 }
 
 HWTEST_F(TemplateStatusSubscriptionTest, Create_002, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
 
-    EXPECT_CALL(mockCompanionManager_, SubscribeCompanionDeviceStatusChange(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_)).WillOnce(Return(nullptr));
 
-    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager_);
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
 
     EXPECT_EQ(subscription, nullptr);
 }
 
 HWTEST_F(TemplateStatusSubscriptionTest, GetUserId_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
 
-    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager_);
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     EXPECT_EQ(subscription->GetUserId(), userId);
@@ -130,9 +91,11 @@ HWTEST_F(TemplateStatusSubscriptionTest, GetUserId_001, TestSize.Level0)
 
 HWTEST_F(TemplateStatusSubscriptionTest, GetWeakPtr_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
 
-    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager_);
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     auto weakPtr = subscription->GetWeakPtr();
@@ -141,9 +104,11 @@ HWTEST_F(TemplateStatusSubscriptionTest, GetWeakPtr_001, TestSize.Level0)
 
 HWTEST_F(TemplateStatusSubscriptionTest, OnCallbackAdded_001, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
 
-    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager_);
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     sptr<MockIIpcTemplateStatusCallback> callback = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
@@ -154,9 +119,11 @@ HWTEST_F(TemplateStatusSubscriptionTest, OnCallbackAdded_001, TestSize.Level0)
 
 HWTEST_F(TemplateStatusSubscriptionTest, OnCallbackAdded_002, TestSize.Level0)
 {
+    MockGuard guard;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     UserId userId = 100;
 
-    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager_);
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     sptr<MockIIpcTemplateStatusCallback> callback = nullptr;
@@ -166,16 +133,18 @@ HWTEST_F(TemplateStatusSubscriptionTest, OnCallbackAdded_002, TestSize.Level0)
 
 HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_001, TestSize.Level0)
 {
+    MockGuard guard;
     UserId userId = 100;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     OnCompanionDeviceStatusChange storedCallback;
 
-    EXPECT_CALL(mockCompanionManager_, SubscribeCompanionDeviceStatusChange(_))
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([&storedCallback](OnCompanionDeviceStatusChange &&callback) {
             storedCallback = std::move(callback);
             return MakeSubscription();
         }));
 
-    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager_);
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     std::vector<CompanionStatus> companionStatusList = {};
@@ -189,16 +158,18 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_001, TestSi
 
 HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_002, TestSize.Level0)
 {
+    MockGuard guard;
     UserId userId = 100;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     OnCompanionDeviceStatusChange storedCallback;
 
-    EXPECT_CALL(mockCompanionManager_, SubscribeCompanionDeviceStatusChange(_))
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([&storedCallback](OnCompanionDeviceStatusChange &&callback) {
             storedCallback = std::move(callback);
             return MakeSubscription();
         }));
 
-    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager_);
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
@@ -215,16 +186,18 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_002, TestSi
 
 HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_003, TestSize.Level0)
 {
+    MockGuard guard;
     UserId userId = 100;
+    auto subscriptionManager = std::make_shared<SubscriptionManager>();
     OnCompanionDeviceStatusChange storedCallback;
 
-    EXPECT_CALL(mockCompanionManager_, SubscribeCompanionDeviceStatusChange(_))
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([&storedCallback](OnCompanionDeviceStatusChange &&callback) {
             storedCallback = std::move(callback);
             return MakeSubscription();
         }));
 
-    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager_);
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};

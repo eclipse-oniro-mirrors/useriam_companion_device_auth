@@ -18,6 +18,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "common_message.h"
 #include "error_guard.h"
 #include "service_common.h"

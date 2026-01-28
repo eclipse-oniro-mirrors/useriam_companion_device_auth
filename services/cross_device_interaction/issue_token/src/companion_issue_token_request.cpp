@@ -161,13 +161,13 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
     const auto &issueRequest = *issueRequestOpt;
 
     std::vector<uint8_t> issueTokenReply;
-    bool result = SecureAgentCompanionIssueToken(issueRequest.extraInfo, issueTokenReply);
-    IssueTokenReply replyMsg = { .result = result ? ResultCode::SUCCESS : ResultCode::GENERAL_ERROR,
+    bool success = SecureAgentCompanionIssueToken(issueRequest.extraInfo, issueTokenReply);
+    IssueTokenReply replyMsg = { .result = success ? ResultCode::SUCCESS : ResultCode::GENERAL_ERROR,
         .extraInfo = issueTokenReply };
     Attributes reply;
     EncodeIssueTokenReply(replyMsg, reply);
     onMessageReply(reply);
-    if (!result) {
+    if (!success) {
         IAM_LOGE("%{public}s SecureAgentCompanionIssueToken failed", GetDescription());
         return;
     }

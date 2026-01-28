@@ -13,21 +13,15 @@
  * limitations under the License.
  */
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "channel_manager.h"
 #include "connection_manager.h"
 #include "local_device_status_manager.h"
-#include "relative_timer.h"
-#include "singleton_manager.h"
 #include "task_runner_manager.h"
 
-#include "adapter_manager.h"
 #include "mock_cross_device_channel.h"
-#include "mock_misc_manager.h"
-#include "mock_time_keeper.h"
-#include "mock_user_id_manager.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -44,133 +38,213 @@ std::unique_ptr<Subscription> MakeSubscription()
 
 class ConnectionManagerTest : public Test {
 public:
-    void SetUp() override
+    std::shared_ptr<NiceMock<MockCrossDeviceChannel>> SetupMockChannel()
     {
-        const int32_t defaultUserId = 100;
-
-        SingletonManager::GetInstance().Reset();
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto activeUserMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
-        SingletonManager::GetInstance().SetUserIdManager(activeUserMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
-        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
-            return MakeSubscription();
-        }));
-        ON_CALL(mockUserIdManager_, GetActiveUserId()).WillByDefault(Return(defaultUserId));
-
-        mockChannel_ = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
+        auto mockChannel = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
 
         PhysicalDeviceKey localPhysicalKey;
         localPhysicalKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
         localPhysicalKey.deviceId = "local-device";
 
-        ON_CALL(*mockChannel_, GetChannelId()).WillByDefault(Return(ChannelId::SOFTBUS));
-        ON_CALL(*mockChannel_, GetLocalPhysicalDeviceKey()).WillByDefault(Return(localPhysicalKey));
-        ON_CALL(*mockChannel_, SubscribeAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(*mockChannel_, GetAuthMaintainActive()).WillByDefault(Return(false));
-        ON_CALL(*mockChannel_, GetCompanionSecureProtocolId()).WillByDefault(Return(SecureProtocolId::DEFAULT));
-        ON_CALL(*mockChannel_, OpenConnection(_, _)).WillByDefault(Return(true));
-        ON_CALL(*mockChannel_, SubscribeConnectionStatus(_))
-            .WillByDefault(Invoke([this](OnConnectionStatusChange &&callback) {
-                connectionStatusCallback_ = std::move(callback);
-                return MakeSubscription();
-            }));
-        ON_CALL(*mockChannel_, SubscribeIncomingConnection(_))
-            .WillByDefault(Invoke([this](OnIncomingConnection &&callback) {
-                incomingConnectionCallback_ = std::move(callback);
-                return MakeSubscription();
-            }));
-        ON_CALL(*mockChannel_, SubscribePhysicalDeviceStatus(_))
+        ON_CALL(*mockChannel, GetChannelId()).WillByDefault(Return(ChannelId::SOFTBUS));
+        ON_CALL(*mockChannel, GetLocalPhysicalDeviceKey()).WillByDefault(Return(localPhysicalKey));
+        ON_CALL(*mockChannel, SubscribeAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+        ON_CALL(*mockChannel, GetAuthMaintainActive()).WillByDefault(Return(false));
+        ON_CALL(*mockChannel, GetCompanionSecureProtocolId()).WillByDefault(Return(SecureProtocolId::DEFAULT));
+        ON_CALL(*mockChannel, OpenConnection(_, _)).WillByDefault(Return(true));
+        ON_CALL(*mockChannel, SubscribePhysicalDeviceStatus(_))
             .WillByDefault(Invoke([](OnPhysicalDeviceStatusChange &&) { return MakeSubscription(); }));
 
-        std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel_ };
-        channelMgr_ = std::make_shared<ChannelManager>(channels);
-        localDeviceStatusMgr_ = LocalDeviceStatusManager::Create(channelMgr_);
-        ASSERT_NE(localDeviceStatusMgr_, nullptr);
+        return mockChannel;
     }
-
-    void TearDown() override
-    {
-        connectionMgr_.reset();
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
-protected:
-    uint64_t nextGlobalId_ = 1;
-    NiceMock<MockMiscManager> mockMiscManager_;
-    NiceMock<MockUserIdManager> mockUserIdManager_;
-    std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel_;
-    std::shared_ptr<ChannelManager> channelMgr_;
-    std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr_;
-    std::shared_ptr<ConnectionManager> connectionMgr_;
-    OnConnectionStatusChange connectionStatusCallback_;
-    OnIncomingConnection incomingConnectionCallback_;
 };
 
 HWTEST_F(ConnectionManagerTest, Create_001, TestSize.Level0)
 {
-    auto manager = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    auto manager = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
     EXPECT_NE(manager, nullptr);
 }
 
 HWTEST_F(ConnectionManagerTest, Create_002, TestSize.Level0)
 {
-    auto manager = ConnectionManager::Create(nullptr, localDeviceStatusMgr_);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    auto manager = ConnectionManager::Create(nullptr, localDeviceStatusMgr);
     EXPECT_EQ(manager, nullptr);
 }
 
 HWTEST_F(ConnectionManagerTest, Create_003, TestSize.Level0)
 {
-    EXPECT_CALL(*mockChannel_, SubscribeConnectionStatus(_)).WillOnce(Return(nullptr));
+    MockGuard guard;
 
-    auto manager = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    EXPECT_CALL(*mockChannel, SubscribeConnectionStatus(_)).WillOnce(Return(nullptr));
+
+    auto manager = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
     EXPECT_EQ(manager, nullptr);
 }
 
 HWTEST_F(ConnectionManagerTest, Create_004, TestSize.Level0)
 {
-    EXPECT_CALL(*mockChannel_, SubscribeIncomingConnection(_)).WillOnce(Return(nullptr));
+    MockGuard guard;
 
-    auto manager = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    EXPECT_CALL(*mockChannel, SubscribeIncomingConnection(_)).WillOnce(Return(nullptr));
+
+    auto manager = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
     EXPECT_EQ(manager, nullptr);
 }
 
 HWTEST_F(ConnectionManagerTest, Create_005, TestSize.Level0)
 {
-    EXPECT_CALL(*mockChannel_, SubscribePhysicalDeviceStatus(_)).WillOnce(Return(nullptr));
+    MockGuard guard;
 
-    auto manager = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    EXPECT_CALL(*mockChannel, SubscribePhysicalDeviceStatus(_)).WillOnce(Return(nullptr));
+
+    auto manager = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
     EXPECT_EQ(manager, nullptr);
 }
 
 HWTEST_F(ConnectionManagerTest, OpenConnection_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    EXPECT_CALL(*mockChannel_, OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mockChannel, OpenConnection(_, _)).WillOnce(Return(true));
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
 
     EXPECT_TRUE(result);
     EXPECT_FALSE(connectionName.empty());
 
-    auto connection = connectionMgr_->GetConnection(connectionName);
+    auto connection = connectionMgr->GetConnection(connectionName);
     ASSERT_TRUE(connection.has_value());
     EXPECT_EQ(connection->connectionStatus, ConnectionStatus::ESTABLISHING);
     EXPECT_FALSE(connection->isInbound);
@@ -178,42 +252,108 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_001, TestSize.Level0)
 
 HWTEST_F(ConnectionManagerTest, OpenConnection_002, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    EXPECT_CALL(*mockChannel_, OpenConnection(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mockChannel, OpenConnection(_, _)).WillOnce(Return(false));
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
 
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(ConnectionManagerTest, OpenConnection_003, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    EXPECT_CALL(*mockChannel_, GetLocalPhysicalDeviceKey()).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(*mockChannel, GetLocalPhysicalDeviceKey()).WillOnce(Return(std::nullopt));
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
 
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(ConnectionManagerTest, OpenConnection_004, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -223,18 +363,40 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_004, TestSize.Level0)
     localPhysicalKey.idType = DeviceIdType::UNKNOWN;
     localPhysicalKey.deviceId = "local-device";
 
-    EXPECT_CALL(*mockChannel_, GetLocalPhysicalDeviceKey()).WillOnce(Return(localPhysicalKey));
+    EXPECT_CALL(*mockChannel, GetLocalPhysicalDeviceKey()).WillOnce(Return(localPhysicalKey));
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
 
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(ConnectionManagerTest, OpenConnection_005, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -244,18 +406,40 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_005, TestSize.Level0)
     localPhysicalKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     localPhysicalKey.deviceId = "";
 
-    EXPECT_CALL(*mockChannel_, GetLocalPhysicalDeviceKey()).WillOnce(Return(localPhysicalKey));
+    EXPECT_CALL(*mockChannel, GetLocalPhysicalDeviceKey()).WillOnce(Return(localPhysicalKey));
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
 
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(ConnectionManagerTest, OpenConnection_006, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     for (size_t i = 0; i < 100; ++i) {
         PhysicalDeviceKey remoteKey;
@@ -263,7 +447,7 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_006, TestSize.Level0)
         remoteKey.deviceId = "device-" + std::to_string(i);
 
         std::string connectionName;
-        bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+        bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
         EXPECT_TRUE(result);
     }
 
@@ -272,14 +456,36 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_006, TestSize.Level0)
     remoteKey.deviceId = "device-overflow";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(ConnectionManagerTest, OpenConnection_007, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -287,102 +493,212 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_007, TestSize.Level0)
 
     for (size_t i = 0; i < 10; ++i) {
         std::string connectionName;
-        bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+        bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
         EXPECT_TRUE(result);
     }
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(ConnectionManagerTest, CloseConnection_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
     bool notified = false;
-    auto subscription = connectionMgr_->SubscribeConnectionStatus(connectionName,
+    auto subscription = connectionMgr->SubscribeConnectionStatus(connectionName,
         [&notified](const std::string &, ConnectionStatus status, const std::string &) {
             if (status == ConnectionStatus::DISCONNECTED) {
                 notified = true;
             }
         });
 
-    connectionMgr_->CloseConnection(connectionName, "test_close");
+    connectionMgr->CloseConnection(connectionName, "test_close");
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(notified);
-    auto connection = connectionMgr_->GetConnection(connectionName);
+    auto connection = connectionMgr->GetConnection(connectionName);
     EXPECT_FALSE(connection.has_value());
 }
 
 HWTEST_F(ConnectionManagerTest, CloseConnection_002, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
 
-    connectionMgr_->CloseConnection("non-existent-connection", "test");
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
+
+    connectionMgr->CloseConnection("non-existent-connection", "test");
 }
 
 HWTEST_F(ConnectionManagerTest, CloseConnection_003, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
-    EXPECT_CALL(*mockChannel_, RequiresDisconnectNotification()).WillOnce(Return(false));
+    EXPECT_CALL(*mockChannel, RequiresDisconnectNotification()).WillOnce(Return(false));
 
-    connectionMgr_->CloseConnection(connectionName, "test_close");
+    connectionMgr->CloseConnection(connectionName, "test_close");
 }
 
 HWTEST_F(ConnectionManagerTest, CloseConnection_004, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    bool result = connectionMgr_->HandleIncomingConnection("test-conn", remoteKey);
+    bool result = connectionMgr->HandleIncomingConnection("test-conn", remoteKey);
     ASSERT_TRUE(result);
 
-    connectionMgr_->connectionMap_["test-conn"].isInbound = false;
+    connectionMgr->connectionMap_["test-conn"].isInbound = false;
 
-    EXPECT_CALL(*mockChannel_, RequiresDisconnectNotification()).WillOnce(Return(true));
+    EXPECT_CALL(*mockChannel, RequiresDisconnectNotification()).WillOnce(Return(true));
 
-    connectionMgr_->CloseConnection("test-conn", "test_close");
+    connectionMgr->CloseConnection("test-conn", "test_close");
 }
 
 HWTEST_F(ConnectionManagerTest, HandleIncomingConnection_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    bool result = connectionMgr_->HandleIncomingConnection("incoming-conn", remoteKey);
+    bool result = connectionMgr->HandleIncomingConnection("incoming-conn", remoteKey);
     EXPECT_TRUE(result);
 
-    auto connection = connectionMgr_->GetConnection("incoming-conn");
+    auto connection = connectionMgr->GetConnection("incoming-conn");
     ASSERT_TRUE(connection.has_value());
     EXPECT_EQ(connection->connectionStatus, ConnectionStatus::CONNECTED);
     EXPECT_TRUE(connection->isInbound);
@@ -390,31 +706,75 @@ HWTEST_F(ConnectionManagerTest, HandleIncomingConnection_001, TestSize.Level0)
 
 HWTEST_F(ConnectionManagerTest, HandleIncomingConnection_002, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    bool result1 = connectionMgr_->HandleIncomingConnection("incoming-conn", remoteKey);
+    bool result1 = connectionMgr->HandleIncomingConnection("incoming-conn", remoteKey);
     EXPECT_TRUE(result1);
 
-    bool result2 = connectionMgr_->HandleIncomingConnection("incoming-conn", remoteKey);
+    bool result2 = connectionMgr->HandleIncomingConnection("incoming-conn", remoteKey);
     EXPECT_TRUE(result2);
 }
 
 HWTEST_F(ConnectionManagerTest, HandleIncomingConnection_003, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     for (size_t i = 0; i < 10; ++i) {
         PhysicalDeviceKey remoteKey;
         remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
         remoteKey.deviceId = "same-device-incoming";
 
-        bool result = connectionMgr_->HandleIncomingConnection("incoming-conn-" + std::to_string(i), remoteKey);
+        bool result = connectionMgr->HandleIncomingConnection("incoming-conn-" + std::to_string(i), remoteKey);
         EXPECT_TRUE(result);
     }
 
@@ -422,54 +782,142 @@ HWTEST_F(ConnectionManagerTest, HandleIncomingConnection_003, TestSize.Level0)
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "same-device-incoming";
 
-    bool result = connectionMgr_->HandleIncomingConnection("incoming-conn-overflow", remoteKey);
+    bool result = connectionMgr->HandleIncomingConnection("incoming-conn-overflow", remoteKey);
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(ConnectionManagerTest, GetConnection_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
 
-    auto connection = connectionMgr_->GetConnection("non-existent");
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
+
+    auto connection = connectionMgr->GetConnection("non-existent");
     EXPECT_FALSE(connection.has_value());
 }
 
 HWTEST_F(ConnectionManagerTest, GetConnectionStatus_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
 
-    auto status = connectionMgr_->GetConnectionStatus("non-existent");
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
+
+    auto status = connectionMgr->GetConnectionStatus("non-existent");
     EXPECT_EQ(status, ConnectionStatus::DISCONNECTED);
 }
 
 HWTEST_F(ConnectionManagerTest, GetConnectionStatus_002, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
-    connectionStatusCallback_(connectionName, ConnectionStatus::CONNECTED, "established");
+    connectionStatusCallback(connectionName, ConnectionStatus::CONNECTED, "established");
 
-    auto status = connectionMgr_->GetConnectionStatus(connectionName);
+    auto status = connectionMgr->GetConnectionStatus(connectionName);
     EXPECT_EQ(status, ConnectionStatus::CONNECTED);
 }
 
 HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     bool callbackInvoked = false;
-    auto subscription = connectionMgr_->SubscribeConnectionStatus("test-conn",
+    auto subscription = connectionMgr->SubscribeConnectionStatus("test-conn",
         [&callbackInvoked](const std::string &, ConnectionStatus, const std::string &) { callbackInvoked = true; });
 
     EXPECT_NE(subscription, nullptr);
@@ -478,7 +926,7 @@ HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_001, TestSize.Level0)
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    connectionMgr_->HandleIncomingConnection("test-conn", remoteKey);
+    connectionMgr->HandleIncomingConnection("test-conn", remoteKey);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(callbackInvoked);
@@ -486,21 +934,65 @@ HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_001, TestSize.Level0)
 
 HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_002, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
 
-    auto subscription = connectionMgr_->SubscribeConnectionStatus("", nullptr);
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
+
+    auto subscription = connectionMgr->SubscribeConnectionStatus("", nullptr);
     EXPECT_EQ(subscription, nullptr);
 }
 
 HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_003, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     bool callbackInvoked = false;
     {
-        auto subscription = connectionMgr_->SubscribeConnectionStatus("test-conn",
+        auto subscription = connectionMgr->SubscribeConnectionStatus("test-conn",
             [&callbackInvoked](const std::string &, ConnectionStatus, const std::string &) { callbackInvoked = true; });
         EXPECT_NE(subscription, nullptr);
     }
@@ -509,7 +1001,7 @@ HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_003, TestSize.Level0)
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    connectionMgr_->HandleIncomingConnection("test-conn", remoteKey);
+    connectionMgr->HandleIncomingConnection("test-conn", remoteKey);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_FALSE(callbackInvoked);
@@ -517,243 +1009,529 @@ HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_003, TestSize.Level0)
 
 HWTEST_F(ConnectionManagerTest, HandleChannelConnectionStatusChange_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
     bool notified = false;
-    auto subscription = connectionMgr_->SubscribeConnectionStatus(connectionName,
+    auto subscription = connectionMgr->SubscribeConnectionStatus(connectionName,
         [&notified](const std::string &, ConnectionStatus status, const std::string &) {
             if (status == ConnectionStatus::CONNECTED) {
                 notified = true;
             }
         });
 
-    ASSERT_TRUE(connectionStatusCallback_ != nullptr);
-    connectionStatusCallback_(connectionName, ConnectionStatus::CONNECTED, "established");
+    ASSERT_TRUE(connectionStatusCallback != nullptr);
+    connectionStatusCallback(connectionName, ConnectionStatus::CONNECTED, "established");
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(notified);
-    auto connection = connectionMgr_->GetConnection(connectionName);
+    auto connection = connectionMgr->GetConnection(connectionName);
     ASSERT_TRUE(connection.has_value());
     EXPECT_EQ(connection->connectionStatus, ConnectionStatus::CONNECTED);
 }
 
 HWTEST_F(ConnectionManagerTest, HandleChannelConnectionStatusChange_002, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
     bool notified = false;
-    auto subscription = connectionMgr_->SubscribeConnectionStatus(connectionName,
+    auto subscription = connectionMgr->SubscribeConnectionStatus(connectionName,
         [&notified](const std::string &, ConnectionStatus status, const std::string &) {
             if (status == ConnectionStatus::DISCONNECTED) {
                 notified = true;
             }
         });
 
-    ASSERT_TRUE(connectionStatusCallback_ != nullptr);
-    connectionStatusCallback_(connectionName, ConnectionStatus::DISCONNECTED, "peer_closed");
+    ASSERT_TRUE(connectionStatusCallback != nullptr);
+    connectionStatusCallback(connectionName, ConnectionStatus::DISCONNECTED, "peer_closed");
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(notified);
-    auto connection = connectionMgr_->GetConnection(connectionName);
+    auto connection = connectionMgr->GetConnection(connectionName);
     EXPECT_FALSE(connection.has_value());
 }
 
 HWTEST_F(ConnectionManagerTest, HandleChannelConnectionStatusChange_003, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
-    ASSERT_TRUE(connectionStatusCallback_ != nullptr);
-    connectionStatusCallback_(connectionName, ConnectionStatus::ESTABLISHING, "establishing");
+    ASSERT_TRUE(connectionStatusCallback != nullptr);
+    connectionStatusCallback(connectionName, ConnectionStatus::ESTABLISHING, "establishing");
 }
 
 HWTEST_F(ConnectionManagerTest, HandleIncomingConnectionFromChannel_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     bool notified = false;
-    auto subscription = connectionMgr_->SubscribeConnectionStatus("incoming-from-channel",
+    auto subscription = connectionMgr->SubscribeConnectionStatus("incoming-from-channel",
         [&notified](const std::string &, ConnectionStatus status, const std::string &) {
             if (status == ConnectionStatus::CONNECTED) {
                 notified = true;
             }
         });
 
-    ASSERT_TRUE(incomingConnectionCallback_ != nullptr);
-    incomingConnectionCallback_("incoming-from-channel", remoteKey);
+    ASSERT_TRUE(incomingConnectionCallback != nullptr);
+    incomingConnectionCallback("incoming-from-channel", remoteKey);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(notified);
-    auto connection = connectionMgr_->GetConnection("incoming-from-channel");
+    auto connection = connectionMgr->GetConnection("incoming-from-channel");
     ASSERT_TRUE(connection.has_value());
     EXPECT_TRUE(connection->isInbound);
 }
 
 HWTEST_F(ConnectionManagerTest, HandleIncomingConnectionFromChannel_002, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     for (size_t i = 0; i < 10; ++i) {
         PhysicalDeviceKey remoteKey;
         remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
         remoteKey.deviceId = "device-limit";
 
-        incomingConnectionCallback_("conn-" + std::to_string(i), remoteKey);
+        incomingConnectionCallback("conn-" + std::to_string(i), remoteKey);
     }
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "device-limit";
 
-    incomingConnectionCallback_("conn-overflow", remoteKey);
+    incomingConnectionCallback("conn-overflow", remoteKey);
 
-    auto connection = connectionMgr_->GetConnection("conn-overflow");
+    auto connection = connectionMgr->GetConnection("conn-overflow");
     EXPECT_FALSE(connection.has_value());
 }
 
 HWTEST_F(ConnectionManagerTest, HandleKeepAliveReply_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    bool result = connectionMgr_->HandleIncomingConnection("test-conn", remoteKey);
+    bool result = connectionMgr->HandleIncomingConnection("test-conn", remoteKey);
     ASSERT_TRUE(result);
 
     Attributes reply;
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
 
-    connectionMgr_->HandleKeepAliveReply("test-conn", reply);
+    connectionMgr->HandleKeepAliveReply("test-conn", reply);
 }
 
 HWTEST_F(ConnectionManagerTest, HandleKeepAliveReply_002, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     Attributes reply;
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
 
-    connectionMgr_->HandleKeepAliveReply("non-existent", reply);
+    connectionMgr->HandleKeepAliveReply("non-existent", reply);
 }
 
 HWTEST_F(ConnectionManagerTest, HandleKeepAliveReply_003, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    bool result = connectionMgr_->HandleIncomingConnection("test-conn", remoteKey);
+    bool result = connectionMgr->HandleIncomingConnection("test-conn", remoteKey);
     ASSERT_TRUE(result);
 
     Attributes reply;
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
 
-    connectionMgr_->HandleKeepAliveReply("test-conn", reply);
+    connectionMgr->HandleKeepAliveReply("test-conn", reply);
 }
 
 HWTEST_F(ConnectionManagerTest, HandleKeepAliveReply_004, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    bool result = connectionMgr_->HandleIncomingConnection("test-conn", remoteKey);
+    bool result = connectionMgr->HandleIncomingConnection("test-conn", remoteKey);
     ASSERT_TRUE(result);
 
     Attributes reply;
 
-    connectionMgr_->HandleKeepAliveReply("test-conn", reply);
+    connectionMgr->HandleKeepAliveReply("test-conn", reply);
 }
 
 HWTEST_F(ConnectionManagerTest, HandleChannelConnectionEstablished_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
 
-    connectionMgr_->HandleChannelConnectionEstablished("test-conn");
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
+
+    connectionMgr->HandleChannelConnectionEstablished("test-conn");
 }
 
 HWTEST_F(ConnectionManagerTest, HandleChannelConnectionClosed_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
 
-    connectionMgr_->HandleChannelConnectionClosed("test-conn", "");
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
+
+    connectionMgr->HandleChannelConnectionClosed("test-conn", "");
 }
 
 HWTEST_F(ConnectionManagerTest, HandleIdleMonitorTimer_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
-    connectionMgr_->HandleIdleMonitorTimer();
+    connectionMgr->HandleIdleMonitorTimer();
 }
 
 HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
     bool notified = false;
-    auto subscription = connectionMgr_->SubscribeConnectionStatus(connectionName,
+    auto subscription = connectionMgr->SubscribeConnectionStatus(connectionName,
         [&notified](const std::string &, ConnectionStatus status, const std::string &) {
             if (status == ConnectionStatus::DISCONNECTED) {
                 notified = true;
@@ -761,17 +1539,39 @@ HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_001, TestSize.L
         });
 
     std::vector<PhysicalDeviceStatus> statusList;
-    connectionMgr_->HandlePhysicalDeviceStatusChange(ChannelId::SOFTBUS, statusList);
+    connectionMgr->HandlePhysicalDeviceStatusChange(ChannelId::SOFTBUS, statusList);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(notified);
-    EXPECT_FALSE(connectionMgr_->GetConnection(connectionName).has_value());
+    EXPECT_FALSE(connectionMgr->GetConnection(connectionName).has_value());
 }
 
 HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_002, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey1;
     remoteKey1.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -782,11 +1582,11 @@ HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_002, TestSize.L
     remoteKey2.deviceId = "remote-device-2";
 
     std::string connectionName1;
-    bool result1 = connectionMgr_->OpenConnection(remoteKey1, ChannelId::SOFTBUS, connectionName1);
+    bool result1 = connectionMgr->OpenConnection(remoteKey1, ChannelId::SOFTBUS, connectionName1);
     ASSERT_TRUE(result1);
 
     std::string connectionName2;
-    bool result2 = connectionMgr_->OpenConnection(remoteKey2, ChannelId::SOFTBUS, connectionName2);
+    bool result2 = connectionMgr->OpenConnection(remoteKey2, ChannelId::SOFTBUS, connectionName2);
     ASSERT_TRUE(result2);
 
     PhysicalDeviceStatus status1;
@@ -794,45 +1594,89 @@ HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_002, TestSize.L
     status1.channelId = ChannelId::SOFTBUS;
 
     std::vector<PhysicalDeviceStatus> statusList = { status1 };
-    connectionMgr_->HandlePhysicalDeviceStatusChange(ChannelId::SOFTBUS, statusList);
+    connectionMgr->HandlePhysicalDeviceStatusChange(ChannelId::SOFTBUS, statusList);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_TRUE(connectionMgr_->GetConnection(connectionName1).has_value());
-    EXPECT_FALSE(connectionMgr_->GetConnection(connectionName2).has_value());
+    EXPECT_TRUE(connectionMgr->GetConnection(connectionName1).has_value());
+    EXPECT_FALSE(connectionMgr->GetConnection(connectionName2).has_value());
 }
 
 HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_003, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
     std::vector<PhysicalDeviceStatus> statusList;
-    connectionMgr_->HandlePhysicalDeviceStatusChange(ChannelId::SOFTBUS, statusList);
+    connectionMgr->HandlePhysicalDeviceStatusChange(ChannelId::SOFTBUS, statusList);
 
-    EXPECT_FALSE(connectionMgr_->GetConnection(connectionName).has_value());
+    EXPECT_FALSE(connectionMgr->GetConnection(connectionName).has_value());
 }
 
 HWTEST_F(ConnectionManagerTest, NotifyConnectionStatus_WithNullCallback, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
 
-    auto subscription = connectionMgr_->SubscribeConnectionStatus("test", nullptr);
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
+
+    auto subscription = connectionMgr->SubscribeConnectionStatus("test", nullptr);
     EXPECT_EQ(subscription, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    bool result = connectionMgr_->HandleIncomingConnection("test-conn", remoteKey);
+    bool result = connectionMgr->HandleIncomingConnection("test-conn", remoteKey);
     ASSERT_TRUE(result);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -840,11 +1684,33 @@ HWTEST_F(ConnectionManagerTest, NotifyConnectionStatus_WithNullCallback, TestSiz
 
 HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_004, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     bool callbackInvoked = false;
-    auto subscription = connectionMgr_->SubscribeConnectionStatus("",
+    auto subscription = connectionMgr->SubscribeConnectionStatus("",
         [&callbackInvoked](const std::string &, ConnectionStatus, const std::string &) { callbackInvoked = true; });
 
     EXPECT_NE(subscription, nullptr);
@@ -853,7 +1719,7 @@ HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_004, TestSize.Level0)
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    connectionMgr_->HandleIncomingConnection("any-conn", remoteKey);
+    connectionMgr->HandleIncomingConnection("any-conn", remoteKey);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(callbackInvoked);
@@ -861,31 +1727,75 @@ HWTEST_F(ConnectionManagerTest, SubscribeConnectionStatus_004, TestSize.Level0)
 
 HWTEST_F(ConnectionManagerTest, CheckIdleMonitoring_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
 
-    EXPECT_EQ(connectionMgr_->idleMonitorTimerSubscription_, nullptr);
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
+
+    EXPECT_EQ(connectionMgr->idleMonitorTimerSubscription_, nullptr);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr_->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
     ASSERT_TRUE(result);
 
-    EXPECT_NE(connectionMgr_->idleMonitorTimerSubscription_, nullptr);
+    EXPECT_NE(connectionMgr->idleMonitorTimerSubscription_, nullptr);
 
-    connectionMgr_->CloseConnection(connectionName, "test");
+    connectionMgr->CloseConnection(connectionName, "test");
     TaskRunnerManager::GetInstance().ExecuteAll();
 
-    EXPECT_EQ(connectionMgr_->idleMonitorTimerSubscription_, nullptr);
+    EXPECT_EQ(connectionMgr->idleMonitorTimerSubscription_, nullptr);
 }
 
 HWTEST_F(ConnectionManagerTest, GenerateConnectionName_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     PhysicalDeviceKey remoteKey1;
     remoteKey1.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -896,11 +1806,11 @@ HWTEST_F(ConnectionManagerTest, GenerateConnectionName_001, TestSize.Level0)
     remoteKey2.deviceId = "remote-device-2";
 
     std::string connectionName1;
-    bool result1 = connectionMgr_->OpenConnection(remoteKey1, ChannelId::SOFTBUS, connectionName1);
+    bool result1 = connectionMgr->OpenConnection(remoteKey1, ChannelId::SOFTBUS, connectionName1);
     ASSERT_TRUE(result1);
 
     std::string connectionName2;
-    bool result2 = connectionMgr_->OpenConnection(remoteKey2, ChannelId::SOFTBUS, connectionName2);
+    bool result2 = connectionMgr->OpenConnection(remoteKey2, ChannelId::SOFTBUS, connectionName2);
     ASSERT_TRUE(result2);
 
     EXPECT_NE(connectionName1, connectionName2);
@@ -908,22 +1818,44 @@ HWTEST_F(ConnectionManagerTest, GenerateConnectionName_001, TestSize.Level0)
 
 HWTEST_F(ConnectionManagerTest, UnsubscribeConnectionStatus_001, TestSize.Level0)
 {
-    connectionMgr_ = ConnectionManager::Create(channelMgr_, localDeviceStatusMgr_);
-    ASSERT_NE(connectionMgr_, nullptr);
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
 
     bool callbackInvoked = false;
-    auto subscription = connectionMgr_->SubscribeConnectionStatus("test",
+    auto subscription = connectionMgr->SubscribeConnectionStatus("test",
         [&callbackInvoked](const std::string &, ConnectionStatus, const std::string &) { callbackInvoked = true; });
 
-    SubscribeId subscriptionId = connectionMgr_->connectionStatusSubscribers_.begin()->first;
+    SubscribeId subscriptionId = connectionMgr->connectionStatusSubscribers_.begin()->first;
 
-    connectionMgr_->UnsubscribeConnectionStatus(subscriptionId);
+    connectionMgr->UnsubscribeConnectionStatus(subscriptionId);
 
     PhysicalDeviceKey remoteKey;
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    connectionMgr_->HandleIncomingConnection("test", remoteKey);
+    connectionMgr->HandleIncomingConnection("test", remoteKey);
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_FALSE(callbackInvoked);

@@ -13,15 +13,11 @@
  * limitations under the License.
  */
 
-#include <memory>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "adapter_manager.h"
 #include "fwk_comm_manager.h"
-
-#include "mock_driver_manager_adapter.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -35,26 +31,13 @@ namespace CompanionDeviceAuth {
 
 class FwkCommManagerTest : public Test {
 public:
-    void SetUp() override
-    {
-        // Initialize DriverManagerAdapter mock
-        auto driverManagerAdapter =
-            std::shared_ptr<IDriverManagerAdapter>(&mockDriverManagerAdapter_, [](IDriverManagerAdapter *) {});
-        AdapterManager::GetInstance().SetDriverManagerAdapter(driverManagerAdapter);
-        ON_CALL(mockDriverManagerAdapter_, Start(_)).WillByDefault(Return(true));
-    }
-
-    void TearDown() override
-    {
-        AdapterManager::GetInstance().Reset();
-    }
-
-protected:
-    NiceMock<MockDriverManagerAdapter> mockDriverManagerAdapter_;
 };
 
 HWTEST_F(FwkCommManagerTest, Create_001, TestSize.Level0)
 {
+    MockGuard guard;
+    ON_CALL(guard.GetDriverManagerAdapter(), Start(_)).WillByDefault(Return(true));
+
     auto manager = FwkCommManager::Create();
     EXPECT_NE(nullptr, manager);
 }

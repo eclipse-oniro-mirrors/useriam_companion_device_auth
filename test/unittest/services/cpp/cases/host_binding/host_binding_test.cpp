@@ -18,19 +18,9 @@
 
 #include "companion_revoke_token_request.h"
 #include "host_binding.h"
+#include "mock_guard.h"
 #include "relative_timer.h"
 #include "service_common.h"
-#include "singleton_manager.h"
-#include "task_runner_manager.h"
-
-#include "adapter_manager.h"
-#include "mock_companion_manager.h"
-#include "mock_cross_device_comm_manager.h"
-#include "mock_misc_manager.h"
-#include "mock_request_factory.h"
-#include "mock_request_manager.h"
-#include "mock_security_agent.h"
-#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -78,76 +68,44 @@ DeviceStatus MakeDeviceStatus(const DeviceKey &deviceKey, bool isOnline = true)
 
 class HostBindingTest : public Test {
 public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
-        SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
-
-        auto requestFactory = std::shared_ptr<IRequestFactory>(&mockRequestFactory_, [](IRequestFactory *) {});
-        SingletonManager::GetInstance().SetRequestFactory(requestFactory);
-
-        auto requestMgr = std::shared_ptr<IRequestManager>(&mockRequestManager_, [](IRequestManager *) {});
-        SingletonManager::GetInstance().SetRequestManager(requestMgr);
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-        ON_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
-        ON_CALL(mockCrossDeviceCommManager_, SubscribeIsAuthMaintainActive(_))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockCrossDeviceCommManager_, IsAuthMaintainActive()).WillByDefault(Return(true));
-        CompanionStatus mockCompanionStatus = {};
-        mockCompanionStatus.templateId = UINT32_12345;
-        mockCompanionStatus.hostUserId = INT32_100;
-        mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
-        mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
-        mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
-        mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
-        mockCompanionStatus.isValid = true;
-        mockCompanionStatus.tokenAtl = std::nullopt;
-        ON_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-        ON_CALL(mockCompanionManager_, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
-        ON_CALL(mockRequestFactory_, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
-        ON_CALL(mockRequestManager_, Start(_)).WillByDefault(Return(true));
-    }
-
-    void TearDown() override
-    {
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        RelativeTimer::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
-
-protected:
-    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
-    NiceMock<MockSecurityAgent> mockSecurityAgent_;
-    NiceMock<MockRequestFactory> mockRequestFactory_;
-    NiceMock<MockRequestManager> mockRequestManager_;
-    NiceMock<MockMiscManager> mockMiscManager_;
-    NiceMock<MockCompanionManager> mockCompanionManager_;
+    // No SetUp/TearDown needed - MockGuard handles everything
 };
 
 HWTEST_F(HostBindingTest, Create_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeIsAuthMaintainActive(_))
-        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillOnce(Return(ByMove(MakeSubscription())));
 
     auto binding = HostBinding::Create(persistedStatus);
 
@@ -159,9 +117,38 @@ HWTEST_F(HostBindingTest, Create_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, Create_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillOnce(Return(nullptr));
 
     auto binding = HostBinding::Create(persistedStatus);
 
@@ -170,10 +157,39 @@ HWTEST_F(HostBindingTest, Create_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, Create_003, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeIsAuthMaintainActive(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillOnce(Return(nullptr));
 
     auto binding = HostBinding::Create(persistedStatus);
 
@@ -182,6 +198,35 @@ HWTEST_F(HostBindingTest, Create_003, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     DeviceKey deviceKey = persistedStatus.hostDeviceKey;
     auto binding = HostBinding::Create(persistedStatus);
@@ -197,6 +242,35 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     DeviceKey deviceKey = persistedStatus.hostDeviceKey;
     auto binding = HostBinding::Create(persistedStatus);
@@ -213,6 +287,35 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleHostDeviceStatusUpdate_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     DeviceKey deviceKey = persistedStatus.hostDeviceKey;
     auto binding = HostBinding::Create(persistedStatus);
@@ -228,6 +331,35 @@ HWTEST_F(HostBindingTest, HandleHostDeviceStatusUpdate_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleHostDeviceOffline_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -243,6 +375,35 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleHostDeviceOffline_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -256,6 +417,35 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -267,6 +457,35 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -282,6 +501,35 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_003, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -295,6 +543,35 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_003, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -306,11 +583,40 @@ HWTEST_F(HostBindingTest, SetTokenValid_001, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    EXPECT_CALL(mockRequestFactory_, CreateCompanionRevokeTokenRequest(_, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillOnce(Return(nullptr));
 
     binding->status_.isTokenValid = true;
     binding->SetTokenValid(false);
@@ -320,15 +626,44 @@ HWTEST_F(HostBindingTest, SetTokenValid_002, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_003, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    EXPECT_CALL(mockRequestFactory_, CreateCompanionRevokeTokenRequest(_, _))
+    EXPECT_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _))
         .WillOnce(Invoke([](UserId companionUserId, const DeviceKey &hostDeviceKey) {
             return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey);
         }));
-    EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Return(false));
+    EXPECT_CALL(requestMgr, Start(_)).WillOnce(Return(false));
 
     binding->status_.isTokenValid = true;
     binding->SetTokenValid(false);
@@ -338,15 +673,44 @@ HWTEST_F(HostBindingTest, SetTokenValid_003, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_004, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    EXPECT_CALL(mockRequestFactory_, CreateCompanionRevokeTokenRequest(_, _))
+    EXPECT_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _))
         .WillOnce(Invoke([](UserId companionUserId, const DeviceKey &hostDeviceKey) {
             return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey);
         }));
-    EXPECT_CALL(mockRequestManager_, Start(_)).WillOnce(Return(true));
+    EXPECT_CALL(requestMgr, Start(_)).WillOnce(Return(true));
 
     binding->status_.isTokenValid = true;
     binding->SetTokenValid(false);
@@ -356,6 +720,35 @@ HWTEST_F(HostBindingTest, SetTokenValid_004, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, SetTokenValid_005, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
@@ -369,6 +762,35 @@ HWTEST_F(HostBindingTest, SetTokenValid_005, TestSize.Level0)
 
 HWTEST_F(HostBindingTest, Destructor_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserId = INT32_100;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceId = "test_device_id";
+    mockCompanionStatus.companionDeviceStatus.deviceKey.deviceUserId = INT32_200;
+    mockCompanionStatus.companionDeviceStatus.deviceName = "test_device";
+    mockCompanionStatus.companionDeviceStatus.deviceUserName = "test_user";
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);

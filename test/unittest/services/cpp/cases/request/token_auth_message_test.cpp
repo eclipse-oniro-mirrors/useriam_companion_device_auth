@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "common_message.h"
+#include "mock_guard.h"
 #include "token_auth_message.h"
 
 using namespace testing;
@@ -28,15 +29,6 @@ namespace CompanionDeviceAuth {
 namespace {
 
 class TokenAuthMessageTest : public Test {
-public:
-    void SetUp() override
-    {
-    }
-
-    void TearDown() override
-    {
-    }
-
 protected:
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
@@ -47,6 +39,7 @@ protected:
 
 HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
     TokenAuthRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
         .extraInfo = extraInfo_ };
@@ -70,6 +63,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_001, TestSize.Level0
 
 HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_002, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
 
     auto decodedRequest = DecodeTokenAuthRequest(attributes);
@@ -78,6 +72,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_002, TestSize.Level0
 
 HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_003, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey_.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
@@ -89,6 +84,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_003, TestSize.Level0
 
 HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_004, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey_.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
@@ -101,6 +97,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_004, TestSize.Level0
 
 HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_001, TestSize.Level0)
 {
+    MockGuard guard;
     TokenAuthReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
@@ -115,6 +112,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_001, TestSize.Level0)
 
 HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_002, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
 
     auto decodedReply = DecodeTokenAuthReply(attributes);
@@ -123,6 +121,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_002, TestSize.Level0)
 
 HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_003, TestSize.Level0)
 {
+    MockGuard guard;
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
 
@@ -132,6 +131,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_003, TestSize.Level0)
 
 HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_004, TestSize.Level0)
 {
+    MockGuard guard;
     TokenAuthReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = extraInfo_ };
 
     Attributes attributes;

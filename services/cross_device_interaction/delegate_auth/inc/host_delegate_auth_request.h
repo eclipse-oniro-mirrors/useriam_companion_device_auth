@@ -51,7 +51,7 @@ private:
     void HostBeginDelegateAuth();
     void SendDelegateAuthRequest(const std::vector<uint8_t> &startDelegateAuthRequest);
     void HandleStartDelegateAuthReply(const Attributes &message);
-    bool HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &fwkMsg);
+    bool HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &outFwkMsg);
     void HandleSendDelegateAuthRequestMsg(const Attributes &request, OnMessageReply &onMessageReply);
     void CompleteWithSuccess(const std::vector<uint8_t> &fwkMsg);
 

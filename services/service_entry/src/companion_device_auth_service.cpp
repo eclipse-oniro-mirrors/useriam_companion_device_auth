@@ -35,10 +35,12 @@
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "access_token_kit_adapter_impl.h"
 #include "adapter_manager.h"
 #include "common_defines.h"
 #include "companion_manager_impl.h"
 #include "cross_device_comm_manager_impl.h"
+#include "event_manager_adapter_impl.h"
 #include "fwk_comm_manager.h"
 #include "host_binding_manager_impl.h"
 #include "icross_device_channel.h"
@@ -46,15 +48,24 @@
 #include "misc_manager_impl.h"
 #include "request_factory_impl.h"
 #include "request_manager_impl.h"
+#include "sa_manager_adapter_impl.h"
 #include "security_agent_imp.h"
+#include "security_command_adapter_impl.h"
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "subscription_manager.h"
 #include "system_param_manager_impl.h"
 #include "task_runner_manager.h"
+#include "time_keeper_impl.h"
 #include "tokenid_kit.h"
 #include "user_id_manager.h"
 #include "xcollie_helper.h"
+
+#ifdef HAS_USER_AUTH_FRAMEWORK
+#include "driver_manager_adapter_impl.h"
+#include "idm_adapter_impl.h"
+#include "user_auth_adapter_impl.h"
+#endif
 
 #ifdef HAS_SOFT_BUS_CHANNEL
 #include "soft_bus_channel.h"
@@ -96,7 +107,9 @@ public:
     bool CheckLocalUserIdValid(int32_t localUserId);
 
 private:
-    static std::shared_ptr<CompanionDeviceAuthServiceInner> CreateExtend(
+    static bool CreateStep1();
+    static std::shared_ptr<IncomingMessageHandlerRegistry> CreateStep2();
+    static std::shared_ptr<CompanionDeviceAuthServiceInner> CreateStep3(
         const std::shared_ptr<IncomingMessageHandlerRegistry> &registry);
 
     explicit CompanionDeviceAuthServiceInner(std::shared_ptr<SubscriptionManager> subscriptionManager)
@@ -115,11 +128,70 @@ std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner
 {
     IAM_LOGI("Start");
 
-    bool adaptersRegistered = AdapterManager::GetInstance().CreateAndRegisterAllAdapters();
-    ENSURE_OR_RETURN_VAL(adaptersRegistered, nullptr);
+    if (!CreateStep1()) {
+        IAM_LOGE("failed to execute CreateStep1");
+        return nullptr;
+    }
 
+    auto registry = CreateStep2();
+    if (registry == nullptr) {
+        IAM_LOGE("failed to execute CreateStep2");
+        return nullptr;
+    }
+
+    return CreateStep3(registry);
+}
+
+bool CompanionDeviceAuthServiceInner::CreateStep1()
+{
+    auto &adapterManager = AdapterManager::GetInstance();
+
+    // Initialize external adapters in AdapterManager
+    auto timeKeeper = TimeKeeperImpl::Create();
+    ENSURE_OR_RETURN_VAL(timeKeeper != nullptr, false);
+    adapterManager.SetTimeKeeper(timeKeeper);
+
+    auto accessTokenKitAdapter = std::make_shared<AccessTokenKitAdapterImpl>();
+    adapterManager.SetAccessTokenKitAdapter(accessTokenKitAdapter);
+
+    auto eventManagerAdapter = std::make_shared<EventManagerAdapterImpl>();
+    adapterManager.SetEventManagerAdapter(eventManagerAdapter);
+
+    auto saManagerAdapter = std::make_shared<SaManagerAdapterImpl>();
+    adapterManager.SetSaManagerAdapter(saManagerAdapter);
+
+    auto securityCommandAdapter = SecurityCommandAdapterImpl::Create();
+    ENSURE_OR_RETURN_VAL(securityCommandAdapter != nullptr, false);
+    adapterManager.SetSecurityCommandAdapter(securityCommandAdapter);
+
+    auto systemParamManager = SystemParamManagerImpl::Create();
+    ENSURE_OR_RETURN_VAL(systemParamManager != nullptr, false);
+    adapterManager.SetSystemParamManager(systemParamManager);
+
+    auto userIdManager = IUserIdManager::Create();
+    ENSURE_OR_RETURN_VAL(userIdManager != nullptr, false);
+    adapterManager.SetUserIdManager(userIdManager);
+
+#ifdef HAS_USER_AUTH_FRAMEWORK
+    auto userAuthAdapter = std::make_shared<UserAuthAdapterImpl>();
+    adapterManager.SetUserAuthAdapter(userAuthAdapter);
+
+    auto driverManagerAdapter = std::make_shared<DriverManagerAdapterImpl>();
+    adapterManager.SetDriverManagerAdapter(driverManagerAdapter);
+
+    auto idmAdapter = IdmAdapterImpl::Create();
+    ENSURE_OR_RETURN_VAL(idmAdapter != nullptr, false);
+    adapterManager.SetIdmAdapter(idmAdapter);
+#endif
+
+    return true;
+}
+
+std::shared_ptr<IncomingMessageHandlerRegistry> CompanionDeviceAuthServiceInner::CreateStep2()
+{
     auto &singletonManager = SingletonManager::GetInstance();
 
+    // Initialize internal singletons in SingletonManager
     auto requestManager = RequestManagerImpl::Create();
     ENSURE_OR_RETURN_VAL(requestManager != nullptr, nullptr);
     singletonManager.SetRequestManager(requestManager);
@@ -132,14 +204,6 @@ std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner
     ENSURE_OR_RETURN_VAL(miscManager != nullptr, nullptr);
     singletonManager.SetMiscManager(miscManager);
 
-    auto systemParamManager = SystemParamManagerImpl::Create();
-    ENSURE_OR_RETURN_VAL(systemParamManager != nullptr, nullptr);
-    singletonManager.SetSystemParamManager(systemParamManager);
-
-    auto userIdManager = IUserIdManager::Create();
-    ENSURE_OR_RETURN_VAL(userIdManager != nullptr, nullptr);
-    singletonManager.SetUserIdManager(userIdManager);
-
 #ifndef ENABLE_TEST
     auto securityAgent = SecurityAgentImpl::Create();
     ENSURE_OR_RETURN_VAL(securityAgent != nullptr, nullptr);
@@ -150,10 +214,10 @@ std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner
     ENSURE_OR_RETURN_VAL(registry != nullptr, nullptr);
     singletonManager.SetIncomingMessageHandlerRegistry(registry);
 
-    return CreateExtend(registry);
+    return registry;
 }
 
-std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner::CreateExtend(
+std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner::CreateStep3(
     const std::shared_ptr<IncomingMessageHandlerRegistry> &registry)
 {
     auto &singletonManager = SingletonManager::GetInstance();

@@ -13,15 +13,10 @@
  * limitations under the License.
  */
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "adapter_manager.h"
 #include "keep_alive_handler.h"
-#include "mock_time_keeper.h"
-#include "relative_timer.h"
-#include "singleton_manager.h"
-#include "task_runner_manager.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -33,19 +28,9 @@ namespace {
 
 class KeepAliveHandlerTest : public Test {
 public:
-    void SetUp() override
+    void CreateDefaultHandler()
     {
-        SingletonManager::GetInstance().Reset();
-
         handler_ = std::make_unique<KeepAliveHandler>();
-    }
-
-    void TearDown() override
-    {
-        RelativeTimer::GetInstance().ExecuteAll();
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
     }
 
 protected:
@@ -54,6 +39,10 @@ protected:
 
 HWTEST_F(KeepAliveHandlerTest, HandleRequest_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    CreateDefaultHandler();
+
     Attributes request;
     Attributes reply;
 

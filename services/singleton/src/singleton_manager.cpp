@@ -39,10 +39,6 @@ public:
     void SetHostBindingManager(std::shared_ptr<IHostBindingManager> hostBindingManager) override;
     IMiscManager &GetMiscManager() override;
     void SetMiscManager(std::shared_ptr<IMiscManager> miscManager) override;
-    ISystemParamManager &GetSystemParamManager() override;
-    void SetSystemParamManager(std::shared_ptr<ISystemParamManager> systemParamManager) override;
-    IUserIdManager &GetUserIdManager() override;
-    void SetUserIdManager(std::shared_ptr<IUserIdManager> userIdManager) override;
     ISecurityAgent &GetSecurityAgent() override;
     void SetSecurityAgent(std::shared_ptr<ISecurityAgent> securityAgent) override;
     ICrossDeviceCommManager &GetCrossDeviceCommManager() override;
@@ -64,8 +60,6 @@ private:
     std::shared_ptr<ICompanionManager> companionManager_;
     std::shared_ptr<IHostBindingManager> hostBindingManager_;
     std::shared_ptr<IMiscManager> miscManager_;
-    std::shared_ptr<ISystemParamManager> systemParamManager_;
-    std::shared_ptr<IUserIdManager> userIdManager_;
     std::shared_ptr<ISecurityAgent> securityAgent_;
     std::shared_ptr<ICrossDeviceCommManager> crossDeviceCommManager_;
     std::shared_ptr<IRequestManager> requestManager_;
@@ -79,8 +73,6 @@ void SingletonManagerImpl::Reset()
     companionManager_.reset();
     hostBindingManager_.reset();
     miscManager_.reset();
-    systemParamManager_.reset();
-    userIdManager_.reset();
     securityAgent_.reset();
     crossDeviceCommManager_.reset();
     requestManager_.reset();
@@ -147,46 +139,6 @@ void SingletonManagerImpl::SetMiscManager(std::shared_ptr<IMiscManager> miscMana
         return;
     }
     miscManager_ = miscManager;
-}
-
-ISystemParamManager &SingletonManagerImpl::GetSystemParamManager()
-{
-    TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
-    if (systemParamManager_ == nullptr) {
-        IAM_LOGE("system param manager is not initialized");
-        AbortIfSingletonUninitialized();
-    }
-    return *systemParamManager_;
-}
-
-void SingletonManagerImpl::SetSystemParamManager(std::shared_ptr<ISystemParamManager> systemParamManager)
-{
-    ENSURE_OR_RETURN(systemParamManager != nullptr);
-    if (systemParamManager_ != nullptr) {
-        IAM_LOGE("system param manager is already set");
-        return;
-    }
-    systemParamManager_ = systemParamManager;
-}
-
-IUserIdManager &SingletonManagerImpl::GetUserIdManager()
-{
-    TaskRunnerManager::GetInstance().AssertRunningOnResidentThread();
-    if (userIdManager_ == nullptr) {
-        IAM_LOGE("active user id manager is not initialized");
-        AbortIfSingletonUninitialized();
-    }
-    return *userIdManager_;
-}
-
-void SingletonManagerImpl::SetUserIdManager(std::shared_ptr<IUserIdManager> userIdManager)
-{
-    ENSURE_OR_RETURN(userIdManager != nullptr);
-    if (userIdManager_ != nullptr) {
-        IAM_LOGE("active user id manager is already set");
-        return;
-    }
-    userIdManager_ = userIdManager;
 }
 
 ISecurityAgent &SingletonManagerImpl::GetSecurityAgent()

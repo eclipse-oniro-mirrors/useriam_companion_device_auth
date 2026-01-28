@@ -13,12 +13,12 @@
  * limitations under the License.
  */
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "channel_manager.h"
 
 #include "mock_cross_device_channel.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -30,31 +30,17 @@ namespace {
 
 class ChannelManagerTest : public Test {
 public:
-    void SetUp() override
-    {
-        mockChannel1_ = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
-        mockChannel2_ = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
-        mockChannel3_ = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
-
-        ON_CALL(*mockChannel1_, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
-        ON_CALL(*mockChannel2_, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
-        ON_CALL(*mockChannel3_, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
-    }
-
-    void TearDown() override
-    {
-    }
-
-protected:
-    std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel1_;
-    std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel2_;
-    std::shared_ptr<NiceMock<MockCrossDeviceChannel>> mockChannel3_;
 };
 
 HWTEST_F(ChannelManagerTest, Constructor_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto mockChannel1 = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
+    ON_CALL(*mockChannel1, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
+
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
-    channels.push_back(mockChannel1_);
+    channels.push_back(mockChannel1);
     channels.push_back(nullptr);
 
     auto manager = std::make_shared<ChannelManager>(channels);
@@ -66,6 +52,8 @@ HWTEST_F(ChannelManagerTest, Constructor_001, TestSize.Level0)
 
 HWTEST_F(ChannelManagerTest, Constructor_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
 
     auto manager = std::make_shared<ChannelManager>(channels);
@@ -77,9 +65,16 @@ HWTEST_F(ChannelManagerTest, Constructor_002, TestSize.Level0)
 
 HWTEST_F(ChannelManagerTest, Constructor_003, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto mockChannel1 = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
+    auto mockChannel3 = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
+    ON_CALL(*mockChannel1, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
+    ON_CALL(*mockChannel3, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
+
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
-    channels.push_back(mockChannel1_);
-    channels.push_back(mockChannel3_);
+    channels.push_back(mockChannel1);
+    channels.push_back(mockChannel3);
 
     auto manager = std::make_shared<ChannelManager>(channels);
     EXPECT_NE(manager, nullptr);
@@ -90,9 +85,16 @@ HWTEST_F(ChannelManagerTest, Constructor_003, TestSize.Level0)
 
 HWTEST_F(ChannelManagerTest, GetPrimaryChannel_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto mockChannel1 = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
+    auto mockChannel2 = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
+    ON_CALL(*mockChannel1, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
+    ON_CALL(*mockChannel2, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
+
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
-    channels.push_back(mockChannel1_);
-    channels.push_back(mockChannel2_);
+    channels.push_back(mockChannel1);
+    channels.push_back(mockChannel2);
 
     auto manager = std::make_shared<ChannelManager>(channels);
 
@@ -103,6 +105,8 @@ HWTEST_F(ChannelManagerTest, GetPrimaryChannel_001, TestSize.Level0)
 
 HWTEST_F(ChannelManagerTest, GetPrimaryChannel_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
 
     auto manager = std::make_shared<ChannelManager>(channels);
@@ -113,8 +117,13 @@ HWTEST_F(ChannelManagerTest, GetPrimaryChannel_002, TestSize.Level0)
 
 HWTEST_F(ChannelManagerTest, GetChannelById_001, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto mockChannel1 = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
+    ON_CALL(*mockChannel1, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
+
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
-    channels.push_back(mockChannel1_);
+    channels.push_back(mockChannel1);
 
     auto manager = std::make_shared<ChannelManager>(channels);
 
@@ -125,8 +134,13 @@ HWTEST_F(ChannelManagerTest, GetChannelById_001, TestSize.Level0)
 
 HWTEST_F(ChannelManagerTest, GetChannelById_002, TestSize.Level0)
 {
+    MockGuard guard;
+
+    auto mockChannel1 = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
+    ON_CALL(*mockChannel1, GetChannelId).WillByDefault(Return(ChannelId::SOFTBUS));
+
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
-    channels.push_back(mockChannel1_);
+    channels.push_back(mockChannel1);
 
     auto manager = std::make_shared<ChannelManager>(channels);
 

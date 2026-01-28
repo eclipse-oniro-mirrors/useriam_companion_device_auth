@@ -164,7 +164,7 @@ void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &mes
     errorGuard.Cancel();
 }
 
-bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &fwkMsg)
+bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &outFwkMsg)
 {
     IAM_LOGI("%{public}s start", GetDescription());
 
@@ -188,7 +188,7 @@ bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &re
     }
     IAM_LOGI("%{public}s delegate auth success authType=%{public}d atl=%{public}d", GetDescription(), output.authType,
         output.atl);
-    fwkMsg = output.fwkMsg;
+    outFwkMsg = output.fwkMsg;
     needCancelDelegateAuth_ = false;
     return true;
 }

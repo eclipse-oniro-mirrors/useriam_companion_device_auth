@@ -4,7 +4,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,13 +19,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "adapter_manager.h"
 #include "common_defines.h"
 #include "misc_manager_impl.h"
-#include "mock_time_keeper.h"
-#include "relative_timer.h"
-#include "singleton_manager.h"
-#include "task_runner_manager.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -51,29 +47,21 @@ public:
 };
 
 class MiscManagerImplTest : public Test {
-public:
-    void SetUp() override
-    {
-        SingletonManager::GetInstance().Reset();
-    }
-
-    void TearDown() override
-    {
-        TaskRunnerManager::GetInstance().ExecuteAll();
-        RelativeTimer::GetInstance().ExecuteAll();
-        SingletonManager::GetInstance().Reset();
-        AdapterManager::GetInstance().Reset();
-    }
+    // 不需要SetUp/TearDown，MockGuard自动处理
 };
 
 HWTEST_F(MiscManagerImplTest, Create_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     EXPECT_NE(nullptr, manager);
 }
 
 HWTEST_F(MiscManagerImplTest, GetNextGlobalId_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -91,6 +79,8 @@ HWTEST_F(MiscManagerImplTest, GetNextGlobalId_001, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, GetNextGlobalId_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -105,6 +95,8 @@ HWTEST_F(MiscManagerImplTest, GetNextGlobalId_002, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -123,6 +115,8 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_001, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -133,6 +127,8 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_002, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_003, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -148,6 +144,8 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_003, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_004, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -174,6 +172,8 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_004, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -191,6 +191,8 @@ HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_001, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -203,6 +205,8 @@ HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_002, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_003, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -231,6 +235,8 @@ HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_003, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_004, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -257,6 +263,8 @@ HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_004, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, ClearDeviceSelectCallback_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -283,6 +291,8 @@ HWTEST_F(MiscManagerImplTest, ClearDeviceSelectCallback_001, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, ClearDeviceSelectCallback_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -292,6 +302,8 @@ HWTEST_F(MiscManagerImplTest, ClearDeviceSelectCallback_002, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, GetLocalUdid_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -301,6 +313,8 @@ HWTEST_F(MiscManagerImplTest, GetLocalUdid_001, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, CheckBusinessIds_001, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -311,6 +325,8 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_001, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, CheckBusinessIds_002, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -321,6 +337,8 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_002, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, CheckBusinessIds_003, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -331,6 +349,8 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_003, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, CheckBusinessIds_004, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -341,6 +361,8 @@ HWTEST_F(MiscManagerImplTest, CheckBusinessIds_004, TestSize.Level0)
 
 HWTEST_F(MiscManagerImplTest, CheckBusinessIds_005, TestSize.Level0)
 {
+    MockGuard guard;
+
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
