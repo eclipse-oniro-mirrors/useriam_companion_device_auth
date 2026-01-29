@@ -86,6 +86,6 @@ fn get_session_key_test_fail() {
     mock_host_db_manager.expect_read_device_sk().returning(|| Ok(Vec::new()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let result = get_session_key(123, DeviceType::None, &[]);
+    let result = get_session_key(123, DeviceType::Default, &[]);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

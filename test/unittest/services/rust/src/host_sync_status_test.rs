@@ -42,7 +42,7 @@ fn create_valid_sync_reply_message(challenge: u64, protocol_list: &[u16], capabi
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    reply.encode(DeviceType::None).unwrap()
+    reply.encode(DeviceType::Default).unwrap()
 }
 
 fn create_mock_companion_device_info() -> CompanionDeviceInfo {
@@ -70,14 +70,14 @@ fn mock_set_host_db_manager() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
             track_ability_level: 1,
         }])
     });
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
     mock_host_db_manager
         .expect_get_device()
         .returning(|| Ok(create_mock_companion_device_info()));
@@ -291,7 +291,7 @@ fn host_sync_status_request_end_test_decode_sec_message_fail() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
             track_ability_level: 1,
         }])
@@ -329,7 +329,7 @@ fn host_sync_status_request_end_test_get_session_key_fail() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
             track_ability_level: 1,
         }])

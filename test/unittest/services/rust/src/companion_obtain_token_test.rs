@@ -48,13 +48,13 @@ fn create_valid_fwk_obtain_token_request(property_mode: u32, auth_type: u32, atl
 
 fn create_valid_pre_obtain_token_request(salt: &[u8; HKDF_SALT_SIZE], challenge: u64) -> Vec<u8> {
     let request = SecPreObtainTokenRequest { salt: *salt, challenge };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_obtain_token_reply(challenge: u64, atl: i32, session_key: &[u8]) -> Vec<u8> {
     let issue_token = SecIssueToken { challenge, atl, token: vec![1u8; TOKEN_KEY_LEN] };
     issue_token
-        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, session_key)
+        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::Default, session_key)
         .unwrap()
 }
 

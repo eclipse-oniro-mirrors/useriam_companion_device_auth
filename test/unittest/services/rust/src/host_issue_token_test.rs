@@ -57,12 +57,12 @@ fn create_valid_pre_issue_reply(challenge: u64) -> Vec<u8> {
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    reply.encode(DeviceType::None).unwrap()
+    reply.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_issue_token_reply(result: i32) -> Vec<u8> {
     let reply = SecIssueTokenReply { result };
-    reply.encode(DeviceType::None).unwrap()
+    reply.encode(DeviceType::Default).unwrap()
 }
 
 fn mock_set_crypto_engine() {
@@ -87,14 +87,14 @@ fn mock_set_host_db_manager() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
             track_ability_level: 1,
         }])
     });
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 }
@@ -420,7 +420,7 @@ fn host_issue_token_request_begin_test_try_from_bytes_fail() {
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    let sec_message = reply.encode(DeviceType::None).unwrap();
+    let sec_message = reply.encode(DeviceType::Default).unwrap();
 
     let begin_input = HostBeginIssueTokenInputFfi {
         request_id: 1,
@@ -460,7 +460,7 @@ fn host_issue_token_request_begin_test_miss_challenge() {
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    let sec_message = reply.encode(DeviceType::None).unwrap();
+    let sec_message = reply.encode(DeviceType::Default).unwrap();
 
     let begin_input = HostBeginIssueTokenInputFfi {
         request_id: 1,
@@ -673,7 +673,7 @@ fn host_issue_token_request_end_test_decode_sec_message_fail() {
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.token_infos.push(crate::request::jobs::token_helper::DeviceTokenInfo {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         challenge: 0,
         token: vec![1u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,
@@ -701,7 +701,7 @@ fn host_issue_token_request_end_test_result_not_zero() {
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.token_infos.push(crate::request::jobs::token_helper::DeviceTokenInfo {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         challenge: 0,
         token: vec![1u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,
@@ -744,7 +744,7 @@ fn host_issue_token_request_end_test_get_rtc_time_fail() {
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.token_infos.push(crate::request::jobs::token_helper::DeviceTokenInfo {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         challenge: 0,
         token: vec![1u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,
@@ -786,7 +786,7 @@ fn host_issue_token_request_end_test_add_token_fail() {
 
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.token_infos.push(crate::request::jobs::token_helper::DeviceTokenInfo {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         challenge: 0,
         token: vec![1u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,
@@ -825,7 +825,7 @@ fn host_issue_token_request_end_test_success() {
     let mut request = HostDeviceIssueTokenRequest::new(&input).unwrap();
     request.atl = AuthTrustLevel::Atl3;
     request.token_infos.push(crate::request::jobs::token_helper::DeviceTokenInfo {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         challenge: 0,
         token: vec![1u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,

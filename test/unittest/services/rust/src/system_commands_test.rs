@@ -86,14 +86,14 @@ fn create_mock_host_device_info(binding_id: i32) -> HostDeviceInfo {
 
 fn create_mock_companion_device_capability() -> CompanionDeviceCapability {
     CompanionDeviceCapability {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         esl: ExecutorSecurityLevel::Esl3,
         track_ability_level: 1,
     }
 }
 
 fn create_mock_companion_token_info(atl: AuthTrustLevel) -> CompanionTokenInfo {
-    CompanionTokenInfo { template_id: 123, device_type: DeviceType::None, token: Vec::new(), atl, added_time: 1000 }
+    CompanionTokenInfo { template_id: 123, device_type: DeviceType::Default, token: Vec::new(), atl, added_time: 1000 }
 }
 
 fn mock_set_host_db_manager_for_host_update_token() {
@@ -753,7 +753,7 @@ fn host_begin_add_companion_test_success() {
     let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();
 
     let sec_key_nego_reply = SecKeyNegoReply { algorithm: 1, challenge: 0, pub_key: vec![1, 2, 3] };
-    let sec_message = sec_key_nego_reply.encode(DeviceType::None).unwrap();
+    let sec_message = sec_key_nego_reply.encode(DeviceType::Default).unwrap();
 
     let input = HostBeginAddCompanionInputFfi {
         request_id: 1,
@@ -1200,7 +1200,7 @@ fn host_begin_issue_token_test_success() {
         .returning(|| Ok(Vec::new()));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let host_request_manager = DefaultRequestManager::new();
@@ -1210,7 +1210,7 @@ fn host_begin_issue_token_test_success() {
         HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut issue_token_request = HostDeviceIssueTokenRequest::new(&pre_input).unwrap();
     issue_token_request.token_infos.push(DeviceTokenInfo {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         challenge: 0,
         atl: AuthTrustLevel::Atl3,
         token: Vec::new(),
@@ -1399,7 +1399,7 @@ fn host_begin_token_auth_test_success() {
         .returning(|| Ok(create_mock_companion_token_info(AuthTrustLevel::Atl3)));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
@@ -1513,7 +1513,7 @@ fn host_begin_token_auth_test_add_request_fail() {
         .returning(|| Ok(create_mock_companion_token_info(AuthTrustLevel::Atl3)));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
@@ -1579,7 +1579,7 @@ fn host_end_token_auth_test_success() {
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let sec_auth_reply = SecAuthReply { hmac: vec![1, 2, 3] };
-    let sec_message = sec_auth_reply.encode(DeviceType::None).unwrap();
+    let sec_message = sec_auth_reply.encode(DeviceType::Default).unwrap();
 
     let input = HostEndTokenAuthInputFfi {
         request_id: 1,
@@ -2226,7 +2226,7 @@ fn host_process_obtain_token_test_success() {
     let pre_input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
     let mut obtain_token_request = HostDeviceObtainTokenRequest::new(&pre_input).unwrap();
     obtain_token_request.token_infos.push(DeviceTokenInfo {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         challenge: 0,
         atl: AuthTrustLevel::Atl3,
         token: Vec::new(),
@@ -2244,7 +2244,7 @@ fn host_process_obtain_token_test_success() {
         .returning(|| Ok(Vec::new()));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
@@ -2585,7 +2585,7 @@ fn companion_init_key_negotiation_test_success() {
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
     let sec_key_nego_request = SecKeyNegoRequest { algorithm_list: vec![1] };
-    let sec_message = sec_key_nego_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_key_nego_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
@@ -2662,7 +2662,7 @@ fn companion_init_key_negotiation_test_add_request_fail() {
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
     let sec_key_nego_request = SecKeyNegoRequest { algorithm_list: vec![1] };
-    let sec_message = sec_key_nego_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_key_nego_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
@@ -2739,7 +2739,7 @@ fn companion_begin_add_host_binding_test_success() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: attr.to_bytes().unwrap(),
     };
-    let sec_message = sec_binding_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_binding_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginAddHostBindingInputFfi {
         request_id: 1,
@@ -2859,7 +2859,7 @@ fn companion_end_add_host_binding_test_success() {
 
     let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: Vec::new() };
     let sec_message = sec_issue_token
-        .encrypt_issue_token(&[0u8; SALT_LEN_FFI], DeviceType::None, &[1, 2, 3])
+        .encrypt_issue_token(&[0u8; SALT_LEN_FFI], DeviceType::Default, &[1, 2, 3])
         .unwrap();
 
     let input = CompanionEndAddHostBindingInputFfi {
@@ -2980,7 +2980,7 @@ fn companion_pre_issue_token_test_success() {
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let sec_pre_issue_request = SecPreIssueRequest { salt: [0u8; HKDF_SALT_SIZE] };
-    let sec_message = sec_pre_issue_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_pre_issue_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionPreIssueTokenInputFfi {
         request_id: 1,
@@ -3061,7 +3061,7 @@ fn companion_pre_issue_token_test_add_request_fail() {
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let sec_pre_issue_request = SecPreIssueRequest { salt: [0u8; HKDF_SALT_SIZE] };
-    let sec_message = sec_pre_issue_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_pre_issue_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionPreIssueTokenInputFfi {
         request_id: 1,
@@ -3110,7 +3110,7 @@ fn companion_process_issue_token_test_success() {
 
     let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: Vec::new() };
     let sec_message = sec_issue_token
-        .encrypt_issue_token(&[0u8; SALT_LEN_FFI], DeviceType::None, &[1, 2, 3])
+        .encrypt_issue_token(&[0u8; SALT_LEN_FFI], DeviceType::Default, &[1, 2, 3])
         .unwrap();
 
     let input = CompanionProcessIssueTokenInputFfi {
@@ -3254,7 +3254,7 @@ fn companion_process_token_auth_test_success() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: attr.to_bytes().unwrap(),
     };
-    let sec_message = sec_common_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_common_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionProcessTokenAuthInputFfi {
         binding_id: 123,
@@ -3345,7 +3345,7 @@ fn companion_begin_delegate_auth_test_success() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: attr.to_bytes().unwrap(),
     };
-    let sec_message = sec_common_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_common_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,
@@ -3410,7 +3410,7 @@ fn companion_begin_delegate_auth_test_add_request_fail() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: attr.to_bytes().unwrap(),
     };
-    let sec_message = sec_common_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_common_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,
@@ -3463,7 +3463,7 @@ fn companion_begin_obtain_token_test_success() {
     let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();
 
     let sec_pre_obtain_token_request = SecPreObtainTokenRequest { salt: [0u8; HKDF_SALT_SIZE], challenge: 0 };
-    let sec_message = sec_pre_obtain_token_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_pre_obtain_token_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginObtainTokenInputFfi {
         request_id: 1,
@@ -3542,7 +3542,7 @@ fn companion_begin_obtain_token_test_add_request_fail() {
     let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();
 
     let sec_pre_obtain_token_request = SecPreObtainTokenRequest { salt: [0u8; HKDF_SALT_SIZE], challenge: 0 };
-    let sec_message = sec_pre_obtain_token_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_pre_obtain_token_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginObtainTokenInputFfi {
         request_id: 1,
@@ -3593,7 +3593,7 @@ fn companion_end_obtain_token_test_success() {
 
     let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: Vec::new() };
     let sec_message = sec_issue_token
-        .encrypt_issue_token(&[0u8; SALT_LEN_FFI], DeviceType::None, &[1, 2, 3])
+        .encrypt_issue_token(&[0u8; SALT_LEN_FFI], DeviceType::Default, &[1, 2, 3])
         .unwrap();
 
     let input = CompanionEndObtainTokenInputFfi {

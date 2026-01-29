@@ -111,7 +111,7 @@ fn sec_key_nego_request_decode_test_miss_message() {
     attribute.set_u16_slice(AttributeKey::AttrAlgoList, &Vec::new());
     let message = attribute.to_bytes().unwrap();
 
-    let result = SecKeyNegoRequest::decode(&message, DeviceType::None);
+    let result = SecKeyNegoRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -125,7 +125,7 @@ fn sec_key_nego_request_decode_test_try_from_bytes_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecKeyNegoRequest::decode(&message, DeviceType::None);
+    let result = SecKeyNegoRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -140,7 +140,7 @@ fn sec_key_nego_request_decode_test_miss_algo_list() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecKeyNegoRequest::decode(&message, DeviceType::None);
+    let result = SecKeyNegoRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -153,7 +153,7 @@ fn sec_key_nego_reply_decode_test_miss_message() {
     attribute.set_u16_slice(AttributeKey::AttrAlgoList, &Vec::new());
     let message = attribute.to_bytes().unwrap();
 
-    let result = SecKeyNegoReply::decode(&message, DeviceType::None);
+    let result = SecKeyNegoReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -167,7 +167,7 @@ fn sec_key_nego_reply_decode_test_try_from_bytes_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecKeyNegoReply::decode(&message, DeviceType::None);
+    let result = SecKeyNegoReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -182,7 +182,7 @@ fn sec_key_nego_reply_decode_test_miss_algorithm() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecKeyNegoReply::decode(&message, DeviceType::None);
+    let result = SecKeyNegoReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -197,7 +197,7 @@ fn sec_key_nego_reply_decode_test_miss_challenge() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecKeyNegoReply::decode(&message, DeviceType::None);
+    let result = SecKeyNegoReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -213,7 +213,7 @@ fn sec_key_nego_reply_decode_test_miss_public_key() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecKeyNegoReply::decode(&message, DeviceType::None);
+    let result = SecKeyNegoReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -226,7 +226,7 @@ fn sec_binding_request_decode_test_miss_message() {
     attribute.set_u16_slice(AttributeKey::AttrAlgoList, &Vec::new());
     let message = attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -240,7 +240,7 @@ fn sec_binding_request_decode_test_try_from_bytes_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -255,7 +255,7 @@ fn sec_binding_request_decode_test_miss_public_key() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -270,7 +270,7 @@ fn sec_binding_request_decode_test_miss_salt() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -286,7 +286,7 @@ fn sec_binding_request_decode_test_miss_tag() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -303,7 +303,7 @@ fn sec_binding_request_decode_test_miss_iv() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -321,7 +321,7 @@ fn sec_binding_request_decode_test_miss_encrypt_data() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -340,7 +340,7 @@ fn sec_binding_request_decode_test_salt_try_into_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -359,7 +359,7 @@ fn sec_binding_request_decode_test_tag_try_into_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -378,7 +378,7 @@ fn sec_binding_request_decode_test_iv_try_into_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingRequest::decode(&message, DeviceType::None);
+    let result = SecBindingRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -391,7 +391,7 @@ fn sec_binding_reply_decode_test_miss_message() {
     attribute.set_u16_slice(AttributeKey::AttrAlgoList, &Vec::new());
     let message = attribute.to_bytes().unwrap();
 
-    let result = SecBindingReply::decode(&message, DeviceType::None);
+    let result = SecBindingReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -405,7 +405,7 @@ fn sec_binding_reply_decode_test_try_from_bytes_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingReply::decode(&message, DeviceType::None);
+    let result = SecBindingReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -420,7 +420,7 @@ fn sec_binding_reply_decode_test_miss_tag() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingReply::decode(&message, DeviceType::None);
+    let result = SecBindingReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -435,7 +435,7 @@ fn sec_binding_reply_decode_test_miss_iv() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingReply::decode(&message, DeviceType::None);
+    let result = SecBindingReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -451,7 +451,7 @@ fn sec_binding_reply_decode_test_miss_encrypt_data() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingReply::decode(&message, DeviceType::None);
+    let result = SecBindingReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -468,7 +468,7 @@ fn sec_binding_reply_decode_test_tag_try_into_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingReply::decode(&message, DeviceType::None);
+    let result = SecBindingReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -485,6 +485,6 @@ fn sec_binding_reply_decode_test_iv_try_into_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecBindingReply::decode(&message, DeviceType::None);
+    let result = SecBindingReply::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

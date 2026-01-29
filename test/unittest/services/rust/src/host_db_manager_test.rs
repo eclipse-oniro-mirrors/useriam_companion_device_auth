@@ -45,7 +45,7 @@ fn create_mock_companion_device_base_info() -> CompanionDeviceBaseInfo {
 fn create_mock_companion_token_info() -> CompanionTokenInfo {
     CompanionTokenInfo {
         template_id: 0,
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         token: Vec::<u8>::new(),
         atl: AuthTrustLevel::Atl0,
         added_time: 0,
@@ -77,8 +77,8 @@ fn dummy_host_db_manager_test() {
     assert!(dummy_host_db_manager.update_device(&device_info).is_err());
     assert!(dummy_host_db_manager.generate_unique_template_id().is_err());
     assert!(dummy_host_db_manager.add_token(&token).is_err());
-    assert!(dummy_host_db_manager.get_token(0, DeviceType::None).is_err());
-    assert!(dummy_host_db_manager.remove_token(0, DeviceType::None).is_err());
+    assert!(dummy_host_db_manager.get_token(0, DeviceType::Default).is_err());
+    assert!(dummy_host_db_manager.remove_token(0, DeviceType::Default).is_err());
     assert!(dummy_host_db_manager.update_token(&token).is_err());
     assert!(dummy_host_db_manager.read_device_db().is_err());
     assert!(dummy_host_db_manager.read_device_base_info(0).is_err());

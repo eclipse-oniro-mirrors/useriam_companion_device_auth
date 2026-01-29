@@ -39,7 +39,7 @@ fn create_valid_auth_request_message(challenge: u64) -> Vec<u8> {
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let request = SecCommonRequest { salt, tag, iv, encrypt_data };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 #[test]
@@ -224,7 +224,7 @@ fn companion_token_auth_request_begin_test_get_challenge_fail() {
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let request_msg = SecCommonRequest { salt, tag, iv, encrypt_data };
-    let sec_message = request_msg.encode(DeviceType::None).unwrap();
+    let sec_message = request_msg.encode(DeviceType::Default).unwrap();
 
     let input = CompanionProcessTokenAuthInputFfi {
         binding_id: 123,

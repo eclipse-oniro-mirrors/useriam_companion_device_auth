@@ -47,7 +47,7 @@ fn genereate_companion_init_key_negotiation_input_ffi() -> CompanionInitKeyNegot
 
 fn create_valid_key_nego_request() -> Vec<u8> {
     let request = SecKeyNegoRequest { algorithm_list: vec![AlgoType::X25519 as u16] };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_binding_request(pub_key: &[u8], challenge: u64) -> Vec<u8> {
@@ -62,13 +62,13 @@ fn create_valid_binding_request(pub_key: &[u8], challenge: u64) -> Vec<u8> {
     let iv = [3u8; AES_GCM_IV_SIZE];
 
     let request = SecBindingRequest { pub_key: pub_key.to_vec(), salt, tag, iv, encrypt_data };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_issue_token_message(challenge: u64, atl: i32) -> Vec<u8> {
     let issue_token = SecIssueToken { challenge, atl, token: vec![1u8; TOKEN_KEY_LEN] };
     issue_token
-        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, &[])
+        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::Default, &[])
         .unwrap()
 }
 
@@ -121,7 +121,7 @@ fn companion_enroll_request_prepare_test_algorithm_not_supported() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let request_no_x25519 = SecKeyNegoRequest { algorithm_list: vec![AlgoType::None as u16] };
-    let sec_message = request_no_x25519.encode(DeviceType::None).unwrap();
+    let sec_message = request_no_x25519.encode(DeviceType::Default).unwrap();
 
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,

@@ -31,13 +31,13 @@ use std::boxed::Box;
 
 fn create_valid_pre_issue_request(salt: &[u8; HKDF_SALT_SIZE]) -> Vec<u8> {
     let request = SecPreIssueRequest { salt: *salt };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_issue_token_message(challenge: u64, atl: i32, session_key: &[u8]) -> Vec<u8> {
     let issue_token = SecIssueToken { challenge, atl, token: vec![1u8; TOKEN_KEY_LEN] };
     issue_token
-        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, session_key)
+        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::Default, session_key)
         .unwrap()
 }
 
