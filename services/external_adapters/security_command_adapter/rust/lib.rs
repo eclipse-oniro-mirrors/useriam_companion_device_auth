@@ -47,8 +47,3 @@ pub use {
     common::constants::SHA256_DIGEST_SIZE, traits::crypto_engine::MockCryptoEngine,
     traits::misc_manager::MockMiscManager,
 };
-
-// Unit tests configuration
-#[cfg(any(test, feature = "test-utils"))]
-#[path = "../../../../../companion_device_auth/test/unittest/services/rust/src/unit_test.rs"]
-mod unit_test;

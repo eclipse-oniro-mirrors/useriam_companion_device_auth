@@ -14,7 +14,7 @@
  */
 
 use crate::common::constants::*;
-use crate::entry::companion_device_auth_ffi::{CompanionProcessTokenAuthInputFfi, DataArray1024Ffi};
+use crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthInputFfi;
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonRequest;

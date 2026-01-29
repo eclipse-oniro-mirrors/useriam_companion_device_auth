@@ -15,9 +15,7 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::PROPERTY_MODE_UNFREEZE;
-use crate::entry::companion_device_auth_ffi::{
-    CompanionBeginObtainTokenInputFfi, CompanionEndObtainTokenOutputFfi, DataArray1024Ffi,
-};
+use crate::entry::companion_device_auth_ffi::{CompanionBeginObtainTokenInputFfi, CompanionEndObtainTokenOutputFfi};
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};

@@ -14,7 +14,7 @@
  */
 
 use crate::common::constants::*;
-use crate::entry::companion_device_auth_ffi::{DataArray1024Ffi, HostBeginDelegateAuthInputFfi};
+use crate::entry::companion_device_auth_ffi::HostBeginDelegateAuthInputFfi;
 use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::delegate_auth::auth_message::{FwkAuthReply, FwkAuthRequest};
