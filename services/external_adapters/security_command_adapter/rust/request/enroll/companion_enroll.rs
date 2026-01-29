@@ -153,7 +153,12 @@ impl CompanionDeviceEnrollRequest {
             last_used_time: 0,
         });
 
-        let sk_info = Box::new(HostDeviceSk { sk: self.sk.clone().try_into().map_err(|_| ErrorCode::GeneralError)? });
+        let sk_info = Box::new(HostDeviceSk {
+            sk: self.sk.clone().try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+        });
 
         Ok((device_info, sk_info))
     }
@@ -262,7 +267,10 @@ impl CompanionDeviceEnrollRequest {
 
     fn store_token(&self) -> Result<(), ErrorCode> {
         let token_info = HostTokenInfo {
-            token: self.token_info.token.clone().try_into().map_err(|_| ErrorCode::GeneralError)?,
+            token: self.token_info.token.clone().try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
             atl: self.token_info.atl,
         };
 

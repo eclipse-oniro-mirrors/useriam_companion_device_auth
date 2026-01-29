@@ -145,7 +145,10 @@ impl CompanionDeviceIssueTokenRequest {
 
     fn store_token(&self) -> Result<(), ErrorCode> {
         let token_info = HostTokenInfo {
-            token: self.token_info.token.clone().try_into().map_err(|_| ErrorCode::GeneralError)?,
+            token: self.token_info.token.clone().try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
             atl: self.token_info.atl,
         };
 

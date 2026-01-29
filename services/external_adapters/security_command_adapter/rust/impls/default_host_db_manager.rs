@@ -247,7 +247,13 @@ impl DefaultHostDbManager {
             let mut sk = vec![0u8; SHARE_KEY_LEN];
             parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
 
-            let sk_info = CompanionDeviceSk { device_type, sk: sk.try_into().map_err(|_| ErrorCode::GeneralError)? };
+            let sk_info = CompanionDeviceSk {
+                device_type,
+                sk: sk.try_into().map_err(|e| {
+                    log_e!("try_into fail: {:?}", e);
+                    ErrorCode::GeneralError
+                })?,
+            };
             sk_infos.push(sk_info);
         }
 

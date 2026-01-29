@@ -146,8 +146,13 @@ impl CompanionDeviceObtainTokenRequest {
     }
 
     fn store_token(&self) -> Result<(), ErrorCode> {
-        let token_info =
-            HostTokenInfo { token: self.token.clone().try_into().map_err(|_| ErrorCode::GeneralError)?, atl: self.atl };
+        let token_info = HostTokenInfo {
+            token: self.token.clone().try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+            atl: self.atl,
+        };
 
         CompanionDbManagerRegistry::get_mut().write_device_token(self.binding_id, &token_info)?;
         Ok(())

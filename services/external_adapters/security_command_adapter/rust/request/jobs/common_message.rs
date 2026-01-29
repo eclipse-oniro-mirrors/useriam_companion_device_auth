@@ -41,9 +41,18 @@ impl SecCommonRequest {
             .map_err(|e| p!(e))?;
 
         Ok(Box::new(Self {
-            salt: salt_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
-            tag: tag_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
-            iv: iv_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
+            salt: salt_slice.try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+            tag: tag_slice.try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+            iv: iv_slice.try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
             encrypt_data: encrypt_data_slice.to_vec(),
         }))
     }
@@ -82,8 +91,14 @@ impl SecCommonReply {
             .get_u8_slice(AttributeKey::AttrEncryptData)
             .map_err(|e| p!(e))?;
         Ok(Box::new(Self {
-            tag: tag_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
-            iv: iv_slice.try_into().map_err(|_| ErrorCode::GeneralError)?,
+            tag: tag_slice.try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+            iv: iv_slice.try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
             encrypt_data: encrypt_data_slice.to_vec(),
         }))
     }
@@ -144,7 +159,10 @@ impl SecIssueToken {
                 .map_err(|e| p!(e))?;
 
         let issue_token_request = Box::new(SecCommonRequest {
-            salt: salt.try_into().map_err(|_| ErrorCode::GeneralError)?,
+            salt: salt.try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
             tag,
             iv,
             encrypt_data,

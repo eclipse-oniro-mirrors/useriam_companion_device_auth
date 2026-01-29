@@ -154,7 +154,13 @@ impl DefaultCompanionDbManager {
         parcel.read_bytes(&mut token).map_err(|e| p!(e))?;
         let atl_value = parcel.read_i32().map_err(|e| p!(e))?;
         let atl = AuthTrustLevel::try_from(atl_value).map_err(|e| p!(e))?;
-        let host_token_info = HostTokenInfo { token: token.try_into().map_err(|_| ErrorCode::GeneralError)?, atl };
+        let host_token_info = HostTokenInfo {
+            token: token.try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+            atl,
+        };
         Ok(host_token_info)
     }
 
@@ -171,7 +177,12 @@ impl DefaultCompanionDbManager {
         }
         let mut sk = vec![0u8; SHARE_KEY_LEN];
         parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
-        let sk_info = HostDeviceSk { sk: sk.try_into().map_err(|_| ErrorCode::GeneralError)? };
+        let sk_info = HostDeviceSk {
+            sk: sk.try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+        };
         Ok(sk_info)
     }
 

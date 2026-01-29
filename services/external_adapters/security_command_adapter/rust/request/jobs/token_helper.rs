@@ -49,7 +49,10 @@ pub fn add_companion_device_token(template_id: u64, token_infos: &Vec<DeviceToke
         let companion_token = CompanionTokenInfo {
             template_id,
             device_type: token_info.device_type,
-            token: token_info.token.clone().try_into().map_err(|_| ErrorCode::GeneralError)?,
+            token: token_info.token.clone().try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
             atl: token_info.atl,
             added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
         };

@@ -55,7 +55,13 @@ impl SecPreObtainTokenRequest {
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
         let salt_slice = message_attribute.get_u8_slice(AttributeKey::AttrSalt).map_err(|e| p!(e))?;
         let challenge = message_attribute.get_u64(AttributeKey::AttrChallenge).map_err(|e| p!(e))?;
-        Ok(Box::new(Self { salt: salt_slice.try_into().map_err(|_| ErrorCode::GeneralError)?, challenge }))
+        Ok(Box::new(Self {
+            salt: salt_slice.try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+            challenge,
+        }))
     }
 
     pub fn encode(&self, device_type: DeviceType) -> Result<Vec<u8>, ErrorCode> {

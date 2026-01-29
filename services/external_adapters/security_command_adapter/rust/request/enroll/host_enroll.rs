@@ -351,7 +351,10 @@ impl HostDeviceEnrollRequest {
         for key_nego_param in &self.key_negotial_param {
             let sk_info = CompanionDeviceSk {
                 device_type: key_nego_param.device_type,
-                sk: key_nego_param.sk.clone().try_into().map_err(|_| ErrorCode::GeneralError)?,
+                sk: key_nego_param.sk.clone().try_into().map_err(|e| {
+                    log_e!("try_into fail: {:?}", e);
+                    ErrorCode::GeneralError
+                })?,
             };
             sk_infos.push(sk_info);
         }
@@ -370,7 +373,10 @@ impl HostDeviceEnrollRequest {
             let companion_token = CompanionTokenInfo {
                 template_id,
                 device_type: token_info.device_type,
-                token: token_info.token.clone().try_into().map_err(|_| ErrorCode::GeneralError)?,
+                token: token_info.token.clone().try_into().map_err(|e| {
+                    log_e!("try_into fail: {:?}", e);
+                    ErrorCode::GeneralError
+                })?,
                 atl: self.atl,
                 added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             };
