@@ -15,7 +15,7 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionInitKeyNegotiationInputFfi, DataArray20000Ffi, DeviceKeyFfi, PersistedHostBindingStatusFfi,
+    CompanionInitKeyNegotiationInputFfi, DeviceKeyFfi, PersistedHostBindingStatusFfi,
 };
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;

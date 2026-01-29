@@ -22,10 +22,8 @@ use crate::request::jobs::token_helper;
 use crate::request::jobs::token_helper::DeviceTokenInfo;
 use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenRequest;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
 
