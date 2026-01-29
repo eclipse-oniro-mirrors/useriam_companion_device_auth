@@ -1211,7 +1211,7 @@ fn host_begin_issue_token_test_success() {
         device_type: DeviceType::Default,
         challenge: 0,
         atl: AuthTrustLevel::Atl3,
-        token: Vec::new(),
+        token: [0u8; TOKEN_KEY_LEN].to_vec(),
     });
     RequestManagerRegistry::get_mut()
         .add_request(Box::new(issue_token_request))
@@ -2227,7 +2227,7 @@ fn host_process_obtain_token_test_success() {
         device_type: DeviceType::Default,
         challenge: 0,
         atl: AuthTrustLevel::Atl3,
-        token: [0u8; TOKEN_KEY_LEN].to,
+        token: [0u8; TOKEN_KEY_LEN].to_vec(),
     });
 
     let mut mock_host_request_manager = MockRequestManager::new();
