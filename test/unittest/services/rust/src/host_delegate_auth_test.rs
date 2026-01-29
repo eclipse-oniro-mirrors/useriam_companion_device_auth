@@ -96,12 +96,12 @@ fn mock_set_host_db_manager() {
         Ok(vec![CompanionDeviceCapability {
             device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 }
 
@@ -345,7 +345,7 @@ fn host_delegate_auth_request_begin_test_get_session_key_fail() {
         Ok(vec![CompanionDeviceCapability {
             device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager
@@ -478,7 +478,7 @@ fn host_delegate_auth_request_end_test_sec_message_decode_fail() {
         Ok(vec![CompanionDeviceCapability {
             device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
@@ -515,7 +515,7 @@ fn host_delegate_auth_request_end_test_get_session_key_fail() {
         Ok(vec![CompanionDeviceCapability {
             device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager

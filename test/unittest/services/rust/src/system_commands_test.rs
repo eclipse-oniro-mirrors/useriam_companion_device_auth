@@ -18,7 +18,6 @@ use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::*;
 use crate::impls::default_request_manager::DefaultRequestManager;
 use crate::log_i;
-use crate::request::delegate_auth::companion_auth::CompanionDelegateAuthRequest;
 use crate::request::delegate_auth::host_auth::HostDelegateAuthRequest;
 use crate::request::enroll::companion_enroll::CompanionDeviceEnrollRequest;
 use crate::request::enroll::enroll_message::{SecBindingRequest, SecKeyNegoReply, SecKeyNegoRequest};
@@ -45,7 +44,6 @@ use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{MockRequestManager, RequestManagerRegistry};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
-use crate::utils::auth_token::{TokenDataPlain, UserAuthToken, AUTH_TOKEN_CIPHER_LEN};
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
 use crate::utils::{Attribute, AttributeKey};
 use std::{boxed::Box, string::String, vec::Vec};
@@ -88,12 +86,12 @@ fn create_mock_companion_device_capability() -> CompanionDeviceCapability {
     CompanionDeviceCapability {
         device_type: DeviceType::Default,
         esl: ExecutorSecurityLevel::Esl3,
-        track_ability_level: 1,
+        track_ability_level: TrackAbilityLevel::Tal1,
     }
 }
 
 fn create_mock_companion_token_info(atl: AuthTrustLevel) -> CompanionTokenInfo {
-    CompanionTokenInfo { template_id: 123, device_type: DeviceType::Default, token: Vec::new(), atl, added_time: 1000 }
+    CompanionTokenInfo { template_id: 123, device_type: DeviceType::Default, token: [0u8; TOKEN_KEY_LEN], atl, added_time: 1000 }
 }
 
 fn mock_set_host_db_manager_for_host_update_token() {
@@ -1200,7 +1198,7 @@ fn host_begin_issue_token_test_success() {
         .returning(|| Ok(Vec::new()));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let host_request_manager = DefaultRequestManager::new();
@@ -1399,7 +1397,7 @@ fn host_begin_token_auth_test_success() {
         .returning(|| Ok(create_mock_companion_token_info(AuthTrustLevel::Atl3)));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
@@ -1513,7 +1511,7 @@ fn host_begin_token_auth_test_add_request_fail() {
         .returning(|| Ok(create_mock_companion_token_info(AuthTrustLevel::Atl3)));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
@@ -2244,7 +2242,7 @@ fn host_process_obtain_token_test_success() {
         .returning(|| Ok(Vec::new()));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
@@ -2520,7 +2518,7 @@ fn companion_process_check_test_success() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -2976,7 +2974,7 @@ fn companion_pre_issue_token_test_success() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let sec_pre_issue_request = SecPreIssueRequest { salt: [0u8; HKDF_SALT_SIZE] };
@@ -3057,7 +3055,7 @@ fn companion_pre_issue_token_test_add_request_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let sec_pre_issue_request = SecPreIssueRequest { salt: [0u8; HKDF_SALT_SIZE] };
@@ -3231,10 +3229,10 @@ fn companion_process_token_auth_test_success() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     mock_companion_db_manager
         .expect_read_device_token()
-        .returning(|| Ok(HostTokenInfo { token: Vec::new(), atl: AuthTrustLevel::Atl3 }));
+        .returning(|| Ok(HostTokenInfo { token: [0u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl3 }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -3325,7 +3323,7 @@ fn companion_begin_delegate_auth_test_success() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -3390,7 +3388,7 @@ fn companion_begin_delegate_auth_test_add_request_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -3451,7 +3449,7 @@ fn companion_begin_obtain_token_test_success() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut attr = Attribute::new();
@@ -3530,7 +3528,7 @@ fn companion_begin_obtain_token_test_add_request_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut attr = Attribute::new();

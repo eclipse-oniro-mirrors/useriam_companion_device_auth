@@ -15,13 +15,13 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionProcessCheckInputFfi, CompanionProcessCheckOutputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi,
+    CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi,
     DataArray32Ffi, Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
+use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::HostDeviceSk;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
@@ -121,7 +121,7 @@ fn companion_sync_status_request_begin_test_encrypt_sec_message_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();

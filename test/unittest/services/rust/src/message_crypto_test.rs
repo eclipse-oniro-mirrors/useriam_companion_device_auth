@@ -14,7 +14,6 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::jobs::message_crypto::{decrypt_sec_message, get_distribute_key};
 use crate::log_i;
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};

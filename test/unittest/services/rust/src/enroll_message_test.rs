@@ -16,7 +16,7 @@
 use crate::common::constants::*;
 use crate::log_i;
 use crate::request::enroll::enroll_message::{
-    FwkEnrollReply, FwkEnrollRequest, SecBindingReply, SecBindingReplyInfo, SecBindingRequest, SecKeyNegoReply,
+    FwkEnrollRequest, SecBindingReply, SecBindingRequest, SecKeyNegoReply,
     SecKeyNegoRequest,
 };
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};

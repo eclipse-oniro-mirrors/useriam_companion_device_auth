@@ -19,10 +19,10 @@ use crate::entry::companion_device_auth_ffi::{
     HostEndIssueTokenOutputFfi, HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi, PROPERTY_MODE_UNFREEZE,
 };
 use crate::log_i;
-use crate::request::jobs::common_message::{SecCommonReply, SecIssueToken};
+use crate::request::jobs::common_message::{SecCommonReply};
 use crate::request::token_issue::host_issue_token::HostDeviceIssueTokenRequest;
 use crate::request::token_issue::token_issue_message::SecIssueTokenReply;
-use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
+use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
@@ -89,12 +89,12 @@ fn mock_set_host_db_manager() {
         Ok(vec![CompanionDeviceCapability {
             device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 }

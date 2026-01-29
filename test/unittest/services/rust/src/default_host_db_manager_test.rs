@@ -14,7 +14,6 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::impls::default_host_db_manager::DefaultHostDbManager;
 use crate::log_i;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
@@ -55,19 +54,19 @@ fn create_test_capability_info() -> Vec<CompanionDeviceCapability> {
     vec![CompanionDeviceCapability {
         device_type: DeviceType::Default,
         esl: ExecutorSecurityLevel::Esl0,
-        track_ability_level: 1,
+        track_ability_level: TrackAbilityLevel::Tal1,
     }]
 }
 
 fn create_test_sk_info() -> Vec<CompanionDeviceSk> {
-    vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: vec![1u8, 2, 3, 4] }]
+    vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]
 }
 
 fn create_test_token_info(template_id: u64) -> CompanionTokenInfo {
     CompanionTokenInfo {
         template_id,
         device_type: DeviceType::Default,
-        token: vec![1u8, 2, 3, 4],
+        token: [0u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,
         added_time: 1000,
     }
@@ -546,19 +545,6 @@ fn default_host_db_manager_add_token_test_success() {
 }
 
 #[test]
-fn default_host_db_manager_add_token_test_empty_token() {
-    let _guard = ut_registry_guard!();
-    log_i!("default_host_db_manager_add_token_test_empty_token start");
-
-    let mut manager = DefaultHostDbManager::new();
-    let mut token_info = create_test_token_info(123);
-    token_info.token = vec![];
-
-    let result = manager.add_token(&token_info);
-    assert_eq!(result, Err(ErrorCode::BadParam));
-}
-
-#[test]
 fn default_host_db_manager_add_token_test_template_id_not_exists() {
     let _guard = ut_registry_guard!();
     log_i!("default_host_db_manager_add_token_test_template_id_not_exists start");
@@ -592,7 +578,7 @@ fn default_host_db_manager_get_token_test_success() {
     assert!(result.is_ok());
     let retrieved = result.unwrap();
     assert_eq!(retrieved.template_id, 123);
-    assert_eq!(retrieved.token, vec![1u8, 2, 3, 4]);
+    assert_eq!(retrieved.token, [0u8; TOKEN_KEY_LEN]);
 }
 
 #[test]
@@ -660,12 +646,12 @@ fn default_host_db_manager_update_token_test_success() {
     let _ = manager.add_token(&token_info);
 
     let mut updated_token = token_info.clone();
-    updated_token.token = vec![5u8, 6, 7, 8];
+    updated_token.token = [1u8; TOKEN_KEY_LEN];
 
     let result = manager.update_token(&updated_token);
     assert!(result.is_ok());
     let retrieved = manager.get_token(123, DeviceType::Default).unwrap();
-    assert_eq!(retrieved.token, vec![5u8, 6, 7, 8]);
+    assert_eq!(retrieved.token, [1u8; TOKEN_KEY_LEN]);
 }
 
 #[test]

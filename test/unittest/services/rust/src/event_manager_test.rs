@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-use crate::common::constants::*;
 use crate::log_i;
 use crate::traits::event_manager::{DummyEventManager, Event, EventManager, EventType};
 use crate::ut_registry_guard;

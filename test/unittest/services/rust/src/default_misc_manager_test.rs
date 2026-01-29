@@ -14,12 +14,12 @@
  */
 
 use crate::common::constants::ErrorCode;
-use crate::common::types::Udid;
 use crate::impls::default_misc_manager::DefaultMiscManager;
 use crate::log_i;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::misc_manager::MiscManager;
 use crate::ut_registry_guard;
+use crate::Udid;
 
 fn create_test_udid(id: u8) -> Udid {
     let mut bytes = [0u8; 64];

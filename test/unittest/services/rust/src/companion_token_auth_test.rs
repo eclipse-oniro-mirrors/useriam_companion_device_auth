@@ -138,7 +138,7 @@ fn companion_token_auth_request_begin_test_aes_gcm_decrypt_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -171,10 +171,10 @@ fn companion_token_auth_request_begin_test_attribute_try_from_bytes_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     mock_companion_db_manager
         .expect_read_device_token()
-        .returning(|| Ok(HostTokenInfo { token: Vec::new(), atl: AuthTrustLevel::Atl3 }));
+        .returning(|| Ok(HostTokenInfo { token: [0u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl3 }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -205,7 +205,7 @@ fn companion_token_auth_request_begin_test_get_challenge_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -255,7 +255,7 @@ fn companion_token_auth_request_begin_test_read_device_token_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     mock_companion_db_manager
         .expect_read_device_token()
         .returning(|| Err(ErrorCode::NotFound));
@@ -284,10 +284,10 @@ fn companion_token_auth_request_begin_test_hmac_sha256_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     mock_companion_db_manager
         .expect_read_device_token()
-        .returning(|| Ok(HostTokenInfo { token: vec![1u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl3 }));
+        .returning(|| Ok(HostTokenInfo { token: [0u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl3 }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();

@@ -46,7 +46,7 @@ fn create_mock_companion_token_info() -> CompanionTokenInfo {
     CompanionTokenInfo {
         template_id: 0,
         device_type: DeviceType::Default,
-        token: Vec::<u8>::new(),
+        token: [0u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl0,
         added_time: 0,
     }

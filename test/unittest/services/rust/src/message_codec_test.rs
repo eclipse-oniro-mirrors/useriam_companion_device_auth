@@ -14,14 +14,12 @@
  */
 
 use crate::common::constants::ErrorCode;
-use crate::common::types::Udid;
 use crate::log_i;
 use crate::traits::crypto_engine::MockCryptoEngine;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
 use crate::ut_registry_guard;
 use crate::utils::attribute::{Attribute, AttributeKey};
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
-use crate::SHA256_DIGEST_SIZE;
 
 #[test]
 fn serialize_attribute_test() {

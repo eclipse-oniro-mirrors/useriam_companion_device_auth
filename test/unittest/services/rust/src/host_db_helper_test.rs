@@ -14,7 +14,6 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::jobs::host_db_helper::{get_session_key, update_companion_device_info, update_device_business_id};
 use crate::log_i;
 use crate::traits::db_manager::{CompanionDeviceBaseInfo, CompanionDeviceInfo, DeviceKey, UserInfo};

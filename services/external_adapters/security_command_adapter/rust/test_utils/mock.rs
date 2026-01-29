@@ -842,7 +842,7 @@ impl MockEventManager {
 
 #[cfg(any(test, feature = "test-utils"))]
 impl crate::traits::event_manager::EventManager for MockEventManager {
-    fn record_event(&mut self, _event: &crate::traits::event_manager::Event) -> () {
+    fn record_event(&mut self, _event: &crate::traits::event_manager::Event) {
         self.record_event.call()
     }
 

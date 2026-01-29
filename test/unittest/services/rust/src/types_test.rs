@@ -17,8 +17,6 @@ use crate::common::constants::{ErrorCode, UDID_LEN};
 use crate::common::types::Udid;
 use crate::log_i;
 use crate::ut_registry_guard;
-use std::string::String;
-use std::vec::Vec;
 
 #[test]
 fn udid_test() {

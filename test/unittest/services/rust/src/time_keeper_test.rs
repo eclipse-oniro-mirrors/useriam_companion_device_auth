@@ -14,7 +14,6 @@
  */
 
 use crate::common::constants::*;
-use crate::common::Udid;
 use crate::log_i;
 use crate::traits::time_keeper::{DummyTimeKeeper, TimeKeeper};
 use crate::ut_registry_guard;

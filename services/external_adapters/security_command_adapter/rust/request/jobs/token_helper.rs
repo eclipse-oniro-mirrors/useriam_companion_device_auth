@@ -47,7 +47,7 @@ pub fn generate_token(
 pub fn add_companion_device_token(template_id: u64, token_infos: &Vec<DeviceTokenInfo>) -> Result<(), ErrorCode> {
     for token_info in token_infos {
         let companion_token = CompanionTokenInfo {
-            template_id: template_id,
+            template_id,
             device_type: token_info.device_type,
             token: token_info.token.clone().try_into().map_err(|_| ErrorCode::GeneralError)?,
             atl: token_info.atl,

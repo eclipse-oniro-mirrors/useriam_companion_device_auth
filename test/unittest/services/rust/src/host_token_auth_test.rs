@@ -21,7 +21,7 @@ use crate::entry::companion_device_auth_ffi::{
 use crate::log_i;
 use crate::request::token_auth::auth_message::SecAuthReply;
 use crate::request::token_auth::host_auth::{HostTokenAuthRequest, TOKEN_VALID_PERIOD};
-use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
+use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo, DeviceKey, UserInfo};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
@@ -66,7 +66,7 @@ fn create_mock_companion_token_info(added_time: u64) -> CompanionTokenInfo {
     CompanionTokenInfo {
         template_id: 123,
         device_type: DeviceType::Default,
-        token: vec![1u8; TOKEN_KEY_LEN],
+        token: [1u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,
         added_time,
     }
@@ -535,7 +535,7 @@ fn host_token_auth_request_begin_test_aes_gcm_encrypt_fail() {
         .returning(|| Ok(create_mock_companion_token_info(1000)));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     mock_set_misc_manager();

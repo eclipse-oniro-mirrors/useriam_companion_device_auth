@@ -65,7 +65,6 @@ fn executor_security_level_test() {
     assert_eq!(ExecutorSecurityLevel::try_from(1).unwrap(), ExecutorSecurityLevel::Esl1);
     assert_eq!(ExecutorSecurityLevel::try_from(2).unwrap(), ExecutorSecurityLevel::Esl2);
     assert_eq!(ExecutorSecurityLevel::try_from(3).unwrap(), ExecutorSecurityLevel::Esl3);
-    assert_eq!(ExecutorSecurityLevel::try_from(4).unwrap(), ExecutorSecurityLevel::MaxEsl);
     assert_eq!(ExecutorSecurityLevel::try_from(-1), Err(ErrorCode::BadParam));
 }
 

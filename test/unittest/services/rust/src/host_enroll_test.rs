@@ -16,15 +16,15 @@
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
-    HostBeginCompanionCheckOutputFfi, HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi,
-    HostEndCompanionCheckOutputFfi, HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
+    HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi,
+    HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
     PersistedCompanionStatusFfi,
 };
 use crate::log_i;
 use crate::request::enroll::enroll_message::{SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply};
 use crate::request::enroll::host_enroll::{HostDeviceEnrollRequest, KeyNegotialParam};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk, DeviceKey};
+use crate::traits::db_manager::{CompanionDeviceSk, DeviceKey};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
@@ -1124,7 +1124,7 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
