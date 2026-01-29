@@ -61,8 +61,7 @@ void CompanionStartDelegateAuthHandler::HandleRequest(const Attributes &request,
     }
 
     StartDelegateAuthReply replyMsg = { .result = ResultCode::SUCCESS };
-    bool encodeRet = EncodeStartDelegateAuthReply(replyMsg, reply);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodeStartDelegateAuthReply(replyMsg, reply);
     errorGuard.Cancel();
 }
 } // namespace CompanionDeviceAuth

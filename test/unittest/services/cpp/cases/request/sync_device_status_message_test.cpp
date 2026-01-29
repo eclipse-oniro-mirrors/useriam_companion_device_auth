@@ -54,8 +54,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_001, TestSiz
         .challenge = challenge_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeSyncDeviceStatusRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeSyncDeviceStatusRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -83,8 +82,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_002, TestSiz
         .challenge = 0 };
 
     Attributes attributes;
-    bool encodeResult = EncodeSyncDeviceStatusRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeSyncDeviceStatusRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -172,8 +170,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.
         .companionCheckResponse = companionCheckResponse_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeSyncDeviceStatusReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeSyncDeviceStatusReply(reply, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(reply.companionDeviceKey.idType));
@@ -205,8 +202,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_002, TestSize.
         .companionCheckResponse = companionCheckResponse_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeSyncDeviceStatusReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeSyncDeviceStatusReply(reply, attributes);
 
     auto result = DecodeSyncDeviceStatusReply(attributes);
     ASSERT_TRUE(result.has_value());
@@ -226,8 +222,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.
         .companionCheckResponse = {} };
 
     Attributes attributes;
-    bool encodeResult = EncodeSyncDeviceStatusReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeSyncDeviceStatusReply(reply, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(reply.companionDeviceKey.idType));

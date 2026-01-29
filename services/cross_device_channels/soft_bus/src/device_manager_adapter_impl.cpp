@@ -102,7 +102,7 @@ bool DeviceManagerAdapterImpl::QueryTrustedDevices(std::vector<DmDeviceInfo> &de
     return true;
 }
 
-bool DeviceManagerAdapterImpl::RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback)
+bool DeviceManagerAdapterImpl::RegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback)
 {
     std::string extra = "";
     XCollieHelper xcollie("DeviceManagerAdapterImpl-RegisterDevStatusCallback", API_CALL_TIMEOUT);
@@ -114,7 +114,7 @@ bool DeviceManagerAdapterImpl::RegisterDevStatusCallback(std::shared_ptr<DmDevic
     return true;
 }
 
-void DeviceManagerAdapterImpl::UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback)
+void DeviceManagerAdapterImpl::UnRegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback)
 {
     (void)callback;
     XCollieHelper xcollie("DeviceManagerAdapterImpl-UnRegisterDevStatusCallback", API_CALL_TIMEOUT);

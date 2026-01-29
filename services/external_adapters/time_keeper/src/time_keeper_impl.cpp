@@ -15,6 +15,7 @@
 
 #include "time_keeper_impl.h"
 
+#include <cinttypes>
 #include <ctime>
 #include <optional>
 
@@ -46,7 +47,7 @@ std::optional<SystemTimeMs> TimeKeeperImpl::GetSystemTimeMs()
 
     auto secMs = safe_mul(static_cast<uint64_t>(ts.tv_sec), static_cast<uint64_t>(MS_PER_SEC));
     if (!secMs.has_value()) {
-        IAM_LOGE("System time overflow: tv_sec=%{public}lld", static_cast<long long>(ts.tv_sec));
+        IAM_LOGE("System time overflow: tv_sec=%{public}" PRId64, static_cast<long long>(ts.tv_sec));
         return std::nullopt;
     }
 
@@ -70,7 +71,7 @@ std::optional<SteadyTimeMs> TimeKeeperImpl::GetSteadyTimeMs()
 
     auto secMs = safe_mul(static_cast<uint64_t>(ts.tv_sec), static_cast<uint64_t>(MS_PER_SEC));
     if (!secMs.has_value()) {
-        IAM_LOGE("Steady time overflow: tv_sec=%{public}lld", static_cast<long long>(ts.tv_sec));
+        IAM_LOGE("Steady time overflow: tv_sec=%{public}" PRId64, static_cast<long long>(ts.tv_sec));
         return std::nullopt;
     }
 

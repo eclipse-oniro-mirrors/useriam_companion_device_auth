@@ -1051,17 +1051,18 @@ HWTEST_F(CompanionDeviceAuthClientImplTest, RegisterBeforeSubscribeSaStatus, Tes
 
     auto callback = std::make_shared<MockDeviceSelectCallback>();
 
-    // First register AND SubscribeCompanionDeviceAuthSaStatus internally triggers re-registration
-    // So we expect 2 calls total
+    // Register callback once
+    // SubscribeCompanionDeviceAuthSaStatus only registers a listener, it doesn't trigger
+    // immediate re-registration. Re-registration happens when SA status changes.
     EXPECT_CALL(*fakeProxy_, RegisterDeviceSelectCallback(_, _))
-        .Times(2)
+        .Times(1)
         .WillRepeatedly(DoAll(SetArgReferee<INDEX_1>(SUCCESS), Return(SUCCESS)));
 
     // Act - Register callback before subscribing to SA status
     int32_t result1 = client.RegisterDeviceSelectCallback(callback);
     EXPECT_EQ(result1, SUCCESS);
 
-    // Then subscribe to SA status (should trigger re-registration internally)
+    // Then subscribe to SA status (registers listener, doesn't trigger immediate re-registration)
     client.SubscribeCompanionDeviceAuthSaStatus();
 
     // Assert - Callback should still be registered

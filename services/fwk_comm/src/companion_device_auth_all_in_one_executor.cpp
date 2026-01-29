@@ -199,14 +199,14 @@ FwkResultCode Inner::Authenticate(uint64_t scheduleId, const FwkAuthenticatePara
     if (request == nullptr) {
         IAM_LOGE("CreateHostMixAuthRequest failed");
         callbackObj->OnResult(FwkResultCode::GENERAL_ERROR, {});
-        return FwkResultCode::SUCCESS;
+        return FwkResultCode::GENERAL_ERROR;
     }
 
     bool result = GetRequestManager().Start(request);
     if (!result) {
         IAM_LOGE("request Start failed");
         callbackObj->OnResult(FwkResultCode::GENERAL_ERROR, {});
-        return FwkResultCode::SUCCESS;
+        return FwkResultCode::GENERAL_ERROR;
     }
 
     IAM_LOGI("end");
@@ -341,6 +341,17 @@ CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutor()
     inner_ = std::make_shared<CompanionDeviceAuthAllInOneExecutorInner>();
 }
 
+std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> CompanionDeviceAuthAllInOneExecutor::Create()
+{
+    IAM_LOGI("start");
+    auto executor = std::shared_ptr<CompanionDeviceAuthAllInOneExecutor>(new CompanionDeviceAuthAllInOneExecutor());
+    if (executor == nullptr) {
+        IAM_LOGE("Failed to create CompanionDeviceAuthAllInOneExecutor");
+        return nullptr;
+    }
+    return executor;
+}
+
 FwkResultCode CompanionDeviceAuthAllInOneExecutor::GetExecutorInfo(FwkExecutorInfo &info)
 {
     IAM_LOGI("start");
@@ -377,6 +388,7 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::SendMessage(uint64_t schedule
 FwkResultCode CompanionDeviceAuthAllInOneExecutor::Enroll(uint64_t scheduleId, const FwkEnrollParam &param,
     const std::shared_ptr<FwkIExecuteCallback> &callbackObj)
 {
+    ENSURE_OR_RETURN_VAL(callbackObj != nullptr, FwkResultCode::GENERAL_ERROR);
     IAM_LOGI("start");
     auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, FwkResultCode::GENERAL_ERROR);
@@ -388,6 +400,7 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::Enroll(uint64_t scheduleId, c
 FwkResultCode CompanionDeviceAuthAllInOneExecutor::Authenticate(uint64_t scheduleId, const FwkAuthenticateParam &param,
     const std::shared_ptr<FwkIExecuteCallback> &callbackObj)
 {
+    ENSURE_OR_RETURN_VAL(callbackObj != nullptr, FwkResultCode::GENERAL_ERROR);
     IAM_LOGI("start");
     auto inner = inner_;
     ENSURE_OR_RETURN_VAL(inner != nullptr, FwkResultCode::GENERAL_ERROR);
@@ -459,6 +472,7 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::RunOnResidentSync(std::functi
 
     IAM_LOGI("post function to default task runner");
     auto resultPromise = std::make_shared<std::promise<FwkResultCode>>();
+    ENSURE_OR_RETURN_VAL(resultPromise != nullptr, FwkResultCode::GENERAL_ERROR);
     auto future = resultPromise->get_future();
 
     TaskRunnerManager::GetInstance().PostTaskOnResident(

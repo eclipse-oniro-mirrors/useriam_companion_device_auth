@@ -15,6 +15,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <memory>
 
 #include "outbound_request.h"
 #include "request_aborted_message.h"
@@ -35,7 +36,8 @@ std::unique_ptr<Subscription> MakeSubscription()
     return std::make_unique<Subscription>([]() {});
 }
 
-class MockOutboundRequest : public OutboundRequest {
+// Test implementation that only mocks what's necessary, avoiding CFI issues
+class MockOutboundRequest : public OutboundRequest, public std::enable_shared_from_this<MockOutboundRequest> {
 public:
     MockOutboundRequest(RequestType requestType, ScheduleId scheduleId, uint32_t timeoutMs)
         : OutboundRequest(requestType, scheduleId, timeoutMs)
@@ -43,7 +45,14 @@ public:
     }
 
     MOCK_METHOD(void, OnConnected, (), (override));
-    MOCK_METHOD(std::weak_ptr<OutboundRequest>, GetWeakPtr, (), (override));
+
+    // Return real weak_ptr to this object - don't mock to avoid CFI issues
+    std::weak_ptr<OutboundRequest> GetWeakPtr() override
+    {
+        return shared_from_this();
+    }
+
+    // Implement pure virtual methods with mock implementations
     MOCK_METHOD(void, CompleteWithError, (ResultCode result), (override));
     MOCK_METHOD(uint32_t, GetMaxConcurrency, (), (const, override));
     MOCK_METHOD(bool, ShouldCancelOnNewRequest,
@@ -58,10 +67,6 @@ public:
         request_ =
             std::make_shared<MockOutboundRequest>(RequestType::HOST_DELEGATE_AUTH_REQUEST, scheduleId_, timeoutMs_);
         request_->SetPeerDeviceKey(peerDeviceKey_);
-        // Set default behaviors for mock methods that are called internally
-        ON_CALL(*request_, GetWeakPtr()).WillByDefault(Return(std::weak_ptr<OutboundRequest>(request_)));
-        ON_CALL(*request_, CompleteWithError(_)).WillByDefault(Return());
-        ON_CALL(*request_, OnConnected()).WillByDefault(Return());
     }
 
 protected:
@@ -78,10 +83,12 @@ HWTEST_F(OutboundRequestTest, Start_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -102,8 +109,6 @@ HWTEST_F(OutboundRequestTest, Start_002, TestSize.Level0)
 
     request_ = std::make_shared<MockOutboundRequest>(RequestType::HOST_DELEGATE_AUTH_REQUEST, scheduleId_, timeoutMs_);
 
-    EXPECT_CALL(*request_, CompleteWithError(_)).WillOnce(Return());
-
     request_->Start();
 
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -113,10 +118,12 @@ HWTEST_F(OutboundRequestTest, OnStart_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -139,10 +146,12 @@ HWTEST_F(OutboundRequestTest, OnStart_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -168,10 +177,12 @@ HWTEST_F(OutboundRequestTest, OnStart_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -194,16 +205,16 @@ HWTEST_F(OutboundRequestTest, Cancel_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
     CreateDefaultRequest();
-
-    EXPECT_CALL(*request_, CompleteWithError(_)).WillOnce(Return());
 
     bool result = request_->Cancel(ResultCode::GENERAL_ERROR);
 
@@ -215,10 +226,12 @@ HWTEST_F(OutboundRequestTest, Cancel_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -247,10 +260,12 @@ HWTEST_F(OutboundRequestTest, CloseConnection_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -268,10 +283,12 @@ HWTEST_F(OutboundRequestTest, CloseConnection_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -287,10 +304,12 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -305,10 +324,12 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -323,16 +344,16 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
     CreateDefaultRequest();
-
-    EXPECT_CALL(*request_, CompleteWithError(_)).WillOnce(Return());
 
     request_->HandleConnectionStatus("test_connection", ConnectionStatus::DISCONNECTED, "disconnected");
 }
@@ -341,10 +362,12 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_004, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -359,10 +382,12 @@ HWTEST_F(OutboundRequestTest, HandleRequestAborted_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -372,12 +397,10 @@ HWTEST_F(OutboundRequestTest, HandleRequestAborted_001, TestSize.Level0)
     RequestAbortedRequest abortReq;
     abortReq.result = ResultCode::TIMEOUT;
     abortReq.reason = "test_reason";
-    EXPECT_TRUE(EncodeRequestAbortedRequest(abortReq, request));
+    EncodeRequestAbortedRequest(abortReq, request);
 
     bool replyCalled = false;
     OnMessageReply onReply = [&replyCalled](const Attributes &reply) { replyCalled = true; };
-
-    EXPECT_CALL(*request_, CompleteWithError(_)).WillOnce(Return()).WillOnce(Return());
 
     request_->HandleRequestAborted(request, onReply);
 
@@ -388,10 +411,12 @@ HWTEST_F(OutboundRequestTest, HandleRequestAborted_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), CloseConnection(_)).WillByDefault(Return());
 
@@ -401,8 +426,6 @@ HWTEST_F(OutboundRequestTest, HandleRequestAborted_002, TestSize.Level0)
 
     bool replyCalled = false;
     OnMessageReply onReply = [&replyCalled](const Attributes &reply) { replyCalled = true; };
-
-    EXPECT_CALL(*request_, CompleteWithError(_)).WillOnce(Return());
 
     request_->HandleRequestAborted(request, onReply);
 

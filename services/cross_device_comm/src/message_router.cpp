@@ -19,6 +19,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_safe_arithmetic.h"
 
 #include "adapter_manager.h"
 #include "cda_attributes.h"
@@ -71,18 +72,17 @@ bool MessageRouter::Initialize()
     ENSURE_OR_RETURN_VAL(connectionMgr_ != nullptr, false);
     ENSURE_OR_RETURN_VAL(channelMgr_ != nullptr, false);
 
-    auto weakSelf = weak_from_this();
     for (const auto &channel : channelMgr_->GetAllChannels()) {
+        ENSURE_OR_RETURN_VAL(channel != nullptr, false);
         ChannelId channelId = channel->GetChannelId();
         auto subscription = channel->SubscribeRawMessage(
-            [weakSelf](const std::string &connectionName, const std::vector<uint8_t> &rawMsg) {
+            [weakSelf = weak_from_this()](const std::string &connectionName, const std::vector<uint8_t> &rawMsg) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleRawMessage(connectionName, rawMsg);
             });
-        if (subscription != nullptr) {
-            channelSubscriptions_[channelId] = std::move(subscription);
-        }
+        ENSURE_OR_RETURN_VAL(subscription != nullptr, false);
+        channelSubscriptions_[channelId] = std::move(subscription);
     }
 
     IAM_LOGI("initialized");
@@ -98,8 +98,7 @@ std::unique_ptr<Subscription> MessageRouter::SubscribeIncomingConnection(Message
     IAM_LOGD("incoming connection subscription added: type=0x%{public}04x", static_cast<uint16_t>(msgType));
     RegisterSubscription(key, std::move(onMessage), "incoming connection subscription added: type=0x%{public}04x");
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, key]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), key]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnregisterSubscription(key);
@@ -118,8 +117,7 @@ std::unique_ptr<Subscription> MessageRouter::SubscribeMessage(const std::string 
     RegisterSubscription(key, std::move(onMessage),
         "message subscription added: conn=" + connectionName + ", type=0x%{public}04x");
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, key]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), key]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnregisterSubscription(key);
@@ -141,6 +139,7 @@ void MessageRouter::UnregisterSubscription(const SubscriptionKey &key)
     IAM_LOGD("subscription removed");
 }
 
+// connectionName is never empty
 OnMessage MessageRouter::FindMessageSubscriber(const std::string &connectionName, MessageType msgType)
 {
     if (!connectionName.empty()) {
@@ -194,6 +193,7 @@ bool MessageRouter::SendMessage(const std::string &connectionName, MessageType m
         return false;
     }
 
+    ENSURE_OR_RETURN_VAL(channelMgr_ != nullptr, false);
     auto channel = channelMgr_->GetChannelById(connection->channelId);
     ENSURE_OR_RETURN_VAL(channel != nullptr, false);
 
@@ -203,7 +203,7 @@ bool MessageRouter::SendMessage(const std::string &connectionName, MessageType m
         if (msgType != MessageType::DISCONNECT) {
             TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this(), connectionName]() {
                 auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+                ENSURE_OR_RETURN(self != nullptr && self->connectionMgr_ != nullptr);
                 self->connectionMgr_->CloseConnection(connectionName, "send_msg_failed");
             });
         }
@@ -295,6 +295,7 @@ void MessageRouter::HandleRequest(const MessageHeader &header, const Attributes 
     IAM_LOGI("handling request: seq=0x%{public}08X, conn=%{public}s, type=0x%{public}04x", header.messageSeq,
         header.connectionName.c_str(), static_cast<uint16_t>(header.msgType));
 
+    ENSURE_OR_RETURN(channelMgr_ != nullptr);
     if (header.msgType == MessageType::DISCONNECT) {
         std::string reason;
         if (!payload.GetStringValue(Attributes::ATTR_CDA_SA_REASON, reason)) {
@@ -338,6 +339,7 @@ void MessageRouter::HandleRequest(const MessageHeader &header, const Attributes 
 
 void MessageRouter::SendErrorReply(const MessageHeader &requestHeader, ChannelId channelId)
 {
+    ENSURE_OR_RETURN(channelMgr_ != nullptr);
     auto channel = channelMgr_->GetChannelById(channelId);
     ENSURE_OR_RETURN(channel != nullptr);
 
@@ -347,7 +349,11 @@ void MessageRouter::SendErrorReply(const MessageHeader &requestHeader, ChannelId
     Attributes errorReply {};
     errorReply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, GENERAL_ERROR);
 
-    channel->SendMessage(replyHeader.connectionName, EncodeMessage(replyHeader, errorReply));
+    bool sendResult = channel->SendMessage(replyHeader.connectionName, EncodeMessage(replyHeader, errorReply));
+    if (!sendResult) {
+        IAM_LOGE("failed to send error reply");
+        return;
+    }
     IAM_LOGI("error reply sent");
 }
 
@@ -357,10 +363,16 @@ void MessageRouter::SendReply(const MessageHeader &requestHeader, ChannelId chan
     replyHeader.isReply = true;
     std::vector<uint8_t> rawMsg = EncodeMessage(replyHeader, reply);
 
+    ENSURE_OR_RETURN(channelMgr_ != nullptr);
     auto channel = channelMgr_->GetChannelById(channelId);
     ENSURE_OR_RETURN(channel != nullptr);
 
-    channel->SendMessage(requestHeader.connectionName, rawMsg);
+    bool sendResult = channel->SendMessage(requestHeader.connectionName, rawMsg);
+    if (!sendResult) {
+        IAM_LOGE("failed to send reply: seq=0x%{public}08X, type=0x%{public}04x", requestHeader.messageSeq,
+            static_cast<uint16_t>(requestHeader.msgType));
+        return;
+    }
     IAM_LOGI("reply sent: seq=0x%{public}08X, type=0x%{public}04x", requestHeader.messageSeq,
         static_cast<uint16_t>(requestHeader.msgType));
 }
@@ -372,14 +384,6 @@ void MessageRouter::HandleConnectionDown(const std::string &connectionName)
     for (auto it = pendingReplyMessages_.begin(); it != pendingReplyMessages_.end();) {
         if (it->second.connectionName == connectionName) {
             it = pendingReplyMessages_.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    for (auto it = subscriptions_.begin(); it != subscriptions_.end();) {
-        if (!it->first.connectionName.empty() && it->first.connectionName == connectionName) {
-            it = subscriptions_.erase(it);
         } else {
             ++it;
         }
@@ -440,9 +444,8 @@ void MessageRouter::RefreshConnectionStatusSubscription(const std::string &conne
         }
 
         ENSURE_OR_RETURN(connectionMgr_ != nullptr);
-        auto weakSelf = weak_from_this();
         auto subscription = connectionMgr_->SubscribeConnectionStatus(connectionName,
-            [weakSelf](const std::string &connName, ConnectionStatus status,
+            [weakSelf = weak_from_this()](const std::string &connName, ConnectionStatus status,
                 [[maybe_unused]] const std::string &reason) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
@@ -468,9 +471,8 @@ void MessageRouter::RefreshTimeOutSubscription()
             return;
         }
 
-        auto weakSelf = weak_from_this();
         timeoutCheckTimerSubscription_ = RelativeTimer::GetInstance().RegisterPeriodic(
-            [weakSelf]() {
+            [weakSelf = weak_from_this()]() {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleTimeoutCheck();
@@ -490,13 +492,16 @@ void MessageRouter::HandleTimeoutCheck()
 {
     auto now = GetTimeKeeper().GetSteadyTimeMs();
     ENSURE_OR_RETURN(now.has_value());
-    uint64_t timeoutDurationMs = static_cast<uint64_t>(MESSAGE_TIMEOUT_MS);
 
     std::vector<uint32_t> timeoutMessages;
 
     for (const auto &pair : pendingReplyMessages_) {
-        auto elapsedMs = now.value() - pair.second.sendTimeMs;
-        if (elapsedMs >= timeoutDurationMs) {
+        auto elapsedMsOpt = safe_sub(now.value(), pair.second.sendTimeMs);
+        if (!elapsedMsOpt.has_value()) {
+            continue;
+        }
+        auto elapsedMs = elapsedMsOpt.value();
+        if (elapsedMs >= MESSAGE_TIMEOUT_MS) {
             timeoutMessages.push_back(pair.first);
         }
     }

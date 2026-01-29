@@ -74,11 +74,7 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
         }
     }
 
-    bool encodeRet = EncodeSyncDeviceStatusReply(syncReply, reply);
-    if (!encodeRet) {
-        IAM_LOGE("EncodeSyncDeviceStatusReply failed");
-        return;
-    }
+    EncodeSyncDeviceStatusReply(syncReply, reply);
     errorGuard.Cancel();
 }
 

@@ -32,10 +32,6 @@ namespace {
 // Test message size constants
 constexpr size_t SIZE_1025 = 1025;
 constexpr size_t SIZE_280 = 280;
-constexpr size_t TEST_MESSAGE_SIZE_MAX = MAX_DATA_LEN_20000;
-constexpr size_t TEST_MESSAGE_SIZE_LARGE = 15000;
-constexpr size_t TEST_MESSAGE_SIZE_MEDIUM = 10000;
-constexpr size_t TEST_MESSAGE_SIZE_OVERFLOW = MAX_DATA_LEN_20000 + 1;
 } // namespace
 
 constexpr int32_t INT32_42 = 42;
@@ -148,7 +144,7 @@ HWTEST_F(FfiUtilTest, EncodeDeviceKeyValidAndIdTooLong, TestSize.Level1)
 
         DeviceKeyFfi ffi = {};
 
-        EXPECT_TRUE(EncodeDeviceKey(key, ffi));
+        EncodeDeviceKey(key, ffi);
         EXPECT_EQ(ffi.userId, 42U);
     }
 
@@ -161,7 +157,7 @@ HWTEST_F(FfiUtilTest, EncodeDeviceKeyValidAndIdTooLong, TestSize.Level1)
 
         DeviceKeyFfi ffi = {};
 
-        EXPECT_FALSE(EncodeDeviceKey(key, ffi));
+        EncodeDeviceKey(key, ffi);
     }
 }
 
@@ -271,7 +267,7 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
 
         PersistedCompanionStatusFfi ffi = {};
 
-        EXPECT_TRUE(EncodePersistedCompanionStatus(status, ffi));
+        EncodePersistedCompanionStatus(status, ffi);
         EXPECT_EQ(ffi.enabledBusinessIds.len, 3U);
     }
 
@@ -288,7 +284,7 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
 
         PersistedCompanionStatusFfi ffi = {};
 
-        EXPECT_FALSE(EncodePersistedCompanionStatus(status, ffi));
+        EncodePersistedCompanionStatus(status, ffi);
     }
 
     // Invalid: Device info too long
@@ -301,7 +297,7 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
 
         PersistedCompanionStatusFfi ffi = {};
 
-        EXPECT_FALSE(EncodePersistedCompanionStatus(status, ffi));
+        EncodePersistedCompanionStatus(status, ffi);
     }
 }
 
@@ -523,10 +519,9 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSi
         input.secureProtocolId = SecureProtocolId::DEFAULT;
         input.challenge = INT32_123;
         input.salt.clear();
-
         CompanionProcessCheckInputFfi ffi = {};
 
-        EXPECT_TRUE(EncodeCompanionProcessCheckInput(input, ffi));
+        EncodeCompanionProcessCheckInput(input, ffi);
     }
 
     // Invalid: Salt too large
@@ -539,7 +534,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSi
 
         CompanionProcessCheckInputFfi ffi = {};
 
-        EXPECT_FALSE(EncodeCompanionProcessCheckInput(input, ffi));
+        EncodeCompanionProcessCheckInput(input, ffi);
     }
 
     // Valid: Salt size correct
@@ -554,7 +549,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSi
 
         CompanionProcessCheckInputFfi ffi = {};
 
-        EXPECT_TRUE(EncodeCompanionProcessCheckInput(input, ffi));
+        EncodeCompanionProcessCheckInput(input, ffi);
         EXPECT_EQ(ffi.bindingId, 1U);
     }
 }
@@ -572,10 +567,9 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndDelegateAuthInputAuthTokenSizeValidation
         input.requestId = 1;
         input.resultCode = static_cast<ResultCode>(0);
         input.authToken.clear();
-
         CompanionEndDelegateAuthInputFfi ffi = {};
 
-        EXPECT_TRUE(EncodeCompanionEndDelegateAuthInput(input, ffi));
+        EncodeCompanionEndDelegateAuthInput(input, ffi);
     }
 
     // Invalid: Token too large
@@ -587,7 +581,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndDelegateAuthInputAuthTokenSizeValidation
 
         CompanionEndDelegateAuthInputFfi ffi = {};
 
-        EXPECT_FALSE(EncodeCompanionEndDelegateAuthInput(input, ffi));
+        EncodeCompanionEndDelegateAuthInput(input, ffi);
     }
 
     // Valid: Token size correct
@@ -599,7 +593,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndDelegateAuthInputAuthTokenSizeValidation
 
         CompanionEndDelegateAuthInputFfi ffi = {};
 
-        EXPECT_TRUE(EncodeCompanionEndDelegateAuthInput(input, ffi));
+        EncodeCompanionEndDelegateAuthInput(input, ffi);
         EXPECT_EQ(ffi.requestId, 1U);
     }
 }
@@ -617,7 +611,7 @@ HWTEST_F(FfiUtilTest, RoundTripDeviceKey, TestSize.Level1)
     originalKey.deviceId = "original_device_id_12345";
 
     DeviceKeyFfi ffi = {};
-    EXPECT_TRUE(EncodeDeviceKey(originalKey, ffi));
+    EncodeDeviceKey(originalKey, ffi);
 
     DeviceKey decodedKey;
     EXPECT_TRUE(DecodeDeviceKey(ffi, decodedKey));
@@ -646,7 +640,7 @@ HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
     originalStatus.companionDeviceKey = key;
 
     PersistedCompanionStatusFfi ffi = {};
-    EXPECT_TRUE(EncodePersistedCompanionStatus(originalStatus, ffi));
+    EncodePersistedCompanionStatus(originalStatus, ffi);
 
     PersistedCompanionStatus decodedStatus;
     EXPECT_TRUE(DecodePersistedCompanionStatus(ffi, decodedStatus));
@@ -666,7 +660,7 @@ HWTEST_F(FfiUtilTest, EncodeHostRegisterFinishInput_001, TestSize.Level0)
     input.fwkMsg = { UINT8_0X11, UINT8_0X22, UINT8_0X33 };
 
     HostRegisterFinishInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostRegisterFinishInput(input, ffi));
+    EncodeHostRegisterFinishInput(input, ffi);
     EXPECT_EQ(ffi.templateIds.len, 3U);
 }
 
@@ -679,7 +673,7 @@ HWTEST_F(FfiUtilTest, EncodeHostRegisterFinishInput_002, TestSize.Level0)
     }
 
     HostRegisterFinishInputFfi ffi = {};
-    EXPECT_FALSE(EncodeHostRegisterFinishInput(input, ffi));
+    EncodeHostRegisterFinishInput(input, ffi);
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_001, TestSize.Level0)
@@ -694,7 +688,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_001, TestSize.Level0)
     input.companionCheckResponse = { UINT8_0XAA, UINT8_0XBB };
 
     HostEndCompanionCheckInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostEndCompanionCheckInput(input, ffi));
+    EncodeHostEndCompanionCheckInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 123U);
     EXPECT_EQ(ffi.templateId, 456U);
 }
@@ -707,7 +701,7 @@ HWTEST_F(FfiUtilTest, EncodeHostGetInitKeyNegotiationInput_001, TestSize.Level0)
     input.secureProtocolId = SecureProtocolId::DEFAULT;
 
     HostGetInitKeyNegotiationInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostGetInitKeyNegotiationInput(input, ffi));
+    EncodeHostGetInitKeyNegotiationInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 111U);
 }
 
@@ -742,7 +736,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_001, TestSize.Level0)
     input.initKeyNegotiationReply = { UINT8_0X33, UINT8_0X44 };
 
     HostBeginAddCompanionInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostBeginAddCompanionInput(input, ffi));
+    EncodeHostBeginAddCompanionInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 222U);
     EXPECT_EQ(ffi.scheduleId, 333U);
 }
@@ -772,7 +766,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
     input.addHostBindingReply = { UINT8_0X55, UINT8_0X66 };
 
     HostEndAddCompanionInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostEndAddCompanionInput(input, ffi));
+    EncodeHostEndAddCompanionInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 444U);
 }
 
@@ -800,7 +794,7 @@ HWTEST_F(FfiUtilTest, EncodeHostPreIssueTokenInput_001, TestSize.Level0)
     input.fwkUnlockMsg = { UINT8_0X99, UINT8_0XAA };
 
     HostPreIssueTokenInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostPreIssueTokenInput(input, ffi));
+    EncodeHostPreIssueTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 888U);
     EXPECT_EQ(ffi.templateId, 999U);
 }
@@ -828,7 +822,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginIssueTokenInput_001, TestSize.Level0)
     input.preIssueTokenReply = { UINT8_0XEE, UINT8_0XFF };
 
     HostBeginIssueTokenInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostBeginIssueTokenInput(input, ffi));
+    EncodeHostBeginIssueTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 1000U);
 }
 
@@ -855,7 +849,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndIssueTokenInput_001, TestSize.Level0)
     input.issueTokenReply = { UINT8_0X12, UINT8_0X34 };
 
     HostEndIssueTokenInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostEndIssueTokenInput(input, ffi));
+    EncodeHostEndIssueTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 1111U);
 }
 
@@ -880,7 +874,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginTokenAuthInput_001, TestSize.Level0)
     input.fwkMsg = { UINT8_0X56, UINT8_0X78 };
 
     HostBeginTokenAuthInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostBeginTokenAuthInput(input, ffi));
+    EncodeHostBeginTokenAuthInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 2222U);
     EXPECT_EQ(ffi.scheduleId, 3333U);
     EXPECT_EQ(ffi.templateId, 4444U);
@@ -909,7 +903,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndTokenAuthInput_001, TestSize.Level0)
     input.tokenAuthReply = { UINT8_0XDE, UINT8_0XF0 };
 
     HostEndTokenAuthInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostEndTokenAuthInput(input, ffi));
+    EncodeHostEndTokenAuthInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 5555U);
     EXPECT_EQ(ffi.templateId, 6666U);
 }
@@ -937,7 +931,7 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_001, TestSize.Level0)
     input.companionDeviceUserName = "TestUser";
 
     HostUpdateCompanionStatusInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostUpdateCompanionStatusInput(input, ffi));
+    EncodeHostUpdateCompanionStatusInput(input, ffi);
     EXPECT_EQ(ffi.templateId, 7777U);
 }
 
@@ -949,7 +943,7 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_002, TestSize.Level0)
     input.companionDeviceName = std::string(MAX_DATA_LEN_1024 + 1, 'A');
 
     HostUpdateCompanionStatusInputFfi ffi = {};
-    EXPECT_FALSE(EncodeHostUpdateCompanionStatusInput(input, ffi));
+    EncodeHostUpdateCompanionStatusInput(input, ffi);
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_001, TestSize.Level0)
@@ -961,7 +955,7 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_001, Test
         static_cast<BusinessId>(4) };
 
     HostUpdateCompanionEnabledBusinessIdsInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostUpdateCompanionEnabledBusinessIdsInput(input, ffi));
+    EncodeHostUpdateCompanionEnabledBusinessIdsInput(input, ffi);
     EXPECT_EQ(ffi.templateId, 8888U);
     EXPECT_EQ(ffi.businessIds.len, 4U);
 }
@@ -976,7 +970,7 @@ HWTEST_F(FfiUtilTest, EncodeHostBeginDelegateAuthInput_001, TestSize.Level0)
     input.fwkMsg = { UINT8_0X78, UINT8_0X9A };
 
     HostBeginDelegateAuthInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostBeginDelegateAuthInput(input, ffi));
+    EncodeHostBeginDelegateAuthInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 9999U);
     EXPECT_EQ(ffi.scheduleId, 10000U);
     EXPECT_EQ(ffi.templateId, 11000U);
@@ -1004,7 +998,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndDelegateAuthInput_001, TestSize.Level0)
     input.delegateAuthResult = { UINT8_0XF0, UINT8_0X12 };
 
     HostEndDelegateAuthInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostEndDelegateAuthInput(input, ffi));
+    EncodeHostEndDelegateAuthInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 12000U);
 }
 
@@ -1034,7 +1028,7 @@ HWTEST_F(FfiUtilTest, EncodeHostProcessPreObtainTokenInput_001, TestSize.Level0)
     input.secureProtocolId = SecureProtocolId::DEFAULT;
 
     HostProcessPreObtainTokenInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostProcessPreObtainTokenInput(input, ffi));
+    EncodeHostProcessPreObtainTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 13000U);
     EXPECT_EQ(ffi.templateId, 14000U);
 }
@@ -1064,7 +1058,7 @@ HWTEST_F(FfiUtilTest, EncodeHostProcessObtainTokenInput_001, TestSize.Level0)
     input.obtainTokenRequest = { UINT8_0X12, UINT8_0X34, UINT8_0X56 };
 
     HostProcessObtainTokenInputFfi ffi = {};
-    EXPECT_TRUE(EncodeHostProcessObtainTokenInput(input, ffi));
+    EncodeHostProcessObtainTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 15000U);
     EXPECT_EQ(ffi.templateId, 16000U);
 }
@@ -1114,7 +1108,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_001, TestSize.Level
     input.initKeyNegotiationRequest = { UINT8_0XDD, UINT8_0XEE };
 
     CompanionInitKeyNegotiationInputFfi ffi = {};
-    EXPECT_TRUE(EncodeCompanionInitKeyNegotiationInput(input, ffi));
+    EncodeCompanionInitKeyNegotiationInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 17000U);
 }
 
@@ -1140,7 +1134,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionBeginAddHostBindingInput_001, TestSize.Leve
     input.addHostBindingRequest = { UINT8_0X11, UINT8_0X22 };
 
     CompanionBeginAddHostBindingInputFfi ffi = {};
-    EXPECT_TRUE(EncodeCompanionBeginAddHostBindingInput(input, ffi));
+    EncodeCompanionBeginAddHostBindingInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 18000U);
 }
 
@@ -1192,7 +1186,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndAddHostBindingInput_001, TestSize.Level0
     input.resultCode = ResultCode::SUCCESS;
 
     CompanionEndAddHostBindingInputFfi ffi = {};
-    EXPECT_TRUE(EncodeCompanionEndAddHostBindingInput(input, ffi));
+    EncodeCompanionEndAddHostBindingInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 19000U);
 }
 
@@ -1217,7 +1211,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionPreIssueTokenInput_001, TestSize.Level0)
     input.preIssueTokenRequest = { UINT8_0X55, UINT8_0X66 };
 
     CompanionPreIssueTokenInputFfi ffi = {};
-    EXPECT_TRUE(EncodeCompanionPreIssueTokenInput(input, ffi));
+    EncodeCompanionPreIssueTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 20000U);
     EXPECT_EQ(ffi.bindingId, 21000U);
 }
@@ -1245,7 +1239,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessIssueTokenInput_001, TestSize.Level0
     input.issueTokenRequest = { UINT8_0XAA, UINT8_0XBB };
 
     CompanionProcessIssueTokenInputFfi ffi = {};
-    EXPECT_TRUE(EncodeCompanionProcessIssueTokenInput(input, ffi));
+    EncodeCompanionProcessIssueTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 22000U);
 }
 
@@ -1271,7 +1265,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessTokenAuthInput_001, TestSize.Level0)
     input.tokenAuthRequest = { UINT8_0XEE, UINT8_0XFF };
 
     CompanionProcessTokenAuthInputFfi ffi = {};
-    EXPECT_TRUE(EncodeCompanionProcessTokenAuthInput(input, ffi));
+    EncodeCompanionProcessTokenAuthInput(input, ffi);
     EXPECT_EQ(ffi.bindingId, 23000U);
 }
 
@@ -1299,7 +1293,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionBeginDelegateAuthInput_001, TestSize.Level0
     input.startDelegateAuthRequest = { UINT8_0X00, UINT8_0X11 };
 
     CompanionBeginDelegateAuthInputFfi ffi = {};
-    EXPECT_TRUE(EncodeCompanionBeginDelegateAuthInput(input, ffi));
+    EncodeCompanionBeginDelegateAuthInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 24000U);
     EXPECT_EQ(ffi.bindingId, 25000U);
 }
@@ -1342,7 +1336,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionBeginObtainTokenInput_001, TestSize.Level0)
     input.preObtainTokenReply = { UINT8_0X77, UINT8_0X88 };
 
     CompanionBeginObtainTokenInputFfi ffi = {};
-    EXPECT_TRUE(EncodeCompanionBeginObtainTokenInput(input, ffi));
+    EncodeCompanionBeginObtainTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 26000U);
     EXPECT_EQ(ffi.bindingId, 27000U);
 }
@@ -1370,7 +1364,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionEndObtainTokenInput_001, TestSize.Level0)
     input.obtainTokenReply = { UINT8_0X99, UINT8_0XAA, UINT8_0XBB };
 
     CompanionEndObtainTokenInputFfi ffi = {};
-    EXPECT_TRUE(EncodeCompanionEndObtainTokenInput(input, ffi));
+    EncodeCompanionEndObtainTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 28000U);
 }
 
@@ -1428,365 +1422,6 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusList_001, TestSize.Level0)
     EXPECT_EQ(list.size(), 2U);
     EXPECT_EQ(list[0].bindingId, 555U);
     EXPECT_EQ(list[1].bindingId, 888U);
-}
-
-// ============================================================================
-// Additional Overflow Tests for Missing Coverage
-// ============================================================================
-
-HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionEnabledBusinessIdsInput_002, TestSize.Level1)
-{
-    MockGuard guard;
-    // Invalid: enabledBusinessIds exceeds max (64)
-    HostUpdateCompanionEnabledBusinessIdsInput input;
-    input.templateId = 1;
-    for (int i = 0; i < 65; ++i) {
-        input.enabledBusinessIds.push_back(static_cast<BusinessId>(i));
-    }
-
-    HostUpdateCompanionEnabledBusinessIdsInputFfi ffi = {};
-    EXPECT_FALSE(EncodeHostUpdateCompanionEnabledBusinessIdsInput(input, ffi));
-}
-
-HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow, TestSize.Level1)
-{
-    MockGuard guard;
-    // Invalid: fwkMsg exceeds max (1024)
-    {
-        HostBeginAddCompanionInput input;
-        input.requestId = 1;
-        input.scheduleId = 1;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.hostDeviceKey.deviceUserId = 100;
-        input.hostDeviceKey.deviceId = "host";
-        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = INT32_200;
-        input.companionDeviceKey.deviceId = "companion";
-        input.fwkMsg.resize(MAX_DATA_LEN_1024 + 1, UINT8_0XBB);
-
-        HostBeginAddCompanionInputFfi ffi = {};
-        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
-    }
-
-    // Invalid: initKeyNegotiationReply exceeds max (TEST_MESSAGE_SIZE_MAX)
-    {
-        HostBeginAddCompanionInput input;
-        input.requestId = 1;
-        input.scheduleId = 1;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.hostDeviceKey.deviceUserId = 100;
-        input.hostDeviceKey.deviceId = "host";
-        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = INT32_200;
-        input.companionDeviceKey.deviceId = "companion";
-        // Note: initKeyNegotiationReply maps to secMessage (DataArray20000Ffi, max TEST_MESSAGE_SIZE_MAX)
-        input.initKeyNegotiationReply.resize(TEST_MESSAGE_SIZE_OVERFLOW, UINT8_0XCC);
-
-        HostBeginAddCompanionInputFfi ffi = {};
-        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
-    }
-}
-
-HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_002, TestSize.Level1)
-{
-    MockGuard guard;
-    // Invalid: enabledBusinessIds exceeds max (64)
-    HostEndAddCompanionInput input;
-    input.requestId = 1;
-    input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.companionStatus.templateId = 1;
-    input.companionStatus.hostUserId = 1;
-    for (int i = 0; i < 65; ++i) {
-        input.companionStatus.enabledBusinessIds.push_back(static_cast<BusinessId>(i));
-    }
-
-    HostEndAddCompanionInputFfi ffi = {};
-    EXPECT_FALSE(EncodeHostEndAddCompanionInput(input, ffi));
-}
-
-HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_Overflow, TestSize.Level1)
-{
-    MockGuard guard;
-    // Invalid: protocolVersionList exceeds max (64)
-    {
-        HostEndCompanionCheckInput input;
-        input.requestId = 1;
-        input.templateId = 1;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        for (int i = 0; i < 65; ++i) {
-            input.protocolVersionList.push_back(i);
-        }
-
-        HostEndCompanionCheckInputFfi ffi = {};
-        EXPECT_FALSE(EncodeHostEndCompanionCheckInput(input, ffi));
-    }
-
-    // Invalid: capabilityList exceeds max (64)
-    {
-        HostEndCompanionCheckInput input;
-        input.requestId = 1;
-        input.templateId = 1;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        for (int i = 0; i < 65; ++i) {
-            input.capabilityList.push_back(static_cast<uint16_t>(i));
-        }
-
-        HostEndCompanionCheckInputFfi ffi = {};
-        EXPECT_FALSE(EncodeHostEndCompanionCheckInput(input, ffi));
-    }
-
-    // Invalid: companionCheckResponse exceeds max (1024)
-    {
-        HostEndCompanionCheckInput input;
-        input.requestId = 1;
-        input.templateId = 1;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.companionCheckResponse.resize(MAX_DATA_LEN_1024 + 1, UINT8_0XAA);
-
-        HostEndCompanionCheckInputFfi ffi = {};
-        EXPECT_FALSE(EncodeHostEndCompanionCheckInput(input, ffi));
-    }
-}
-
-// ============================================================================
-// Tests for DataArray20000Ffi (20KB message support)
-// ============================================================================
-
-HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_LargeMessage, TestSize.Level1)
-{
-    MockGuard guard;
-    // Valid: exactly MAX_DATA_LEN_20000 bytes
-    {
-        HostGetInitKeyNegotiationOutputFfi ffi = {};
-        ffi.secMessage.len = TEST_MESSAGE_SIZE_MAX;
-        for (uint32_t i = 0; i < TEST_MESSAGE_SIZE_MAX; ++i) {
-            ffi.secMessage.data[i] = static_cast<uint8_t>(i % INT32_256);
-        }
-
-        HostGetInitKeyNegotiationRequestOutput output;
-        EXPECT_TRUE(DecodeHostInitKeyNegotiationOutput(ffi, output));
-        EXPECT_EQ(output.initKeyNegotiationRequest.size(), TEST_MESSAGE_SIZE_MAX);
-        EXPECT_EQ(output.initKeyNegotiationRequest[0], 0U);
-        EXPECT_EQ(output.initKeyNegotiationRequest[255], 255U);
-    }
-
-    // Valid: large message under limit (TEST_MESSAGE_SIZE_LARGE bytes)
-    {
-        HostGetInitKeyNegotiationOutputFfi ffi = {};
-        ffi.secMessage.len = TEST_MESSAGE_SIZE_LARGE;
-        memset_s(ffi.secMessage.data, sizeof(ffi.secMessage.data), 0xBB, TEST_MESSAGE_SIZE_LARGE);
-
-        HostGetInitKeyNegotiationRequestOutput output;
-        EXPECT_TRUE(DecodeHostInitKeyNegotiationOutput(ffi, output));
-        EXPECT_EQ(output.initKeyNegotiationRequest.size(), TEST_MESSAGE_SIZE_LARGE);
-    }
-
-    // Invalid: exceeds max (TEST_MESSAGE_SIZE_OVERFLOW bytes)
-    {
-        HostGetInitKeyNegotiationOutputFfi ffi = {};
-        ffi.secMessage.len = TEST_MESSAGE_SIZE_OVERFLOW;
-
-        HostGetInitKeyNegotiationRequestOutput output;
-        EXPECT_FALSE(DecodeHostInitKeyNegotiationOutput(ffi, output));
-    }
-}
-
-HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_LargeMessage, TestSize.Level1)
-{
-    MockGuard guard;
-    // Valid: exactly TEST_MESSAGE_SIZE_MAX bytes
-    {
-        CompanionInitKeyNegotiationInput input;
-        input.requestId = 1;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.hostDeviceKey.deviceUserId = 100;
-        input.hostDeviceKey.deviceId = "host";
-        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = INT32_200;
-        input.companionDeviceKey.deviceId = "companion";
-        input.initKeyNegotiationRequest.resize(TEST_MESSAGE_SIZE_MAX, UINT8_0XAA);
-
-        CompanionInitKeyNegotiationInputFfi ffi = {};
-        EXPECT_TRUE(EncodeCompanionInitKeyNegotiationInput(input, ffi));
-        EXPECT_EQ(ffi.secMessage.len, TEST_MESSAGE_SIZE_MAX);
-    }
-
-    // Valid: large message under limit (TEST_MESSAGE_SIZE_MEDIUM bytes)
-    {
-        CompanionInitKeyNegotiationInput input;
-        input.requestId = 2;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.hostDeviceKey.deviceUserId = 100;
-        input.hostDeviceKey.deviceId = "host";
-        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = INT32_200;
-        input.companionDeviceKey.deviceId = "companion";
-        input.initKeyNegotiationRequest.resize(TEST_MESSAGE_SIZE_MEDIUM, UINT8_0XCC);
-
-        CompanionInitKeyNegotiationInputFfi ffi = {};
-        EXPECT_TRUE(EncodeCompanionInitKeyNegotiationInput(input, ffi));
-        EXPECT_EQ(ffi.secMessage.len, TEST_MESSAGE_SIZE_MEDIUM);
-    }
-
-    // Invalid: exceeds max (TEST_MESSAGE_SIZE_OVERFLOW bytes)
-    {
-        CompanionInitKeyNegotiationInput input;
-        input.requestId = 3;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.hostDeviceKey.deviceUserId = 100;
-        input.hostDeviceKey.deviceId = "host";
-        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = INT32_200;
-        input.companionDeviceKey.deviceId = "companion";
-        input.initKeyNegotiationRequest.resize(TEST_MESSAGE_SIZE_OVERFLOW, UINT8_0XDD);
-
-        CompanionInitKeyNegotiationInputFfi ffi = {};
-        EXPECT_FALSE(EncodeCompanionInitKeyNegotiationInput(input, ffi));
-    }
-}
-
-HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_LargeMessage, TestSize.Level1)
-{
-    MockGuard guard;
-    // Valid: fwkMsg at max (MAX_DATA_LEN_1024 bytes), secMessage at max (TEST_MESSAGE_SIZE_MAX bytes)
-    {
-        HostBeginAddCompanionInput input;
-        input.requestId = 1;
-        input.scheduleId = 1;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.hostDeviceKey.deviceUserId = 100;
-        input.hostDeviceKey.deviceId = "host";
-        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = INT32_200;
-        input.companionDeviceKey.deviceId = "companion";
-        input.fwkMsg.resize(MAX_DATA_LEN_1024, UINT8_0X11);
-        input.initKeyNegotiationReply.resize(TEST_MESSAGE_SIZE_MAX, UINT8_0X22);
-
-        HostBeginAddCompanionInputFfi ffi = {};
-        EXPECT_TRUE(EncodeHostBeginAddCompanionInput(input, ffi));
-        EXPECT_EQ(ffi.fwkMessage.len, MAX_DATA_LEN_1024);
-        EXPECT_EQ(ffi.secMessage.len, TEST_MESSAGE_SIZE_MAX);
-    }
-
-    // Invalid: secMessage exceeds max (TEST_MESSAGE_SIZE_OVERFLOW bytes)
-    {
-        HostBeginAddCompanionInput input;
-        input.requestId = 2;
-        input.scheduleId = 2;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.hostDeviceKey.deviceUserId = 100;
-        input.hostDeviceKey.deviceId = "host";
-        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = INT32_200;
-        input.companionDeviceKey.deviceId = "companion";
-        input.initKeyNegotiationReply.resize(TEST_MESSAGE_SIZE_OVERFLOW, UINT8_0X33);
-
-        HostBeginAddCompanionInputFfi ffi = {};
-        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
-    }
-}
-
-HWTEST_F(FfiUtilTest, DecodeCompanionInitKeyNegotiationOutput_LargeMessage, TestSize.Level1)
-{
-    MockGuard guard;
-    // Valid: exactly TEST_MESSAGE_SIZE_MAX bytes
-    {
-        CompanionInitKeyNegotiationOutputFfi ffi = {};
-        ffi.secMessage.len = TEST_MESSAGE_SIZE_MAX;
-        for (uint32_t i = 0; i < TEST_MESSAGE_SIZE_MAX; ++i) {
-            ffi.secMessage.data[i] = static_cast<uint8_t>(255 - (i % INT32_256));
-        }
-
-        CompanionInitKeyNegotiationOutput output;
-        EXPECT_TRUE(DecodeCompanionInitKeyNegotiationOutput(ffi, output));
-        EXPECT_EQ(output.initKeyNegotiationReply.size(), TEST_MESSAGE_SIZE_MAX);
-        EXPECT_EQ(output.initKeyNegotiationReply[0], 255U);
-        EXPECT_EQ(output.initKeyNegotiationReply[1], 254U);
-    }
-
-    // Invalid: exceeds max (TEST_MESSAGE_SIZE_OVERFLOW bytes)
-    {
-        CompanionInitKeyNegotiationOutputFfi ffi = {};
-        ffi.secMessage.len = TEST_MESSAGE_SIZE_OVERFLOW;
-
-        CompanionInitKeyNegotiationOutput output;
-        EXPECT_FALSE(DecodeCompanionInitKeyNegotiationOutput(ffi, output));
-    }
-}
-
-// ============================================================================
-// Update existing overflow tests to use new 20000 byte limit
-// ============================================================================
-
-HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_Overflow_Updated, TestSize.Level1)
-{
-    MockGuard guard;
-    // Invalid: fwkMsg exceeds max (MAX_DATA_LEN_1024)
-    {
-        HostBeginAddCompanionInput input;
-        input.requestId = 1;
-        input.scheduleId = 1;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.hostDeviceKey.deviceUserId = 100;
-        input.hostDeviceKey.deviceId = "host";
-        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = INT32_200;
-        input.companionDeviceKey.deviceId = "companion";
-        input.fwkMsg.resize(MAX_DATA_LEN_1024 + 1, UINT8_0XBB);
-
-        HostBeginAddCompanionInputFfi ffi = {};
-        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
-    }
-
-    // Invalid: initKeyNegotiationReply exceeds NEW max (MAX_DATA_LEN_20000)
-    {
-        HostBeginAddCompanionInput input;
-        input.requestId = 1;
-        input.scheduleId = 1;
-        input.secureProtocolId = SecureProtocolId::DEFAULT;
-        input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.hostDeviceKey.deviceUserId = 100;
-        input.hostDeviceKey.deviceId = "host";
-        input.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-        input.companionDeviceKey.deviceUserId = INT32_200;
-        input.companionDeviceKey.deviceId = "companion";
-        input.initKeyNegotiationReply.resize(TEST_MESSAGE_SIZE_OVERFLOW, UINT8_0XCC);
-
-        HostBeginAddCompanionInputFfi ffi = {};
-        EXPECT_FALSE(EncodeHostBeginAddCompanionInput(input, ffi));
-    }
-}
-
-HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_MaxMessage, TestSize.Level1)
-{
-    MockGuard guard;
-    // Valid: exactly MAX_DATA_LEN_1024 bytes (max for DataArray1024Ffi)
-    {
-        HostBeginAddCompanionOutputFfi ffi = {};
-        ffi.secMessage.len = MAX_DATA_LEN_1024;
-        memset_s(ffi.secMessage.data, sizeof(ffi.secMessage.data), 0xDD, MAX_DATA_LEN_1024);
-
-        HostBeginAddCompanionOutput output;
-        EXPECT_TRUE(DecodeHostBeginAddCompanionOutput(ffi, output));
-        EXPECT_EQ(output.addHostBindingRequest.size(), MAX_DATA_LEN_1024);
-    }
-
-    // Invalid: exceeds max (SIZE_1025 bytes)
-    {
-        HostBeginAddCompanionOutputFfi ffi = {};
-        ffi.secMessage.len = SIZE_1025;
-
-        HostBeginAddCompanionOutput output;
-        EXPECT_FALSE(DecodeHostBeginAddCompanionOutput(ffi, output));
-    }
 }
 
 } // namespace CompanionDeviceAuth

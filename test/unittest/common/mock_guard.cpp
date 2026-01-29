@@ -15,8 +15,11 @@
 
 #include "mock_guard.h"
 
+#include <gmock/gmock.h>
+
 #include "adapter_manager.h"
 #include "relative_timer.h"
+#include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -40,12 +43,19 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+using namespace testing;
+
 MockGuard::MockGuard()
 {
-    // Reset infrastructure
     SingletonManager::GetInstance().Reset();
+    AdapterManager::GetInstance().Reset();
+    CreateMocks();
+    SetupDefaultBehaviors();
+}
 
-    // Create and register AdapterManager mocks
+void MockGuard::CreateMocks()
+{
+    // AdapterManager mocks
     timeKeeper_ = std::make_shared<MockTimeKeeper>();
     AdapterManager::GetInstance().SetTimeKeeper(timeKeeper_);
 
@@ -67,7 +77,7 @@ MockGuard::MockGuard()
     userIdManager_ = std::make_shared<MockUserIdManager>();
     AdapterManager::GetInstance().SetUserIdManager(userIdManager_);
 
-    // Create and register SingletonManager mocks
+    // SingletonManager mocks
     crossDeviceCommManager_ = std::make_shared<MockCrossDeviceCommManager>();
     SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommManager_);
 
@@ -90,9 +100,144 @@ MockGuard::MockGuard()
     SingletonManager::GetInstance().SetRequestFactory(requestFactory_);
 }
 
+void MockGuard::SetupDefaultBehaviors()
+{
+    SetupMiscManagerDefaults();
+    SetupUserIdManagerDefaults();
+    SetupCrossDeviceCommManagerDefaults();
+    SetupCompanionManagerDefaults();
+    SetupRequestManagerDefaults();
+    SetupRequestFactoryDefaults();
+    SetupHostBindingManagerDefaults();
+    SetupSecurityAgentDefaults();
+}
+
+void MockGuard::SetupMiscManagerDefaults()
+{
+    ON_CALL(*miscManager_, GetNextGlobalId()).WillByDefault(Return(1));
+}
+
+void MockGuard::SetupUserIdManagerDefaults()
+{
+    ON_CALL(*userIdManager_, GetActiveUserId()).WillByDefault(Return(0));
+    ON_CALL(*userIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+        return std::make_unique<Subscription>([]() {});
+    }));
+}
+
+void MockGuard::SetupCrossDeviceCommManagerDefaults()
+{
+    ON_CALL(*crossDeviceCommManager_, Start()).WillByDefault(Return(true));
+    ON_CALL(*crossDeviceCommManager_, IsAuthMaintainActive()).WillByDefault(Return(false));
+    ON_CALL(*crossDeviceCommManager_, SubscribeIsAuthMaintainActive(_))
+        .WillByDefault(Invoke([](std::function<void(bool)> &&) { return std::make_unique<Subscription>([]() {}); }));
+    ON_CALL(*crossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(LocalDeviceProfile {}));
+    ON_CALL(*crossDeviceCommManager_, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(*crossDeviceCommManager_, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(*crossDeviceCommManager_, SubscribeAllDeviceStatus(_)).WillByDefault(Invoke([](OnDeviceStatusChange &&) {
+        return std::make_unique<Subscription>([]() {});
+    }));
+    ON_CALL(*crossDeviceCommManager_, SetSubscribeMode(_)).WillByDefault(Return());
+    ON_CALL(*crossDeviceCommManager_, GetManageSubscribeTime()).WillByDefault(Return(std::nullopt));
+    ON_CALL(*crossDeviceCommManager_, SubscribeDeviceStatus(_, _))
+        .WillByDefault(
+            Invoke([](const DeviceKey &, OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
+    ON_CALL(*crossDeviceCommManager_, OpenConnection(_, _)).WillByDefault(Return(false));
+    ON_CALL(*crossDeviceCommManager_, CloseConnection(_)).WillByDefault(Return());
+    ON_CALL(*crossDeviceCommManager_, IsConnectionOpen(_)).WillByDefault(Return(false));
+    ON_CALL(*crossDeviceCommManager_, GetConnectionStatus(_)).WillByDefault(Return(ConnectionStatus::DISCONNECTED));
+    ON_CALL(*crossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(*crossDeviceCommManager_, SubscribeConnectionStatus(_, _))
+        .WillByDefault(Invoke(
+            [](const std::string &, OnConnectionStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
+    ON_CALL(*crossDeviceCommManager_, SubscribeIncomingConnection(_, _))
+        .WillByDefault(Invoke([](MessageType, OnMessage &&) { return std::make_unique<Subscription>([]() {}); }));
+    ON_CALL(*crossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(false));
+    ON_CALL(*crossDeviceCommManager_, SubscribeMessage(_, _, _))
+        .WillByDefault(Invoke(
+            [](const std::string &, MessageType, OnMessage &&) { return std::make_unique<Subscription>([]() {}); }));
+    ON_CALL(*crossDeviceCommManager_, CheckOperationIntent(_, _, _)).WillByDefault(Return(false));
+    ON_CALL(*crossDeviceCommManager_, HostGetSecureProtocolId(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(*crossDeviceCommManager_, CompanionGetSecureProtocolId()).WillByDefault(Return(SecureProtocolId::DEFAULT));
+}
+
+void MockGuard::SetupCompanionManagerDefaults()
+{
+    ON_CALL(*companionManager_, GetCompanionStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(*companionManager_, GetCompanionStatus(_, _)).WillByDefault(Return(std::nullopt));
+    ON_CALL(*companionManager_, GetAllCompanionStatus()).WillByDefault(Return(std::vector<CompanionStatus> {}));
+    ON_CALL(*companionManager_, SubscribeCompanionDeviceStatusChange(_))
+        .WillByDefault(
+            Invoke([](OnCompanionDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
+    ON_CALL(*companionManager_, UnsubscribeCompanionDeviceStatusChange(_)).WillByDefault(Return());
+    ON_CALL(*companionManager_, BeginAddCompanion(_, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*companionManager_, EndAddCompanion(_, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*companionManager_, RemoveCompanion(_)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*companionManager_, UpdateCompanionStatus(_, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*companionManager_, UpdateCompanionEnabledBusinessIds(_, _))
+        .WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*companionManager_, SetCompanionTokenAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(*companionManager_, UpdateToken(_, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*companionManager_, HandleCompanionCheckFail(_)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*companionManager_, StartIssueTokenRequests(_, _)).WillByDefault(Return());
+    ON_CALL(*companionManager_, NotifyCompanionStatusChange()).WillByDefault(Return());
+    ON_CALL(*companionManager_, HandleRemoveHostBindingComplete(_)).WillByDefault(Return());
+}
+
+void MockGuard::SetupRequestManagerDefaults()
+{
+    ON_CALL(*requestManager_, Start(_)).WillByDefault(Return(true));
+}
+
+void MockGuard::SetupRequestFactoryDefaults()
+{
+    ON_CALL(*requestFactory_, CreateCompanionRevokeTokenRequest(_, _)).WillByDefault(Return(nullptr));
+    ON_CALL(*requestFactory_, CreateHostSyncDeviceStatusRequest(_, _, _, _)).WillByDefault(Return(nullptr));
+}
+
+void MockGuard::SetupHostBindingManagerDefaults()
+{
+    ON_CALL(*hostBindingManager_, GetHostBindingStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(*hostBindingManager_, GetHostBindingStatus(_, _)).WillByDefault(Return(std::nullopt));
+    ON_CALL(*hostBindingManager_, BeginAddHostBinding(_, _, _, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*hostBindingManager_, EndAddHostBinding(_, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*hostBindingManager_, RemoveHostBinding(_, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*hostBindingManager_, SetHostBindingTokenValid(_, _)).WillByDefault(Return(true));
+    ON_CALL(*hostBindingManager_, StartObtainTokenRequests(_, _)).WillByDefault(Return());
+    ON_CALL(*hostBindingManager_, RevokeTokens(_)).WillByDefault(Return());
+}
+
+void MockGuard::SetupSecurityAgentDefaults()
+{
+    ON_CALL(*securityAgent_, Init()).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, SetActiveUser(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostGetExecutorInfo(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostOnRegisterFinish(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostGetPersistedCompanionStatus(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, CompanionGetPersistedHostBindingStatus(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostBeginCompanionCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostEndCompanionCheck(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostCancelCompanionCheck(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, CompanionProcessCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostGetInitKeyNegotiationRequest(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostBeginAddCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+}
+
 MockGuard::~MockGuard()
 {
-    // Clear AdapterManager mocks
+    // Execute all pending tasks BEFORE clearing mocks
+    // This ensures that any pending requests can properly access singleton managers
+    // and prevents stale callbacks from accessing released singletons
+    // Use EnsureAllTaskExecuted to handle nested async tasks
+    TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
+    RelativeTimer::GetInstance().EnsureAllTaskExecuted();
+
+    // Reset infrastructure FIRST to clear all manager pointers
+    // This must happen before we try to set them to nullptr
+    SingletonManager::GetInstance().Reset();
+    AdapterManager::GetInstance().Reset();
+
+    // Now it's safe to clear AdapterManager mocks (these don't have nullptr checks)
     AdapterManager::GetInstance().SetTimeKeeper(nullptr);
     AdapterManager::GetInstance().SetUserAuthAdapter(nullptr);
     AdapterManager::GetInstance().SetIdmAdapter(nullptr);
@@ -101,20 +246,8 @@ MockGuard::~MockGuard()
     AdapterManager::GetInstance().SetSystemParamManager(nullptr);
     AdapterManager::GetInstance().SetUserIdManager(nullptr);
 
-    // Clear SingletonManager mocks
-    SingletonManager::GetInstance().SetCrossDeviceCommManager(nullptr);
-    SingletonManager::GetInstance().SetSecurityAgent(nullptr);
-    SingletonManager::GetInstance().SetCompanionManager(nullptr);
-    SingletonManager::GetInstance().SetHostBindingManager(nullptr);
-    SingletonManager::GetInstance().SetMiscManager(nullptr);
-    SingletonManager::GetInstance().SetRequestManager(nullptr);
-    SingletonManager::GetInstance().SetRequestFactory(nullptr);
-
-    // Reset infrastructure
-    AdapterManager::GetInstance().Reset();
-    SingletonManager::GetInstance().Reset();
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    RelativeTimer::GetInstance().ExecuteAll();
+    // SingletonManager mocks are already reset, so no need to set to nullptr
+    // The Reset() call above already cleared all shared_ptr references
 }
 
 // AdapterManager mock access methods

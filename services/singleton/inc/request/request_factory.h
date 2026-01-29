@@ -54,11 +54,11 @@ public:
         const std::vector<uint8_t> &fwkMsg, UserId hostUserId, TemplateId templateId,
         FwkResultCallback &&requestCallback) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionAddCompanionRequest(const std::string &connectionName,
-        const Attributes &request, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey) = 0;
+        const Attributes &request, OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionIssueTokenRequest(const std::string &connectionName,
-        const Attributes &request, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey) = 0;
+        const Attributes &request, OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey) = 0;
     virtual std::shared_ptr<IRequest> CreateHostObtainTokenRequest(const std::string &connectionName,
-        const Attributes &request, OnMessageReply replyCallback, const DeviceKey &companionDeviceKey) = 0;
+        const Attributes &request, OnMessageReply &&replyCallback, const DeviceKey &companionDeviceKey) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionObtainTokenRequest(const DeviceKey &hostDeviceKey,
         const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,

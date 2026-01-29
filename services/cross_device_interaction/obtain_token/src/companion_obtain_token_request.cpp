@@ -34,9 +34,9 @@ namespace CompanionDeviceAuth {
 CompanionObtainTokenRequest::CompanionObtainTokenRequest(const DeviceKey &hostDeviceKey,
     const std::vector<uint8_t> &fwkUnlockMsg)
     : OutboundRequest(RequestType::COMPANION_OBTAIN_TOKEN_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
-      hostDeviceKey_(hostDeviceKey),
       fwkUnlockMsg_(fwkUnlockMsg)
 {
+    SetPeerDeviceKey(hostDeviceKey);
 }
 
 bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
@@ -46,8 +46,8 @@ bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
         return false;
     }
-    localDeviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive(
-        [weakSelf = std::weak_ptr<CompanionObtainTokenRequest>(shared_from_this())](bool isActive) {
+    localDeviceStatusSubscription_ =
+        GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive([weakSelf = weak_from_this()](bool isActive) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleAuthMaintainActiveChanged(isActive);
@@ -57,8 +57,6 @@ bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
         return false;
     }
-
-    SetPeerDeviceKey(hostDeviceKey_);
 
     if (!OpenConnection()) {
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
@@ -89,18 +87,17 @@ void CompanionObtainTokenRequest::OnConnected()
 
 bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
 {
+    ENSURE_OR_RETURN_VAL(GetPeerDeviceKey().has_value(), false);
     Attributes request = {};
     PreObtainTokenRequest preObtainTokenRequest = {
-        .hostUserId = hostDeviceKey_.deviceUserId,
+        .hostUserId = GetPeerDeviceKey().value().deviceUserId,
         .companionDeviceKey = companionDeviceKey_,
         .extraInfo = {},
     };
-    bool encodeRet = EncodePreObtainTokenRequest(preObtainTokenRequest, request);
-    ENSURE_OR_RETURN_VAL(encodeRet, false);
+    EncodePreObtainTokenRequest(preObtainTokenRequest, request);
 
-    auto weakSelf = std::weak_ptr<CompanionObtainTokenRequest>(shared_from_this());
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::PRE_OBTAIN_TOKEN, request,
-        [weakSelf](const Attributes &reply) {
+        [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandlePreObtainTokenReply(reply);
@@ -139,8 +136,9 @@ void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &re
 
 bool CompanionObtainTokenRequest::CompanionBeginObtainToken(const PreObtainTokenReply &preObtainTokenReply)
 {
+    ENSURE_OR_RETURN_VAL(GetPeerDeviceKey().has_value(), false);
     auto hostBindingStatus =
-        GetHostBindingManager().GetHostBindingStatus(companionDeviceKey_.deviceUserId, hostDeviceKey_);
+        GetHostBindingManager().GetHostBindingStatus(companionDeviceKey_.deviceUserId, GetPeerDeviceKey().value());
     if (!hostBindingStatus.has_value()) {
         IAM_LOGE("%{public}s GetHostBindingStatus failed", GetDescription());
         return false;
@@ -166,18 +164,17 @@ bool CompanionObtainTokenRequest::CompanionBeginObtainToken(const PreObtainToken
 
 bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest)
 {
+    ENSURE_OR_RETURN_VAL(GetPeerDeviceKey().has_value(), false);
     Attributes request = {};
     ObtainTokenRequest obtainRequest = {
-        .hostUserId = hostDeviceKey_.deviceUserId,
+        .hostUserId = GetPeerDeviceKey().value().deviceUserId,
         .extraInfo = obtainTokenRequest,
         .companionDeviceKey = companionDeviceKey_,
     };
-    bool encodeRet = EncodeObtainTokenRequest(obtainRequest, request);
-    ENSURE_OR_RETURN_VAL(encodeRet, false);
+    EncodeObtainTokenRequest(obtainRequest, request);
 
-    auto weakSelf = std::weak_ptr<CompanionObtainTokenRequest>(shared_from_this());
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::OBTAIN_TOKEN, request,
-        [weakSelf](const Attributes &reply) {
+        [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleObtainTokenReply(reply);

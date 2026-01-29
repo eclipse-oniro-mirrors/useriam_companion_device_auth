@@ -32,8 +32,8 @@ public:
     void UnInitDeviceManager() override;
     std::optional<std::string> GetUdidByNetworkId(const std::string &networkId) override;
     bool QueryTrustedDevices(std::vector<DmDeviceInfo> &deviceList) override;
-    bool RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override;
-    void UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override;
+    bool RegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback) override;
+    void UnRegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback) override;
 
 private:
     DeviceManagerAdapterImpl() = default;

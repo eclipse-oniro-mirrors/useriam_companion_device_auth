@@ -171,11 +171,13 @@ void NapiAvailableDeviceStatusCallback::OnAvailableDeviceStatusChange(
             return;
         }
     };
+    // clang-format off
     if (napi_send_event(env_, task, napi_eprio_immediate,
         "CompanionDeviceAuthNapi::NapiAvailableDeviceStatusCallback::OnAvailableDeviceStatusChange") !=
         napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
+    // clang-format on
 }
 
 int32_t NapiAvailableDeviceStatusCallback::GetUserId()

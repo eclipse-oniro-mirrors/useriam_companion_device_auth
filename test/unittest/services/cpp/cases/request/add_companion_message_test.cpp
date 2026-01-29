@@ -43,8 +43,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationRequest_001, Tes
     InitKeyNegotiationRequest request = { .hostDeviceKey = hostDeviceKey_, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeInitKeyNegotiationRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeInitKeyNegotiationRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -63,8 +62,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationRequest_002, Tes
     InitKeyNegotiationRequest request = { .hostDeviceKey = hostDeviceKey_, .extraInfo = {} };
 
     Attributes attributes;
-    bool encodeResult = EncodeInitKeyNegotiationRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeInitKeyNegotiationRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -99,8 +97,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationReply_001, TestS
     InitKeyNegotiationReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeInitKeyNegotiationReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeInitKeyNegotiationReply(reply, attributes);
 
     auto decoded = DecodeInitKeyNegotiationReply(attributes);
     EXPECT_TRUE(decoded.has_value());
@@ -113,8 +110,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationReply_002, TestS
     InitKeyNegotiationReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeInitKeyNegotiationReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeInitKeyNegotiationReply(reply, attributes);
 
     auto decoded = DecodeInitKeyNegotiationReply(attributes);
     EXPECT_TRUE(decoded.has_value());
@@ -127,8 +123,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationReply_003, TestS
     InitKeyNegotiationReply reply = { .result = ResultCode::SUCCESS, .extraInfo = {} };
 
     Attributes attributes;
-    bool encodeResult = EncodeInitKeyNegotiationReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeInitKeyNegotiationReply(reply, attributes);
 
     auto decoded = DecodeInitKeyNegotiationReply(attributes);
     EXPECT_TRUE(decoded.has_value());
@@ -160,8 +155,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_001, Te
     BeginAddHostBindingRequest request = { .companionUserId = companionUserId_, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeBeginAddHostBindingRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeBeginAddHostBindingRequest(request, attributes);
 
     auto decoded = DecodeBeginAddHostBindingRequest(attributes);
     EXPECT_TRUE(decoded.has_value());
@@ -174,8 +168,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_002, Te
     BeginAddHostBindingRequest request = { .companionUserId = companionUserId_, .extraInfo = {} };
 
     Attributes attributes;
-    bool encodeResult = EncodeBeginAddHostBindingRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeBeginAddHostBindingRequest(request, attributes);
 
     auto decoded = DecodeBeginAddHostBindingRequest(attributes);
     EXPECT_TRUE(decoded.has_value());
@@ -205,8 +198,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingReply_001, Test
     BeginAddHostBindingReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeBeginAddHostBindingReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeBeginAddHostBindingReply(reply, attributes);
 
     auto decoded = DecodeBeginAddHostBindingReply(attributes);
     EXPECT_TRUE(decoded.has_value());
@@ -219,8 +211,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingReply_002, Test
     BeginAddHostBindingReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeBeginAddHostBindingReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeBeginAddHostBindingReply(reply, attributes);
 
     auto decoded = DecodeBeginAddHostBindingReply(attributes);
     EXPECT_TRUE(decoded.has_value());
@@ -233,8 +224,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingReply_003, Test
     BeginAddHostBindingReply reply = { .result = ResultCode::SUCCESS, .extraInfo = {} };
 
     Attributes attributes;
-    bool encodeResult = EncodeBeginAddHostBindingReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeBeginAddHostBindingReply(reply, attributes);
 
     auto decoded = DecodeBeginAddHostBindingReply(attributes);
     EXPECT_TRUE(decoded.has_value());
@@ -268,8 +258,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeEndAddHostBindingRequest_001, Test
         .result = ResultCode::SUCCESS };
 
     Attributes attributes;
-    bool encodeResult = EncodeEndAddHostBindingRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeEndAddHostBindingRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -291,8 +280,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeEndAddHostBindingRequest_002, Test
         .result = ResultCode::GENERAL_ERROR };
 
     Attributes attributes;
-    bool encodeResult = EncodeEndAddHostBindingRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeEndAddHostBindingRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -339,8 +327,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeEndAddHostBindingReply_001, TestSi
     EndAddHostBindingReply reply = { .result = ResultCode::SUCCESS };
 
     Attributes attributes;
-    bool encodeResult = EncodeEndAddHostBindingReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeEndAddHostBindingReply(reply, attributes);
 
     auto decoded = DecodeEndAddHostBindingReply(attributes);
     EXPECT_TRUE(decoded.has_value());

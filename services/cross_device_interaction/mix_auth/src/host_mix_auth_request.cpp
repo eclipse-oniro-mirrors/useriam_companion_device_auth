@@ -71,7 +71,13 @@ void HostMixAuthRequest::Start()
                     self->HandleAuthResult(templateId, result, extraInfo);
                 });
         if (hostSingleMixAuthRequest == nullptr) {
-            IAM_LOGE("%{public}s CreateHostSingleMixAuthRequest fail", GetDescription());
+            IAM_LOGE("%{public}s factory returned nullptr for templateId:%{public}s", GetDescription(),
+                GET_MASKED_NUM_CSTR(templateId));
+            continue;
+        }
+        if (!GetRequestManager().Start(hostSingleMixAuthRequest)) {
+            IAM_LOGE("%{public}s start request fail templateId:%{public}s", GetDescription(),
+                GET_MASKED_NUM_CSTR(templateId));
             continue;
         }
         requestMap_.emplace(templateId, std::move(hostSingleMixAuthRequest));
@@ -80,15 +86,6 @@ void HostMixAuthRequest::Start()
         IAM_LOGE("%{public}s no request exist", GetDescription());
         CompleteWithError(ResultCode::GENERAL_ERROR);
         return;
-    }
-    for (auto &entry : requestMap_) {
-        if (entry.second == nullptr) {
-            continue;
-        }
-        if (!GetRequestManager().Start(entry.second)) {
-            IAM_LOGE("%{public}s start request fail templateId:%{public}s", GetDescription(),
-                GET_MASKED_NUM_CSTR(entry.first));
-        }
     }
 }
 
@@ -191,13 +188,7 @@ void HostMixAuthRequest::CompleteWithSuccess(const std::vector<uint8_t> &extraIn
 void HostMixAuthRequest::Destroy()
 {
     IAM_LOGI("%{public}s destroy", GetDescription());
-    StopTimeout();
-
-    auto requestId = GetRequestId();
-    TaskRunnerManager::GetInstance().PostTaskOnResident([requestId]() {
-        GetRequestManager().Remove(requestId);
-        IAM_LOGI("request 0x%{public}08X removed", requestId);
-    });
+    BaseRequest::Destroy();
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -39,6 +39,7 @@ void AniDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     const std::shared_ptr<SetDeviceSelectResultCallback> &callback)
 {
     IAM_LOGI("start");
+    ENSURE_OR_RETURN(callback != nullptr);
     ClientDeviceSelectResult result;
     auto deviceSelectCallback = GetCallback();
     if (deviceSelectCallback == nullptr) {

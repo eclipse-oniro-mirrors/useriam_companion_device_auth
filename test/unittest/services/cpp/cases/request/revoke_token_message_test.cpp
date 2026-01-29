@@ -41,8 +41,7 @@ HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenRequest_001, TestSize.Le
     RevokeTokenRequest request = { .hostUserId = hostUserId_, .companionDeviceKey = companionDeviceKey_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeRevokeTokenRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeRevokeTokenRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.companionDeviceKey.idType));
@@ -92,8 +91,7 @@ HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenReply_001, TestSize.Leve
     RevokeTokenReply reply = { .result = ResultCode::SUCCESS };
 
     Attributes attributes;
-    bool encodeResult = EncodeRevokeTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeRevokeTokenReply(reply, attributes);
 
     auto result = DecodeRevokeTokenReply(attributes);
     ASSERT_TRUE(result.has_value());
@@ -107,8 +105,7 @@ HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenReply_002, TestSize.Leve
     RevokeTokenReply reply = { .result = ResultCode::GENERAL_ERROR };
 
     Attributes attributes;
-    bool encodeResult = EncodeRevokeTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeRevokeTokenReply(reply, attributes);
 
     auto result = DecodeRevokeTokenReply(attributes);
     ASSERT_TRUE(result.has_value());

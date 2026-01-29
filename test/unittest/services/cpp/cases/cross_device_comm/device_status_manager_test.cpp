@@ -170,6 +170,8 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedSta
 
     ctx.manager->HandleSyncResult(deviceKey, SUCCESS, syncStatus);
 
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
     EXPECT_TRUE(callbackInvoked);
     EXPECT_EQ(1u, callbackCount);
     auto result = ctx.manager->GetDeviceStatus(deviceKey);
@@ -378,6 +380,8 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallba
     syncStatus.deviceUserName = "remote-user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
     ctx.manager->HandleSyncResult(deviceKey, SUCCESS, syncStatus);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
 
     const auto &storedEntry = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
     EXPECT_TRUE(storedEntry.isSynced);

@@ -115,8 +115,7 @@ std::unique_ptr<Subscription> SystemParamManagerImpl::WatchParam(const std::stri
 
     IAM_LOGD("watch key %{public}s, subscription id 0x%{public}016" PRIX64, key.c_str(), subscriptionId);
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnwatchParam(subscriptionId);

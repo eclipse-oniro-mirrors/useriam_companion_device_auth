@@ -190,7 +190,7 @@ public:
     }
 
 private:
-    bool Initialize() override
+    bool Initialize()
     {
         return true;
     }
@@ -325,11 +325,6 @@ public:
     std::optional<std::string> GetLocalUdid() override
     {
         return std::optional<std::string>();
-    }
-
-    bool CheckBusinessIds(const std::vector<BusinessId> &) override
-    {
-        return fuzzData_.ConsumeIntegral<uint32_t>() > 0;
     }
 
 private:
@@ -1179,7 +1174,7 @@ public:
     }
 
     std::shared_ptr<IRequest> CreateCompanionAddCompanionRequest(const std::string &connectionName,
-        const Attributes &request, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey) override
+        const Attributes &request, OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey) override
     {
         (void)connectionName;
         (void)request;
@@ -1191,7 +1186,7 @@ public:
     }
 
     std::shared_ptr<IRequest> CreateCompanionIssueTokenRequest(const std::string &connectionName,
-        const Attributes &request, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey) override
+        const Attributes &request, OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey) override
     {
         (void)connectionName;
         (void)request;
@@ -1203,7 +1198,7 @@ public:
     }
 
     std::shared_ptr<IRequest> CreateHostObtainTokenRequest(const std::string &connectionName, const Attributes &request,
-        OnMessageReply replyCallback, const DeviceKey &companionDeviceKey) override
+        OnMessageReply &&replyCallback, const DeviceKey &companionDeviceKey) override
     {
         (void)connectionName;
         (void)request;

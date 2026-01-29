@@ -44,13 +44,11 @@ bool AccessTokenKitAdapterImpl::CheckPermission(IPCObjectStub &stub, const std::
         return false;
     }
 
-    uint32_t firstTokenId = stub.GetFirstTokenID();
     uint32_t callingTokenId = stub.GetCallingTokenID();
 
     using namespace Security::AccessToken;
     XCollieHelper xcollie("AccessTokenKitAdapterImpl-CheckPermission", API_CALL_TIMEOUT);
-    if ((firstTokenId != 0 && AccessTokenKit::VerifyAccessToken(firstTokenId, permissionName) != RET_SUCCESS) ||
-        AccessTokenKit::VerifyAccessToken(callingTokenId, permissionName) != RET_SUCCESS) {
+    if (AccessTokenKit::VerifyAccessToken(callingTokenId, permissionName) != RET_SUCCESS) {
         return false;
     }
     return true;
@@ -73,12 +71,8 @@ bool AccessTokenKitAdapterImpl::CheckSystemPermission(IPCObjectStub &stub)
 
 uint32_t AccessTokenKitAdapterImpl::GetAccessTokenId(IPCObjectStub &stub)
 {
-    uint32_t tokenId = stub.GetFirstTokenID();
-    IAM_LOGD("get first caller tokenId: %{public}u", tokenId);
-    if (tokenId == 0) {
-        tokenId = stub.GetCallingTokenID();
-        IAM_LOGD("no first caller, get direct caller tokenId: %{public}u", tokenId);
-    }
+    uint32_t tokenId = stub.GetCallingTokenID();
+    IAM_LOGD("get caller tokenId: %{public}u", tokenId);
     return tokenId;
 }
 

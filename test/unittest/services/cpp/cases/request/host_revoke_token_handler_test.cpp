@@ -53,6 +53,9 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_001, TestSize.Level0)
     Attributes request;
     RevokeTokenRequest revokeTokenRequest = { .hostUserId = 100, .companionDeviceKey = companionDeviceKey_ };
     EncodeRevokeTokenRequest(revokeTokenRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(revokeTokenRequest.companionDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, revokeTokenRequest.companionDeviceKey.deviceId);
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
         .WillOnce(Return(std::make_optional(companionStatus_)));
@@ -114,6 +117,9 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_004, TestSize.Level0)
     Attributes request;
     RevokeTokenRequest revokeTokenRequest = { .hostUserId = 100, .companionDeviceKey = companionDeviceKey_ };
     EncodeRevokeTokenRequest(revokeTokenRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(revokeTokenRequest.companionDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, revokeTokenRequest.companionDeviceKey.deviceId);
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
         .WillOnce(Return(std::make_optional(companionStatus_)));

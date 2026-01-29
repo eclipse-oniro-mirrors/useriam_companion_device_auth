@@ -70,11 +70,7 @@ void CompanionTokenAuthHandler::HandleRequest(const Attributes &request, Attribu
     }
 
     TokenAuthReply replyMsg = { .result = ret, .extraInfo = output.tokenAuthReply };
-    bool encodeRet = EncodeTokenAuthReply(replyMsg, reply);
-    if (!encodeRet) {
-        IAM_LOGE("EncodeTokenAuthReply failed");
-        return;
-    }
+    EncodeTokenAuthReply(replyMsg, reply);
     errorGuard.Cancel();
 }
 } // namespace CompanionDeviceAuth

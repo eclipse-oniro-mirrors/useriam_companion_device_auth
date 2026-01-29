@@ -69,6 +69,18 @@ public:
     MockRequestFactory &GetRequestFactory();
 
 private:
+    // Helper methods for mock initialization
+    void CreateMocks();
+    void SetupDefaultBehaviors();
+    void SetupMiscManagerDefaults();
+    void SetupUserIdManagerDefaults();
+    void SetupCrossDeviceCommManagerDefaults();
+    void SetupCompanionManagerDefaults();
+    void SetupRequestManagerDefaults();
+    void SetupRequestFactoryDefaults();
+    void SetupHostBindingManagerDefaults();
+    void SetupSecurityAgentDefaults();
+
     // AdapterManager mock instances
     std::shared_ptr<MockTimeKeeper> timeKeeper_;
     std::shared_ptr<MockUserAuthAdapter> userAuthAdapter_;

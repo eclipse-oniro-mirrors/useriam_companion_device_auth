@@ -167,7 +167,6 @@ if (companion_device_auth_has_user_auth_framework) {
       "external_adapters/user_auth/src/driver_manager_adapter_impl.cpp",
       "external_adapters/user_auth/src/idm_adapter_impl.cpp",
       "external_adapters/user_auth/src/user_auth_adapter_impl.cpp",
-      "fwk_comm/src/companion_auth_interface_adapter.cpp",
       "fwk_comm/src/companion_device_auth_all_in_one_executor.cpp",
       "fwk_comm/src/companion_device_auth_driver.cpp",
       "fwk_comm/src/companion_device_auth_executor_callback.cpp",

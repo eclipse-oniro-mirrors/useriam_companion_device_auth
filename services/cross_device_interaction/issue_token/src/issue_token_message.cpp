@@ -27,12 +27,11 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-bool EncodePreIssueTokenRequest(const PreIssueTokenRequest &request, Attributes &attributes)
+void EncodePreIssueTokenRequest(const PreIssueTokenRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<PreIssueTokenRequest> DecodePreIssueTokenRequest(const Attributes &attributes)
@@ -50,14 +49,13 @@ std::optional<PreIssueTokenRequest> DecodePreIssueTokenRequest(const Attributes 
     return request;
 }
 
-bool EncodePreIssueTokenReply(const PreIssueTokenReply &reply, Attributes &attributes)
+void EncodePreIssueTokenReply(const PreIssueTokenReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
     if (reply.result != ResultCode::SUCCESS) {
-        return true;
+        return;
     }
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.extraInfo);
-    return true;
 }
 
 std::optional<PreIssueTokenReply> DecodePreIssueTokenReply(const Attributes &attributes)
@@ -76,12 +74,11 @@ std::optional<PreIssueTokenReply> DecodePreIssueTokenReply(const Attributes &att
     return reply;
 }
 
-bool EncodeIssueTokenRequest(const IssueTokenRequest &request, Attributes &attributes)
+void EncodeIssueTokenRequest(const IssueTokenRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<IssueTokenRequest> DecodeIssueTokenRequest(const Attributes &attributes)
@@ -99,14 +96,13 @@ std::optional<IssueTokenRequest> DecodeIssueTokenRequest(const Attributes &attri
     return request;
 }
 
-bool EncodeIssueTokenReply(const IssueTokenReply &reply, Attributes &attributes)
+void EncodeIssueTokenReply(const IssueTokenReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
     if (reply.result != ResultCode::SUCCESS) {
-        return true;
+        return;
     }
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.extraInfo);
-    return true;
 }
 
 std::optional<IssueTokenReply> DecodeIssueTokenReply(const Attributes &attributes)

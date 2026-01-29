@@ -51,14 +51,14 @@ struct IssueTokenReply {
     std::vector<uint8_t> extraInfo;
 };
 
-bool EncodePreIssueTokenRequest(const PreIssueTokenRequest &request, Attributes &attributes);
+void EncodePreIssueTokenRequest(const PreIssueTokenRequest &request, Attributes &attributes);
 std::optional<PreIssueTokenRequest> DecodePreIssueTokenRequest(const Attributes &attributes);
-bool EncodePreIssueTokenReply(const PreIssueTokenReply &reply, Attributes &attributes);
+void EncodePreIssueTokenReply(const PreIssueTokenReply &reply, Attributes &attributes);
 std::optional<PreIssueTokenReply> DecodePreIssueTokenReply(const Attributes &attributes);
 
-bool EncodeIssueTokenRequest(const IssueTokenRequest &request, Attributes &attributes);
+void EncodeIssueTokenRequest(const IssueTokenRequest &request, Attributes &attributes);
 std::optional<IssueTokenRequest> DecodeIssueTokenRequest(const Attributes &attributes);
-bool EncodeIssueTokenReply(const IssueTokenReply &reply, Attributes &attributes);
+void EncodeIssueTokenReply(const IssueTokenReply &reply, Attributes &attributes);
 std::optional<IssueTokenReply> DecodeIssueTokenReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

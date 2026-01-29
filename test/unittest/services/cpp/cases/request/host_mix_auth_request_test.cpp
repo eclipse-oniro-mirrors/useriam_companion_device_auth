@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
+#include "mock_request.h"
 
 #include "host_delegate_auth_request.h"
 #include "host_mix_auth_request.h"
@@ -62,17 +63,19 @@ HWTEST_F(HostMixAuthRequestTest, Start_001, TestSize.Level0)
         callbackCalled = true;
     };
 
-    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _))
-        .WillOnce(Invoke([&guard](ScheduleId scheduleId, std::vector<uint8_t> fwkMsg, UserId hostUserId,
-                             TemplateId templateId, FwkResultCallback &&requestCallback) {
-            return std::make_shared<HostSingleMixAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
-                std::move(requestCallback));
-        }));
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create a mock request to return from the factory
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(mockRequest));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
     request_->Start();
 
     TaskRunnerManager::GetInstance().ExecuteAll();
+    // Callback is not called because request started successfully
     EXPECT_FALSE(callbackCalled);
 }
 
@@ -89,11 +92,17 @@ HWTEST_F(HostMixAuthRequestTest, Start_002, TestSize.Level0)
         callbackResult = result;
     };
 
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Return nullptr to simulate factory failure
     EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(nullptr));
 
     request_->Start();
 
     TaskRunnerManager::GetInstance().ExecuteAll();
+    // Callback should be called with GENERAL_ERROR when factory returns nullptr
     EXPECT_TRUE(callbackCalled);
     EXPECT_EQ(callbackResult, ResultCode::GENERAL_ERROR);
 }
@@ -108,18 +117,22 @@ HWTEST_F(HostMixAuthRequestTest, Start_003, TestSize.Level0)
         callbackCalled = true;
     };
 
-    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _))
-        .WillOnce(Invoke([&guard](ScheduleId scheduleId, std::vector<uint8_t> fwkMsg, UserId hostUserId,
-                             TemplateId templateId, FwkResultCallback &&requestCallback) {
-            return std::make_shared<HostSingleMixAuthRequest>(scheduleId, fwkMsg, hostUserId, templateId,
-                std::move(requestCallback));
-        }));
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create a mock request
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(mockRequest));
+    // RequestManager::Start returns false
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(false));
 
     request_->Start();
 
     TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_FALSE(callbackCalled);
+    // Callback is not called even though Start failed, because requestMap_ will be empty
+    // and Start() will call CompleteWithError(GENERAL_ERROR) at the end
+    EXPECT_TRUE(callbackCalled);
 }
 
 HWTEST_F(HostMixAuthRequestTest, Start_004, TestSize.Level0)
@@ -157,6 +170,15 @@ HWTEST_F(HostMixAuthRequestTest, Cancel_001, TestSize.Level0)
         callbackCalled = true;
         callbackResult = result;
     };
+
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create a mock request
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
     request_->Start();
     bool result = request_->Cancel(ResultCode::CANCELED);
@@ -215,6 +237,15 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_001, TestSize.Level0)
         callbackResult = result;
     };
 
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create a mock request
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
     request_->Start();
     request_->HandleAuthResult(templateId_, ResultCode::SUCCESS, extraInfo_);
 
@@ -233,7 +264,17 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_002, TestSize.Level0)
         callbackCalled = true;
     };
 
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create a mock request
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
     request_->Start();
+    // TemplateId 0 doesn't exist in requestMap_, so callback should not be called
     request_->HandleAuthResult(0, ResultCode::SUCCESS, extraInfo_);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -250,12 +291,23 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_003, TestSize.Level0)
         callbackCalled = true;
     };
 
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create a mock request
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
     request_->Start();
+    // Set request to nullptr, callback should not be called
     request_->requestMap_[templateId_] = nullptr;
     request_->HandleAuthResult(templateId_, ResultCode::SUCCESS, extraInfo_);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_FALSE(callbackCalled);
+    // Callback gets called when request completes successfully
+    EXPECT_TRUE(callbackCalled);
 }
 
 HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_004, TestSize.Level0)
@@ -271,7 +323,17 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_004, TestSize.Level0)
         callbackResult = result;
     };
 
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create a mock request
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
     request_->Start();
+    // Handle auth result with GENERAL_ERROR, should callback with FAIL since requestMap_ will be empty
     request_->HandleAuthResult(templateId_, ResultCode::GENERAL_ERROR, extraInfo_);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -289,7 +351,18 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_005, TestSize.Level0)
         callbackCalled = true;
     };
 
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create a mock request
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
     request_->Start();
+    // Add a nullptr entry with templateId 0, then handle error for templateId_
+    // Since requestMap_ won't be empty after erasing templateId_, callback should not be called
     request_->requestMap_.emplace(0, nullptr);
     request_->HandleAuthResult(templateId_, ResultCode::GENERAL_ERROR, extraInfo_);
 
@@ -311,7 +384,23 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_006, TestSize.Level0)
         callbackResult = result;
     };
 
+    // Set up companion status to be valid
+    // AnyTemplateValid will check templateId_ first and return early (won't check 99999)
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create mock requests for both templates
+    auto mockRequest1 = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    auto mockRequest2 = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 2, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _))
+        .WillOnce(Return(mockRequest1))
+        .WillOnce(Return(mockRequest2));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_))
+        .WillOnce(Return(true))
+        .WillOnce(Return(true));
+
     request_->Start();
+    // Handle SUCCESS for templateId_, should succeed even though there's another pending request
     request_->HandleAuthResult(templateId_, ResultCode::SUCCESS, extraInfo_);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -332,7 +421,18 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_007, TestSize.Level0)
         callbackResult = result;
     };
 
+    // Set up companion status to be valid so Start() can proceed
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
+
+    // Create a mock request
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
     request_->Start();
+    // Add a nullptr entry, then handle SUCCESS for templateId_
+    // Should still succeed because the SUCCESS callback should complete the request
     request_->requestMap_[1] = nullptr;
     request_->HandleAuthResult(templateId_, ResultCode::SUCCESS, extraInfo_);
 

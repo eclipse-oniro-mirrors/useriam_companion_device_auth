@@ -44,11 +44,11 @@ public:
     std::shared_ptr<IRequest> CreateHostDelegateAuthRequest(ScheduleId scheduleId, const std::vector<uint8_t> &fwkMsg,
         UserId hostUserId, TemplateId templateId, FwkResultCallback &&requestCallback) override;
     std::shared_ptr<IRequest> CreateCompanionAddCompanionRequest(const std::string &connectionName,
-        const Attributes &request, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey) override;
+        const Attributes &request, OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey) override;
     std::shared_ptr<IRequest> CreateCompanionIssueTokenRequest(const std::string &connectionName,
-        const Attributes &request, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey) override;
+        const Attributes &request, OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey) override;
     std::shared_ptr<IRequest> CreateHostObtainTokenRequest(const std::string &connectionName, const Attributes &request,
-        OnMessageReply replyCallback, const DeviceKey &companionDeviceKey) override;
+        OnMessageReply &&replyCallback, const DeviceKey &companionDeviceKey) override;
     std::shared_ptr<IRequest> CreateCompanionObtainTokenRequest(const DeviceKey &hostDeviceKey,
         const std::vector<uint8_t> &fwkUnlockMsg) override;
     std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,

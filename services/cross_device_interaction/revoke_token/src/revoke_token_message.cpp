@@ -27,11 +27,10 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-bool EncodeRevokeTokenRequest(const RevokeTokenRequest &request, Attributes &attributes)
+void EncodeRevokeTokenRequest(const RevokeTokenRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionDeviceKey.deviceUserId);
-    return true;
 }
 
 std::optional<RevokeTokenRequest> DecodeRevokeTokenRequest(const Attributes &attributes)
@@ -45,10 +44,9 @@ std::optional<RevokeTokenRequest> DecodeRevokeTokenRequest(const Attributes &att
     return request;
 }
 
-bool EncodeRevokeTokenReply(const RevokeTokenReply &reply, Attributes &attributes)
+void EncodeRevokeTokenReply(const RevokeTokenReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
-    return true;
 }
 
 std::optional<RevokeTokenReply> DecodeRevokeTokenReply(const Attributes &attributes)

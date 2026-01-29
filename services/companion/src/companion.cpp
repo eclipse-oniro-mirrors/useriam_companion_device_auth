@@ -83,10 +83,7 @@ bool Companion::Initialize()
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleDeviceStatusChanged(deviceStatusList);
             });
-    if (deviceStatusSubscription_ == nullptr) {
-        IAM_LOGE("%{public}s failed to subscribe device status", GetDescription());
-        return false;
-    }
+    ENSURE_OR_RETURN_VAL(deviceStatusSubscription_ != nullptr, false);
 
     auto initialStatus = GetCrossDeviceCommManager().GetDeviceStatus(status_.companionDeviceStatus.deviceKey);
     if (initialStatus.has_value()) {
@@ -225,10 +222,7 @@ void Companion::SetDeviceNames(const std::string &deviceName, const std::string 
 void Companion::NotifySubscribers()
 {
     auto manager = weakManager_.lock();
-    if (manager == nullptr) {
-        IAM_LOGW("%{public}s manager is null, cannot notify subscribers", GetDescription());
-        return;
-    }
+    ENSURE_OR_RETURN(manager != nullptr);
     manager->NotifyCompanionStatusChange();
 }
 

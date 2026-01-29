@@ -26,7 +26,6 @@ namespace CompanionDeviceAuth {
 
 class MockCompanionManager : public ICompanionManager {
 public:
-    MOCK_METHOD(bool, Initialize, (), (override));
     MOCK_METHOD(std::optional<CompanionStatus>, GetCompanionStatus, (TemplateId templateId), (override));
     MOCK_METHOD(std::optional<CompanionStatus>, GetCompanionStatus,
         (UserId hostUserId, const DeviceKey &companionDeviceKey), (override));

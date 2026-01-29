@@ -44,8 +44,7 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_001,
         .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeRemoveHostBindingRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeRemoveHostBindingRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -67,8 +66,7 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_002,
         .extraInfo = {} };
 
     Attributes attributes;
-    bool encodeResult = EncodeRemoveHostBindingRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeRemoveHostBindingRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -115,8 +113,7 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingReply_001, T
     RemoveHostBindingReply reply = { .result = ResultCode::SUCCESS };
 
     Attributes attributes;
-    bool encodeResult = EncodeRemoveHostBindingReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeRemoveHostBindingReply(reply, attributes);
 
     auto decoded = DecodeRemoveHostBindingReply(attributes);
     EXPECT_TRUE(decoded.has_value());
@@ -128,8 +125,7 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingReply_002, T
     RemoveHostBindingReply reply = { .result = ResultCode::GENERAL_ERROR };
 
     Attributes attributes;
-    bool encodeResult = EncodeRemoveHostBindingReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeRemoveHostBindingReply(reply, attributes);
 
     auto decoded = DecodeRemoveHostBindingReply(attributes);
     EXPECT_TRUE(decoded.has_value());

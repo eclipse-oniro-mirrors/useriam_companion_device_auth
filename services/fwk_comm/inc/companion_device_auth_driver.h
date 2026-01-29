@@ -21,7 +21,6 @@
 
 #include "nocopyable.h"
 
-#include "companion_auth_interface_adapter.h"
 #include "fwk_common.h"
 
 namespace OHOS {
@@ -30,15 +29,11 @@ namespace CompanionDeviceAuth {
 
 class CompanionDeviceAuthDriver : public FwkIAuthDriverHdi, public NoCopyable {
 public:
-    explicit CompanionDeviceAuthDriver(
-        const std::shared_ptr<CompanionAuthInterfaceAdapter> &companionAuthInterfaceAdapter);
+    CompanionDeviceAuthDriver() = default;
     ~CompanionDeviceAuthDriver() override = default;
 
     void GetExecutorList(std::vector<std::shared_ptr<FwkIAuthExecutorHdi>> &executorList) override;
     void OnHdiDisconnect() override;
-
-private:
-    const std::shared_ptr<CompanionAuthInterfaceAdapter> companionAuthInterfaceAdapter_;
 };
 
 } // namespace CompanionDeviceAuth

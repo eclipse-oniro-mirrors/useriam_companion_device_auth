@@ -32,15 +32,21 @@ StatusMonitor::StatusMonitor(int32_t localUserId)
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     localUserId_ = localUserId;
+    ENSURE_OR_RETURN(availableDeviceStatusCallback_ != nullptr);
     availableDeviceStatusCallback_->SetUserId(localUserId);
+    ENSURE_OR_RETURN(templateStatusCallback_ != nullptr);
     templateStatusCallback_->SetUserId(localUserId);
 }
 
 int32_t StatusMonitor::GetTemplateStatus(std::vector<ClientTemplateStatus> &clientTemplateStatusList)
 {
     IAM_LOGI("start");
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
-    int32_t ret = CompanionDeviceAuthClient::GetInstance().GetTemplateStatus(localUserId_, clientTemplateStatusList);
+    int32_t localUserId = 0;
+    {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
+        localUserId = localUserId_;
+    }
+    int32_t ret = CompanionDeviceAuthClient::GetInstance().GetTemplateStatus(localUserId, clientTemplateStatusList);
     if (ret != SUCCESS) {
         IAM_LOGE("GetTemplateStatus fail");
         return ret;
@@ -55,10 +61,7 @@ int32_t StatusMonitor::OnTemplateChange(::taihe::callback_view<void(
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (templateStatusCallback_ == nullptr) {
-        IAM_LOGE("templateStatusCallback_ is null");
-        return GENERAL_ERROR;
-    }
+    ENSURE_OR_RETURN_VAL(templateStatusCallback_ != nullptr, GENERAL_ERROR);
 
     if (!templateStatusCallback_->HasCallback()) {
         templateStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
@@ -86,16 +89,13 @@ int32_t StatusMonitor::OffTemplateChange(::taihe::optional_view<::taihe::callbac
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (templateStatusCallback_ == nullptr) {
-        IAM_LOGE("templateStatusCallback_ is null");
-        return GENERAL_ERROR;
-    }
+    ENSURE_OR_RETURN_VAL(templateStatusCallback_ != nullptr, GENERAL_ERROR);
 
     int32_t ret {};
     if (!callback.has_value()) {
         ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeTemplateStatusChange(templateStatusCallback_);
         if (ret != SUCCESS) {
-            IAM_LOGE("UnsubscribeAvailableDeviceStatus fail");
+            IAM_LOGE("UnsubscribeTemplateStatusChange fail, ret:%{public}d", ret);
             return ret;
         }
         templateStatusCallback_->ClearCallback();
@@ -125,10 +125,7 @@ int32_t StatusMonitor::OnAvailableDeviceChange(::taihe::callback_view<void(
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (availableDeviceStatusCallback_ == nullptr) {
-        IAM_LOGE("availableDeviceStatusCallback_ is null");
-        return GENERAL_ERROR;
-    }
+    ENSURE_OR_RETURN_VAL(availableDeviceStatusCallback_ != nullptr, GENERAL_ERROR);
 
     if (!availableDeviceStatusCallback_->HasCallback()) {
         availableDeviceStatusCallback_->SetCallback(::taihe::optional<::taihe::callback<void(
@@ -156,15 +153,11 @@ int32_t StatusMonitor::OffAvailableDeviceChange(::taihe::optional_view<
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (availableDeviceStatusCallback_ == nullptr) {
-        IAM_LOGE("availableDeviceStatusCallback_ is null");
-        return GENERAL_ERROR;
-    }
+    ENSURE_OR_RETURN_VAL(availableDeviceStatusCallback_ != nullptr, GENERAL_ERROR);
 
     int32_t ret {};
     if (!callback.has_value()) {
-        ret =
-            CompanionDeviceAuthClient::GetInstance().UnsubscribeAvailableDeviceStatus(availableDeviceStatusCallback_);
+        ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeAvailableDeviceStatus(availableDeviceStatusCallback_);
         if (ret != SUCCESS) {
             IAM_LOGE("UnsubscribeAvailableDeviceStatus fail");
             return ret;
@@ -179,8 +172,8 @@ int32_t StatusMonitor::OffAvailableDeviceChange(::taihe::optional_view<
             return ret;
         }
         if (!availableDeviceStatusCallback_->HasCallback()) {
-            ret = CompanionDeviceAuthClient::GetInstance().
-                UnsubscribeAvailableDeviceStatus(availableDeviceStatusCallback_);
+            ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeAvailableDeviceStatus(
+                availableDeviceStatusCallback_);
             if (ret != SUCCESS) {
                 IAM_LOGE("UnsubscribeAvailableDeviceStatus fail");
                 return ret;
@@ -322,22 +315,22 @@ int32_t StatusMonitor::ClearContinuousAuthStatusCallback()
     return SUCCESS;
 }
 
-int32_t StatusMonitor::RemoveSingleContinuousAuthStatusCallback(
-    ::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
-        ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
-    callback)
+int32_t StatusMonitor::RemoveSingleContinuousAuthStatusCallback(::taihe::optional_view<::taihe::callback<void(
+        bool isAuthPassed, ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
+        callback)
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     bool isCallbackExist = false;
     for (auto it = continuousAuthStatusCallbacks_.begin(); it != continuousAuthStatusCallbacks_.end();) {
+        // clang-format off
         if (!(*it)->HasSameCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
             ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
-                std::in_place_t {}, callback.value()
-            })) {
+                std::in_place_t {}, callback.value() })) {
             ++it;
             continue;
         }
+        // clang-format on
         int32_t ret = (*it)->RemoveSingleCallback(::taihe::optional<::taihe::callback<void(bool isAuthPassed,
                 ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>> {
             std::in_place_t {}, callback.value() });
@@ -346,7 +339,7 @@ int32_t StatusMonitor::RemoveSingleContinuousAuthStatusCallback(
             return ret;
         }
         isCallbackExist = true;
-        
+
         if ((*it)->HasCallback()) {
             ++it;
             continue;

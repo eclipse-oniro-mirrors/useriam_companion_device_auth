@@ -96,7 +96,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Constructor_001, TestSize.Leve
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     EXPECT_NE(nullptr, executor);
 }
 
@@ -104,7 +104,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, GetExecutorInfo_001, TestSize.
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkExecutorInfo info;
@@ -119,7 +119,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, GetExecutorInfo_002, TestSize.
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetExecutorInfo(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
@@ -134,7 +134,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, GetExecutorInfo_003, TestSize.
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
@@ -148,7 +148,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, OnRegisterFinish_001, TestSize
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
@@ -166,7 +166,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, OnRegisterFinish_002, TestSize
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     std::vector<uint64_t> templateIdList;
@@ -184,7 +184,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, OnRegisterFinish_003, TestSize
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
@@ -201,7 +201,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SendMessage_001, TestSize.Leve
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -217,7 +217,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SendMessage_002, TestSize.Leve
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
@@ -234,7 +234,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -260,7 +260,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -275,7 +275,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -295,7 +295,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_004, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -320,7 +320,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Enroll_005, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
@@ -337,7 +337,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_001, TestSize.Lev
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -365,7 +365,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_002, TestSize.Lev
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -380,7 +380,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_003, TestSize.Lev
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -399,7 +399,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_004, TestSize.Lev
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -420,7 +420,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_005, TestSize.Lev
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     uint64_t scheduleId = UINT64_12345;
@@ -447,7 +447,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_006, TestSize.Lev
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
@@ -464,7 +464,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Delete_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
@@ -480,7 +480,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Delete_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     std::vector<uint64_t> templateIdList = {};
@@ -494,7 +494,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Delete_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     std::vector<uint64_t> templateIdList = { 123 };
@@ -510,7 +510,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Delete_004, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
@@ -525,7 +525,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Cancel_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     EXPECT_CALL(guard.GetRequestManager(), CancelRequestByScheduleId(_)).WillOnce(Return(true));
@@ -540,7 +540,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Cancel_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     EXPECT_CALL(guard.GetRequestManager(), CancelRequestByScheduleId(_)).WillOnce(Return(false));
@@ -555,7 +555,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Cancel_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
@@ -569,7 +569,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SendCommand_001, TestSize.Leve
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_GET;
@@ -587,7 +587,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SendCommand_002, TestSize.Leve
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;
@@ -602,7 +602,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SendCommand_003, TestSize.Leve
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_UNFREEZE;
@@ -620,7 +620,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SendCommand_004, TestSize.Leve
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
     executor->inner_ = nullptr;
 
@@ -637,7 +637,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, GetProperty_001, TestSize.Leve
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     std::vector<uint64_t> templateIdList;
@@ -653,7 +653,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SetCachedTemplates_001, TestSi
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     std::vector<uint64_t> templateIdList;
@@ -667,7 +667,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_001
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;
@@ -686,7 +686,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_002
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;
@@ -708,7 +708,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_003
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;
@@ -738,7 +738,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_004
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;
@@ -773,7 +773,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_005
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;
@@ -808,7 +808,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_006
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;
@@ -848,7 +848,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_007
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_UNFREEZE;
@@ -873,6 +873,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_007
     std::vector<uint8_t> extraInfo = info.Serialize();
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _)).Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), StartObtainTokenRequests(_, _)).Times(1);
 
@@ -885,7 +886,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_008
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;
@@ -920,7 +921,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_009
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_UNFREEZE;
@@ -945,6 +946,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_009
     std::vector<uint8_t> extraInfo = info.Serialize();
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _)).Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), StartObtainTokenRequests(_, _)).Times(1);
 
@@ -957,7 +959,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_010
 {
     MockGuard guard;
 
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ASSERT_NE(nullptr, executor);
 
     FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;

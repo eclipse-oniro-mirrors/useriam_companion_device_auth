@@ -126,13 +126,13 @@ bool MiscManagerImpl::SetDeviceSelectCallback(uint32_t tokenId,
     auto obj = deviceSelectCallback->AsObject();
     ENSURE_OR_RETURN_VAL(obj != nullptr, false);
 
-    auto weakSelf = weak_from_this();
-    sptr<IRemoteObject::DeathRecipient> deathRecipient = CallbackDeathRecipient::Register(obj, [weakSelf, tokenId]() {
-        IAM_LOGI("device select callback died, clearing callback");
-        auto self = weakSelf.lock();
-        ENSURE_OR_RETURN(self != nullptr);
-        self->ClearDeviceSelectCallback(tokenId);
-    });
+    sptr<IRemoteObject::DeathRecipient> deathRecipient =
+        CallbackDeathRecipient::Register(obj, [weakSelf = weak_from_this(), tokenId]() {
+            IAM_LOGI("device select callback died, clearing callback");
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->ClearDeviceSelectCallback(tokenId);
+        });
     ENSURE_OR_RETURN_VAL(deathRecipient != nullptr, false);
 
     auto it = callbacks_.find(tokenId);
@@ -152,11 +152,9 @@ bool MiscManagerImpl::GetDeviceDeviceSelectResult(uint32_t tokenId, SelectPurpos
     ENSURE_OR_RETURN_VAL(resultHandler != nullptr, false);
 
     sptr<IIpcDeviceSelectCallback> deviceSelectCallback;
-    {
-        auto it = callbacks_.find(tokenId);
-        if (it != callbacks_.end()) {
-            deviceSelectCallback = it->second.callback;
-        }
+    auto it = callbacks_.find(tokenId);
+    if (it != callbacks_.end()) {
+        deviceSelectCallback = it->second.callback;
     }
 
     if (deviceSelectCallback == nullptr) {
@@ -174,7 +172,7 @@ bool MiscManagerImpl::GetDeviceDeviceSelectResult(uint32_t tokenId, SelectPurpos
         return false;
     }
 
-    IAM_LOGI("requested device select result, selectPurpose:%{public}d", static_cast<int32_t>(selectPurpose));
+    IAM_LOGI("requested device select result, selectPurpose:%{public}d", selectPurpose);
     return true;
 }
 
@@ -198,21 +196,6 @@ std::optional<std::string> MiscManagerImpl::GetLocalUdid()
         return std::string(udidBuffer, strnlen(udidBuffer, UDID_LENGTH));
     }
     return std::nullopt;
-}
-
-bool MiscManagerImpl::CheckBusinessIds(const std::vector<BusinessId> &businessIds)
-{
-    IAM_LOGI("Start, businessIds size:%{public}zu", businessIds.size());
-
-    for (const auto &businessId : businessIds) {
-        if (businessId != BusinessId::DEFAULT) {
-            IAM_LOGE("Invalid businessId:%{public}d", businessId);
-            return false;
-        }
-    }
-
-    IAM_LOGI("End, all businessIds are valid");
-    return true;
 }
 
 } // namespace CompanionDeviceAuth

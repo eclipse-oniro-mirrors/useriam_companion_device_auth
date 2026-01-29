@@ -28,10 +28,11 @@
 #include "cross_device_comm/icross_device_channel.h"
 #include "local_device_status_manager.h"
 #include "message_router.h"
-#include "misc_manager.h"
-#include "mock_guard.h"
+#include "misc/misc_manager.h"
+#include "mock_time_keeper.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "time_keeper.h"
 #include "user_id_manager.h"
 
 using namespace testing;
@@ -79,7 +80,7 @@ public:
         return std::string("local-udid");
     }
 
-    bool CheckBusinessIds(const std::vector<BusinessId> &) override
+    bool CheckBusinessIds(const std::vector<BusinessId> &)
     {
         return true;
     }
@@ -253,11 +254,24 @@ private:
 
 class MessageRouterTest : public testing::Test {
 public:
+    static void SetUpTestCase()
+    {
+        SingletonManager::GetInstance().SetMiscManager(std::make_shared<FakeMiscManager>());
+
+        staticTimeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(staticTimeKeeper);
+    }
+
+    static void TearDownTestCase()
+    {
+        AdapterManager::GetInstance().Reset();
+    }
+
     void SetUp() override
     {
-        // Register Fake managers before MockGuard (which sets up other mocks)
-        SingletonManager::GetInstance().SetMiscManager(std::make_shared<FakeMiscManager>());
-        AdapterManager::GetInstance().SetUserIdManager(std::make_shared<FakeUserIdManager>());
+        // Use the static timeKeeper for tests
+        timeKeeper_ = staticTimeKeeper;
+        ASSERT_NE(timeKeeper_, nullptr);
 
         channel_ = std::make_shared<FakeCrossDeviceChannel>(ChannelId::SOFTBUS);
         channelManager_ =
@@ -277,15 +291,10 @@ public:
         ASSERT_TRUE(connectionManager_->HandleIncomingConnection(connectionName_, physicalDeviceKey));
     }
 
-    void TearDown() override
-    {
-        // Clean up Fake managers
-        SingletonManager::GetInstance().SetMiscManager(nullptr);
-        AdapterManager::GetInstance().SetUserIdManager(nullptr);
-    }
-
 protected:
+    static std::shared_ptr<MockTimeKeeper> staticTimeKeeper;
     std::string connectionName_ { "test-connection" };
+    std::shared_ptr<MockTimeKeeper> timeKeeper_;
     std::shared_ptr<FakeCrossDeviceChannel> channel_;
     std::shared_ptr<ChannelManager> channelManager_;
     std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusManager_;
@@ -293,10 +302,10 @@ protected:
     std::shared_ptr<MessageRouter> router_;
 };
 
+std::shared_ptr<MockTimeKeeper> MessageRouterTest::staticTimeKeeper = nullptr;
+
 HWTEST_F(MessageRouterTest, SendMessage_001, TestSize.Level1)
 {
-    MockGuard guard;
-
     Attributes request;
     bool replyReceived = false;
     int32_t replyCode = -1;
@@ -334,8 +343,6 @@ HWTEST_F(MessageRouterTest, SendMessage_001, TestSize.Level1)
 
 HWTEST_F(MessageRouterTest, SendMessage_002, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes request;
 
     bool sendResult = router_->SendMessage("non-existent-connection", MessageType::KEEP_ALIVE, request, nullptr);
@@ -344,8 +351,6 @@ HWTEST_F(MessageRouterTest, SendMessage_002, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, SendMessage_003, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes request;
 
     bool sendResult = router_->SendMessage(connectionName_, MessageType::KEEP_ALIVE, request, nullptr);
@@ -354,8 +359,6 @@ HWTEST_F(MessageRouterTest, SendMessage_003, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, SendMessage_004, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes request;
 
     bool replyReceived = false;
@@ -381,8 +384,6 @@ HWTEST_F(MessageRouterTest, SendMessage_004, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, SubscribeMessage_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool messageReceived = false;
     auto subscription = router_->SubscribeMessage(connectionName_, MessageType::TOKEN_AUTH,
         [&messageReceived](const Attributes &, OnMessageReply &) { messageReceived = true; });
@@ -402,8 +403,6 @@ HWTEST_F(MessageRouterTest, SubscribeMessage_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, SubscribeMessage_002, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool messageReceived = false;
     {
         auto subscription = router_->SubscribeMessage(connectionName_, MessageType::TOKEN_AUTH,
@@ -425,8 +424,6 @@ HWTEST_F(MessageRouterTest, SubscribeMessage_002, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, SubscribeMessage_003, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool firstCallbackInvoked = false;
     bool secondCallbackInvoked = false;
 
@@ -451,8 +448,6 @@ HWTEST_F(MessageRouterTest, SubscribeMessage_003, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, SubscribeIncomingConnection_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool messageReceived = false;
     auto subscription = router_->SubscribeIncomingConnection(MessageType::START_DELEGATE_AUTH,
         [&messageReceived](const Attributes &, OnMessageReply &) { messageReceived = true; });
@@ -478,8 +473,6 @@ HWTEST_F(MessageRouterTest, SubscribeIncomingConnection_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, SubscribeIncomingConnection_002, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool messageReceived = false;
     {
         auto subscription = router_->SubscribeIncomingConnection(MessageType::START_DELEGATE_AUTH,
@@ -507,8 +500,6 @@ HWTEST_F(MessageRouterTest, SubscribeIncomingConnection_002, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, SubscribeIncomingConnection_003, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool messageReceived = false;
     auto subscription = router_->SubscribeIncomingConnection(MessageType::TOKEN_AUTH,
         [&messageReceived](const Attributes &, OnMessageReply &) { messageReceived = true; });
@@ -533,32 +524,24 @@ HWTEST_F(MessageRouterTest, SubscribeIncomingConnection_003, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, Create_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     auto router = MessageRouter::Create(connectionManager_, channelManager_);
     EXPECT_NE(router, nullptr);
 }
 
 HWTEST_F(MessageRouterTest, Create_002, TestSize.Level0)
 {
-    MockGuard guard;
-
     auto router = MessageRouter::Create(nullptr, channelManager_);
     EXPECT_EQ(router, nullptr);
 }
 
 HWTEST_F(MessageRouterTest, Create_003, TestSize.Level0)
 {
-    MockGuard guard;
-
     auto router = MessageRouter::Create(connectionManager_, nullptr);
     EXPECT_EQ(router, nullptr);
 }
 
 HWTEST_F(MessageRouterTest, HandleRawMessage_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes msg;
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, UINT32_TEST_INVALID_MESSAGE_SEQ_ALT);
@@ -570,16 +553,12 @@ HWTEST_F(MessageRouterTest, HandleRawMessage_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleRawMessage_002, TestSize.Level0)
 {
-    MockGuard guard;
-
     std::vector<uint8_t> invalidMsg = GetTestInvalidMessageBytes();
     router_->HandleRawMessage(connectionName_, invalidMsg);
 }
 
 HWTEST_F(MessageRouterTest, HandleRawMessage_003, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes msg;
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "non-existent-connection");
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
@@ -591,8 +570,6 @@ HWTEST_F(MessageRouterTest, HandleRawMessage_003, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleRequest_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes msg;
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
@@ -606,8 +583,6 @@ HWTEST_F(MessageRouterTest, HandleRequest_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleRequest_002, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes msg;
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
@@ -620,8 +595,6 @@ HWTEST_F(MessageRouterTest, HandleRequest_002, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleRequest_003, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes msg;
     msg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     msg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, 1);
@@ -636,8 +609,6 @@ HWTEST_F(MessageRouterTest, HandleRequest_003, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleRequest_004, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool messageReceived = false;
     bool replySent = false;
     auto subscription = router_->SubscribeMessage(connectionName_, MessageType::TOKEN_AUTH,
@@ -666,8 +637,6 @@ HWTEST_F(MessageRouterTest, HandleRequest_004, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, FindMessageSubscriber_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool connSpecificInvoked = false;
     bool incomingInvoked = false;
 
@@ -692,8 +661,6 @@ HWTEST_F(MessageRouterTest, FindMessageSubscriber_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleReply_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes request;
 
     bool sendResult = router_->SendMessage(connectionName_, MessageType::KEEP_ALIVE, request, nullptr);
@@ -715,8 +682,6 @@ HWTEST_F(MessageRouterTest, HandleReply_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleConnectionDown_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool replyReceived = false;
     Attributes request;
 
@@ -744,8 +709,6 @@ HWTEST_F(MessageRouterTest, HandleConnectionDown_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleConnectionDown_002, TestSize.Level0)
 {
-    MockGuard guard;
-
     std::string otherConnectionName = "other-connection";
     PhysicalDeviceKey physicalDeviceKey;
     physicalDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -773,8 +736,6 @@ HWTEST_F(MessageRouterTest, HandleConnectionDown_002, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleConnectionDown_003, TestSize.Level0)
 {
-    MockGuard guard;
-
     router_->HandleConnectionDown("non-existent-connection");
 
     EXPECT_EQ(router_->pendingReplyMessages_.size(), 0);
@@ -782,8 +743,6 @@ HWTEST_F(MessageRouterTest, HandleConnectionDown_003, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleConnectionDown_004, TestSize.Level0)
 {
-    MockGuard guard;
-
     bool messageReceived = false;
     auto subscription = router_->SubscribeMessage(connectionName_, MessageType::TOKEN_AUTH,
         [&messageReceived](const Attributes &, OnMessageReply &) { messageReceived = true; });
@@ -801,8 +760,6 @@ HWTEST_F(MessageRouterTest, HandleConnectionDown_004, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleMessageTimeout_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes request;
     bool replyReceived = false;
     int32_t replyCode = -1;
@@ -830,8 +787,6 @@ HWTEST_F(MessageRouterTest, HandleMessageTimeout_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleMessageTimeout_002, TestSize.Level0)
 {
-    MockGuard guard;
-
     uint32_t nonExistentSeq = UINT32_TEST_INVALID_MESSAGE_SEQ;
 
     ASSERT_NE(router_, nullptr);
@@ -841,8 +796,6 @@ HWTEST_F(MessageRouterTest, HandleMessageTimeout_002, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleMessageTimeout_003, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes request;
 
     bool sendResult = router_->SendMessage(connectionName_, MessageType::KEEP_ALIVE, request, nullptr);
@@ -861,8 +814,6 @@ HWTEST_F(MessageRouterTest, HandleMessageTimeout_003, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleTimeoutCheck_001, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes request;
 
     bool sendResult = router_->SendMessage(connectionName_, MessageType::KEEP_ALIVE, request, nullptr);
@@ -880,8 +831,6 @@ HWTEST_F(MessageRouterTest, HandleTimeoutCheck_001, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleTimeoutCheck_002, TestSize.Level0)
 {
-    MockGuard guard;
-
     Attributes request;
     bool replyReceived = false;
     int32_t replyCode = -1;
@@ -898,7 +847,7 @@ HWTEST_F(MessageRouterTest, HandleTimeoutCheck_002, TestSize.Level0)
     auto &pendingMsg = router_->pendingReplyMessages_.begin()->second;
 
     // Advance time to ensure sendTimeMs is in the past
-    guard.GetTimeKeeper().AdvanceSteadyTime(INT32_TEST_TIMEOUT_OFFSET_MS);
+    timeKeeper_->AdvanceSteadyTime(INT32_TEST_TIMEOUT_OFFSET_MS);
 
     auto currentTimeMs = GetTimeKeeper().GetSteadyTimeMs();
     ASSERT_TRUE(currentTimeMs.has_value());
@@ -916,8 +865,6 @@ HWTEST_F(MessageRouterTest, HandleTimeoutCheck_002, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleTimeoutCheck_003, TestSize.Level0)
 {
-    MockGuard guard;
-
     std::string otherConnectionName = "other-connection";
     PhysicalDeviceKey physicalDeviceKey;
     physicalDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -963,8 +910,6 @@ HWTEST_F(MessageRouterTest, HandleTimeoutCheck_003, TestSize.Level0)
 
 HWTEST_F(MessageRouterTest, HandleTimeoutCheck_004, TestSize.Level0)
 {
-    MockGuard guard;
-
     EXPECT_EQ(router_->pendingReplyMessages_.size(), 0);
 
     router_->HandleTimeoutCheck();

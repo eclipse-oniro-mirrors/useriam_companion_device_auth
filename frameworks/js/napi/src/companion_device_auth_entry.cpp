@@ -136,7 +136,7 @@ napi_value GetTemplateStatus(napi_env env, napi_callback_info info)
     napi_value templateStatusList = nullptr;
     int32_t ret = statusMonitor->GetTemplateStatus(clientTemplateStatusList);
     if (ret != SUCCESS) {
-        IAM_LOGE("GetTemplateStatus fail, ret:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("GetTemplateStatus fail, ret:%{public}d", ret);
         napi_reject_deferred(env, promiseDeferred, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return promiseValue;
     } else {
@@ -180,7 +180,7 @@ napi_value OnTemplateChange(napi_env env, napi_callback_info info)
 
     int32_t ret = statusMonitor->OnTemplateChange(env, info);
     if (ret != SUCCESS) {
-        IAM_LOGE("OnTemplateChange fail, ret:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("OnTemplateChange fail, ret:%{public}d", ret);
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
@@ -215,7 +215,7 @@ napi_value OffTemplateChange(napi_env env, napi_callback_info info)
     }
     int32_t ret = statusMonitor->OffTemplateChange(env, info);
     if (ret != SUCCESS) {
-        IAM_LOGE("OffTemplateChange fail, ret:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("OffTemplateChange fail, ret:%{public}d", ret);
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
@@ -250,7 +250,7 @@ napi_value OnContinuousAuthChange(napi_env env, napi_callback_info info)
     }
     int32_t ret = statusMonitor->OnContinuousAuthChange(env, info);
     if (ret != SUCCESS) {
-        IAM_LOGE("OnContinuousAuthChange fail, ret:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("OnContinuousAuthChange fail, ret:%{public}d", ret);
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
@@ -285,7 +285,7 @@ napi_value OffContinuousAuthChange(napi_env env, napi_callback_info info)
     }
     int32_t ret = statusMonitor->OffContinuousAuthChange(env, info);
     if (ret != SUCCESS) {
-        IAM_LOGE("OffContinuousAuthChange fail, ret:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("OffContinuousAuthChange fail, ret:%{public}d", ret);
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
@@ -320,7 +320,7 @@ napi_value OnAvailableDeviceChange(napi_env env, napi_callback_info info)
     }
     int32_t ret = statusMonitor->OnAvailableDeviceChange(env, info);
     if (ret != SUCCESS) {
-        IAM_LOGE("OnAvailableDeviceChange fail, ret:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("OnAvailableDeviceChange fail, ret:%{public}d", ret);
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
@@ -355,7 +355,7 @@ napi_value OffAvailableDeviceChange(napi_env env, napi_callback_info info)
     }
     int32_t ret = statusMonitor->OffAvailableDeviceChange(env, info);
     if (ret != SUCCESS) {
-        IAM_LOGE("OffAvailableDeviceChange fail:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("OffAvailableDeviceChange fail:%{public}d", ret);
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
@@ -570,7 +570,7 @@ napi_value SelectPurposeConstructor(napi_env env)
 napi_value CompanionDeviceAuthInit(napi_env env, napi_value exports)
 {
     IAM_LOGI("start");
-    napi_status status;
+    napi_status status = napi_generic_failure;
     napi_property_descriptor exportFuncs[] = {
         DECLARE_NAPI_FUNCTION("getStatusMonitor", CompanionDeviceAuth::GetStatusMonitor),
         DECLARE_NAPI_FUNCTION("registerDeviceSelectCallback", CompanionDeviceAuth::RegisterDeviceSelectCallback),

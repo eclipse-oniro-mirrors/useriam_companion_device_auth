@@ -84,7 +84,7 @@ std::shared_ptr<ContinuousAuthSubscription> SubscriptionManager::GetOrCreateCont
         return it->second;
     }
 
-    auto subscription = std::make_shared<ContinuousAuthSubscription>(userId, templateId, weak_from_this());
+    auto subscription = ContinuousAuthSubscription::Create(userId, templateId, weak_from_this());
     ENSURE_OR_RETURN_VAL(subscription != nullptr, nullptr);
     continuousAuthSubscriptions_[key] = subscription;
     subscription->SetDeathHandler(

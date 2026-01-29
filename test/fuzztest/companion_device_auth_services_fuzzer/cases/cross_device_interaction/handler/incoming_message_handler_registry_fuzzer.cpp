@@ -38,29 +38,10 @@ static void FuzzCreate(FuzzedDataProvider &fuzzData)
     (void)fuzzData;
 }
 
-static void FuzzCreateAndInitialize(FuzzedDataProvider &fuzzData)
-{
-    auto registry = IncomingMessageHandlerRegistry::Create();
-    if (registry) {
-        registry->Initialize();
-    }
-    (void)fuzzData;
-}
-
 static void FuzzCreateAndRegister(FuzzedDataProvider &fuzzData)
 {
     auto registry = IncomingMessageHandlerRegistry::Create();
     if (registry) {
-        registry->RegisterHandlers();
-    }
-    (void)fuzzData;
-}
-
-static void FuzzCreateFull(FuzzedDataProvider &fuzzData)
-{
-    auto registry = IncomingMessageHandlerRegistry::Create();
-    if (registry) {
-        registry->Initialize();
         registry->RegisterHandlers();
     }
     (void)fuzzData;
@@ -81,8 +62,6 @@ static void FuzzCreateWithNullCheck(FuzzedDataProvider &fuzzData)
 {
     auto registry = IncomingMessageHandlerRegistry::Create();
     if (registry != nullptr) {
-        bool initResult = registry->Initialize();
-        (void)initResult;
         bool registerResult = registry->RegisterHandlers();
         (void)registerResult;
     }
@@ -94,18 +73,7 @@ static void FuzzCreateLoop(FuzzedDataProvider &fuzzData)
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
     for (uint8_t i = 0; i < count; ++i) {
         auto registry = IncomingMessageHandlerRegistry::Create();
-        if (registry) {
-            registry->Initialize();
-        }
-    }
-}
-
-static void FuzzInitializeTwice(FuzzedDataProvider &fuzzData)
-{
-    auto registry = IncomingMessageHandlerRegistry::Create();
-    if (registry) {
-        registry->Initialize();
-        registry->Initialize();
+        (void)registry;
     }
     (void)fuzzData;
 }
@@ -129,13 +97,10 @@ static void FuzzCreateWithoutOperations(FuzzedDataProvider &fuzzData)
 
 static const IncomingMessageHandlerRegistryFuzzFunction g_fuzzFuncs[] = {
     FuzzCreate,
-    FuzzCreateAndInitialize,
     FuzzCreateAndRegister,
-    FuzzCreateFull,
     FuzzMultipleCreate,
     FuzzCreateWithNullCheck,
     FuzzCreateLoop,
-    FuzzInitializeTwice,
     FuzzRegisterTwice,
     FuzzCreateWithoutOperations,
 };

@@ -179,14 +179,7 @@ void HostSingleMixAuthRequest::CompleteWithSuccess(const std::vector<uint8_t> &e
 
 void HostSingleMixAuthRequest::Destroy()
 {
-    IAM_LOGI("%{public}s destroy", GetDescription());
-    StopTimeout();
-
-    auto requestId = GetRequestId();
-    TaskRunnerManager::GetInstance().PostTaskOnResident([requestId]() {
-        GetRequestManager().Remove(requestId);
-        IAM_LOGI("request 0x%{public}08X removed", requestId);
-    });
+    BaseRequest::Destroy();
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

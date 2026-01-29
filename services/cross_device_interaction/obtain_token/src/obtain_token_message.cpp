@@ -27,12 +27,11 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-bool EncodePreObtainTokenRequest(const PreObtainTokenRequest &request, Attributes &attributes)
+void EncodePreObtainTokenRequest(const PreObtainTokenRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionDeviceKey.deviceUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<PreObtainTokenRequest> DecodePreObtainTokenRequest(const Attributes &attributes)
@@ -48,11 +47,10 @@ std::optional<PreObtainTokenRequest> DecodePreObtainTokenRequest(const Attribute
     return request;
 }
 
-bool EncodePreObtainTokenReply(const PreObtainTokenReply &reply, Attributes &attributes)
+void EncodePreObtainTokenReply(const PreObtainTokenReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, reply.result);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.extraInfo);
-    return true;
 }
 
 std::optional<PreObtainTokenReply> DecodePreObtainTokenReply(const Attributes &attributes)
@@ -68,12 +66,11 @@ std::optional<PreObtainTokenReply> DecodePreObtainTokenReply(const Attributes &a
     return reply;
 }
 
-bool EncodeObtainTokenRequest(const ObtainTokenRequest &request, Attributes &attributes)
+void EncodeObtainTokenRequest(const ObtainTokenRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionDeviceKey.deviceUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<ObtainTokenRequest> DecodeObtainTokenRequest(const Attributes &attributes)
@@ -89,11 +86,10 @@ std::optional<ObtainTokenRequest> DecodeObtainTokenRequest(const Attributes &att
     return request;
 }
 
-bool EncodeObtainTokenReply(const ObtainTokenReply &reply, Attributes &attributes)
+void EncodeObtainTokenReply(const ObtainTokenReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, reply.result);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.extraInfo);
-    return true;
 }
 
 std::optional<ObtainTokenReply> DecodeObtainTokenReply(const Attributes &attributes)

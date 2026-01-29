@@ -200,8 +200,7 @@ void DefaultUserIdManager::HandleOsAccountServiceUnavailable()
 
 void DefaultUserIdManager::OnOsAccountStateChange(const AccountSA::OsAccountStateData &data)
 {
-    IAM_LOGI("os account state %{public}d from %{public}d to %{public}d", static_cast<int32_t>(data.state), data.fromId,
-        data.toId);
+    IAM_LOGI("os account state %{public}d from %{public}d to %{public}d", data.state, data.fromId, data.toId);
 
     SyncActiveUserId();
 }

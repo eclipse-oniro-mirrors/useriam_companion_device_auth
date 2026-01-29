@@ -39,11 +39,11 @@ public:
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateHostDelegateAuthRequest,
         (uint64_t, const std::vector<uint8_t> &, int32_t, uint64_t, FwkResultCallback &&), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionAddCompanionRequest,
-        (const std::string &, const Attributes &, OnMessageReply, const DeviceKey &), (override));
+        (const std::string &, const Attributes &, OnMessageReply &&, const DeviceKey &), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionIssueTokenRequest,
-        (const std::string &, const Attributes &, OnMessageReply, const DeviceKey &), (override));
+        (const std::string &, const Attributes &, OnMessageReply &&, const DeviceKey &), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateHostObtainTokenRequest,
-        (const std::string &, const Attributes &, OnMessageReply, const DeviceKey &), (override));
+        (const std::string &, const Attributes &, OnMessageReply &&, const DeviceKey &), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionObtainTokenRequest,
         (const DeviceKey &, const std::vector<uint8_t> &), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionDelegateAuthRequest,

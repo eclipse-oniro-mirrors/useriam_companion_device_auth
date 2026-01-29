@@ -39,6 +39,7 @@ public:
     explicit StatusMonitor(int32_t localUserId);
     ~StatusMonitor() = default;
 
+    // clang-format off
     int32_t GetTemplateStatus(std::vector<ClientTemplateStatus> &clientTemplateStatusList);
     int32_t OnTemplateChange(::taihe::callback_view<void(
         ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>
@@ -68,7 +69,7 @@ public:
         ::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
         ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
         callback);
-
+    // clang-format on
 private:
     std::recursive_mutex mutex_;
     int32_t localUserId_;

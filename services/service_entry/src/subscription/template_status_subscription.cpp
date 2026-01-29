@@ -70,9 +70,8 @@ std::weak_ptr<TemplateStatusSubscription> TemplateStatusSubscription::GetWeakPtr
 
 bool TemplateStatusSubscription::Initialize()
 {
-    auto weakSelf = std::weak_ptr<TemplateStatusSubscription>(shared_from_this());
     companionStatusSubscription_ = GetCompanionManager().SubscribeCompanionDeviceStatusChange(
-        [weakSelf](const std::vector<CompanionStatus> &companionStatusList) {
+        [weakSelf = weak_from_this()](const std::vector<CompanionStatus> &companionStatusList) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleCompanionStatusChange(companionStatusList);

@@ -82,9 +82,11 @@ void HostAddCompanionRequest::OnConnected()
 
     auto hostDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN(hostDeviceKeyOpt.has_value());
-    hostDeviceKey_ = *hostDeviceKeyOpt;
+    hostDeviceKey_ = hostDeviceKeyOpt.value();
 
-    auto secureProtocolIdOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(*GetPeerDeviceKey());
+    auto peerDeviceKeyOpt = GetPeerDeviceKey();
+    ENSURE_OR_RETURN(peerDeviceKeyOpt.has_value());
+    auto secureProtocolIdOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(peerDeviceKeyOpt.value());
     ENSURE_OR_RETURN(secureProtocolIdOpt.has_value());
     secureProtocolId_ = *secureProtocolIdOpt;
 
@@ -103,10 +105,9 @@ void HostAddCompanionRequest::OnConnected()
     needCancelCompanionAdd_ = true;
 
     InitKeyNegotiationRequest initRequest { .hostDeviceKey = hostDeviceKey_,
-        .extraInfo = output.initKeyNegotiationRequest };
+        .extraInfo = std::move(output.initKeyNegotiationRequest) };
     Attributes request = {};
-    bool encodeRet = EncodeInitKeyNegotiationRequest(initRequest, request);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodeInitKeyNegotiationRequest(initRequest, request);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::INIT_KEY_NEGOTIATION,
         request, [weakSelf = weak_from_this()](const Attributes &reply) {
@@ -124,7 +125,7 @@ void HostAddCompanionRequest::OnConnected()
 
 std::weak_ptr<OutboundRequest> HostAddCompanionRequest::GetWeakPtr()
 {
-    return shared_from_this();
+    return weak_from_this();
 }
 
 void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &reply)
@@ -151,10 +152,9 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     ENSURE_OR_RETURN(ret);
 
     BeginAddHostBindingRequest beginRequest = { .companionUserId = companionDeviceKey->deviceUserId,
-        .extraInfo = addHostBindingRequest };
+        .extraInfo = std::move(addHostBindingRequest) };
     Attributes request = {};
-    bool encodeRet = EncodeBeginAddHostBindingRequest(beginRequest, request);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodeBeginAddHostBindingRequest(beginRequest, request);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::BEGIN_ADD_HOST_BINDING,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
@@ -240,7 +240,7 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
     EndAddCompanionInput input = { .requestId = GetRequestId(),
         .companionStatus = companionStatus,
         .secureProtocolId = secureProtocolId_,
-        .addHostBindingReply = reply.extraInfo };
+        .addHostBindingReply = std::move(reply.extraInfo) };
     EndAddCompanionOutput output = {};
     ResultCode ret = GetCompanionManager().EndAddCompanion(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -255,7 +255,7 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
     ENSURE_OR_RETURN_VAL(companionStatusOpt.has_value(), false);
     templateId_ = companionStatusOpt->templateId;
 
-    fwkMsg.swap(output.fwkMsg);
+    fwkMsg = std::move(output.fwkMsg);
     pendingTokenData_ = std::move(output.tokenData);
     tokenAtl_ = output.atl;
     return true;
@@ -269,10 +269,9 @@ bool HostAddCompanionRequest::SendEndAddHostBindingMsg(ResultCode result)
     EndAddHostBindingRequest requestMsg = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionDeviceKey->deviceUserId,
         .result = result,
-        .extraInfo = pendingTokenData_ }; // Contains encrypted token data (non-empty only when successful)
+        .extraInfo = std::move(pendingTokenData_) }; // Contains encrypted token data (non-empty only when successful)
     Attributes request = {};
-    bool encodeRet = EncodeEndAddHostBindingRequest(requestMsg, request);
-    ENSURE_OR_RETURN_VAL(encodeRet, false);
+    EncodeEndAddHostBindingRequest(requestMsg, request);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::END_ADD_HOST_BINDING,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
@@ -315,13 +314,7 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
 
 void HostAddCompanionRequest::InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo)
 {
-    if (callbackInvoked_) {
-        IAM_LOGI("%{public}s callback already sent", GetDescription());
-        return;
-    }
-
     ENSURE_OR_RETURN(requestCallback_ != nullptr);
-    callbackInvoked_ = true;
     TaskRunnerManager::GetInstance().PostTaskOnResident(
         [cb = std::move(requestCallback_), result, extra = extraInfo]() mutable {
             if (cb) {

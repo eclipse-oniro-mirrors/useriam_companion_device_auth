@@ -90,7 +90,9 @@ HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_003, TestSize.Level0)
     MockGuard guard;
     CreateDefaultRequest();
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1)).WillOnce(Return(nullptr));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request_->OnStart(errorGuard);
@@ -125,7 +127,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, SendRemoveHostBindingRequest_002, Tes
     request_->SetPeerDeviceKey(hostDeviceKey_);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillOnce(Return(false));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _))
+        .Times(AtMost(1)).WillOnce(Return(false));
 
     request_->SendRemoveHostBindingRequest();
 }

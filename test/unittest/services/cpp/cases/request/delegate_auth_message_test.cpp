@@ -48,8 +48,7 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_001, Test
         .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeStartDelegateAuthRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeStartDelegateAuthRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -108,8 +107,7 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthReply_001, TestSi
     StartDelegateAuthReply reply = { .result = ResultCode::SUCCESS };
 
     Attributes attributes;
-    bool encodeResult = EncodeStartDelegateAuthReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeStartDelegateAuthReply(reply, attributes);
 
     auto decodedReply = DecodeStartDelegateAuthReply(attributes);
     EXPECT_TRUE(decodedReply.has_value());
@@ -133,8 +131,7 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultRequest_001,
     SendDelegateAuthResultRequest request = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeSendDelegateAuthResultRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeSendDelegateAuthResultRequest(request, attributes);
 
     auto decodedRequest = DecodeSendDelegateAuthResultRequest(attributes);
     EXPECT_TRUE(decodedRequest.has_value());
@@ -170,8 +167,7 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeSendDelegateAuthResultReply_001, T
     SendDelegateAuthResultReply reply = { .result = ResultCode::SUCCESS };
 
     Attributes attributes;
-    bool encodeResult = EncodeSendDelegateAuthResultReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeSendDelegateAuthResultReply(reply, attributes);
 
     auto decodedReply = DecodeSendDelegateAuthResultReply(attributes);
     EXPECT_TRUE(decodedReply.has_value());

@@ -19,7 +19,6 @@
 #include <gtest/gtest.h>
 
 #include "adapter_manager.h"
-#include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
 #include "fwk_common.h"
 #include "mock_guard.h"
@@ -70,22 +69,19 @@ private:
 class CompanionDeviceAuthDriverTest : public Test {
 public:
 protected:
-    std::shared_ptr<CompanionAuthInterfaceAdapter> adapter_;
 };
 
 HWTEST_F(CompanionDeviceAuthDriverTest, Constructor_001, TestSize.Level0)
 {
     MockGuard guard;
-    adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
-    auto driver = std::make_unique<CompanionDeviceAuthDriver>(adapter_);
+    auto driver = std::make_unique<CompanionDeviceAuthDriver>();
     EXPECT_NE(nullptr, driver);
 }
 
 HWTEST_F(CompanionDeviceAuthDriverTest, GetExecutorList_001, TestSize.Level0)
 {
     MockGuard guard;
-    adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
-    auto driver = std::make_unique<CompanionDeviceAuthDriver>(adapter_);
+    auto driver = std::make_unique<CompanionDeviceAuthDriver>();
     ASSERT_NE(nullptr, driver);
 
     std::vector<std::shared_ptr<FwkIAuthExecutorHdi>> executorList;
@@ -98,8 +94,7 @@ HWTEST_F(CompanionDeviceAuthDriverTest, GetExecutorList_001, TestSize.Level0)
 HWTEST_F(CompanionDeviceAuthDriverTest, OnHdiDisconnect_001, TestSize.Level0)
 {
     MockGuard guard;
-    adapter_ = std::make_shared<CompanionAuthInterfaceAdapter>();
-    auto driver = std::make_unique<CompanionDeviceAuthDriver>(adapter_);
+    auto driver = std::make_unique<CompanionDeviceAuthDriver>();
     ASSERT_NE(nullptr, driver);
 
     driver->OnHdiDisconnect();

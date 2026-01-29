@@ -71,6 +71,9 @@ sptr<ICompanionDeviceAuth> IpcClientFetcher::GetProxy(const DeathCallback &death
     sptr<ICompanionDeviceAuth> proxy = iface_cast<ICompanionDeviceAuth>(obj);
     if (!proxy) {
         IAM_LOGE("iface_cast failed for CompanionDeviceAuth service");
+        if (obj->IsProxyObject()) {
+            obj->RemoveDeathRecipient(dr);
+        }
         return nullptr;
     }
 
@@ -96,7 +99,12 @@ sptr<IRemoteObject> IpcClientFetcher::GetRemoteObject()
 
 sptr<IRemoteObject::DeathRecipient> IpcClientFetcher::CreateDeathRecipient(const DeathCallback &callback)
 {
-    return new (std::nothrow) CompanionDeviceAuthDeathRecipient(callback);
+    auto recipient = new (std::nothrow) CompanionDeviceAuthDeathRecipient(callback);
+    if (recipient == nullptr) {
+        IAM_LOGE("Failed to create CompanionDeviceAuthDeathRecipient");
+        return nullptr;
+    }
+    return recipient;
 }
 
 } // namespace CompanionDeviceAuth

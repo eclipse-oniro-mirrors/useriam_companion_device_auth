@@ -38,9 +38,9 @@ struct TokenAuthReply {
     std::vector<uint8_t> extraInfo;
 };
 
-bool EncodeTokenAuthRequest(const TokenAuthRequest &request, Attributes &attributes);
+void EncodeTokenAuthRequest(const TokenAuthRequest &request, Attributes &attributes);
 std::optional<TokenAuthRequest> DecodeTokenAuthRequest(const Attributes &attributes);
-bool EncodeTokenAuthReply(const TokenAuthReply &reply, Attributes &attributes);
+void EncodeTokenAuthReply(const TokenAuthReply &reply, Attributes &attributes);
 std::optional<TokenAuthReply> DecodeTokenAuthReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

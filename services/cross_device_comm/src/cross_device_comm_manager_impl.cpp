@@ -83,7 +83,7 @@ bool CrossDeviceCommManagerImpl::Start()
     for (const auto &channel : channelMgr_->GetAllChannels()) {
         ENSURE_OR_CONTINUE(channel != nullptr);
         if (!channel->Start()) {
-            IAM_LOGE("failed to start channel %{public}d", static_cast<int32_t>(channel->GetChannelId()));
+            IAM_LOGE("failed to start channel %{public}d", channel->GetChannelId());
             return false;
         }
     }

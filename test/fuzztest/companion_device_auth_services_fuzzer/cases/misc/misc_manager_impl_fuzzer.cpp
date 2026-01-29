@@ -90,23 +90,6 @@ static void FuzzGetDeviceSelectResult(FuzzedDataProvider &fuzzData)
     }
 }
 
-static void FuzzCheckBusinessIds(FuzzedDataProvider &fuzzData)
-{
-    // Generate vector of int32_t first, then convert to BusinessId
-    constexpr size_t SIZE_100 = 100;
-    std::vector<int32_t> intIds = GenerateFuzzVector<int32_t>(fuzzData, SIZE_100);
-    std::vector<BusinessId> businessIds;
-    businessIds.reserve(intIds.size());
-    for (const auto &id : intIds) {
-        businessIds.push_back(static_cast<BusinessId>(id));
-    }
-
-    auto manager = MiscManagerImpl::Create();
-    if (manager) {
-        (void)manager->CheckBusinessIds(businessIds);
-    }
-}
-
 static void FuzzMiscManagerImplConstructor(FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
@@ -121,7 +104,6 @@ static const MiscManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzClearDeviceSelectCallback,
     FuzzSetDeviceSelectCallback,
     FuzzGetDeviceSelectResult,
-    FuzzCheckBusinessIds,
     FuzzMiscManagerImplConstructor,
 };
 

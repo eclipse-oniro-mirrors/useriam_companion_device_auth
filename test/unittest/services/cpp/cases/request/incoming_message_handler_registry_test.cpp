@@ -47,16 +47,6 @@ HWTEST_F(IncomingMessageHandlerRegistryTest, Create_001, TestSize.Level0)
     EXPECT_NE(nullptr, registry);
 }
 
-HWTEST_F(IncomingMessageHandlerRegistryTest, Initialize_001, TestSize.Level0)
-{
-    MockGuard guard;
-    auto registry = IncomingMessageHandlerRegistry::Create();
-    ASSERT_NE(nullptr, registry);
-
-    bool result = registry->Initialize();
-    EXPECT_TRUE(result);
-}
-
 HWTEST_F(IncomingMessageHandlerRegistryTest, AddHandler_001, TestSize.Level0)
 {
     MockGuard guard;

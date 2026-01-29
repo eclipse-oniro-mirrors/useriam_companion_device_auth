@@ -38,7 +38,7 @@ IpcTemplateStatusCallbackService::IpcTemplateStatusCallbackService(const std::sh
 int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
     const std::vector<IpcTemplateStatus> &templateStatusList)
 {
-    IAM_LOGI("start, templateStatusList size:%{public}d", static_cast<int32_t>(templateStatusList.size()));
+    IAM_LOGI("start, templateStatusList size:%{public}zu", templateStatusList.size());
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     ENSURE_OR_RETURN_VAL(callback_ != nullptr, GENERAL_ERROR);
 
@@ -54,10 +54,10 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
         clientDeviceKey.deviceUserId = templateStatus.deviceStatus.deviceKey.deviceUserId;
 
         IAM_LOGI("deviceUserName:%{public}s, deviceModelInfo:%{public}s, deviceName:%{public}s, isOnline:%{public}d, "
-                 "supportedBusinessIds size:%{public}d",
+                 "supportedBusinessIds size:%{public}zu",
             templateStatus.deviceStatus.deviceUserName.c_str(), templateStatus.deviceStatus.deviceModelInfo.c_str(),
-            templateStatus.deviceStatus.deviceName.c_str(), static_cast<int32_t>(templateStatus.deviceStatus.isOnline),
-            static_cast<int32_t>(templateStatus.deviceStatus.supportedBusinessIds.size()));
+            templateStatus.deviceStatus.deviceName.c_str(), templateStatus.deviceStatus.isOnline,
+            templateStatus.deviceStatus.supportedBusinessIds.size());
         ClientDeviceStatus clientDeviceStatus;
         clientDeviceStatus.deviceKey = clientDeviceKey;
         clientDeviceStatus.deviceUserName = templateStatus.deviceStatus.deviceUserName;
@@ -67,10 +67,9 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
         clientDeviceStatus.supportedBusinessIds = templateStatus.deviceStatus.supportedBusinessIds;
 
         IAM_LOGI("templateId:%{public}s, isConfirmed:%{public}d, isValid:%{public}d, localUserId:%{public}d, "
-                 "addedTime:%{public}" PRId64 ", enabledBusinessIds size:%{public}d",
-            GET_MASKED_NUM_CSTR(templateStatus.templateId), static_cast<int32_t>(templateStatus.isConfirmed),
-            static_cast<int32_t>(templateStatus.isValid), templateStatus.localUserId, templateStatus.addedTime,
-            static_cast<int32_t>(templateStatus.enabledBusinessIds.size()));
+                 "addedTime:%{public}" PRId64 ", enabledBusinessIds size:%{public}zu",
+            GET_MASKED_NUM_CSTR(templateStatus.templateId), templateStatus.isConfirmed, templateStatus.isValid,
+            templateStatus.localUserId, templateStatus.addedTime, templateStatus.enabledBusinessIds.size());
         ClientTemplateStatus clientTemplateStatus;
         clientTemplateStatus.templateId = templateStatus.templateId;
         clientTemplateStatus.isConfirmed = templateStatus.isConfirmed;

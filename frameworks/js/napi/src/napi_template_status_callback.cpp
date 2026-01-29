@@ -138,6 +138,7 @@ int32_t NapiTemplateStatusCallback::RemoveSingleCallback(const std::shared_ptr<J
 void NapiTemplateStatusCallback::OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList)
 {
     IAM_LOGI("start");
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
     uv_loop_s *loop = nullptr;
     napi_status napiStatus = napi_get_uv_event_loop(env_, &loop);
     if (napiStatus != napi_ok || loop == nullptr) {
@@ -166,10 +167,12 @@ void NapiTemplateStatusCallback::OnTemplateStatusChange(const std::vector<Client
             return;
         }
     };
+    // clang-format off
     if (napi_send_event(env_, task, napi_eprio_immediate,
         "CompanionDeviceAuthNapi::NapiTemplateStatusCallback::OnTemplateStatusChange") != napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
+    // clang-format on
     IAM_LOGI("end");
 }
 

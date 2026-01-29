@@ -100,28 +100,28 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostDelegateAuthRequest(Sche
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionAddCompanionRequest(const std::string &connectionName,
-    const Attributes &requestAttr, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey)
+    const Attributes &requestAttr, OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey)
 {
-    auto requestObj =
-        std::make_shared<CompanionAddCompanionRequest>(connectionName, requestAttr, replyCallback, hostDeviceKey);
+    auto requestObj = std::make_shared<CompanionAddCompanionRequest>(connectionName, requestAttr,
+        std::move(replyCallback), hostDeviceKey);
     ENSURE_OR_RETURN_VAL(requestObj != nullptr, nullptr);
     return requestObj;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionIssueTokenRequest(const std::string &connectionName,
-    const Attributes &requestAttr, OnMessageReply replyCallback, const DeviceKey &hostDeviceKey)
+    const Attributes &requestAttr, OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey)
 {
-    auto requestObj =
-        std::make_shared<CompanionIssueTokenRequest>(connectionName, requestAttr, replyCallback, hostDeviceKey);
+    auto requestObj = std::make_shared<CompanionIssueTokenRequest>(connectionName, requestAttr,
+        std::move(replyCallback), hostDeviceKey);
     ENSURE_OR_RETURN_VAL(requestObj != nullptr, nullptr);
     return requestObj;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostObtainTokenRequest(const std::string &connectionName,
-    const Attributes &requestAttr, OnMessageReply replyCallback, const DeviceKey &companionDeviceKey)
+    const Attributes &requestAttr, OnMessageReply &&replyCallback, const DeviceKey &companionDeviceKey)
 {
-    auto requestObj =
-        std::make_shared<HostObtainTokenRequest>(connectionName, requestAttr, replyCallback, companionDeviceKey);
+    auto requestObj = std::make_shared<HostObtainTokenRequest>(connectionName, requestAttr, std::move(replyCallback),
+        companionDeviceKey);
     ENSURE_OR_RETURN_VAL(requestObj != nullptr, nullptr);
     return requestObj;
 }

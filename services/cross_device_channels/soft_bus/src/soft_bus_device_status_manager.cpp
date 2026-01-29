@@ -74,7 +74,7 @@ std::string SoftBusDeviceStatusManager::DeviceTypeIdToString(DmDeviceType device
         case DmDeviceType::DEVICE_TYPE_UNKNOWN:
             return "unknown";
         default:
-            IAM_LOGE("unsupported device type: %{public}d", static_cast<uint32_t>(deviceTypeId));
+            IAM_LOGE("unsupported device type: %{public}d", deviceTypeId);
             return "unknown";
     }
 }
@@ -257,7 +257,7 @@ bool SoftBusDeviceStatusManager::QueryTrustedDevices(std::vector<DmDeviceInfo> &
     auto it = std::remove_if(deviceList.begin(), deviceList.end(), [](const DmDeviceInfo &device) {
         DmDeviceType deviceTypeId = static_cast<DmDeviceType>(device.deviceTypeId);
         if (!IsDeviceTypeIdSupport(deviceTypeId)) {
-            IAM_LOGI("device type not supported: %{public}d", static_cast<uint32_t>(deviceTypeId));
+            IAM_LOGI("device type not supported: %{public}d", deviceTypeId);
             return true;
         }
         return false;
@@ -337,8 +337,7 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribePhysicalDevic
 
     IAM_LOGD("physical device status subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnsubscribePhysicalDeviceStatus(subscriptionId);
@@ -366,8 +365,7 @@ std::unique_ptr<Subscription> SoftBusDeviceStatusManager::SubscribeAuthMaintainA
 
     IAM_LOGD("auth maintain active subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnsubscribeAuthMaintainActive(subscriptionId);

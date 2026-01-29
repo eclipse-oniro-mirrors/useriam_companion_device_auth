@@ -86,7 +86,7 @@ std::optional<DeviceKey> InboundRequest::GetPeerDeviceKey() const
 
 const DeviceKey &InboundRequest::PeerDeviceKey() const
 {
-    return peerDeviceKey_.value();
+    return peerDeviceKey_;
 }
 
 const std::string &InboundRequest::GetConnectionName() const
@@ -98,7 +98,7 @@ void InboundRequest::HandleConnectionStatus(const std::string &connName, Connect
     const std::string &reason)
 {
     IAM_LOGI("%{public}s connection status changed: %{public}s, status: %{public}d, reason: %{public}s",
-        GetDescription(), connName.c_str(), static_cast<int32_t>(status), reason.c_str());
+        GetDescription(), connName.c_str(), status, reason.c_str());
 
     switch (status) {
         case ConnectionStatus::ESTABLISHING:
@@ -110,23 +110,21 @@ void InboundRequest::HandleConnectionStatus(const std::string &connName, Connect
             CompleteWithError(ResultCode::COMMUNICATION_ERROR);
             break;
         default:
-            IAM_LOGE("%{public}s unknown connection status: %{public}d", GetDescription(),
-                static_cast<int32_t>(status));
+            IAM_LOGE("%{public}s unknown connection status: %{public}d", GetDescription(), status);
     }
 }
 
 void InboundRequest::SendRequestAborted(ResultCode result, const std::string &reason)
 {
-    IAM_LOGI("%{public}s sending RequestAborted: result=%{public}d, reason=%{public}s", GetDescription(),
-        static_cast<int32_t>(result), reason.c_str());
+    IAM_LOGI("%{public}s sending RequestAborted: result=%{public}d, reason=%{public}s", GetDescription(), result,
+        reason.c_str());
 
     RequestAbortedRequest abortReq {};
     abortReq.result = result;
     abortReq.reason = reason;
 
     Attributes request;
-    bool encodeRet = EncodeRequestAbortedRequest(abortReq, request);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodeRequestAbortedRequest(abortReq, request);
 
     GetCrossDeviceCommManager().SendMessage(connectionName_, MessageType::REQUEST_ABORTED, request,
         [description = GetDescription()](const Attributes &reply) {
@@ -137,7 +135,7 @@ void InboundRequest::SendRequestAborted(ResultCode result, const std::string &re
 
 void InboundRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGE("%{public}s completing with error result=%{public}d", GetDescription(), static_cast<int32_t>(result));
+    IAM_LOGE("%{public}s completing with error result=%{public}d", GetDescription(), result);
     Destroy();
 }
 } // namespace CompanionDeviceAuth

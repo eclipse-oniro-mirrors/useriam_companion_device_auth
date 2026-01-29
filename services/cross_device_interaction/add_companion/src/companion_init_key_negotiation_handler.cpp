@@ -37,6 +37,7 @@ CompanionInitKeyNegotiationHandler::CompanionInitKeyNegotiationHandler()
 void CompanionInitKeyNegotiationHandler::HandleRequest(const Attributes &request, OnMessageReply &onMessageReply)
 {
     IAM_LOGI("start");
+    ENSURE_OR_RETURN(onMessageReply != nullptr);
 
     ErrorGuard errorGuard([&onMessageReply](ResultCode result) {
         Attributes reply;
@@ -51,8 +52,9 @@ void CompanionInitKeyNegotiationHandler::HandleRequest(const Attributes &request
     auto hostDeviceKeyOpt = DecodeHostDeviceKey(request);
     ENSURE_OR_RETURN(hostDeviceKeyOpt.has_value());
 
+    ENSURE_OR_RETURN(hostDeviceKeyOpt.has_value());
     auto addCompanionRequest = GetRequestFactory().CreateCompanionAddCompanionRequest(connectionName, request,
-        onMessageReply, *hostDeviceKeyOpt);
+        std::move(onMessageReply), hostDeviceKeyOpt.value());
     ENSURE_OR_RETURN(addCompanionRequest != nullptr);
 
     bool startRet = GetRequestManager().Start(addCompanionRequest);

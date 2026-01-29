@@ -31,16 +31,14 @@ class IncomingMessageHandlerRegistry : public NoCopyable {
 public:
     static std::shared_ptr<IncomingMessageHandlerRegistry> Create();
 
-    bool Initialize();
-    void AddHandler(std::shared_ptr<IncomingMessageHandler> handler);
     bool RegisterHandlers();
+    void AddHandler(std::shared_ptr<IncomingMessageHandler> handler);
     ~IncomingMessageHandlerRegistry() = default;
 
 private:
     IncomingMessageHandlerRegistry() = default;
 
     std::vector<std::shared_ptr<IncomingMessageHandler>> handlers_;
-    bool initialized_ = false;
     bool handlersRegistered_ = false;
 };
 } // namespace CompanionDeviceAuth

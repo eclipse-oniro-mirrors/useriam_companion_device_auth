@@ -36,6 +36,7 @@ HostPreObtainTokenHandler::HostPreObtainTokenHandler() : AsyncIncomingMessageHan
 void HostPreObtainTokenHandler::HandleRequest(const Attributes &request, OnMessageReply &onMessageReply)
 {
     IAM_LOGI("start");
+    ENSURE_OR_RETURN(onMessageReply != nullptr);
     ErrorGuard errorGuard([&onMessageReply](ResultCode result) {
         Attributes reply;
         reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
@@ -49,8 +50,8 @@ void HostPreObtainTokenHandler::HandleRequest(const Attributes &request, OnMessa
     auto companionDeviceKeyOpt = DecodeCompanionDeviceKey(request);
     ENSURE_OR_RETURN(companionDeviceKeyOpt.has_value());
 
-    auto obtainTokenRequest = GetRequestFactory().CreateHostObtainTokenRequest(connectionName, request, onMessageReply,
-        *companionDeviceKeyOpt);
+    auto obtainTokenRequest = GetRequestFactory().CreateHostObtainTokenRequest(connectionName, request,
+        std::move(onMessageReply), *companionDeviceKeyOpt);
     ENSURE_OR_RETURN(obtainTokenRequest != nullptr);
 
     bool startRet = GetRequestManager().Start(obtainTokenRequest);

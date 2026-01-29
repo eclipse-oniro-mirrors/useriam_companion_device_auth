@@ -47,7 +47,6 @@ public:
         DeviceSelectResultHandler &&resultHandler) = 0;
     virtual void ClearDeviceSelectCallback(uint32_t tokenId) = 0;
     virtual std::optional<std::string> GetLocalUdid() = 0;
-    virtual bool CheckBusinessIds(const std::vector<BusinessId> &businessIds) = 0;
 
 protected:
     IMiscManager() = default;

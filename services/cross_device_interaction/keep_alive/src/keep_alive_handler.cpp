@@ -26,13 +26,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 void KeepAliveHandler::HandleRequest(const Attributes &request, Attributes &reply)
 {
-    ErrorGuard errorGuard([&reply](ResultCode result) {
-        (void)reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(result));
-    });
-
     (void)request;
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
-    errorGuard.Cancel();
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

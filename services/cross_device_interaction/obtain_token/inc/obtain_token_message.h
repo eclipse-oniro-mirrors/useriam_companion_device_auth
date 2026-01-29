@@ -54,16 +54,16 @@ struct ObtainTokenReply {
     std::vector<uint8_t> extraInfo;
 };
 
-bool EncodePreObtainTokenRequest(const PreObtainTokenRequest &request, Attributes &attributes);
+void EncodePreObtainTokenRequest(const PreObtainTokenRequest &request, Attributes &attributes);
 std::optional<PreObtainTokenRequest> DecodePreObtainTokenRequest(const Attributes &attributes);
 
-bool EncodePreObtainTokenReply(const PreObtainTokenReply &reply, Attributes &attributes);
+void EncodePreObtainTokenReply(const PreObtainTokenReply &reply, Attributes &attributes);
 std::optional<PreObtainTokenReply> DecodePreObtainTokenReply(const Attributes &attributes);
 
-bool EncodeObtainTokenRequest(const ObtainTokenRequest &request, Attributes &attributes);
+void EncodeObtainTokenRequest(const ObtainTokenRequest &request, Attributes &attributes);
 std::optional<ObtainTokenRequest> DecodeObtainTokenRequest(const Attributes &attributes);
 
-bool EncodeObtainTokenReply(const ObtainTokenReply &reply, Attributes &attributes);
+void EncodeObtainTokenReply(const ObtainTokenReply &reply, Attributes &attributes);
 std::optional<ObtainTokenReply> DecodeObtainTokenReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -19,7 +19,6 @@
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
-#include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
 #include "service_common.h"
 #include "xcollie_helper.h"
@@ -46,9 +45,7 @@ std::shared_ptr<FwkCommManager> FwkCommManager::Create()
 bool FwkCommManager::Initialize()
 {
     IAM_LOGI("start Initialize FwkCommManager");
-    const auto adapter = std::make_shared<CompanionAuthInterfaceAdapter>();
-    ENSURE_OR_RETURN_VAL(adapter != nullptr, false);
-    auto driver = std::make_shared<CompanionDeviceAuthDriver>(adapter);
+    auto driver = std::make_shared<CompanionDeviceAuthDriver>();
     ENSURE_OR_RETURN_VAL(driver != nullptr, false);
 
     XCollieHelper xcollie("FwkCommManager-StartDriver", ADAPTER_CALL_TIMEOUT_SEC);

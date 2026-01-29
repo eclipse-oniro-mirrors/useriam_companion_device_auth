@@ -285,14 +285,14 @@ HWTEST_F(BackoffRetryTimerCalculateTest, MaxDelay_CappedAtMax, TestSize.Level0)
 
 HWTEST_F(BackoffRetryTimerCalculateTest, MaxShiftCount_Exceeded, TestSize.Level0)
 {
-    // Verify that shifting beyond maximum bit count returns UINT32_MAX to prevent overflow
+    // Verify that shifting beyond maximum bit count returns maxDelayMs to prevent overflow
     BackoffRetryTimer::Config config = { .baseDelayMs = NUM_1000, .maxDelayMs = UINT32_MAX };
     const uint32_t lastValidShiftCount = NUM_MAX_SHIFT_COUNT + 1;
     const uint32_t firstInvalidShiftCount = NUM_MAX_SHIFT_COUNT + NUM_2;
     const uint32_t secondInvalidShiftCount = NUM_MAX_SHIFT_COUNT + NUM_3;
     const uint32_t largeFailureCount = NUM_100;
 
-    EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(lastValidShiftCount, config), NUM_1000 << NUM_MAX_SHIFT_COUNT);
+    EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(lastValidShiftCount, config), UINT32_MAX);
     EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(firstInvalidShiftCount, config), UINT32_MAX);
     EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(secondInvalidShiftCount, config), UINT32_MAX);
     EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(largeFailureCount, config), UINT32_MAX);
@@ -304,8 +304,8 @@ HWTEST_F(BackoffRetryTimerCalculateTest, EdgeCase_BaseDelayZero, TestSize.Level0
     BackoffRetryTimer::Config config = { .baseDelayMs = 0, .maxDelayMs = NUM_60000 };
     EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(NUM_0, config), 0);
     EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(NUM_1, config), 0);
-    EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(NUM_2, config), 0);
-    EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(NUM_100, config), 0);
+    // When shiftCount > NUM_MAX_SHIFT_COUNT (31), return maxDelayMs
+    EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(NUM_100, config), NUM_60000);
 }
 
 HWTEST_F(BackoffRetryTimerCalculateTest, EdgeCase_BaseDelayEqualsMaxDelay, TestSize.Level0)
@@ -335,7 +335,10 @@ HWTEST_F(BackoffRetryTimerCalculateTest, EdgeCase_MaxDelayZero, TestSize.Level0)
 {
     BackoffRetryTimer::Config config = { .baseDelayMs = NUM_1000, .maxDelayMs = 0 };
     // Even though this is an invalid config, function should not crash
-    EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(NUM_0, config), 0);
+    // For failureCount <= 1, returns baseDelayMs
+    EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(NUM_0, config), NUM_1000);
+    EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(NUM_1, config), NUM_1000);
+    // For failureCount > 1, the shifted delay will exceed maxDelayMs (0), so returns 0
     EXPECT_EQ(BackoffRetryTimer::CalculateNextDelayMs(NUM_2, config), 0);
 }
 

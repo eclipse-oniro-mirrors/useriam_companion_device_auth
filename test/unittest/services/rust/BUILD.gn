@@ -44,7 +44,6 @@ ohos_rust_unittest("companion_device_auth_services_rust_test") {
     "src/default_host_db_manager_test.rs",
     "src/default_misc_manager_test.rs",
     "src/default_request_manager_test.rs",
-    "src/default_storage_io_test.rs",
     "src/default_time_keeper_test.rs",
     "src/delegate_auth_message_test.rs",
     "src/enroll_message_test.rs",

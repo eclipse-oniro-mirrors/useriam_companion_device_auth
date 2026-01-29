@@ -27,16 +27,10 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-CompanionDeviceAuthDriver::CompanionDeviceAuthDriver(
-    const std::shared_ptr<CompanionAuthInterfaceAdapter> &companionAuthInterfaceAdapter)
-    : companionAuthInterfaceAdapter_(companionAuthInterfaceAdapter)
-{
-}
-
 void CompanionDeviceAuthDriver::GetExecutorList(std::vector<std::shared_ptr<FwkIAuthExecutorHdi>> &executorList)
 {
     IAM_LOGI("start GetExecutorList");
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     ENSURE_OR_RETURN(executor != nullptr);
     executorList.push_back(executor);
 }

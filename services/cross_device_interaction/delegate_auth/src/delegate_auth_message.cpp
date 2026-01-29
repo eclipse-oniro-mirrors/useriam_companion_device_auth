@@ -25,12 +25,11 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-bool EncodeStartDelegateAuthRequest(const StartDelegateAuthRequest &request, Attributes &attributes)
+void EncodeStartDelegateAuthRequest(const StartDelegateAuthRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<StartDelegateAuthRequest> DecodeStartDelegateAuthRequest(const Attributes &attributes)
@@ -47,10 +46,9 @@ std::optional<StartDelegateAuthRequest> DecodeStartDelegateAuthRequest(const Att
     return request;
 }
 
-bool EncodeStartDelegateAuthReply(const StartDelegateAuthReply &reply, Attributes &attributes)
+void EncodeStartDelegateAuthReply(const StartDelegateAuthReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
-    return true;
 }
 
 std::optional<StartDelegateAuthReply> DecodeStartDelegateAuthReply(const Attributes &attributes)
@@ -63,11 +61,10 @@ std::optional<StartDelegateAuthReply> DecodeStartDelegateAuthReply(const Attribu
     return reply;
 }
 
-bool EncodeSendDelegateAuthResultRequest(const SendDelegateAuthResultRequest &request, Attributes &attributes)
+void EncodeSendDelegateAuthResultRequest(const SendDelegateAuthResultRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(request.result));
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<SendDelegateAuthResultRequest> DecodeSendDelegateAuthResultRequest(const Attributes &attributes)
@@ -85,10 +82,9 @@ std::optional<SendDelegateAuthResultRequest> DecodeSendDelegateAuthResultRequest
     return request;
 }
 
-bool EncodeSendDelegateAuthResultReply(const SendDelegateAuthResultReply &reply, Attributes &attributes)
+void EncodeSendDelegateAuthResultReply(const SendDelegateAuthResultReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
-    return true;
 }
 
 std::optional<SendDelegateAuthResultReply> DecodeSendDelegateAuthResultReply(const Attributes &attributes)

@@ -100,20 +100,17 @@ bool HostIssueTokenRequest::SendPreIssueTokenRequest(const std::vector<uint8_t> 
 {
     DeviceKey hostDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    if (localDeviceKey.has_value()) {
-        hostDeviceKey = *localDeviceKey;
-    }
+    ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), false);
+    hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
     PreIssueTokenRequest requestMsg = { .hostDeviceKey = hostDeviceKey,
         .companionUserId = companionUserId_,
         .extraInfo = preIssueTokenRequest };
     Attributes request = {};
-    bool encodeRet = EncodePreIssueTokenRequest(requestMsg, request);
-    ENSURE_OR_RETURN_VAL(encodeRet, false);
+    EncodePreIssueTokenRequest(requestMsg, request);
 
-    auto weakSelf = std::weak_ptr<HostIssueTokenRequest>(shared_from_this());
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::PRE_ISSUE_TOKEN, request,
-        [weakSelf](const Attributes &message) {
+        [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandlePreIssueTokenReply(message);
@@ -166,20 +163,17 @@ bool HostIssueTokenRequest::SendIssueTokenRequest(const std::vector<uint8_t> &is
 {
     DeviceKey hostDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    if (localDeviceKey.has_value()) {
-        hostDeviceKey = *localDeviceKey;
-    }
+    ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), false);
+    hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
     IssueTokenRequest requestMsg = { .hostDeviceKey = hostDeviceKey,
         .companionUserId = companionUserId_,
         .extraInfo = issueTokenRequest };
     Attributes request = {};
-    bool encodeRet = EncodeIssueTokenRequest(requestMsg, request);
-    ENSURE_OR_RETURN_VAL(encodeRet, false);
+    EncodeIssueTokenRequest(requestMsg, request);
 
-    auto weakSelf = std::weak_ptr<HostIssueTokenRequest>(shared_from_this());
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::ISSUE_TOKEN, request,
-        [weakSelf](const Attributes &message) {
+        [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleIssueTokenReply(message);
@@ -245,8 +239,7 @@ bool HostIssueTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &d
         return false;
     }
     deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey,
-        [weakSelf = std::weak_ptr<HostIssueTokenRequest>(shared_from_this())](
-            const std::vector<DeviceStatus> &deviceStatusList) {
+        [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandlePeerDeviceStatusChanged(deviceStatusList);

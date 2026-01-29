@@ -32,10 +32,10 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 CompanionAddCompanionRequest::CompanionAddCompanionRequest(const std::string &connectionName, const Attributes &request,
-    OnMessageReply firstReply, const DeviceKey &hostDeviceKey)
+    OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey)
     : InboundRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, connectionName, hostDeviceKey),
       initKeyNegoRequest_(request),
-      currentReply_(std::move(firstReply))
+      currentReply_(std::move(replyCallback))
 {
 }
 
@@ -52,8 +52,7 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
 
     beginAddHostBindingSubscription_ =
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::BEGIN_ADD_HOST_BINDING,
-            [weakSelf = std::weak_ptr<CompanionAddCompanionRequest>(shared_from_this())](const Attributes &msg,
-                OnMessageReply &onMessageReply) {
+            [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleBeginAddCompanion(msg, onMessageReply);
@@ -62,8 +61,7 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
 
     endAddHostBindingSubscription_ =
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::END_ADD_HOST_BINDING,
-            [weakSelf = std::weak_ptr<CompanionAddCompanionRequest>(shared_from_this())](const Attributes &msg,
-                OnMessageReply &onMessageReply) {
+            [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleEndAddCompanion(msg, onMessageReply);
@@ -126,8 +124,7 @@ bool CompanionAddCompanionRequest::SendInitKeyNegotiationReply(ResultCode result
 
     Attributes reply;
     InitKeyNegotiationReply replyMsg = { .result = result, .extraInfo = initKeyNegotiationReply };
-    bool encodeRet = EncodeInitKeyNegotiationReply(replyMsg, reply);
-    ENSURE_OR_RETURN_VAL(encodeRet, false);
+    EncodeInitKeyNegotiationReply(replyMsg, reply);
 
     currentReply_(reply);
     currentReply_ = nullptr;
@@ -156,8 +153,7 @@ void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &att
 
     BeginAddHostBindingReply replyMsg = { .result = ResultCode::SUCCESS, .extraInfo = addHostBindingReply };
     Attributes reply;
-    bool encodeRet = EncodeBeginAddHostBindingReply(replyMsg, reply);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodeBeginAddHostBindingReply(replyMsg, reply);
 
     currentReply_(reply);
     currentReply_ = nullptr;
@@ -196,8 +192,7 @@ void CompanionAddCompanionRequest::HandleEndAddCompanion(const Attributes &attrI
 
     EndAddHostBindingReply replyMsg = { .result = ResultCode::SUCCESS };
     Attributes reply;
-    bool encodeRet = EncodeEndAddHostBindingReply(replyMsg, reply);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodeEndAddHostBindingReply(replyMsg, reply);
 
     currentReply_(reply);
     currentReply_ = nullptr;

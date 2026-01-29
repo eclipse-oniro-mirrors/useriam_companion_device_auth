@@ -34,8 +34,9 @@ public:
     MOCK_METHOD(void, UnInitDeviceManager, (), (override));
     MOCK_METHOD(std::optional<std::string>, GetUdidByNetworkId, (const std::string &networkId), (override));
     MOCK_METHOD(bool, QueryTrustedDevices, (std::vector<DmDeviceInfo> & deviceList), (override));
-    MOCK_METHOD(bool, RegisterDevStatusCallback, (std::shared_ptr<DmDeviceStatusCallback> callback), (override));
-    MOCK_METHOD(void, UnRegisterDevStatusCallback, (std::shared_ptr<DmDeviceStatusCallback> callback), (override));
+    MOCK_METHOD(bool, RegisterDevStatusCallback, (const std::shared_ptr<DmDeviceStatusCallback> &callback), (override));
+    MOCK_METHOD(void, UnRegisterDevStatusCallback, (const std::shared_ptr<DmDeviceStatusCallback> &callback),
+        (override));
 };
 
 } // namespace CompanionDeviceAuth

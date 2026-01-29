@@ -38,7 +38,7 @@ IpcAvailableDeviceStatusCallbackService::IpcAvailableDeviceStatusCallbackService
 int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
     const std::vector<IpcDeviceStatus> &deviceStatusList)
 {
-    IAM_LOGI("start, deviceStatusList size:%{public}d", static_cast<int32_t>(deviceStatusList.size()));
+    IAM_LOGI("start, deviceStatusList size:%{public}zu", deviceStatusList.size());
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     ENSURE_OR_RETURN_VAL(callback_ != nullptr, GENERAL_ERROR);
 
@@ -53,10 +53,9 @@ int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
         clientDeviceKey.deviceUserId = deviceStatus.deviceKey.deviceUserId;
 
         IAM_LOGI("deviceUserName:%{public}s, deviceModelInfo:%{public}s, deviceName:%{public}s, isOnline:%{public}d, "
-                 "supportedBusinessIds size:%{public}d",
+                 "supportedBusinessIds size:%{public}zu",
             deviceStatus.deviceUserName.c_str(), deviceStatus.deviceModelInfo.c_str(), deviceStatus.deviceName.c_str(),
-            static_cast<int32_t>(deviceStatus.isOnline),
-            static_cast<int32_t>(deviceStatus.supportedBusinessIds.size()));
+            deviceStatus.isOnline, deviceStatus.supportedBusinessIds.size());
         ClientDeviceStatus clientDeviceStatus;
         clientDeviceStatus.deviceKey = clientDeviceKey;
         clientDeviceStatus.deviceUserName = deviceStatus.deviceUserName;

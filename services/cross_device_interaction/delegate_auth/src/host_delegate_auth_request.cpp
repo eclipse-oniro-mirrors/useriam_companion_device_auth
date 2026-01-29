@@ -120,20 +120,17 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
     ENSURE_OR_RETURN(peerDeviceKey.has_value());
     DeviceKey hostDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    if (localDeviceKey.has_value()) {
-        hostDeviceKey = *localDeviceKey;
-    }
+    ENSURE_OR_RETURN(localDeviceKey.has_value());
+    hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
     StartDelegateAuthRequest startRequest = { .hostDeviceKey = hostDeviceKey,
         .companionUserId = peerDeviceKey->deviceUserId,
         .extraInfo = output.startDelegateAuthRequest };
     Attributes request = {};
-    bool encodeRet = EncodeStartDelegateAuthRequest(startRequest, request);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodeStartDelegateAuthRequest(startRequest, request);
 
-    auto weakSelf = std::weak_ptr<HostDelegateAuthRequest>(shared_from_this());
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::START_DELEGATE_AUTH,
-        request, [weakSelf](const Attributes &message) {
+        request, [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleStartDelegateAuthReply(message);
@@ -197,6 +194,7 @@ void HostDelegateAuthRequest::HandleSendDelegateAuthRequestMsg(const Attributes 
     OnMessageReply &onMessageReply)
 {
     IAM_LOGI("%{public}s HandleSendDelegateAuthRequestMsg", GetDescription());
+    ENSURE_OR_RETURN(onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
         Attributes reply;
         reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(code));

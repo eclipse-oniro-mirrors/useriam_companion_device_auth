@@ -64,7 +64,6 @@ DeviceStatusManager::DeviceStatusManager(std::shared_ptr<ConnectionManager> conn
 
 DeviceStatusManager::~DeviceStatusManager()
 {
-    StopPeriodicSync();
 }
 
 bool DeviceStatusManager::Initialize()
@@ -73,21 +72,19 @@ bool DeviceStatusManager::Initialize()
     ENSURE_OR_RETURN_VAL(channelMgr_ != nullptr, false);
     ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, false);
 
-    auto weakSelf = weak_from_this();
     for (const auto &channel : channelMgr_->GetAllChannels()) {
         ChannelId channelId = channel->GetChannelId();
         auto subscription = channel->SubscribePhysicalDeviceStatus(
-            [weakSelf, channelId](const std::vector<PhysicalDeviceStatus> &statusList) {
+            [weakSelf = weak_from_this(), channelId](const std::vector<PhysicalDeviceStatus> &statusList) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleChannelDeviceStatusChange(channelId, statusList);
             });
-        if (subscription != nullptr) {
-            channelSubscriptions_[channelId] = std::move(subscription);
-        }
+        ENSURE_OR_RETURN_VAL(subscription != nullptr, false);
+        channelSubscriptions_[channelId] = std::move(subscription);
     }
 
-    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf](UserId userId) {
+    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId userId) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->HandleUserIdChange(userId);
@@ -153,8 +150,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(OnDevic
 
     IAM_LOGD("device status subscription added: id=0x%{public}016" PRIX64 " (all devices)", subscriptionId);
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnsubscribeDeviceStatus(subscriptionId);
@@ -254,8 +250,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(const D
         deviceKey.GetDesc().c_str());
     RefreshDeviceList(false);
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnsubscribeDeviceStatus(subscriptionId);
@@ -282,9 +277,7 @@ bool DeviceStatusManager::UnsubscribeDeviceStatus(SubscribeId subscriptionId)
 void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey)
 {
     auto it = deviceStatusMap_.find(physicalKey);
-    if (it == deviceStatusMap_.end()) {
-        return;
-    }
+    ENSURE_OR_RETURN(it != deviceStatusMap_.end());
 
     if (it->second.isSyncInProgress) {
         IAM_LOGI("device already syncing");

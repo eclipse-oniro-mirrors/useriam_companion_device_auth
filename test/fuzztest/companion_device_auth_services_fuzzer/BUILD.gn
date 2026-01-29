@@ -156,8 +156,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
 
   deps = companion_device_auth_service_deps
 
-  external_deps = companion_device_auth_service_external_deps +
-                  companion_device_auth_test_external_deps
+  external_deps = companion_device_auth_service_external_deps
 
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
 

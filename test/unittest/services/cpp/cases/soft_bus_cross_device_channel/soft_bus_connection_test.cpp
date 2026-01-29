@@ -19,6 +19,7 @@
 #include "mock_guard.h"
 #include "soft_bus_connection.h"
 #include "soft_bus_connection_manager.h"
+#include "task_runner_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -149,6 +150,7 @@ HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_001, TestSize.Level0)
     ASSERT_NE(connection, nullptr);
 
     connection->HandleOutboundConnected();
+    TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(connection->IsConnected());
     EXPECT_TRUE(callbackInvoked);
@@ -197,6 +199,7 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_001, TestSize.Level0)
     ASSERT_NE(connection, nullptr);
 
     connection->HandleInboundConnected("test-connection");
+    TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(connection->IsConnected());
     EXPECT_EQ(connection->GetConnectionName(), DEFAULT_TEST_CONNECTION_NAME);
@@ -287,6 +290,8 @@ HWTEST_F(SoftbusConnectionTest, Destructor_001, TestSize.Level0)
             std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
         ASSERT_NE(connection, nullptr);
     }
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(callbackInvoked);
 }

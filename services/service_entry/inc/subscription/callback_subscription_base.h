@@ -55,9 +55,9 @@ public:
 
     virtual ~CallbackSubscriptionBase() = default;
 
-    void SetDeathHandler(const DeathHandler &handler)
+    void SetDeathHandler(DeathHandler &&handler)
     {
-        deathHandler_ = handler;
+        deathHandler_ = std::move(handler);
     }
 
     void AddCallback(const sptr<CallbackType> &callback)
@@ -86,7 +86,7 @@ public:
         ENSURE_OR_RETURN(deathRecipient != nullptr);
         callbacks_.push_back(callback);
 
-        static_cast<DerivedType *>(this)->OnCallbackAdded(callback);
+        OnCallbackAdded(callback);
     }
 
     void RemoveCallback(const sptr<CallbackType> &callback)

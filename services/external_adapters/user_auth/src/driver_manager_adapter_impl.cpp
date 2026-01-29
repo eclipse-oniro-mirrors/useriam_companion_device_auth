@@ -23,7 +23,6 @@
 #include "ipc_skeleton.h"
 #include "token_setproc.h"
 
-#include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
 #include "xcollie_helper.h"
 

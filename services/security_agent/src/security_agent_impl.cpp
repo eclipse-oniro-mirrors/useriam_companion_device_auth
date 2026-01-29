@@ -699,7 +699,7 @@ ResultCode SecurityAgentImpl::CompanionCancelIssueToken(const CompanionCancelIss
     auto ffiOutput = std::make_unique<CompanionCancelIssueTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PROCESS_ISSUE_TOKEN,
+    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_CANCEL_ISSUE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionCancelIssueTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionCancelIssueTokenOutputFfi));
     ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);

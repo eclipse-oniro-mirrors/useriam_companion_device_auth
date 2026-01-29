@@ -45,8 +45,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_001, TestSize.Level0
         .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeTokenAuthRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeTokenAuthRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -101,8 +100,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_001, TestSize.Level0)
     TokenAuthReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeTokenAuthReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeTokenAuthReply(reply, attributes);
 
     auto decodedReply = DecodeTokenAuthReply(attributes);
     EXPECT_TRUE(decodedReply.has_value());
@@ -135,8 +133,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthReply_004, TestSize.Level0)
     TokenAuthReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeTokenAuthReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeTokenAuthReply(reply, attributes);
 
     auto decodedReply = DecodeTokenAuthReply(attributes);
     EXPECT_TRUE(decodedReply.has_value());

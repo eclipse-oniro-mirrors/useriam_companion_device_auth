@@ -64,17 +64,7 @@ bool OutboundRequest::Cancel(ResultCode resultCode)
     cancelled_ = true;
     IAM_LOGI("%{public}s cancel", GetDescription());
 
-    bool onCancelRet = OnCancel();
-    if (!onCancelRet) {
-        IAM_LOGE("%{public}s cancel failed", GetDescription());
-    }
-
     CompleteWithError(resultCode);
-    return onCancelRet;
-}
-
-bool OutboundRequest::OnCancel()
-{
     return true;
 }
 
@@ -118,9 +108,6 @@ bool OutboundRequest::OpenConnection()
         [weakSelf = GetWeakPtr()](const std::string &connName, ConnectionStatus status, const std::string &reason) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            if (self->connectionName_.empty()) {
-                return;
-            }
             ENSURE_OR_RETURN(self->connectionName_ == connName);
 
             self->HandleConnectionStatus(connName, status, reason);
@@ -142,7 +129,7 @@ bool OutboundRequest::OpenConnection()
 void OutboundRequest::CloseConnection()
 {
     if (connectionName_.empty()) {
-        IAM_LOGI("%{public}s connection is already closed", GetDescription());
+        IAM_LOGI("%{public}s connection is not open", GetDescription());
         return;
     }
 
@@ -155,7 +142,7 @@ void OutboundRequest::HandleConnectionStatus(const std::string &connName, Connec
     const std::string &reason)
 {
     IAM_LOGI("%{public}s connection status changed: %{public}s, status: %{public}d, reason: %{public}s",
-        GetDescription(), connName.c_str(), static_cast<int32_t>(status), reason.c_str());
+        GetDescription(), connName.c_str(), status, reason.c_str());
 
     switch (status) {
         case ConnectionStatus::ESTABLISHING:
@@ -168,8 +155,7 @@ void OutboundRequest::HandleConnectionStatus(const std::string &connName, Connec
             CompleteWithError(ResultCode::COMMUNICATION_ERROR);
             break;
         default:
-            IAM_LOGE("%{public}s unknown connection status: %{public}d", GetDescription(),
-                static_cast<int32_t>(status));
+            IAM_LOGE("%{public}s unknown connection status: %{public}d", GetDescription(), status);
     }
 }
 
@@ -182,11 +168,11 @@ void OutboundRequest::HandleRequestAborted(const Attributes &request,
     ENSURE_OR_RETURN(abortReqOpt.has_value());
     const auto &abortReq = *abortReqOpt;
 
+    ENSURE_OR_RETURN(abortReq.result != ResultCode::SUCCESS);
     IAM_LOGI("%{public}s received RequestAborted: result=%{public}d, reason=%{public}s", GetDescription(),
-        static_cast<int32_t>(abortReq.result), abortReq.reason.c_str());
+        abortReq.result, abortReq.reason.c_str());
 
-    errorGuard.UpdateErrorCode(ResultCode::SUCCESS);
-    CompleteWithError(abortReq.result);
+    errorGuard.UpdateErrorCode(abortReq.result);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

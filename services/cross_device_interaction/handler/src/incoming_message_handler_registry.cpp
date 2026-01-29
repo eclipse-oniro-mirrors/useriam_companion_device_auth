@@ -40,21 +40,7 @@ std::shared_ptr<IncomingMessageHandlerRegistry> IncomingMessageHandlerRegistry::
     auto registry =
         std::shared_ptr<IncomingMessageHandlerRegistry>(new (std::nothrow) IncomingMessageHandlerRegistry());
     ENSURE_OR_RETURN_VAL(registry != nullptr, nullptr);
-    if (!registry->Initialize()) {
-        IAM_LOGE("IncomingMessageHandlerRegistry initialize failed");
-        return nullptr;
-    }
     return registry;
-}
-
-bool IncomingMessageHandlerRegistry::Initialize()
-{
-    if (initialized_) {
-        return true;
-    }
-
-    initialized_ = true;
-    return true;
 }
 
 void IncomingMessageHandlerRegistry::AddHandler(std::shared_ptr<IncomingMessageHandler> handler)

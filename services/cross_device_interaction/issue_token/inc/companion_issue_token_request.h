@@ -33,7 +33,7 @@ class CompanionIssueTokenRequest : public std::enable_shared_from_this<Companion
                                    public InboundRequest {
 public:
     CompanionIssueTokenRequest(const std::string &connectionName, const Attributes &request,
-        OnMessageReply replyCallback, const DeviceKey &hostDeviceKey);
+        OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey);
     ~CompanionIssueTokenRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
@@ -65,7 +65,6 @@ private:
     std::unique_ptr<Subscription> issueTokenSubscription_;
     std::unique_ptr<Subscription> localDeviceStatusSubscription_;
     std::optional<MessageType> activeMsgType_;
-    OnMessageReply issueReplyCallback_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

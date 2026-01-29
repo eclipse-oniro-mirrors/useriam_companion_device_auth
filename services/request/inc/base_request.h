@@ -52,11 +52,11 @@ protected:
     void Destroy();
     virtual void CompleteWithError(ResultCode result) = 0;
 
-    RequestType requestType_;
+    const RequestType requestType_;
     RequestId requestId_ = 0;
-    ScheduleId scheduleId_ = 0;
+    const ScheduleId scheduleId_ = 0;
     std::string description_ = "";
-    uint32_t timeoutMs_ = 0;
+    const uint32_t timeoutMs_ = 0;
     std::unique_ptr<Subscription> timeoutSubscription_;
     bool cancelled_ = false;
 };

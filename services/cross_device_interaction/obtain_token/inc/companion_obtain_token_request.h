@@ -55,7 +55,6 @@ private:
     void HandleAuthMaintainActiveChanged(bool isActive);
 
     DeviceKey companionDeviceKey_;
-    DeviceKey hostDeviceKey_;
     std::vector<uint8_t> fwkUnlockMsg_;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     BindingId bindingId_ = 0;

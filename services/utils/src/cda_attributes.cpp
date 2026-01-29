@@ -140,6 +140,7 @@ template <typename T>
 bool DecodeNumericValue(const std::vector<uint8_t> &src, T &dst)
 {
     using Traits = EncodingTraits<T>;
+
     if (src.size() != Traits::size) {
         IAM_LOGE("DecodeNumericValue size mismatch, expected: %{public}zu, actual: %{public}zu", Traits::size,
             src.size());
@@ -159,6 +160,11 @@ bool EncodeNumericArrayValue(const std::vector<T> &src, std::vector<uint8_t> &ds
 {
     using Traits = EncodingTraits<T>;
     using LeType = decltype(Traits::ToLE(T()));
+
+    if (src.empty()) {
+        dst.clear();
+        return true;
+    }
 
     // Use safe multiplication to prevent overflow
     auto outSize = safe_mul(src.size(), Traits::size);
@@ -185,6 +191,12 @@ template <typename T>
 bool DecodeNumericArrayValue(const std::vector<uint8_t> &src, std::vector<T> &dst)
 {
     using Traits = EncodingTraits<T>;
+
+    if (src.empty()) {
+        dst.clear();
+        return true;
+    }
+
     if (src.size() % Traits::size != 0) {
         IAM_LOGE("DecodeNumericArrayValue size not multiple of element size, src.size: %{public}zu, element_size: "
                  "%{public}zu",
@@ -232,7 +244,7 @@ Attributes::Attributes(const std::vector<uint8_t> &raw)
     }
 
     const uint8_t *curr = raw.data();
-    const uint8_t *end = raw.data() + raw.size();
+    const uint8_t *end = curr + raw.size();
     std::map<AttributeKey, std::vector<uint8_t>> tempMap;
 
     while (curr < end) {

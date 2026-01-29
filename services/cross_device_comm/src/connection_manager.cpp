@@ -30,6 +30,7 @@
 #include "local_device_status_manager.h"
 #include "message_router.h"
 #include "relative_timer.h"
+#include "scope_guard.h"
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
@@ -59,13 +60,13 @@ std::shared_ptr<ConnectionManager> ConnectionManager::Create(std::shared_ptr<Cha
 ConnectionManager::ConnectionManager(std::shared_ptr<ChannelManager> channelManager,
     std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusManager)
     : channelManager_(channelManager),
-      localDeviceStatusManager_(localDeviceStatusManager)
+      localDeviceStatusManager_(localDeviceStatusManager),
+      idleMonitorTimerSubscription_(nullptr)
 {
 }
 
 ConnectionManager::~ConnectionManager()
 {
-    StopIdleMonitoring();
 }
 
 void ConnectionManager::SetMessageRouter(std::weak_ptr<MessageRouter> messageRouter)
@@ -77,11 +78,12 @@ bool ConnectionManager::Initialize()
 {
     ENSURE_OR_RETURN_VAL(channelManager_ != nullptr, false);
 
-    auto weakSelf = weak_from_this();
     for (const auto &channel : channelManager_->GetAllChannels()) {
+        ENSURE_OR_CONTINUE(channel != nullptr);
         ChannelId channelId = channel->GetChannelId();
-        auto subscription = channel->SubscribeConnectionStatus(
-            [weakSelf](const std::string &connectionName, ConnectionStatus status, const std::string &reason) {
+        auto subscription =
+            channel->SubscribeConnectionStatus([weakSelf = weak_from_this()](const std::string &connectionName,
+                                                   ConnectionStatus status, const std::string &reason) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleChannelConnectionStatusChange(connectionName, status, reason);
@@ -90,7 +92,8 @@ bool ConnectionManager::Initialize()
         channelSubscriptions_[channelId] = std::move(subscription);
 
         auto incomingSubscription = channel->SubscribeIncomingConnection(
-            [weakSelf, channelId](const std::string &connectionName, const PhysicalDeviceKey &remotePhysicalDeviceKey) {
+            [weakSelf = weak_from_this(), channelId](const std::string &connectionName,
+                const PhysicalDeviceKey &remotePhysicalDeviceKey) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleIncomingConnectionFromChannel(channelId, connectionName, remotePhysicalDeviceKey);
@@ -99,7 +102,7 @@ bool ConnectionManager::Initialize()
         incomingConnectionSubscriptions_[channelId] = std::move(incomingSubscription);
 
         auto physicalDeviceSubscription = channel->SubscribePhysicalDeviceStatus(
-            [weakSelf, channelId](const std::vector<PhysicalDeviceStatus> &statusList) {
+            [weakSelf = weak_from_this(), channelId](const std::vector<PhysicalDeviceStatus> &statusList) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandlePhysicalDeviceStatusChange(channelId, statusList);
@@ -167,6 +170,7 @@ void ConnectionManager::CloseConnection(const std::string &connectionName, const
 
     Connection connection = it->second;
     ChannelId channelId = connection.channelId;
+    ScopeGuard guard([this, &connectionName]() { connectionMap_.erase(connectionName); });
 
     auto channel = channelManager_->GetChannelById(channelId);
     ENSURE_OR_RETURN(channel != nullptr);
@@ -187,16 +191,15 @@ void ConnectionManager::CloseConnection(const std::string &connectionName, const
         }
     }
 
-    connectionMap_.erase(connectionName);
-
-    if (channel != nullptr) {
-        if (connection.isInbound) {
-            channel->OnRemoteDisconnect(connectionName, reason);
-        } else {
-            channel->CloseConnection(connectionName);
-        }
+    if (connection.isInbound) {
+        channel->OnRemoteDisconnect(connectionName, reason);
+    } else {
+        channel->CloseConnection(connectionName);
     }
 
+    // Erase the connection before checking idle monitoring status
+    connectionMap_.erase(connectionName);
+    guard.Cancel();
     CheckIdleMonitoring();
 
     NotifyConnectionStatus(connectionName, ConnectionStatus::DISCONNECTED, reason);
@@ -207,24 +210,48 @@ void ConnectionManager::CloseConnection(const std::string &connectionName, const
 bool ConnectionManager::HandleIncomingConnection(const std::string &connectionName,
     const PhysicalDeviceKey &physicalDeviceKey)
 {
-    IAM_LOGI("incoming connection: %{public}s from physical device type=%{public}d id=%{public}s",
-        connectionName.c_str(), static_cast<int32_t>(physicalDeviceKey.idType),
-        GetMaskedString(physicalDeviceKey.deviceId).c_str());
+    IAM_LOGI("handling incoming connection: %{public}s, deviceId=%{public}s", connectionName.c_str(),
+        GET_MASKED_STR_CSTR(physicalDeviceKey.deviceId));
 
     if (connectionMap_.find(connectionName) != connectionMap_.end()) {
         IAM_LOGW("connection already exists: %{public}s", connectionName.c_str());
-        return true;
+        return false;
     }
 
-    ENSURE_OR_RETURN_VAL(CheckResourceLimits(physicalDeviceKey), false);
+    if (!CheckResourceLimits(physicalDeviceKey)) {
+        IAM_LOGE("resource limit check failed for incoming connection: %{public}s", connectionName.c_str());
+        return false;
+    }
 
-    auto channel = channelManager_->GetChannelById(ChannelId::SOFTBUS);
-    ENSURE_OR_RETURN_VAL(channel != nullptr, false);
+    // Find the channel that can handle this device
+    std::shared_ptr<ICrossDeviceChannel> targetChannel = nullptr;
+    ChannelId targetChannelId = ChannelId::INVALID;
 
+    for (const auto &channel : channelManager_->GetAllChannels()) {
+        ENSURE_OR_CONTINUE(channel != nullptr);
+        auto localKeyOpt = channel->GetLocalPhysicalDeviceKey();
+        if (!localKeyOpt.has_value()) {
+            continue;
+        }
+        // For now, use the first available channel
+        // In a real scenario, you might want to match based on device capabilities
+        if (!targetChannel) {
+            targetChannel = channel;
+            targetChannelId = channel->GetChannelId();
+            break;
+        }
+    }
+
+    if (!targetChannel) {
+        IAM_LOGE("no available channel for incoming connection: %{public}s", connectionName.c_str());
+        return false;
+    }
+
+    // Create Connection
     Connection connection {};
     connection.connectionName = connectionName;
     connection.remotePhysicalDeviceKey = physicalDeviceKey;
-    connection.channelId = channel->GetChannelId();
+    connection.channelId = targetChannelId;
     connection.connectionStatus = ConnectionStatus::CONNECTED;
     connection.isInbound = true;
     auto createTimeMs = GetTimeKeeper().GetSteadyTimeMs();
@@ -237,7 +264,7 @@ bool ConnectionManager::HandleIncomingConnection(const std::string &connectionNa
 
     NotifyConnectionStatus(connectionName, ConnectionStatus::CONNECTED, "incoming_connection");
 
-    IAM_LOGI("incoming connection accepted: %{public}s", connectionName.c_str());
+    IAM_LOGI("incoming connection created: %{public}s", connectionName.c_str());
     return true;
 }
 
@@ -291,8 +318,7 @@ std::unique_ptr<Subscription> ConnectionManager::SubscribeConnectionStatus(const
     IAM_LOGD("connection status subscription added: id=0x%{public}016" PRIX64 ", connection=%{public}s", subscriptionId,
         connectionName.empty() ? "all" : connectionName.c_str());
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnsubscribeConnectionStatus(subscriptionId);
@@ -391,9 +417,8 @@ void ConnectionManager::CheckIdleMonitoring()
     bool hasTimer = idleMonitorTimerSubscription_ != nullptr;
 
     if (hasConnections && !hasTimer) {
-        auto weakSelf = weak_from_this();
         idleMonitorTimerSubscription_ = RelativeTimer::GetInstance().RegisterPeriodic(
-            [weakSelf]() {
+            [weakSelf = weak_from_this()]() {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleIdleMonitorTimer();
@@ -421,9 +446,16 @@ void ConnectionManager::HandleIdleMonitorTimer()
 
     for (const auto &pair : connectionMap_) {
         const Connection &connection = pair.second;
+
+        if (now.value() < connection.lastActivityTimeMs) {
+            IAM_LOGW("clock anomaly detected for connection %{public}s, skipping idle check",
+                connection.connectionName.c_str());
+            continue;
+        }
+
         auto idleTimeMs = now.value() - connection.lastActivityTimeMs;
         if (idleTimeMs >= IDLE_THRESHOLD_MS) {
-            IAM_LOGW("connection idle for %{public}llu ms: %{public}s", static_cast<unsigned long long>(idleTimeMs),
+            IAM_LOGW("connection idle for %{public}" PRIu64 " ms: %{public}s", idleTimeMs,
                 connection.connectionName.c_str());
             auto messageRouter = weakMessageRouter_.lock();
             ENSURE_OR_RETURN(messageRouter != nullptr);
@@ -454,7 +486,12 @@ void ConnectionManager::HandleKeepAliveReply(const std::string &connectionName, 
     bool getResultRet = reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
     ENSURE_OR_RETURN(getResultRet);
     if (result != ResultCode::SUCCESS) {
-        IAM_LOGE("keep alive reply failed: %{public}s", connectionName.c_str());
+        TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this(), connectionName]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->CloseConnection(connectionName, "keep_alive_reply_failed");
+        });
+        IAM_LOGI("keep alive reply failed: %{public}s", connectionName.c_str());
         return;
     }
 

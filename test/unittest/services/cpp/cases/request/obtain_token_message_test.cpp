@@ -45,8 +45,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_001, TestSize
         .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodePreObtainTokenRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodePreObtainTokenRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.companionDeviceKey.idType));
@@ -70,8 +69,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_002, TestSize
         .extraInfo = {} };
 
     Attributes attributes;
-    bool encodeResult = EncodePreObtainTokenRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodePreObtainTokenRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.companionDeviceKey.idType));
@@ -119,8 +117,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenReply_001, TestSize.L
     PreObtainTokenReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodePreObtainTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodePreObtainTokenReply(reply, attributes);
 
     auto result = DecodePreObtainTokenReply(attributes);
     ASSERT_TRUE(result.has_value());
@@ -135,8 +132,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenReply_002, TestSize.L
     PreObtainTokenReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodePreObtainTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodePreObtainTokenReply(reply, attributes);
 
     auto result = DecodePreObtainTokenReply(attributes);
     ASSERT_TRUE(result.has_value());
@@ -178,8 +174,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_001, TestSize.Le
         .companionDeviceKey = companionDeviceKey_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeObtainTokenRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeObtainTokenRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.companionDeviceKey.idType));
@@ -203,8 +198,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_002, TestSize.Le
         .companionDeviceKey = companionDeviceKey_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeObtainTokenRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeObtainTokenRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.companionDeviceKey.idType));
@@ -258,8 +252,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenReply_001, TestSize.Leve
     ObtainTokenReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeObtainTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeObtainTokenReply(reply, attributes);
 
     auto result = DecodeObtainTokenReply(attributes);
     ASSERT_TRUE(result.has_value());
@@ -274,8 +267,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenReply_002, TestSize.Leve
     ObtainTokenReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeObtainTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeObtainTokenReply(reply, attributes);
 
     auto result = DecodeObtainTokenReply(attributes);
     ASSERT_TRUE(result.has_value());

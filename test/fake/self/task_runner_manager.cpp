@@ -121,7 +121,6 @@ void TaskRunnerManager::EnsureAllTaskExecuted()
             return;
         }
     }
-    abort();
 }
 
 } // namespace CompanionDeviceAuth

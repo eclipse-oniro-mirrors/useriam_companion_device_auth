@@ -53,7 +53,7 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_001, TestSize.Leve
         .companionUserId = companionUserId_,
         .extraInfo = extraInfo_ };
     Attributes request;
-    EXPECT_TRUE(EncodeStartDelegateAuthRequest(startRequest, request));
+    EncodeStartDelegateAuthRequest(startRequest, request);
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(startRequest.hostDeviceKey.idType));
@@ -101,7 +101,7 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_003, TestSize.Leve
         .companionUserId = companionUserId_,
         .extraInfo = extraInfo_ };
     Attributes request;
-    EXPECT_TRUE(EncodeStartDelegateAuthRequest(startRequest, request));
+    EncodeStartDelegateAuthRequest(startRequest, request);
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(startRequest.hostDeviceKey.idType));
@@ -127,7 +127,7 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_004, TestSize.Leve
         .companionUserId = companionUserId_,
         .extraInfo = extraInfo_ };
     Attributes request;
-    EXPECT_TRUE(EncodeStartDelegateAuthRequest(startRequest, request));
+    EncodeStartDelegateAuthRequest(startRequest, request);
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName_);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(startRequest.hostDeviceKey.idType));

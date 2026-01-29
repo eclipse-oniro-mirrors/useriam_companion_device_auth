@@ -188,6 +188,10 @@ HWTEST_F(SoftBusConnectionManagerTest, SendMessage_003, TestSize.Level0)
     MockGuard guard;
 
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+    ON_CALL(mockSoftBusAdapter_, SendBytes(_, _)).WillByDefault(Return(true));
+
+    auto softBusAdapter = std::shared_ptr<ISoftBusAdapter>(&mockSoftBusAdapter_, [](ISoftBusAdapter *) {});
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
 
     auto manager = SoftBusConnectionManager::Create();
     ASSERT_NE(manager, nullptr);
@@ -211,6 +215,10 @@ HWTEST_F(SoftBusConnectionManagerTest, SendMessage_004, TestSize.Level0)
     MockGuard guard;
 
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+    ON_CALL(mockSoftBusAdapter_, SendBytes(_, _)).WillByDefault(Return(true));
+
+    auto softBusAdapter = std::shared_ptr<ISoftBusAdapter>(&mockSoftBusAdapter_, [](ISoftBusAdapter *) {});
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
 
     auto manager = SoftBusConnectionManager::Create();
     ASSERT_NE(manager, nullptr);
@@ -593,6 +601,11 @@ HWTEST_F(SoftBusConnectionManagerTest, Destructor_002, TestSize.Level0)
 {
     MockGuard guard;
 
+    ON_CALL(mockSoftBusAdapter_, ShutdownSocket(_)).WillByDefault(Return());
+
+    auto softBusAdapter = std::shared_ptr<ISoftBusAdapter>(&mockSoftBusAdapter_, [](ISoftBusAdapter *) {});
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
+
     {
         auto manager = SoftBusConnectionManager::Create();
         ASSERT_NE(manager, nullptr);
@@ -613,6 +626,11 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleSoftBusServiceReady_001, TestSize.L
 {
     MockGuard guard;
 
+    ON_CALL(mockSoftBusAdapter_, CreateServerSocket()).WillByDefault(Return(std::optional<int32_t>(1)));
+
+    auto softBusAdapter = std::shared_ptr<ISoftBusAdapter>(&mockSoftBusAdapter_, [](ISoftBusAdapter *) {});
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
+
     auto manager = SoftBusConnectionManager::Create();
     ASSERT_NE(manager, nullptr);
 
@@ -624,6 +642,11 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleSoftBusServiceReady_001, TestSize.L
 HWTEST_F(SoftBusConnectionManagerTest, HandleSoftBusServiceReady_002, TestSize.Level0)
 {
     MockGuard guard;
+
+    ON_CALL(mockSoftBusAdapter_, CreateServerSocket()).WillByDefault(Return(std::optional<int32_t>(1)));
+
+    auto softBusAdapter = std::shared_ptr<ISoftBusAdapter>(&mockSoftBusAdapter_, [](ISoftBusAdapter *) {});
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
 
     auto manager = SoftBusConnectionManager::Create();
     ASSERT_NE(manager, nullptr);

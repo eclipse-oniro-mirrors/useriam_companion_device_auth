@@ -49,8 +49,8 @@ class CompanionAddCompanionRequestTest : public Test {
 public:
     void CreateDefaultRequest()
     {
-        request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_, onMessageReply_,
-            hostDeviceKey_);
+        request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_,
+            std::move(onMessageReply_), hostDeviceKey_);
     }
 
 protected:
@@ -85,8 +85,8 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_001, TestSize.Level0)
     initKeyNegoRequest_.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, initRequest.hostDeviceKey.deviceId);
     initKeyNegoRequest_.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, initRequest.extraInfo);
 
-    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_, onMessageReply_,
-        hostDeviceKey_);
+    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_,
+        std::move(onMessageReply_), hostDeviceKey_);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillOnce(Return(std::make_optional(companionDeviceKey_)));
@@ -117,8 +117,8 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_002, TestSize.Level0)
     bool replyCalled = false;
     onMessageReply_ = [&replyCalled](const Attributes &) { replyCalled = true; };
 
-    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_, onMessageReply_,
-        hostDeviceKey_);
+    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_,
+        std::move(onMessageReply_), hostDeviceKey_);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
 
@@ -136,8 +136,8 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_003, TestSize.Level0)
     bool replyCalled = false;
     onMessageReply_ = [&replyCalled](const Attributes &) { replyCalled = true; };
 
-    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_, onMessageReply_,
-        hostDeviceKey_);
+    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_,
+        std::move(onMessageReply_), hostDeviceKey_);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillOnce(Return(std::make_optional(companionDeviceKey_)));
@@ -158,8 +158,8 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_004, TestSize.Level0)
     bool replyCalled = false;
     onMessageReply_ = [&replyCalled](const Attributes &) { replyCalled = true; };
 
-    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_, onMessageReply_,
-        hostDeviceKey_);
+    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_,
+        std::move(onMessageReply_), hostDeviceKey_);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillOnce(Return(std::make_optional(companionDeviceKey_)));
@@ -183,8 +183,8 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_005, TestSize.Level0)
     onMessageReply_ = [&replyCalled](const Attributes &) { replyCalled = true; };
 
     Attributes emptyRequest;
-    request_ =
-        std::make_shared<CompanionAddCompanionRequest>(connectionName_, emptyRequest, onMessageReply_, hostDeviceKey_);
+    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, emptyRequest, std::move(onMessageReply_),
+        hostDeviceKey_);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillOnce(Return(std::make_optional(companionDeviceKey_)));
@@ -207,8 +207,17 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_006, TestSize.Level0)
     bool replyCalled = false;
     onMessageReply_ = [&replyCalled](const Attributes &) { replyCalled = true; };
 
-    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_, onMessageReply_,
-        hostDeviceKey_);
+    InitKeyNegotiationRequest initRequest;
+    initRequest.hostDeviceKey = hostDeviceKey_;
+    initRequest.extraInfo = { UINT32_1, UINT32_2, UINT32_1, UINT32_4 };
+    initKeyNegoRequest_.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, initRequest.hostDeviceKey.deviceUserId);
+    initKeyNegoRequest_.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(initRequest.hostDeviceKey.idType));
+    initKeyNegoRequest_.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, initRequest.hostDeviceKey.deviceId);
+    initKeyNegoRequest_.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, initRequest.extraInfo);
+
+    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_,
+        std::move(onMessageReply_), hostDeviceKey_);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillOnce(Return(std::make_optional(companionDeviceKey_)));
@@ -233,8 +242,8 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_007, TestSize.Level0)
     bool replyCalled = false;
     onMessageReply_ = [&replyCalled](const Attributes &) { replyCalled = true; };
 
-    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_, onMessageReply_,
-        hostDeviceKey_);
+    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_,
+        std::move(onMessageReply_), hostDeviceKey_);
     request_->peerDeviceKey_ = companionDeviceKey_;
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -259,8 +268,17 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_008, TestSize.Level0)
     bool replyCalled = false;
     onMessageReply_ = [&replyCalled](const Attributes &) { replyCalled = true; };
 
-    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_, onMessageReply_,
-        hostDeviceKey_);
+    InitKeyNegotiationRequest initRequest;
+    initRequest.hostDeviceKey = hostDeviceKey_;
+    initRequest.extraInfo = { UINT32_1, UINT32_2, UINT32_1, UINT32_4 };
+    initKeyNegoRequest_.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, initRequest.hostDeviceKey.deviceUserId);
+    initKeyNegoRequest_.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(initRequest.hostDeviceKey.idType));
+    initKeyNegoRequest_.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, initRequest.hostDeviceKey.deviceId);
+    initKeyNegoRequest_.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, initRequest.extraInfo);
+
+    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_,
+        std::move(onMessageReply_), hostDeviceKey_);
     request_->currentReply_ = nullptr;
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -500,9 +518,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_004, TestSize.L
         receivedResult = static_cast<ResultCode>(result);
     };
 
-    EXPECT_CALL(guard.GetHostBindingManager(), EndAddHostBinding(_, _, _))
-        .WillOnce(Return(ResultCode::FAIL))
-        .WillOnce(Return(ResultCode::FAIL));
+    EXPECT_CALL(guard.GetHostBindingManager(), EndAddHostBinding(_, _, _)).WillOnce(Return(ResultCode::FAIL));
 
     request_->HandleEndAddCompanion(attrInput, onMessageReply);
 
@@ -522,8 +538,8 @@ HWTEST_F(CompanionAddCompanionRequestTest, CompleteWithError_001, TestSize.Level
         receivedResult = static_cast<ResultCode>(result);
     };
 
-    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_, onMessageReply_,
-        hostDeviceKey_);
+    request_ = std::make_shared<CompanionAddCompanionRequest>(connectionName_, initKeyNegoRequest_,
+        std::move(onMessageReply_), hostDeviceKey_);
 
     request_->CompleteWithError(ResultCode::COMMUNICATION_ERROR);
 

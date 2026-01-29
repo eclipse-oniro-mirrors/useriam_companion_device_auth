@@ -100,12 +100,14 @@ public:
 // Mock ICompanionDeviceAuth for fuzzing
 class FuzzMockCompanionDeviceAuth : public ICompanionDeviceAuth {
 public:
-    FuzzMockCompanionDeviceAuth() = default;
+    FuzzMockCompanionDeviceAuth()
+    {
+    }
     ~FuzzMockCompanionDeviceAuth() override = default;
 
     sptr<IRemoteObject> AsObject() override
     {
-        return mockRemoteObject_;
+        return nullptr;
     }
 
     void SetMockResults(int32_t ipcResult, int32_t serviceResult)
@@ -206,9 +208,6 @@ public:
         result = mockResult_;
         return mockIpcResult_;
     }
-
-private:
-    sptr<IRemoteObject> mockRemoteObject_ = new FuzzMockRemoteObject();
 };
 
 // Fuzz test callbacks

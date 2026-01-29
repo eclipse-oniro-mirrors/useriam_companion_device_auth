@@ -47,12 +47,11 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
     napi_open_handle_scope(deviceSelectCallbackHolder->env, &scope);
     if (scope == nullptr) {
         IAM_LOGE("scope is invalid");
-        napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
         return;
     }
 
-    ClientDeviceSelectResult result;
-    napi_value napiDeviceSelectResult;
+    ClientDeviceSelectResult result {};
+    napi_value napiDeviceSelectResult = nullptr;
     ENSURE_OR_RETURN(deviceSelectCallbackHolder->callback != nullptr);
     napi_status status = deviceSelectCallbackHolder->callback->DoCallback(deviceSelectCallbackHolder->selectPurpose,
         &napiDeviceSelectResult);
@@ -107,7 +106,7 @@ napi_status NapiDeviceSelectCallback::DoCallback(int32_t selectPurpose, napi_val
         return napi_ok;
     }
 
-    napi_value napiSelectPurpose;
+    napi_value napiSelectPurpose = nullptr;
     napi_status status = napi_create_int32(env_, selectPurpose, &napiSelectPurpose);
     if (status != napi_ok) {
         IAM_LOGE("napi_create_int32 fail, ret:%{public}d", status);
@@ -122,12 +121,7 @@ void NapiDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     const std::shared_ptr<SetDeviceSelectResultCallback> &callback)
 {
     IAM_LOGI("start, selectPurpose:%{public}d", selectPurpose);
-    uv_loop_s *loop = nullptr;
-    napi_status napiStatus = napi_get_uv_event_loop(env_, &loop);
-    if (napiStatus != napi_ok || loop == nullptr) {
-        IAM_LOGE("napi_get_uv_event_loop fail");
-        return;
-    }
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
     std::shared_ptr<DeviceSelectCallbackHolder> deviceSelectCallbackHolder =
         std::make_shared<DeviceSelectCallbackHolder>();
     ENSURE_OR_RETURN(deviceSelectCallbackHolder != nullptr);
@@ -136,10 +130,12 @@ void NapiDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     deviceSelectCallbackHolder->setCallback = callback;
     deviceSelectCallbackHolder->env = env_;
     auto task = [deviceSelectCallbackHolder]() { DeviceSelectCallback(deviceSelectCallbackHolder); };
+    // clang-format off
     if (napi_send_event(env_, task, napi_eprio_immediate,
         "CompanionDeviceAuthNapi::NapiDeviceSelectCallback::OnDeviceSelect") != napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
+    // clang-format on
     IAM_LOGI("end");
 }
 } // namespace CompanionDeviceAuth

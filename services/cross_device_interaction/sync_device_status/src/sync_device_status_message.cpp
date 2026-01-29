@@ -26,7 +26,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-bool EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes)
+void EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes)
 {
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
         ProtocolIdConverter::ToUnderlyingVec(request.protocolIdList));
@@ -35,7 +35,6 @@ bool EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attri
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_SALT, request.salt);
     attributes.SetUint64Value(Attributes::ATTR_CDA_SA_CHALLENGE, request.challenge);
-    return true;
 }
 
 std::optional<SyncDeviceStatusRequest> DecodeSyncDeviceStatusRequest(const Attributes &attributes)
@@ -60,7 +59,7 @@ std::optional<SyncDeviceStatusRequest> DecodeSyncDeviceStatusRequest(const Attri
     return request;
 }
 
-bool EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes &attributes)
+void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
@@ -72,7 +71,6 @@ bool EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
         SecureProtocolIdConverter::ToUnderlying(reply.secureProtocolId));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, reply.deviceUserName);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
-    return true;
 }
 
 std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attributes &attributes)

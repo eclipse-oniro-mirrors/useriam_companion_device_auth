@@ -44,8 +44,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenRequest_001, TestSize.L
         .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodePreIssueTokenRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodePreIssueTokenRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -100,8 +99,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenReply_001, TestSize.Lev
     PreIssueTokenReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodePreIssueTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodePreIssueTokenReply(reply, attributes);
 
     auto result = DecodePreIssueTokenReply(attributes);
     ASSERT_TRUE(result.has_value());
@@ -117,8 +115,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenReply_002, TestSize.Lev
     PreIssueTokenReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = {} };
 
     Attributes attributes;
-    bool encodeResult = EncodePreIssueTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodePreIssueTokenReply(reply, attributes);
 
     auto result = DecodePreIssueTokenReply(attributes);
     ASSERT_TRUE(result.has_value());
@@ -155,8 +152,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_001, TestSize.Leve
         .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeIssueTokenRequest(request, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeIssueTokenRequest(request, attributes);
 
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(request.hostDeviceKey.idType));
@@ -211,8 +207,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenReply_001, TestSize.Level0
     IssueTokenReply reply = { .result = ResultCode::SUCCESS, .extraInfo = extraInfo_ };
 
     Attributes attributes;
-    bool encodeResult = EncodeIssueTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeIssueTokenReply(reply, attributes);
 
     auto result = DecodeIssueTokenReply(attributes);
     ASSERT_TRUE(result.has_value());
@@ -228,8 +223,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenReply_Error_002, TestSize.
     IssueTokenReply reply = { .result = ResultCode::GENERAL_ERROR, .extraInfo = {} };
 
     Attributes attributes;
-    bool encodeResult = EncodeIssueTokenReply(reply, attributes);
-    EXPECT_TRUE(encodeResult);
+    EncodeIssueTokenReply(reply, attributes);
 
     auto result = DecodeIssueTokenReply(attributes);
     ASSERT_TRUE(result.has_value());

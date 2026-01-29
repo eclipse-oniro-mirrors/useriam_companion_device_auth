@@ -18,6 +18,7 @@
 #include "channel_manager.h"
 #include "connection_manager.h"
 #include "local_device_status_manager.h"
+#include "singleton_manager.h"
 #include "task_runner_manager.h"
 
 #include "mock_cross_device_channel.h"
@@ -48,7 +49,9 @@ public:
 
         ON_CALL(*mockChannel, GetChannelId()).WillByDefault(Return(ChannelId::SOFTBUS));
         ON_CALL(*mockChannel, GetLocalPhysicalDeviceKey()).WillByDefault(Return(localPhysicalKey));
-        ON_CALL(*mockChannel, SubscribeAuthMaintainActive(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+        EXPECT_CALL(*mockChannel, SubscribeAuthMaintainActive(_))
+            .Times(AtMost(1))
+            .WillOnce(Return(ByMove(MakeSubscription())));
         ON_CALL(*mockChannel, GetAuthMaintainActive()).WillByDefault(Return(false));
         ON_CALL(*mockChannel, GetCompanionSecureProtocolId()).WillByDefault(Return(SecureProtocolId::DEFAULT));
         ON_CALL(*mockChannel, OpenConnection(_, _)).WillByDefault(Return(true));
@@ -82,7 +85,6 @@ HWTEST_F(ConnectionManagerTest, Create_001, TestSize.Level0)
     auto channelMgr = std::make_shared<ChannelManager>(channels);
     auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
     ASSERT_NE(localDeviceStatusMgr, nullptr);
-    std::shared_ptr<ConnectionManager> connectionMgr;
     auto manager = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
     EXPECT_NE(manager, nullptr);
 }
@@ -138,7 +140,6 @@ HWTEST_F(ConnectionManagerTest, Create_003, TestSize.Level0)
     auto channelMgr = std::make_shared<ChannelManager>(channels);
     auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
     ASSERT_NE(localDeviceStatusMgr, nullptr);
-    std::shared_ptr<ConnectionManager> connectionMgr;
     EXPECT_CALL(*mockChannel, SubscribeConnectionStatus(_)).WillOnce(Return(nullptr));
 
     auto manager = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
@@ -168,7 +169,6 @@ HWTEST_F(ConnectionManagerTest, Create_004, TestSize.Level0)
     auto channelMgr = std::make_shared<ChannelManager>(channels);
     auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
     ASSERT_NE(localDeviceStatusMgr, nullptr);
-    std::shared_ptr<ConnectionManager> connectionMgr;
     EXPECT_CALL(*mockChannel, SubscribeIncomingConnection(_)).WillOnce(Return(nullptr));
 
     auto manager = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
@@ -198,7 +198,6 @@ HWTEST_F(ConnectionManagerTest, Create_005, TestSize.Level0)
     auto channelMgr = std::make_shared<ChannelManager>(channels);
     auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
     ASSERT_NE(localDeviceStatusMgr, nullptr);
-    std::shared_ptr<ConnectionManager> connectionMgr;
     EXPECT_CALL(*mockChannel, SubscribePhysicalDeviceStatus(_)).WillOnce(Return(nullptr));
 
     auto manager = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
@@ -479,6 +478,12 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_007, TestSize.Level0)
             return MakeSubscription();
         }));
 
+    // Set up GetNextGlobalId to return incrementing values
+    uint32_t globalIdCounter = 0;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault(Invoke([&globalIdCounter]() -> uint32_t {
+        return ++globalIdCounter;
+    }));
+
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
     auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
@@ -738,8 +743,9 @@ HWTEST_F(ConnectionManagerTest, HandleIncomingConnection_002, TestSize.Level0)
     bool result1 = connectionMgr->HandleIncomingConnection("incoming-conn", remoteKey);
     EXPECT_TRUE(result1);
 
+    // Second call with same connection name should fail
     bool result2 = connectionMgr->HandleIncomingConnection("incoming-conn", remoteKey);
-    EXPECT_TRUE(result2);
+    EXPECT_FALSE(result2);
 }
 
 HWTEST_F(ConnectionManagerTest, HandleIncomingConnection_003, TestSize.Level0)

@@ -57,7 +57,6 @@ private:
     int32_t companionUserId_ = 0;
     std::vector<uint8_t> startDelegateAuthRequest_;
     std::optional<uint64_t> contextId_ = std::nullopt;
-    DeviceKey hostDeviceKey_ {};
     SecureProtocolId secureProtocolId_ { SecureProtocolId::INVALID };
 };
 } // namespace CompanionDeviceAuth

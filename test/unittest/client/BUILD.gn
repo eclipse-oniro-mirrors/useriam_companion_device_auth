@@ -38,7 +38,7 @@ ohos_unittest("companion_device_auth_client_test") {
   deps = companion_device_auth_client_deps
 
   external_deps = companion_device_auth_client_external_deps +
-                  companion_device_auth_test_external_deps
+                  companion_device_auth_unit_test_external_deps
 
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
 

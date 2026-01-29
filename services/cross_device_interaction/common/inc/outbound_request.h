@@ -46,7 +46,6 @@ protected:
 
     virtual bool OnStart(ErrorGuard &errorGuard);
     virtual void OnConnected() = 0;
-    virtual bool OnCancel();
 
     virtual std::weak_ptr<OutboundRequest> GetWeakPtr() = 0;
 

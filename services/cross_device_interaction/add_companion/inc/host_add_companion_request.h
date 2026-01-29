@@ -68,7 +68,6 @@ private:
     bool needCancelCompanionAdd_ = false;
     bool needCancelIssueToken_ = false;
     FwkResultCallback requestCallback_;
-    bool callbackInvoked_ = false;
     DeviceKey hostDeviceKey_ {};
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
 };

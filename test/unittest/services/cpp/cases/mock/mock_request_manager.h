@@ -26,6 +26,7 @@ namespace CompanionDeviceAuth {
 
 class MockRequestManager : public IRequestManager {
 public:
+    MOCK_METHOD(bool, AddRequest, (RequestId, ScheduleId, const std::string &));
     MOCK_METHOD(bool, Start, (const std::shared_ptr<IRequest> &request), (override));
     MOCK_METHOD(bool, Cancel, (RequestId requestId), (override));
     MOCK_METHOD(bool, CancelRequestByScheduleId, (ScheduleId scheduleId), (override));

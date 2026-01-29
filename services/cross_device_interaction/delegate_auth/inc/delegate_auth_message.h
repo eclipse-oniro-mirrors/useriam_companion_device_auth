@@ -48,14 +48,14 @@ struct SendDelegateAuthResultReply {
     ResultCode result { ResultCode::GENERAL_ERROR };
 };
 
-bool EncodeStartDelegateAuthRequest(const StartDelegateAuthRequest &request, Attributes &attributes);
+void EncodeStartDelegateAuthRequest(const StartDelegateAuthRequest &request, Attributes &attributes);
 std::optional<StartDelegateAuthRequest> DecodeStartDelegateAuthRequest(const Attributes &attributes);
-bool EncodeStartDelegateAuthReply(const StartDelegateAuthReply &reply, Attributes &attributes);
+void EncodeStartDelegateAuthReply(const StartDelegateAuthReply &reply, Attributes &attributes);
 std::optional<StartDelegateAuthReply> DecodeStartDelegateAuthReply(const Attributes &attributes);
 
-bool EncodeSendDelegateAuthResultRequest(const SendDelegateAuthResultRequest &request, Attributes &attributes);
+void EncodeSendDelegateAuthResultRequest(const SendDelegateAuthResultRequest &request, Attributes &attributes);
 std::optional<SendDelegateAuthResultRequest> DecodeSendDelegateAuthResultRequest(const Attributes &attributes);
-bool EncodeSendDelegateAuthResultReply(const SendDelegateAuthResultReply &reply, Attributes &attributes);
+void EncodeSendDelegateAuthResultReply(const SendDelegateAuthResultReply &reply, Attributes &attributes);
 std::optional<SendDelegateAuthResultReply> DecodeSendDelegateAuthResultReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -273,7 +273,7 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(AllInOneExe
 
 void FuzzAllInOneExecutor(FuzzedDataProvider &fuzzData)
 {
-    auto executor = std::make_shared<CompanionDeviceAuthAllInOneExecutor>();
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
     if (!executor) {
         return;
     }

@@ -61,7 +61,7 @@ napi_value CompanionDeviceAuthNapiImpl::RegisterDeviceSelectCallback(napi_env en
     deviceSelectCallback->SetCallback(callbackRef);
     int32_t ret = CompanionDeviceAuthClient::GetInstance().RegisterDeviceSelectCallback(deviceSelectCallback);
     if (ret != SUCCESS) {
-        IAM_LOGE("RegisterDeviceSelectCallback fail, ret:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("RegisterDeviceSelectCallback fail, ret:%{public}d", ret);
         errorCode = ret;
         return nullptr;
     }
@@ -76,7 +76,7 @@ napi_value CompanionDeviceAuthNapiImpl::UnregisterDeviceSelectCallback(napi_env 
     IAM_LOGI("start");
     int32_t ret = CompanionDeviceAuthClient::GetInstance().UnregisterDeviceSelectCallback();
     if (ret != SUCCESS) {
-        IAM_LOGE("UnregisterDeviceSelectCallback fail, ret:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("UnregisterDeviceSelectCallback fail, ret:%{public}d", ret);
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
@@ -124,7 +124,7 @@ napi_value CompanionDeviceAuthNapiImpl::UpdateEnabledBusinessIds(napi_env env, n
     int32_t ret =
         CompanionDeviceAuthClient::GetInstance().UpdateTemplateEnabledBusinessIds(templateId, enabledBusinessIds);
     if (ret != SUCCESS) {
-        IAM_LOGE("UpdateTemplateEnabledBusinessIds fail, ret:%{public}d", static_cast<int32_t>(ret));
+        IAM_LOGE("UpdateTemplateEnabledBusinessIds fail, ret:%{public}d", ret);
         errorCode = ret;
         return voidPromise;
     }

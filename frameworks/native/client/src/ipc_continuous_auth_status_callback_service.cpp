@@ -37,8 +37,7 @@ IpcContinuousAuthStatusCallbackService::IpcContinuousAuthStatusCallbackService(
 int32_t IpcContinuousAuthStatusCallbackService::OnContinuousAuthStatusChange(const IpcContinuousAuthStatus &status)
 {
     IAM_LOGI("start, isAuthPassed:%{public}d, hasAuthTrustLevel:%{public}d, authTrustLevel:%{public}d",
-        static_cast<int32_t>(status.isAuthPassed), static_cast<int32_t>(status.hasAuthTrustLevel),
-        status.authTrustLevel);
+        status.isAuthPassed, status.hasAuthTrustLevel, status.authTrustLevel);
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     ENSURE_OR_RETURN_VAL(callback_ != nullptr, GENERAL_ERROR);
     if (!status.hasAuthTrustLevel) {

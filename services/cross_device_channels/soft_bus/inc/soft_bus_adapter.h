@@ -50,7 +50,7 @@ class ISoftBusAdapter : public NoCopyable {
 public:
     virtual ~ISoftBusAdapter() = default;
 
-    virtual void RegisterCallback(std::shared_ptr<ISoftBusSocketCallback> callback) = 0;
+    virtual void RegisterCallback(const std::shared_ptr<ISoftBusSocketCallback> &callback) = 0;
     virtual std::optional<SocketId> CreateServerSocket() = 0;
     virtual std::optional<SocketId> CreateClientSocket(const std::string &connectionName,
         const std::string &networkId) = 0;

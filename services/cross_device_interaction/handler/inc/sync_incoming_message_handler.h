@@ -40,7 +40,7 @@ protected:
     virtual void HandleRequest(const Attributes &request, Attributes &reply) = 0;
 
 private:
-    MessageType messageType_ { MessageType::INVALID };
+    const MessageType messageType_ { MessageType::INVALID };
     std::unique_ptr<Subscription> subscription_;
 };
 } // namespace CompanionDeviceAuth

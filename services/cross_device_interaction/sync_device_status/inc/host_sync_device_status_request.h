@@ -62,7 +62,6 @@ private:
     DeviceKey companionDeviceKey_;
     std::string companionDeviceName_;
     SyncDeviceStatusCallback callback_;
-    bool callbackInvoked_ = false;
 
     void InvokeCallback(ResultCode result, const SyncDeviceStatus &syncDeviceStatus);
 };

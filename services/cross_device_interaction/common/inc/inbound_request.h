@@ -57,7 +57,7 @@ private:
 
     std::string connectionName_;
     std::unique_ptr<Subscription> connectionStatusSubscription_;
-    std::optional<DeviceKey> peerDeviceKey_ {};
+    DeviceKey peerDeviceKey_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

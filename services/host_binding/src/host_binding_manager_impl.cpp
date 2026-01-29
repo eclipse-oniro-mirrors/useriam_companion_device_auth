@@ -44,13 +44,7 @@ bool HostBindingManagerImpl::Initialize()
 {
     IAM_LOGI("begin");
 
-    if (activeUserIdSubscription_ != nullptr) {
-        IAM_LOGI("already subscribed to active user id");
-        return true;
-    }
-
-    auto weakSelf = weak_from_this();
-    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf](UserId userId) {
+    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId userId) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->OnActiveUserIdChanged(userId);

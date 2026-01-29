@@ -37,7 +37,7 @@ class CompanionDeviceAuthAllInOneExecutor : public std::enable_shared_from_this<
                                             public FwkIAuthExecutorHdi,
                                             public NoCopyable {
 public:
-    CompanionDeviceAuthAllInOneExecutor();
+    static std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> Create();
     ~CompanionDeviceAuthAllInOneExecutor() override = default;
 
     FwkResultCode GetExecutorInfo(FwkExecutorInfo &info) override;
@@ -59,6 +59,7 @@ public:
     class CompanionDeviceAuthAllInOneExecutorInner;
 
 private:
+    CompanionDeviceAuthAllInOneExecutor();
     FwkResultCode RunOnResidentSync(std::function<FwkResultCode()> func, uint32_t timeoutSec = MAX_SYNC_WAIT_TIME_SEC);
 
     std::shared_ptr<CompanionDeviceAuthAllInOneExecutorInner> inner_;

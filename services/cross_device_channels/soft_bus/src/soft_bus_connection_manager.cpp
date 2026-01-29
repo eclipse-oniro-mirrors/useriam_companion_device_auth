@@ -275,8 +275,7 @@ std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeRawMessage(OnRa
 
     IAM_LOGD("raw message subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnsubscribeRawMessage(subscriptionId);
@@ -302,8 +301,7 @@ std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeConnectionStatu
 
     IAM_LOGD("connection status subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnsubscribeConnectionStatus(subscriptionId);
@@ -325,8 +323,7 @@ std::unique_ptr<Subscription> SoftBusConnectionManager::SubscribeIncomingConnect
 
     IAM_LOGD("incoming connection subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
-    auto weakSelf = weak_from_this();
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnsubscribeIncomingConnection(subscriptionId);

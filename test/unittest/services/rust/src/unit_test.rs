@@ -31,7 +31,6 @@ mod default_event_manager_test;
 mod default_host_db_manager_test;
 mod default_misc_manager_test;
 mod default_request_manager_test;
-mod default_storage_io_test;
 mod default_time_keeper_test;
 mod openssl_crypto_engine_test;
 

@@ -54,6 +54,7 @@ private:
     bool HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &outFwkMsg);
     void HandleSendDelegateAuthRequestMsg(const Attributes &request, OnMessageReply &onMessageReply);
     void CompleteWithSuccess(const std::vector<uint8_t> &fwkMsg);
+    void InvokeCallback(ResultCode result, const std::vector<uint8_t> &fwkMsg);
 
     std::vector<uint8_t> fwkMsg_;
     UserId hostUserId_ = INVALID_USER_ID;
@@ -63,8 +64,6 @@ private:
     std::unique_ptr<Subscription> delegateResultSubscription_;
     bool needCancelDelegateAuth_ = false;
     bool callbackInvoked_ = false;
-
-    void InvokeCallback(ResultCode result, const std::vector<uint8_t> &fwkMsg);
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

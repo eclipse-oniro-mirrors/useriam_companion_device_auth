@@ -663,6 +663,12 @@ HWTEST_F(HostAddCompanionRequestTest, EndAddCompanion_001, TestSize.Level0)
     CreateDefaultRequest();
     request_->SetPeerDeviceKey(companionDeviceKey_);
 
+    DeviceStatus deviceStatus;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(guard.GetCompanionManager(), EndAddCompanion(_, _))
+        .WillOnce(Invoke(
+            [](const EndAddCompanionInput &input, EndAddCompanionOutput &output) { return ResultCode::SUCCESS; }));
     CompanionStatus status;
     status.templateId = INT32_12345;
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(status)));
@@ -681,8 +687,7 @@ HWTEST_F(HostAddCompanionRequestTest, InvokeCallback_001, TestSize.Level0)
     MockGuard guard;
 
     CreateDefaultRequest();
-    request_->callbackInvoked_ = true;
-
+    // callbackInvoked_ was removed during refactoring - callback is moved on invocation
     request_->InvokeCallback(ResultCode::SUCCESS, {});
 }
 

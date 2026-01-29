@@ -62,13 +62,7 @@ bool CompanionManagerImpl::Initialize()
 {
     IAM_LOGI("initialize companion manager begin");
 
-    if (activeUserIdSubscription_ != nullptr) {
-        IAM_LOGI("already subscribed to active user id");
-        return true;
-    }
-
-    auto weakSelf = weak_from_this();
-    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf](UserId userId) {
+    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId userId) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->OnActiveUserIdChanged(userId);
@@ -178,12 +172,11 @@ std::unique_ptr<Subscription> CompanionManagerImpl::SubscribeCompanionDeviceStat
     OnCompanionDeviceStatusChange &&callback)
 {
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
-    auto weakSelf = weak_from_this();
     statusSubscribers_[subscriptionId] = std::move(callback);
 
     IAM_LOGD("Companion device status subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
-    return std::make_unique<Subscription>([weakSelf, subscriptionId]() {
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->UnsubscribeCompanionDeviceStatusChange(subscriptionId);
@@ -281,8 +274,6 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
             GET_TRUNCATED_STRING(companion->GetTemplateId()).c_str(), ret);
         return ret;
     }
-
-    companion->MarkAsAddedToIdm();
 
     output.fwkMsg.swap(secOutput.fwkMsg);
     output.tokenData.swap(secOutput.tokenData);
@@ -403,8 +394,7 @@ ResultCode CompanionManagerImpl::UpdateToken(TemplateId templateId, const std::v
         return ret;
     }
 
-    needRedistribute = output.needRedistribute;
-    if (needRedistribute) {
+    if (!output.needRedistribute) {
         companion->RefreshTokenTimer();
     }
 
@@ -442,9 +432,8 @@ void CompanionManagerImpl::OnActiveUserIdChanged(UserId userId)
         return;
     }
 
-    auto weakSelf = weak_from_this();
     templateChangeSubscription_ = AdapterManager::GetInstance().GetIdmAdapter().SubscribeUserTemplateChange(hostUserId_,
-        [weakSelf](UserId changedUserId, const std::vector<TemplateId> &templateIds) {
+        [weakSelf = weak_from_this()](UserId changedUserId, const std::vector<TemplateId> &templateIds) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->OnTemplateListChanged(changedUserId, templateIds);
@@ -580,10 +569,7 @@ void CompanionManagerImpl::StartIssueTokenRequests(const std::vector<uint64_t> &
     }
 
     for (const auto &companion : companions_) {
-        if (companion == nullptr) {
-            continue;
-        }
-
+        ENSURE_OR_CONTINUE(companion != nullptr);
         IAM_LOGI("companion %{public}s", companion->GetDescription());
 
         TemplateId templateId = companion->GetTemplateId();

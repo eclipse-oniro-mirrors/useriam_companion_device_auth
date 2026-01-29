@@ -25,12 +25,11 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-bool EncodeTokenAuthRequest(const TokenAuthRequest &request, Attributes &attributes)
+void EncodeTokenAuthRequest(const TokenAuthRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<TokenAuthRequest> DecodeTokenAuthRequest(const Attributes &attributes)
@@ -47,14 +46,13 @@ std::optional<TokenAuthRequest> DecodeTokenAuthRequest(const Attributes &attribu
     return request;
 }
 
-bool EncodeTokenAuthReply(const TokenAuthReply &reply, Attributes &attributes)
+void EncodeTokenAuthReply(const TokenAuthReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
     if (reply.result != ResultCode::SUCCESS) {
-        return true;
+        return;
     }
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.extraInfo);
-    return true;
 }
 
 std::optional<TokenAuthReply> DecodeTokenAuthReply(const Attributes &attributes)

@@ -43,7 +43,7 @@ void CompanionRevokeTokenRequest::OnConnected()
 
 std::weak_ptr<OutboundRequest> CompanionRevokeTokenRequest::GetWeakPtr()
 {
-    return shared_from_this();
+    return weak_from_this();
 }
 
 void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
@@ -54,15 +54,13 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
     ENSURE_OR_RETURN(peerDeviceKey.has_value());
     DeviceKey companionDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    if (localDeviceKey.has_value()) {
-        companionDeviceKey = *localDeviceKey;
-    }
+    ENSURE_OR_RETURN(localDeviceKey.has_value());
+    companionDeviceKey = localDeviceKey.value();
     companionDeviceKey.deviceUserId = companionUserId_;
     RevokeTokenRequest requestMsg = { .hostUserId = peerDeviceKey->deviceUserId,
         .companionDeviceKey = companionDeviceKey };
     Attributes request = {};
-    bool encodeRet = EncodeRevokeTokenRequest(requestMsg, request);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodeRevokeTokenRequest(requestMsg, request);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::COMPANION_REVOKE_TOKEN,
         request, [weakSelf = weak_from_this()](const Attributes &reply) {

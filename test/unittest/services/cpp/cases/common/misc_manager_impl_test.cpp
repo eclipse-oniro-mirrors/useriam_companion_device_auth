@@ -311,66 +311,6 @@ HWTEST_F(MiscManagerImplTest, GetLocalUdid_001, TestSize.Level0)
     EXPECT_TRUE(udid.has_value());
 }
 
-HWTEST_F(MiscManagerImplTest, CheckBusinessIds_001, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = MiscManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    std::vector<BusinessId> businessIds = { BusinessId::DEFAULT };
-    bool result = manager->CheckBusinessIds(businessIds);
-    EXPECT_TRUE(result);
-}
-
-HWTEST_F(MiscManagerImplTest, CheckBusinessIds_002, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = MiscManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    std::vector<BusinessId> businessIds = { BusinessId::DEFAULT, BusinessId::DEFAULT, BusinessId::DEFAULT };
-    bool result = manager->CheckBusinessIds(businessIds);
-    EXPECT_TRUE(result);
-}
-
-HWTEST_F(MiscManagerImplTest, CheckBusinessIds_003, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = MiscManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    std::vector<BusinessId> businessIds = { static_cast<BusinessId>(2) };
-    bool result = manager->CheckBusinessIds(businessIds);
-    EXPECT_FALSE(result);
-}
-
-HWTEST_F(MiscManagerImplTest, CheckBusinessIds_004, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = MiscManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    std::vector<BusinessId> businessIds = { BusinessId::DEFAULT, static_cast<BusinessId>(2) };
-    bool result = manager->CheckBusinessIds(businessIds);
-    EXPECT_FALSE(result);
-}
-
-HWTEST_F(MiscManagerImplTest, CheckBusinessIds_005, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = MiscManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    std::vector<BusinessId> businessIds;
-    bool result = manager->CheckBusinessIds(businessIds);
-    EXPECT_TRUE(result);
-}
-
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

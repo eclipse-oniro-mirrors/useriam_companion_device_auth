@@ -38,11 +38,11 @@ struct RequestAbortedReply {
     ResultCode result { ResultCode::SUCCESS };
 };
 
-bool EncodeRequestAbortedRequest(const RequestAbortedRequest &request, Attributes &attributes);
+void EncodeRequestAbortedRequest(const RequestAbortedRequest &request, Attributes &attributes);
 
 std::optional<RequestAbortedRequest> DecodeRequestAbortedRequest(const Attributes &attributes);
 
-bool EncodeRequestAbortedReply(const RequestAbortedReply &reply, Attributes &attributes);
+void EncodeRequestAbortedReply(const RequestAbortedReply &reply, Attributes &attributes);
 
 std::optional<RequestAbortedReply> DecodeRequestAbortedReply(const Attributes &attributes);
 

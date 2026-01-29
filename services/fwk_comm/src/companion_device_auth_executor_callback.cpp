@@ -77,7 +77,7 @@ FwkResultCode CompanionDeviceAuthExecutorCallback::ConvertResultCode(const Resul
         return out;
     }
     out = iter->second;
-    IAM_LOGI("convert result code %{public}d to framework result code %{public}d", static_cast<int32_t>(in), out);
+    IAM_LOGI("convert result code %{public}d to framework result code %{public}d", in, out);
     return out;
 }
 

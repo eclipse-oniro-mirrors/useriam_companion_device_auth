@@ -397,9 +397,11 @@ ResultCode CompanionDeviceAuthServiceInner::UpdateTemplateEnabledBusinessIds(uin
         businessIdEnums.push_back(static_cast<BusinessId>(id));
     }
 
-    if (!GetMiscManager().CheckBusinessIds(businessIdEnums)) {
-        IAM_LOGE("CheckBusinessIds failed");
-        return ResultCode::INVALID_BUSINESS_ID;
+    for (const auto &businessId : businessIdEnums) {
+        if (businessId != BusinessId::DEFAULT) {
+            IAM_LOGE("Invalid businessId:%{public}d", businessId);
+            return ResultCode::INVALID_BUSINESS_ID;
+        }
     }
 
     ResultCode ret =
@@ -779,6 +781,7 @@ ErrCode CompanionDeviceAuthService::RegisterDeviceSelectCallback(
     }
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
     uint32_t tokenId = GetAccessTokenKitAdapter().GetAccessTokenId(*this);
+    ENSURE_OR_RETURN_VAL(tokenId != 0, ResultCode::GENERAL_ERROR);
     auto resultOpt = RunOnResidentSync([inner, deviceSelectCallback, tokenId]() {
         return inner->RegisterDeviceSelectCallback(tokenId, deviceSelectCallback);
     });
@@ -805,6 +808,7 @@ ErrCode CompanionDeviceAuthService::UnregisterDeviceSelectCallback(int32_t &comp
     }
     ENSURE_OR_RETURN_VAL(inner != nullptr, ERR_INVALID_VALUE);
     uint32_t tokenId = GetAccessTokenKitAdapter().GetAccessTokenId(*this);
+    ENSURE_OR_RETURN_VAL(tokenId != 0, ResultCode::GENERAL_ERROR);
     auto resultOpt = RunOnResidentSync([inner, tokenId]() { return inner->UnregisterDeviceSelectCallback(tokenId); });
     if (!resultOpt.has_value()) {
         IAM_LOGE("UnregisterDeviceSelectCallback timeout");
@@ -865,6 +869,7 @@ std::optional<typename std::invoke_result<Func>::type> CompanionDeviceAuthServic
     }
 
     auto promise = std::make_shared<std::promise<Ret>>();
+    ENSURE_OR_RETURN_VAL(promise != nullptr, std::nullopt);
     auto future = promise->get_future();
 
     TaskRunnerManager::GetInstance().PostTaskOnResident([task = std::forward<Func>(func), promise]() mutable {

@@ -25,12 +25,11 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-bool EncodeRemoveHostBindingRequest(const RemoveHostBindingRequest &request, Attributes &attributes)
+void EncodeRemoveHostBindingRequest(const RemoveHostBindingRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<RemoveHostBindingRequest> DecodeRemoveHostBindingRequest(const Attributes &attributes)
@@ -47,10 +46,9 @@ std::optional<RemoveHostBindingRequest> DecodeRemoveHostBindingRequest(const Att
     return request;
 }
 
-bool EncodeRemoveHostBindingReply(const RemoveHostBindingReply &reply, Attributes &attributes)
+void EncodeRemoveHostBindingReply(const RemoveHostBindingReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
-    return true;
 }
 
 std::optional<RemoveHostBindingReply> DecodeRemoveHostBindingReply(const Attributes &attributes)

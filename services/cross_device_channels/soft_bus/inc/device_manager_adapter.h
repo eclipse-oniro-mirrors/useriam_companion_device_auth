@@ -42,8 +42,8 @@ public:
     virtual void UnInitDeviceManager() = 0;
     virtual std::optional<std::string> GetUdidByNetworkId(const std::string &networkId) = 0;
     virtual bool QueryTrustedDevices(std::vector<DmDeviceInfo> &deviceList) = 0;
-    virtual bool RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) = 0;
-    virtual void UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) = 0;
+    virtual bool RegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback) = 0;
+    virtual void UnRegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback) = 0;
 
 protected:
     IDeviceManagerAdapter() = default;

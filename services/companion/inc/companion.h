@@ -50,18 +50,22 @@ public:
     {
         return status_.templateId;
     }
+
     int32_t GetHostUserId() const
     {
         return status_.hostUserId;
     }
+
     const DeviceKey &GetCompanionDeviceKey() const
     {
         return status_.companionDeviceStatus.deviceKey;
     }
+
     CompanionStatus GetStatus() const
     {
         return status_;
     }
+
     const char *GetDescription() const
     {
         return description_.c_str();

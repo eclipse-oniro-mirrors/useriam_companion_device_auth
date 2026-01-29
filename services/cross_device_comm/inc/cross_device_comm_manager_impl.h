@@ -90,11 +90,11 @@ private:
         std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<MessageRouter> messageRouter,
         std::shared_ptr<DeviceStatusManager> deviceStatusMgr);
 
-    std::shared_ptr<ChannelManager> channelMgr_;
-    std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr_;
-    std::shared_ptr<ConnectionManager> connectionMgr_;
-    std::shared_ptr<MessageRouter> messageRouter_;
-    std::shared_ptr<DeviceStatusManager> deviceStatusMgr_;
+    const std::shared_ptr<ChannelManager> channelMgr_;
+    const std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr_;
+    const std::shared_ptr<ConnectionManager> connectionMgr_;
+    const std::shared_ptr<MessageRouter> messageRouter_;
+    const std::shared_ptr<DeviceStatusManager> deviceStatusMgr_;
     bool started_ = false;
 };
 

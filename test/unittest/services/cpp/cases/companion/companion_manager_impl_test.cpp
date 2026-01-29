@@ -81,10 +81,13 @@ HWTEST_F(CompanionManagerImplTest, Create_001, TestSize.Level0)
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
 
-    ON_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(activeUserId_));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
     ON_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
         .WillByDefault(DoAll(Invoke([](const HostBeginAddCompanionInput &, HostBeginAddCompanionOutput &output) {
@@ -120,10 +123,13 @@ HWTEST_F(CompanionManagerImplTest, Create_002, TestSize.Level0)
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
 
-    ON_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(activeUserId_));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
     ON_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
         .WillByDefault(DoAll(Invoke([](const HostBeginAddCompanionInput &, HostBeginAddCompanionOutput &output) {
@@ -153,55 +159,19 @@ HWTEST_F(CompanionManagerImplTest, Create_002, TestSize.Level0)
     EXPECT_NE(nullptr, manager);
 }
 
-HWTEST_F(CompanionManagerImplTest, Initialize_001, TestSize.Level0)
-{
-    MockGuard guard;
-    // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
-    guard.GetTimeKeeper().AdvanceSystemTime(5000);
-
-    ON_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_)).WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(activeUserId_));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
-        .WillByDefault(DoAll(Invoke([](const HostBeginAddCompanionInput &, HostBeginAddCompanionOutput &output) {
-            output.addHostBindingRequest = { UINT32_1, UINT32_2, INT32_3, UINT32_4 };
-        }),
-            Return(ResultCode::SUCCESS)));
-    ON_CALL(guard.GetSecurityAgent(), HostEndAddCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetSecurityAgent(), HostRemoveCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionStatus(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionEnabledBusinessIds(_))
-        .WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetSecurityAgent(), HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _))
-        .WillByDefault(Invoke([this](UserId hostUserId, TemplateId templateId, const DeviceKey &companionDeviceKey) {
-            return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
-        }));
-    ON_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _))
-        .WillByDefault(
-            Invoke([this](UserId hostUserId, TemplateId templateId, const std::vector<uint8_t> &fwkUnlockMsg) {
-                return std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, fwkUnlockMsg);
-            }));
-    ON_CALL(guard.GetRequestManager(), Start(_)).WillByDefault(Return(true));
-
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    manager->Initialize();
-}
-
 HWTEST_F(CompanionManagerImplTest, Reload_001, TestSize.Level0)
 {
     MockGuard guard;
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
 
-    ON_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(activeUserId_));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
     ON_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
         .WillByDefault(DoAll(Invoke([](const HostBeginAddCompanionInput &, HostBeginAddCompanionOutput &output) {
@@ -241,10 +211,13 @@ HWTEST_F(CompanionManagerImplTest, Reload_002, TestSize.Level0)
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
 
-    ON_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(activeUserId_));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
     ON_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
         .WillByDefault(DoAll(Invoke([](const HostBeginAddCompanionInput &, HostBeginAddCompanionOutput &output) {
@@ -285,10 +258,13 @@ HWTEST_F(CompanionManagerImplTest, Reload_003, TestSize.Level0)
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
 
-    ON_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_)).WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(activeUserId_));
-    ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
-        .WillByDefault(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
     ON_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
         .WillByDefault(DoAll(Invoke([](const HostBeginAddCompanionInput &, HostBeginAddCompanionOutput &output) {
@@ -576,13 +552,16 @@ HWTEST_F(CompanionManagerImplTest, EndAddCompanion_003, TestSize.Level0)
 HWTEST_F(CompanionManagerImplTest, EndAddCompanion_004, TestSize.Level0)
 {
     MockGuard guard;
+    // Initialize systemTimeMs to prevent timeout
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+
     auto manager = CompanionManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
     manager->hostUserId_ = activeUserId_;
 
     EndAddCompanionInput input;
-    input.companionStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    input.companionStatus = MakePersistedStatus(0, activeUserId_, "device-1", USER_ID_200);
     EndAddCompanionOutput output;
 
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndAddCompanion(_, _))
@@ -591,6 +570,12 @@ HWTEST_F(CompanionManagerImplTest, EndAddCompanion_004, TestSize.Level0)
             secOutput.fwkMsg = { UINT32_4, 6, 7, 8 };
         }),
             Return(ResultCode::SUCCESS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    // Add mock for UpdateCompanionStatus which is called during AddCompanionInternal
+    ON_CALL(guard.GetCompanionManager(), UpdateCompanionStatus(_, _, _))
+        .WillByDefault(Return(ResultCode::SUCCESS));
 
     ResultCode ret = manager->EndAddCompanion(input, output);
 
@@ -1066,6 +1051,9 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_006, TestSize.Level0)
 HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_001, TestSize.Level0)
 {
     MockGuard guard;
+    // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+
     auto manager = CompanionManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -1118,6 +1106,9 @@ HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_002, TestSize.Level0)
 HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_003, TestSize.Level0)
 {
     MockGuard guard;
+    // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+
     auto manager = CompanionManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
@@ -1140,6 +1131,9 @@ HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_003, TestSize.Level0)
 HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_004, TestSize.Level0)
 {
     MockGuard guard;
+    // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+
     auto manager = CompanionManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 

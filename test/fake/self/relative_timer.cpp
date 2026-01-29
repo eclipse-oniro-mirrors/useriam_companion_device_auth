@@ -72,7 +72,13 @@ void RelativeTimer::ExecuteAll()
 
 void RelativeTimer::EnsureAllTaskExecuted()
 {
-    ExecuteAll();
+    const int maxAttempts = 100;
+    for (int i = 0; i < maxAttempts; ++i) {
+        ExecuteAll();
+        if (g_pendingTasks->empty()) {
+            return;
+        }
+    }
 }
 
 } // namespace CompanionDeviceAuth

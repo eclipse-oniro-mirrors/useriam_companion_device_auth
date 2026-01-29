@@ -63,19 +63,19 @@ struct EndAddHostBindingReply {
     ResultCode result { ResultCode::GENERAL_ERROR };
 };
 
-bool EncodeInitKeyNegotiationRequest(const InitKeyNegotiationRequest &request, Attributes &attributes);
+void EncodeInitKeyNegotiationRequest(const InitKeyNegotiationRequest &request, Attributes &attributes);
 std::optional<InitKeyNegotiationRequest> DecodeInitKeyNegotiationRequest(const Attributes &attributes);
 std::optional<InitKeyNegotiationReply> DecodeInitKeyNegotiationReply(const Attributes &attributes);
-bool EncodeInitKeyNegotiationReply(const InitKeyNegotiationReply &reply, Attributes &attributes);
+void EncodeInitKeyNegotiationReply(const InitKeyNegotiationReply &reply, Attributes &attributes);
 
-bool EncodeBeginAddHostBindingRequest(const BeginAddHostBindingRequest &request, Attributes &attributes);
+void EncodeBeginAddHostBindingRequest(const BeginAddHostBindingRequest &request, Attributes &attributes);
 std::optional<BeginAddHostBindingRequest> DecodeBeginAddHostBindingRequest(const Attributes &attributes);
-bool EncodeBeginAddHostBindingReply(const BeginAddHostBindingReply &reply, Attributes &attributes);
+void EncodeBeginAddHostBindingReply(const BeginAddHostBindingReply &reply, Attributes &attributes);
 std::optional<BeginAddHostBindingReply> DecodeBeginAddHostBindingReply(const Attributes &attributes);
 
-bool EncodeEndAddHostBindingRequest(const EndAddHostBindingRequest &request, Attributes &attributes);
+void EncodeEndAddHostBindingRequest(const EndAddHostBindingRequest &request, Attributes &attributes);
 std::optional<EndAddHostBindingRequest> DecodeEndAddHostBindingRequest(const Attributes &attributes);
-bool EncodeEndAddHostBindingReply(const EndAddHostBindingReply &reply, Attributes &attributes);
+void EncodeEndAddHostBindingReply(const EndAddHostBindingReply &reply, Attributes &attributes);
 std::optional<EndAddHostBindingReply> DecodeEndAddHostBindingReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -31,10 +31,13 @@
 #include "fuzz_data_generator.h"
 #include "idm_adapter.h"
 #include "sa_manager_adapter.h"
+#include "security_command_adapter.h"
+#include "service_common.h"
 #include "soft_bus_adapter.h"
 #include "soft_bus_adapter_manager.h"
 #include "subscription.h"
 #include "system_param_manager.h"
+#include "time_keeper.h"
 #include "user_auth_adapter.h"
 #include "user_id_manager.h"
 
@@ -66,7 +69,7 @@ public:
     {
     }
 
-    void RegisterCallback(std::shared_ptr<ISoftBusSocketCallback> callback) override
+    void RegisterCallback(const std::shared_ptr<ISoftBusSocketCallback> &callback) override
     {
         (void)callback;
     }
@@ -262,13 +265,13 @@ public:
         return fuzzData_.ConsumeBool();
     }
 
-    bool RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
+    bool RegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback) override
     {
         (void)callback;
         return fuzzData_.ConsumeBool();
     }
 
-    void UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
+    void UnRegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback) override
     {
         (void)callback;
     }
@@ -356,6 +359,52 @@ private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };
 
+class MockTimeKeeper : public ITimeKeeper {
+public:
+    MockTimeKeeper() : systemTimeMs_(0), steadyTimeMs_(0)
+    {
+    }
+
+    std::optional<SystemTimeMs> GetSystemTimeMs() override
+    {
+        return systemTimeMs_;
+    }
+
+    std::optional<SteadyTimeMs> GetSteadyTimeMs() override
+    {
+        return steadyTimeMs_;
+    }
+
+private:
+    SystemTimeMs systemTimeMs_;
+    SteadyTimeMs steadyTimeMs_;
+};
+
+class MockSecurityCommandAdapter : public ISecurityCommandAdapter {
+public:
+    MockSecurityCommandAdapter() = default;
+
+    ResultCode Initialize() override
+    {
+        return ResultCode::SUCCESS;
+    }
+
+    void Finalize() override
+    {
+    }
+
+    ResultCode InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen, uint8_t *outputData,
+        uint32_t outputDataLen) override
+    {
+        (void)commandId;
+        (void)inputData;
+        (void)inputDataLen;
+        (void)outputData;
+        (void)outputDataLen;
+        return ResultCode::SUCCESS;
+    }
+};
+
 bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 {
     AdapterManager &adapterMgr = AdapterManager::GetInstance();
@@ -384,6 +433,12 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 
     auto eventMgrAdapter = std::make_shared<MockEventManagerAdapter>(fuzzData);
     adapterMgr.SetEventManagerAdapter(eventMgrAdapter);
+
+    auto timeKeeper = std::make_shared<MockTimeKeeper>();
+    adapterMgr.SetTimeKeeper(timeKeeper);
+
+    auto securityCmdAdapter = std::make_shared<MockSecurityCommandAdapter>();
+    adapterMgr.SetSecurityCommandAdapter(securityCmdAdapter);
 
     auto systemParamMgr = std::make_shared<MockSystemParamManager>(fuzzData);
     adapterMgr.SetSystemParamManager(systemParamMgr);

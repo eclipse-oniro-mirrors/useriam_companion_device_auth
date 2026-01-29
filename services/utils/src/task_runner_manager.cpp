@@ -74,7 +74,7 @@ bool TaskRunnerManager::CreateTaskRunner(const std::string &name)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (taskRunnerMap_.find(name) != taskRunnerMap_.end()) {
-        IAM_LOGE("task runner %{public}s already exist", name.c_str());
+        IAM_LOGE("task runner %{public}s already exists", name.c_str());
         return false;
     }
     auto taskRunner = std::make_shared<TemporaryTaskRunner>(name, true);

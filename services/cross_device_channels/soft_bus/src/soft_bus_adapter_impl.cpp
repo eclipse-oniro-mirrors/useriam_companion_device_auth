@@ -113,7 +113,7 @@ bool SoftBusAdapterOnNegotiate(int32_t socket, PeerSocketInfo info)
 
 } // namespace
 
-void SoftBusAdapterImpl::RegisterCallback(std::shared_ptr<ISoftBusSocketCallback> callback)
+void SoftBusAdapterImpl::RegisterCallback(const std::shared_ptr<ISoftBusSocketCallback> &callback)
 {
     std::lock_guard<std::mutex> lock(g_callbackMutex);
     g_callback = callback;

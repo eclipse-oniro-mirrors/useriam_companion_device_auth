@@ -65,7 +65,9 @@ int32_t StatusMonitor::SetLocalUserId(napi_env env, napi_callback_info info)
     }
 
     localUserId_ = userId;
+    ENSURE_OR_RETURN_VAL(templateStatusCallback_ != nullptr, GENERAL_ERROR);
     templateStatusCallback_->SetUserId(userId);
+    ENSURE_OR_RETURN_VAL(availableDeviceStatusCallback_ != nullptr, GENERAL_ERROR);
     availableDeviceStatusCallback_->SetUserId(userId);
     IAM_LOGI("success");
     return SUCCESS;
@@ -74,6 +76,7 @@ int32_t StatusMonitor::SetLocalUserId(napi_env env, napi_callback_info info)
 int32_t StatusMonitor::GetTemplateStatus(std::vector<ClientTemplateStatus> &clientTemplateStatusList)
 {
     IAM_LOGI("start");
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
     int32_t ret = CompanionDeviceAuthClient::GetInstance().GetTemplateStatus(localUserId_, clientTemplateStatusList);
     if (ret != SUCCESS) {
         IAM_LOGE("GetTemplateStatus fail, ret:%{public}d", ret);
@@ -283,6 +286,7 @@ int32_t StatusMonitor::RemoveSingleTemplateStatusChangedCallback(napi_env env, n
         return INVALID_PARAMETERS;
     }
 
+    ENSURE_OR_RETURN_VAL(templateStatusCallback_ != nullptr, GENERAL_ERROR);
     if (!templateStatusCallback_->HasCallback()) {
         IAM_LOGE("no callback registered yet");
         return GENERAL_ERROR;
@@ -315,6 +319,7 @@ int32_t StatusMonitor::RemoveSingleAvailableDeviceStatusCallback(napi_env env, n
         return INVALID_PARAMETERS;
     }
 
+    ENSURE_OR_RETURN_VAL(availableDeviceStatusCallback_ != nullptr, GENERAL_ERROR);
     if (!availableDeviceStatusCallback_->HasCallback()) {
         IAM_LOGE("no callback registered yet");
         return GENERAL_ERROR;
@@ -390,6 +395,7 @@ int32_t StatusMonitor::SetTemplateStatusCallback(napi_env env, napi_value value)
         return INVALID_PARAMETERS;
     }
 
+    ENSURE_OR_RETURN_VAL(templateStatusCallback_ != nullptr, GENERAL_ERROR);
     if (!templateStatusCallback_->HasCallback()) {
         templateStatusCallback_->SetCallback(callbackRef);
         int32_t ret = CompanionDeviceAuthClient::GetInstance().SubscribeTemplateStatusChange(localUserId_,
@@ -418,6 +424,7 @@ int32_t StatusMonitor::SetAvailableDeviceStatusCallback(napi_env env, napi_value
         return INVALID_PARAMETERS;
     }
 
+    ENSURE_OR_RETURN_VAL(availableDeviceStatusCallback_ != nullptr, GENERAL_ERROR);
     if (!availableDeviceStatusCallback_->HasCallback()) {
         availableDeviceStatusCallback_->SetCallback(callbackRef);
         int32_t ret = CompanionDeviceAuthClient::GetInstance().SubscribeAvailableDeviceStatus(localUserId_,

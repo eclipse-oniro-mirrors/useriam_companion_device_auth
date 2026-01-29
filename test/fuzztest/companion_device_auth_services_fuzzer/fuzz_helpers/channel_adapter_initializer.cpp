@@ -41,7 +41,7 @@ public:
     {
     }
 
-    void RegisterCallback(std::shared_ptr<ISoftBusSocketCallback> callback) override
+    void RegisterCallback(const std::shared_ptr<ISoftBusSocketCallback> &callback) override
     {
         (void)callback;
     }
@@ -111,13 +111,13 @@ public:
         return fuzzData_.ConsumeBool();
     }
 
-    bool RegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
+    bool RegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback) override
     {
         (void)callback;
         return fuzzData_.ConsumeBool();
     }
 
-    void UnRegisterDevStatusCallback(std::shared_ptr<DmDeviceStatusCallback> callback) override
+    void UnRegisterDevStatusCallback(const std::shared_ptr<DmDeviceStatusCallback> &callback) override
     {
         (void)callback;
     }

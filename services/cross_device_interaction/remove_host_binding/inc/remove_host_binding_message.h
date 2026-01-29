@@ -37,9 +37,9 @@ struct RemoveHostBindingReply {
     ResultCode result { ResultCode::GENERAL_ERROR };
 };
 
-bool EncodeRemoveHostBindingRequest(const RemoveHostBindingRequest &request, Attributes &attributes);
+void EncodeRemoveHostBindingRequest(const RemoveHostBindingRequest &request, Attributes &attributes);
 std::optional<RemoveHostBindingRequest> DecodeRemoveHostBindingRequest(const Attributes &attributes);
-bool EncodeRemoveHostBindingReply(const RemoveHostBindingReply &reply, Attributes &attributes);
+void EncodeRemoveHostBindingReply(const RemoveHostBindingReply &reply, Attributes &attributes);
 std::optional<RemoveHostBindingReply> DecodeRemoveHostBindingReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

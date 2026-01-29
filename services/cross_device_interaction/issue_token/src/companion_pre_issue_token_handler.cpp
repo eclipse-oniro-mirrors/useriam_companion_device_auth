@@ -37,6 +37,7 @@ CompanionPreIssueTokenHandler::CompanionPreIssueTokenHandler()
 void CompanionPreIssueTokenHandler::HandleRequest(const Attributes &request, OnMessageReply &onMessageReply)
 {
     IAM_LOGI("start");
+    ENSURE_OR_RETURN(onMessageReply != nullptr);
 
     ErrorGuard errorGuard([&onMessageReply](ResultCode result) {
         Attributes reply;
@@ -53,7 +54,7 @@ void CompanionPreIssueTokenHandler::HandleRequest(const Attributes &request, OnM
     ENSURE_OR_RETURN(hostDeviceKeyOpt.has_value());
 
     auto issueTokenRequest = GetRequestFactory().CreateCompanionIssueTokenRequest(connectionName, request,
-        onMessageReply, *hostDeviceKeyOpt);
+        std::move(onMessageReply), hostDeviceKeyOpt.value());
     ENSURE_OR_RETURN(issueTokenRequest != nullptr);
 
     bool startRet = GetRequestManager().Start(issueTokenRequest);

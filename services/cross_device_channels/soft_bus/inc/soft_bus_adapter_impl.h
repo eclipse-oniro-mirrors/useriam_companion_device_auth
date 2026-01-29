@@ -31,7 +31,7 @@ public:
     SoftBusAdapterImpl() = default;
     ~SoftBusAdapterImpl() override = default;
 
-    void RegisterCallback(std::shared_ptr<ISoftBusSocketCallback> callback) override;
+    void RegisterCallback(const std::shared_ptr<ISoftBusSocketCallback> &callback) override;
     std::optional<SocketId> CreateServerSocket() override;
     std::optional<SocketId> CreateClientSocket(const std::string &connectionName,
         const std::string &networkId) override;

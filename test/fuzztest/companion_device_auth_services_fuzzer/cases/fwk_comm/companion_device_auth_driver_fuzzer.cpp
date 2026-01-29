@@ -19,7 +19,6 @@
 
 #include "fuzzer/FuzzedDataProvider.h"
 
-#include "companion_auth_interface_adapter.h"
 #include "companion_device_auth_driver.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
@@ -52,8 +51,7 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionDe
 
 void FuzzCompanionDeviceAuthDriver(FuzzedDataProvider &fuzzData)
 {
-    auto adapter = std::make_shared<CompanionAuthInterfaceAdapter>();
-    auto driver = std::make_shared<CompanionDeviceAuthDriver>(adapter);
+    auto driver = std::make_shared<CompanionDeviceAuthDriver>();
     if (!driver) {
         return;
     }

@@ -15,6 +15,7 @@
 name = "companion_device_auth"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.72.0"
 
 [lib]
 name = "companion_device_auth"
@@ -45,5 +46,18 @@ codegen-units = 1
 strip = true
 panic = "abort"
 
+[lints.clippy]
+# OHOS standard Clippy lints configuration
+type_complexity = "allow"
+unnecessary_wraps = "allow"
+unusual_byte_groupings = "allow"
+upper_case_acronyms = "allow"
+let_and_return = "allow"
+unnecessary_cast = "allow"
+
 [lints.rust]
-dead_code = "allow"
+# OHOS standard rustc lints configuration
+deprecated = "allow"
+missing-docs = "allow"
+# Allow static mutable refs for singleton_registry macro (Rust 2024 compatibility)
+static_mut_refs = "allow"

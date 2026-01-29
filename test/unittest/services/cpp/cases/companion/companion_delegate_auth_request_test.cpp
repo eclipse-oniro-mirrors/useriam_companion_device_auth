@@ -57,14 +57,14 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
     MockGuard guard;
     CreateDefaultRequest();
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
-        .WillOnce(Return(std::make_optional(companionDeviceKey_)))
-        .WillOnce(Return(std::make_optional(companionDeviceKey_)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
         .WillOnce(Return(std::make_optional(hostBindingStatus_)));
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillOnce(Return(std::make_optional(companionDeviceKey_)));
+    EXPECT_CALL(guard.GetUserAuthAdapter(), BeginDelegateAuth(_, _, _, _)).WillOnce(Return(12345));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request_->OnStart(errorGuard);
@@ -77,6 +77,11 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_002, TestSize.Level0)
     MockGuard guard;
     CreateDefaultRequest();
 
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
+        .WillOnce(Return(SecureProtocolId::DEFAULT));
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
+        .WillOnce(Return(std::make_optional(hostBindingStatus_)));
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
 
     ErrorGuard errorGuard([](ResultCode) {});
@@ -90,8 +95,6 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
     MockGuard guard;
     CreateDefaultRequest();
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
-        .WillOnce(Return(std::make_optional(companionDeviceKey_)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::INVALID));
 
@@ -106,8 +109,6 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
     MockGuard guard;
     CreateDefaultRequest();
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
-        .WillOnce(Return(std::make_optional(companionDeviceKey_)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
@@ -160,7 +161,14 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_001, TestSiz
     std::vector<uint8_t> extraInfo = extraInfoAttrs.Serialize();
 
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionEndDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _))
+        .WillOnce(Invoke([this](const std::string &, MessageType, const Attributes &, OnMessageReply callback) {
+            SendDelegateAuthResultReply reply = { .result = ResultCode::SUCCESS };
+            Attributes message;
+            EncodeSendDelegateAuthResultReply(reply, message);
+            callback(message);
+            return true;
+        }));
 
     request_->HandleDelegateAuthResult(ResultCode::SUCCESS, extraInfo);
 }
@@ -213,7 +221,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleSendDelegateAuthResultReply_001
 
     SendDelegateAuthResultReply reply = { .result = ResultCode::SUCCESS };
     Attributes message;
-    EXPECT_TRUE(EncodeSendDelegateAuthResultReply(reply, message));
+    EncodeSendDelegateAuthResultReply(reply, message);
 
     request_->HandleSendDelegateAuthResultReply(message);
 }
@@ -225,7 +233,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleSendDelegateAuthResultReply_002
 
     SendDelegateAuthResultReply reply = { .result = ResultCode::GENERAL_ERROR };
     Attributes message;
-    EXPECT_TRUE(EncodeSendDelegateAuthResultReply(reply, message));
+    EncodeSendDelegateAuthResultReply(reply, message);
 
     request_->HandleSendDelegateAuthResultReply(message);
 }

@@ -32,7 +32,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 HostObtainTokenRequest::HostObtainTokenRequest(const std::string &connectionName, const Attributes &request,
-    OnMessageReply replyCallback, const DeviceKey &companionDeviceKey)
+    OnMessageReply &&replyCallback, const DeviceKey &companionDeviceKey)
     : InboundRequest(RequestType::HOST_OBTAIN_TOKEN_REQUEST, connectionName, companionDeviceKey),
       request_(request),
       preObtainTokenReplyCallback_(std::move(replyCallback))
@@ -92,8 +92,7 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 
     obtainTokenSubscription_ =
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::OBTAIN_TOKEN,
-            [weakSelf = std::weak_ptr<HostObtainTokenRequest>(shared_from_this())](const Attributes &request,
-                OnMessageReply &onMessageReply) {
+            [weakSelf = weak_from_this()](const Attributes &request, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleObtainTokenMessage(request, onMessageReply);
@@ -105,7 +104,6 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
     }
 
     SendPreObtainTokenReply(ResultCode::SUCCESS, preObtainTokenReply);
-    errorGuard.Cancel();
     return true;
 }
 
@@ -134,8 +132,7 @@ void HostObtainTokenRequest::SendPreObtainTokenReply(ResultCode result, const st
     PreObtainTokenReply preReply = {};
     preReply.result = result;
     preReply.extraInfo = preObtainTokenReply;
-    bool encodeRet = EncodePreObtainTokenReply(preReply, reply);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodePreObtainTokenReply(preReply, reply);
 
     preObtainTokenReplyCallback_(reply);
 }
@@ -185,8 +182,7 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
     replyBody.result = ResultCode::SUCCESS;
     replyBody.extraInfo = obtainTokenReply;
     Attributes reply = {};
-    bool encodeReplyRet = EncodeObtainTokenReply(replyBody, reply);
-    ENSURE_OR_RETURN(encodeReplyRet);
+    EncodeObtainTokenReply(replyBody, reply);
 
     onMessageReply(reply);
     errorGuard.Cancel();
@@ -282,8 +278,7 @@ bool HostObtainTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &
         return false;
     }
     deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey,
-        [weakSelf = std::weak_ptr<HostObtainTokenRequest>(shared_from_this())](
-            const std::vector<DeviceStatus> &deviceStatusList) {
+        [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandlePeerDeviceStatusChanged(deviceStatusList);

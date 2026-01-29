@@ -16,9 +16,15 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "mock_guard.h"
+#include "relative_timer.h"
+#include "singleton_manager.h"
 #include "soft_bus_channel.h"
 #include "task_runner_manager.h"
+
+#include "adapter_manager.h"
+#include "mock_misc_manager.h"
+#include "mock_system_param_manager.h"
+#include "mock_time_keeper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -28,21 +34,57 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr uint64_t UINT64_1 = 1;
+
+std::unique_ptr<Subscription> MakeSubscription()
+{
+    return std::make_unique<Subscription>([]() {});
+}
+
 class SoftBusChannelTest : public testing::Test {
 public:
-    // No SetUp/TearDown needed - MockGuard handles everything
+    void SetUp() override
+    {
+        SingletonManager::GetInstance().Reset();
+
+        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
+        SingletonManager::GetInstance().SetMiscManager(miscMgr);
+
+        auto systemParamMgr =
+            std::shared_ptr<ISystemParamManager>(&mockSystemParamManager_, [](ISystemParamManager *) {});
+        AdapterManager::GetInstance().SetSystemParamManager(systemParamMgr);
+
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
+        ON_CALL(mockMiscManager_, GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+        ON_CALL(mockMiscManager_, GetLocalUdid()).WillByDefault(Return(std::optional<std::string>("test-local-udid")));
+        ON_CALL(mockSystemParamManager_, WatchParam(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
+        ON_CALL(mockSystemParamManager_, GetParam(_, _)).WillByDefault(Return(std::string(FALSE_STR)));
+    }
+
+    void TearDown() override
+    {
+        TaskRunnerManager::GetInstance().ExecuteAll();
+        RelativeTimer::GetInstance().ExecuteAll();
+        SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
+    }
+
+protected:
+    uint64_t nextGlobalId_ = UINT64_1;
+    NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockSystemParamManager> mockSystemParamManager_;
 };
 
 HWTEST_F(SoftBusChannelTest, Create_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     EXPECT_NE(channel, nullptr);
 }
 
 HWTEST_F(SoftBusChannelTest, GetChannelId_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -52,10 +94,6 @@ HWTEST_F(SoftBusChannelTest, GetChannelId_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetLocalPhysicalDeviceKey_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
-    ON_CALL(mockGuard.GetMiscManager(), GetLocalUdid())
-        .WillByDefault(Return(std::optional<std::string>("test-local-udid")));
-
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -67,7 +105,6 @@ HWTEST_F(SoftBusChannelTest, GetLocalPhysicalDeviceKey_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetLocalPhysicalDeviceKey_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -79,7 +116,6 @@ HWTEST_F(SoftBusChannelTest, GetLocalPhysicalDeviceKey_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetCompanionSecureProtocolId_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -89,7 +125,6 @@ HWTEST_F(SoftBusChannelTest, GetCompanionSecureProtocolId_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, Start_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -99,7 +134,6 @@ HWTEST_F(SoftBusChannelTest, Start_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, Start_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -111,7 +145,6 @@ HWTEST_F(SoftBusChannelTest, Start_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, Start_003, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -123,7 +156,6 @@ HWTEST_F(SoftBusChannelTest, Start_003, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, Start_004, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -135,7 +167,6 @@ HWTEST_F(SoftBusChannelTest, Start_004, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribePhysicalDeviceStatus_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -148,7 +179,6 @@ HWTEST_F(SoftBusChannelTest, SubscribePhysicalDeviceStatus_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribePhysicalDeviceStatus_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -163,7 +193,6 @@ HWTEST_F(SoftBusChannelTest, SubscribePhysicalDeviceStatus_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeRawMessage_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -176,7 +205,6 @@ HWTEST_F(SoftBusChannelTest, SubscribeRawMessage_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeRawMessage_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -191,7 +219,6 @@ HWTEST_F(SoftBusChannelTest, SubscribeRawMessage_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeConnectionStatus_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -204,7 +231,6 @@ HWTEST_F(SoftBusChannelTest, SubscribeConnectionStatus_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeConnectionStatus_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -219,7 +245,6 @@ HWTEST_F(SoftBusChannelTest, SubscribeConnectionStatus_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeIncomingConnection_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -232,7 +257,6 @@ HWTEST_F(SoftBusChannelTest, SubscribeIncomingConnection_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeIncomingConnection_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -247,7 +271,6 @@ HWTEST_F(SoftBusChannelTest, SubscribeIncomingConnection_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeAuthMaintainActive_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -259,7 +282,6 @@ HWTEST_F(SoftBusChannelTest, SubscribeAuthMaintainActive_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeAuthMaintainActive_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -273,7 +295,6 @@ HWTEST_F(SoftBusChannelTest, SubscribeAuthMaintainActive_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetAuthMaintainActive_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -283,7 +304,6 @@ HWTEST_F(SoftBusChannelTest, GetAuthMaintainActive_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetAuthMaintainActive_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -295,7 +315,6 @@ HWTEST_F(SoftBusChannelTest, GetAuthMaintainActive_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetAllPhysicalDevices_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -305,7 +324,6 @@ HWTEST_F(SoftBusChannelTest, GetAllPhysicalDevices_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetAllPhysicalDevices_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -317,7 +335,6 @@ HWTEST_F(SoftBusChannelTest, GetAllPhysicalDevices_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SendMessage_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -328,7 +345,6 @@ HWTEST_F(SoftBusChannelTest, SendMessage_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SendMessage_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -341,7 +357,6 @@ HWTEST_F(SoftBusChannelTest, SendMessage_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, OpenConnection_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -356,7 +371,6 @@ HWTEST_F(SoftBusChannelTest, OpenConnection_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, OpenConnection_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
     channel->connectionManager_ = nullptr;
@@ -372,7 +386,6 @@ HWTEST_F(SoftBusChannelTest, OpenConnection_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, OpenConnection_003, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
     channel->deviceStatusManager_ = nullptr;
@@ -388,7 +401,6 @@ HWTEST_F(SoftBusChannelTest, OpenConnection_003, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, OpenConnection_004, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -407,7 +419,6 @@ HWTEST_F(SoftBusChannelTest, OpenConnection_004, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CloseConnection_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -416,7 +427,6 @@ HWTEST_F(SoftBusChannelTest, CloseConnection_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CloseConnection_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -427,7 +437,6 @@ HWTEST_F(SoftBusChannelTest, CloseConnection_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -442,7 +451,6 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -451,7 +459,7 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_002, TestSize.Level0)
     deviceKey.deviceId = "test-device";
     deviceKey.deviceUserId = 100;
 
-    EXPECT_CALL(mockGuard.GetMiscManager(), GetDeviceDeviceSelectResult(_, _, _)).WillOnce(Return(false));
+    EXPECT_CALL(mockMiscManager_, GetDeviceDeviceSelectResult(_, _, _)).WillOnce(Return(false));
 
     bool resultInvoked = false;
     bool result =
@@ -462,7 +470,6 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_003, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -471,7 +478,7 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_003, TestSize.Level0)
     deviceKey.deviceId = "test-device";
     deviceKey.deviceUserId = 100;
 
-    EXPECT_CALL(mockGuard.GetMiscManager(), GetDeviceDeviceSelectResult(_, _, _))
+    EXPECT_CALL(mockMiscManager_, GetDeviceDeviceSelectResult(_, _, _))
         .WillOnce(
             Invoke([&deviceKey](uint32_t, SelectPurpose, std::function<void(const std::vector<DeviceKey> &)> callback) {
                 std::vector<DeviceKey> selected = { deviceKey };
@@ -494,7 +501,6 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_003, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_004, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -503,7 +509,7 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_004, TestSize.Level0)
     deviceKey.deviceId = "test-device";
     deviceKey.deviceUserId = 100;
 
-    EXPECT_CALL(mockGuard.GetMiscManager(), GetDeviceDeviceSelectResult(_, _, _))
+    EXPECT_CALL(mockMiscManager_, GetDeviceDeviceSelectResult(_, _, _))
         .WillOnce(Invoke([](uint32_t, SelectPurpose, std::function<void(const std::vector<DeviceKey> &)> callback) {
             std::vector<DeviceKey> selected;
             callback(selected);
@@ -525,7 +531,6 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_004, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_005, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -539,7 +544,7 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_005, TestSize.Level0)
     otherDevice.deviceId = "other-device";
     otherDevice.deviceUserId = 200;
 
-    EXPECT_CALL(mockGuard.GetMiscManager(), GetDeviceDeviceSelectResult(_, _, _))
+    EXPECT_CALL(mockMiscManager_, GetDeviceDeviceSelectResult(_, _, _))
         .WillOnce(Invoke(
             [&otherDevice](uint32_t, SelectPurpose, std::function<void(const std::vector<DeviceKey> &)> callback) {
                 std::vector<DeviceKey> selected = { otherDevice };
@@ -562,7 +567,6 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_005, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, OnRemoteDisconnect_001, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 
@@ -571,7 +575,6 @@ HWTEST_F(SoftBusChannelTest, OnRemoteDisconnect_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, OnRemoteDisconnect_002, TestSize.Level0)
 {
-    MockGuard mockGuard;
     auto channel = SoftBusChannel::Create();
     ASSERT_NE(channel, nullptr);
 

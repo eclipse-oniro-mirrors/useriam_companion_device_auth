@@ -51,17 +51,12 @@ void HostSyncDeviceStatusRequest::OnConnected()
 
 std::weak_ptr<OutboundRequest> HostSyncDeviceStatusRequest::GetWeakPtr()
 {
-    return shared_from_this();
+    return weak_from_this();
 }
 
 void HostSyncDeviceStatusRequest::InvokeCallback(ResultCode result, const SyncDeviceStatus &syncDeviceStatus)
 {
-    if (callbackInvoked_) {
-        IAM_LOGI("%{public}s callback already sent", GetDescription());
-        return;
-    }
     ENSURE_OR_RETURN(callback_ != nullptr);
-    callbackInvoked_ = true;
     TaskRunnerManager::GetInstance().PostTaskOnResident(
         [cb = std::move(callback_), result, status = syncDeviceStatus]() mutable {
             if (cb) {
@@ -130,8 +125,7 @@ bool HostSyncDeviceStatusRequest::SendSyncDeviceStatusRequest(const std::vector<
     syncDeviceStatusRequest.challenge = challenge;
 
     Attributes request = {};
-    bool encodeRet = EncodeSyncDeviceStatusRequest(syncDeviceStatusRequest, request);
-    ENSURE_OR_RETURN_VAL(encodeRet, false);
+    EncodeSyncDeviceStatusRequest(syncDeviceStatusRequest, request);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::SYNC_DEVICE_STATUS,
         request, [weakSelf = weak_from_this()](const Attributes &message) {

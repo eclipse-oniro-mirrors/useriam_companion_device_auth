@@ -34,7 +34,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 CompanionIssueTokenRequest::CompanionIssueTokenRequest(const std::string &connectionName, const Attributes &request,
-    OnMessageReply replyCallback, const DeviceKey &hostDeviceKey)
+    OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey)
     : InboundRequest(RequestType::COMPANION_ISSUE_TOKEN_REQUEST, connectionName, hostDeviceKey),
       request_(request),
       preIssueTokenReplyCallback_(std::move(replyCallback))
@@ -51,8 +51,8 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
         errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
         return false;
     }
-    localDeviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive(
-        [weakSelf = std::weak_ptr<CompanionIssueTokenRequest>(shared_from_this())](bool isActive) {
+    localDeviceStatusSubscription_ =
+        GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive([weakSelf = weak_from_this()](bool isActive) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleAuthMaintainActiveChanged(isActive);
@@ -69,14 +69,12 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
     if (!preIssueRet) {
         IAM_LOGE("%{public}s CompanionPreIssueToken failed", GetDescription());
         SendPreIssueTokenReply(ResultCode::GENERAL_ERROR, {});
-
         return false;
     }
 
     issueTokenSubscription_ =
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::ISSUE_TOKEN,
-            [weakSelf = std::weak_ptr<CompanionIssueTokenRequest>(shared_from_this())](const Attributes &request,
-                OnMessageReply &onMessageReply) {
+            [weakSelf = weak_from_this()](const Attributes &request, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleIssueTokenMessage(request, onMessageReply);
@@ -139,8 +137,7 @@ void CompanionIssueTokenRequest::SendPreIssueTokenReply(ResultCode result,
 
     Attributes reply = {};
     PreIssueTokenReply replyMsg = { .result = result, .extraInfo = preIssueTokenReply };
-    bool encodeRet = EncodePreIssueTokenReply(replyMsg, reply);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodePreIssueTokenReply(replyMsg, reply);
 
     preIssueTokenReplyCallback_(reply);
 }
@@ -148,6 +145,7 @@ void CompanionIssueTokenRequest::SendPreIssueTokenReply(ResultCode result,
 void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
 {
     IAM_LOGI("%{public}s start", GetDescription());
+    ENSURE_OR_RETURN(onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
         Attributes reply;
         IssueTokenReply replyMsg = { .result = code, .extraInfo = {} };

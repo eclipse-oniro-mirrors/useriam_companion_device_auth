@@ -22,7 +22,13 @@
 #include "task_runner_manager.h"
 
 #include "adapter_manager.h"
-#include "mock_guard.h"
+#include "mock_companion_manager.h"
+#include "mock_cross_device_comm_manager.h"
+#include "mock_misc_manager.h"
+#include "mock_request_manager.h"
+#include "mock_security_agent.h"
+#include "mock_time_keeper.h"
+#include "mock_user_id_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -34,6 +40,54 @@ namespace {
 
 class HostSyncDeviceStatusRequestTest : public Test {
 public:
+    void SetUp() override
+    {
+        SingletonManager::GetInstance().Reset();
+
+        auto crossDeviceCommMgr =
+            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
+        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
+
+        auto requestMgr = std::shared_ptr<IRequestManager>(&mockRequestManager_, [](IRequestManager *) {});
+        SingletonManager::GetInstance().SetRequestManager(requestMgr);
+
+        auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
+        SingletonManager::GetInstance().SetCompanionManager(companionMgr);
+
+        auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
+        SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
+
+        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
+        SingletonManager::GetInstance().SetMiscManager(miscMgr);
+
+        auto userIdMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
+        AdapterManager::GetInstance().SetUserIdManager(userIdMgr);
+
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
+        ON_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+        ON_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).WillByDefault(Return(ResultCode::SUCCESS));
+        ON_CALL(mockSecurityAgent_, HostEndCompanionCheck(_)).WillByDefault(Return(ResultCode::SUCCESS));
+        ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
+            .WillByDefault(Return(std::make_optional(hostDeviceKey_)));
+        ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile_));
+        ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
+        ON_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
+            .WillByDefault(Return(std::make_optional(companionStatus_)));
+        ON_CALL(mockCompanionManager_, UpdateCompanionStatus(_, _, _)).WillByDefault(Return(ResultCode::SUCCESS));
+        ON_CALL(mockCompanionManager_, HandleCompanionCheckFail(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    }
+
+    void TearDown() override
+    {
+        request_.reset();
+        RelativeTimer::GetInstance().ExecuteAll();
+        TaskRunnerManager::GetInstance().ExecuteAll();
+        SingletonManager::GetInstance().Reset();
+        AdapterManager::GetInstance().Reset();
+    }
+
     void CreateDefaultRequest()
     {
         request_ = std::make_shared<HostSyncDeviceStatusRequest>(hostUserId_, companionDeviceKey_, companionDeviceName_,
@@ -42,6 +96,12 @@ public:
 
 protected:
     std::shared_ptr<HostSyncDeviceStatusRequest> request_;
+    NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
+    NiceMock<MockRequestManager> mockRequestManager_;
+    NiceMock<MockCompanionManager> mockCompanionManager_;
+    NiceMock<MockSecurityAgent> mockSecurityAgent_;
+    NiceMock<MockMiscManager> mockMiscManager_;
+    NiceMock<MockUserIdManager> mockUserIdManager_;
 
     int32_t hostUserId_ = 100;
     DeviceKey companionDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
@@ -59,21 +119,19 @@ protected:
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, OnConnected_001, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
 
-    EXPECT_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+    EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
         .WillOnce(Return(std::make_optional(hostDeviceKey_)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(profile_));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillOnce(Return(true));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillOnce(Return(profile_));
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillOnce(Return(true));
 
     request_->OnConnected();
 }
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_001, TestSize.Level0)
 {
-    MockGuard guard;
     bool errorCalled = false;
     syncDeviceStatusCallback_ = [&errorCalled](ResultCode result, const SyncDeviceStatus &) {
         if (result == ResultCode::FAIL) {
@@ -84,7 +142,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_001, TestSize.Leve
     request_ = std::make_shared<HostSyncDeviceStatusRequest>(hostUserId_, companionDeviceKey_, companionDeviceName_,
         std::move(syncDeviceStatusCallback_));
 
-    EXPECT_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::FAIL));
+    EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::FAIL));
 
     request_->BeginCompanionCheck();
 
@@ -94,7 +152,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_001, TestSize.Leve
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_002, TestSize.Level0)
 {
-    MockGuard guard;
     bool errorCalled = false;
     syncDeviceStatusCallback_ = [&errorCalled](ResultCode result, const SyncDeviceStatus &) {
         if (result == ResultCode::COMMUNICATION_ERROR) {
@@ -105,8 +162,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_002, TestSize.Leve
     request_ = std::make_shared<HostSyncDeviceStatusRequest>(hostUserId_, companionDeviceKey_, companionDeviceName_,
         std::move(syncDeviceStatusCallback_));
 
-    EXPECT_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
 
     request_->BeginCompanionCheck();
 
@@ -116,7 +173,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_002, TestSize.Leve
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_003, TestSize.Level0)
 {
-    MockGuard guard;
     bool errorCalled = false;
     syncDeviceStatusCallback_ = [&errorCalled](ResultCode result, const SyncDeviceStatus &) {
         if (result == ResultCode::COMMUNICATION_ERROR) {
@@ -127,9 +183,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_003, TestSize.Leve
     request_ = std::make_shared<HostSyncDeviceStatusRequest>(hostUserId_, companionDeviceKey_, companionDeviceName_,
         std::move(syncDeviceStatusCallback_));
 
-    EXPECT_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
-    EXPECT_CALL(guard.GetSecurityAgent(), HostCancelCompanionCheck(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     request_->BeginCompanionCheck();
 
@@ -139,13 +195,12 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_003, TestSize.Leve
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, SendSyncDeviceStatusRequest_001, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
         .WillOnce(Return(std::make_optional(hostDeviceKey_)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(profile_));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillOnce(Return(false));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillOnce(Return(profile_));
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillOnce(Return(false));
 
     std::vector<uint8_t> salt;
     uint64_t challenge = 0;
@@ -156,7 +211,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, SendSyncDeviceStatusRequest_001, TestS
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_001, TestSize.Level0)
 {
-    MockGuard guard;
     bool successCalled = false;
     syncDeviceStatusCallback_ = [&successCalled](ResultCode result, const SyncDeviceStatus &) {
         if (result == ResultCode::SUCCESS) {
@@ -184,10 +238,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_001, TestS
         static_cast<int32_t>(syncDeviceStatusReply_.companionDeviceKey.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusReply_.companionDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
-        .WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCompanionManager(), UpdateCompanionStatus(_, _, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCompanionManager_, UpdateCompanionStatus(_, _, _)).WillOnce(Return(ResultCode::SUCCESS));
 
     request_->HandleSyncDeviceStatusReply(reply);
 
@@ -197,7 +250,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_001, TestS
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_002, TestSize.Level0)
 {
-    MockGuard guard;
     bool errorCalled = false;
     syncDeviceStatusCallback_ = [&errorCalled](ResultCode result, const SyncDeviceStatus &) {
         if (result == ResultCode::GENERAL_ERROR) {
@@ -217,7 +269,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_002, TestS
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_003, TestSize.Level0)
 {
-    MockGuard guard;
     bool errorCalled = false;
     syncDeviceStatusCallback_ = [&errorCalled](ResultCode result, const SyncDeviceStatus &) {
         if (result == ResultCode::GENERAL_ERROR) {
@@ -252,7 +303,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_003, TestS
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_004, TestSize.Level0)
 {
-    MockGuard guard;
     bool successCalled = false;
     syncDeviceStatusCallback_ = [&successCalled](ResultCode result, const SyncDeviceStatus &) {
         if (result == ResultCode::SUCCESS) {
@@ -280,10 +330,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_004, TestS
         static_cast<int32_t>(syncDeviceStatusReply_.companionDeviceKey.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusReply_.companionDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
-        .WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCompanionManager(), UpdateCompanionStatus(_, _, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCompanionManager_, UpdateCompanionStatus(_, _, _)).WillOnce(Return(ResultCode::SUCCESS));
 
     request_->cancelCompanionCheckGuard_ = nullptr;
     request_->HandleSyncDeviceStatusReply(reply);
@@ -294,7 +343,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_004, TestS
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_001, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
     SyncDeviceStatusReply syncDeviceStatusReply_ = { .result = ResultCode::GENERAL_ERROR };
 
@@ -305,11 +353,10 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_001, TestSize.Level0
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_002, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
     SyncDeviceStatusReply syncDeviceStatusReply_ = { .result = ResultCode::SUCCESS };
 
-    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
     bool result = request_->EndCompanionCheck(syncDeviceStatusReply_);
 
     EXPECT_TRUE(result);
@@ -317,14 +364,12 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_002, TestSize.Level0
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_003, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
     SyncDeviceStatusReply syncDeviceStatusReply_ = { .result = ResultCode::SUCCESS };
 
-    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
-        .WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
-    EXPECT_CALL(guard.GetCompanionManager(), HandleCompanionCheckFail(_)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(mockCompanionManager_, HandleCompanionCheckFail(_)).WillOnce(Return(ResultCode::SUCCESS));
 
     bool result = request_->EndCompanionCheck(syncDeviceStatusReply_);
 
@@ -333,23 +378,19 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_003, TestSize.Level0
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, CompleteWithError_001, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
     request_->CompleteWithError(ResultCode::SUCCESS);
 }
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, InvokeCallback_001, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
-    request_->callbackInvoked_ = true;
     SyncDeviceStatus syncDeviceStatus;
     request_->InvokeCallback(ResultCode::SUCCESS, syncDeviceStatus);
 }
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, InvokeCallback_002, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
     request_->callback_ = nullptr;
     SyncDeviceStatus syncDeviceStatus;
@@ -358,7 +399,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, InvokeCallback_002, TestSize.Level0)
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, GetWeakPtr_001, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
 
     auto weakPtr = request_->GetWeakPtr();
@@ -367,14 +407,13 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, GetWeakPtr_001, TestSize.Level0)
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, NeedBeginCompanionCheck_001, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
 
     CompanionStatus status;
     status.companionDeviceStatus.deviceKey = request_->peerDeviceKey_.value();
     std::vector<CompanionStatus> statusList = { status };
 
-    EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus()).WillOnce(Return(statusList));
+    EXPECT_CALL(mockCompanionManager_, GetAllCompanionStatus()).WillOnce(Return(statusList));
 
     bool result = request_->NeedBeginCompanionCheck();
 
@@ -383,7 +422,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, NeedBeginCompanionCheck_001, TestSize.
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, NeedBeginCompanionCheck_002, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
 
     CompanionStatus status;
@@ -391,7 +429,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, NeedBeginCompanionCheck_002, TestSize.
     status.companionDeviceStatus.deviceKey.deviceId = "mismatch-id";
     std::vector<CompanionStatus> statusList = { status };
 
-    EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus()).WillOnce(Return(statusList));
+    EXPECT_CALL(mockCompanionManager_, GetAllCompanionStatus()).WillOnce(Return(statusList));
 
     bool result = request_->NeedBeginCompanionCheck();
 
@@ -400,11 +438,10 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, NeedBeginCompanionCheck_002, TestSize.
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, NeedBeginCompanionCheck_003, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
 
     std::vector<CompanionStatus> statusList = {};
-    EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus()).WillOnce(Return(statusList));
+    EXPECT_CALL(mockCompanionManager_, GetAllCompanionStatus()).WillOnce(Return(statusList));
 
     bool result = request_->NeedBeginCompanionCheck();
 
@@ -413,7 +450,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, NeedBeginCompanionCheck_003, TestSize.
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, NeedBeginCompanionCheck_004, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
 
     request_->peerDeviceKey_ = std::nullopt;
@@ -424,7 +460,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, NeedBeginCompanionCheck_004, TestSize.
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, GetMaxConcurrency_001, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
 
     EXPECT_EQ(request_->GetMaxConcurrency(), 100);
@@ -432,7 +467,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, GetMaxConcurrency_001, TestSize.Level0
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, ShouldCancelOnNewRequest_001, TestSize.Level0)
 {
-    MockGuard guard;
     CreateDefaultRequest();
 
     bool result = request_->ShouldCancelOnNewRequest(RequestType::HOST_SYNC_DEVICE_STATUS_REQUEST, std::nullopt, 0);

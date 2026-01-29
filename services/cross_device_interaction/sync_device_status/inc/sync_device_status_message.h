@@ -49,11 +49,11 @@ struct SyncDeviceStatusReply {
     std::vector<uint8_t> companionCheckResponse;
 };
 
-bool EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes);
+void EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes);
 
 std::optional<SyncDeviceStatusRequest> DecodeSyncDeviceStatusRequest(const Attributes &attributes);
 
-bool EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes &attributes);
+void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes &attributes);
 
 std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attributes &attributes);
 

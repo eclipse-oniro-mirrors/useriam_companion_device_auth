@@ -16,7 +16,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "mock_guard.h"
 #include "request_manager_impl.h"
 #include "task_runner_manager.h"
 
@@ -117,6 +116,22 @@ std::shared_ptr<NiceMock<MockRequest>> CreateMockRequest(const MockRequestConfig
 
 class RequestManagerImplTest : public Test {
 public:
+    void SetUp() override
+    {
+        manager_ = RequestManagerImpl::Create();
+        ASSERT_NE(manager_, nullptr);
+    }
+
+    void TearDown() override
+    {
+        // Automatically execute all pending PostTask items submitted during the test.
+        // This ensures that all async logic (Cancel, Start, etc.) posted via PostTaskOnResident
+        // is executed and verified, even if not explicitly called in the test body.
+        // Tests can also call ExecuteAll() mid-test to verify logic at specific points.
+        TaskRunnerManager::GetInstance().ExecuteAll();
+        manager_.reset();
+    }
+
 protected:
     std::shared_ptr<RequestManagerImpl> manager_;
 };
@@ -125,24 +140,12 @@ protected:
 
 HWTEST_F(RequestManagerImplTest, Start_NullRequest_ReturnsFalse, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
-
     bool result = manager_->Start(nullptr);
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(RequestManagerImplTest, Start_ValidRequest_ReturnsTrue, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
-
     auto request = CreateMockRequest(MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     bool result = manager_->Start(request);
@@ -152,9 +155,6 @@ HWTEST_F(RequestManagerImplTest, Start_ValidRequest_ReturnsTrue, TestSize.Level0
 
 HWTEST_F(RequestManagerImplTest, Start_ValidRequest_CallsStartOnRequest, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request = CreateMockRequest(MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     EXPECT_CALL(*request, Start()).Times(1);
@@ -165,9 +165,6 @@ HWTEST_F(RequestManagerImplTest, Start_ValidRequest_CallsStartOnRequest, TestSiz
 
 HWTEST_F(RequestManagerImplTest, Start_DuplicateRequestId_ReturnsFalse, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST));
     auto request2 = CreateMockRequest(MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_DELEGATE_AUTH_REQUEST));
 
@@ -179,9 +176,6 @@ HWTEST_F(RequestManagerImplTest, Start_DuplicateRequestId_ReturnsFalse, TestSize
 
 HWTEST_F(RequestManagerImplTest, Start_PreemptsRunningRequest_WhenShouldCancelReturnsTrue, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto existingRequest = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithShouldCancel(true));
 
@@ -196,9 +190,6 @@ HWTEST_F(RequestManagerImplTest, Start_PreemptsRunningRequest_WhenShouldCancelRe
 
 HWTEST_F(RequestManagerImplTest, Start_DoesNotPreemptRunningRequest_WhenShouldCancelReturnsFalse, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto existingRequest = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithShouldCancel(false));
 
@@ -214,9 +205,6 @@ HWTEST_F(RequestManagerImplTest, Start_DoesNotPreemptRunningRequest_WhenShouldCa
 
 HWTEST_F(RequestManagerImplTest, Start_PreemptsWaitingRequest_WhenShouldCancelReturnsTrue, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto runningRequest = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -240,9 +228,6 @@ HWTEST_F(RequestManagerImplTest, Start_PreemptsWaitingRequest_WhenShouldCancelRe
 
 HWTEST_F(RequestManagerImplTest, Start_PreemptsMultipleRequests_WhenShouldCancelReturnsTrue, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto existingRequest1 = CreateMockRequest(MockRequestConfig {}
                                                   .WithId(1)
                                                   .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
@@ -271,9 +256,6 @@ HWTEST_F(RequestManagerImplTest, Start_PreemptsMultipleRequests_WhenShouldCancel
 
 HWTEST_F(RequestManagerImplTest, Start_AddsToRunningQueue_WhenBelowMaxConcurrency, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(2));
 
@@ -290,9 +272,6 @@ HWTEST_F(RequestManagerImplTest, Start_AddsToRunningQueue_WhenBelowMaxConcurrenc
 
 HWTEST_F(RequestManagerImplTest, Start_AddsToWaitingQueue_WhenAtMaxConcurrency, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -312,9 +291,6 @@ HWTEST_F(RequestManagerImplTest, Start_AddsToWaitingQueue_WhenAtMaxConcurrency, 
 
 HWTEST_F(RequestManagerImplTest, Start_CountsBothRunningAndWaiting_ForConcurrencyCheck, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(2));
 
@@ -336,9 +312,6 @@ HWTEST_F(RequestManagerImplTest, Start_CountsBothRunningAndWaiting_ForConcurrenc
 
 HWTEST_F(RequestManagerImplTest, Start_DifferentRequestTypes_HaveSeparateConcurrencyLimits, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto tokenRequest1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -357,9 +330,6 @@ HWTEST_F(RequestManagerImplTest, Start_DifferentRequestTypes_HaveSeparateConcurr
 
 HWTEST_F(RequestManagerImplTest, Remove_RemovesFromRunningQueue, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request = CreateMockRequest(MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     manager_->Start(request);
@@ -371,9 +341,6 @@ HWTEST_F(RequestManagerImplTest, Remove_RemovesFromRunningQueue, TestSize.Level0
 
 HWTEST_F(RequestManagerImplTest, Remove_RemovesFromWaitingQueue, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -391,9 +358,6 @@ HWTEST_F(RequestManagerImplTest, Remove_RemovesFromWaitingQueue, TestSize.Level0
 
 HWTEST_F(RequestManagerImplTest, Remove_StartsWaitingRequest_WhenRunningRequestRemoved, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -412,9 +376,6 @@ HWTEST_F(RequestManagerImplTest, Remove_StartsWaitingRequest_WhenRunningRequestR
 
 HWTEST_F(RequestManagerImplTest, Remove_DoesNotStartWaitingRequest_WhenWaitingRequestRemoved, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -441,9 +402,6 @@ HWTEST_F(RequestManagerImplTest, Remove_DoesNotStartWaitingRequest_WhenWaitingRe
 
 HWTEST_F(RequestManagerImplTest, Remove_StartsOnlyMatchingTypeFromWaitingQueue, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto tokenRequest1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -467,9 +425,6 @@ HWTEST_F(RequestManagerImplTest, Remove_StartsOnlyMatchingTypeFromWaitingQueue, 
 
 HWTEST_F(RequestManagerImplTest, Remove_StartsMultipleWaitingRequests_WhenMultipleSlotsAvailable, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(2));
 
@@ -492,9 +447,6 @@ HWTEST_F(RequestManagerImplTest, Remove_StartsMultipleWaitingRequests_WhenMultip
 
 HWTEST_F(RequestManagerImplTest, Remove_NonExistentRequest_DoesNothing, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request = CreateMockRequest(MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     manager_->Start(request);
@@ -506,9 +458,6 @@ HWTEST_F(RequestManagerImplTest, Remove_NonExistentRequest_DoesNothing, TestSize
 
 HWTEST_F(RequestManagerImplTest, Remove_CountsOnlyRunningRequestsOfSameType, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto tokenRequest1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(2));
 
@@ -535,9 +484,6 @@ HWTEST_F(RequestManagerImplTest, Remove_CountsOnlyRunningRequestsOfSameType, Tes
 
 HWTEST_F(RequestManagerImplTest, Cancel_ExistingRequest_CallsCancelOnRequest, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request = CreateMockRequest(MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     EXPECT_CALL(*request, Cancel(_)).Times(1).WillOnce(Return(true));
@@ -550,18 +496,12 @@ HWTEST_F(RequestManagerImplTest, Cancel_ExistingRequest_CallsCancelOnRequest, Te
 
 HWTEST_F(RequestManagerImplTest, Cancel_NonExistentRequest_ReturnsFalse, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     bool result = manager_->Cancel(999);
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(RequestManagerImplTest, Cancel_WaitingRequest_CallsCancelOnRequest, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -581,9 +521,6 @@ HWTEST_F(RequestManagerImplTest, Cancel_WaitingRequest_CallsCancelOnRequest, Tes
 
 HWTEST_F(RequestManagerImplTest, CancelByScheduleId_ValidScheduleId_CancelsRequest, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithScheduleId(12345));
 
@@ -597,18 +534,12 @@ HWTEST_F(RequestManagerImplTest, CancelByScheduleId_ValidScheduleId_CancelsReque
 
 HWTEST_F(RequestManagerImplTest, CancelByScheduleId_ZeroScheduleId_ReturnsFalse, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     bool result = manager_->CancelRequestByScheduleId(0);
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(RequestManagerImplTest, CancelByScheduleId_NonExistentScheduleId_ReturnsFalse, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithScheduleId(12345));
 
@@ -620,9 +551,6 @@ HWTEST_F(RequestManagerImplTest, CancelByScheduleId_NonExistentScheduleId_Return
 
 HWTEST_F(RequestManagerImplTest, CancelByScheduleId_WaitingRequest_CancelsRequest, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(MockRequestConfig {}
                                           .WithId(1)
                                           .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
@@ -646,9 +574,6 @@ HWTEST_F(RequestManagerImplTest, CancelByScheduleId_WaitingRequest_CancelsReques
 
 HWTEST_F(RequestManagerImplTest, CancelByScheduleId_WaitingRequest_NonExistentScheduleId, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(MockRequestConfig {}
                                           .WithId(1)
                                           .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
@@ -672,9 +597,6 @@ HWTEST_F(RequestManagerImplTest, CancelByScheduleId_WaitingRequest_NonExistentSc
 
 HWTEST_F(RequestManagerImplTest, CancelAll_CancelsAllRunningRequests, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(10));
 
@@ -692,9 +614,6 @@ HWTEST_F(RequestManagerImplTest, CancelAll_CancelsAllRunningRequests, TestSize.L
 
 HWTEST_F(RequestManagerImplTest, CancelAll_CancelsAllWaitingRequests, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -712,17 +631,11 @@ HWTEST_F(RequestManagerImplTest, CancelAll_CancelsAllWaitingRequests, TestSize.L
 
 HWTEST_F(RequestManagerImplTest, CancelAll_EmptyManager_DoesNothing, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     manager_->CancelAll();
 }
 
 HWTEST_F(RequestManagerImplTest, CancelAll_WithNullRequestsInList, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(10));
 
@@ -737,9 +650,6 @@ HWTEST_F(RequestManagerImplTest, CancelAll_WithNullRequestsInList, TestSize.Leve
 
 HWTEST_F(RequestManagerImplTest, CancelAll_WithFailedCancel, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
     auto request2 = CreateMockRequest(
@@ -758,22 +668,16 @@ HWTEST_F(RequestManagerImplTest, CancelAll_WithFailedCancel, TestSize.Level0)
 
 HWTEST_F(RequestManagerImplTest, Get_ExistingRunningRequest_ReturnsRequest, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request = CreateMockRequest(MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     manager_->Start(request);
 
-    auto retrievedRequest = manager_->Get(1);
-    EXPECT_EQ(retrievedRequest, request);
+    auto result = manager_->Get(1);
+    EXPECT_EQ(result, request);
 }
 
 HWTEST_F(RequestManagerImplTest, Get_ExistingWaitingRequest_ReturnsRequest, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto request1 = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -783,26 +687,20 @@ HWTEST_F(RequestManagerImplTest, Get_ExistingWaitingRequest_ReturnsRequest, Test
     manager_->Start(request1);
     manager_->Start(request2);
 
-    auto retrievedRequest = manager_->Get(2);
-    EXPECT_EQ(retrievedRequest, request2);
+    auto result = manager_->Get(2);
+    EXPECT_EQ(result, request2);
 }
 
 HWTEST_F(RequestManagerImplTest, Get_NonExistentRequest_ReturnsNullptr, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
-    auto retrievedRequest = manager_->Get(999);
-    EXPECT_EQ(retrievedRequest, nullptr);
+    auto result = manager_->Get(999);
+    EXPECT_EQ(result, nullptr);
 }
 
 // ============== Create Tests ==============
 
 HWTEST_F(RequestManagerImplTest, Create_ReturnsValidManager, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto manager = RequestManagerImpl::Create();
     EXPECT_NE(manager, nullptr);
 }
@@ -811,9 +709,6 @@ HWTEST_F(RequestManagerImplTest, Create_ReturnsValidManager, TestSize.Level0)
 
 HWTEST_F(RequestManagerImplTest, ComplexScenario_PreemptionAndConcurrency, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto existingToken1 = CreateMockRequest(MockRequestConfig {}
                                                 .WithId(1)
                                                 .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
@@ -850,9 +745,6 @@ HWTEST_F(RequestManagerImplTest, ComplexScenario_PreemptionAndConcurrency, TestS
 
 HWTEST_F(RequestManagerImplTest, ComplexScenario_WaitingQueueSchedulingOrder, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto running = CreateMockRequest(
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
@@ -880,9 +772,6 @@ HWTEST_F(RequestManagerImplTest, ComplexScenario_WaitingQueueSchedulingOrder, Te
 
 HWTEST_F(RequestManagerImplTest, ComplexScenario_PreemptedRequestNotStartedFromWaiting, TestSize.Level0)
 {
-    MockGuard guard;
-    manager_ = RequestManagerImpl::Create();
-    ASSERT_NE(manager_, nullptr);
     auto running = CreateMockRequest(MockRequestConfig {}
                                          .WithId(1)
                                          .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)

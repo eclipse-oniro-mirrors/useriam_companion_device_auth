@@ -26,14 +26,10 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-bool EncodeInitKeyNegotiationRequest(const InitKeyNegotiationRequest &request, Attributes &attributes)
+void EncodeInitKeyNegotiationRequest(const InitKeyNegotiationRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(request.hostDeviceKey.idType));
-    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<InitKeyNegotiationRequest> DecodeInitKeyNegotiationRequest(const Attributes &attributes)
@@ -48,14 +44,13 @@ std::optional<InitKeyNegotiationRequest> DecodeInitKeyNegotiationRequest(const A
     return request;
 }
 
-bool EncodeInitKeyNegotiationReply(const InitKeyNegotiationReply &reply, Attributes &attributes)
+void EncodeInitKeyNegotiationReply(const InitKeyNegotiationReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
     if (reply.result != ResultCode::SUCCESS) {
-        return true;
+        return;
     }
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.extraInfo);
-    return true;
 }
 
 std::optional<InitKeyNegotiationReply> DecodeInitKeyNegotiationReply(const Attributes &attributes)
@@ -73,11 +68,10 @@ std::optional<InitKeyNegotiationReply> DecodeInitKeyNegotiationReply(const Attri
     return reply;
 }
 
-bool EncodeBeginAddHostBindingRequest(const BeginAddHostBindingRequest &request, Attributes &attributes)
+void EncodeBeginAddHostBindingRequest(const BeginAddHostBindingRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<BeginAddHostBindingRequest> DecodeBeginAddHostBindingRequest(const Attributes &attributes)
@@ -90,14 +84,13 @@ std::optional<BeginAddHostBindingRequest> DecodeBeginAddHostBindingRequest(const
     return request;
 }
 
-bool EncodeBeginAddHostBindingReply(const BeginAddHostBindingReply &reply, Attributes &attributes)
+void EncodeBeginAddHostBindingReply(const BeginAddHostBindingReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
     if (reply.result != ResultCode::SUCCESS) {
-        return true;
+        return;
     }
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.extraInfo);
-    return true;
 }
 
 std::optional<BeginAddHostBindingReply> DecodeBeginAddHostBindingReply(const Attributes &attributes)
@@ -115,13 +108,12 @@ std::optional<BeginAddHostBindingReply> DecodeBeginAddHostBindingReply(const Att
     return reply;
 }
 
-bool EncodeEndAddHostBindingRequest(const EndAddHostBindingRequest &request, Attributes &attributes)
+void EncodeEndAddHostBindingRequest(const EndAddHostBindingRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(request.result));
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
-    return true;
 }
 
 std::optional<EndAddHostBindingRequest> DecodeEndAddHostBindingRequest(const Attributes &attributes)
@@ -142,10 +134,9 @@ std::optional<EndAddHostBindingRequest> DecodeEndAddHostBindingRequest(const Att
     return request;
 }
 
-bool EncodeEndAddHostBindingReply(const EndAddHostBindingReply &reply, Attributes &attributes)
+void EncodeEndAddHostBindingReply(const EndAddHostBindingReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
-    return true;
 }
 
 std::optional<EndAddHostBindingReply> DecodeEndAddHostBindingReply(const Attributes &attributes)

@@ -36,9 +36,9 @@ struct RevokeTokenReply {
     ResultCode result { ResultCode::GENERAL_ERROR };
 };
 
-bool EncodeRevokeTokenRequest(const RevokeTokenRequest &request, Attributes &attributes);
+void EncodeRevokeTokenRequest(const RevokeTokenRequest &request, Attributes &attributes);
 std::optional<RevokeTokenRequest> DecodeRevokeTokenRequest(const Attributes &attributes);
-bool EncodeRevokeTokenReply(const RevokeTokenReply &reply, Attributes &attributes);
+void EncodeRevokeTokenReply(const RevokeTokenReply &reply, Attributes &attributes);
 std::optional<RevokeTokenReply> DecodeRevokeTokenReply(const Attributes &attributes);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

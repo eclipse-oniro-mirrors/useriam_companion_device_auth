@@ -23,6 +23,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
+#include "scope_guard.h"
 
 #define LOG_TAG "CDA_SDK"
 
@@ -71,6 +72,7 @@ int32_t CompanionDeviceAuthClientImpl::RegisterDeviceSelectCallback(
 
     if (ret != SUCCESS) {
         IAM_LOGE("RegisterDeviceSelectCallback fail, ret:%{public}d", ret);
+        return ret;
     }
 
     {
@@ -110,8 +112,8 @@ int32_t CompanionDeviceAuthClientImpl::UnregisterDeviceSelectCallback()
 int32_t CompanionDeviceAuthClientImpl::UpdateTemplateEnabledBusinessIds(const uint64_t templateId,
     const std::vector<int32_t> enabledBusinessIds)
 {
-    IAM_LOGI("start, templateId:%{public}s, enabledBusinessIds size:%{public}d", GET_MASKED_NUM_CSTR(templateId),
-        static_cast<int32_t>(enabledBusinessIds.size()));
+    IAM_LOGI("start, templateId:%{public}s, enabledBusinessIds size:%{public}zu", GET_MASKED_NUM_CSTR(templateId),
+        enabledBusinessIds.size());
     auto proxy = GetProxy();
     if (!proxy) {
         IAM_LOGE("proxy is nullptr");
@@ -140,17 +142,15 @@ void CompanionDeviceAuthClientImpl::PrintIpcTemplateStatus(const IpcTemplateStat
         ipcTemplateStatus.deviceStatus.deviceKey.deviceUserId);
 
     IAM_LOGI("deviceUserName:%{public}s, deviceModelInfo:%{public}s, deviceName:%{public}s, isOnline:%{public}d, "
-             "supportedBusinessIds size:%{public}d",
+             "supportedBusinessIds size:%{public}zu",
         ipcTemplateStatus.deviceStatus.deviceUserName.c_str(), ipcTemplateStatus.deviceStatus.deviceModelInfo.c_str(),
-        ipcTemplateStatus.deviceStatus.deviceName.c_str(),
-        static_cast<int32_t>(ipcTemplateStatus.deviceStatus.isOnline),
-        static_cast<int32_t>(ipcTemplateStatus.deviceStatus.supportedBusinessIds.size()));
+        ipcTemplateStatus.deviceStatus.deviceName.c_str(), ipcTemplateStatus.deviceStatus.isOnline,
+        ipcTemplateStatus.deviceStatus.supportedBusinessIds.size());
 
     IAM_LOGI("templateId:%{public}s, isConfirmed:%{public}d, isValid:%{public}d, localUserId:%{public}d, "
-             "addedTime:%{public}" PRId64 ", enabledBusinessIds size:%{public}d",
-        GET_MASKED_NUM_CSTR(ipcTemplateStatus.templateId), static_cast<int32_t>(ipcTemplateStatus.isConfirmed),
-        static_cast<int32_t>(ipcTemplateStatus.isValid), ipcTemplateStatus.localUserId, ipcTemplateStatus.addedTime,
-        static_cast<int32_t>(ipcTemplateStatus.enabledBusinessIds.size()));
+             "addedTime:%{public}" PRId64 ", enabledBusinessIds size:%{public}zu",
+        GET_MASKED_NUM_CSTR(ipcTemplateStatus.templateId), ipcTemplateStatus.isConfirmed, ipcTemplateStatus.isValid,
+        ipcTemplateStatus.localUserId, ipcTemplateStatus.addedTime, ipcTemplateStatus.enabledBusinessIds.size());
 }
 
 int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(const int32_t localUserId,
@@ -176,16 +176,16 @@ int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(const int32_t localUser
         return ret;
     }
 
-    IAM_LOGI("ipcTemplateStatusList size:%{public}d", static_cast<int32_t>(ipcTemplateStatusList.size()));
+    IAM_LOGI("ipcTemplateStatusList size:%{public}zu", ipcTemplateStatusList.size());
     for (const auto &ipcTemplateStatus : ipcTemplateStatusList) {
         PrintIpcTemplateStatus(ipcTemplateStatus);
 
-        ClientDeviceKey clientDeviceKey;
+        ClientDeviceKey clientDeviceKey {};
         clientDeviceKey.deviceIdType = ipcTemplateStatus.deviceStatus.deviceKey.deviceIdType;
         clientDeviceKey.deviceId = ipcTemplateStatus.deviceStatus.deviceKey.deviceId;
         clientDeviceKey.deviceUserId = ipcTemplateStatus.deviceStatus.deviceKey.deviceUserId;
 
-        ClientDeviceStatus clientDeviceStatus;
+        ClientDeviceStatus clientDeviceStatus {};
         clientDeviceStatus.deviceKey = clientDeviceKey;
         clientDeviceStatus.deviceUserName = ipcTemplateStatus.deviceStatus.deviceUserName;
         clientDeviceStatus.deviceModelInfo = ipcTemplateStatus.deviceStatus.deviceModelInfo;
@@ -193,7 +193,7 @@ int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(const int32_t localUser
         clientDeviceStatus.isOnline = ipcTemplateStatus.deviceStatus.isOnline;
         clientDeviceStatus.supportedBusinessIds = ipcTemplateStatus.deviceStatus.supportedBusinessIds;
 
-        ClientTemplateStatus clientTemplateStatus;
+        ClientTemplateStatus clientTemplateStatus {};
         clientTemplateStatus.templateId = ipcTemplateStatus.templateId;
         clientTemplateStatus.isConfirmed = ipcTemplateStatus.isConfirmed;
         clientTemplateStatus.isValid = ipcTemplateStatus.isValid;
@@ -226,6 +226,10 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChange(const int32
         IAM_LOGE("failed to create wrapper");
         return GENERAL_ERROR;
     }
+    ScopeGuard unsubscribeGuard([proxy, wrapper]() {
+        int32_t unusedRet;
+        proxy->UnsubscribeTemplateStatusChange(wrapper, unusedRet);
+    });
 
     int32_t ret {};
     int32_t ipcRet = proxy->SubscribeTemplateStatusChange(localUserId, wrapper, ret);
@@ -236,12 +240,14 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChange(const int32
 
     if (ret != SUCCESS) {
         IAM_LOGE("SubscribeTemplateStatusChange fail, ret:%{public}d", ret);
+        return ret;
     }
 
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
         templateStatusCallbacks_.push_back(wrapper);
     }
+    unsubscribeGuard.Cancel();
     return ret;
 }
 
@@ -314,6 +320,10 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeAvailableDeviceStatus(const int3
         IAM_LOGE("failed to create wrapper");
         return GENERAL_ERROR;
     }
+    ScopeGuard unsubscribeGuard([proxy, wrapper]() {
+        int32_t unusedRet;
+        proxy->UnsubscribeAvailableDeviceStatus(wrapper, unusedRet);
+    });
 
     int32_t ret {};
     int32_t ipcRet = proxy->SubscribeAvailableDeviceStatus(localUserId, wrapper, ret);
@@ -324,12 +334,14 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeAvailableDeviceStatus(const int3
 
     if (ret != SUCCESS) {
         IAM_LOGE("SubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
+        return ret;
     }
 
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
         availableDeviceStatusCallbacks_.push_back(wrapper);
     }
+    unsubscribeGuard.Cancel();
     return ret;
 }
 
@@ -401,7 +413,7 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(const
         return GENERAL_ERROR;
     }
 
-    IpcSubscribeContinuousAuthStatusParam param;
+    IpcSubscribeContinuousAuthStatusParam param {};
     param.localUserId = localUserId;
     param.hasTemplateId = false;
     if (templateId.has_value()) {
@@ -411,6 +423,10 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(const
     } else {
         IAM_LOGI("templateId not exist");
     }
+    ScopeGuard unsubscribeGuard([proxy, wrapper]() {
+        int32_t unusedRet;
+        proxy->UnsubscribeContinuousAuthStatusChange(wrapper, unusedRet);
+    });
 
     int32_t ret {};
     int32_t ipcRet = proxy->SubscribeContinuousAuthStatusChange(param, wrapper, ret);
@@ -421,12 +437,14 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(const
 
     if (ret != SUCCESS) {
         IAM_LOGE("SubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
+        return ret;
     }
 
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
         continuousAuthStatusCallbacks_.push_back(wrapper);
     }
+    unsubscribeGuard.Cancel();
     return ret;
 }
 
@@ -622,6 +640,12 @@ void CompanionDeviceAuthClientImpl::SubscribeCompanionDeviceAuthSaStatus()
             ResubscribeAvailableDeviceStatus();
         },
         []() {});
+    ScopeGuard unsubscribeGuard([&listener]() {
+        if (listener != nullptr) {
+            SystemAbilityListener::UnSubscribe(SUBSYS_USERIAM_SYS_ABILITY_COMPANIONDEVICEAUTH, listener);
+            listener = nullptr;
+        }
+    });
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
         if (companionDeviceAuthSaStatusListener_ != nullptr) {
@@ -633,6 +657,7 @@ void CompanionDeviceAuthClientImpl::SubscribeCompanionDeviceAuthSaStatus()
             return;
         }
     }
+    unsubscribeGuard.Cancel();
 }
 
 CompanionDeviceAuthClientImpl::~CompanionDeviceAuthClientImpl()

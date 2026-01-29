@@ -26,13 +26,12 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-bool EncodeRequestAbortedRequest(const RequestAbortedRequest &request, Attributes &attributes)
+void EncodeRequestAbortedRequest(const RequestAbortedRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(request.result));
     if (!request.reason.empty()) {
         attributes.SetStringValue(Attributes::ATTR_CDA_SA_REASON, request.reason);
     }
-    return true;
 }
 
 std::optional<RequestAbortedRequest> DecodeRequestAbortedRequest(const Attributes &attributes)
@@ -50,10 +49,9 @@ std::optional<RequestAbortedRequest> DecodeRequestAbortedRequest(const Attribute
     return request;
 }
 
-bool EncodeRequestAbortedReply(const RequestAbortedReply &reply, Attributes &attributes)
+void EncodeRequestAbortedReply(const RequestAbortedReply &reply, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
-    return true;
 }
 
 std::optional<RequestAbortedReply> DecodeRequestAbortedReply(const Attributes &attributes)

@@ -63,9 +63,8 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
     ENSURE_OR_RETURN(peerDeviceKey.has_value());
     DeviceKey hostDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    if (localDeviceKey.has_value()) {
-        hostDeviceKey = *localDeviceKey;
-    }
+    ENSURE_OR_RETURN(localDeviceKey.has_value());
+    hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
     RemoveHostBindingRequest requestMsg = {
         .hostDeviceKey = hostDeviceKey,
@@ -73,8 +72,7 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
         .extraInfo = {},
     };
     Attributes request = {};
-    bool encodeRet = EncodeRemoveHostBindingRequest(requestMsg, request);
-    ENSURE_OR_RETURN(encodeRet);
+    EncodeRemoveHostBindingRequest(requestMsg, request);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::REMOVE_HOST_BINDING,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
@@ -109,7 +107,7 @@ void HostRemoveHostBindingRequest::HandleRemoveHostBindingReply(const Attributes
 
 std::weak_ptr<OutboundRequest> HostRemoveHostBindingRequest::GetWeakPtr()
 {
-    return shared_from_this();
+    return weak_from_this();
 }
 
 void HostRemoveHostBindingRequest::CompleteWithError(ResultCode result)

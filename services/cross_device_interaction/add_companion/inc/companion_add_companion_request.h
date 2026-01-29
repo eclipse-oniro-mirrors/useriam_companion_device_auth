@@ -31,7 +31,7 @@ class CompanionAddCompanionRequest : public std::enable_shared_from_this<Compani
                                      public InboundRequest {
 public:
     CompanionAddCompanionRequest(const std::string &connectionName, const Attributes &request,
-        OnMessageReply firstReply, const DeviceKey &hostDeviceKey);
+        OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey);
     ~CompanionAddCompanionRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;

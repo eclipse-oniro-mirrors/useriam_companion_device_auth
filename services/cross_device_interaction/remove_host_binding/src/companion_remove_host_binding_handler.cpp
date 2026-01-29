@@ -55,11 +55,7 @@ void CompanionRemoveHostBindingHandler::HandleRequest(const Attributes &request,
     }
 
     RemoveHostBindingReply replyMsg = { .result = ResultCode::SUCCESS };
-    bool encodeRet = EncodeRemoveHostBindingReply(replyMsg, reply);
-    if (!encodeRet) {
-        IAM_LOGE("EncodeRemoveHostBindingReply failed");
-        return;
-    }
+    EncodeRemoveHostBindingReply(replyMsg, reply);
     errorGuard.Cancel();
 }
 } // namespace CompanionDeviceAuth

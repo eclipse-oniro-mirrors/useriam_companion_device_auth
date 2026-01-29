@@ -111,20 +111,17 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
 {
     DeviceKey hostDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    if (localDeviceKey.has_value()) {
-        hostDeviceKey = *localDeviceKey;
-    }
+    ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), false);
+    hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
     TokenAuthRequest requestMsg = { .hostDeviceKey = hostDeviceKey,
         .companionUserId = companionUserId_,
         .extraInfo = tokenAuthRequest };
     Attributes request = {};
-    bool encodeRet = EncodeTokenAuthRequest(requestMsg, request);
-    ENSURE_OR_RETURN_VAL(encodeRet, false);
+    EncodeTokenAuthRequest(requestMsg, request);
 
-    auto weakSelf = std::weak_ptr<HostTokenAuthRequest>(shared_from_this());
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::TOKEN_AUTH, request,
-        [weakSelf](const Attributes &reply) {
+        [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleTokenAuthReply(reply);
@@ -162,7 +159,6 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
     bool endTokenAuthRet = SecureAgentEndTokenAuth(tokenAuthReply, fwkMsg);
     if (!endTokenAuthRet) {
         IAM_LOGE("%{public}s SecureAgentEndTokenAuth failed", GetDescription());
-
         return;
     }
     needEndTokenAuth_ = false;

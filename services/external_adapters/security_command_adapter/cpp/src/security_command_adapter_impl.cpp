@@ -113,7 +113,11 @@ ResultCode SecurityCommandAdapterImpl::Initialize()
         IAM_LOGE("SecurityCommandAdapter is already inited");
         return ResultCode::SUCCESS;
     }
-    init_rust_env();
+    int32_t ret = init_rust_env();
+    if (ret != 0) {
+        IAM_LOGE("init_rust_env failed, ret=%{public}d", ret);
+        return ResultCode::GENERAL_ERROR;
+    }
     inited_ = true;
     IAM_LOGI("initialize security command adapter success");
     return ResultCode::SUCCESS;
