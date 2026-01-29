@@ -15,8 +15,8 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi,
-    DataArray32Ffi, Uint16Array64Ffi,
+    CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi, DataArray32Ffi,
+    Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;

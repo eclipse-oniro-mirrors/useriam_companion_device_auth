@@ -32,8 +32,8 @@ fn dummy_companion_db_manager_test() {
         binding_time: 0,
         last_used_time: 0,
     };
-    let sk_info = HostDeviceSk { sk:[0u8; SHARE_KEY_LEN] };
-    let token = HostTokenInfo { token:  [0u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl0 };
+    let sk_info = HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] };
+    let token = HostTokenInfo { token: [0u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl0 };
 
     assert_eq!(dummy_companion_db_manager.add_device(&device_info, &sk_info), Err(ErrorCode::GeneralError));
     assert!(dummy_companion_db_manager.get_device_by_binding_id(0).is_err());

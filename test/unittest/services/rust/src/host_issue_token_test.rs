@@ -19,7 +19,7 @@ use crate::entry::companion_device_auth_ffi::{
     HostEndIssueTokenOutputFfi, HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi, PROPERTY_MODE_UNFREEZE,
 };
 use crate::log_i;
-use crate::request::jobs::common_message::{SecCommonReply};
+use crate::request::jobs::common_message::SecCommonReply;
 use crate::request::token_issue::host_issue_token::HostDeviceIssueTokenRequest;
 use crate::request::token_issue::token_issue_message::SecIssueTokenReply;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};

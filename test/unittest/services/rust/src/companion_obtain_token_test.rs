@@ -21,10 +21,10 @@ use crate::entry::companion_device_auth_ffi::{
 use crate::log_i;
 use crate::request::jobs::common_message::SecIssueToken;
 use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainTokenRequest;
-use crate::request::token_obtain::token_obtain_message::{SecPreObtainTokenRequest};
+use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{HostDeviceSk};
+use crate::traits::db_manager::HostDeviceSk;
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;

@@ -24,7 +24,7 @@ use crate::request::token_issue::companion_issue_token::CompanionDeviceIssueToke
 use crate::request::token_issue::token_issue_message::SecPreIssueRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
-use crate::traits::db_manager::{HostDeviceSk};
+use crate::traits::db_manager::HostDeviceSk;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
 use std::boxed::Box;

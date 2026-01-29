@@ -15,9 +15,7 @@
 
 use crate::common::constants::ErrorCode;
 use crate::entry::companion_device_auth_entry::{handle_rust_command, handle_rust_env_uninit};
-use crate::entry::companion_device_auth_ffi::{
-    CommandId, CommonOutputFfi, InitInputFfi, InitOutputFfi,
-};
+use crate::entry::companion_device_auth_ffi::{CommandId, CommonOutputFfi, InitInputFfi, InitOutputFfi};
 use crate::log_i;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};

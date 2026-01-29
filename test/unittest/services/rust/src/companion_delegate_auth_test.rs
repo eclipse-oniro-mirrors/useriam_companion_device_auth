@@ -22,7 +22,7 @@ use crate::request::delegate_auth::companion_auth::CompanionDelegateAuthRequest;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
-use crate::traits::db_manager::{HostDeviceSk};
+use crate::traits::db_manager::HostDeviceSk;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
 use crate::utils::{Attribute, AttributeKey};

@@ -68,7 +68,7 @@ fn mock_set_crypto_engine() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()

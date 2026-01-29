@@ -16,9 +16,8 @@
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
-    HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi,
-    HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
-    PersistedCompanionStatusFfi,
+    HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi, HostGetInitKeyNegotiationInputFfi,
+    HostGetInitKeyNegotiationOutputFfi, PersistedCompanionStatusFfi,
 };
 use crate::log_i;
 use crate::request::enroll::enroll_message::{SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply};
@@ -191,7 +190,7 @@ fn host_enroll_request_begin_test_wrong_input_type() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_encrypt()
@@ -501,7 +500,7 @@ fn host_enroll_request_begin_test_hkdf_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
@@ -544,7 +543,7 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_encrypt()

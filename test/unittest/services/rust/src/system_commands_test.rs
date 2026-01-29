@@ -91,7 +91,13 @@ fn create_mock_companion_device_capability() -> CompanionDeviceCapability {
 }
 
 fn create_mock_companion_token_info(atl: AuthTrustLevel) -> CompanionTokenInfo {
-    CompanionTokenInfo { template_id: 123, device_type: DeviceType::Default, token: [0u8; TOKEN_KEY_LEN], atl, added_time: 1000 }
+    CompanionTokenInfo {
+        template_id: 123,
+        device_type: DeviceType::Default,
+        token: [0u8; TOKEN_KEY_LEN],
+        atl,
+        added_time: 1000,
+    }
 }
 
 fn mock_set_host_db_manager_for_host_update_token() {
@@ -725,7 +731,7 @@ fn host_begin_add_companion_test_success() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1045,7 +1051,7 @@ fn host_pre_issue_token_test_success() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1137,7 +1143,7 @@ fn host_pre_issue_token_test_add_request_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1373,7 +1379,7 @@ fn host_begin_token_auth_test_success() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1485,7 +1491,7 @@ fn host_begin_token_auth_test_add_request_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1827,7 +1833,7 @@ fn host_begin_delegate_auth_test_success() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1928,7 +1934,7 @@ fn host_begin_delegate_auth_test_add_request_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -2678,10 +2684,9 @@ fn companion_init_key_negotiation_test_add_request_fail() {
 fn companion_begin_add_host_binding_test_success() {
     let _guard = ut_registry_guard!();
     log_i!("companion_begin_add_host_binding_test_success start");
-
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()
@@ -2855,7 +2860,7 @@ fn companion_end_add_host_binding_test_success() {
         .returning(move || Ok(Box::new(enroll_request.clone())));
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
-    let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: Vec::new() };
+    let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: [0u8; TOKEN_KEY_LEN].to_vec() };
     let sec_message = sec_issue_token
         .encrypt_issue_token(&[0u8; SALT_LEN_FFI], DeviceType::Default, &[1, 2, 3])
         .unwrap();
@@ -3106,7 +3111,7 @@ fn companion_process_issue_token_test_success() {
         .returning(move || Ok(Box::new(issue_token_request.clone())));
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
-    let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: Vec::new() };
+    let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: [0u8; TOKEN_KEY_LEN].to_vec() };
     let sec_message = sec_issue_token
         .encrypt_issue_token(&[0u8; SALT_LEN_FFI], DeviceType::Default, &[1, 2, 3])
         .unwrap();
@@ -3589,7 +3594,7 @@ fn companion_end_obtain_token_test_success() {
         .returning(move || Ok(Box::new(obtain_token_request.clone())));
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
-    let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: Vec::new() };
+    let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: [0u8; TOKEN_KEY_LEN].to_vec() };
     let sec_message = sec_issue_token
         .encrypt_issue_token(&[0u8; SALT_LEN_FFI], DeviceType::Default, &[1, 2, 3])
         .unwrap();

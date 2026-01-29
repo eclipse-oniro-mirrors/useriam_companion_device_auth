@@ -74,7 +74,7 @@ fn create_valid_issue_token_message(challenge: u64, atl: i32) -> Vec<u8> {
 fn mock_set_crypto_engine() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()
@@ -250,7 +250,7 @@ fn companion_enroll_request_begin_test_hkdf_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
@@ -279,7 +279,7 @@ fn companion_enroll_request_begin_test_decrypt_sec_message_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()
@@ -392,7 +392,7 @@ fn companion_enroll_request_begin_test_encrypt_sec_message_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()
