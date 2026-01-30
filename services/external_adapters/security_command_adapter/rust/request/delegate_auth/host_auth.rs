@@ -14,7 +14,7 @@
  */
 
 use crate::common::constants::*;
-use crate::entry::companion_device_auth_ffi::{DataArray1024Ffi, HostBeginDelegateAuthInputFfi};
+use crate::entry::companion_device_auth_ffi::HostBeginDelegateAuthInputFfi;
 use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::delegate_auth::auth_message::{FwkAuthReply, FwkAuthRequest};
@@ -23,7 +23,7 @@ use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Vec};
+use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AuthParam {
@@ -104,7 +104,7 @@ impl HostDelegateAuthRequest {
                 message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
                     .map_err(|e| p!(e))?;
 
-            let sec_auth_request = SecCommonRequest { salt: self.salt, tag, iv, encrypt_data };
+            let sec_auth_request = Box::new(SecCommonRequest { salt: self.salt, tag, iv, encrypt_data });
             output.extend(sec_auth_request.encode(device_capability.device_type)?);
         }
         Ok(output)
@@ -139,7 +139,11 @@ impl HostDelegateAuthRequest {
             HostDbManagerRegistry::get_mut().read_device_capability_info(self.auth_param.template_id)?;
         for device_capability in device_capabilitys {
             if let Err(e) = self.parse_auth_reply_data(device_capability.device_type, sec_message) {
-                log_e!("parse auth reply message fail: {:?}", e);
+                log_e!(
+                    "parse auth reply message fail: device_type: {:?}, result: {:?}",
+                    device_capability.device_type,
+                    e
+                );
                 return Err(ErrorCode::GeneralError);
             }
         }
@@ -148,7 +152,7 @@ impl HostDelegateAuthRequest {
     }
 
     fn create_end_fwk_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
-        let fwk_auth_reply = FwkAuthReply {
+        let fwk_auth_reply = Box::new(FwkAuthReply {
             schedule_id: self.auth_param.schedule_id,
             template_id: self.auth_param.template_id,
             result_code: 0,
@@ -156,7 +160,7 @@ impl HostDelegateAuthRequest {
             pin_sub_type: 0,
             remain_attempts: 0,
             lock_duration: 0,
-        };
+        });
         let output = fwk_auth_reply.encode()?;
         Ok(output)
     }
@@ -181,7 +185,7 @@ impl Request for HostDelegateAuthRequest {
 
         self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.create_begin_sec_message()?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 
@@ -194,7 +198,7 @@ impl Request for HostDelegateAuthRequest {
 
         self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
         let fwk_message = self.create_end_fwk_message()?;
-        ffi_output.fwk_message = DataArray1024Ffi::try_from(fwk_message).map_err(|e| p!(e))?;
+        ffi_output.fwk_message.copy_from_vec(&fwk_message)?;
         ffi_output.auth_type = self.auth_type;
         ffi_output.atl = self.atl as i32;
         Ok(())

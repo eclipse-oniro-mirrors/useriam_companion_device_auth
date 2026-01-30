@@ -24,20 +24,20 @@ use crate::request::token_issue::companion_issue_token::CompanionDeviceIssueToke
 use crate::request::token_issue::token_issue_message::SecPreIssueRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
-use crate::traits::db_manager::{HostDeviceSk, HostTokenInfo};
+use crate::traits::db_manager::HostDeviceSk;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
 use std::boxed::Box;
 
 fn create_valid_pre_issue_request(salt: &[u8; HKDF_SALT_SIZE]) -> Vec<u8> {
     let request = SecPreIssueRequest { salt: *salt };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_issue_token_message(challenge: u64, atl: i32, session_key: &[u8]) -> Vec<u8> {
     let issue_token = SecIssueToken { challenge, atl, token: vec![1u8; TOKEN_KEY_LEN] };
     issue_token
-        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, session_key)
+        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::Default, session_key)
         .unwrap()
 }
 
@@ -173,7 +173,7 @@ fn companion_issue_token_request_begin_test_hkdf_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let salt = [1u8; HKDF_SALT_SIZE];
@@ -209,7 +209,7 @@ fn companion_issue_token_request_begin_test_aes_gcm_encrypt_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let salt = [1u8; HKDF_SALT_SIZE];

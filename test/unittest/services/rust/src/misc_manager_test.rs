@@ -14,11 +14,11 @@
  */
 
 use crate::common::constants::*;
-use crate::common::Udid;
 use crate::log_i;
 use crate::traits::crypto_engine::KeyPair;
 use crate::traits::misc_manager::{DummyMiscManager, MiscManager};
 use crate::ut_registry_guard;
+use crate::Udid;
 
 #[test]
 fn dummy_misc_manager_test() {

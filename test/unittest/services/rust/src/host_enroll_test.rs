@@ -16,15 +16,14 @@
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
-    HostBeginCompanionCheckOutputFfi, HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi,
-    HostEndCompanionCheckOutputFfi, HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
-    PersistedCompanionStatusFfi,
+    HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi, HostGetInitKeyNegotiationInputFfi,
+    HostGetInitKeyNegotiationOutputFfi, PersistedCompanionStatusFfi,
 };
 use crate::log_i;
 use crate::request::enroll::enroll_message::{SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply};
 use crate::request::enroll::host_enroll::{HostDeviceEnrollRequest, KeyNegotialParam};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk, DeviceKey};
+use crate::traits::db_manager::{CompanionDeviceSk, DeviceKey};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
@@ -49,7 +48,7 @@ fn create_valid_fwk_enroll_message(schedule_id: u64, atl: i32) -> Vec<u8> {
 
 fn create_valid_key_nego_reply(challenge: u64) -> Vec<u8> {
     let reply = SecKeyNegoReply { algorithm: AlgoType::X25519 as u16, challenge, pub_key: vec![1u8, 2, 3, 4, 5] };
-    reply.encode(DeviceType::None).unwrap()
+    reply.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_binding_reply(
@@ -71,12 +70,12 @@ fn create_valid_binding_reply(
 
     let encrypt_data = reply_info.encode().unwrap();
     let reply = SecBindingReply { tag: [2u8; AES_GCM_TAG_SIZE], iv: [3u8; AES_GCM_IV_SIZE], encrypt_data };
-    reply.encode(DeviceType::None).unwrap()
+    reply.encode(DeviceType::Default).unwrap()
 }
 
 fn create_key_negotial_param() -> KeyNegotialParam {
     KeyNegotialParam {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         algorithm: AlgoType::X25519 as u16,
         challenge: 0,
         key_pair: Some(create_mock_key_pair()),
@@ -191,7 +190,7 @@ fn host_enroll_request_begin_test_wrong_input_type() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_encrypt()
@@ -501,7 +500,7 @@ fn host_enroll_request_begin_test_hkdf_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
@@ -544,7 +543,7 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_encrypt()
@@ -1124,7 +1123,7 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };

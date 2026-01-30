@@ -14,7 +14,7 @@
  */
 
 use crate::common::constants::*;
-use crate::entry::companion_device_auth_ffi::{DataArray1024Ffi, HostProcessPreObtainTokenInputFfi};
+use crate::entry::companion_device_auth_ffi::HostProcessPreObtainTokenInputFfi;
 use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};
@@ -22,15 +22,10 @@ use crate::request::jobs::token_helper;
 use crate::request::jobs::token_helper::DeviceTokenInfo;
 use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenRequest;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::CompanionTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
-
-use crate::traits::time_keeper::TimeKeeperRegistry;
-
 use crate::utils::{Attribute, AttributeKey};
-
-use crate::{log_e, log_i, p, Vec};
+use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TokenObtainParam {
@@ -72,7 +67,7 @@ impl HostDeviceObtainTokenRequest {
 
     fn create_prepare_sec_message(&self) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
-        let obtain_token_request = SecPreObtainTokenRequest { salt: self.salt, challenge: self.challenge };
+        let obtain_token_request = Box::new(SecPreObtainTokenRequest { salt: self.salt, challenge: self.challenge });
         let capability_infos =
             HostDbManagerRegistry::get_mut().read_device_capability_info(self.obtain_param.template_id)?;
         for capability_info in capability_infos {
@@ -116,7 +111,11 @@ impl HostDeviceObtainTokenRequest {
             HostDbManagerRegistry::get_mut().read_device_capability_info(self.obtain_param.template_id)?;
         for capability_info in capability_infos {
             if let Err(e) = self.parse_obtain_token_request(capability_info.device_type, sec_message) {
-                log_e!("parse obtain token request message fail: {:?}", e);
+                log_e!(
+                    "parse obtain token request message fail: device_type: {:?}, result: {:?}",
+                    capability_info.device_type,
+                    e
+                );
                 return Err(ErrorCode::GeneralError);
             }
         }
@@ -134,7 +133,7 @@ impl HostDeviceObtainTokenRequest {
             let session_key =
                 host_db_helper::get_session_key(self.obtain_param.template_id, token_info.device_type, &self.salt)?;
             let issue_token = SecIssueToken {
-                challenge: self.challenge,
+                challenge: token_info.challenge,
                 atl: token_info.atl as i32,
                 token: token_info.token.clone(),
             };
@@ -145,17 +144,7 @@ impl HostDeviceObtainTokenRequest {
     }
 
     fn store_token(&self) -> Result<(), ErrorCode> {
-        for token_info in &self.token_infos {
-            let companion_token = CompanionTokenInfo {
-                template_id: self.obtain_param.template_id,
-                device_type: token_info.device_type,
-                token: token_info.token.clone(),
-                atl: token_info.atl,
-                added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
-            };
-            HostDbManagerRegistry::get_mut().add_token(&companion_token)?;
-        }
-
+        token_helper::add_companion_device_token(self.obtain_param.template_id, &self.token_infos)?;
         Ok(())
     }
 }
@@ -178,7 +167,7 @@ impl Request for HostDeviceObtainTokenRequest {
         };
 
         let sec_message = self.create_prepare_sec_message()?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 
@@ -198,7 +187,7 @@ impl Request for HostDeviceObtainTokenRequest {
             .map(|info| info.atl as i32)
             .max()
             .unwrap_or(AuthTrustLevel::Atl0 as i32);
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         ffi_output.atl = max_atl;
         Ok(())
     }

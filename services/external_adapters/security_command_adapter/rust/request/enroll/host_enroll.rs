@@ -14,8 +14,7 @@
  */
 
 use crate::common::constants::*;
-use crate::entry::companion_device_auth_ffi::{DataArray1024Ffi, DataArray20000Ffi, HostGetInitKeyNegotiationInputFfi};
-
+use crate::entry::companion_device_auth_ffi::HostGetInitKeyNegotiationInputFfi;
 use crate::jobs::{host_db_helper, message_crypto};
 use crate::request::enroll::enroll_message::{
     FwkEnrollReply, FwkEnrollRequest, SecBindingReply, SecBindingReplyInfo, SecBindingRequest, SecKeyNegoReply,
@@ -28,14 +27,13 @@ use crate::traits::db_manager::{
     CompanionDeviceBaseInfo, CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo,
     DeviceKey, UserInfo,
 };
-use token_helper::DeviceTokenInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::TimeKeeperRegistry;
-
 use crate::utils::{Attribute, AttributeKey};
 use crate::String;
-use crate::{log_e, log_i, p, Vec};
+use crate::{log_e, log_i, p, Box, Vec};
+use token_helper::DeviceTokenInfo;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct KeyNegotialParam {
@@ -50,7 +48,7 @@ pub struct KeyNegotialParam {
 pub struct DeviceCapability {
     pub device_type: DeviceType,
     pub esl: ExecutorSecurityLevel,
-    pub track_ability_level: i32,
+    pub track_ability_level: TrackAbilityLevel,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -113,9 +111,9 @@ impl HostDeviceEnrollRequest {
     }
 
     fn create_prepare_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
-        let key_nego_request = SecKeyNegoRequest { algorithm_list: Vec::from([AlgoType::X25519 as u16]) };
+        let key_nego_request = Box::new(SecKeyNegoRequest { algorithm_list: Vec::from([AlgoType::X25519 as u16]) });
         let output = match SecureProtocolId::try_from(self.secure_protocol_id).map_err(|e| p!(e))? {
-            SecureProtocolId::Default => key_nego_request.encode(DeviceType::None)?,
+            SecureProtocolId::Default => key_nego_request.encode(DeviceType::Default)?,
             _ => {
                 log_e!("secure_protocol_id type is not support, secure_protocol_id: {}", self.secure_protocol_id);
                 return Err(ErrorCode::GeneralError);
@@ -161,7 +159,7 @@ impl HostDeviceEnrollRequest {
     fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         match SecureProtocolId::try_from(self.secure_protocol_id).map_err(|e| p!(e))? {
             SecureProtocolId::Default => {
-                if let Err(e) = self.parse_key_nego_reply(DeviceType::None, sec_message) {
+                if let Err(e) = self.parse_key_nego_reply(DeviceType::Default, sec_message) {
                     log_e!("parse key nego reply message fail: {:?}", e);
                     return Err(ErrorCode::GeneralError);
                 }
@@ -200,8 +198,13 @@ impl HostDeviceEnrollRequest {
                 message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
                     .map_err(|e| p!(e))?;
 
-            let binding_request =
-                SecBindingRequest { pub_key: key_pair.pub_key.clone(), salt: self.salt, tag, iv, encrypt_data };
+            let binding_request = Box::new(SecBindingRequest {
+                pub_key: key_pair.pub_key.clone(),
+                salt: self.salt,
+                tag,
+                iv,
+                encrypt_data,
+            });
 
             output.extend(binding_request.encode(key_nego_param.device_type)?);
         }
@@ -245,20 +248,20 @@ impl HostDeviceEnrollRequest {
         }
 
         let esl = ExecutorSecurityLevel::try_from(reply_info.esl).map_err(|e| p!(e))?;
-        let device_capability =
-            DeviceCapability { device_type, esl, track_ability_level: reply_info.track_ability_level };
+        let device_capability = DeviceCapability {
+            device_type,
+            esl,
+            track_ability_level: TrackAbilityLevel::try_from(reply_info.track_ability_level).map_err(|e| p!(e))?,
+        };
         self.device_capability.push(device_capability);
-        self.token_infos.push(token_helper::generate_token(device_type, reply_info.challenge, self.atl)?);
+        self.token_infos
+            .push(token_helper::generate_token(device_type, reply_info.challenge, self.atl)?);
 
         let acl = match esl {
             ExecutorSecurityLevel::Esl0 => AuthCapabilityLevel::Acl0,
             ExecutorSecurityLevel::Esl1 => AuthCapabilityLevel::Acl1,
             ExecutorSecurityLevel::Esl2 => AuthCapabilityLevel::Acl2,
             ExecutorSecurityLevel::Esl3 => AuthCapabilityLevel::Acl3,
-            ExecutorSecurityLevel::MaxEsl => {
-                log_e!("esl fail, esl: {:?}", esl);
-                return Err(ErrorCode::GeneralError);
-            },
         };
         if self.acl < acl {
             self.acl = acl;
@@ -267,9 +270,10 @@ impl HostDeviceEnrollRequest {
     }
 
     fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        for key_nego_param in self.key_negotial_param.clone() {
-            if let Err(e) = self.parse_binding_reply(key_nego_param.device_type, sec_message) {
-                log_e!("parse binding reply message fail: {:?}", e);
+        let device_types: Vec<DeviceType> = self.key_negotial_param.iter().map(|param| param.device_type).collect();
+        for device_type in device_types {
+            if let Err(e) = self.parse_binding_reply(device_type, sec_message) {
+                log_e!("parse binding reply message fail: device_type: {:?}, result: {:?}", device_type, e);
                 return Err(ErrorCode::GeneralError);
             }
         }
@@ -292,7 +296,7 @@ impl HostDeviceEnrollRequest {
     }
 
     fn create_end_fwk_message(&mut self, result: i32, template_id: u64) -> Result<Vec<u8>, ErrorCode> {
-        let fwk_enroll_reply = FwkEnrollReply {
+        let fwk_enroll_reply = Box::new(FwkEnrollReply {
             schedule_id: self.enroll_param.schedule_id,
             template_id,
             result_code: result,
@@ -300,7 +304,7 @@ impl HostDeviceEnrollRequest {
             pin_sub_type: 0,
             remain_attempts: 0,
             lock_duration: 0,
-        };
+        });
         let output = fwk_enroll_reply.encode()?;
         Ok(output)
     }
@@ -308,25 +312,30 @@ impl HostDeviceEnrollRequest {
     fn init_device_info(
         &mut self,
     ) -> Result<
-        (CompanionDeviceInfo, CompanionDeviceBaseInfo, Vec<CompanionDeviceCapability>, Vec<CompanionDeviceSk>),
+        (
+            Box<CompanionDeviceInfo>,
+            Box<CompanionDeviceBaseInfo>,
+            Vec<CompanionDeviceCapability>,
+            Vec<CompanionDeviceSk>,
+        ),
         ErrorCode,
     > {
         let template_id = HostDbManagerRegistry::get().generate_unique_template_id().map_err(|e| p!(e))?;
-        let device_info = CompanionDeviceInfo {
+        let device_info = Box::new(CompanionDeviceInfo {
             template_id,
             device_key: self.enroll_param.companion_device_key.clone(),
             user_info: UserInfo { user_id: self.enroll_param.host_device_key.user_id, user_type: 0 },
             added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             secure_protocol_id: self.secure_protocol_id,
             is_valid: true,
-        };
+        });
 
-        let base_info = CompanionDeviceBaseInfo {
+        let base_info = Box::new(CompanionDeviceBaseInfo {
             device_model: String::new(),
             device_name: String::new(),
             device_user_name: String::new(),
             business_ids: Vec::new(),
-        };
+        });
 
         let mut capability_infos: Vec<CompanionDeviceCapability> = Vec::new();
         for device_capability in &self.device_capability {
@@ -340,7 +349,13 @@ impl HostDeviceEnrollRequest {
 
         let mut sk_infos: Vec<CompanionDeviceSk> = Vec::new();
         for key_nego_param in &self.key_negotial_param {
-            let sk_info = CompanionDeviceSk { device_type: key_nego_param.device_type, sk: key_nego_param.sk.clone() };
+            let sk_info = CompanionDeviceSk {
+                device_type: key_nego_param.device_type,
+                sk: key_nego_param.sk.clone().try_into().map_err(|e| {
+                    log_e!("try_into fail: {:?}", e);
+                    ErrorCode::GeneralError
+                })?,
+            };
             sk_infos.push(sk_info);
         }
 
@@ -350,7 +365,7 @@ impl HostDeviceEnrollRequest {
     fn store_device_info(&mut self) -> Result<CompanionDeviceInfo, ErrorCode> {
         let (device_info, device_base_info, capability_infos, sk_infos) = self.init_device_info()?;
         HostDbManagerRegistry::get_mut().add_device(&device_info, &device_base_info, &capability_infos, &sk_infos)?;
-        Ok(device_info)
+        Ok(*device_info)
     }
 
     fn store_token(&self, template_id: u64) -> Result<(), ErrorCode> {
@@ -358,7 +373,10 @@ impl HostDeviceEnrollRequest {
             let companion_token = CompanionTokenInfo {
                 template_id,
                 device_type: token_info.device_type,
-                token: token_info.token.clone(),
+                token: token_info.token.clone().try_into().map_err(|e| {
+                    log_e!("try_into fail: {:?}", e);
+                    ErrorCode::GeneralError
+                })?,
                 atl: self.atl,
                 added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             };
@@ -382,7 +400,7 @@ impl Request for HostDeviceEnrollRequest {
         };
 
         let sec_message = self.create_prepare_sec_message()?;
-        ffi_output.sec_message = DataArray20000Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 
@@ -403,7 +421,7 @@ impl Request for HostDeviceEnrollRequest {
         self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
 
         let sec_message = self.create_begin_sec_message()?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 
@@ -420,8 +438,8 @@ impl Request for HostDeviceEnrollRequest {
 
         let fwk_message = self.create_end_fwk_message(0, device_info.template_id)?;
         let sec_message = self.create_end_sec_message(device_info.template_id)?;
-        ffi_output.fwk_message = DataArray1024Ffi::try_from(fwk_message).map_err(|e| p!(e))?;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.fwk_message.copy_from_vec(&fwk_message)?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         ffi_output.template_id = device_info.template_id;
         ffi_output.atl = self.atl as i32;
         ffi_output.added_time = device_info.added_time;

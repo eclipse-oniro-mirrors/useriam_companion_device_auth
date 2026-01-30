@@ -35,11 +35,11 @@ fn create_test_device_info(binding_id: i32, device_id: &str, user_id: i32) -> Ho
 }
 
 fn create_test_sk_info(sk: Vec<u8>) -> HostDeviceSk {
-    HostDeviceSk { sk }
+    HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }
 }
 
 fn create_test_token_info() -> HostTokenInfo {
-    HostTokenInfo { token: vec![1u8, 2, 3, 4], atl: AuthTrustLevel::Atl3 }
+    HostTokenInfo { token: [0u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl3 }
 }
 
 fn mock_set_storage_io_success() {
@@ -809,8 +809,7 @@ fn default_companion_db_manager_read_device_token_test_success() {
 
     let mut parcel = Parcel::new();
     parcel.write_i32(0);
-    parcel.write_i32(4);
-    parcel.write_bytes(&[1, 2, 3, 4]);
+    parcel.write_bytes(&[0u8; TOKEN_KEY_LEN]);
     parcel.write_i32(AuthTrustLevel::Atl3 as i32);
 
     let serialized_data = parcel.as_slice().to_vec();
@@ -823,7 +822,7 @@ fn default_companion_db_manager_read_device_token_test_success() {
     let result = manager.read_device_token(123);
     assert!(result.is_ok());
     let token_info = result.unwrap();
-    assert_eq!(token_info.token, vec![1, 2, 3, 4]);
+    assert_eq!(token_info.token, [0u8; TOKEN_KEY_LEN]);
     assert_eq!(token_info.atl, AuthTrustLevel::Atl3);
 }
 
@@ -955,8 +954,7 @@ fn default_companion_db_manager_read_device_token_test_atl_try_from_fail() {
 
     let mut parcel = Parcel::new();
     parcel.write_i32(0);
-    parcel.write_i32(4);
-    parcel.write_bytes(&[1, 2, 3, 4]);
+    parcel.write_bytes(&[0u8; TOKEN_KEY_LEN]);
     parcel.write_i32(99999);
 
     let serialized_data = parcel.as_slice().to_vec();
@@ -1080,8 +1078,7 @@ fn default_companion_db_manager_read_device_sk_test_success() {
 
     let mut parcel = Parcel::new();
     parcel.write_i32(0);
-    parcel.write_i32(3);
-    parcel.write_bytes(&[1, 2, 3]);
+    parcel.write_bytes(&[0u8; SHARE_KEY_LEN]);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -1093,7 +1090,7 @@ fn default_companion_db_manager_read_device_sk_test_success() {
     let result = manager.read_device_sk(123);
     assert!(result.is_ok());
     let sk_info = result.unwrap();
-    assert_eq!(sk_info.sk, vec![1, 2, 3]);
+    assert_eq!(sk_info.sk, [0u8; SHARE_KEY_LEN]);
 }
 
 #[test]

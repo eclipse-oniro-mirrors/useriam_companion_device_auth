@@ -25,6 +25,7 @@ use crate::utils::parcel::Parcel;
 use crate::{log_e, log_i, p, Vec};
 #[cfg(not(any(test, feature = "test-utils")))]
 use alloc::{format, vec};
+use core::mem;
 #[cfg(any(test, feature = "test-utils"))]
 use std::format;
 
@@ -56,11 +57,6 @@ impl DefaultHostDbManager {
             .position(|device_info| template_id == device_info.template_id)
     }
 
-    #[allow(dead_code)]
-    fn find_device_index_by_filter(&self, filter: &CompanionDeviceFilter) -> Option<usize> {
-        self.companion_device_infos.iter().position(|device| filter(device))
-    }
-
     fn get_token_index_by_template_info(&self, template_id: u64, device_type: DeviceType) -> Option<usize> {
         self.companion_token_infos
             .iter()
@@ -74,9 +70,8 @@ impl DefaultHostDbManager {
         G: Fn(&T) -> u64 + 'a,
     {
         let mut attempts = 0;
-        const MAX_ATTEMPTS: usize = 100;
         loop {
-            let mut random_bytes = [0u8; 8];
+            let mut random_bytes = [0u8; mem::size_of::<u64>()];
             CryptoEngineRegistry::get().secure_random(&mut random_bytes).map_err(|_| {
                 log_e!("secure_random fail");
                 ErrorCode::GeneralError
@@ -89,16 +84,16 @@ impl DefaultHostDbManager {
             }
 
             attempts += 1;
-            if attempts >= MAX_ATTEMPTS {
-                log_e!("random generate error");
+            if attempts >= SECURE_RANDOM_MAX_ATTEMPTS {
+                log_e!("Failed to generate unique ID after {} attempts", SECURE_RANDOM_MAX_ATTEMPTS);
                 return Err(ErrorCode::GeneralError);
             }
         }
     }
 
-    fn serialize_device_db(&self, parcel: &mut Parcel) -> Result<(), ErrorCode> {
+    fn serialize_device_db(&self, parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
-        parcel.write_i32(self.companion_device_infos.len() as i32);
+        parcel.write_u32(self.companion_device_infos.len() as u32);
 
         for companion_device_info in &self.companion_device_infos {
             parcel.write_u64(companion_device_info.template_id);
@@ -111,19 +106,21 @@ impl DefaultHostDbManager {
             parcel.write_u16(companion_device_info.secure_protocol_id);
             parcel.write_u32(companion_device_info.is_valid as u32);
         }
-
-        Ok(())
     }
 
     fn deserialize_device_db(&mut self, parcel: &mut Parcel) -> Result<(), ErrorCode> {
-        let _version = parcel.read_i32().map_err(|_| ErrorCode::ReadParcelError)?;
-
-        self.companion_device_infos.clear();
-        let count = parcel.read_i32().map_err(|e| p!(e))?;
-        if count < 0 {
-            return Err(ErrorCode::BadParam);
+        let version = parcel.read_i32().map_err(|e| p!(e))?;
+        if version > CURRENT_VERSION {
+            log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
+            return Err(ErrorCode::GeneralError);
         }
-        let count = count as usize;
+        self.companion_device_infos.clear();
+
+        let count = parcel.read_u32().map_err(|e| p!(e))? as usize;
+        if count > MAX_DEVICE_NUM {
+            log_e!("count is error, count:{}", count);
+            return Err(ErrorCode::GeneralError);
+        }
 
         for _ in 0..count {
             let template_id = parcel.read_u64().map_err(|e| p!(e))?;
@@ -146,17 +143,12 @@ impl DefaultHostDbManager {
             };
 
             self.companion_device_infos.push(companion_device_info);
-            log_i!("companion_device_infos: {:?}", self.companion_device_infos);
         }
 
         Ok(())
     }
 
-    fn serialize_device_base_info(
-        &self,
-        base_info: &CompanionDeviceBaseInfo,
-        parcel: &mut Parcel,
-    ) -> Result<(), ErrorCode> {
+    fn serialize_device_base_info(base_info: &CompanionDeviceBaseInfo, parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
         parcel.write_string(&base_info.device_model);
         parcel.write_string(&base_info.device_name);
@@ -165,12 +157,15 @@ impl DefaultHostDbManager {
         for &business_id in &base_info.business_ids {
             parcel.write_i32(business_id);
         }
-
-        Ok(())
     }
 
-    fn deserialize_device_base_info(&self, parcel: &mut Parcel) -> Result<CompanionDeviceBaseInfo, ErrorCode> {
-        let _version = parcel.read_i32().map_err(|e| p!(e))?;
+    fn deserialize_device_base_info(parcel: &mut Parcel) -> Result<CompanionDeviceBaseInfo, ErrorCode> {
+        let version = parcel.read_i32().map_err(|e| p!(e))?;
+        if version > CURRENT_VERSION {
+            log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
+            return Err(ErrorCode::GeneralError);
+        }
+
         let device_model = parcel.read_string().map_err(|e| p!(e))?;
         let device_name = parcel.read_string().map_err(|e| p!(e))?;
         let device_user_name = parcel.read_string().map_err(|e| p!(e))?;
@@ -184,40 +179,35 @@ impl DefaultHostDbManager {
         Ok(CompanionDeviceBaseInfo { device_model, device_name, device_user_name, business_ids })
     }
 
-    fn serialize_device_capability_info(
-        &self,
-        capability_infos: &[CompanionDeviceCapability],
-        parcel: &mut Parcel,
-    ) -> Result<(), ErrorCode> {
+    fn serialize_device_capability_info(capability_infos: &[CompanionDeviceCapability], parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
-        parcel.write_i32(capability_infos.len() as i32);
+        parcel.write_u32(capability_infos.len() as u32);
         for capability_info in capability_infos {
             parcel.write_i32(capability_info.device_type as i32);
             parcel.write_i32(capability_info.esl as i32);
-            parcel.write_i32(capability_info.track_ability_level);
+            parcel.write_i32(capability_info.track_ability_level as i32);
         }
-
-        Ok(())
     }
 
-    fn deserialize_device_capability_info(
-        &self,
-        parcel: &mut Parcel,
-    ) -> Result<Vec<CompanionDeviceCapability>, ErrorCode> {
-        let _version = parcel.read_i32().map_err(|e| p!(e))?;
-        let count = parcel.read_i32().map_err(|e| p!(e))?;
-        if count < 0 {
-            return Err(ErrorCode::BadParam);
+    fn deserialize_device_capability_info(parcel: &mut Parcel) -> Result<Vec<CompanionDeviceCapability>, ErrorCode> {
+        let version = parcel.read_i32().map_err(|e| p!(e))?;
+        if version > CURRENT_VERSION {
+            log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
+            return Err(ErrorCode::GeneralError);
         }
-        let count = count as usize;
+        let count = parcel.read_u32().map_err(|e| p!(e))? as usize;
+        if count > MAX_DEVICE_NUM {
+            log_e!("count is error, count:{}", count);
+            return Err(ErrorCode::GeneralError);
+        }
 
         let mut capability_infos: Vec<CompanionDeviceCapability> = Vec::with_capacity(count);
-
         for _ in 0..count {
             let device_type_value = parcel.read_i32().map_err(|e| p!(e))?;
             let esl_value = parcel.read_i32().map_err(|e| p!(e))?;
-            let track_ability_level = parcel.read_i32().map_err(|e| p!(e))?;
+            let track_ability_level_value = parcel.read_i32().map_err(|e| p!(e))?;
             let device_type = DeviceType::try_from(device_type_value).map_err(|e| p!(e))?;
+            let track_ability_level = TrackAbilityLevel::try_from(track_ability_level_value).map_err(|e| p!(e))?;
             let esl = ExecutorSecurityLevel::try_from(esl_value).map_err(|e| p!(e))?;
             let capability_info = CompanionDeviceCapability { device_type, esl, track_ability_level };
 
@@ -227,38 +217,43 @@ impl DefaultHostDbManager {
         Ok(capability_infos)
     }
 
-    fn serialize_device_sk(&self, sk_infos: &[CompanionDeviceSk], parcel: &mut Parcel) -> Result<(), ErrorCode> {
+    fn serialize_device_sk(sk_infos: &[CompanionDeviceSk], parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
-        parcel.write_i32(sk_infos.len() as i32);
+        parcel.write_u32(sk_infos.len() as u32);
 
         for sk_info in sk_infos {
             parcel.write_i32(sk_info.device_type as i32);
-            parcel.write_i32(sk_info.sk.len() as i32);
             parcel.write_bytes(&sk_info.sk);
         }
-
-        Ok(())
     }
 
-    fn deserialize_device_sk(&self, parcel: &mut Parcel) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
-        let _version = parcel.read_i32().map_err(|e| p!(e))?;
-        let count = parcel.read_i32().map_err(|e| p!(e))?;
-        if count < 0 {
-            return Err(ErrorCode::BadParam);
+    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
+        let version = parcel.read_i32().map_err(|e| p!(e))?;
+        if version > CURRENT_VERSION {
+            log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
+            return Err(ErrorCode::GeneralError);
         }
-        let count = count as usize;
 
+        let count = parcel.read_u32().map_err(|e| p!(e))? as usize;
+        if count > MAX_DEVICE_NUM {
+            log_e!("count is error, count:{}", count);
+            return Err(ErrorCode::GeneralError);
+        }
         let mut sk_infos: Vec<CompanionDeviceSk> = Vec::with_capacity(count);
 
         for _ in 0..count {
             let device_type_value = parcel.read_i32().map_err(|e| p!(e))?;
             let device_type = DeviceType::try_from(device_type_value).map_err(|e| p!(e))?;
-            let sk_len = parcel.read_i32().map_err(|e| p!(e))? as usize;
-            let mut sk = vec![0u8; sk_len];
+            let mut sk = vec![0u8; SHARE_KEY_LEN];
             parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
 
-            let sk_info = CompanionDeviceSk { device_type, sk };
-
+            let sk_info = CompanionDeviceSk {
+                device_type,
+                sk: sk.try_into().map_err(|e| {
+                    log_e!("try_into fail: {:?}", e);
+                    ErrorCode::GeneralError
+                })?,
+            };
             sk_infos.push(sk_info);
         }
 
@@ -268,7 +263,7 @@ impl DefaultHostDbManager {
     fn write_device_db(&self) -> Result<(), ErrorCode> {
         log_i!("write_device_db start");
         let mut parcel = Parcel::new();
-        self.serialize_device_db(&mut parcel)?;
+        self.serialize_device_db(&mut parcel);
         StorageIoRegistry::get()
             .write(HOST_DEVICE_DB, parcel.as_slice())
             .map_err(|e| p!(e))?;
@@ -439,7 +434,7 @@ impl HostDbManager for DefaultHostDbManager {
         self.get_token_index_by_template_info(template_id, device_type)
             .map(|index| self.companion_token_infos[index].clone())
             .ok_or_else(|| {
-                log_e!("Token not found for template_id: {:x}", template_id as u16);
+                log_e!("Token not found for template_id: {:x}, device_type: {:?}", template_id as u16, device_type);
                 ErrorCode::NotFound
             })
     }
@@ -449,11 +444,19 @@ impl HostDbManager for DefaultHostDbManager {
         self.get_token_index_by_template_info(template_id, device_type)
             .map(|index| {
                 let token = self.companion_token_infos.remove(index);
-                log_i!("Token removed successfully for template_id: {:x}", template_id as u16);
+                log_i!(
+                    "Token removed successfully for template_id: {:x}, device_type: {:?}",
+                    template_id as u16,
+                    device_type
+                );
                 token
             })
             .ok_or_else(|| {
-                log_i!("Token not found for removal, template_id: {:x}", template_id as u16);
+                log_i!(
+                    "Token not found for removal, template_id: {:x}, device_type: {:?}",
+                    template_id as u16,
+                    device_type
+                );
                 ErrorCode::NotFound
             })
     }
@@ -505,14 +508,14 @@ impl HostDbManager for DefaultHostDbManager {
         }
 
         let mut parcel = Parcel::from(base_info_data);
-        self.deserialize_device_base_info(&mut parcel)
+        Self::deserialize_device_base_info(&mut parcel)
     }
 
     fn write_device_base_info(&self, template_id: u64, base_info: &CompanionDeviceBaseInfo) -> Result<(), ErrorCode> {
         log_i!("write_device_base_info start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_BASE_INFO);
         let mut parcel = Parcel::new();
-        self.serialize_device_base_info(base_info, &mut parcel)?;
+        Self::serialize_device_base_info(base_info, &mut parcel);
         StorageIoRegistry::get()
             .write(&filename, parcel.as_slice())
             .map_err(|e| p!(e))?;
@@ -536,7 +539,7 @@ impl HostDbManager for DefaultHostDbManager {
         }
 
         let mut parcel = Parcel::from(capability_info_data);
-        self.deserialize_device_capability_info(&mut parcel)
+        Self::deserialize_device_capability_info(&mut parcel)
     }
 
     fn write_device_capability_info(
@@ -547,7 +550,7 @@ impl HostDbManager for DefaultHostDbManager {
         log_i!("write_device_capability_info start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_CAPABILTY_INFO);
         let mut parcel = Parcel::new();
-        self.serialize_device_capability_info(capability_info, &mut parcel)?;
+        Self::serialize_device_capability_info(capability_info, &mut parcel);
         StorageIoRegistry::get()
             .write(&filename, parcel.as_slice())
             .map_err(|e| p!(e))?;
@@ -571,14 +574,14 @@ impl HostDbManager for DefaultHostDbManager {
         }
 
         let mut parcel = Parcel::from(sk_info_data);
-        self.deserialize_device_sk(&mut parcel)
+        Self::deserialize_device_sk(&mut parcel)
     }
 
     fn write_device_sk(&self, template_id: u64, sk_info: &[CompanionDeviceSk]) -> Result<(), ErrorCode> {
         log_i!("write_device_sk start, template_id:{:x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, HOST_DEVICE_SK);
         let mut parcel = Parcel::new();
-        self.serialize_device_sk(sk_info, &mut parcel)?;
+        Self::serialize_device_sk(sk_info, &mut parcel);
         StorageIoRegistry::get()
             .write(&filename, parcel.as_slice())
             .map_err(|e| p!(e))?;

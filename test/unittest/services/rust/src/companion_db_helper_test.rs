@@ -14,11 +14,9 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::jobs::companion_db_helper::{add_host_device, update_host_device_last_used_time};
 use crate::log_i;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, UserInfo};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
@@ -49,7 +47,7 @@ fn add_host_device_test() {
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let device_info = create_mock_host_device_info(456);
-    let sk_info = HostDeviceSk { sk: Vec::new() };
+    let sk_info = HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] };
 
     let result = add_host_device(&device_info, &sk_info);
     assert!(result.is_ok());

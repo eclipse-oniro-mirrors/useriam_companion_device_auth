@@ -14,7 +14,6 @@
  */
 
 use crate::common::constants::*;
-
 use crate::entry::companion_device_auth_ffi::DeviceKeyFfi;
 use crate::String;
 use crate::Vec;
@@ -46,7 +45,7 @@ pub struct UserInfo {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct HostDeviceSk {
-    pub sk: Vec<u8>,
+    pub sk: [u8; SHARE_KEY_LEN],
 }
 
 #[derive(Debug, Clone)]
@@ -62,7 +61,7 @@ pub struct HostDeviceInfo {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct HostTokenInfo {
-    pub token: Vec<u8>,
+    pub token: [u8; TOKEN_KEY_LEN],
     pub atl: AuthTrustLevel,
 }
 
@@ -80,13 +79,13 @@ pub struct CompanionDeviceBaseInfo {
 pub struct CompanionDeviceCapability {
     pub device_type: DeviceType,
     pub esl: ExecutorSecurityLevel,
-    pub track_ability_level: i32,
+    pub track_ability_level: TrackAbilityLevel,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDeviceSk {
     pub device_type: DeviceType,
-    pub sk: Vec<u8>,
+    pub sk: [u8; SHARE_KEY_LEN],
 }
 
 #[derive(Debug, Clone)]
@@ -105,7 +104,7 @@ pub struct CompanionDeviceInfo {
 pub struct CompanionTokenInfo {
     pub template_id: u64,
     pub device_type: DeviceType,
-    pub token: Vec<u8>,
+    pub token: [u8; TOKEN_KEY_LEN],
     pub atl: AuthTrustLevel,
     pub added_time: u64,
 }

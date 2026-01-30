@@ -55,7 +55,7 @@ fn create_valid_sec_reply_message(challenge: u64, atl: i32, auth_type: i32) -> V
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    reply.encode(DeviceType::None).unwrap()
+    reply.encode(DeviceType::Default).unwrap()
 }
 
 fn mock_set_crypto_engine() {
@@ -68,7 +68,7 @@ fn mock_set_crypto_engine() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()
@@ -94,14 +94,14 @@ fn mock_set_host_db_manager() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 }
 
@@ -343,9 +343,9 @@ fn host_delegate_auth_request_begin_test_get_session_key_fail() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager
@@ -476,9 +476,9 @@ fn host_delegate_auth_request_end_test_sec_message_decode_fail() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
@@ -513,9 +513,9 @@ fn host_delegate_auth_request_end_test_get_session_key_fail() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager
@@ -569,7 +569,7 @@ fn host_delegate_auth_request_end_test_try_from_bytes_fail() {
     let encrypt_data = Vec::new();
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    let sec_message = reply.encode(DeviceType::None).unwrap();
+    let sec_message = reply.encode(DeviceType::Default).unwrap();
 
     let end_input = HostEndDelegateAuthInputFfi {
         request_id: 1,
@@ -610,7 +610,7 @@ fn host_delegate_auth_request_end_test_get_type_fail() {
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    let sec_message = reply.encode(DeviceType::None).unwrap();
+    let sec_message = reply.encode(DeviceType::Default).unwrap();
 
     let end_input = HostEndDelegateAuthInputFfi {
         request_id: 1,
@@ -651,7 +651,7 @@ fn host_delegate_auth_request_end_test_get_atl_fail() {
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    let sec_message = reply.encode(DeviceType::None).unwrap();
+    let sec_message = reply.encode(DeviceType::Default).unwrap();
 
     let end_input = HostEndDelegateAuthInputFfi {
         request_id: 1,
@@ -692,7 +692,7 @@ fn host_delegate_auth_request_end_test_get_challenge_fail() {
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    let sec_message = reply.encode(DeviceType::None).unwrap();
+    let sec_message = reply.encode(DeviceType::Default).unwrap();
 
     let end_input = HostEndDelegateAuthInputFfi {
         request_id: 1,

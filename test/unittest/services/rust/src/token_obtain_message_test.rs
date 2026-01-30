@@ -137,7 +137,7 @@ fn sec_pre_obtain_token_request_decode_test_miss_message() {
     attribute.set_u32(AttributeKey::AttrResultCode, 0);
     let message = attribute.to_bytes().unwrap();
 
-    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::None);
+    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -151,7 +151,7 @@ fn sec_pre_obtain_token_request_decode_test_try_from_bytes_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::None);
+    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -166,7 +166,7 @@ fn sec_pre_obtain_token_request_decode_test_miss_salt() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::None);
+    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -181,7 +181,7 @@ fn sec_pre_obtain_token_request_decode_test_miss_challenge() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::None);
+    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
@@ -197,6 +197,6 @@ fn sec_pre_obtain_token_request_decode_test_salt_convert_fail() {
     final_attribute.set_u8_slice(AttributeKey::AttrMessage, attribute.to_bytes().unwrap().as_slice());
     let message = final_attribute.to_bytes().unwrap();
 
-    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::None);
+    let result = SecPreObtainTokenRequest::decode(&message, DeviceType::Default);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

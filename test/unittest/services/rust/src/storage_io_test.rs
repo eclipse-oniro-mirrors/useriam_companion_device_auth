@@ -14,7 +14,6 @@
  */
 
 use crate::common::constants::*;
-use crate::common::Udid;
 use crate::log_i;
 use crate::traits::storage_io::{DummyStorageIo, StorageIo};
 use crate::ut_registry_guard;

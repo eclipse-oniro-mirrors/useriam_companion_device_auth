@@ -33,7 +33,7 @@ pub fn get_companion_device_by_user_id(user_id: i32) -> Result<Vec<CompanionDevi
 }
 
 pub fn delete_companion_device_token(template_id: u64) -> Result<(), ErrorCode> {
-    HostDbManagerRegistry::get_mut().remove_token(template_id, DeviceType::None)?;
+    HostDbManagerRegistry::get_mut().remove_token(template_id, DeviceType::Default)?;
     Ok(())
 }
 
@@ -50,7 +50,6 @@ pub fn update_companion_device_info(
 }
 
 pub fn update_device_business_id(template_id: u64, business_ids: Vec<i32>) -> Result<(), ErrorCode> {
-    // Check if templateId exists (supports cross-user query)
     let _device_info = HostDbManagerRegistry::get().get_device(template_id).map_err(|e| {
         log_e!("get_device failed for template_id:{:x}, err:{:?}", template_id as u16, e);
         e

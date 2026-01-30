@@ -15,10 +15,8 @@
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
-    CompanionInitKeyNegotiationInputFfi, DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi,
-    PersistedHostBindingStatusFfi,
+    CompanionInitKeyNegotiationInputFfi, DeviceKeyFfi, PersistedHostBindingStatusFfi,
 };
-
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::enroll::enroll_message::{
@@ -31,14 +29,13 @@ use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, HostTok
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, log_i, p, Vec};
+use crate::{log_e, log_i, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct KeyNegoParam {
     pub request_id: i32,
     pub companion_device_key: DeviceKey,
     pub host_device_key: DeviceKey,
-    pub algorithm_list: Vec<u16>,
     pub challenge: u64,
     pub key_pair: Option<KeyPair>,
 }
@@ -57,6 +54,7 @@ pub struct TokenInfo {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDeviceEnrollRequest {
+    pub secure_protocol_id: u16,
     pub key_nego_param: KeyNegoParam,
     pub binding_param: BindingParam,
     pub session_key: Vec<u8>,
@@ -76,11 +74,11 @@ impl CompanionDeviceEnrollRequest {
             ErrorCode::GeneralError
         })?;
         Ok(Self {
+            secure_protocol_id: input.secure_protocol_id,
             key_nego_param: KeyNegoParam {
                 request_id: input.request_id,
                 companion_device_key,
                 host_device_key,
-                algorithm_list: Vec::from([AlgoType::X25519 as u16]),
                 challenge: u64::from_ne_bytes(challenge),
                 key_pair: None,
             },
@@ -100,9 +98,9 @@ impl CompanionDeviceEnrollRequest {
         self.key_nego_param.challenge
     }
 
-    fn get_key_pair(&self) -> Result<KeyPair, ErrorCode> {
+    fn get_key_pair(&self) -> Result<&KeyPair, ErrorCode> {
         match &self.key_nego_param.key_pair {
-            Some(k) => Ok(k.clone()),
+            Some(key_pair) => Ok(key_pair),
             None => {
                 log_e!("x25519 key pair not set");
                 Err(ErrorCode::GeneralError)
@@ -120,7 +118,10 @@ impl CompanionDeviceEnrollRequest {
     }
 
     fn parse_key_nego_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_key_nego_request(DeviceType::None, sec_message) {
+        if let Err(e) = self.parse_key_nego_request(
+            DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
+            sec_message,
+        ) {
             log_e!("parse key nego request message fail: {:?}", e);
             return Err(ErrorCode::GeneralError);
         }
@@ -131,28 +132,33 @@ impl CompanionDeviceEnrollRequest {
         let key_pair = CryptoEngineRegistry::get().generate_x25519_key_pair().map_err(|e| p!(e))?;
         self.key_nego_param.key_pair = Some(key_pair.clone());
 
-        let key_nego_reply = SecKeyNegoReply {
+        let key_nego_reply = Box::new(SecKeyNegoReply {
             algorithm: AlgoType::X25519 as u16,
             challenge: self.key_nego_param.challenge,
             pub_key: key_pair.pub_key.clone(),
-        };
-        let output = key_nego_reply.encode(DeviceType::None)?;
+        });
+        let output = key_nego_reply.encode(DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?)?;
         Ok(output)
     }
 
-    fn init_device_info(&mut self) -> Result<(HostDeviceInfo, HostDeviceSk), ErrorCode> {
+    fn init_device_info(&mut self) -> Result<(Box<HostDeviceInfo>, Box<HostDeviceSk>), ErrorCode> {
         let binding_id = CompanionDbManagerRegistry::get()
             .generate_unique_binding_id()
             .map_err(|e| p!(e))?;
-        let device_info = HostDeviceInfo {
+        let device_info = Box::new(HostDeviceInfo {
             binding_id,
             device_key: self.key_nego_param.host_device_key.clone(),
             user_info: UserInfo { user_id: self.key_nego_param.companion_device_key.user_id, user_type: 0 },
             binding_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             last_used_time: 0,
-        };
+        });
 
-        let sk_info = HostDeviceSk { sk: self.sk.clone() };
+        let sk_info = Box::new(HostDeviceSk {
+            sk: self.sk.clone().try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+        });
 
         Ok((device_info, sk_info))
     }
@@ -164,13 +170,13 @@ impl CompanionDeviceEnrollRequest {
         let sk = CryptoEngineRegistry::get()
             .x25519_ecdh(&key_pair, &output.pub_key)
             .map_err(|e| {
-                log_e!("x25519 computation failed for {:?}, {:?}", device_type, e);
+                log_e!("x25519 computation failed for device_type: {:?}, result: {:?}", device_type, e);
                 ErrorCode::GeneralError
             })?;
 
-        let session_key = CryptoEngineRegistry::get().hkdf(&output.salt, &sk).map_err(|e| p!(e))?;
+        self.session_key = CryptoEngineRegistry::get().hkdf(&output.salt, &sk).map_err(|e| p!(e))?;
         let decrypt_data =
-            message_crypto::decrypt_sec_message(&output.encrypt_data, &session_key, &output.tag, &output.iv)
+            message_crypto::decrypt_sec_message(&output.encrypt_data, &self.session_key, &output.tag, &output.iv)
                 .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let device_id = decrypt_attribute.get_string(AttributeKey::AttrDeviceId).map_err(|e| p!(e))?;
@@ -197,13 +203,14 @@ impl CompanionDeviceEnrollRequest {
         }
 
         self.binding_param.salt = output.salt;
-        self.session_key = session_key;
         self.sk = sk;
         Ok(())
     }
 
     fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_binding_request(DeviceType::None, sec_message) {
+        if let Err(e) = self
+            .parse_binding_request(DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?, sec_message)
+        {
             log_e!("parse bingding request message fail: {:?}", e);
             return Err(ErrorCode::GeneralError);
         }
@@ -212,20 +219,20 @@ impl CompanionDeviceEnrollRequest {
     }
 
     fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
-        let reply_info = SecBindingReplyInfo {
+        let reply_info = Box::new(SecBindingReplyInfo {
             device_id: self.key_nego_param.companion_device_key.device_id.clone(),
             user_id: self.key_nego_param.companion_device_key.user_id,
             esl: ExecutorSecurityLevel::Esl3 as i32,
-            track_ability_level: 0,
+            track_ability_level: TrackAbilityLevel::Tal4 as i32,
             challenge: self.get_challenge(),
             protocol_list: PROTOCOL_VERSION.to_vec(),
             capability_list: SUPPORT_CAPABILITY.to_vec(),
-        };
+        });
         let (encrypt_data, tag, iv) =
             message_crypto::encrypt_sec_message(&reply_info.encode()?, &self.session_key).map_err(|e| p!(e))?;
 
-        let binding_reply = SecBindingReply { tag, iv, encrypt_data };
-        let output = binding_reply.encode(DeviceType::None)?;
+        let binding_reply = Box::new(SecBindingReply { tag, iv, encrypt_data });
+        let output = binding_reply.encode(DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?)?;
         Ok(output)
     }
 
@@ -247,7 +254,10 @@ impl CompanionDeviceEnrollRequest {
     }
 
     fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_issue_token_request(DeviceType::None, sec_message) {
+        if let Err(e) = self.parse_issue_token_request(
+            DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
+            sec_message,
+        ) {
             log_e!("parse issue token request message fail: {:?}", e);
             return Err(ErrorCode::GeneralError);
         }
@@ -256,7 +266,13 @@ impl CompanionDeviceEnrollRequest {
     }
 
     fn store_token(&self) -> Result<(), ErrorCode> {
-        let token_info = HostTokenInfo { token: self.token_info.token.clone(), atl: self.token_info.atl };
+        let token_info = HostTokenInfo {
+            token: self.token_info.token.clone().try_into().map_err(|e| {
+                log_e!("try_into fail: {:?}", e);
+                ErrorCode::GeneralError
+            })?,
+            atl: self.token_info.atl,
+        };
 
         CompanionDbManagerRegistry::get_mut().write_device_token(self.binding_id, &token_info)?;
         Ok(())
@@ -283,7 +299,7 @@ impl Request for CompanionDeviceEnrollRequest {
 
         self.parse_key_nego_sec_message(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.create_key_nego_sec_message()?;
-        ffi_output.sec_message = DataArray20000Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
 
@@ -300,7 +316,7 @@ impl Request for CompanionDeviceEnrollRequest {
         let binding_id = self.store_device_info()?;
         let device_info = CompanionDbManagerRegistry::get().get_device_by_binding_id(binding_id)?;
         self.binding_id = binding_id;
-        ffi_output.sec_message = DataArray1024Ffi::try_from(sec_message).map_err(|e| p!(e))?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
         ffi_output.binding_id = binding_id;
         ffi_output.binding_status = PersistedHostBindingStatusFfi {
             binding_id,

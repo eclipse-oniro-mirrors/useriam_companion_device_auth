@@ -16,7 +16,7 @@
 use crate::common::constants::*;
 use crate::impls::openssl_crypto_engine::OpenSSLCryptoEngine;
 use crate::log_i;
-use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngine, KeyPair};
+use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngine};
 use crate::ut_registry_guard;
 
 #[test]

@@ -21,7 +21,7 @@ use crate::entry::companion_device_auth_ffi::{
 use crate::log_i;
 use crate::request::jobs::common_message::SecCommonReply;
 use crate::request::status_sync::host_sync_status::HostDeviceSyncStatusRequest;
-use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
+use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::{
     CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, DeviceKey, UserInfo,
 };
@@ -42,7 +42,7 @@ fn create_valid_sync_reply_message(challenge: u64, protocol_list: &[u16], capabi
     let iv = [2u8; AES_GCM_IV_SIZE];
 
     let reply = SecCommonReply { tag, iv, encrypt_data };
-    reply.encode(DeviceType::None).unwrap()
+    reply.encode(DeviceType::Default).unwrap()
 }
 
 fn create_mock_companion_device_info() -> CompanionDeviceInfo {
@@ -70,14 +70,14 @@ fn mock_set_host_db_manager() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     mock_host_db_manager
         .expect_get_device()
         .returning(|| Ok(create_mock_companion_device_info()));
@@ -291,9 +291,9 @@ fn host_sync_status_request_end_test_decode_sec_message_fail() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager.expect_get_device().returning(|| Err(ErrorCode::NotFound));
@@ -329,9 +329,9 @@ fn host_sync_status_request_end_test_get_session_key_fail() {
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
-            device_type: DeviceType::None,
+            device_type: DeviceType::Default,
             esl: ExecutorSecurityLevel::Esl3,
-            track_ability_level: 1,
+            track_ability_level: TrackAbilityLevel::Tal1,
         }])
     });
     mock_host_db_manager

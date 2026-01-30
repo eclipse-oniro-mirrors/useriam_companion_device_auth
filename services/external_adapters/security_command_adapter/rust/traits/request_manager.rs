@@ -14,7 +14,6 @@
  */
 
 use crate::common::constants::*;
-
 use crate::entry::companion_device_auth_ffi::{
     CompanionBeginAddHostBindingInputFfi, CompanionBeginAddHostBindingOutputFfi, CompanionBeginDelegateAuthInputFfi,
     CompanionBeginDelegateAuthOutputFfi, CompanionBeginObtainTokenInputFfi, CompanionBeginObtainTokenOutputFfi,
@@ -33,7 +32,6 @@ use crate::entry::companion_device_auth_ffi::{
     HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi, HostProcessObtainTokenInputFfi,
     HostProcessObtainTokenOutputFfi, HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
 };
-
 use crate::{log_e, singleton_registry, Box};
 
 pub enum RequestParam<'a> {

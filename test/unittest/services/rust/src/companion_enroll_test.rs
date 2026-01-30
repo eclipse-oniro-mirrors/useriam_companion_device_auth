@@ -24,7 +24,6 @@ use crate::request::enroll::enroll_message::{SecBindingRequest, SecKeyNegoReques
 use crate::request::jobs::common_message::SecIssueToken;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{DeviceKey, HostDeviceInfo, HostDeviceSk, UserInfo};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
@@ -47,7 +46,7 @@ fn genereate_companion_init_key_negotiation_input_ffi() -> CompanionInitKeyNegot
 
 fn create_valid_key_nego_request() -> Vec<u8> {
     let request = SecKeyNegoRequest { algorithm_list: vec![AlgoType::X25519 as u16] };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_binding_request(pub_key: &[u8], challenge: u64) -> Vec<u8> {
@@ -62,20 +61,20 @@ fn create_valid_binding_request(pub_key: &[u8], challenge: u64) -> Vec<u8> {
     let iv = [3u8; AES_GCM_IV_SIZE];
 
     let request = SecBindingRequest { pub_key: pub_key.to_vec(), salt, tag, iv, encrypt_data };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_issue_token_message(challenge: u64, atl: i32) -> Vec<u8> {
     let issue_token = SecIssueToken { challenge, atl, token: vec![1u8; TOKEN_KEY_LEN] };
     issue_token
-        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, &[])
+        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::Default, &[])
         .unwrap()
 }
 
 fn mock_set_crypto_engine() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()
@@ -121,7 +120,7 @@ fn companion_enroll_request_prepare_test_algorithm_not_supported() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let request_no_x25519 = SecKeyNegoRequest { algorithm_list: vec![AlgoType::None as u16] };
-    let sec_message = request_no_x25519.encode(DeviceType::None).unwrap();
+    let sec_message = request_no_x25519.encode(DeviceType::Default).unwrap();
 
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
@@ -251,7 +250,7 @@ fn companion_enroll_request_begin_test_hkdf_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
@@ -280,7 +279,7 @@ fn companion_enroll_request_begin_test_decrypt_sec_message_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()
@@ -393,7 +392,7 @@ fn companion_enroll_request_begin_test_encrypt_sec_message_fail() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok(Vec::new()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()

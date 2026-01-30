@@ -37,7 +37,7 @@ pub(crate) extern crate alloc;
 pub(crate) use alloc::{boxed::Box, ffi::CString, fmt::Arguments, string::String, vec, vec::Vec};
 
 #[cfg(any(test, feature = "test-utils"))]
-pub(crate) use std::{boxed::Box, collections::BTreeMap, ffi::CString, fmt::Arguments, string::String, vec, vec::Vec};
+pub(crate) use std::{boxed::Box, ffi::CString, fmt::Arguments, string::String, vec, vec::Vec};
 
 pub(crate) use common::*;
 

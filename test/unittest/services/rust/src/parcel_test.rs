@@ -17,7 +17,6 @@ use crate::common::constants::ErrorCode;
 use crate::log_i;
 use crate::ut_registry_guard;
 use crate::utils::parcel::Parcel;
-use core::mem::size_of;
 
 #[test]
 fn test_parcel_new() {

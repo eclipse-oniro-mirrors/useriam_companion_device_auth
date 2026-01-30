@@ -19,7 +19,7 @@ use crate::traits::crypto_engine::AesGcmParam;
 use crate::traits::crypto_engine::AesGcmResult;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::misc_manager::MiscManagerRegistry;
-use crate::{log_e, p, Vec};
+use crate::{log_e, p, Box, Vec};
 #[cfg(not(any(test, feature = "test-utils")))]
 use alloc::borrow::ToOwned;
 #[cfg(any(test, feature = "test-utils"))]
@@ -27,9 +27,9 @@ use std::borrow::ToOwned;
 
 type EncryptedMessage = (Vec<u8>, [u8; AES_GCM_TAG_SIZE], [u8; AES_GCM_IV_SIZE]);
 
-fn init_aes_gcm_param(key: Vec<u8>, iv: [u8; AES_GCM_IV_SIZE]) -> Result<AesGcmParam, ErrorCode> {
+fn init_aes_gcm_param(key: &[u8], iv: [u8; AES_GCM_IV_SIZE]) -> Result<Box<AesGcmParam>, ErrorCode> {
     let aad = AES_GCM_AAD.as_bytes().to_vec();
-    let aes_param = AesGcmParam { key, iv, aad };
+    let aes_param = Box::new(AesGcmParam { key: key.to_vec(), iv, aad });
     Ok(aes_param)
 }
 
@@ -40,9 +40,9 @@ pub fn encrypt_sec_message(message: &[u8], key: &[u8]) -> Result<EncryptedMessag
         log_e!("secure_random fail");
         ErrorCode::GeneralError
     })?;
-    let aes_gcm_param = init_aes_gcm_param(key.to_vec(), iv)?;
+    let aes_gcm_param = init_aes_gcm_param(key, iv)?;
     let aes_gcm_result = CryptoEngineRegistry::get()
-        .aes_gcm_encrypt(message, &aes_gcm_param)
+        .aes_gcm_encrypt(message, &*aes_gcm_param)
         .map_err(|e| p!(e))?;
 
     tag.copy_from_slice(&aes_gcm_result.authentication_tag);
@@ -62,13 +62,12 @@ pub fn decrypt_sec_message(sec_message: &[u8], key: &[u8], tag: &[u8], iv: &[u8]
         return Err(ErrorCode::GeneralError);
     }
     iv_array.copy_from_slice(iv);
-    let aes_gcm_param = init_aes_gcm_param(key.to_vec(), iv_array)?;
+    let aes_gcm_param = init_aes_gcm_param(key, iv_array)?;
     let aes_gcm_result = AesGcmResult::new(sec_message.to_vec(), tag_array);
 
-    let decrypted_data = CryptoEngineRegistry::get()
-        .aes_gcm_decrypt(&aes_gcm_param, &aes_gcm_result)
-        .map_err(|e| p!(e))?;
-    Ok(decrypted_data)
+    CryptoEngineRegistry::get()
+        .aes_gcm_decrypt(&*aes_gcm_param, &aes_gcm_result)
+        .map_err(|e| p!(e))
 }
 
 pub fn get_distribute_key(local_device_id: &str, peer_device_id: &str) -> Result<Vec<u8>, ErrorCode> {

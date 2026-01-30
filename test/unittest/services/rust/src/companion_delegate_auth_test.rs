@@ -21,11 +21,10 @@ use crate::log_i;
 use crate::request::delegate_auth::companion_auth::CompanionDelegateAuthRequest;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
-use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
-use crate::traits::db_manager::{DeviceKey, HostDeviceSk, UserInfo};
+use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
+use crate::traits::db_manager::HostDeviceSk;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
-use crate::utils::auth_token::{TokenDataPlain, UserAuthToken};
 use crate::utils::{Attribute, AttributeKey};
 use std::boxed::Box;
 
@@ -166,7 +165,7 @@ fn parse_begin_sec_message_test_get_session_key_fail() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: attr.to_bytes().unwrap(),
     };
-    let sec_message = sec_common_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_common_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,
@@ -191,7 +190,7 @@ fn parse_begin_sec_message_test_decrypt_sec_message_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -211,7 +210,7 @@ fn parse_begin_sec_message_test_decrypt_sec_message_fail() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: attr.to_bytes().unwrap(),
     };
-    let sec_message = sec_common_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_common_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,
@@ -236,7 +235,7 @@ fn parse_begin_sec_message_test_try_from_bytes_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -252,7 +251,7 @@ fn parse_begin_sec_message_test_try_from_bytes_fail() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: Vec::new(),
     };
-    let sec_message = sec_common_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_common_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,
@@ -277,7 +276,7 @@ fn parse_begin_sec_message_test_get_challenge_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -296,7 +295,7 @@ fn parse_begin_sec_message_test_get_challenge_fail() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: attr.to_bytes().unwrap(),
     };
-    let sec_message = sec_common_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_common_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,
@@ -321,7 +320,7 @@ fn parse_begin_sec_message_test_get_atl_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -340,7 +339,7 @@ fn parse_begin_sec_message_test_get_atl_fail() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: attr.to_bytes().unwrap(),
     };
-    let sec_message = sec_common_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_common_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,
@@ -365,7 +364,7 @@ fn parse_begin_sec_message_test_atl_try_from_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -385,7 +384,7 @@ fn parse_begin_sec_message_test_atl_try_from_fail() {
         iv: [0u8; AES_GCM_IV_SIZE],
         encrypt_data: attr.to_bytes().unwrap(),
     };
-    let sec_message = sec_common_request.encode(DeviceType::None).unwrap();
+    let sec_message = sec_common_request.encode(DeviceType::Default).unwrap();
 
     let input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,

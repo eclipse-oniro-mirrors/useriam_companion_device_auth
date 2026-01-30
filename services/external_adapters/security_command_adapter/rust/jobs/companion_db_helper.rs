@@ -24,7 +24,9 @@ pub fn add_host_device(device_info: &HostDeviceInfo, sk_info: &HostDeviceSk) -> 
     if let Ok(info) = CompanionDbManagerRegistry::get()
         .get_device_by_device_key(device_info.user_info.user_id, &device_info.device_key)
     {
-        let _ = CompanionDbManagerRegistry::get_mut().remove_device(info.binding_id);
+        if CompanionDbManagerRegistry::get_mut().remove_device(info.binding_id).is_err() {
+            log_e!("remove device fail");
+        }
     }
 
     CompanionDbManagerRegistry::get_mut().add_device(device_info, sk_info)

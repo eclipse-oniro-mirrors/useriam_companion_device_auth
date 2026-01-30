@@ -41,14 +41,14 @@ fn create_valid_obtain_token_request(challenge: u64, atl: i32) -> Vec<u8> {
     let salt = [3u8; HKDF_SALT_SIZE];
 
     let request = SecCommonRequest { salt, tag, iv, encrypt_data };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 fn create_mock_companion_device_capability() -> CompanionDeviceCapability {
     CompanionDeviceCapability {
-        device_type: DeviceType::None,
+        device_type: DeviceType::Default,
         esl: ExecutorSecurityLevel::Esl3,
-        track_ability_level: 1,
+        track_ability_level: TrackAbilityLevel::Tal1,
     }
 }
 
@@ -72,7 +72,7 @@ fn mock_set_host_db_manager() {
         .returning(|| Ok(vec![create_mock_companion_device_capability()]));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 }
@@ -588,7 +588,7 @@ fn host_obtain_token_request_end_test_add_token_fail() {
         .returning(|| Ok(vec![create_mock_companion_device_capability()]));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     mock_host_db_manager
         .expect_add_token()
         .returning(|| Err(ErrorCode::GeneralError));

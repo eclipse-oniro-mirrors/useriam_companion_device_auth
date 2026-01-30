@@ -13,13 +13,11 @@
  * limitations under the License.
  */
 
-use crate::common::constants::ErrorCode;
 use crate::impls::default_storage_io::DefaultStorageIo;
 use crate::log_i;
 use crate::traits::storage_io::StorageIo;
 use crate::ut_registry_guard;
 use std::fs;
-use std::path::Path;
 
 /// RAII guard to ensure test files are deleted even if the test panics
 struct FileGuard<'a> {

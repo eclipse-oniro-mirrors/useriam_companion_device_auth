@@ -28,10 +28,10 @@ pub const TOKEN_VERSION: u32 = 0;
 pub struct TokenDataPlainRaw {
     pub challenge: [u8; AUTH_TOKEN_CHALLENGE_LEN],
     pub time: u64,
-    pub auth_trust_level: i32,        // AuthTrustLevel discriminant (underlying type: i32)
-    pub auth_type: u32,               // AuthType discriminant (underlying type: u32)
+    pub auth_trust_level: i32, // AuthTrustLevel discriminant (underlying type: i32)
+    pub auth_type: u32,        // AuthType discriminant (underlying type: u32)
     pub schedule_mode: i32,
-    pub security_level: i32,          // AuthSecurityLevel discriminant (underlying type: i32)
+    pub security_level: i32, // AuthSecurityLevel discriminant (underlying type: i32)
     pub token_type: i32,
 }
 

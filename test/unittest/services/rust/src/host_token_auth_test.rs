@@ -21,7 +21,7 @@ use crate::entry::companion_device_auth_ffi::{
 use crate::log_i;
 use crate::request::token_auth::auth_message::SecAuthReply;
 use crate::request::token_auth::host_auth::{HostTokenAuthRequest, TOKEN_VALID_PERIOD};
-use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
+use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo, DeviceKey, UserInfo};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
@@ -48,7 +48,7 @@ fn create_valid_fwk_auth_request(schedule_id: u64, template_ids: &[u64], atl: i3
 
 fn create_valid_auth_reply_message(hmac: &[u8]) -> Vec<u8> {
     let reply = SecAuthReply { hmac: hmac.to_vec() };
-    reply.encode(DeviceType::None).unwrap()
+    reply.encode(DeviceType::Default).unwrap()
 }
 
 fn create_mock_companion_device_info(template_id: u64, secure_protocol_id: u16) -> CompanionDeviceInfo {
@@ -65,8 +65,8 @@ fn create_mock_companion_device_info(template_id: u64, secure_protocol_id: u16) 
 fn create_mock_companion_token_info(added_time: u64) -> CompanionTokenInfo {
     CompanionTokenInfo {
         template_id: 123,
-        device_type: DeviceType::None,
-        token: vec![1u8; TOKEN_KEY_LEN],
+        device_type: DeviceType::Default,
+        token: [1u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,
         added_time,
     }
@@ -124,7 +124,7 @@ fn host_token_auth_request_new_test_success() {
     assert_eq!(request.auth_param.template_id, 123);
     assert_eq!(request.atl, AuthTrustLevel::Atl0);
     assert_eq!(request.acl, AuthCapabilityLevel::Acl0);
-    assert_eq!(request.device_type, DeviceType::None);
+    assert_eq!(request.device_type, DeviceType::Default);
 }
 
 #[test]
@@ -535,7 +535,7 @@ fn host_token_auth_request_begin_test_aes_gcm_encrypt_fail() {
         .returning(|| Ok(create_mock_companion_token_info(1000)));
     mock_host_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::None, sk: Vec::new() }]));
+        .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     mock_set_misc_manager();
@@ -602,7 +602,7 @@ fn host_token_auth_request_end_test_get_token_fail() {
     };
 
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
-    request.device_type = DeviceType::None;
+    request.device_type = DeviceType::Default;
 
     let hmac = vec![1u8, 2, 3, 4, 5];
     let sec_message = create_valid_auth_reply_message(&hmac);
@@ -645,7 +645,7 @@ fn host_token_auth_request_end_test_hmac_sha256_fail() {
     };
 
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
-    request.device_type = DeviceType::None;
+    request.device_type = DeviceType::Default;
 
     let hmac = vec![1u8, 2, 3, 4, 5];
     let sec_message = create_valid_auth_reply_message(&hmac);
@@ -688,7 +688,7 @@ fn host_token_auth_request_end_test_hmac_verification_fail() {
     };
 
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
-    request.device_type = DeviceType::None;
+    request.device_type = DeviceType::Default;
 
     let hmac = vec![1u8, 2, 3, 4, 5];
     let sec_message = create_valid_auth_reply_message(&hmac);
@@ -737,7 +737,7 @@ fn host_token_auth_request_end_test_get_local_key_pair_fail() {
     };
 
     let mut request = HostTokenAuthRequest::new(&input).unwrap();
-    request.device_type = DeviceType::None;
+    request.device_type = DeviceType::Default;
 
     let hmac = vec![1u8, 2, 3, 4, 5];
     let sec_message = create_valid_auth_reply_message(&hmac);

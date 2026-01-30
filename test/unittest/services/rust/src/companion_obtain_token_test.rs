@@ -21,10 +21,10 @@ use crate::entry::companion_device_auth_ffi::{
 use crate::log_i;
 use crate::request::jobs::common_message::SecIssueToken;
 use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainTokenRequest;
-use crate::request::token_obtain::token_obtain_message::{FwkObtainTokenRequest, SecPreObtainTokenRequest};
+use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{HostDeviceSk, HostTokenInfo};
+use crate::traits::db_manager::HostDeviceSk;
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
@@ -48,13 +48,13 @@ fn create_valid_fwk_obtain_token_request(property_mode: u32, auth_type: u32, atl
 
 fn create_valid_pre_obtain_token_request(salt: &[u8; HKDF_SALT_SIZE], challenge: u64) -> Vec<u8> {
     let request = SecPreObtainTokenRequest { salt: *salt, challenge };
-    request.encode(DeviceType::None).unwrap()
+    request.encode(DeviceType::Default).unwrap()
 }
 
 fn create_valid_obtain_token_reply(challenge: u64, atl: i32, session_key: &[u8]) -> Vec<u8> {
     let issue_token = SecIssueToken { challenge, atl, token: vec![1u8; TOKEN_KEY_LEN] };
     issue_token
-        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::None, session_key)
+        .encrypt_issue_token(&[1u8; HKDF_SALT_SIZE], DeviceType::Default, session_key)
         .unwrap()
 }
 
@@ -311,7 +311,7 @@ fn companion_obtain_token_request_begin_test_aes_gcm_encrypt_fail() {
     let mut mock_companion_db_manager = MockCompanionDbManager::new();
     mock_companion_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(HostDeviceSk { sk: Vec::new() }));
+        .returning(|| Ok(HostDeviceSk { sk: [0u8; SHARE_KEY_LEN] }));
     CompanionDbManagerRegistry::set(Box::new(mock_companion_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();

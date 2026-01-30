@@ -14,9 +14,7 @@
  */
 
 use crate::impls::default_time_keeper::DefaultTimeKeeper;
-use crate::log_i;
 use crate::traits::time_keeper::TimeKeeper;
-use crate::ut_registry_guard;
 
 #[test]
 fn test_time_functions() {

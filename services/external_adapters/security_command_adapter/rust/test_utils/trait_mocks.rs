@@ -15,21 +15,16 @@
 
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils {
-    use super::*;
-
-    use crate::common::constants::*;
-    use crate::common::types::*;
-    use crate::entry::companion_device_auth_ffi::CommandId;
     use crate::traits::{
         companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager},
-        crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine},
-        event_manager::{Event, EventManagerRegistry, MockEventManager},
+        crypto_engine::{CryptoEngineRegistry, MockCryptoEngine},
+        event_manager::{EventManagerRegistry, MockEventManager},
         host_db_manager::{HostDbManagerRegistry, MockHostDbManager},
         logger::{LogLevel, Logger, LoggerRegistry},
         misc_manager::{MiscManagerRegistry, MockMiscManager},
         request_manager::{MockRequestManager, RequestManagerRegistry},
-        storage_io::{MockStorageIo, StorageIo, StorageIoRegistry},
-        time_keeper::{MockTimeKeeper, TimeKeeper, TimeKeeperRegistry},
+        storage_io::{MockStorageIo, StorageIoRegistry},
+        time_keeper::{MockTimeKeeper, TimeKeeperRegistry},
     };
     use crate::{Box, Vec};
     use std::sync::Mutex;
@@ -70,16 +65,14 @@ pub mod test_utils {
     }
 
     pub struct UtRegistryGuard {
-    _lock_guard: Option<std::sync::MutexGuard<'static, ()>>,
-}
+        _lock_guard: Option<std::sync::MutexGuard<'static, ()>>,
+    }
 
     impl UtRegistryGuard {
         pub fn new() -> Self {
             // Handle poisoned mutex: if a previous thread panicked while holding the lock,
             // we can still recover by using into_inner()
-            let _lock_guard = Some(get_global_test_lock().lock().unwrap_or_else(|poisoned| {
-                poisoned.into_inner()
-            }));
+            let _lock_guard = Some(get_global_test_lock().lock().unwrap_or_else(|poisoned| poisoned.into_inner()));
 
             let mock_logger = TestLogger::new();
             LoggerRegistry::set(Box::new(mock_logger));

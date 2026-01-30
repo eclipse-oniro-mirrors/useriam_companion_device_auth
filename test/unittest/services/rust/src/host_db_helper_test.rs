@@ -14,7 +14,6 @@
  */
 
 use crate::common::constants::*;
-use crate::common::types::*;
 use crate::jobs::host_db_helper::{get_session_key, update_companion_device_info, update_device_business_id};
 use crate::log_i;
 use crate::traits::db_manager::{CompanionDeviceBaseInfo, CompanionDeviceInfo, DeviceKey, UserInfo};
@@ -86,6 +85,6 @@ fn get_session_key_test_fail() {
     mock_host_db_manager.expect_read_device_sk().returning(|| Ok(Vec::new()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
-    let result = get_session_key(123, DeviceType::None, &[]);
+    let result = get_session_key(123, DeviceType::Default, &[]);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }

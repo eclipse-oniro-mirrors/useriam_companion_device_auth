@@ -18,7 +18,7 @@ use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
-use crate::{log_e, p, Vec};
+use crate::{log_e, p, Box, Vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkAuthRequest {
@@ -27,7 +27,7 @@ pub struct FwkAuthRequest {
 }
 
 impl FwkAuthRequest {
-    pub fn decode(fwk_message: &[u8]) -> Result<Self, ErrorCode> {
+    pub fn decode(fwk_message: &[u8]) -> Result<Box<Self>, ErrorCode> {
         let pub_key = MiscManagerRegistry::get_mut().get_fwk_pub_key().map_err(|e| p!(e))?;
         let message_codec = MessageCodec::new(MessageSignParam::Framework(pub_key));
         let attribute = message_codec.deserialize_attribute(fwk_message).map_err(|e| p!(e))?;
@@ -36,7 +36,7 @@ impl FwkAuthRequest {
 
         let atl = attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
 
-        Ok(FwkAuthRequest { schedule_id, atl })
+        Ok(Box::new(FwkAuthRequest { schedule_id, atl }))
     }
 }
 
