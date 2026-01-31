@@ -149,8 +149,8 @@ bool CompanionDeviceAuthAniHelper::WrapDate(int64_t time, ani_object &outObj, an
     }
     ani_class cls;
     ani_status status;
-    if (ANI_OK != (status = env->FindClass("escompat.Date", &cls))) {
-        IAM_LOGE("fail to find class escompat.Date");
+    if (ANI_OK != (status = env->FindClass("std.core.Date", &cls))) {
+        IAM_LOGE("fail to find class std.core.Date");
         return false;
     }
     ani_method ctor;

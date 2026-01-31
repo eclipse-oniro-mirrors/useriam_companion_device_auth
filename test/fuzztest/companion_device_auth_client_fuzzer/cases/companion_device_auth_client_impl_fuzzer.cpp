@@ -292,7 +292,6 @@ private:
 // Operation 0: RegisterDeviceSelectCallback
 static void FuzzOp0(FuzzedDataProvider &fuzzData)
 {
-    // Use sptr to properly manage mock proxy lifecycle
     sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     // Set mock results from fuzz data
