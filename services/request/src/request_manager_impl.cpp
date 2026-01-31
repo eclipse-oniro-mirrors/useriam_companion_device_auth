@@ -193,6 +193,9 @@ void RequestManagerImpl::Remove(RequestId requestId)
         waitingRequests_.erase(itToStart);
         runningRequests_.push_back(requestToStart);
     }
+    if (requestToStart == nullptr) {
+        return;
+    }
 
     TaskRunnerManager::GetInstance().PostTaskOnResident([requestToStart]() {
         ENSURE_OR_RETURN(requestToStart != nullptr);

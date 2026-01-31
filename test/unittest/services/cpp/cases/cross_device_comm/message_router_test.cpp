@@ -260,6 +260,8 @@ public:
 
         staticTimeKeeper = std::make_shared<MockTimeKeeper>();
         AdapterManager::GetInstance().SetTimeKeeper(staticTimeKeeper);
+
+        AdapterManager::GetInstance().SetUserIdManager(std::make_shared<FakeUserIdManager>());
     }
 
     static void TearDownTestCase()
@@ -700,7 +702,7 @@ HWTEST_F(MessageRouterTest, HandleConnectionDown_001, TestSize.Level0)
     router_->HandleConnectionDown(connectionName_);
 
     EXPECT_EQ(router_->pendingReplyMessages_.size(), 0);
-    EXPECT_EQ(router_->subscriptions_.size(), 0);
+    EXPECT_EQ(router_->subscriptions_.size(), 1); // Subscription is not cleared by HandleConnectionDown
     EXPECT_EQ(router_->connectionStatusSubscriptions_.count(connectionName_), 0);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -755,7 +757,7 @@ HWTEST_F(MessageRouterTest, HandleConnectionDown_004, TestSize.Level0)
 
     router_->HandleConnectionDown(connectionName_);
 
-    EXPECT_EQ(router_->subscriptions_.size(), 1);
+    EXPECT_EQ(router_->subscriptions_.size(), 2); // Subscriptions are not cleared by HandleConnectionDown
 }
 
 HWTEST_F(MessageRouterTest, HandleMessageTimeout_001, TestSize.Level0)

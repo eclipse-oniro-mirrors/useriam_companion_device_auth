@@ -434,7 +434,7 @@ HWTEST_F(CompanionTest, MarkAsAddedToIdm_001, TestSize.Level0)
 
     EXPECT_FALSE(companion->IsAddedToIdm());
 
-    companion->MarkAsAddedToIdm();
+    companion->SetAddedToIdm(true);
 
     EXPECT_TRUE(companion->IsAddedToIdm());
 }
@@ -447,7 +447,7 @@ HWTEST_F(CompanionTest, MarkAsAddedToIdm_002, TestSize.Level0)
 
     EXPECT_TRUE(companion->IsAddedToIdm());
 
-    companion->MarkAsAddedToIdm();
+    companion->SetAddedToIdm(true);
 
     EXPECT_TRUE(companion->IsAddedToIdm());
 }

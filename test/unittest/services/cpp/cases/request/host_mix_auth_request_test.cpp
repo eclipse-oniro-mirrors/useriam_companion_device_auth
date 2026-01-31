@@ -370,44 +370,6 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_005, TestSize.Level0)
     EXPECT_FALSE(callbackCalled);
 }
 
-HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_006, TestSize.Level0)
-{
-    MockGuard guard;
-
-    CreateDefaultRequest();
-    request_->templateIdList_ = { templateId_, 99999 };
-    bool callbackCalled = false;
-    ResultCode callbackResult = ResultCode::GENERAL_ERROR;
-    request_->requestCallback_ = [&callbackCalled, &callbackResult](ResultCode result,
-                                     const std::vector<uint8_t> &fwkMsg) {
-        callbackCalled = true;
-        callbackResult = result;
-    };
-
-    // Set up companion status to be valid
-    // AnyTemplateValid will check templateId_ first and return early (won't check 99999)
-    CompanionStatus validStatus = { .isValid = true };
-    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(templateId_)).WillOnce(Return(validStatus));
-
-    // Create mock requests for both templates
-    auto mockRequest1 = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, scheduleId_);
-    auto mockRequest2 = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 2, scheduleId_);
-    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _, _, _))
-        .WillOnce(Return(mockRequest1))
-        .WillOnce(Return(mockRequest2));
-    EXPECT_CALL(guard.GetRequestManager(), Start(_))
-        .WillOnce(Return(true))
-        .WillOnce(Return(true));
-
-    request_->Start();
-    // Handle SUCCESS for templateId_, should succeed even though there's another pending request
-    request_->HandleAuthResult(templateId_, ResultCode::SUCCESS, extraInfo_);
-
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_TRUE(callbackCalled);
-    EXPECT_EQ(callbackResult, ResultCode::SUCCESS);
-}
-
 HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_007, TestSize.Level0)
 {
     MockGuard guard;

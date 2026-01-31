@@ -40,6 +40,10 @@ bool DecodeDeviceKey(const Attributes &attributes, Attributes::AttributeKey user
         IAM_LOGE("Get device id failed");
         return false;
     }
+    if (deviceKey.deviceId.empty()) {
+        IAM_LOGE("device id is empty");
+        return false;
+    }
     return true;
 }
 } // namespace

@@ -18,9 +18,6 @@
 #include <thread>
 
 #include "backoff_retry_timer.h"
-#include "iam_logger.h"
-
-#define LOG_TAG "COMPANION_DEVICE_AUTH"
 
 using namespace testing;
 using namespace testing::ext;

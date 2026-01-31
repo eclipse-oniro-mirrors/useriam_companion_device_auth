@@ -249,11 +249,7 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
     }
     needCancelCompanionAdd_ = false;
     needCancelIssueToken_ = true;
-
-    auto companionStatusOpt =
-        GetCompanionManager().GetCompanionStatus(companionStatus.hostUserId, companionStatus.companionDeviceKey);
-    ENSURE_OR_RETURN_VAL(companionStatusOpt.has_value(), false);
-    templateId_ = companionStatusOpt->templateId;
+    templateId_ = output.templateId;
 
     fwkMsg = std::move(output.fwkMsg);
     pendingTokenData_ = std::move(output.tokenData);

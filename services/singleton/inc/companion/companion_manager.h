@@ -54,6 +54,7 @@ struct EndAddCompanionOutput {
     std::vector<uint8_t> fwkMsg;
     std::vector<uint8_t> tokenData;
     Atl atl;
+    TemplateId templateId;
 };
 
 class ICompanionManager : public NoCopyable {

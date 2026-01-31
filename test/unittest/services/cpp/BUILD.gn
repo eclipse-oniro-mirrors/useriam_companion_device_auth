@@ -18,112 +18,86 @@ import("../../../../test/fake/BUILD.gni")
 import("../../../test_config.gni")
 
 ohos_unittest("companion_device_auth_services_cpp_test") {
-  sanitize = companion_device_auth_sanitize
+  sanitize = companion_device_auth_unit_test_sanitize
   branch_protector_ret = "pac_ret"
   module_out_path = "companion_device_auth/services"
 
-  cflags = companion_device_auth_test_cflags
+  cflags = companion_device_auth_unit_test_cflags
+  ldflags = companion_device_auth_unit_test_ldflags
 
   sources = companion_device_auth_service_sources_for_test
-
-  sources += companion_device_auth_fake_sources + [
-               # Common utilities
-               "cases/common/attributes_test.cpp",
-               "cases/common/error_guard_test.cpp",
-               "cases/common/misc_manager_impl_test.cpp",
-               "cases/common/scope_guard_test.cpp",
-
-               # Companion device
-               "cases/companion/companion_add_companion_request_test.cpp",
-               "cases/companion/companion_delegate_auth_request_test.cpp",
-               "cases/companion/companion_device_auth_ffi_util_test.cpp",
-               "cases/companion/companion_init_key_negotiation_handler_test.cpp",
-               "cases/companion/companion_issue_token_request_test.cpp",
-               "cases/companion/companion_manager_impl_test.cpp",
-               "cases/companion/companion_obtain_token_request_test.cpp",
-               "cases/companion/companion_pre_issue_token_handler_test.cpp",
-               "cases/companion/companion_remove_host_binding_handler_test.cpp",
-               "cases/companion/companion_revoke_token_request_test.cpp",
-               "cases/companion/companion_start_delegate_auth_handler_test.cpp",
-               "cases/companion/companion_sync_device_status_handler_test.cpp",
-               "cases/companion/companion_test.cpp",
-               "cases/companion/companion_token_auth_handler_test.cpp",
-
-               # Host binding
-               "cases/host_binding/host_binding_manager_impl_test.cpp",
-               "cases/host_binding/host_binding_test.cpp",
-
-               # Request and messages
-               "cases/request/add_companion_message_test.cpp",
-               "cases/request/async_incoming_message_handler_test.cpp",
-               "cases/request/companion_device_auth_all_in_one_executor_test.cpp",
-               "cases/request/companion_device_auth_driver_test.cpp",
-               "cases/request/companion_device_auth_executor_callback_test.cpp",
-               "cases/request/delegate_auth_message_test.cpp",
-               "cases/request/host_add_companion_request_test.cpp",
-               "cases/request/host_delegate_auth_request_test.cpp",
-               "cases/request/host_issue_token_request_test.cpp",
-               "cases/request/host_mix_auth_request_test.cpp",
-               "cases/request/host_obtain_token_request_test.cpp",
-               "cases/request/host_pre_obtain_token_handler_test.cpp",
-               "cases/request/host_remove_host_binding_request_test.cpp",
-               "cases/request/host_revoke_token_handler_test.cpp",
-               "cases/request/host_single_mix_auth_request_test.cpp",
-               "cases/request/host_sync_device_status_request_test.cpp",
-               "cases/request/host_token_auth_request_test.cpp",
-
-               # "cases/request/inbound_request_test.cpp",  # Disabled due to CFI issues with MOCK_METHOD
-               "cases/request/incoming_message_handler_registry_test.cpp",
-               "cases/request/issue_token_message_test.cpp",
-               "cases/request/keep_alive_handler_test.cpp",
-               "cases/request/obtain_token_message_test.cpp",
-
-               # "cases/request/outbound_request_test.cpp",  # Disabled due to CFI issues with MOCK_METHOD
-               "cases/request/remove_host_binding_message_test.cpp",
-               "cases/request/revoke_token_message_test.cpp",
-               "cases/request/sync_device_status_message_test.cpp",
-               "cases/request/sync_incoming_message_handler_test.cpp",
-               "cases/request/token_auth_message_test.cpp",
-
-               # Cross-device communication
-               "cases/cross_device_comm/channel_manager_test.cpp",
-               "cases/cross_device_comm/connection_manager_test.cpp",
-               "cases/cross_device_comm/cross_device_comm_manager_impl_test.cpp",
-               "cases/cross_device_comm/device_status_entry_test.cpp",
-               "cases/cross_device_comm/device_status_manager_test.cpp",
-               "cases/cross_device_comm/local_device_status_manager_test.cpp",
-               # "cases/cross_device_comm/message_router_test.cpp",  # Disabled due to runtime crashes
-
-               # Service entry
-               "cases/service_entry/available_device_subscription_test.cpp",
-               "cases/service_entry/companion_device_auth_service_test.cpp",
-               "cases/service_entry/continuous_auth_subscription_test.cpp",
-               "cases/service_entry/subscription_manager_test.cpp",
-               "cases/service_entry/subscription_test.cpp",
-               "cases/service_entry/template_status_subscription_test.cpp",
-
-               # SoftBus channel
-               "cases/soft_bus_cross_device_channel/soft_bus_channel_test.cpp",
-               "cases/soft_bus_cross_device_channel/soft_bus_connection_manager_test.cpp",
-               "cases/soft_bus_cross_device_channel/soft_bus_connection_test.cpp",
-               "cases/soft_bus_cross_device_channel/soft_bus_device_status_manager_test.cpp",
-
-               # Framework communication
-               "cases/fwk_comm/fwk_comm_manager_test.cpp",
-
-               # External adapters
-               "cases/external_adapters/soft_bus_adapter_test.cpp",
-
-               # Utilities
-               "cases/utils/backoff_retry_timer_test.cpp",
-               "cases/utils/constant_user_id_manager_test.cpp",
-
-               # "cases/utils/request_manager_impl_test.cpp",  # Excluded from UT
-               "cases/utils/system_param_manager_impl_test.cpp",
-             ]
-
-  # Common utilities for unittest
-  sources += [ "../../common/mock_guard.cpp" ]
+  sources += companion_device_auth_fake_sources
+  sources += [
+    "../../common/mock_guard.cpp",
+    "cases/common/attributes_test.cpp",
+    "cases/common/error_guard_test.cpp",
+    "cases/common/misc_manager_impl_test.cpp",
+    "cases/common/scope_guard_test.cpp",
+    "cases/companion/companion_add_companion_request_test.cpp",
+    "cases/companion/companion_delegate_auth_request_test.cpp",
+    "cases/companion/companion_device_auth_ffi_util_test.cpp",
+    "cases/companion/companion_init_key_negotiation_handler_test.cpp",
+    "cases/companion/companion_issue_token_request_test.cpp",
+    "cases/companion/companion_manager_impl_test.cpp",
+    "cases/companion/companion_obtain_token_request_test.cpp",
+    "cases/companion/companion_pre_issue_token_handler_test.cpp",
+    "cases/companion/companion_remove_host_binding_handler_test.cpp",
+    "cases/companion/companion_revoke_token_request_test.cpp",
+    "cases/companion/companion_start_delegate_auth_handler_test.cpp",
+    "cases/companion/companion_sync_device_status_handler_test.cpp",
+    "cases/companion/companion_test.cpp",
+    "cases/companion/companion_token_auth_handler_test.cpp",
+    "cases/cross_device_comm/channel_manager_test.cpp",
+    "cases/cross_device_comm/connection_manager_test.cpp",
+    "cases/cross_device_comm/cross_device_comm_manager_impl_test.cpp",
+    "cases/cross_device_comm/device_status_entry_test.cpp",
+    "cases/cross_device_comm/device_status_manager_test.cpp",
+    "cases/cross_device_comm/local_device_status_manager_test.cpp",
+    "cases/cross_device_comm/message_router_test.cpp",
+    "cases/external_adapters/soft_bus_adapter_test.cpp",
+    "cases/fwk_comm/fwk_comm_manager_test.cpp",
+    "cases/host_binding/host_binding_manager_impl_test.cpp",
+    "cases/host_binding/host_binding_test.cpp",
+    "cases/request/add_companion_message_test.cpp",
+    "cases/request/async_incoming_message_handler_test.cpp",
+    "cases/request/companion_device_auth_all_in_one_executor_test.cpp",
+    "cases/request/companion_device_auth_driver_test.cpp",
+    "cases/request/companion_device_auth_executor_callback_test.cpp",
+    "cases/request/delegate_auth_message_test.cpp",
+    "cases/request/host_add_companion_request_test.cpp",
+    "cases/request/host_delegate_auth_request_test.cpp",
+    "cases/request/host_issue_token_request_test.cpp",
+    "cases/request/host_mix_auth_request_test.cpp",
+    "cases/request/host_obtain_token_request_test.cpp",
+    "cases/request/host_pre_obtain_token_handler_test.cpp",
+    "cases/request/host_remove_host_binding_request_test.cpp",
+    "cases/request/host_revoke_token_handler_test.cpp",
+    "cases/request/host_single_mix_auth_request_test.cpp",
+    "cases/request/host_sync_device_status_request_test.cpp",
+    "cases/request/host_token_auth_request_test.cpp",
+    "cases/request/incoming_message_handler_registry_test.cpp",
+    "cases/request/issue_token_message_test.cpp",
+    "cases/request/keep_alive_handler_test.cpp",
+    "cases/request/obtain_token_message_test.cpp",
+    "cases/request/remove_host_binding_message_test.cpp",
+    "cases/request/revoke_token_message_test.cpp",
+    "cases/request/sync_device_status_message_test.cpp",
+    "cases/request/sync_incoming_message_handler_test.cpp",
+    "cases/request/token_auth_message_test.cpp",
+    "cases/service_entry/available_device_subscription_test.cpp",
+    "cases/service_entry/companion_device_auth_service_test.cpp",
+    "cases/service_entry/continuous_auth_subscription_test.cpp",
+    "cases/service_entry/subscription_manager_test.cpp",
+    "cases/service_entry/subscription_test.cpp",
+    "cases/service_entry/template_status_subscription_test.cpp",
+    "cases/soft_bus_cross_device_channel/soft_bus_channel_test.cpp",
+    "cases/soft_bus_cross_device_channel/soft_bus_connection_manager_test.cpp",
+    "cases/soft_bus_cross_device_channel/soft_bus_connection_test.cpp",
+    "cases/soft_bus_cross_device_channel/soft_bus_device_status_manager_test.cpp",
+    "cases/utils/backoff_retry_timer_test.cpp",
+    "cases/utils/constant_user_id_manager_test.cpp",
+    "cases/utils/system_param_manager_impl_test.cpp",
+  ]
 
   include_dirs = [
     "../../common",
@@ -131,18 +105,13 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
     "cases/mock",
     "inc",
   ]
-
   include_dirs += companion_device_auth_fake_include_dirs
 
   configs = [ "${companion_device_auth_path}/services:service_config" ]
-
   deps = companion_device_auth_service_deps
-
   external_deps = companion_device_auth_service_external_deps +
                   companion_device_auth_unit_test_external_deps
-
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
-
   subsystem_name = companion_device_auth_subsystem_name
   part_name = companion_device_auth_part_name
 }

@@ -105,12 +105,13 @@ bool OutboundRequest::OpenConnection()
     UpdateDescription(GenerateDescription(requestType_, requestId_, connectionName_));
 
     connectionStatusSubscription_ = GetCrossDeviceCommManager().SubscribeConnectionStatus(connectionName_,
-        [weakSelf = GetWeakPtr()](const std::string &connName, ConnectionStatus status, const std::string &reason) {
+        [weakSelf = GetWeakPtr()](const std::string &connectionName, ConnectionStatus status,
+            const std::string &reason) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            ENSURE_OR_RETURN(self->connectionName_ == connName);
+            ENSURE_OR_RETURN(self->connectionName_ == connectionName);
 
-            self->HandleConnectionStatus(connName, status, reason);
+            self->HandleConnectionStatus(connectionName, status, reason);
         });
     ENSURE_OR_RETURN_VAL(connectionStatusSubscription_ != nullptr, false);
 

@@ -679,6 +679,11 @@ std::vector<uint8_t> Attributes::Serialize() const
         buffer.insert(buffer.end(), type.begin(), type.end());
         buffer.insert(buffer.end(), length.begin(), length.end());
         buffer.insert(buffer.end(), value.begin(), value.end());
+        if (buffer.size() > MAX_MESSAGE_SIZE) {
+            IAM_LOGE("Serialize buffer size exceeds MAX_MESSAGE_SIZE: %{public}zu > %{public}zu", buffer.size(),
+                MAX_MESSAGE_SIZE);
+            return {};
+        }
     }
 
     return buffer;

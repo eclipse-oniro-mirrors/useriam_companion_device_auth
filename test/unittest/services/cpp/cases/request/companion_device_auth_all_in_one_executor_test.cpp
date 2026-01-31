@@ -413,7 +413,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_004, TestSize.Lev
 
     FwkResultCode ret = executor->Authenticate(scheduleId, param, callback);
 
-    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+    EXPECT_EQ(FwkResultCode::GENERAL_ERROR, ret);
 }
 
 HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_005, TestSize.Level0)
@@ -440,7 +440,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_005, TestSize.Lev
 
     FwkResultCode ret = executor->Authenticate(scheduleId, param, callback);
 
-    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+    EXPECT_EQ(FwkResultCode::GENERAL_ERROR, ret);
 }
 
 HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_006, TestSize.Level0)

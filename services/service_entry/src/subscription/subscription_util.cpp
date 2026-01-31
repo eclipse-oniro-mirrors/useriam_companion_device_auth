@@ -45,8 +45,8 @@ IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionSta
 {
     IpcTemplateStatus ipcStatus {};
     ipcStatus.templateId = companionStatus.templateId;
-    ipcStatus.isConfirmed =
-        manageSubscribeTime.has_value() && (companionStatus.lastCheckTime >= manageSubscribeTime.value());
+    ipcStatus.isConfirmed = manageSubscribeTime.has_value() &&
+        (companionStatus.lastCheckTime >= static_cast<uint64_t>(manageSubscribeTime.value()));
     ipcStatus.isValid = companionStatus.isValid;
     ipcStatus.localUserId = companionStatus.hostUserId;
     ipcStatus.addedTime = companionStatus.addedTime;

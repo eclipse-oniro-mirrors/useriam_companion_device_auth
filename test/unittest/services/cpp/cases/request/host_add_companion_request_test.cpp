@@ -417,11 +417,9 @@ HWTEST_F(HostAddCompanionRequestTest, HandleBeginAddHostBindingReply_001, TestSi
     EXPECT_CALL(guard.GetCompanionManager(), EndAddCompanion(_, _))
         .WillOnce(Invoke([](const EndAddCompanionInput &, EndAddCompanionOutput &output) {
             output.fwkMsg = { 7, 8, 9 };
+            output.templateId = INT32_12345;
             return ResultCode::SUCCESS;
         }));
-    CompanionStatus status;
-    status.templateId = INT32_12345;
-    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(status)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::END_ADD_HOST_BINDING, _, _))
         .WillOnce(Return(true));
 
@@ -517,11 +515,9 @@ HWTEST_F(HostAddCompanionRequestTest, HandleBeginAddHostBindingReply_005, TestSi
     EXPECT_CALL(guard.GetCompanionManager(), EndAddCompanion(_, _))
         .WillOnce(Invoke([](const EndAddCompanionInput &, EndAddCompanionOutput &output) {
             output.fwkMsg = { 7, 8, 9 };
+            output.templateId = INT32_12345;
             return ResultCode::SUCCESS;
         }));
-    CompanionStatus status;
-    status.templateId = INT32_12345;
-    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(status)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::END_ADD_HOST_BINDING, _, _))
         .WillOnce(Return(false));
 
@@ -667,11 +663,10 @@ HWTEST_F(HostAddCompanionRequestTest, EndAddCompanion_001, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
         .WillOnce(Return(std::make_optional(deviceStatus)));
     EXPECT_CALL(guard.GetCompanionManager(), EndAddCompanion(_, _))
-        .WillOnce(Invoke(
-            [](const EndAddCompanionInput &input, EndAddCompanionOutput &output) { return ResultCode::SUCCESS; }));
-    CompanionStatus status;
-    status.templateId = INT32_12345;
-    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(status)));
+        .WillOnce(Invoke([](const EndAddCompanionInput &input, EndAddCompanionOutput &output) {
+            output.templateId = INT32_12345;
+            return ResultCode::SUCCESS;
+        }));
 
     BeginAddHostBindingReply reply;
     std::vector<uint8_t> fwkMsg;
@@ -679,7 +674,7 @@ HWTEST_F(HostAddCompanionRequestTest, EndAddCompanion_001, TestSize.Level0)
     bool result = request_->EndAddCompanion(reply, fwkMsg);
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(request_->templateId_, status.templateId);
+    EXPECT_EQ(request_->templateId_, INT32_12345);
 }
 
 HWTEST_F(HostAddCompanionRequestTest, InvokeCallback_001, TestSize.Level0)

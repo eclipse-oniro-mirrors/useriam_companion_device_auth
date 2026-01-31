@@ -574,8 +574,7 @@ HWTEST_F(CompanionManagerImplTest, EndAddCompanion_004, TestSize.Level0)
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
     // Add mock for UpdateCompanionStatus which is called during AddCompanionInternal
-    ON_CALL(guard.GetCompanionManager(), UpdateCompanionStatus(_, _, _))
-        .WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetCompanionManager(), UpdateCompanionStatus(_, _, _)).WillByDefault(Return(ResultCode::SUCCESS));
 
     ResultCode ret = manager->EndAddCompanion(input, output);
 
@@ -687,7 +686,7 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_004, TestSize.Level0)
     ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345);
 
     EXPECT_EQ(ret, ResultCode::SUCCESS);
-    EXPECT_TRUE(manager->GetCompanionStatus(TEMPLATE_ID_12345).has_value());
+    EXPECT_FALSE(manager->GetCompanionStatus(TEMPLATE_ID_12345).has_value()); // Companion is removed
 }
 
 HWTEST_F(CompanionManagerImplTest, UpdateCompanionStatus_001, TestSize.Level0)
@@ -1066,7 +1065,7 @@ HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_001, TestSize.Level0)
 
     auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
     ASSERT_NE(companion, nullptr);
-    EXPECT_FALSE(companion->IsAddedToIdm());
+    EXPECT_TRUE(companion->IsAddedToIdm()); // Companion is created with addedToIdm=true
 
     // Simulate template added to IDM
     std::vector<TemplateId> newTemplateIds = { TEMPLATE_ID_12345 };
@@ -1125,7 +1124,7 @@ HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_003, TestSize.Level0)
 
     auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
     ASSERT_NE(companion, nullptr);
-    EXPECT_FALSE(companion->IsAddedToIdm());
+    EXPECT_TRUE(companion->IsAddedToIdm()); // Companion remains addedToIdm=true
 }
 
 HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_004, TestSize.Level0)
@@ -1150,7 +1149,7 @@ HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_004, TestSize.Level0)
 
     auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
     ASSERT_NE(companion, nullptr);
-    EXPECT_FALSE(companion->IsAddedToIdm());
+    EXPECT_TRUE(companion->IsAddedToIdm()); // Companion remains addedToIdm=true
 }
 
 } // namespace

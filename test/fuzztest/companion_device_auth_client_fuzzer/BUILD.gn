@@ -23,7 +23,8 @@ ohos_fuzztest("CompanionDeviceAuthClientFuzzer") {
   module_out_path = "companion_device_auth/client"
   fuzz_config_file = "../common_fuzzer_config"
 
-  cflags = companion_device_auth_fuzzer_cflags
+  cflags = companion_device_auth_fuzz_test_cflags
+  ldflags = companion_device_auth_fuzz_test_ldflags
 
   sources = companion_device_auth_client_full_sources + [
               "cases/companion_device_auth_client_impl_fuzzer.cpp",

@@ -98,19 +98,7 @@ void CompanionManagerImpl::ReloadSingleCompanion(const PersistedCompanionStatus 
         ENSURE_OR_RETURN(addCompanionRet == ResultCode::SUCCESS);
         IAM_LOGI("Reloaded companion %{public}s (in IDM)", GET_MASKED_NUM_CSTR(templateId));
     } else {
-        ENSURE_OR_RETURN(persistedStatus.addedTime >= 0);
-        auto addedTime = safe_sub(nowMs, static_cast<uint64_t>(persistedStatus.addedTime));
-        ENSURE_OR_RETURN(addedTime.has_value());
-        ENSURE_OR_RETURN(addedTime.value() > 0);
-        if (addedTime.value() >= IDM_ADD_TEMPLATE_TIMEOUT_MS) {
-            HostRemoveCompanionInput input { templateId };
-            HostRemoveCompanionOutput output {};
-            (void)GetSecurityAgent().HostRemoveCompanion(input, output);
-            IAM_LOGW("Companion %{public}s not in IDM and timed out, remove companion",
-                GET_MASKED_NUM_CSTR(templateId));
-            return;
-        }
-        auto companion = Companion::Create(persistedStatus, false, weak_from_this());
+        auto companion = Companion::Create(persistedStatus, true, weak_from_this());
         ENSURE_OR_RETURN(companion != nullptr);
 
         ResultCode addCompanionRet = AddCompanionInternal(companion);
@@ -262,7 +250,7 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
     updatedStatus.templateId = secOutput.templateId;
     updatedStatus.addedTime = secOutput.addedTime;
 
-    auto companion = Companion::Create(updatedStatus, false, weak_from_this());
+    auto companion = Companion::Create(updatedStatus, true, weak_from_this());
     if (companion == nullptr) {
         IAM_LOGE("failed to create Companion for %{public}s", GET_MASKED_NUM_CSTR(secOutput.templateId));
         return ResultCode::GENERAL_ERROR;
@@ -275,6 +263,7 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
         return ret;
     }
 
+    output.templateId = secOutput.templateId;
     output.fwkMsg.swap(secOutput.fwkMsg);
     output.tokenData.swap(secOutput.tokenData);
     output.atl = secOutput.atl;
@@ -296,6 +285,10 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId)
         return ret;
     }
 
+    auto companion = FindCompanionByTemplateId(templateId);
+    ENSURE_OR_RETURN_VAL(companion != nullptr, ResultCode::GENERAL_ERROR);
+    companion->SetAddedToIdm(false);
+    NotifyCompanionStatusChange();
     ScopeGuard guard([this, templateId]() { HandleRemoveHostBindingComplete(templateId); });
     auto request =
         GetRequestFactory().CreateHostRemoveHostBindingRequest(output.userId, templateId, output.companionDeviceKey);
@@ -468,7 +461,7 @@ void CompanionManagerImpl::OnTemplateListChanged(UserId userId, const std::vecto
         auto companion = FindCompanionByTemplateId(templateId);
         if (companion != nullptr && !companion->IsAddedToIdm()) {
             IAM_LOGI("template %{public}s added to IDM, marking companion", GET_MASKED_NUM_CSTR(templateId));
-            companion->MarkAsAddedToIdm();
+            companion->SetAddedToIdm(true);
         }
     }
 }

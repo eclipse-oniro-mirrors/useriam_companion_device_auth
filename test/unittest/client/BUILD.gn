@@ -17,11 +17,12 @@ import("../../../frameworks/native/client/BUILD.gni")
 import("../../test_config.gni")
 
 ohos_unittest("companion_device_auth_client_test") {
-  sanitize = companion_device_auth_sanitize
+  sanitize = companion_device_auth_unit_test_sanitize
   branch_protector_ret = "pac_ret"
   module_out_path = "companion_device_auth/client"
 
-  cflags = companion_device_auth_test_cflags
+  cflags = companion_device_auth_unit_test_cflags
+  ldflags = companion_device_auth_unit_test_ldflags
 
   sources = companion_device_auth_client_full_sources + [
               # Test sources

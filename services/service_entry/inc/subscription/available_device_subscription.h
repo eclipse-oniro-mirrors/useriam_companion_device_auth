@@ -49,10 +49,11 @@ public:
 private:
     AvailableDeviceSubscription(UserId userId, std::weak_ptr<SubscriptionManager> subscriptionManager);
     bool Initialize();
-    void HandleDeviceStatusChange(const std::vector<DeviceStatus> &deviceStatusList);
+    void HandleDeviceStatusChange();
 
     UserId userId_;
     std::weak_ptr<SubscriptionManager> subscriptionManager_;
+    std::unique_ptr<Subscription> companionStatusSubscription_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
     std::vector<IpcDeviceStatus> cachedAvailableDeviceStatus_;
 };

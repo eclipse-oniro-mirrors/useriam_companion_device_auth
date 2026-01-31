@@ -63,11 +63,19 @@ bool AvailableDeviceSubscription::Initialize()
         [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->HandleDeviceStatusChange(deviceStatusList);
+            self->HandleDeviceStatusChange();
         });
     ENSURE_OR_RETURN_VAL(deviceStatusSubscription_ != nullptr, false);
 
-    HandleDeviceStatusChange(GetCrossDeviceCommManager().GetAllDeviceStatus());
+    companionStatusSubscription_ = GetCompanionManager().SubscribeCompanionDeviceStatusChange(
+        [weakSelf = weak_from_this()](const std::vector<CompanionStatus> &companionStatusList) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleDeviceStatusChange();
+        });
+    ENSURE_OR_RETURN_VAL(companionStatusSubscription_ != nullptr, false);
+
+    HandleDeviceStatusChange();
     return true;
 }
 
@@ -100,8 +108,9 @@ void AvailableDeviceSubscription::OnCallbackRemoteDied(const sptr<IIpcAvailableD
     });
 }
 
-void AvailableDeviceSubscription::HandleDeviceStatusChange(const std::vector<DeviceStatus> &deviceStatusList)
+void AvailableDeviceSubscription::HandleDeviceStatusChange()
 {
+    auto deviceStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus();
     IAM_LOGI("HandleDeviceStatusChange start, total device count:%{public}zu, userId:%{public}d",
         deviceStatusList.size(), userId_);
     int32_t activeUserId = GetUserIdManager().GetActiveUserId();

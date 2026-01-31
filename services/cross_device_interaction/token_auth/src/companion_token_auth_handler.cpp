@@ -18,6 +18,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "cross_device_comm_manager.h"
 #include "error_guard.h"
 #include "host_binding_manager.h"
 #include "security_agent.h"
@@ -51,14 +52,14 @@ void CompanionTokenAuthHandler::HandleRequest(const Attributes &request, Attribu
 
     auto hostBindingStatus =
         GetHostBindingManager().GetHostBindingStatus(tokenRequest.companionUserId, tokenRequest.hostDeviceKey);
-    if (!hostBindingStatus.has_value()) {
-        IAM_LOGE("GetHostBindingStatus failed");
-        return;
-    }
+    ENSURE_OR_RETURN(hostBindingStatus.has_value());
+
+    auto secureProtocolId = GetCrossDeviceCommManager().HostGetSecureProtocolId(tokenRequest.hostDeviceKey);
+    ENSURE_OR_RETURN(secureProtocolId.has_value());
 
     CompanionProcessTokenAuthInput input = {};
     input.bindingId = hostBindingStatus->bindingId;
-    input.secureProtocolId = hostBindingStatus->hostDeviceStatus.secureProtocolId;
+    input.secureProtocolId = secureProtocolId.value();
     input.tokenAuthRequest = tokenRequest.extraInfo;
 
     CompanionProcessTokenAuthOutput output = {};

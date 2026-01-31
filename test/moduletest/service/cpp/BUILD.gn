@@ -15,9 +15,10 @@ import("//build/test.gni")
 import("../../../../companion_device_auth.gni")
 import("../../../../services/BUILD.gni")
 import("../../../../test/fake/BUILD.gni")
+import("../../../test_config.gni")
 
 ohos_moduletest("companion_device_auth_services_cpp_moduletest") {
-  sanitize = companion_device_auth_sanitize
+  sanitize = companion_device_auth_unit_test_sanitize
   branch_protector_ret = "pac_ret"
   module_out_path = "companion_device_auth/services"
 

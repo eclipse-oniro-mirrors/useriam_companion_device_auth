@@ -153,7 +153,6 @@ companion_device_auth_service_external_deps = [
   "ipc:ipc_core",
   "ipc:ipc_single",
   "json:nlohmann_json_static",
-  "rust_cxx:cxx_cppdeps",
   "safwk:system_ability_fwk",
   "samgr:samgr_proxy",
 ]

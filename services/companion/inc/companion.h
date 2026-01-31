@@ -77,7 +77,7 @@ public:
     void SetDeviceNames(const std::string &deviceName, const std::string &deviceUserName);
     void RefreshTokenTimer();
     void NotifySubscribers();
-    void MarkAsAddedToIdm();
+    void SetAddedToIdm(bool addedToIdm);
 
 private:
     explicit Companion(const PersistedCompanionStatus &persistedStatus, bool addedToIdm,

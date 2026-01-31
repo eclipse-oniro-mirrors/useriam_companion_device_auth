@@ -292,7 +292,8 @@ private:
 // Operation 0: RegisterDeviceSelectCallback
 static void FuzzOp0(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    // Use sptr to properly manage mock proxy lifecycle
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     // Set mock results from fuzz data
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -317,7 +318,7 @@ static void FuzzOp0(FuzzedDataProvider &fuzzData)
 // Operation 1: UnregisterDeviceSelectCallback
 static void FuzzOp1(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -331,7 +332,7 @@ static void FuzzOp1(FuzzedDataProvider &fuzzData)
 // Operation 2: UpdateTemplateEnabledBusinessIds
 static void FuzzOp2(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -354,7 +355,7 @@ static void FuzzOp2(FuzzedDataProvider &fuzzData)
 // Operation 3: GetTemplateStatus
 static void FuzzOp3(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -371,7 +372,7 @@ static void FuzzOp3(FuzzedDataProvider &fuzzData)
 // Operation 4: SubscribeTemplateStatusChange
 static void FuzzOp4(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -393,7 +394,7 @@ static void FuzzOp4(FuzzedDataProvider &fuzzData)
 // Operation 5: UnsubscribeTemplateStatusChange
 static void FuzzOp5(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -415,7 +416,7 @@ static void FuzzOp5(FuzzedDataProvider &fuzzData)
 // Operation 6: SubscribeAvailableDeviceStatus
 static void FuzzOp6(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -437,7 +438,7 @@ static void FuzzOp6(FuzzedDataProvider &fuzzData)
 // Operation 7: UnsubscribeAvailableDeviceStatus
 static void FuzzOp7(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -459,7 +460,7 @@ static void FuzzOp7(FuzzedDataProvider &fuzzData)
 // Operation 8: SubscribeContinuousAuthStatusChange
 static void FuzzOp8(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -493,7 +494,7 @@ static void FuzzOp8(FuzzedDataProvider &fuzzData)
 // Operation 9: UnsubscribeContinuousAuthStatusChange
 static void FuzzOp9(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -521,7 +522,7 @@ static void FuzzOp9(FuzzedDataProvider &fuzzData)
 // Operation 10: CheckLocalUserIdValid
 static void FuzzOp10(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -562,7 +563,7 @@ static void FuzzOp12(FuzzedDataProvider &fuzzData)
 // Operation 13: Test proxy caching (GetProxy returns cached proxy)
 static void FuzzOp13(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -587,7 +588,7 @@ static void FuzzOp13(FuzzedDataProvider &fuzzData)
 // Operation 14: Test callback not found in unsubscribe
 static void FuzzOp14(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -610,7 +611,7 @@ static void FuzzOp14(FuzzedDataProvider &fuzzData)
 // Operation 15: Test multiple operations on same client instance
 static void FuzzOp15(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -640,7 +641,7 @@ static void FuzzOp15(FuzzedDataProvider &fuzzData)
 // Operation 16: Test repeated subscribe with same callback
 static void FuzzOp16(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -668,7 +669,7 @@ static void FuzzOp16(FuzzedDataProvider &fuzzData)
 // Operation 17: Test subscribe-unsubscribe-subscribe pattern
 static void FuzzOp17(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     int32_t ipcResult = fuzzData.ConsumeIntegral<int32_t>();
     int32_t serviceResult = fuzzData.ConsumeIntegral<int32_t>();
@@ -692,7 +693,7 @@ static void FuzzOp17(FuzzedDataProvider &fuzzData)
 // Operation 18: Test error code variations
 static void FuzzOp18(FuzzedDataProvider &fuzzData)
 {
-    auto mockProxy = new FuzzMockCompanionDeviceAuth();
+    sptr<FuzzMockCompanionDeviceAuth> mockProxy = new FuzzMockCompanionDeviceAuth();
 
     // Use various error codes from fuzz data
     int32_t ipcResult = fuzzData.ConsumeIntegralInRange<int32_t>(INT32_NEG10, INT32_10);

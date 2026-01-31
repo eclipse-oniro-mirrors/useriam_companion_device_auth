@@ -226,15 +226,17 @@ void Companion::NotifySubscribers()
     manager->NotifyCompanionStatusChange();
 }
 
-void Companion::MarkAsAddedToIdm()
+void Companion::SetAddedToIdm(bool addedToIdm)
 {
-    if (addedToIdm_) {
+    if (addedToIdm_ == addedToIdm) {
         return;
     }
 
-    IAM_LOGI("%{public}s marked as added to IDM", GetDescription());
-    addedToIdm_ = true;
-    templateAddToIdmTimer_.reset();
+    IAM_LOGI("%{public}s change from %{public}d to %{public}d", GetDescription(), addedToIdm_, addedToIdm);
+    addedToIdm_ = addedToIdm;
+    if (addedToIdm) {
+        templateAddToIdmTimer_.reset();
+    }
 }
 
 void Companion::StartTemplateAddToIdmTimer()

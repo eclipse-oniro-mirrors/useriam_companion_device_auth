@@ -16,6 +16,7 @@ declare_args() {
   companion_device_auth_deploy_mode = "standard"
   companion_device_auth_path = "//base/useriam/companion_device_auth"
   companion_device_auth_enable_extension = false
+  companion_device_auth_enable_coverage = false
 }
 
 companion_device_auth_subsystem_name = "useriam"

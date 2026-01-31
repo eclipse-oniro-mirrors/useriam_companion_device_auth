@@ -13,26 +13,64 @@
 
 import("../companion_device_auth.gni")
 
-# Common configurations for tests
-companion_device_auth_test_cflags = [
-  "-DENABLE_TEST",
-  "-Dprivate=public",
-  "-Dprotected=public",
-  "-DGTEST_HAS_CLONE=0",
-]
+# Sanitize config for unit tests - disable CFI when coverage is enabled
+# to avoid bitcode and speed up linking
+if (companion_device_auth_enable_coverage) {
+  companion_device_auth_unit_test_sanitize = {
+    integer_overflow = true
+    ubsan = true
+    boundary_sanitize = true
+    cfi = false
+    cfi_cross_dso = false
+    debug = false
+  }
+} else {
+  companion_device_auth_unit_test_sanitize = companion_device_auth_sanitize
+}
 
-companion_device_auth_fuzzer_cflags = [
+_coverage_cflags = []
+_coverage_ldflags = []
+_coverage_rustflags = []
+
+if (companion_device_auth_enable_coverage) {
+  _coverage_cflags += [
+    "--coverage",
+    "-fno-sanitize=cfi",
+  ]
+  _coverage_ldflags += [
+    "--coverage",
+    "-fno-sanitize=cfi",
+  ]
+  _coverage_rustflags += [
+    "-C",
+    "instrument-coverage",
+  ]
+}
+
+_test_cflags = [
+  "-g1",
+  "-fno-lto",
   "-DENABLE_TEST",
-  "-g",
-  "-O0",
   "-Wno-unused-variable",
   "-fno-omit-frame-pointer",
   "-Dprivate=public",
   "-Dprotected=public",
+]
+
+_test_ldflags = [
+  "-g1",
   "-fno-lto",
 ]
 
+companion_device_auth_unit_test_cflags =
+    [ "-DGTEST_HAS_CLONE=0" ] + _test_cflags + _coverage_cflags
+companion_device_auth_unit_test_ldflags = _test_ldflags + _coverage_ldflags
 companion_device_auth_unit_test_external_deps = [
   "googletest:gmock_main",
   "googletest:gtest_main",
 ]
+
+companion_device_auth_rust_test_flags = _coverage_rustflags
+
+companion_device_auth_fuzz_test_cflags = _test_cflags + _coverage_cflags
+companion_device_auth_fuzz_test_ldflags = _test_ldflags + _coverage_ldflags

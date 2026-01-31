@@ -64,7 +64,6 @@ public:
         ATTR_CDA_SA_MSG_ACK = 200021,
         ATTR_CDA_SA_MSG_SEQ_NUM = 200022,
         ATTR_CDA_SA_REASON = 200024,
-        // ATTR_CDA_SA_USER_NAME = 200008,
         /** Companion device auth secure specific attributes begin from 300000 */
         ATTR_CDA_SECURE_BEGIN = 300000,
     };

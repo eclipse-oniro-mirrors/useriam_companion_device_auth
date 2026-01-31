@@ -15,6 +15,7 @@ import("//build/test.gni")
 import("../../../../companion_device_auth.gni")
 import(
     "../../../../services/external_adapters/security_command_adapter/rust/BUILD.gni")
+import("../../../test_config.gni")
 
 ohos_rust_unittest("companion_device_auth_services_rust_test") {
   module_out_path = "companion_device_auth/services"
@@ -81,11 +82,11 @@ ohos_rust_unittest("companion_device_auth_services_rust_test") {
   deps = []
 
   rustflags = [
-    "--cfg",
-    "feature=\"cxxbridge\"",
-    "--cfg",
-    "feature=\"test-utils\"",
-  ]
+                "--cfg",
+                "feature=\"cxxbridge\"",
+                "--cfg",
+                "feature=\"test-utils\"",
+              ] + companion_device_auth_rust_test_flags
 
   rustenv = []
 
