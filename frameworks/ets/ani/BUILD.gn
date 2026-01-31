@@ -35,18 +35,18 @@ taihe_shared_library("companiondeviceauth_ani") {
   include_dirs = [
     "inc",
     "${companion_device_auth_path}/common/inc",
+    "${companion_device_auth_path}/frameworks/common/inc",
     "${companion_device_auth_path}/frameworks/native/client/inc",
   ]
   sources = get_target_outputs(":companion_device_auth_taihe")
   sources += [
-    "src/ani_available_device_status_callback.cpp",
     "src/ani_constructor.cpp",
-    "src/ani_continuous_auth_status_callback.cpp",
     "src/ani_device_select_callback.cpp",
-    "src/ani_template_status_callback.cpp",
+    "src/ani_template_status_callback_wrapper.cpp",
+    "src/ani_available_device_status_callback_wrapper.cpp",
+    "src/ani_continuous_auth_status_callback_wrapper.cpp",
     "src/companion_device_auth_ani_helper.cpp",
     "src/ohos.userIAM.companionDeviceAuth.impl.cpp",
-    "src/status_monitor.cpp",
   ]
   external_deps = [
     "ability_base:want",

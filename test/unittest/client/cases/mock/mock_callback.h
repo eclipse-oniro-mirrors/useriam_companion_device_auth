@@ -44,19 +44,8 @@ class MockTemplateStatusCallback : public ITemplateStatusCallback {
 public:
     virtual ~MockTemplateStatusCallback() = default;
     MockTemplateStatusCallback() = default;
-    explicit MockTemplateStatusCallback(int32_t userId) : userId_(userId)
-    {
-    }
 
     MOCK_METHOD(void, OnTemplateStatusChange, (const std::vector<ClientTemplateStatus> templateStatusList), (override));
-
-    int32_t GetUserId() override
-    {
-        return userId_;
-    }
-
-private:
-    int32_t userId_ = 0;
 };
 
 /**
@@ -66,20 +55,9 @@ class MockAvailableDeviceStatusCallback : public IAvailableDeviceStatusCallback 
 public:
     virtual ~MockAvailableDeviceStatusCallback() = default;
     MockAvailableDeviceStatusCallback() = default;
-    explicit MockAvailableDeviceStatusCallback(int32_t userId) : userId_(userId)
-    {
-    }
 
     MOCK_METHOD(void, OnAvailableDeviceStatusChange, (const std::vector<ClientDeviceStatus> deviceStatusList),
         (override));
-
-    int32_t GetUserId() override
-    {
-        return userId_;
-    }
-
-private:
-    int32_t userId_ = 0;
 };
 
 /**
@@ -89,28 +67,9 @@ class MockContinuousAuthStatusCallback : public IContinuousAuthStatusCallback {
 public:
     virtual ~MockContinuousAuthStatusCallback() = default;
     MockContinuousAuthStatusCallback() = default;
-    MockContinuousAuthStatusCallback(int32_t userId, const std::optional<uint64_t> &templateId)
-        : userId_(userId),
-          templateId_(templateId)
-    {
-    }
 
     MOCK_METHOD(void, OnContinuousAuthStatusChange, (const bool isAuthPassed, std::optional<int32_t> remainingTime),
         (override));
-
-    int32_t GetUserId() override
-    {
-        return userId_;
-    }
-
-    std::optional<uint64_t> GetTemplateId() override
-    {
-        return templateId_;
-    }
-
-private:
-    int32_t userId_ = 0;
-    std::optional<uint64_t> templateId_;
 };
 
 } // namespace CompanionDeviceAuth

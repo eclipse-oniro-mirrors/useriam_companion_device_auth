@@ -51,7 +51,14 @@ napi_value CompanionDeviceAuthNapiImpl::RegisterDeviceSelectCallback(napi_env en
     auto deviceSelectCallback = std::make_shared<NapiDeviceSelectCallback>(env);
     ENSURE_OR_RETURN_VAL(deviceSelectCallback != nullptr, nullptr);
 
-    auto callbackRef = std::make_shared<JsRefHolder>(env, argv[PARAM0]);
+    napi_ref ref = nullptr;
+    status = CompanionDeviceAuthNapiHelper::GetFunctionRef(env, argv[PARAM0], ref);
+    if (status != napi_ok || ref == nullptr) {
+        IAM_LOGE("GetFunctionRef fail %{public}d", status);
+        return nullptr;
+    }
+
+    auto callbackRef = std::make_shared<JsRefHolder>(env, ref);
     ENSURE_OR_RETURN_VAL(callbackRef != nullptr, nullptr);
     if (!callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,34 +13,28 @@
  * limitations under the License.
  */
 
-/**
- * @file template_status_callback.h
- *
- * @brief Callback invoked when template statuses change.
- * @since todo
- * @version todo
- */
-
-#ifndef ITEMPLATE_STATUS_CALLBACK_H
-#define ITEMPLATE_STATUS_CALLBACK_H
-
-#include "companion_device_auth_common_defines.h"
+#ifndef COMPANION_DEVICE_AUTH_FRAMEWORK_CALLBACK_WRAPPER_H
+#define COMPANION_DEVICE_AUTH_FRAMEWORK_CALLBACK_WRAPPER_H
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class ITemplateStatusCallback {
+template <typename T>
+class CallbackWrapper {
 public:
-    virtual ~ITemplateStatusCallback() = default;
+    CallbackWrapper(T callback) : callback_(callback) {}
+    ~CallbackWrapper() = default;
 
-    /**
-     * @brief Callback invoked when template statuses change.
-     *
-     * @param templateStatusList Latest template status list.
-     */
-    virtual void OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList) = 0;
+    bool operator==(const CallbackWrapper &other) const
+    {
+        return callback_ == other.GetCallback();
+    }
+    const T &GetCallback() const { return callback_; }
+
+private:
+    T callback_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
-#endif // ITEMPLATE_STATUS_CALLBACK_H
+#endif // COMPANION_DEVICE_AUTH_FRAMEWORK_CALLBACK_WRAPPER_H

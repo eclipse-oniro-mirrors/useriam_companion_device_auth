@@ -37,10 +37,6 @@ namespace {
 const size_t UINT64_BYTE_SIZE = 8;
 const uint8_t UINT8_BYTE_MASK = 0xFF;
 static constexpr const int MAX_STRING_LENGTH = 65536;
-struct DeleteRefHolder {
-    napi_env env { nullptr };
-    napi_ref ref { nullptr };
-};
 
 const std::map<int32_t, std::string> g_result2Str = {
     { static_cast<int32_t>(ResultCode::GENERAL_ERROR),
@@ -53,22 +49,7 @@ const std::map<int32_t, std::string> g_result2Str = {
 };
 } // namespace
 
-JsRefHolder::JsRefHolder(napi_env env, napi_value value)
-{
-    if (env == nullptr || value == nullptr) {
-        IAM_LOGE("get null ptr");
-        return;
-    }
-    napi_status ret = CompanionDeviceAuthNapiHelper::GetFunctionRef(env, value, ref_);
-    if (ret != napi_ok) {
-        IAM_LOGE("GetFunctionRef fail %{public}d", ret);
-        ref_ = nullptr;
-        return;
-    }
-    env_ = env;
-}
-
-JsRefHolder::~JsRefHolder()
+JsRefHolder::JsRefHolderInner::~JsRefHolderInner()
 {
     if (!IsValid()) {
         IAM_LOGI("invalid");
@@ -81,17 +62,9 @@ JsRefHolder::~JsRefHolder()
         IAM_LOGE("napi_get_uv_event_loop fail");
         return;
     }
-    std::shared_ptr<DeleteRefHolder> deleteRefHolder = std::make_shared<DeleteRefHolder>();
-    ENSURE_OR_RETURN(deleteRefHolder != nullptr);
-    deleteRefHolder->env = env_;
-    deleteRefHolder->ref = ref_;
-    auto task = [deleteRefHolder]() {
+    auto task = [env = env_, ref = ref_]() {
         IAM_LOGI("start");
-        if (deleteRefHolder == nullptr) {
-            IAM_LOGE("deleteRefHolder is invalid");
-            return;
-        }
-        napi_status ret = napi_delete_reference(deleteRefHolder->env, deleteRefHolder->ref);
+        napi_status ret = napi_delete_reference(env, ref);
         if (ret != napi_ok) {
             IAM_LOGE("napi_delete_reference fail %{public}d", ret);
             return;
@@ -102,30 +75,20 @@ JsRefHolder::~JsRefHolder()
     }
 }
 
-bool JsRefHolder::IsValid() const
+bool JsRefHolder::JsRefHolderInner::operator==(const JsRefHolder::JsRefHolderInner &other) const
 {
-    return (env_ != nullptr && ref_ != nullptr);
-}
-
-napi_ref JsRefHolder::Get() const
-{
-    return ref_;
-}
-
-bool JsRefHolder::Equals(const std::shared_ptr<JsRefHolder> &other) const
-{
-    if (!other || !other->IsValid() || !this->IsValid()) {
+    if (!other.IsValid() || !this->IsValid()) {
         return false;
     }
 
     napi_value thisValue;
     napi_value otherValue;
-    napi_status status = napi_get_reference_value(env_, this->Get(), &thisValue);
+    napi_status status = napi_get_reference_value(env_, this->GetRef(), &thisValue);
     if (status != napi_ok) {
         return false;
     }
 
-    status = napi_get_reference_value(env_, other->Get(), &otherValue);
+    status = napi_get_reference_value(env_, other.GetRef(), &otherValue);
     if (status != napi_ok) {
         return false;
     }
@@ -133,6 +96,14 @@ bool JsRefHolder::Equals(const std::shared_ptr<JsRefHolder> &other) const
     bool result = false;
     status = napi_strict_equals(env_, thisValue, otherValue, &result);
     return (status == napi_ok) && result;
+}
+
+bool JsRefHolder::operator==(const JsRefHolder &other) const
+{
+    if (!other.IsValid() || !this->IsValid()) {
+        return false;
+    }
+    return *(this->holder_) == *(other.holder_);
 }
 
 napi_status CompanionDeviceAuthNapiHelper::GetUint8ArrayValue(napi_env env, napi_value value,

@@ -26,6 +26,7 @@ ohos_shared_library("companiondeviceauth") {
   include_dirs = [
     "inc",
     "${companion_device_auth_path}/common/inc",
+    "${companion_device_auth_path}/frameworks/common/inc",
     "${companion_device_auth_path}/frameworks/native/client/inc",
   ]
 
@@ -33,11 +34,10 @@ ohos_shared_library("companiondeviceauth") {
     "src/companion_device_auth_entry.cpp",
     "src/companion_device_auth_napi_helper.cpp",
     "src/companion_device_auth_napi_impl.cpp",
-    "src/napi_available_device_status_callback.cpp",
-    "src/napi_continuous_auth_status_callback.cpp",
+    "src/napi_template_status_callback_wrapper.cpp",
+    "src/napi_available_device_status_callback_wrapper.cpp",
+    "src/napi_continuous_auth_status_callback_wrapper.cpp",
     "src/napi_device_select_callback.cpp",
-    "src/napi_template_status_callback.cpp",
-    "src/status_monitor.cpp",
   ]
 
   deps = [ "${companion_device_auth_path}/frameworks/native/client:companion_device_auth_client" ]

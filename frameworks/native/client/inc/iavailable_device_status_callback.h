@@ -39,13 +39,6 @@ public:
      * @param deviceStatusList Status list of available devices.
      */
     virtual void OnAvailableDeviceStatusChange(const std::vector<ClientDeviceStatus> deviceStatusList) = 0;
-
-    /**
-     * @brief Get user identifier for callback.
-     *
-     * @return User identifier.
-     */
-    virtual int32_t GetUserId() = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -74,17 +74,35 @@ private:
     ~CompanionDeviceAuthNapiHelper() = default;
 };
 
-class JsRefHolder : public NoCopyable {
+class JsRefHolder {
 public:
-    JsRefHolder(napi_env env, napi_value value);
-    ~JsRefHolder() override;
-    bool IsValid() const;
-    napi_ref Get() const;
-    bool Equals(const std::shared_ptr<JsRefHolder> &other) const;
+    JsRefHolder(napi_env env, napi_ref ref) : holder_(std::make_shared<JsRefHolderInner>(env, ref)) {};
+    ~JsRefHolder() = default;
+
+    bool IsValid() const { return holder_ != nullptr && holder_->IsValid(); };
+    napi_ref GetRef() const { return holder_ == nullptr ? nullptr : holder_->GetRef(); };
+    napi_env GetEnv() const { return holder_ == nullptr ? nullptr : holder_->GetEnv(); };
+
+    bool operator==(const JsRefHolder &other) const;
 
 private:
-    napi_env env_ { nullptr };
-    napi_ref ref_ { nullptr };
+    class JsRefHolderInner {
+    public:
+        JsRefHolderInner(napi_env env, napi_ref ref) : env_(env), ref_(ref) {}
+        ~JsRefHolderInner();
+
+        bool IsValid() const { return env_ != nullptr && ref_ != nullptr; };
+        napi_ref GetRef() const { return ref_; }
+        napi_env GetEnv() const { return env_; }
+
+        bool operator==(const JsRefHolderInner &other) const;
+
+    private:
+        napi_env env_ { nullptr };
+        napi_ref ref_ { nullptr };
+    };
+
+    std::shared_ptr<JsRefHolderInner> holder_ { nullptr };
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

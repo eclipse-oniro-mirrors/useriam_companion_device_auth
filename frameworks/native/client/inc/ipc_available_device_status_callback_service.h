@@ -28,16 +28,21 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class IpcAvailableDeviceStatusCallbackService : public IpcAvailableDeviceStatusCallbackStub {
 public:
-    explicit IpcAvailableDeviceStatusCallbackService(const std::shared_ptr<IAvailableDeviceStatusCallback> &impl);
+    explicit IpcAvailableDeviceStatusCallbackService(
+        int32_t userId, const std::shared_ptr<IAvailableDeviceStatusCallback> &impl);
     ~IpcAvailableDeviceStatusCallbackService() override = default;
+
     int32_t OnAvailableDeviceStatusChange(const std::vector<IpcDeviceStatus> &deviceStatusList) override;
-    std::shared_ptr<IAvailableDeviceStatusCallback> GetCallback();
+
     int32_t CallbackEnter([[maybe_unused]] uint32_t code) override;
     int32_t CallbackExit([[maybe_unused]] uint32_t code, [[maybe_unused]] int32_t result) override;
 
+    int32_t GetUserId();
+    std::shared_ptr<IAvailableDeviceStatusCallback> GetCallback();
+
 private:
+    int32_t userId_ { -1 };
     std::shared_ptr<IAvailableDeviceStatusCallback> callback_ { nullptr };
-    std::recursive_mutex mutex_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

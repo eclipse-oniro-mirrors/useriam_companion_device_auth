@@ -37,7 +37,7 @@ public:
     static companionDeviceAuth::DeviceStatus ConvertDeviceStatus(ClientDeviceStatus clientDeviceStatus);
     static companionDeviceAuth::TemplateStatus ConvertTemplateStatus(ClientTemplateStatus clientTemplateStatus,
         ani_env *env);
-    static uintptr_t ConvertAddedTime(int32_t addedTime, ani_env *env);
+    static uintptr_t ConvertAddedTime(int64_t addedTime, ani_env *env);
     static companionDeviceAuth::DeviceKey ConvertDeviceKey(ClientDeviceKey clientDeviceKey);
     static bool WrapDate(int64_t time, ani_object &outObj, ani_env *env);
     static taihe::array<int32_t> ConvertInt32VectorToArray(const std::vector<int32_t> &input);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,34 +13,26 @@
  * limitations under the License.
  */
 
-/**
- * @file template_status_callback.h
- *
- * @brief Callback invoked when template statuses change.
- * @since todo
- * @version todo
- */
+#ifndef AVAILABLE_DEVICE_STATUS_CALLBACK_WRAPPER_H
+#define AVAILABLE_DEVICE_STATUS_CALLBACK_WRAPPER_H
 
-#ifndef ITEMPLATE_STATUS_CALLBACK_H
-#define ITEMPLATE_STATUS_CALLBACK_H
+#include "iavailable_device_status_callback.h"
 
-#include "companion_device_auth_common_defines.h"
+#include "callback_wrapper.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-class ITemplateStatusCallback {
+template <typename T>
+class AvailableDeviceStatusCallbackWrapper : public IAvailableDeviceStatusCallback,
+                                             public CallbackWrapper<T> {
 public:
-    virtual ~ITemplateStatusCallback() = default;
+    AvailableDeviceStatusCallbackWrapper(T callback) : CallbackWrapper<T>(callback) {}
+    ~AvailableDeviceStatusCallbackWrapper() = default;
 
-    /**
-     * @brief Callback invoked when template statuses change.
-     *
-     * @param templateStatusList Latest template status list.
-     */
-    virtual void OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList) = 0;
+    void OnAvailableDeviceStatusChange(const std::vector<ClientDeviceStatus> deviceStatusList) override;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
-#endif // ITEMPLATE_STATUS_CALLBACK_H
+#endif // AVAILABLE_DEVICE_STATUS_CALLBACK_WRAPPER_H

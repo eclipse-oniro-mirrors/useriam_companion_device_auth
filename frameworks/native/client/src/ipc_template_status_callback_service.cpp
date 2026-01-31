@@ -30,16 +30,14 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-IpcTemplateStatusCallbackService::IpcTemplateStatusCallbackService(const std::shared_ptr<ITemplateStatusCallback> &impl)
-    : callback_(impl)
-{
-}
+IpcTemplateStatusCallbackService::IpcTemplateStatusCallbackService(
+    int32_t userId, const std::shared_ptr<ITemplateStatusCallback> &impl)
+    : userId_(userId), callback_(impl) {}
 
 int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
     const std::vector<IpcTemplateStatus> &templateStatusList)
 {
     IAM_LOGI("start, templateStatusList size:%{public}zu", templateStatusList.size());
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
     ENSURE_OR_RETURN_VAL(callback_ != nullptr, GENERAL_ERROR);
 
     std::vector<ClientTemplateStatus> clientTemplateStatusList;
@@ -85,9 +83,13 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
     return SUCCESS;
 }
 
+int32_t IpcTemplateStatusCallbackService::GetUserId()
+{
+    return userId_;
+}
+
 std::shared_ptr<ITemplateStatusCallback> IpcTemplateStatusCallbackService::GetCallback()
 {
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
     return callback_;
 }
 

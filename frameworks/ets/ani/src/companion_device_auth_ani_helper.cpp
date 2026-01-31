@@ -113,7 +113,7 @@ std::vector<int32_t> CompanionDeviceAuthAniHelper::ConvertArrayToInt32Vector(con
     return std::vector<int32_t>(input.begin(), input.end());
 }
 
-uintptr_t CompanionDeviceAuthAniHelper::ConvertAddedTime(int32_t addedTime, ani_env *env)
+uintptr_t CompanionDeviceAuthAniHelper::ConvertAddedTime(int64_t addedTime, ani_env *env)
 {
     uintptr_t result = {};
     ani_object dateObj;
@@ -144,7 +144,7 @@ bool CompanionDeviceAuthAniHelper::WrapDate(int64_t time, ani_object &outObj, an
 {
     IAM_LOGI("start");
     if (env == nullptr || time < 0) {
-        IAM_LOGE("env is nullptr or time is invalid value");
+        IAM_LOGE("env is nullptr or time:%{public}" PRId64 " is invalid value", time);
         return false;
     }
     ani_class cls;
@@ -162,10 +162,10 @@ bool CompanionDeviceAuthAniHelper::WrapDate(int64_t time, ani_object &outObj, an
         IAM_LOGE("Object_New fail");
         return false;
     }
-    ani_double msObj = 0;
-    if ((status = env->Object_CallMethodByName_Double(outObj, "setTime", "d:d", &msObj, static_cast<double>(time))) !=
+    ani_long msObj = 0;
+    if ((status = env->Object_CallMethodByName_Long(outObj, "setTime", "l:l", &msObj, time)) !=
         ANI_OK) {
-        IAM_LOGE("Object_CallMethodByName_Double fail");
+        IAM_LOGE("Object_CallMethodByName_Long fail");
         return false;
     }
     return true;

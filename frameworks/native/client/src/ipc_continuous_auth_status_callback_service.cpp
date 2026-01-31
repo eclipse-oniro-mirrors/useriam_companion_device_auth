@@ -29,16 +29,13 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 IpcContinuousAuthStatusCallbackService::IpcContinuousAuthStatusCallbackService(
-    const std::shared_ptr<IContinuousAuthStatusCallback> &impl)
-    : callback_(impl)
-{
-}
+    int32_t userId, std::optional<uint64_t> templateId, const std::shared_ptr<IContinuousAuthStatusCallback> &impl)
+    : userId_(userId), templateId_(templateId), callback_(impl) {}
 
 int32_t IpcContinuousAuthStatusCallbackService::OnContinuousAuthStatusChange(const IpcContinuousAuthStatus &status)
 {
     IAM_LOGI("start, isAuthPassed:%{public}d, hasAuthTrustLevel:%{public}d, authTrustLevel:%{public}d",
         status.isAuthPassed, status.hasAuthTrustLevel, status.authTrustLevel);
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
     ENSURE_OR_RETURN_VAL(callback_ != nullptr, GENERAL_ERROR);
     if (!status.hasAuthTrustLevel) {
         callback_->OnContinuousAuthStatusChange(status.isAuthPassed);
@@ -49,9 +46,18 @@ int32_t IpcContinuousAuthStatusCallbackService::OnContinuousAuthStatusChange(con
     return SUCCESS;
 }
 
+int32_t IpcContinuousAuthStatusCallbackService::GetUserId()
+{
+    return userId_;
+}
+
+std::optional<uint64_t> IpcContinuousAuthStatusCallbackService::GetTemplateId()
+{
+    return templateId_;
+}
+
 std::shared_ptr<IContinuousAuthStatusCallback> IpcContinuousAuthStatusCallbackService::GetCallback()
 {
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
     return callback_;
 }
 

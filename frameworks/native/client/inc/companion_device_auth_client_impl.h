@@ -45,22 +45,20 @@ public:
 
     int32_t RegisterDeviceSelectCallback(const std::shared_ptr<IDeviceSelectCallback> &callback) override;
     int32_t UnregisterDeviceSelectCallback() override;
-    int32_t UpdateTemplateEnabledBusinessIds(const uint64_t templateId,
-        const std::vector<int32_t> enabledBusinessIds) override;
-    int32_t GetTemplateStatus(const int32_t localUserId,
-        std::vector<ClientTemplateStatus> &templateStatusList) override;
-    int32_t SubscribeTemplateStatusChange(const int32_t localUserId,
-        const std::shared_ptr<ITemplateStatusCallback> &callback) override;
+    int32_t UpdateTemplateEnabledBusinessIds(
+        uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds) override;
+    int32_t GetTemplateStatus(int32_t userId, std::vector<ClientTemplateStatus> &templateStatusList) override;
+    int32_t SubscribeTemplateStatusChange(
+        int32_t userId, const std::shared_ptr<ITemplateStatusCallback> &callback) override;
     int32_t UnsubscribeTemplateStatusChange(const std::shared_ptr<ITemplateStatusCallback> &callback) override;
-    int32_t SubscribeContinuousAuthStatusChange(const int32_t localUserId,
-        const std::shared_ptr<IContinuousAuthStatusCallback> &callback,
-        const std::optional<uint64_t> templateId = std::nullopt) override;
-    int32_t UnsubscribeContinuousAuthStatusChange(
-        const std::shared_ptr<IContinuousAuthStatusCallback> &callback) override;
-    int32_t SubscribeAvailableDeviceStatus(const int32_t localUserId,
+    int32_t SubscribeAvailableDeviceStatus(int32_t userId,
         const std::shared_ptr<IAvailableDeviceStatusCallback> &callback) override;
     int32_t UnsubscribeAvailableDeviceStatus(const std::shared_ptr<IAvailableDeviceStatusCallback> &callback) override;
-    int32_t CheckLocalUserIdValid(const int32_t localUserId, bool &isUserIdValid) override;
+    int32_t SubscribeContinuousAuthStatusChange(int32_t userId, std::optional<uint64_t> templateId,
+        const std::shared_ptr<IContinuousAuthStatusCallback> &callback) override;
+    int32_t UnsubscribeContinuousAuthStatusChange(
+        const std::shared_ptr<IContinuousAuthStatusCallback> &callback) override;
+    int32_t CheckLocalUserIdValid(int32_t userId, bool &isUserIdValid) override;
     void SubscribeCompanionDeviceAuthSaStatus();
 
 #ifdef ENABLE_TEST
@@ -68,6 +66,7 @@ private:
     void SetProxy(const sptr<ICompanionDeviceAuth> &proxy);
 #endif // ENABLE_TEST
 
+private:
     void ReregisterDeviceSelectCallback();
     void ResubscribeTemplateStatusChange();
     void ResubscribeContinuousAuthStatusChange();
@@ -76,6 +75,10 @@ private:
     void ResetProxy(const wptr<IRemoteObject> &remote);
     sptr<ICompanionDeviceAuth> GetProxy();
     void PrintIpcTemplateStatus(const IpcTemplateStatus &ipcTemplateStatus);
+
+    int32_t SubscribeTemplateStatusChangeInner(sptr<IpcTemplateStatusCallbackService> callback);
+    int32_t SubscribeAvailableDeviceStatusInner(sptr<IpcAvailableDeviceStatusCallbackService> callback);
+    int32_t SubscribeContinuousAuthStatusChangeInner(sptr<IpcContinuousAuthStatusCallbackService> callback);
 
     sptr<ICompanionDeviceAuth> proxy_ { nullptr };
     sptr<IRemoteObject::DeathRecipient> deathRecipient_ { nullptr };

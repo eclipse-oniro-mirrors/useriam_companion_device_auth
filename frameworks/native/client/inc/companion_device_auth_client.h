@@ -74,29 +74,28 @@ public:
      * @param enabledBusinessIds Business identifiers that should remain enabled.
      * @return Return UpdateTemplateEnabledBusinessIds result(0:success; other:failed).
      */
-    virtual int32_t UpdateTemplateEnabledBusinessIds(const uint64_t templateId,
-        const std::vector<int32_t> enabledBusinessIds) = 0;
+    virtual int32_t UpdateTemplateEnabledBusinessIds(
+        uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds) = 0;
 
     /**
      * @brief Retrieve the full list of template statuses.
      *
-     * @param localUserId Local user identifier.
+     * @param userId Local user identifier.
      * @param templateStatusList Latest template status list.
      * @return Return GetTemplateStatus result(0:success; other:failed).
      */
-    virtual int32_t GetTemplateStatus(const int32_t localUserId,
-        std::vector<ClientTemplateStatus> &templateStatusList) = 0;
+    virtual int32_t GetTemplateStatus(int32_t userId, std::vector<ClientTemplateStatus> &templateStatusList) = 0;
 
     /**
      * @brief Subscribe to template status changes.
      *        The callback receives all current templates after registration and every update.
      *
-     * @param localUserId Local user identifier.
+     * @param userId Local user identifier.
      * @param callback Handler that processes template status updates.
      * @return Return SubscribeTemplateStatusChange result(0:success; other:failed).
      */
-    virtual int32_t SubscribeTemplateStatusChange(const int32_t localUserId,
-        const std::shared_ptr<ITemplateStatusCallback> &callback) = 0;
+    virtual int32_t SubscribeTemplateStatusChange(
+        int32_t userId, const std::shared_ptr<ITemplateStatusCallback> &callback) = 0;
 
     /**
      * @brief Cancel template status subscription.
@@ -107,35 +106,13 @@ public:
     virtual int32_t UnsubscribeTemplateStatusChange(const std::shared_ptr<ITemplateStatusCallback> &callback) = 0;
 
     /**
-     * @brief Subscribe to continuous authentication updates for a template.
-     *
-     * @param localUserId Local user identifier.
-     * @param callback Handler for continuous authentication outcomes.
-     * @param templateId template identifier; omit the template identifier to
-     *                   subscribe to continuous authentication updates for all templates.
-     * @return Return SubscribeContinuousAuthStatusChange result(0:success; other:failed).
-     */
-    virtual int32_t SubscribeContinuousAuthStatusChange(const int32_t localUserId,
-        const std::shared_ptr<IContinuousAuthStatusCallback> &callback,
-        const std::optional<uint64_t> templateId = std::nullopt) = 0;
-
-    /**
-     * @brief Cancel continuous authentication subscription;
-     *
-     * @param callback Target callback to remove when provided.
-     * @return Return UnsubscribeContinuousAuthStatusChange result(0:success; other:failed).
-     */
-    virtual int32_t UnsubscribeContinuousAuthStatusChange(
-        const std::shared_ptr<IContinuousAuthStatusCallback> &callback) = 0;
-
-    /**
      * @brief Subscribe to status changes of available devices.
      *
-     * @param localUserId Local user identifier.
+     * @param userId Local user identifier.
      * @param callback Callback executed when available device status changes.
      * @return Return SubscribeAvailableDeviceStatus result(0:success; other:failed).
      */
-    virtual int32_t SubscribeAvailableDeviceStatus(const int32_t localUserId,
+    virtual int32_t SubscribeAvailableDeviceStatus(int32_t userId,
         const std::shared_ptr<IAvailableDeviceStatusCallback> &callback) = 0;
 
     /**
@@ -148,13 +125,34 @@ public:
         const std::shared_ptr<IAvailableDeviceStatusCallback> &callback) = 0;
 
     /**
+     * @brief Subscribe to continuous authentication updates for a template.
+     *
+     * @param userId Local user identifier.
+     * @param callback Handler for continuous authentication outcomes.
+     * @param templateId template identifier; omit the template identifier to
+     *                   subscribe to continuous authentication updates for all templates.
+     * @return Return SubscribeContinuousAuthStatusChange result(0:success; other:failed).
+     */
+    virtual int32_t SubscribeContinuousAuthStatusChange(int32_t userId, std::optional<uint64_t> templateId,
+        const std::shared_ptr<IContinuousAuthStatusCallback> &callback) = 0;
+
+    /**
+     * @brief Cancel continuous authentication subscription;
+     *
+     * @param callback Target callback to remove when provided.
+     * @return Return UnsubscribeContinuousAuthStatusChange result(0:success; other:failed).
+     */
+    virtual int32_t UnsubscribeContinuousAuthStatusChange(
+        const std::shared_ptr<IContinuousAuthStatusCallback> &callback) = 0;
+
+    /**
      * @brief Check whether input local user id valid or not.
      *
-     * @param localUserId Local user identifier.
+     * @param userId Local user identifier.
      * @param isUserIdValid check result for user id valid or not.
      * @return Return CheckLocalUserIdValid result(0:success; other:failed).
      */
-    virtual int32_t CheckLocalUserIdValid(const int32_t localUserId, bool &isUserIdValid) = 0;
+    virtual int32_t CheckLocalUserIdValid(int32_t userId, bool &isUserIdValid) = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

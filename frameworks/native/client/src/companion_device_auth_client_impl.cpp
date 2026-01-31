@@ -63,7 +63,7 @@ int32_t CompanionDeviceAuthClientImpl::RegisterDeviceSelectCallback(
         return GENERAL_ERROR;
     }
 
-    int32_t ret {};
+    int32_t ret = GENERAL_ERROR;
     int32_t ipcRet = proxy->RegisterDeviceSelectCallback(wrapper, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -91,7 +91,7 @@ int32_t CompanionDeviceAuthClientImpl::UnregisterDeviceSelectCallback()
         return GENERAL_ERROR;
     }
 
-    int32_t ret {};
+    int32_t ret = GENERAL_ERROR;
     int32_t ipcRet = proxy->UnregisterDeviceSelectCallback(ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -109,8 +109,8 @@ int32_t CompanionDeviceAuthClientImpl::UnregisterDeviceSelectCallback()
     return ret;
 }
 
-int32_t CompanionDeviceAuthClientImpl::UpdateTemplateEnabledBusinessIds(const uint64_t templateId,
-    const std::vector<int32_t> enabledBusinessIds)
+int32_t CompanionDeviceAuthClientImpl::UpdateTemplateEnabledBusinessIds(
+    uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds)
 {
     IAM_LOGI("start, templateId:%{public}s, enabledBusinessIds size:%{public}zu", GET_MASKED_NUM_CSTR(templateId),
         enabledBusinessIds.size());
@@ -120,7 +120,7 @@ int32_t CompanionDeviceAuthClientImpl::UpdateTemplateEnabledBusinessIds(const ui
         return GENERAL_ERROR;
     }
 
-    int32_t ret {};
+    int32_t ret = GENERAL_ERROR;
     int32_t ipcRet = proxy->UpdateTemplateEnabledBusinessIds(templateId, enabledBusinessIds, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -147,14 +147,14 @@ void CompanionDeviceAuthClientImpl::PrintIpcTemplateStatus(const IpcTemplateStat
         ipcTemplateStatus.deviceStatus.deviceName.c_str(), ipcTemplateStatus.deviceStatus.isOnline,
         ipcTemplateStatus.deviceStatus.supportedBusinessIds.size());
 
-    IAM_LOGI("templateId:%{public}s, isConfirmed:%{public}d, isValid:%{public}d, localUserId:%{public}d, "
+    IAM_LOGI("templateId:%{public}s, isConfirmed:%{public}d, isValid:%{public}d, userId:%{public}d, "
              "addedTime:%{public}" PRId64 ", enabledBusinessIds size:%{public}zu",
         GET_MASKED_NUM_CSTR(ipcTemplateStatus.templateId), ipcTemplateStatus.isConfirmed, ipcTemplateStatus.isValid,
         ipcTemplateStatus.localUserId, ipcTemplateStatus.addedTime, ipcTemplateStatus.enabledBusinessIds.size());
 }
 
-int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(const int32_t localUserId,
-    std::vector<ClientTemplateStatus> &templateStatusList)
+int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(
+    int32_t userId, std::vector<ClientTemplateStatus> &templateStatusList)
 {
     IAM_LOGI("start");
     auto proxy = GetProxy();
@@ -163,9 +163,9 @@ int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(const int32_t localUser
         return GENERAL_ERROR;
     }
 
-    int32_t ret {};
+    int32_t ret = GENERAL_ERROR;
     std::vector<IpcTemplateStatus> ipcTemplateStatusList;
-    int32_t ipcRet = proxy->GetTemplateStatus(localUserId, ipcTemplateStatusList, ret);
+    int32_t ipcRet = proxy->GetTemplateStatus(userId, ipcTemplateStatusList, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
         return GENERAL_ERROR;
@@ -207,37 +207,41 @@ int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(const int32_t localUser
     return ret;
 }
 
-int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChange(const int32_t localUserId,
-    const std::shared_ptr<ITemplateStatusCallback> &callback)
+int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChangeInner(
+    sptr<IpcTemplateStatusCallbackService> callback)
 {
-    IAM_LOGI("start, localUserId:%{public}d", localUserId);
     if (!callback) {
         IAM_LOGE("callback is nullptr");
         return GENERAL_ERROR;
     }
+
     auto proxy = GetProxy();
     if (!proxy) {
         IAM_LOGE("proxy is nullptr");
         return GENERAL_ERROR;
     }
 
-    sptr<IpcTemplateStatusCallbackService> wrapper(new (std::nothrow) IpcTemplateStatusCallbackService(callback));
-    if (wrapper == nullptr) {
-        IAM_LOGE("failed to create wrapper");
-        return GENERAL_ERROR;
-    }
-    ScopeGuard unsubscribeGuard([proxy, wrapper]() {
-        int32_t unusedRet;
-        proxy->UnsubscribeTemplateStatusChange(wrapper, unusedRet);
-    });
-
-    int32_t ret {};
-    int32_t ipcRet = proxy->SubscribeTemplateStatusChange(localUserId, wrapper, ret);
+    int32_t ret = GENERAL_ERROR;
+    int32_t ipcRet = proxy->SubscribeTemplateStatusChange(callback->GetUserId(), callback, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
         return GENERAL_ERROR;
     }
+    return ret;
+}
 
+int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChange(
+    int32_t userId, const std::shared_ptr<ITemplateStatusCallback> &callback)
+{
+    IAM_LOGI("start, userId:%{public}d", userId);
+    if (!callback) {
+        IAM_LOGE("callback is nullptr");
+        return GENERAL_ERROR;
+    }
+
+    sptr<IpcTemplateStatusCallbackService> wrapper(
+        new (std::nothrow) IpcTemplateStatusCallbackService(userId, callback));
+    int32_t ret = SubscribeTemplateStatusChangeInner(wrapper);
     if (ret != SUCCESS) {
         IAM_LOGE("SubscribeTemplateStatusChange fail, ret:%{public}d", ret);
         return ret;
@@ -247,7 +251,6 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChange(const int32
         std::lock_guard<std::recursive_mutex> guard(mutex_);
         templateStatusCallbacks_.push_back(wrapper);
     }
-    unsubscribeGuard.Cancel();
     return ret;
 }
 
@@ -277,7 +280,7 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeTemplateStatusChange(
         ipcCallback = *it;
     }
 
-    int32_t ret {};
+    int32_t ret = GENERAL_ERROR;
     int32_t ipcRet = proxy->UnsubscribeTemplateStatusChange(ipcCallback, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -300,38 +303,41 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeTemplateStatusChange(
     return ret;
 }
 
-int32_t CompanionDeviceAuthClientImpl::SubscribeAvailableDeviceStatus(const int32_t localUserId,
-    const std::shared_ptr<IAvailableDeviceStatusCallback> &callback)
+int32_t CompanionDeviceAuthClientImpl::SubscribeAvailableDeviceStatusInner(
+    sptr<IpcAvailableDeviceStatusCallbackService> callback)
 {
-    IAM_LOGI("start, localUserId:%{public}d", localUserId);
     if (!callback) {
         IAM_LOGE("callback is nullptr");
         return GENERAL_ERROR;
     }
+
     auto proxy = GetProxy();
     if (!proxy) {
         IAM_LOGE("proxy is nullptr");
         return GENERAL_ERROR;
     }
 
-    sptr<IpcAvailableDeviceStatusCallbackService> wrapper(
-        new (std::nothrow) IpcAvailableDeviceStatusCallbackService(callback));
-    if (wrapper == nullptr) {
-        IAM_LOGE("failed to create wrapper");
-        return GENERAL_ERROR;
-    }
-    ScopeGuard unsubscribeGuard([proxy, wrapper]() {
-        int32_t unusedRet;
-        proxy->UnsubscribeAvailableDeviceStatus(wrapper, unusedRet);
-    });
-
-    int32_t ret {};
-    int32_t ipcRet = proxy->SubscribeAvailableDeviceStatus(localUserId, wrapper, ret);
+    int32_t ret = GENERAL_ERROR;
+    int32_t ipcRet = proxy->SubscribeAvailableDeviceStatus(callback->GetUserId(), callback, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
         return GENERAL_ERROR;
     }
+    return ret;
+}
 
+int32_t CompanionDeviceAuthClientImpl::SubscribeAvailableDeviceStatus(int32_t userId,
+    const std::shared_ptr<IAvailableDeviceStatusCallback> &callback)
+{
+    IAM_LOGI("start, userId:%{public}d", userId);
+    if (!callback) {
+        IAM_LOGE("callback is nullptr");
+        return GENERAL_ERROR;
+    }
+
+    sptr<IpcAvailableDeviceStatusCallbackService> wrapper(
+        new (std::nothrow) IpcAvailableDeviceStatusCallbackService(userId, callback));
+    int32_t ret = SubscribeAvailableDeviceStatusInner(wrapper);
     if (ret != SUCCESS) {
         IAM_LOGE("SubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
         return ret;
@@ -341,7 +347,6 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeAvailableDeviceStatus(const int3
         std::lock_guard<std::recursive_mutex> guard(mutex_);
         availableDeviceStatusCallbacks_.push_back(wrapper);
     }
-    unsubscribeGuard.Cancel();
     return ret;
 }
 
@@ -370,7 +375,7 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeAvailableDeviceStatus(
         }
         ipcCallback = *it;
     }
-    int32_t ret {};
+    int32_t ret = GENERAL_ERROR;
     int32_t ipcRet = proxy->UnsubscribeAvailableDeviceStatus(ipcCallback, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -393,28 +398,24 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeAvailableDeviceStatus(
     return ret;
 }
 
-int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(const int32_t localUserId,
-    const std::shared_ptr<IContinuousAuthStatusCallback> &callback, const std::optional<uint64_t> templateId)
+int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChangeInner(
+    sptr<IpcContinuousAuthStatusCallbackService> callback)
 {
-    IAM_LOGI("start, localUserId:%{public}d", localUserId);
     if (!callback) {
         IAM_LOGE("callback is nullptr");
         return GENERAL_ERROR;
     }
+
     auto proxy = GetProxy();
     if (!proxy) {
         IAM_LOGE("proxy is nullptr");
         return GENERAL_ERROR;
     }
-    sptr<IpcContinuousAuthStatusCallbackService> wrapper(
-        new (std::nothrow) IpcContinuousAuthStatusCallbackService(callback));
-    if (wrapper == nullptr) {
-        IAM_LOGE("failed to create wrapper");
-        return GENERAL_ERROR;
-    }
+
+    auto templateId = callback->GetTemplateId();
 
     IpcSubscribeContinuousAuthStatusParam param {};
-    param.localUserId = localUserId;
+    param.localUserId = callback->GetUserId();
     param.hasTemplateId = false;
     if (templateId.has_value()) {
         IAM_LOGI("templateId:%{public}s", GET_MASKED_NUM_CSTR(templateId.value()));
@@ -423,18 +424,28 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(const
     } else {
         IAM_LOGI("templateId not exist");
     }
-    ScopeGuard unsubscribeGuard([proxy, wrapper]() {
-        int32_t unusedRet;
-        proxy->UnsubscribeContinuousAuthStatusChange(wrapper, unusedRet);
-    });
 
-    int32_t ret {};
-    int32_t ipcRet = proxy->SubscribeContinuousAuthStatusChange(param, wrapper, ret);
+    int32_t ret = GENERAL_ERROR;
+    int32_t ipcRet = proxy->SubscribeContinuousAuthStatusChange(param, callback, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
         return GENERAL_ERROR;
     }
+    return ret;
+}
 
+int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(int32_t userId,
+    std::optional<uint64_t> templateId, const std::shared_ptr<IContinuousAuthStatusCallback> &callback)
+{
+    IAM_LOGI("start, userId:%{public}d", userId);
+    if (!callback) {
+        IAM_LOGE("callback is nullptr");
+        return GENERAL_ERROR;
+    }
+
+    sptr<IpcContinuousAuthStatusCallbackService> wrapper(
+        new (std::nothrow) IpcContinuousAuthStatusCallbackService(userId, templateId, callback));
+    int32_t ret = SubscribeContinuousAuthStatusChangeInner(wrapper);
     if (ret != SUCCESS) {
         IAM_LOGE("SubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
         return ret;
@@ -444,7 +455,6 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(const
         std::lock_guard<std::recursive_mutex> guard(mutex_);
         continuousAuthStatusCallbacks_.push_back(wrapper);
     }
-    unsubscribeGuard.Cancel();
     return ret;
 }
 
@@ -472,7 +482,7 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeContinuousAuthStatusChange(
         }
         ipcCallback = *it;
     }
-    int32_t ret {};
+    int32_t ret = GENERAL_ERROR;
     int32_t ipcRet = proxy->UnsubscribeContinuousAuthStatusChange(ipcCallback, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
@@ -495,7 +505,7 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeContinuousAuthStatusChange(
     return ret;
 }
 
-int32_t CompanionDeviceAuthClientImpl::CheckLocalUserIdValid(const int32_t localUserId, bool &isUserIdValid)
+int32_t CompanionDeviceAuthClientImpl::CheckLocalUserIdValid(int32_t userId, bool &isUserIdValid)
 {
     IAM_LOGI("start");
     auto proxy = GetProxy();
@@ -503,8 +513,8 @@ int32_t CompanionDeviceAuthClientImpl::CheckLocalUserIdValid(const int32_t local
         IAM_LOGE("proxy is nullptr");
         return GENERAL_ERROR;
     }
-    int32_t ret {};
-    int32_t ipcRet = proxy->CheckLocalUserIdValid(localUserId, isUserIdValid, ret);
+    int32_t ret = GENERAL_ERROR;
+    int32_t ipcRet = proxy->CheckLocalUserIdValid(userId, isUserIdValid, ret);
     if (ipcRet != SUCCESS) {
         IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
         return GENERAL_ERROR;
@@ -578,11 +588,8 @@ void CompanionDeviceAuthClientImpl::ResubscribeTemplateStatusChange()
         templateStatusCallbacks_ = {};
     }
 
-    for (const auto &ipcCallback : callbacksCopy) {
-        const auto callback = ipcCallback->GetCallback();
-        ENSURE_OR_CONTINUE(callback != nullptr);
-        int32_t userId = callback->GetUserId();
-        SubscribeTemplateStatusChange(userId, callback);
+    for (const auto &callback : callbacksCopy) {
+        SubscribeTemplateStatusChangeInner(callback);
     }
 }
 
@@ -595,12 +602,8 @@ void CompanionDeviceAuthClientImpl::ResubscribeContinuousAuthStatusChange()
         callbacksCopy = continuousAuthStatusCallbacks_;
         continuousAuthStatusCallbacks_ = {};
     }
-    for (const auto &ipcCallback : callbacksCopy) {
-        const auto callback = ipcCallback->GetCallback();
-        ENSURE_OR_CONTINUE(callback != nullptr);
-        int32_t userId = callback->GetUserId();
-        std::optional<uint64_t> templateId = callback->GetTemplateId();
-        SubscribeContinuousAuthStatusChange(userId, callback, templateId);
+    for (const auto &callback : callbacksCopy) {
+        SubscribeContinuousAuthStatusChangeInner(callback);
     }
 }
 
@@ -613,11 +616,8 @@ void CompanionDeviceAuthClientImpl::ResubscribeAvailableDeviceStatus()
         callbacksCopy = availableDeviceStatusCallbacks_;
         availableDeviceStatusCallbacks_ = {};
     }
-    for (const auto &ipcCallback : callbacksCopy) {
-        const auto callback = ipcCallback->GetCallback();
-        ENSURE_OR_CONTINUE(callback != nullptr);
-        int32_t userId = callback->GetUserId();
-        SubscribeAvailableDeviceStatus(userId, callback);
+    for (const auto &callback : callbacksCopy) {
+        SubscribeAvailableDeviceStatusInner(callback);
     }
 }
 

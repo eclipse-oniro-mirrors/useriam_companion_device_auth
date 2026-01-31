@@ -224,68 +224,43 @@ public:
 
 class FuzzMockTemplateStatusCallback : public ITemplateStatusCallback {
 public:
-    explicit FuzzMockTemplateStatusCallback(int32_t userId) : userId_(userId)
+    explicit FuzzMockTemplateStatusCallback()
     {
     }
     ~FuzzMockTemplateStatusCallback() override = default;
-    int32_t GetUserId() override
-    {
-        return userId_;
-    }
+
     void OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList) override
     {
         (void)templateStatusList;
     }
-
-private:
-    int32_t userId_;
 };
 
 class FuzzMockAvailableDeviceStatusCallback : public IAvailableDeviceStatusCallback {
 public:
-    explicit FuzzMockAvailableDeviceStatusCallback(int32_t userId) : userId_(userId)
+    explicit FuzzMockAvailableDeviceStatusCallback()
     {
     }
     ~FuzzMockAvailableDeviceStatusCallback() override = default;
-    int32_t GetUserId() override
-    {
-        return userId_;
-    }
+
     void OnAvailableDeviceStatusChange(const std::vector<ClientDeviceStatus> deviceStatusList) override
     {
         (void)deviceStatusList;
     }
-
-private:
-    int32_t userId_;
 };
 
 class FuzzMockContinuousAuthStatusCallback : public IContinuousAuthStatusCallback {
 public:
-    FuzzMockContinuousAuthStatusCallback(int32_t userId, std::optional<uint64_t> templateId)
-        : userId_(userId),
-          templateId_(templateId)
+    FuzzMockContinuousAuthStatusCallback()
     {
     }
     ~FuzzMockContinuousAuthStatusCallback() override = default;
-    int32_t GetUserId() override
-    {
-        return userId_;
-    }
-    std::optional<uint64_t> GetTemplateId() override
-    {
-        return templateId_;
-    }
+
     void OnContinuousAuthStatusChange(const bool isAuthPassed,
         const std::optional<int32_t> authTrustLevel = std::nullopt) override
     {
         (void)isAuthPassed;
         (void)authTrustLevel;
     }
-
-private:
-    int32_t userId_;
-    std::optional<uint64_t> templateId_;
 };
 
 // Fuzz operations for CompanionDeviceAuthClientImpl
@@ -385,7 +360,7 @@ static void FuzzOp4(FuzzedDataProvider &fuzzData)
     bool useNullCallback = fuzzData.ConsumeBool();
     std::shared_ptr<ITemplateStatusCallback> callback = nullptr;
     if (!useNullCallback) {
-        callback = std::make_shared<FuzzMockTemplateStatusCallback>(userId);
+        callback = std::make_shared<FuzzMockTemplateStatusCallback>();
     }
 
     client.SubscribeTemplateStatusChange(userId, callback);
@@ -403,11 +378,10 @@ static void FuzzOp5(FuzzedDataProvider &fuzzData)
     CompanionDeviceAuthClientImpl client;
     client.SetProxy(mockProxy);
 
-    int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
     bool useNullCallback = fuzzData.ConsumeBool();
     std::shared_ptr<ITemplateStatusCallback> callback = nullptr;
     if (!useNullCallback) {
-        callback = std::make_shared<FuzzMockTemplateStatusCallback>(userId);
+        callback = std::make_shared<FuzzMockTemplateStatusCallback>();
     }
 
     client.UnsubscribeTemplateStatusChange(callback);
@@ -429,7 +403,7 @@ static void FuzzOp6(FuzzedDataProvider &fuzzData)
     bool useNullCallback = fuzzData.ConsumeBool();
     std::shared_ptr<IAvailableDeviceStatusCallback> callback = nullptr;
     if (!useNullCallback) {
-        callback = std::make_shared<FuzzMockAvailableDeviceStatusCallback>(userId);
+        callback = std::make_shared<FuzzMockAvailableDeviceStatusCallback>();
     }
 
     client.SubscribeAvailableDeviceStatus(userId, callback);
@@ -447,11 +421,10 @@ static void FuzzOp7(FuzzedDataProvider &fuzzData)
     CompanionDeviceAuthClientImpl client;
     client.SetProxy(mockProxy);
 
-    int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
     bool useNullCallback = fuzzData.ConsumeBool();
     std::shared_ptr<IAvailableDeviceStatusCallback> callback = nullptr;
     if (!useNullCallback) {
-        callback = std::make_shared<FuzzMockAvailableDeviceStatusCallback>(userId);
+        callback = std::make_shared<FuzzMockAvailableDeviceStatusCallback>();
     }
 
     client.UnsubscribeAvailableDeviceStatus(callback);
@@ -477,18 +450,14 @@ static void FuzzOp8(FuzzedDataProvider &fuzzData)
     std::optional<uint64_t> templateId = std::nullopt;
 
     if (!useNullCallback) {
-        std::optional<uint64_t> callbackTemplateId = std::nullopt;
-        if (hasTemplateId) {
-            callbackTemplateId = fuzzData.ConsumeIntegral<uint64_t>();
-        }
-        callback = std::make_shared<FuzzMockContinuousAuthStatusCallback>(userId, callbackTemplateId);
+        callback = std::make_shared<FuzzMockContinuousAuthStatusCallback>();
     }
 
     if (hasTemplateId) {
         templateId = fuzzData.ConsumeIntegral<uint64_t>();
     }
 
-    client.SubscribeContinuousAuthStatusChange(userId, callback, templateId);
+    client.SubscribeContinuousAuthStatusChange(userId, templateId, callback);
 }
 
 // Operation 9: UnsubscribeContinuousAuthStatusChange
@@ -503,17 +472,11 @@ static void FuzzOp9(FuzzedDataProvider &fuzzData)
     CompanionDeviceAuthClientImpl client;
     client.SetProxy(mockProxy);
 
-    int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
     bool useNullCallback = fuzzData.ConsumeBool();
-    bool hasTemplateId = fuzzData.ConsumeBool();
 
     std::shared_ptr<IContinuousAuthStatusCallback> callback = nullptr;
     if (!useNullCallback) {
-        std::optional<uint64_t> templateId = std::nullopt;
-        if (hasTemplateId) {
-            templateId = fuzzData.ConsumeIntegral<uint64_t>();
-        }
-        callback = std::make_shared<FuzzMockContinuousAuthStatusCallback>(userId, templateId);
+        callback = std::make_shared<FuzzMockContinuousAuthStatusCallback>();
     }
 
     client.UnsubscribeContinuousAuthStatusChange(callback);
@@ -600,11 +563,11 @@ static void FuzzOp14(FuzzedDataProvider &fuzzData)
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
 
     // Subscribe with callback A
-    auto callbackA = std::make_shared<FuzzMockTemplateStatusCallback>(userId);
+    auto callbackA = std::make_shared<FuzzMockTemplateStatusCallback>();
     client.SubscribeTemplateStatusChange(userId, callbackA);
 
     // Try to unsubscribe with different callback B (tests callback not found path)
-    auto callbackB = std::make_shared<FuzzMockTemplateStatusCallback>(userId + 1);
+    auto callbackB = std::make_shared<FuzzMockTemplateStatusCallback>();
     client.UnsubscribeTemplateStatusChange(callbackB);
 }
 
@@ -623,13 +586,13 @@ static void FuzzOp15(FuzzedDataProvider &fuzzData)
     // Register multiple callbacks to test list management
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
 
-    auto callback1 = std::make_shared<FuzzMockTemplateStatusCallback>(userId);
+    auto callback1 = std::make_shared<FuzzMockTemplateStatusCallback>();
     client.SubscribeTemplateStatusChange(userId, callback1);
 
-    auto callback2 = std::make_shared<FuzzMockTemplateStatusCallback>(userId);
+    auto callback2 = std::make_shared<FuzzMockTemplateStatusCallback>();
     client.SubscribeTemplateStatusChange(userId, callback2);
 
-    auto callback3 = std::make_shared<FuzzMockAvailableDeviceStatusCallback>(userId);
+    auto callback3 = std::make_shared<FuzzMockAvailableDeviceStatusCallback>();
     client.SubscribeAvailableDeviceStatus(userId, callback3);
 
     // Unsubscribe in different order to test std::find_if
@@ -651,7 +614,7 @@ static void FuzzOp16(FuzzedDataProvider &fuzzData)
     client.SetProxy(mockProxy);
 
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
-    auto callback = std::make_shared<FuzzMockTemplateStatusCallback>(userId);
+    auto callback = std::make_shared<FuzzMockTemplateStatusCallback>();
 
     // Subscribe with same callback twice
     client.SubscribeTemplateStatusChange(userId, callback);
@@ -679,7 +642,7 @@ static void FuzzOp17(FuzzedDataProvider &fuzzData)
     client.SetProxy(mockProxy);
 
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
-    auto callback = std::make_shared<FuzzMockAvailableDeviceStatusCallback>(userId);
+    auto callback = std::make_shared<FuzzMockAvailableDeviceStatusCallback>();
 
     // Subscribe -> Unsubscribe -> Subscribe pattern
     client.SubscribeAvailableDeviceStatus(userId, callback);

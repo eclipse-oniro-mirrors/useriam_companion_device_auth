@@ -30,16 +30,13 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 IpcAvailableDeviceStatusCallbackService::IpcAvailableDeviceStatusCallbackService(
-    const std::shared_ptr<IAvailableDeviceStatusCallback> &impl)
-    : callback_(impl)
-{
-}
+    int32_t userId, const std::shared_ptr<IAvailableDeviceStatusCallback> &impl)
+    : userId_(userId), callback_(impl) {}
 
 int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
     const std::vector<IpcDeviceStatus> &deviceStatusList)
 {
     IAM_LOGI("start, deviceStatusList size:%{public}zu", deviceStatusList.size());
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
     ENSURE_OR_RETURN_VAL(callback_ != nullptr, GENERAL_ERROR);
 
     std::vector<ClientDeviceStatus> clientDeviceStatusList;
@@ -71,9 +68,13 @@ int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
     return SUCCESS;
 }
 
+int32_t IpcAvailableDeviceStatusCallbackService::GetUserId()
+{
+    return userId_;
+}
+
 std::shared_ptr<IAvailableDeviceStatusCallback> IpcAvailableDeviceStatusCallbackService::GetCallback()
 {
-    std::lock_guard<std::recursive_mutex> guard(mutex_);
     return callback_;
 }
 
