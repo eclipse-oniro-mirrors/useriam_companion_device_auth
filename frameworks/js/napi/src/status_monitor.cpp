@@ -267,6 +267,7 @@ int32_t StatusMonitor::OffContinuousAuthChange(napi_env env, napi_callback_info 
             }
             continuousAuthStatusCallback->ClearCallback();
         }
+        return SUCCESS;
     }
     if (argc != ARGS_ONE) {
         IAM_LOGE("invalid param, argc:%{public}zu", argc);

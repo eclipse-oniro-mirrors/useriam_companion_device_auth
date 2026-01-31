@@ -333,16 +333,21 @@ private:
 ::ohos::userIAM::companionDeviceAuth::StatusMonitor getStatusMonitor(int32_t localUserId)
 {
     IAM_LOGI("start");
+    const int32_t invalidUserId = -1;
+    auto invalidStatusMonitor =
+        taihe::make_holder<StatusMonitorImpl, ::ohos::userIAM::companionDeviceAuth::StatusMonitor>(invalidUserId);
     if (!CheckUseUserIdmPermission()) {
         IAM_LOGE("CheckUseUserIdmPermission fail");
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
             CompanionDeviceAuth::CHECK_PERMISSION_FAILED);
+        return invalidStatusMonitor;
     }
 
     if (!CheckCallerIsSystemApp()) {
         IAM_LOGE("CheckCallerIsSystemApp fail");
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
             CompanionDeviceAuth::CHECK_SYSTEM_PERMISSION_FAILED);
+        return invalidStatusMonitor;
     }
 
     bool isUserIdValid = false;
@@ -351,11 +356,13 @@ private:
     if (ret != CompanionDeviceAuth::SUCCESS) {
         IAM_LOGE("CheckLocalUserIdValid fail, ret:%{public}d", ret);
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+        return invalidStatusMonitor;
     }
 
     if (!isUserIdValid) {
         IAM_LOGE("input local user id is invalid");
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(CompanionDeviceAuth::USER_ID_NOT_FOUND);
+        return invalidStatusMonitor;
     }
 
     auto statusMonitor =
