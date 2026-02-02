@@ -33,7 +33,7 @@ constexpr int32_t INT32_10 = 10;
 constexpr int32_t INT32_5 = 5;
 constexpr int32_t INT32_3 = 3;
 constexpr int32_t INT32_7 = 7;
-}
+} // namespace
 
 using ChannelManagerFuzzFunction = void (*)(std::shared_ptr<ChannelManager> &mgr, FuzzedDataProvider &fuzzData);
 
@@ -71,8 +71,8 @@ static void FuzzGetChannelByIdBoundary(std::shared_ptr<ChannelManager> &mgr, Fuz
     if (mgr) {
         // Test with different boundary channel IDs
         std::vector<ChannelId> testIds = {
-            static_cast<ChannelId>(0),    // Min value
-            static_cast<ChannelId>(-1),   // Max value
+            static_cast<ChannelId>(0),         // Min value
+            static_cast<ChannelId>(-1),        // Max value
             static_cast<ChannelId>(INT32_999), // Invalid mid-range
         };
         for (auto channelId : testIds) {

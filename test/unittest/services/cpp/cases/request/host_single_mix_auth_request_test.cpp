@@ -76,8 +76,8 @@ public:
 
     void TearDown() override
     {
-        // Release the request object first, which will cancel all timers
-        // Then execute any remaining pending tasks
+        RelativeTimer::GetInstance().ExecuteAll();
+        TaskRunnerManager::GetInstance().ExecuteAll();
         request_.reset();
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();

@@ -32,7 +32,7 @@ namespace CompanionDeviceAuth {
 namespace {
 constexpr uint32_t SIZE_64 = 64;
 constexpr int32_t INT32_3 = 3;
-}
+} // namespace
 
 using TemplateStatusSubscriptionFuzzFunction = void (*)(std::shared_ptr<TemplateStatusSubscription> &subscription,
     FuzzedDataProvider &fuzzData);

@@ -28,18 +28,28 @@ if (companion_device_auth_enable_coverage) {
   companion_device_auth_unit_test_sanitize = companion_device_auth_sanitize
 }
 
-_coverage_cflags = []
-_coverage_ldflags = []
+_unit_test_coverage_cflags = []
+_unit_test_coverage_ldflags = []
+_fuzz_test_coverage_cflags = []
+_fuzz_test_coverage_ldflags = []
 _coverage_rustflags = []
 
 if (companion_device_auth_enable_coverage) {
-  _coverage_cflags += [
+  _unit_test_coverage_cflags += [
     "-fprofile-instr-generate",
     "-fcoverage-mapping",
     "-fno-sanitize=cfi",
   ]
-  _coverage_ldflags += [
+  _unit_test_coverage_ldflags += [
     "-fprofile-instr-generate",
+    "-fno-sanitize=cfi",
+  ]
+  _fuzz_test_coverage_cflags = [
+    "--coverage",
+    "-fno-sanitize=cfi",
+  ]
+  _fuzz_test_coverage_ldflags = [
+    "--coverage",
     "-fno-sanitize=cfi",
   ]
   _coverage_rustflags += [
@@ -49,7 +59,8 @@ if (companion_device_auth_enable_coverage) {
 }
 
 _test_cflags = [
-  "-g3",
+  "-g",
+  "-O0",
   "-fno-lto",
   "-DENABLE_TEST",
   "-Wno-unused-variable",
@@ -59,13 +70,14 @@ _test_cflags = [
 ]
 
 _test_ldflags = [
-  "-g3",
+  "-g",
   "-fno-lto",
 ]
 
 companion_device_auth_unit_test_cflags =
-    [ "-DGTEST_HAS_CLONE=0" ] + _test_cflags + _coverage_cflags
-companion_device_auth_unit_test_ldflags = _test_ldflags + _coverage_ldflags
+    [ "-DGTEST_HAS_CLONE=0" ] + _test_cflags + _unit_test_coverage_cflags
+companion_device_auth_unit_test_ldflags =
+    _test_ldflags + _unit_test_coverage_ldflags
 companion_device_auth_unit_test_external_deps = [
   "googletest:gmock_main",
   "googletest:gtest_main",
@@ -73,5 +85,7 @@ companion_device_auth_unit_test_external_deps = [
 
 companion_device_auth_rust_test_flags = _coverage_rustflags
 
-companion_device_auth_fuzz_test_cflags = _test_cflags + _coverage_cflags
-companion_device_auth_fuzz_test_ldflags = _test_ldflags + _coverage_ldflags
+companion_device_auth_fuzz_test_cflags =
+    _test_cflags + _fuzz_test_coverage_cflags
+companion_device_auth_fuzz_test_ldflags =
+    _test_ldflags + _fuzz_test_coverage_ldflags

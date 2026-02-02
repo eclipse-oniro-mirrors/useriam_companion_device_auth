@@ -81,6 +81,8 @@ public:
 
     void TearDown() override
     {
+        RelativeTimer::GetInstance().ExecuteAll();
+        TaskRunnerManager::GetInstance().ExecuteAll();
         request_.reset();
         RelativeTimer::GetInstance().ExecuteAll();
         TaskRunnerManager::GetInstance().ExecuteAll();

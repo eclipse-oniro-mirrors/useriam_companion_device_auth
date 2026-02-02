@@ -31,7 +31,7 @@ namespace CompanionDeviceAuth {
 namespace {
 constexpr int32_t INT32_3 = 3;
 constexpr int32_t INT32_10 = 10;
-}
+} // namespace
 
 using MiscManagerImplFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
