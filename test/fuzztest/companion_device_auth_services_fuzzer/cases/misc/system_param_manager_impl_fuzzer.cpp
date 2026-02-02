@@ -30,14 +30,18 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+namespace {
+constexpr uint32_t SIZE_64 = 64;
+}
+
 using SystemParamManagerImplFuzzFunction = void (*)(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &);
 
 static void FuzzOp0(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     // Test GetParam
-    std::string key = GenerateFuzzString(fuzzData, 64);
-    std::string defaultValue = GenerateFuzzString(fuzzData, 64);
+    std::string key = GenerateFuzzString(fuzzData, SIZE_64);
+    std::string defaultValue = GenerateFuzzString(fuzzData, SIZE_64);
     auto value = mgr->GetParam(key, defaultValue);
     (void)value;
 }
@@ -46,8 +50,8 @@ static void FuzzOp1(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 {
     (void)fuzzData;
     // Test SetParam
-    std::string key = GenerateFuzzString(fuzzData, 64);
-    std::string value = GenerateFuzzString(fuzzData, 64);
+    std::string key = GenerateFuzzString(fuzzData, SIZE_64);
+    std::string value = GenerateFuzzString(fuzzData, SIZE_64);
     mgr->SetParam(key, value);
 }
 
@@ -55,9 +59,9 @@ static void FuzzOp2(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 {
     (void)fuzzData;
     // Test SetParamTwice
-    std::string key = GenerateFuzzString(fuzzData, 64);
-    std::string value1 = GenerateFuzzString(fuzzData, 64);
-    std::string value2 = GenerateFuzzString(fuzzData, 64);
+    std::string key = GenerateFuzzString(fuzzData, SIZE_64);
+    std::string value1 = GenerateFuzzString(fuzzData, SIZE_64);
+    std::string value2 = GenerateFuzzString(fuzzData, SIZE_64);
     mgr->SetParamTwice(key, value1, value2);
 }
 
@@ -65,7 +69,7 @@ static void FuzzOp3(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 {
     (void)fuzzData;
     // Test WatchParam
-    std::string key = GenerateFuzzString(fuzzData, 64);
+    std::string key = GenerateFuzzString(fuzzData, SIZE_64);
     auto subscription = mgr->WatchParam(key, [](const std::string &value) { (void)value; });
     (void)subscription;
 }
@@ -76,8 +80,8 @@ static void FuzzOp4(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
     // Test Create
     auto newMgr = SystemParamManagerImpl::Create();
     if (newMgr) {
-        std::string key = GenerateFuzzString(fuzzData, 64);
-        std::string defaultValue = GenerateFuzzString(fuzzData, 64);
+        std::string key = GenerateFuzzString(fuzzData, SIZE_64);
+        std::string defaultValue = GenerateFuzzString(fuzzData, SIZE_64);
         auto value = newMgr->GetParam(key, defaultValue);
         (void)value;
     }
@@ -89,8 +93,8 @@ static void FuzzOp5(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
     // Test OnParamChange (requires EnableTest)
     auto newMgr = SystemParamManagerImpl::Create();
     if (newMgr) {
-        std::string key = GenerateFuzzString(fuzzData, 64);
-        std::string value = GenerateFuzzString(fuzzData, 64);
+        std::string key = GenerateFuzzString(fuzzData, SIZE_64);
+        std::string value = GenerateFuzzString(fuzzData, SIZE_64);
         // Note: OnParamChange is internal and may not be accessible
         (void)key;
         (void)value;
@@ -101,8 +105,8 @@ static void FuzzOp6(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 {
     (void)fuzzData;
     // Test SetParam followed by GetParam
-    std::string key = GenerateFuzzString(fuzzData, 64);
-    std::string value = GenerateFuzzString(fuzzData, 64);
+    std::string key = GenerateFuzzString(fuzzData, SIZE_64);
+    std::string value = GenerateFuzzString(fuzzData, SIZE_64);
     mgr->SetParam(key, value);
     auto retrieved = mgr->GetParam(key, "default");
     (void)retrieved;
@@ -112,9 +116,9 @@ static void FuzzOp7(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 {
     (void)fuzzData;
     // Test SetParamTwice followed by GetParam
-    std::string key = GenerateFuzzString(fuzzData, 64);
-    std::string value1 = GenerateFuzzString(fuzzData, 64);
-    std::string value2 = GenerateFuzzString(fuzzData, 64);
+    std::string key = GenerateFuzzString(fuzzData, SIZE_64);
+    std::string value1 = GenerateFuzzString(fuzzData, SIZE_64);
+    std::string value2 = GenerateFuzzString(fuzzData, SIZE_64);
     mgr->SetParamTwice(key, value1, value2);
     auto retrieved = mgr->GetParam(key, "default");
     (void)retrieved;
@@ -124,7 +128,7 @@ static void FuzzOp8(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 {
     (void)fuzzData;
     // Test multiple WatchParam subscriptions
-    std::string key = GenerateFuzzString(fuzzData, 64);
+    std::string key = GenerateFuzzString(fuzzData, SIZE_64);
     auto sub1 = mgr->WatchParam(key, [](const std::string &v) { (void)v; });
     auto sub2 = mgr->WatchParam(key, [](const std::string &v) { (void)v; });
     (void)sub1;
@@ -135,7 +139,7 @@ static void FuzzOp9(std::shared_ptr<ISystemParamManager> &mgr, FuzzedDataProvide
 {
     (void)fuzzData;
     // Test WatchParam then SetParam (trigger callback)
-    std::string key = GenerateFuzzString(fuzzData, 64);
+    std::string key = GenerateFuzzString(fuzzData, SIZE_64);
     auto subscription = mgr->WatchParam(key, [](const std::string &v) { (void)v; });
     mgr->SetParam(key, "test_value");
     (void)subscription;
@@ -153,8 +157,17 @@ void FuzzSystemParamManagerImpl(FuzzedDataProvider &fuzzData)
     }
 
     std::shared_ptr<ISystemParamManager> iMgr = mgr;
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, 30);
 
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](iMgr, fuzzData);
+
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -162,14 +175,12 @@ void FuzzSystemParamManagerImpl(FuzzedDataProvider &fuzzData)
 
         uint8_t operation = fuzzData.ConsumeIntegralInRange<uint8_t>(0, NUM_FUZZ_OPERATIONS - 1);
         g_fuzzFuncs[operation](iMgr, fuzzData);
+        EnsureAllTaskExecuted();
     }
-
-    EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzSystemParamManagerImpl)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(SystemParamManagerImpl)
-
 } // namespace UserIam
 } // namespace OHOS

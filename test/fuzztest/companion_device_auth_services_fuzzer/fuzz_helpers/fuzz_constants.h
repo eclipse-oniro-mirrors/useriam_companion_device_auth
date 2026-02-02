@@ -84,6 +84,10 @@ constexpr uint32_t TEST_VAL64 = 64;
 constexpr uint32_t TEST_VAL256 = 256;
 constexpr uint32_t TEST_VAL1024 = 1024;
 
+constexpr uint32_t BASE_LOOP_COUNT = 20;
+constexpr uint32_t LOOP_PER_OPERATION = 5;
+constexpr uint32_t MINIMUM_REMAINING_BYTES = 10;
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

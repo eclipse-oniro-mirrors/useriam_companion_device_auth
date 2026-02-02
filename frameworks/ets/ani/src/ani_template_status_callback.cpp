@@ -75,6 +75,7 @@ void AniTemplateStatusCallback::DoCallback(const std::vector<ClientTemplateStatu
         IAM_LOGE("get ani env fail");
         return;
     }
+    ENSURE_OR_RETURN(env != nullptr);
 
     ScopeGuard detachGuard([vm = vm_]() { vm->DetachCurrentThread(); });
 

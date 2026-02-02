@@ -29,6 +29,10 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+namespace {
+constexpr int32_t INT32_5 = 5;
+}
+
 using ContinuousAuthSubscriptionFuzzFunction = void (*)(std::shared_ptr<ContinuousAuthSubscription> &subscription,
     FuzzedDataProvider &fuzzData);
 
@@ -92,7 +96,7 @@ static void FuzzHandleCompanionStatusChange(std::shared_ptr<ContinuousAuthSubscr
     FuzzedDataProvider &fuzzData)
 {
     std::vector<CompanionStatus> companionStatusList;
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t i = 0; i < count; ++i) {
         CompanionStatus status;
         status.templateId = fuzzData.ConsumeIntegral<uint64_t>();
@@ -155,7 +159,15 @@ void FuzzContinuousAuthSubscription(FuzzedDataProvider &fuzzData)
     // Initialize the subscription
     subscription->Initialize();
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](subscription, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -167,9 +179,8 @@ void FuzzContinuousAuthSubscription(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzContinuousAuthSubscription)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(ContinuousAuthSubscription)
-
 } // namespace UserIam
 } // namespace OHOS

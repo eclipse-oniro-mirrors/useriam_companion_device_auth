@@ -55,13 +55,13 @@ private:
 };
 
 // Fuzzer registration macro (uses static initialization)
-#define FUZZ_REGISTER(name)                                           \
-    namespace {                                                       \
-    static const bool g_fuzzerRegistered_##name = []() {              \
-        ::OHOS::UserIam::CompanionDeviceAuth::FuzzRegistry::Register( \
-            ::OHOS::UserIam::CompanionDeviceAuth::Fuzz##name);        \
-        return true;                                                  \
-    }();                                                              \
+// Note: Pass the full function name, e.g., FUZZ_REGISTER(FuzzSoftBusChannel)
+#define FUZZ_REGISTER(func)                                                                                       \
+    namespace {                                                                                                   \
+    static const bool g_fuzzerRegistered_##func = []() {                                                          \
+        ::OHOS::UserIam::CompanionDeviceAuth::FuzzRegistry::Register(::OHOS::UserIam::CompanionDeviceAuth::func); \
+        return true;                                                                                              \
+    }();                                                                                                          \
     }
 
 // Singleton initializer registry

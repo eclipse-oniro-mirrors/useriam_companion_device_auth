@@ -28,6 +28,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr int32_t INT32_5 = 5;
+
 using ExecutorCallbackFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreateRequestCallback(FuzzedDataProvider &fuzzData)
@@ -77,7 +79,7 @@ static void FuzzInvokeCallbackWithLargeData(FuzzedDataProvider &fuzzData)
 
 static void FuzzCreateMultipleCallbacks(FuzzedDataProvider &fuzzData)
 {
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t i = 0; i < count; ++i) {
         auto callback = [](int32_t resultCode, const std::vector<uint8_t> &data) {
             (void)resultCode;
@@ -99,7 +101,15 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ExecutorCal
 
 void FuzzExecutorCallback(FuzzedDataProvider &fuzzData)
 {
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -107,14 +117,12 @@ void FuzzExecutorCallback(FuzzedDataProvider &fuzzData)
 
         uint8_t operation = fuzzData.ConsumeIntegralInRange<uint8_t>(0, NUM_FUZZ_OPERATIONS - 1);
         g_fuzzFuncs[operation](fuzzData);
+        EnsureAllTaskExecuted();
     }
-
-    EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzExecutorCallback)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(ExecutorCallback)
-
 } // namespace UserIam
 } // namespace OHOS

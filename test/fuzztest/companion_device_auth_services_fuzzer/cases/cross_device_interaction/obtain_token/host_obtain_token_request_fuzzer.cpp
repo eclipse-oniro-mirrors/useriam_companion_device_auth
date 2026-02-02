@@ -137,7 +137,15 @@ void FuzzHostObtainTokenRequest(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](obtainTokenRequest, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -148,9 +156,8 @@ void FuzzHostObtainTokenRequest(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzHostObtainTokenRequest)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(HostObtainTokenRequest)
-
 } // namespace UserIam
 } // namespace OHOS

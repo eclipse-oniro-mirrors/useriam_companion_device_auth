@@ -127,6 +127,36 @@ static void FuzzCreate(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedD
     (void)newMgr;
 }
 
+static void FuzzFindBindingById(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    BindingId bindingId = fuzzData.ConsumeIntegral<BindingId>();
+    auto binding = manager->FindBindingById(bindingId);
+    (void)binding;
+}
+
+static void FuzzFindBindingByDeviceUser(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    UserId userId = fuzzData.ConsumeIntegral<UserId>();
+    DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
+    auto binding = manager->FindBindingByDeviceUser(userId, deviceKey);
+    (void)binding;
+}
+
+static void FuzzAddBindingInternal(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    PersistedHostBindingStatus persistedStatus = GenerateFuzzPersistedHostBindingStatus(fuzzData);
+    auto binding = HostBinding::Create(persistedStatus);
+    if (binding) {
+        manager->AddBindingInternal(binding);
+    }
+}
+
+static void FuzzRemoveBindingInternal(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    BindingId bindingId = fuzzData.ConsumeIntegral<BindingId>();
+    manager->RemoveBindingInternal(bindingId);
+}
+
 static const HostBindingManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzGetHostBindingStatusById,
     FuzzGetHostBindingStatusByUserDevice,
@@ -140,6 +170,10 @@ static const HostBindingManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzInitialize,
     FuzzOnActiveUserIdChanged,
     FuzzCreate,
+    FuzzFindBindingById,
+    FuzzFindBindingByDeviceUser,
+    FuzzAddBindingInternal,
+    FuzzRemoveBindingInternal,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostBindingManagerImplFuzzFunction);
@@ -151,8 +185,16 @@ void FuzzHostBindingManagerImpl(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](manager, fuzzData);
 
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -166,9 +208,8 @@ void FuzzHostBindingManagerImpl(FuzzedDataProvider &fuzzData)
     EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzHostBindingManagerImpl)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(HostBindingManagerImpl)
-
 } // namespace UserIam
 } // namespace OHOS

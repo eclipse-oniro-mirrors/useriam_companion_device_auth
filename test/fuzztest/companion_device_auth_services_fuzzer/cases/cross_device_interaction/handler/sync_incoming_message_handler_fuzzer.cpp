@@ -29,6 +29,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr int32_t INT32_5 = 5;
+
 using SyncIncomingMessageHandlerFuzzFunction = void (*)(std::shared_ptr<HostRevokeTokenHandler> &handler,
     FuzzedDataProvider &fuzzData);
 
@@ -71,7 +73,7 @@ static void FuzzHandleIncomingMessageWithLargeAttrs(std::shared_ptr<HostRevokeTo
 static void FuzzMultipleHandleIncomingMessages(std::shared_ptr<HostRevokeTokenHandler> &handler,
     FuzzedDataProvider &fuzzData)
 {
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t i = 0; i < count; ++i) {
         Attributes request = GenerateFuzzAttributes(fuzzData);
         OnMessageReply onMessageReply = [](const Attributes &reply) { (void)reply; };
@@ -97,7 +99,15 @@ void FuzzSyncIncomingMessageHandler(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](handler, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -109,9 +119,8 @@ void FuzzSyncIncomingMessageHandler(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzSyncIncomingMessageHandler)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(SyncIncomingMessageHandler)
-
 } // namespace UserIam
 } // namespace OHOS

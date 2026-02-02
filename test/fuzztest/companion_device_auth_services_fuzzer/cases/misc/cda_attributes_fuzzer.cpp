@@ -28,6 +28,12 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+namespace {
+constexpr uint32_t SIZE_64 = 64;
+constexpr int32_t INT32_5 = 5;
+constexpr uint32_t SIZE_1024 = 1024;
+}
+
 using CdaAttributesFuzzFunction = void (*)(FuzzedDataProvider &, Attributes::AttributeKey);
 
 static void FuzzOp0(FuzzedDataProvider &fuzzData, Attributes::AttributeKey fuzzKey)
@@ -112,7 +118,7 @@ static void FuzzOp7(FuzzedDataProvider &fuzzData, Attributes::AttributeKey fuzzK
     (void)fuzzData;
     // Test SetStringValue / GetStringValue
     Attributes attr;
-    std::string strValue = GenerateFuzzString(fuzzData, 64);
+    std::string strValue = GenerateFuzzString(fuzzData, SIZE_64);
     attr.SetStringValue(fuzzKey, strValue);
     std::string result;
     attr.GetStringValue(fuzzKey, result);
@@ -135,7 +141,7 @@ static void FuzzOp9(FuzzedDataProvider &fuzzData, Attributes::AttributeKey fuzzK
     // Test SetAttributesArrayValue / GetAttributesArrayValue
     Attributes attr;
     std::vector<Attributes> attrArray;
-    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t j = 0; j < arraySize; ++j) {
         attrArray.push_back(Attributes());
     }
@@ -150,7 +156,7 @@ static void FuzzOp10(FuzzedDataProvider &fuzzData, Attributes::AttributeKey fuzz
     // Test SetUint64ArrayValue / GetUint64ArrayValue
     Attributes attr;
     std::vector<uint64_t> array;
-    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t j = 0; j < arraySize; ++j) {
         array.push_back(fuzzData.ConsumeIntegral<uint64_t>());
     }
@@ -165,7 +171,7 @@ static void FuzzOp11(FuzzedDataProvider &fuzzData, Attributes::AttributeKey fuzz
     // Test SetUint32ArrayValue / GetUint32ArrayValue
     Attributes attr;
     std::vector<uint32_t> array;
-    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t j = 0; j < arraySize; ++j) {
         array.push_back(fuzzData.ConsumeIntegral<uint32_t>());
     }
@@ -180,7 +186,7 @@ static void FuzzOp12(FuzzedDataProvider &fuzzData, Attributes::AttributeKey fuzz
     // Test SetInt32ArrayValue / GetInt32ArrayValue
     Attributes attr;
     std::vector<int32_t> array;
-    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t j = 0; j < arraySize; ++j) {
         array.push_back(fuzzData.ConsumeIntegral<int32_t>());
     }
@@ -195,7 +201,7 @@ static void FuzzOp13(FuzzedDataProvider &fuzzData, Attributes::AttributeKey fuzz
     // Test SetUint16ArrayValue / GetUint16ArrayValue
     Attributes attr;
     std::vector<uint16_t> array;
-    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t j = 0; j < arraySize; ++j) {
         array.push_back(fuzzData.ConsumeIntegral<uint16_t>());
     }
@@ -210,7 +216,7 @@ static void FuzzOp14(FuzzedDataProvider &fuzzData, Attributes::AttributeKey fuzz
     // Test SetUint8ArrayValue / GetUint8ArrayValue
     Attributes attr;
     std::vector<uint8_t> array;
-    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t arraySize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t j = 0; j < arraySize; ++j) {
         array.push_back(fuzzData.ConsumeIntegral<uint8_t>());
     }
@@ -294,7 +300,7 @@ static void FuzzOp22(FuzzedDataProvider &fuzzData, Attributes::AttributeKey fuzz
     (void)fuzzKey;
     // Test constructor with raw data
     size_t leftRange = 0;
-    size_t rightRange = 1024;
+    size_t rightRange = SIZE_1024;
     std::vector<uint8_t> rawData =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(leftRange, rightRange));
     Attributes attr(rawData);
@@ -318,8 +324,16 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CdaAttribut
 void FuzzAttributes(FuzzedDataProvider &fuzzData)
 {
     Attributes::AttributeKey fuzzKey = static_cast<Attributes::AttributeKey>(fuzzData.ConsumeIntegral<uint32_t>());
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
 
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](fuzzData, fuzzKey);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -332,9 +346,8 @@ void FuzzAttributes(FuzzedDataProvider &fuzzData)
     EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzAttributes)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(Attributes)
-
 } // namespace UserIam
 } // namespace OHOS

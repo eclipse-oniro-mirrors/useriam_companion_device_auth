@@ -28,6 +28,11 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+namespace {
+constexpr int32_t INT32_3 = 3;
+constexpr int32_t INT32_10 = 10;
+}
+
 using MiscManagerImplFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreate(FuzzedDataProvider &fuzzData)
@@ -41,7 +46,7 @@ static void FuzzGetNextGlobalId(FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
     auto manager = MiscManagerImpl::Create();
-    int num = 10;
+    int num = INT32_10;
     if (manager) {
         for (int i = 0; i < num; ++i) {
             (void)manager->GetNextGlobalId();
@@ -81,7 +86,7 @@ static void FuzzSetDeviceSelectCallback(FuzzedDataProvider &fuzzData)
 static void FuzzGetDeviceSelectResult(FuzzedDataProvider &fuzzData)
 {
     uint32_t tokenId = fuzzData.ConsumeIntegral<uint32_t>();
-    uint8_t purposeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 3);
+    uint8_t purposeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_3);
     auto manager = MiscManagerImpl::Create();
     if (manager) {
         // Cannot test GetDeviceSelectResult without callback
@@ -111,8 +116,15 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(MiscManager
 
 void FuzzMiscManagerImpl(FuzzedDataProvider &fuzzData)
 {
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](fuzzData);
+        EnsureAllTaskExecuted();
+    }
 
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -126,9 +138,8 @@ void FuzzMiscManagerImpl(FuzzedDataProvider &fuzzData)
     EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzMiscManagerImpl)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(MiscManagerImpl)
-
 } // namespace UserIam
 } // namespace OHOS

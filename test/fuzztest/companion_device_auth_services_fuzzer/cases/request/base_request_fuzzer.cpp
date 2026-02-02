@@ -29,6 +29,10 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+namespace {
+constexpr int32_t INT32_100 = 100;
+}
+
 using BaseRequestFuzzFunction = void (*)(std::shared_ptr<IRequest> &request, FuzzedDataProvider &fuzzData);
 
 static void FuzzGetRequestType(std::shared_ptr<IRequest> &request, FuzzedDataProvider &fuzzData)
@@ -75,7 +79,7 @@ static void FuzzGetMaxConcurrency(std::shared_ptr<IRequest> &request, FuzzedData
 
 static void FuzzShouldCancelOnNewRequest(std::shared_ptr<IRequest> &request, FuzzedDataProvider &fuzzData)
 {
-    RequestType newType = static_cast<RequestType>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, 100));
+    RequestType newType = static_cast<RequestType>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, INT32_100));
     std::optional<DeviceKey> newPeer;
     if (fuzzData.ConsumeBool()) {
         newPeer = GenerateFuzzDeviceKey(fuzzData);
@@ -147,7 +151,15 @@ void FuzzBaseRequest(FuzzedDataProvider &fuzzData)
 
     std::shared_ptr<IRequest> baseRequest = request;
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](baseRequest, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -159,9 +171,8 @@ void FuzzBaseRequest(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzBaseRequest)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(BaseRequest)
-
 } // namespace UserIam
 } // namespace OHOS

@@ -126,7 +126,15 @@ void FuzzCompanionRevokeTokenRequest(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](revokeTokenRequest, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -137,9 +145,8 @@ void FuzzCompanionRevokeTokenRequest(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzCompanionRevokeTokenRequest)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CompanionRevokeTokenRequest)
-
 } // namespace UserIam
 } // namespace OHOS

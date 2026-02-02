@@ -104,6 +104,8 @@ static const SecurityCommandFuzzFunction g_fuzzFuncs[] = {
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SecurityCommandFuzzFunction);
 
+constexpr int32_t INT32_100 = 100;
+
 void FuzzSecurityCommandAdapter(FuzzedDataProvider &fuzzData)
 {
     auto adapter = SecurityCommandAdapterImpl::Create();
@@ -111,7 +113,15 @@ void FuzzSecurityCommandAdapter(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](adapter, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = INT32_100;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -123,9 +133,8 @@ void FuzzSecurityCommandAdapter(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzSecurityCommandAdapter)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(SecurityCommandAdapter)
-
 } // namespace UserIam
 } // namespace OHOS

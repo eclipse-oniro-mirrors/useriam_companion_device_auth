@@ -31,6 +31,9 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+namespace {
+constexpr uint8_t UINT8_2 = 2;
+}
 
 using DeviceStatusManagerFuzzFunction = void (*)(std::shared_ptr<DeviceStatusManager> &mgr,
     FuzzedDataProvider &fuzzData);
@@ -59,7 +62,7 @@ static void FuzzSubscribeDeviceStatus(std::shared_ptr<DeviceStatusManager> &mgr,
 
 static void FuzzSetSubscribeMode(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
-    uint8_t modeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 2);
+    uint8_t modeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, UINT8_2);
     SubscribeMode mode = static_cast<SubscribeMode>(modeValue);
     mgr->SetSubscribeMode(mode);
 }
@@ -276,7 +279,15 @@ void FuzzDeviceStatusManager(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](mgr, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -287,9 +298,8 @@ void FuzzDeviceStatusManager(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzDeviceStatusManager)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(DeviceStatusManager)
-
 } // namespace UserIam
 } // namespace OHOS

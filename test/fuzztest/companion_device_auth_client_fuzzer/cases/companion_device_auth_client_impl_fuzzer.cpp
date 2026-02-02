@@ -36,10 +36,11 @@ namespace CompanionDeviceAuth {
 constexpr int32_t INT32_NEG10 = -10;
 constexpr int32_t INT32_10 = 10;
 constexpr int32_t INT32_100000 = 100000;
-constexpr uint32_t UINT32_1 = 1;
-constexpr uint32_t UINT32_10 = 10;
 constexpr size_t SIZE_5 = 5;
 constexpr size_t SIZE_10 = 10;
+constexpr uint32_t BASE_LOOP_COUNT = 20;
+constexpr uint32_t LOOP_PER_OPERATION = 5;
+constexpr uint32_t MINIMUM_REMAINING_BYTES = 10;
 
 // Forward declarations for IPC types (from IDL)
 struct IpcTemplateStatus;
@@ -746,17 +747,25 @@ void FuzzCompanionDeviceAuthClientImpl(FuzzedDataProvider &fuzzData)
     };
     constexpr size_t numOps = sizeof(fuzzOps) / sizeof(FuzzOp);
 
-    // Select operation based on fuzz data
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(UINT32_1, UINT32_10);
-    for (uint32_t i = 0; i < loopCount && fuzzData.remaining_bytes() > 0; ++i) {
+    for (size_t i = 0; i < numOps; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        fuzzOps[i](fuzzData);
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + numOps * LOOP_PER_OPERATION;
+    for (uint32_t i = 0; i < loopCount; ++i) {
+        if (!fuzzData.remaining_bytes()) {
+            break;
+        }
         size_t opIndex = fuzzData.ConsumeIntegralInRange<size_t>(0, numOps - 1);
         fuzzOps[opIndex](fuzzData);
     }
 }
 
+FUZZ_REGISTER(FuzzCompanionDeviceAuthClientImpl)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CompanionDeviceAuthClientImpl)
-
 } // namespace UserIam
 } // namespace OHOS

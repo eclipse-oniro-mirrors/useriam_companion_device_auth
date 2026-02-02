@@ -28,6 +28,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr uint32_t SIZE_64 = 64;
+
 using CompanionIssueTokenRequestFuzzFunction = void (*)(std::shared_ptr<CompanionIssueTokenRequest> &request,
     FuzzedDataProvider &fuzzData);
 
@@ -113,7 +115,7 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionIs
 
 void FuzzCompanionIssueTokenRequest(FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     Attributes request = GenerateFuzzAttributes(fuzzData);
 
     OnMessageReply firstReply = [](const Attributes &reply) { (void)reply; };
@@ -125,7 +127,15 @@ void FuzzCompanionIssueTokenRequest(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](issueTokenRequest, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -136,9 +146,8 @@ void FuzzCompanionIssueTokenRequest(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzCompanionIssueTokenRequest)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CompanionIssueTokenRequest)
-
 } // namespace UserIam
 } // namespace OHOS

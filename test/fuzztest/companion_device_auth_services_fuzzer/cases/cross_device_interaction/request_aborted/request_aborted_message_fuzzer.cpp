@@ -35,7 +35,7 @@ static void FuzzEncodeRequestAbortedRequest(FuzzedDataProvider &fuzzData)
     RequestAbortedRequest request;
     request.result = static_cast<ResultCode>(fuzzData.ConsumeIntegralInRange<uint32_t>(
         static_cast<uint32_t>(ResultCode::SUCCESS), static_cast<uint32_t>(ResultCode::GENERAL_ERROR)));
-    uint32_t testVal256 = 256;
+    uint32_t testVal256 = TEST_VAL256;
     request.reason = GenerateFuzzString(fuzzData, testVal256);
 
     Attributes attr;
@@ -77,8 +77,15 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(RequestAbor
 
 void FuzzRequestAbortedMessage(FuzzedDataProvider &fuzzData)
 {
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](fuzzData);
+        EnsureAllTaskExecuted();
+    }
 
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -91,9 +98,8 @@ void FuzzRequestAbortedMessage(FuzzedDataProvider &fuzzData)
     EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzRequestAbortedMessage)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(RequestAbortedMessage)
-
 } // namespace UserIam
 } // namespace OHOS

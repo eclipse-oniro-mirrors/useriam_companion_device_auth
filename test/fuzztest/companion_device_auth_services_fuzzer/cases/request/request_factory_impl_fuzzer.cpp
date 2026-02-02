@@ -28,6 +28,10 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+namespace {
+constexpr uint32_t SIZE_64 = 64;
+}
+
 using RequestFactoryImplFuzzFunction = void (*)(std::shared_ptr<RequestFactoryImpl> &factory,
     FuzzedDataProvider &fuzzData);
 
@@ -77,7 +81,7 @@ static void FuzzCreateHostSyncDeviceStatusRequest(std::shared_ptr<RequestFactory
 {
     UserId hostUserId = fuzzData.ConsumeIntegral<UserId>();
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    std::string deviceName = GenerateFuzzString(fuzzData, 64);
+    std::string deviceName = GenerateFuzzString(fuzzData, SIZE_64);
     SyncDeviceStatusCallback callback = [](ResultCode result, const SyncDeviceStatus &status) {
         (void)result;
         (void)status;
@@ -118,7 +122,7 @@ static void FuzzCreateHostDelegateAuthRequest(std::shared_ptr<RequestFactoryImpl
 static void FuzzCreateCompanionAddCompanionRequest(std::shared_ptr<RequestFactoryImpl> &factory,
     FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     Attributes request = GenerateFuzzAttributes(fuzzData);
     OnMessageReply firstReply = [](const Attributes &reply) { (void)reply; };
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
@@ -130,7 +134,7 @@ static void FuzzCreateCompanionAddCompanionRequest(std::shared_ptr<RequestFactor
 static void FuzzCreateCompanionIssueTokenRequest(std::shared_ptr<RequestFactoryImpl> &factory,
     FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     Attributes request = GenerateFuzzAttributes(fuzzData);
     OnMessageReply firstReply = [](const Attributes &reply) { (void)reply; };
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
@@ -141,7 +145,7 @@ static void FuzzCreateCompanionIssueTokenRequest(std::shared_ptr<RequestFactoryI
 static void FuzzCreateHostObtainTokenRequest(std::shared_ptr<RequestFactoryImpl> &factory, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     Attributes attr = GenerateFuzzAttributes(fuzzData);
     OnMessageReply callback = [](const Attributes &reply) { (void)reply; };
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
@@ -162,7 +166,7 @@ static void FuzzCreateCompanionObtainTokenRequest(std::shared_ptr<RequestFactory
 static void FuzzCreateCompanionDelegateAuthRequest(std::shared_ptr<RequestFactoryImpl> &factory,
     FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     UserId companionUserId = fuzzData.ConsumeIntegral<UserId>();
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     std::vector<uint8_t> startDelegateAuthRequest =
@@ -253,8 +257,15 @@ void FuzzRequestFactoryImpl(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](factory, fuzzData);
+        EnsureAllTaskExecuted();
+    }
 
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -266,9 +277,8 @@ void FuzzRequestFactoryImpl(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzRequestFactoryImpl)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(RequestFactoryImpl)
-
 } // namespace UserIam
 } // namespace OHOS

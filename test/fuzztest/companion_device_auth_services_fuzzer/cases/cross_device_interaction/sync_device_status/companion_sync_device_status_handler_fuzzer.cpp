@@ -31,6 +31,10 @@ namespace CompanionDeviceAuth {
 using CompanionSyncDeviceStatusHandlerFuzzFunction = void (*)(
     std::shared_ptr<CompanionSyncDeviceStatusHandler> &handler, FuzzedDataProvider &fuzzData);
 
+constexpr uint32_t SIZE_100 = 100;
+constexpr int32_t INT32_10 = 10;
+constexpr int32_t INT32_5 = 5;
+
 static void FuzzGetMessageType(std::shared_ptr<CompanionSyncDeviceStatusHandler> &handler, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
@@ -71,7 +75,7 @@ static void FuzzHandleRequestWithEmptyAttrs(std::shared_ptr<CompanionSyncDeviceS
 static void FuzzHandleRequestWithLargeAttrs(std::shared_ptr<CompanionSyncDeviceStatusHandler> &handler,
     FuzzedDataProvider &fuzzData)
 {
-    Attributes request = GenerateFuzzAttributes(fuzzData, 100);
+    Attributes request = GenerateFuzzAttributes(fuzzData, SIZE_100);
     Attributes reply;
     handler->HandleRequest(request, reply);
 }
@@ -79,7 +83,7 @@ static void FuzzHandleRequestWithLargeAttrs(std::shared_ptr<CompanionSyncDeviceS
 static void FuzzMultipleHandleRequests(std::shared_ptr<CompanionSyncDeviceStatusHandler> &handler,
     FuzzedDataProvider &fuzzData)
 {
-    uint32_t count = fuzzData.ConsumeIntegralInRange<uint32_t>(1, 5);
+    uint32_t count = fuzzData.ConsumeIntegralInRange<uint32_t>(1, INT32_5);
     for (uint32_t i = 0; i < count; ++i) {
         Attributes request = GenerateFuzzAttributes(fuzzData, FUZZ_MAX_ATTRIBUTES_COUNT);
         Attributes reply;
@@ -102,7 +106,7 @@ static void FuzzCreateNewHandler(std::shared_ptr<CompanionSyncDeviceStatusHandle
 static void FuzzGetMessageTypeMultiple(std::shared_ptr<CompanionSyncDeviceStatusHandler> &handler,
     FuzzedDataProvider &fuzzData)
 {
-    uint32_t count = fuzzData.ConsumeIntegralInRange<uint32_t>(1, 10);
+    uint32_t count = fuzzData.ConsumeIntegralInRange<uint32_t>(1, INT32_10);
     for (uint32_t i = 0; i < count; ++i) {
         (void)handler->GetMessageType();
     }
@@ -130,7 +134,15 @@ void FuzzCompanionSyncDeviceStatusHandler(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](handler, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -141,13 +153,10 @@ void FuzzCompanionSyncDeviceStatusHandler(FuzzedDataProvider &fuzzData)
 
         EnsureAllTaskExecuted();
     }
-
-    EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzCompanionSyncDeviceStatusHandler)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CompanionSyncDeviceStatusHandler)
-
 } // namespace UserIam
 } // namespace OHOS

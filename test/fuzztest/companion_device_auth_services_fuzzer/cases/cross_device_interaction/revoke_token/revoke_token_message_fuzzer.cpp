@@ -35,7 +35,7 @@ static void FuzzEncodeRevokeTokenRequest(FuzzedDataProvider &fuzzData)
     RevokeTokenRequest request;
     request.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
     request.companionDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
-    uint32_t testVal64 = 64;
+    uint32_t testVal64 = TEST_VAL64;
     request.companionDeviceKey.deviceId = GenerateFuzzString(fuzzData, testVal64);
     request.companionDeviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
 
@@ -78,8 +78,15 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(RevokeToken
 
 void FuzzRevokeTokenMessage(FuzzedDataProvider &fuzzData)
 {
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](fuzzData);
+        EnsureAllTaskExecuted();
+    }
 
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -92,9 +99,8 @@ void FuzzRevokeTokenMessage(FuzzedDataProvider &fuzzData)
     EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzRevokeTokenMessage)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(RevokeTokenMessage)
-
 } // namespace UserIam
 } // namespace OHOS

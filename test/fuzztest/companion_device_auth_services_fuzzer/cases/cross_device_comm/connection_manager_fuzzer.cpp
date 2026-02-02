@@ -31,6 +31,10 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+namespace {
+constexpr uint32_t SIZE_128 = 128;
+constexpr uint8_t UINT8_2 = 2;
+}
 
 using ConnectionManagerFuzzFunction = void (*)(std::shared_ptr<ConnectionManager> &conn, FuzzedDataProvider &fuzzData);
 
@@ -62,7 +66,7 @@ static void FuzzOpenConnection(std::shared_ptr<ConnectionManager> &conn, FuzzedD
 static void FuzzCloseConnection(std::shared_ptr<ConnectionManager> &conn, FuzzedDataProvider &fuzzData)
 {
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    std::string reason = GenerateFuzzString(fuzzData, 128);
+    std::string reason = GenerateFuzzString(fuzzData, SIZE_128);
     conn->CloseConnection(connectionName, reason);
 }
 
@@ -99,9 +103,9 @@ static void FuzzHandleChannelConnectionStatusChange(std::shared_ptr<ConnectionMa
     FuzzedDataProvider &fuzzData)
 {
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    uint8_t statusValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 2);
+    uint8_t statusValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, UINT8_2);
     ConnectionStatus status = static_cast<ConnectionStatus>(statusValue);
-    std::string reason = GenerateFuzzString(fuzzData, 128);
+    std::string reason = GenerateFuzzString(fuzzData, SIZE_128);
     conn->HandleChannelConnectionStatusChange(connectionName, status, reason);
 }
 
@@ -136,9 +140,9 @@ static void FuzzHandleIdleMonitorTimer(std::shared_ptr<ConnectionManager> &conn,
 static void FuzzNotifyConnectionStatus(std::shared_ptr<ConnectionManager> &conn, FuzzedDataProvider &fuzzData)
 {
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    uint8_t statusValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 2);
+    uint8_t statusValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, UINT8_2);
     ConnectionStatus status = static_cast<ConnectionStatus>(statusValue);
-    std::string reason = GenerateFuzzString(fuzzData, 128);
+    std::string reason = GenerateFuzzString(fuzzData, SIZE_128);
     conn->NotifyConnectionStatus(connectionName, status, reason);
 }
 
@@ -152,7 +156,7 @@ static void FuzzHandleChannelConnectionEstablished(std::shared_ptr<ConnectionMan
 static void FuzzHandleChannelConnectionClosed(std::shared_ptr<ConnectionManager> &conn, FuzzedDataProvider &fuzzData)
 {
     std::string connectionName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    std::string reason = GenerateFuzzString(fuzzData, 128);
+    std::string reason = GenerateFuzzString(fuzzData, SIZE_128);
     conn->HandleChannelConnectionClosed(connectionName, reason);
 }
 
@@ -242,7 +246,15 @@ void FuzzConnectionManager(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](conn, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -253,9 +265,8 @@ void FuzzConnectionManager(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzConnectionManager)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(ConnectionManager)
-
 } // namespace UserIam
 } // namespace OHOS

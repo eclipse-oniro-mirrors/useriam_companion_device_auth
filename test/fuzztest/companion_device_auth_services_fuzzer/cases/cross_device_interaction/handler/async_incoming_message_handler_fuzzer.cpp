@@ -29,6 +29,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr int32_t INT32_5 = 5;
+constexpr int32_t INT32_10 = 10;
+
 // Mock AsyncIncomingMessageHandler for testing
 class MockAsyncIncomingMessageHandler : public AsyncIncomingMessageHandler {
 public:
@@ -108,7 +111,7 @@ static void FuzzHandleMultipleMessages(std::shared_ptr<MockAsyncIncomingMessageH
 {
     auto replyCallback = [](const Attributes &reply) { (void)reply; };
     OnMessageReply reply = replyCallback;
-    int num = 5;
+    int num = INT32_5;
     for (int i = 0; i < num; ++i) {
         Attributes request = GenerateFuzzAttributes(fuzzData);
         handler->HandleIncomingMessage(request, reply);
@@ -120,7 +123,7 @@ static void FuzzGetMessageTypeRepeated(std::shared_ptr<MockAsyncIncomingMessageH
     FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    int num = 10;
+    int num = INT32_10;
     for (int i = 0; i < num; ++i) {
         auto type = handler->GetMessageType();
         (void)type;
@@ -132,7 +135,7 @@ static void FuzzRegisterRepeated(std::shared_ptr<MockAsyncIncomingMessageHandler
     FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    int num = 5;
+    int num = INT32_5;
     for (int i = 0; i < num; ++i) {
         handler->Register();
     }
@@ -209,7 +212,15 @@ void FuzzAsyncIncomingMessageHandler(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](handler, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -220,9 +231,8 @@ void FuzzAsyncIncomingMessageHandler(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzAsyncIncomingMessageHandler)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(AsyncIncomingMessageHandler)
-
 } // namespace UserIam
 } // namespace OHOS

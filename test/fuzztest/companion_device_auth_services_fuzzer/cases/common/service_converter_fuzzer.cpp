@@ -30,75 +30,157 @@ namespace CompanionDeviceAuth {
 
 using ServiceConverterFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
-static void FuzzCapabilityToUnderlying(FuzzedDataProvider &fuzzData)
+namespace {
+constexpr uint8_t CONVERTER_TYPE_PROTOCOL_ID = 0;
+constexpr uint8_t CONVERTER_TYPE_CAPABILITY = 1;
+constexpr uint8_t CONVERTER_TYPE_SECURE_PROTOCOL_ID = 2;
+} // namespace
+
+static void FuzzToUnderlying(FuzzedDataProvider &fuzzData)
 {
-    (void)fuzzData;
-    Capability cap = Capability::DELEGATE_AUTH;
-    auto underlying = EnumConverter<Capability, uint16_t>::ToUnderlying(cap);
-    (void)underlying;
+    uint8_t converterType = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 2);
+    uint32_t value = fuzzData.ConsumeIntegral<uint32_t>();
+
+    switch (converterType) {
+        case CONVERTER_TYPE_PROTOCOL_ID: {
+            auto result = ProtocolIdConverter::ToUnderlying(static_cast<ProtocolId>(value));
+            (void)result;
+            break;
+        }
+        case CONVERTER_TYPE_CAPABILITY: {
+            auto result = CapabilityConverter::ToUnderlying(static_cast<Capability>(value));
+            (void)result;
+            break;
+        }
+        case CONVERTER_TYPE_SECURE_PROTOCOL_ID: {
+            auto result = SecureProtocolIdConverter::ToUnderlying(static_cast<SecureProtocolId>(value));
+            (void)result;
+            break;
+        }
+        default:
+            break;
+    }
 }
 
-static void FuzzCapabilityFromUnderlying(FuzzedDataProvider &fuzzData)
+static void FuzzFromUnderlying(FuzzedDataProvider &fuzzData)
 {
-    uint16_t underlyingValue = fuzzData.ConsumeIntegral<uint16_t>();
-    auto cap = EnumConverter<Capability, uint16_t>::FromUnderlying(underlyingValue);
-    (void)cap;
+    uint8_t converterType = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 2);
+    uint16_t value = fuzzData.ConsumeIntegral<uint16_t>();
+
+    switch (converterType) {
+        case CONVERTER_TYPE_PROTOCOL_ID: {
+            auto result = ProtocolIdConverter::FromUnderlying(value);
+            (void)result;
+            break;
+        }
+        case CONVERTER_TYPE_CAPABILITY: {
+            auto result = CapabilityConverter::FromUnderlying(value);
+            (void)result;
+            break;
+        }
+        case CONVERTER_TYPE_SECURE_PROTOCOL_ID: {
+            auto result = SecureProtocolIdConverter::FromUnderlying(value);
+            (void)result;
+            break;
+        }
+        default:
+            break;
+    }
 }
 
-static void FuzzProtocolIdToUnderlying(FuzzedDataProvider &fuzzData)
+static void FuzzToUnderlyingVec(FuzzedDataProvider &fuzzData)
 {
-    (void)fuzzData;
-    ProtocolId protocolId = ProtocolId::VERSION_1;
-    auto underlying = EnumConverter<ProtocolId, uint16_t>::ToUnderlying(protocolId);
-    (void)underlying;
+    uint8_t converterType = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 2);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_BUSINESS_IDS_COUNT);
+    std::vector<uint16_t> inputVec;
+    for (uint8_t i = 0; i < count; ++i) {
+        inputVec.push_back(fuzzData.ConsumeIntegral<uint16_t>());
+    }
+
+    switch (converterType) {
+        case CONVERTER_TYPE_PROTOCOL_ID: {
+            std::vector<ProtocolId> enumVec;
+            for (auto val : inputVec) {
+                enumVec.push_back(static_cast<ProtocolId>(val));
+            }
+            auto result = ProtocolIdConverter::ToUnderlyingVec(enumVec);
+            (void)result;
+            break;
+        }
+        case CONVERTER_TYPE_CAPABILITY: {
+            std::vector<Capability> enumVec;
+            for (auto val : inputVec) {
+                enumVec.push_back(static_cast<Capability>(val));
+            }
+            auto result = CapabilityConverter::ToUnderlyingVec(enumVec);
+            (void)result;
+            break;
+        }
+        case CONVERTER_TYPE_SECURE_PROTOCOL_ID: {
+            std::vector<SecureProtocolId> enumVec;
+            for (auto val : inputVec) {
+                enumVec.push_back(static_cast<SecureProtocolId>(val));
+            }
+            auto result = SecureProtocolIdConverter::ToUnderlyingVec(enumVec);
+            (void)result;
+            break;
+        }
+        default:
+            break;
+    }
 }
 
-static void FuzzProtocolIdFromUnderlying(FuzzedDataProvider &fuzzData)
+static void FuzzFromUnderlyingVec(FuzzedDataProvider &fuzzData)
 {
-    uint16_t underlyingValue = fuzzData.ConsumeIntegral<uint16_t>();
-    auto protocolId = EnumConverter<ProtocolId, uint16_t>::FromUnderlying(underlyingValue);
-    (void)protocolId;
-}
+    uint8_t converterType = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 2);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_BUSINESS_IDS_COUNT);
+    std::vector<uint16_t> underlyingVec;
+    for (uint8_t i = 0; i < count; ++i) {
+        underlyingVec.push_back(fuzzData.ConsumeIntegral<uint16_t>());
+    }
 
-static void FuzzCapabilityToUnderlyingVec(FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    std::vector<Capability> capVec = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
-    auto underlyingVec = EnumConverter<Capability, uint16_t>::ToUnderlyingVec(capVec);
-    (void)underlyingVec;
-}
-
-static void FuzzCapabilityToUnderlyingVecSingle(FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    std::vector<Capability> capVec = { Capability::DELEGATE_AUTH };
-    auto underlyingVec = EnumConverter<Capability, uint16_t>::ToUnderlyingVec(capVec);
-    (void)underlyingVec;
-}
-
-static void FuzzCapabilityToUnderlyingVecEmpty(FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    std::vector<Capability> capVec;
-    auto underlyingVec = EnumConverter<Capability, uint16_t>::ToUnderlyingVec(capVec);
-    (void)underlyingVec;
+    switch (converterType) {
+        case CONVERTER_TYPE_PROTOCOL_ID: {
+            auto result = ProtocolIdConverter::FromUnderlyingVec(underlyingVec);
+            (void)result;
+            break;
+        }
+        case CONVERTER_TYPE_CAPABILITY: {
+            auto result = CapabilityConverter::FromUnderlyingVec(underlyingVec);
+            (void)result;
+            break;
+        }
+        case CONVERTER_TYPE_SECURE_PROTOCOL_ID: {
+            auto result = SecureProtocolIdConverter::FromUnderlyingVec(underlyingVec);
+            (void)result;
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 static const ServiceConverterFuzzFunction g_fuzzFuncs[] = {
-    FuzzCapabilityToUnderlying,
-    FuzzCapabilityFromUnderlying,
-    FuzzProtocolIdToUnderlying,
-    FuzzProtocolIdFromUnderlying,
-    FuzzCapabilityToUnderlyingVec,
-    FuzzCapabilityToUnderlyingVecSingle,
-    FuzzCapabilityToUnderlyingVecEmpty,
+    FuzzToUnderlying,
+    FuzzFromUnderlying,
+    FuzzToUnderlyingVec,
+    FuzzFromUnderlyingVec,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ServiceConverterFuzzFunction);
 
 void FuzzServiceConverter(FuzzedDataProvider &fuzzData)
 {
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](fuzzData);
+
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -106,14 +188,13 @@ void FuzzServiceConverter(FuzzedDataProvider &fuzzData)
 
         uint8_t operation = fuzzData.ConsumeIntegralInRange<uint8_t>(0, NUM_FUZZ_OPERATIONS - 1);
         g_fuzzFuncs[operation](fuzzData);
-    }
 
-    EnsureAllTaskExecuted();
+        EnsureAllTaskExecuted();
+    }
 }
 
+FUZZ_REGISTER(FuzzServiceConverter)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(ServiceConverter)
-
 } // namespace UserIam
 } // namespace OHOS

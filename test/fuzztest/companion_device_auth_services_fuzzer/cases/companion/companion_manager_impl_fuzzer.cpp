@@ -83,8 +83,8 @@ static void FuzzSubscribeCompanionDeviceStatusChange(std::shared_ptr<CompanionMa
 static void FuzzUpdateCompanionStatus(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
     TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
-    std::string deviceName = GenerateFuzzString(fuzzData, 64);
-    std::string deviceUserName = GenerateFuzzString(fuzzData, 64);
+    std::string deviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
+    std::string deviceUserName = GenerateFuzzString(fuzzData, TEST_VAL64);
     ResultCode result = manager->UpdateCompanionStatus(templateId, deviceName, deviceUserName);
     (void)result;
 }
@@ -207,15 +207,103 @@ static void FuzzInitialize(std::shared_ptr<CompanionManagerImpl> &manager, Fuzze
     manager->Initialize();
 }
 
+static void FuzzUnsubscribeCompanionDeviceStatusChange(std::shared_ptr<CompanionManagerImpl> &manager,
+    FuzzedDataProvider &fuzzData)
+{
+    SubscribeId subscriptionId = fuzzData.ConsumeIntegral<SubscribeId>();
+    manager->UnsubscribeCompanionDeviceStatusChange(subscriptionId);
+}
+
+static void FuzzUpdateToken(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
+    uint32_t msgSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_FWK_MESSAGE_LENGTH);
+    std::vector<uint8_t> fwkMsg = fuzzData.ConsumeBytes<uint8_t>(msgSize);
+    bool needRedistribute = false;
+    ResultCode result = manager->UpdateToken(templateId, fwkMsg, needRedistribute);
+    (void)result;
+    (void)needRedistribute;
+}
+
+static void FuzzNotifyCompanionStatusChange(std::shared_ptr<CompanionManagerImpl> &manager,
+    FuzzedDataProvider &fuzzData)
+{
+    (void)fuzzData;
+    manager->NotifyCompanionStatusChange();
+}
+
+static void FuzzHandleRemoveHostBindingComplete(std::shared_ptr<CompanionManagerImpl> &manager,
+    FuzzedDataProvider &fuzzData)
+{
+    TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
+    manager->HandleRemoveHostBindingComplete(templateId);
+}
+
+static void FuzzOnTemplateListChanged(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    UserId userId = fuzzData.ConsumeIntegral<UserId>();
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_DEVICE_STATUS_COUNT);
+    std::vector<TemplateId> templateIds;
+    for (uint8_t i = 0; i < count; ++i) {
+        templateIds.push_back(fuzzData.ConsumeIntegral<TemplateId>());
+    }
+    manager->OnTemplateListChanged(userId, templateIds);
+}
+
+static void FuzzReloadSingleCompanion(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    PersistedCompanionStatus persistedStatus;
+    persistedStatus.templateId = fuzzData.ConsumeIntegral<TemplateId>();
+    persistedStatus.hostUserId = fuzzData.ConsumeIntegral<UserId>();
+    persistedStatus.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
+    persistedStatus.isValid = fuzzData.ConsumeBool();
+
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_DEVICE_STATUS_COUNT);
+    std::vector<TemplateId> activeUserTemplateIds;
+    for (uint8_t i = 0; i < count; ++i) {
+        activeUserTemplateIds.push_back(fuzzData.ConsumeIntegral<TemplateId>());
+    }
+
+    uint64_t nowMs = fuzzData.ConsumeIntegral<uint64_t>();
+    manager->ReloadSingleCompanion(persistedStatus, activeUserTemplateIds, nowMs);
+}
+
+static void FuzzAddCompanionInternal(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    // Test AddCompanionInternal via BeginAddCompanion
+    BeginAddCompanionParams params;
+    params.requestId = fuzzData.ConsumeIntegral<RequestId>();
+    params.scheduleId = fuzzData.ConsumeIntegral<ScheduleId>();
+    params.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
+    params.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
+    uint32_t fwkMsgSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_FWK_MESSAGE_LENGTH);
+    params.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fwkMsgSize);
+    params.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint8_t>());
+    uint32_t replySize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
+    params.initKeyNegotiationReply = fuzzData.ConsumeBytes<uint8_t>(replySize);
+    std::vector<uint8_t> outAddHostBindingRequest;
+
+    manager->BeginAddCompanion(params, outAddHostBindingRequest);
+}
+
+static void FuzzRemoveCompanionInternal(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    // Test RemoveCompanionInternal via RemoveCompanion
+    TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
+    manager->RemoveCompanion(templateId);
+}
+
 static const CompanionManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzReload,
     FuzzGetCompanionStatusByTemplate,
     FuzzGetCompanionStatusByUserAndDevice,
     FuzzGetAllCompanionStatus,
     FuzzSubscribeCompanionDeviceStatusChange,
+    FuzzUnsubscribeCompanionDeviceStatusChange,
     FuzzUpdateCompanionStatus,
     FuzzUpdateCompanionEnabledBusinessIds,
     FuzzSetCompanionTokenAtl,
+    FuzzUpdateToken,
     FuzzHandleCompanionCheckFail,
     FuzzStartIssueTokenRequests,
     FuzzRevokeTokens,
@@ -226,6 +314,12 @@ static const CompanionManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzRemoveCompanion,
     FuzzOnActiveUserIdChanged,
     FuzzInitialize,
+    FuzzNotifyCompanionStatusChange,
+    FuzzHandleRemoveHostBindingComplete,
+    FuzzOnTemplateListChanged,
+    FuzzReloadSingleCompanion,
+    FuzzAddCompanionInternal,
+    FuzzRemoveCompanionInternal,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionManagerImplFuzzFunction);
@@ -237,7 +331,16 @@ void FuzzCompanionManagerImpl(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](manager, fuzzData);
+
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -248,9 +351,8 @@ void FuzzCompanionManagerImpl(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzCompanionManagerImpl)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CompanionManagerImpl)
-
 } // namespace UserIam
 } // namespace OHOS

@@ -2,4 +2,5 @@ target
 build
 .vscode
 .cursor
+.cache
 tmp

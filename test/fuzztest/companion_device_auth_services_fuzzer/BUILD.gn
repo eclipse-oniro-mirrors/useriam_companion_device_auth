@@ -89,7 +89,6 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
 
               # misc cases
               "cases/misc/cda_attributes_fuzzer.cpp",
-              "cases/misc/constant_user_id_manager_fuzzer.cpp",
               "cases/misc/misc_manager_impl_fuzzer.cpp",
               "cases/misc/system_param_manager_impl_fuzzer.cpp",
 
@@ -110,6 +109,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
 
               # host_binding cases
               "cases/host_binding/host_binding_fuzzer.cpp",
+              "cases/host_binding/host_binding_individual_fuzzer.cpp",
               "cases/host_binding/host_binding_manager_fuzzer.cpp",
               "cases/host_binding/host_binding_manager_impl_fuzzer.cpp",
 
@@ -126,7 +126,6 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               "cases/fwk_comm/companion_device_auth_all_in_one_executor_fuzzer.cpp",
               "cases/fwk_comm/companion_device_auth_driver_fuzzer.cpp",
               "cases/fwk_comm/companion_device_auth_executor_callback_fuzzer.cpp",
-              "cases/fwk_comm/driver_fuzzer.cpp",
               "cases/fwk_comm/executor_callback_fuzzer.cpp",
               "cases/fwk_comm/fwk_comm_manager_fuzzer.cpp",
 
@@ -134,10 +133,8 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
               "cases/external_adapters/security_command/security_command_adapter_fuzzer.cpp",
 
               # utils cases
-              "cases/utils/error_guard_fuzzer.cpp",
+              "cases/utils/backoff_retry_timer_fuzzer.cpp",
               "cases/utils/sa_status_listener_fuzzer.cpp",
-              "cases/utils/scope_guard_fuzzer.cpp",
-              "cases/utils/subscription_fuzzer.cpp",
 
               # companion cases
               "cases/companion/companion_fuzzer.cpp",

@@ -27,6 +27,13 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+namespace {
+constexpr int32_t INT32_999 = 999;
+constexpr int32_t INT32_10 = 10;
+constexpr int32_t INT32_5 = 5;
+constexpr int32_t INT32_3 = 3;
+constexpr int32_t INT32_7 = 7;
+}
 
 using ChannelManagerFuzzFunction = void (*)(std::shared_ptr<ChannelManager> &mgr, FuzzedDataProvider &fuzzData);
 
@@ -64,9 +71,9 @@ static void FuzzGetChannelByIdBoundary(std::shared_ptr<ChannelManager> &mgr, Fuz
     if (mgr) {
         // Test with different boundary channel IDs
         std::vector<ChannelId> testIds = {
-            static_cast<ChannelId>(0),   // Min value
-            static_cast<ChannelId>(-1),  // Max value
-            static_cast<ChannelId>(999), // Invalid mid-range
+            static_cast<ChannelId>(0),    // Min value
+            static_cast<ChannelId>(-1),   // Max value
+            static_cast<ChannelId>(INT32_999), // Invalid mid-range
         };
         for (auto channelId : testIds) {
             auto channel = mgr->GetChannelById(channelId);
@@ -84,7 +91,7 @@ static void FuzzGetChannelByIdBoundary(std::shared_ptr<ChannelManager> &mgr, Fuz
 static void FuzzRepeatedGetPrimary(std::shared_ptr<ChannelManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    int num = 10;
+    int num = INT32_10;
     if (mgr) {
         for (int i = 0; i < num; ++i) {
             auto channel = mgr->GetPrimaryChannel();
@@ -97,7 +104,7 @@ static void FuzzRepeatedGetPrimary(std::shared_ptr<ChannelManager> &mgr, FuzzedD
 static void FuzzGetAllChannelsRepeated(std::shared_ptr<ChannelManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    int num = 5;
+    int num = INT32_5;
     if (mgr) {
         for (int i = 0; i < num; ++i) {
             auto channels = mgr->GetAllChannels();
@@ -111,7 +118,7 @@ static void FuzzGetChannelByRandomId(std::shared_ptr<ChannelManager> &mgr, Fuzze
 {
     int32_t channelIdValue = fuzzData.ConsumeIntegral<int32_t>();
     ChannelId channelId = static_cast<ChannelId>(channelIdValue);
-    int num = 3;
+    int num = INT32_3;
     if (mgr) {
         for (int i = 0; i < num; ++i) {
             auto channel = mgr->GetChannelById(channelId);
@@ -136,7 +143,7 @@ static void FuzzGetPrimaryThenAll(std::shared_ptr<ChannelManager> &mgr, FuzzedDa
 static void FuzzSameChannelId(std::shared_ptr<ChannelManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     ChannelId channelId = GenerateFuzzChannelId(fuzzData);
-    int num = 7;
+    int num = INT32_7;
     if (mgr) {
         for (int i = 0; i < num; ++i) {
             auto channel = mgr->GetChannelById(channelId);
@@ -185,8 +192,15 @@ void FuzzChannelManager(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](mgr, fuzzData);
+        EnsureAllTaskExecuted();
+    }
 
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -199,9 +213,8 @@ void FuzzChannelManager(FuzzedDataProvider &fuzzData)
     EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzChannelManager)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(ChannelManager)
-
 } // namespace UserIam
 } // namespace OHOS

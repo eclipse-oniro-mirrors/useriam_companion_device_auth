@@ -28,6 +28,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr uint8_t UINT8_20 = 20;
+constexpr uint32_t SIZE_64 = 64;
+
 using CompanionAddCompanionRequestFuzzFunction = void (*)(std::shared_ptr<CompanionAddCompanionRequest> &request,
     FuzzedDataProvider &fuzzData);
 
@@ -40,7 +43,7 @@ static void FuzzGetMaxConcurrency(std::shared_ptr<CompanionAddCompanionRequest> 
 static void FuzzShouldCancelOnNewRequest(std::shared_ptr<CompanionAddCompanionRequest> &request,
     FuzzedDataProvider &fuzzData)
 {
-    RequestType newRequestType = static_cast<RequestType>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, 20));
+    RequestType newRequestType = static_cast<RequestType>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, UINT8_20));
     std::optional<DeviceKey> newPeerDevice;
     if (fuzzData.ConsumeBool()) {
         newPeerDevice = GenerateFuzzDeviceKey(fuzzData);
@@ -169,7 +172,7 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionAd
 
 void FuzzCompanionAddCompanionRequest(FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     Attributes request = GenerateFuzzAttributes(fuzzData);
 
     OnMessageReply firstReply = [](const Attributes &reply) { (void)reply; };
@@ -181,8 +184,15 @@ void FuzzCompanionAddCompanionRequest(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](inboundRequest, fuzzData);
+        EnsureAllTaskExecuted();
+    }
 
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -194,9 +204,8 @@ void FuzzCompanionAddCompanionRequest(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzCompanionAddCompanionRequest)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CompanionAddCompanionRequest)
-
 } // namespace UserIam
 } // namespace OHOS

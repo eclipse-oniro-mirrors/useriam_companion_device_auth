@@ -34,11 +34,12 @@ _coverage_rustflags = []
 
 if (companion_device_auth_enable_coverage) {
   _coverage_cflags += [
-    "--coverage",
+    "-fprofile-instr-generate",
+    "-fcoverage-mapping",
     "-fno-sanitize=cfi",
   ]
   _coverage_ldflags += [
-    "--coverage",
+    "-fprofile-instr-generate",
     "-fno-sanitize=cfi",
   ]
   _coverage_rustflags += [
@@ -48,7 +49,7 @@ if (companion_device_auth_enable_coverage) {
 }
 
 _test_cflags = [
-  "-g1",
+  "-g3",
   "-fno-lto",
   "-DENABLE_TEST",
   "-Wno-unused-variable",
@@ -58,7 +59,7 @@ _test_cflags = [
 ]
 
 _test_ldflags = [
-  "-g1",
+  "-g3",
   "-fno-lto",
 ]
 

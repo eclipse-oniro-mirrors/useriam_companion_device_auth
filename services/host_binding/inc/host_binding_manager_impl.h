@@ -58,7 +58,6 @@ private:
     HostBindingManagerImpl() = default;
     bool Initialize() override;
     void OnActiveUserIdChanged(UserId userId);
-    ResultCode ReloadBindings(UserId userId);
 
     std::vector<HostBindingStatus> GetAllHostBindingStatus();
 

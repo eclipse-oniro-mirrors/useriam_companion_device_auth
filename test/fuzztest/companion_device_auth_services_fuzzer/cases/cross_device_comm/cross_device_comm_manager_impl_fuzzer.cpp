@@ -28,6 +28,11 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+namespace {
+constexpr uint32_t SIZE_64 = 64;
+constexpr uint8_t UINT8_2 = 2;
+constexpr uint8_t UINT8_50 = 50;
+}
 
 using CrossDeviceCommManagerImplFuzzFunction = void (*)(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData);
 
@@ -69,27 +74,27 @@ static void FuzzOpenConnection(ICrossDeviceCommManager &manager, FuzzedDataProvi
 
 static void FuzzCloseConnection(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     manager.CloseConnection(connectionName);
 }
 
 static void FuzzIsConnectionOpen(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     bool isOpen = manager.IsConnectionOpen(connectionName);
     (void)isOpen;
 }
 
 static void FuzzGetConnectionStatus(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     auto status = manager.GetConnectionStatus(connectionName);
     (void)status;
 }
 
 static void FuzzSetSubscribeMode(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
-    uint8_t modeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 2);
+    uint8_t modeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, UINT8_2);
     SubscribeMode mode = static_cast<SubscribeMode>(modeValue);
     manager.SetSubscribeMode(mode);
 }
@@ -140,14 +145,14 @@ static void FuzzSubscribeDeviceStatus(ICrossDeviceCommManager &manager, FuzzedDa
 
 static void FuzzGetLocalDeviceKeyByConnectionName(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     auto deviceKey = manager.GetLocalDeviceKeyByConnectionName(connectionName);
     (void)deviceKey;
 }
 
 static void FuzzSubscribeConnectionStatus(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     auto subscription = manager.SubscribeConnectionStatus(connectionName,
         [](const std::string &conn, ConnectionStatus status, const std::string &reason) {
             (void)conn;
@@ -159,7 +164,7 @@ static void FuzzSubscribeConnectionStatus(ICrossDeviceCommManager &manager, Fuzz
 
 static void FuzzSubscribeIncomingConnection(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
-    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 50);
+    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, UINT8_50);
     MessageType msgType = static_cast<MessageType>(msgTypeValue);
     auto subscription =
         manager.SubscribeIncomingConnection(msgType, [](const Attributes &msg, OnMessageReply &onMessageReply) {
@@ -171,8 +176,8 @@ static void FuzzSubscribeIncomingConnection(ICrossDeviceCommManager &manager, Fu
 
 static void FuzzSendMessage(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
-    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 50);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
+    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, UINT8_50);
     MessageType msgType = static_cast<MessageType>(msgTypeValue);
     Attributes request = GenerateFuzzAttributes(fuzzData);
     auto subscription =
@@ -182,8 +187,8 @@ static void FuzzSendMessage(ICrossDeviceCommManager &manager, FuzzedDataProvider
 
 static void FuzzSubscribeMessage(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
-    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 50);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
+    uint8_t msgTypeValue = fuzzData.ConsumeIntegralInRange<uint8_t>(0, UINT8_50);
     MessageType msgType = static_cast<MessageType>(msgTypeValue);
     auto subscription =
         manager.SubscribeMessage(connectionName, msgType, [](const Attributes &msg, OnMessageReply &onMessageReply) {
@@ -249,8 +254,15 @@ void FuzzCrossDeviceCommManagerImpl(FuzzedDataProvider &fuzzData)
     // Call Start() to initialize the manager
     manager->Start();
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](*manager, fuzzData);
+        EnsureAllTaskExecuted();
+    }
 
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -264,9 +276,8 @@ void FuzzCrossDeviceCommManagerImpl(FuzzedDataProvider &fuzzData)
     EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzCrossDeviceCommManagerImpl)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CrossDeviceCommManagerImpl)
-
 } // namespace UserIam
 } // namespace OHOS

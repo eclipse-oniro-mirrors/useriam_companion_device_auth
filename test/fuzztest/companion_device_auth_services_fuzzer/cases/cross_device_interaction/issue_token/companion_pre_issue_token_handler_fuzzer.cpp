@@ -28,6 +28,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr int32_t INT32_5 = 5;
+constexpr int32_t INT32_10 = 10;
+
 using CompanionPreIssueTokenHandlerFuzzFunction = void (*)(std::shared_ptr<CompanionPreIssueTokenHandler> &handler,
     FuzzedDataProvider &fuzzData);
 
@@ -83,7 +86,7 @@ static void FuzzHandleRequestWithLargeAttrs(std::shared_ptr<CompanionPreIssueTok
 static void FuzzMultipleHandleRequests(std::shared_ptr<CompanionPreIssueTokenHandler> &handler,
     FuzzedDataProvider &fuzzData)
 {
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t i = 0; i < count; ++i) {
         Attributes request = GenerateFuzzAttributes(fuzzData);
         auto replyCallback = [](const Attributes &reply) { (void)reply; };
@@ -103,7 +106,7 @@ static void FuzzCreateNewHandler(std::shared_ptr<CompanionPreIssueTokenHandler> 
 static void FuzzGetMessageTypeMultiple(std::shared_ptr<CompanionPreIssueTokenHandler> &handler,
     FuzzedDataProvider &fuzzData)
 {
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < count; ++i) {
         auto type = handler->GetMessageType();
         (void)type;
@@ -140,7 +143,15 @@ void FuzzCompanionPreIssueTokenHandler(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](handler, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -152,9 +163,8 @@ void FuzzCompanionPreIssueTokenHandler(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzCompanionPreIssueTokenHandler)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CompanionPreIssueTokenHandler)
-
 } // namespace UserIam
 } // namespace OHOS

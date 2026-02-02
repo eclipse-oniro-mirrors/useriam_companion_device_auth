@@ -29,6 +29,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr int32_t INT32_10 = 10;
+
 using IncomingMessageHandlerRegistryFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreate(FuzzedDataProvider &fuzzData)
@@ -70,7 +72,7 @@ static void FuzzCreateWithNullCheck(FuzzedDataProvider &fuzzData)
 
 static void FuzzCreateLoop(FuzzedDataProvider &fuzzData)
 {
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < count; ++i) {
         auto registry = IncomingMessageHandlerRegistry::Create();
         (void)registry;
@@ -109,8 +111,15 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(IncomingMes
 
 void FuzzIncomingMessageHandlerRegistry(FuzzedDataProvider &fuzzData)
 {
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](fuzzData);
+        EnsureAllTaskExecuted();
+    }
 
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -123,9 +132,8 @@ void FuzzIncomingMessageHandlerRegistry(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzIncomingMessageHandlerRegistry)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(IncomingMessageHandlerRegistry)
-
 } // namespace UserIam
 } // namespace OHOS

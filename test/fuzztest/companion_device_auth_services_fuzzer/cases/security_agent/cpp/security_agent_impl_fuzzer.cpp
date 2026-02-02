@@ -30,6 +30,9 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 const size_t SIZE_T_1024 = 1024;
+constexpr int32_t INT32_10 = 10;
+constexpr int32_t INT32_32 = 32;
+constexpr uint32_t SIZE_64 = 64;
 }
 
 using SecurityAgentFuzzFunction = void (*)(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData);
@@ -63,12 +66,12 @@ static void FuzzHostGetExecutorInfo(std::shared_ptr<ISecurityAgent> &agent, Fuzz
 static void FuzzHostOnRegisterFinish(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     RegisterFinishInput input;
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < count; ++i) {
         input.templateIdList.push_back(fuzzData.ConsumeIntegral<TemplateId>());
     }
     size_t leftRange = 0;
-    size_t rightRange = 32;
+    size_t rightRange = INT32_32;
     input.fwkPublicKey = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(leftRange, rightRange));
     input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     agent->HostOnRegisterFinish(input);
@@ -105,7 +108,7 @@ static void FuzzHostEndCompanionCheck(std::shared_ptr<ISecurityAgent> &agent, Fu
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < count; ++i) {
         input.protocolVersionList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
         input.capabilityList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
@@ -441,7 +444,7 @@ static void FuzzHostUpdateCompanionStatus(std::shared_ptr<ISecurityAgent> &agent
 {
     HostUpdateCompanionStatusInput input;
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-    uint32_t testVal64 = 64;
+    uint32_t testVal64 = SIZE_64;
     input.companionDeviceName = GenerateFuzzString(fuzzData, testVal64);
     input.companionDeviceUserName = GenerateFuzzString(fuzzData, testVal64);
     agent->HostUpdateCompanionStatus(input);
@@ -452,11 +455,28 @@ static void FuzzHostUpdateCompanionEnabledBusinessIds(std::shared_ptr<ISecurityA
 {
     HostUpdateCompanionEnabledBusinessIdsInput input;
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 10);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < count; ++i) {
         input.enabledBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<uint32_t>()));
     }
     agent->HostUpdateCompanionEnabledBusinessIds(input);
+}
+
+static void FuzzHostUpdateToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
+{
+    HostUpdateTokenInput input;
+    input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
+    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
+    HostUpdateTokenOutput output;
+    agent->HostUpdateToken(input, output);
+}
+
+static void FuzzHostCheckTemplateEnrolled(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
+{
+    HostCheckTemplateEnrolledInput input;
+    input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
+    HostCheckTemplateEnrolledOutput output;
+    agent->HostCheckTemplateEnrolled(input, output);
 }
 
 static const SecurityAgentFuzzFunction g_fuzzFuncs[] = {
@@ -505,6 +525,8 @@ static const SecurityAgentFuzzFunction g_fuzzFuncs[] = {
     FuzzCompanionRevokeToken,
     FuzzHostUpdateCompanionStatus,
     FuzzHostUpdateCompanionEnabledBusinessIds,
+    FuzzHostUpdateToken,
+    FuzzHostCheckTemplateEnrolled,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
@@ -516,7 +538,16 @@ void FuzzSecurityAgentImpl(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](securityAgent, fuzzData);
+
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -528,9 +559,8 @@ void FuzzSecurityAgentImpl(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzSecurityAgentImpl)
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
-
-// Register the fuzzer with the global registry
-FUZZ_REGISTER(SecurityAgentImpl)

@@ -28,6 +28,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr uint32_t SIZE_64 = 64;
+
 using CompanionDelegateAuthRequestFuzzFunction = void (*)(std::shared_ptr<CompanionDelegateAuthRequest> &request,
     FuzzedDataProvider &fuzzData);
 
@@ -119,7 +121,7 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionDe
 
 void FuzzCompanionDelegateAuthRequest(FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, 64);
+    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
     int32_t companionUserId = fuzzData.ConsumeIntegral<int32_t>();
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     std::vector<uint8_t> startDelegateAuthRequest =
@@ -131,7 +133,15 @@ void FuzzCompanionDelegateAuthRequest(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](delegateAuthRequest, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -142,9 +152,8 @@ void FuzzCompanionDelegateAuthRequest(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzCompanionDelegateAuthRequest)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CompanionDelegateAuthRequest)
-
 } // namespace UserIam
 } // namespace OHOS

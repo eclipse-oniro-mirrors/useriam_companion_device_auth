@@ -31,6 +31,8 @@ namespace CompanionDeviceAuth {
 using HostRevokeTokenHandlerFuzzFunction = void (*)(std::shared_ptr<HostRevokeTokenHandler> &handler,
     FuzzedDataProvider &fuzzData);
 
+constexpr int32_t INT32_5 = 5;
+
 static void FuzzGetMessageType(std::shared_ptr<HostRevokeTokenHandler> &handler, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
@@ -76,7 +78,7 @@ static void FuzzHandleIncomingMessage(std::shared_ptr<HostRevokeTokenHandler> &h
 
 static void FuzzMultipleHandleRequests(std::shared_ptr<HostRevokeTokenHandler> &handler, FuzzedDataProvider &fuzzData)
 {
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t i = 0; i < count; ++i) {
         Attributes request = GenerateFuzzAttributes(fuzzData);
         Attributes reply;
@@ -103,7 +105,15 @@ void FuzzHostRevokeTokenHandler(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](handler, fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -115,9 +125,8 @@ void FuzzHostRevokeTokenHandler(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzHostRevokeTokenHandler)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(HostRevokeTokenHandler)
-
 } // namespace UserIam
 } // namespace OHOS

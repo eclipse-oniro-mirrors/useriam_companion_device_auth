@@ -31,6 +31,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr int32_t INT32_5 = 5;
+constexpr int32_t INT32_100 = 100;
+
 class MockFrameworkCallback : public FwkIExecuteCallback {
 public:
     void OnResult(FwkResultCode result, const std::vector<uint8_t> &extraInfo) override
@@ -109,7 +112,7 @@ static void FuzzMultipleCallbackInvocations(FuzzedDataProvider &fuzzData)
     auto frameworkCallback = std::make_shared<MockFrameworkCallback>();
     CompanionDeviceAuthExecutorCallback callback(frameworkCallback);
 
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_5);
     for (uint8_t i = 0; i < count; ++i) {
         ResultCode resultCode = GenerateFuzzResultCode(fuzzData);
         std::vector<uint8_t> extraInfo =
@@ -130,7 +133,15 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionDe
 
 void FuzzCompanionDeviceAuthExecutorCallback(FuzzedDataProvider &fuzzData)
 {
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = INT32_100;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -142,9 +153,8 @@ void FuzzCompanionDeviceAuthExecutorCallback(FuzzedDataProvider &fuzzData)
     }
 }
 
+FUZZ_REGISTER(FuzzCompanionDeviceAuthExecutorCallback)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(CompanionDeviceAuthExecutorCallback)
-
 } // namespace UserIam
 } // namespace OHOS

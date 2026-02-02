@@ -29,6 +29,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+constexpr int32_t INT32_3 = 3;
+
 using FwkCommManagerFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 
 static void FuzzCreate(FuzzedDataProvider &fuzzData)
@@ -41,7 +43,7 @@ static void FuzzCreate(FuzzedDataProvider &fuzzData)
 static void FuzzCreateMultiple(FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    int num = 3;
+    int num = INT32_3;
     for (int i = 0; i < num; ++i) {
         auto manager = FwkCommManager::Create();
         (void)manager;
@@ -112,7 +114,15 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FwkCommMana
 
 void FuzzFwkCommManager(FuzzedDataProvider &fuzzData)
 {
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](fuzzData);
+        EnsureAllTaskExecuted();
+    }
+
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -120,14 +130,12 @@ void FuzzFwkCommManager(FuzzedDataProvider &fuzzData)
 
         uint8_t operation = fuzzData.ConsumeIntegralInRange<uint8_t>(0, NUM_FUZZ_OPERATIONS - 1);
         g_fuzzFuncs[operation](fuzzData);
+        EnsureAllTaskExecuted();
     }
-
-    EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzFwkCommManager)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(FwkCommManager)
-
 } // namespace UserIam
 } // namespace OHOS

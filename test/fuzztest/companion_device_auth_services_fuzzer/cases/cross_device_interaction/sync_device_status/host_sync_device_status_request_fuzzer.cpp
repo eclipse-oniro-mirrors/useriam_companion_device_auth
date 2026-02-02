@@ -33,6 +33,8 @@ namespace CompanionDeviceAuth {
 using HostSyncDeviceStatusRequestFuzzFunction = void (*)(std::shared_ptr<HostSyncDeviceStatusRequest> &,
     FuzzedDataProvider &);
 
+constexpr int32_t INT32_20 = 20;
+
 static void FuzzOp0(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
@@ -44,7 +46,7 @@ static void FuzzOp1(std::shared_ptr<HostSyncDeviceStatusRequest> &request, Fuzze
 {
     (void)fuzzData;
     // Test ShouldCancelOnNewRequest
-    RequestType newRequestType = static_cast<RequestType>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, 20));
+    RequestType newRequestType = static_cast<RequestType>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, INT32_20));
     std::optional<DeviceKey> newPeerDevice;
     if (fuzzData.ConsumeBool()) {
         newPeerDevice = GenerateFuzzDeviceKey(fuzzData);
@@ -123,7 +125,7 @@ void FuzzHostSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
 {
     int32_t hostUserId = fuzzData.ConsumeIntegral<int32_t>();
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    std::string companionDeviceName = GenerateFuzzString(fuzzData, 64);
+    std::string companionDeviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
 
     auto request = std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, companionDeviceKey, companionDeviceName,
@@ -132,8 +134,15 @@ void FuzzHostSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    uint32_t loopCount = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_LOOP_COUNT);
+    for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        g_fuzzFuncs[i](request, fuzzData);
+        EnsureAllTaskExecuted();
+    }
 
+    constexpr uint32_t loopCount = BASE_LOOP_COUNT + NUM_FUZZ_OPERATIONS * LOOP_PER_OPERATION;
     for (uint32_t i = 0; i < loopCount; ++i) {
         if (!fuzzData.remaining_bytes()) {
             break;
@@ -146,9 +155,8 @@ void FuzzHostSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
     EnsureAllTaskExecuted();
 }
 
+FUZZ_REGISTER(FuzzHostSyncDeviceStatusRequest)
+
 } // namespace CompanionDeviceAuth
-
-FUZZ_REGISTER(HostSyncDeviceStatusRequest)
-
 } // namespace UserIam
 } // namespace OHOS
