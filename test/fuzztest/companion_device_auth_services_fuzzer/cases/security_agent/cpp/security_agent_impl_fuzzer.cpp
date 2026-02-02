@@ -33,7 +33,7 @@ const size_t SIZE_T_1024 = 1024;
 constexpr int32_t INT32_10 = 10;
 constexpr int32_t INT32_32 = 32;
 constexpr uint32_t SIZE_64 = 64;
-}
+} // namespace
 
 using SecurityAgentFuzzFunction = void (*)(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData);
 

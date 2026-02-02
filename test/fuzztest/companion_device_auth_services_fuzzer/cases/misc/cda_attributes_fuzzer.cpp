@@ -32,7 +32,7 @@ namespace {
 constexpr uint32_t SIZE_64 = 64;
 constexpr int32_t INT32_5 = 5;
 constexpr uint32_t SIZE_1024 = 1024;
-}
+} // namespace
 
 using CdaAttributesFuzzFunction = void (*)(FuzzedDataProvider &, Attributes::AttributeKey);
 

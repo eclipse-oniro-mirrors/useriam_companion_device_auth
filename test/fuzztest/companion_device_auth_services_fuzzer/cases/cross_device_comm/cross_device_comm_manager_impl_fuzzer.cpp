@@ -32,7 +32,7 @@ namespace {
 constexpr uint32_t SIZE_64 = 64;
 constexpr uint8_t UINT8_2 = 2;
 constexpr uint8_t UINT8_50 = 50;
-}
+} // namespace
 
 using CrossDeviceCommManagerImplFuzzFunction = void (*)(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData);
 

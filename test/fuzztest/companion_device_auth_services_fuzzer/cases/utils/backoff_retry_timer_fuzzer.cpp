@@ -135,7 +135,7 @@ void FuzzBackoffRetryTimer(FuzzedDataProvider &fuzzData)
     config.baseDelayMs = fuzzData.ConsumeIntegralInRange<uint32_t>(1, INT32_10000);
     config.maxDelayMs = fuzzData.ConsumeIntegralInRange<uint32_t>(INT32_1000, INT32_60000);
 
-    auto timer = std::make_shared<BackoffRetryTimer>(config, []() { });
+    auto timer = std::make_shared<BackoffRetryTimer>(config, []() {});
     if (!timer) {
         return;
     }

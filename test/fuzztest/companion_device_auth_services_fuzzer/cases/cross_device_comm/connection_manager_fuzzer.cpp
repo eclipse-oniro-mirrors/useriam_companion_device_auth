@@ -34,7 +34,7 @@ namespace CompanionDeviceAuth {
 namespace {
 constexpr uint32_t SIZE_128 = 128;
 constexpr uint8_t UINT8_2 = 2;
-}
+} // namespace
 
 using ConnectionManagerFuzzFunction = void (*)(std::shared_ptr<ConnectionManager> &conn, FuzzedDataProvider &fuzzData);
 
