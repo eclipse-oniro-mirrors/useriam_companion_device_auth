@@ -110,7 +110,7 @@ impl HostDeviceEnrollRequest {
         Err(ErrorCode::GeneralError)
     }
 
-    fn encode_sec_algo_negorate_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_algo_nego_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let key_nego_request = Box::new(SecKeyNegoRequest { algorithm_list: Vec::from([AlgoType::X25519 as u16]) });
         let output = match SecureProtocolId::try_from(self.secure_protocol_id).map_err(|e| p!(e))? {
             SecureProtocolId::Default => key_nego_request.encode(DeviceType::Default)?,
@@ -399,7 +399,7 @@ impl Request for HostDeviceEnrollRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        let sec_message = self.encode_sec_algo_negorate_request()?;
+        let sec_message = self.encode_sec_algo_nego_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
