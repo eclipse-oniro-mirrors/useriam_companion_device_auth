@@ -65,7 +65,7 @@ impl HostDeviceIssueTokenRequest {
         self.token_issue_param.request_id
     }
 
-    fn parse_begin_fwk_message(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_fwk_token_issue_request(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
         let output = FwkIssueTokenRequest::decode(fwk_message)?;
         if output.property_mode != PROPERTY_MODE_UNFREEZE {
             log_e!("property_mode is not unfreeze: {}", output.property_mode);
@@ -89,7 +89,7 @@ impl HostDeviceIssueTokenRequest {
         Ok(())
     }
 
-    fn create_prepare_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_token_pre_issue_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let pre_issue_request = Box::new(SecPreIssueRequest { salt: self.salt });
         let mut output = Vec::new();
         let capability_infos =
@@ -100,7 +100,7 @@ impl HostDeviceIssueTokenRequest {
         Ok(output)
     }
 
-    fn parse_pre_issue_reply(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_pre_issue_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecCommonReply::decode(sec_message, device_type)?;
 
         let session_key = host_db_helper::get_session_key(self.token_issue_param.template_id, device_type, &self.salt)?;
@@ -114,11 +114,11 @@ impl HostDeviceIssueTokenRequest {
         Ok(())
     }
 
-    fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_pre_issue_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let capability_infos =
             HostDbManagerRegistry::get_mut().read_device_capability_info(self.token_issue_param.template_id)?;
         for capability_info in capability_infos {
-            if let Err(e) = self.parse_pre_issue_reply(capability_info.device_type, sec_message) {
+            if let Err(e) = self.decode_sec_pre_issue_reply_message(capability_info.device_type, sec_message) {
                 log_e!(
                     "parse pre issue token reply message fail: device_type: {:?}, result: {:?}",
                     capability_info.device_type,
@@ -136,7 +136,7 @@ impl HostDeviceIssueTokenRequest {
         Ok(())
     }
 
-    fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_token_issue_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
         for token_info in &self.token_infos {
             let session_key = host_db_helper::get_session_key(
@@ -157,7 +157,7 @@ impl HostDeviceIssueTokenRequest {
         Ok(output)
     }
 
-    fn parse_issue_token_reply(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_issue_token_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecIssueTokenReply::decode(sec_message, device_type)?;
         if output.result != 0 {
             log_e!("issue token returned error: {}", output.result);
@@ -167,10 +167,10 @@ impl HostDeviceIssueTokenRequest {
         Ok(())
     }
 
-    fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_issue_token_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let device_types: Vec<DeviceType> = self.token_infos.iter().map(|param| param.device_type).collect();
         for device_type in device_types {
-            if let Err(e) = self.parse_issue_token_reply(device_type, sec_message) {
+            if let Err(e) = self.decode_issue_token_reply_message(device_type, sec_message) {
                 log_e!("parse issue token replay message fail: device_type: {:?}, result: {:?}", device_type, e);
                 return Err(ErrorCode::GeneralError);
             }
@@ -197,8 +197,8 @@ impl Request for HostDeviceIssueTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
-        let sec_message = self.create_prepare_sec_message()?;
+        self.decode_fwk_token_issue_request(ffi_input.fwk_message.as_slice()?)?;
+        let sec_message = self.encode_sec_token_pre_issue_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
@@ -210,8 +210,8 @@ impl Request for HostDeviceIssueTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
-        let sec_message = self.create_begin_sec_message()?;
+        self.decode_sec_pre_issue_reply(ffi_input.sec_message.as_slice()?)?;
+        let sec_message = self.encode_sec_token_issue_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
@@ -223,7 +223,7 @@ impl Request for HostDeviceIssueTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
+        self.decode_issue_token_reply(ffi_input.sec_message.as_slice()?)?;
         self.store_token()?;
         ffi_output.atl = self.atl as i32;
         Ok(())

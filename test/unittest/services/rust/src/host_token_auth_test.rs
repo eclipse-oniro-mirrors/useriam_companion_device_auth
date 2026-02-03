@@ -19,8 +19,8 @@ use crate::entry::companion_device_auth_ffi::{
     HostEndTokenAuthOutputFfi,
 };
 use crate::log_i;
-use crate::request::token_auth::auth_message::SecAuthReply;
-use crate::request::token_auth::host_auth::{HostTokenAuthRequest, TOKEN_VALID_PERIOD};
+use crate::request::token_auth::token_auth_message::SecAuthReply;
+use crate::request::token_auth::host_token_auth::{HostTokenAuthRequest, TOKEN_VALID_PERIOD};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceInfo, CompanionDeviceSk, CompanionTokenInfo, DeviceKey, UserInfo};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};

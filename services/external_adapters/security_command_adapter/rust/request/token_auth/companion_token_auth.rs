@@ -18,7 +18,7 @@ use crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthInputFfi;
 use crate::jobs::companion_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonRequest;
-use crate::request::token_auth::auth_message::SecAuthReply;
+use crate::request::token_auth::token_auth_message::SecAuthReply;
 use crate::traits::companion_db_manager::CompanionDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
@@ -47,7 +47,7 @@ impl CompanionTokenAuthRequest {
         self.binding_id
     }
 
-    fn parse_device_auth_request(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_auth_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecCommonRequest::decode(sec_message, device_type)?;
 
         let session_key = companion_db_helper::get_session_key(self.binding_id, &output.salt)?;
@@ -62,8 +62,8 @@ impl CompanionTokenAuthRequest {
         Ok(())
     }
 
-    fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_device_auth_request(
+    fn decode_sec_token_auth_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+        if let Err(e) = self.decode_sec_token_auth_request_message(
             DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
             sec_message,
         ) {
@@ -73,7 +73,7 @@ impl CompanionTokenAuthRequest {
         Ok(())
     }
 
-    fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_token_auth_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let token_info = CompanionDbManagerRegistry::get_mut()
             .read_device_token(self.binding_id)
             .map_err(|e| p!(e))?;
@@ -111,8 +111,8 @@ impl Request for CompanionTokenAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
-        let sec_message = self.create_begin_sec_message()?;
+        self.decode_sec_token_auth_request(ffi_input.sec_message.as_slice()?)?;
+        let sec_message = self.encode_sec_token_auth_reply()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }

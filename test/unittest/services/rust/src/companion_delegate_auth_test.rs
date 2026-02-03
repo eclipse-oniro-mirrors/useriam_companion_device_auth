@@ -18,7 +18,7 @@ use crate::entry::companion_device_auth_ffi::{
     CompanionBeginDelegateAuthInputFfi, CompanionEndDelegateAuthInputFfi, DataArray1024Ffi,
 };
 use crate::log_i;
-use crate::request::delegate_auth::companion_auth::CompanionDelegateAuthRequest;
+use crate::request::delegate_auth::companion_delegate_auth::CompanionDelegateAuthRequest;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};

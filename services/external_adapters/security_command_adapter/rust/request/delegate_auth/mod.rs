@@ -13,6 +13,6 @@
  * limitations under the License.
  */
 
-pub mod auth_message;
-pub mod companion_auth;
-pub mod host_auth;
+pub mod companion_delegate_auth;
+pub mod delegate_auth_message;
+pub mod host_delegate_auth;

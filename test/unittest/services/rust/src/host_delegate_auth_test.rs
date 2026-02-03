@@ -19,7 +19,7 @@ use crate::entry::companion_device_auth_ffi::{
     HostEndDelegateAuthOutputFfi,
 };
 use crate::log_i;
-use crate::request::delegate_auth::host_auth::HostDelegateAuthRequest;
+use crate::request::delegate_auth::host_delegate_auth::HostDelegateAuthRequest;
 use crate::request::jobs::common_message::SecCommonReply;
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk};

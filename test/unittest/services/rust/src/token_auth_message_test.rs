@@ -15,7 +15,7 @@
 
 use crate::common::constants::*;
 use crate::log_i;
-use crate::request::token_auth::auth_message::{FwkAuthReply, FwkAuthRequest, SecAuthReply};
+use crate::request::token_auth::token_auth_message::{FwkAuthReply, FwkAuthRequest, SecAuthReply};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::ut_registry_guard;

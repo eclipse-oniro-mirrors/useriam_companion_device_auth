@@ -65,7 +65,7 @@ impl HostDeviceObtainTokenRequest {
         self.obtain_param.request_id
     }
 
-    fn create_prepare_sec_message(&self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_token_pre_obtain_requset(&self) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
         let obtain_token_request = Box::new(SecPreObtainTokenRequest { salt: self.salt, challenge: self.challenge });
         let capability_infos =
@@ -77,7 +77,7 @@ impl HostDeviceObtainTokenRequest {
         Ok(output)
     }
 
-    fn parse_obtain_token_request(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_obtain_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecCommonRequest::decode(sec_message, device_type)?;
         let session_key = host_db_helper::get_session_key(self.obtain_param.template_id, device_type, &self.salt)?;
         let decrypt_data =
@@ -106,11 +106,11 @@ impl HostDeviceObtainTokenRequest {
         Ok(())
     }
 
-    fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_obtain_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let capability_infos =
             HostDbManagerRegistry::get_mut().read_device_capability_info(self.obtain_param.template_id)?;
         for capability_info in capability_infos {
-            if let Err(e) = self.parse_obtain_token_request(capability_info.device_type, sec_message) {
+            if let Err(e) = self.decode_sec_token_obtain_request_message(capability_info.device_type, sec_message) {
                 log_e!(
                     "parse obtain token request message fail: device_type: {:?}, result: {:?}",
                     capability_info.device_type,
@@ -127,7 +127,7 @@ impl HostDeviceObtainTokenRequest {
         Ok(())
     }
 
-    fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_token_obtaion_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
         for token_info in &self.token_infos {
             let session_key =
@@ -166,7 +166,7 @@ impl Request for HostDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        let sec_message = self.create_prepare_sec_message()?;
+        let sec_message = self.encode_sec_token_pre_obtain_requset()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
@@ -178,8 +178,8 @@ impl Request for HostDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
-        let sec_message = self.create_begin_sec_message()?;
+        self.decode_sec_token_obtain_request(ffi_input.sec_message.as_slice()?)?;
+        let sec_message = self.encode_sec_token_obtaion_reply()?;
         self.store_token()?;
         let max_atl = self
             .token_infos

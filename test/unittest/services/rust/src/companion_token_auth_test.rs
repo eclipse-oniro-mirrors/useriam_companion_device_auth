@@ -20,7 +20,7 @@ use crate::entry::companion_device_auth_ffi::{
 };
 use crate::log_i;
 use crate::request::jobs::common_message::SecCommonRequest;
-use crate::request::token_auth::companion_auth::CompanionTokenAuthRequest;
+use crate::request::token_auth::companion_token_auth::CompanionTokenAuthRequest;
 use crate::traits::companion_db_manager::{CompanionDbManagerRegistry, MockCompanionDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::{HostDeviceSk, HostTokenInfo};

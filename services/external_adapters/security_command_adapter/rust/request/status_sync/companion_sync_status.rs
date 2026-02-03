@@ -50,7 +50,7 @@ impl CompanionDeviceSyncStatusRequest {
         })
     }
 
-    fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_status_sync_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
         encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocol_list);
@@ -86,7 +86,7 @@ impl Request for CompanionDeviceSyncStatusRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        let reply_sec_message = self.create_begin_sec_message()?;
+        let reply_sec_message = self.encode_sec_status_sync_reply()?;
         ffi_output.sec_message.copy_from_vec(&reply_sec_message)?;
         Ok(())
     }

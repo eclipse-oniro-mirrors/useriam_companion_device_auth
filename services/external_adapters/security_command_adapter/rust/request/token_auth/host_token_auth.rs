@@ -18,7 +18,7 @@ use crate::entry::companion_device_auth_ffi::HostBeginTokenAuthInputFfi;
 use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonRequest;
-use crate::request::token_auth::auth_message::{FwkAuthReply, FwkAuthRequest, SecAuthReply};
+use crate::request::token_auth::token_auth_message::{FwkAuthReply, FwkAuthRequest, SecAuthReply};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
@@ -73,7 +73,7 @@ impl HostTokenAuthRequest {
         })
     }
 
-    fn parse_begin_fwk_message(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_fwk_token_auth_request(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
         let output = FwkAuthRequest::decode(fwk_message)?;
         if self.auth_param.schedule_id != output.schedule_id {
             log_e!("scheduleId check fail");
@@ -92,7 +92,7 @@ impl HostTokenAuthRequest {
         Ok(())
     }
 
-    fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_token_auth_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let device_info = HostDbManagerRegistry::get().get_device(self.auth_param.template_id)?;
         self.device_type = if device_info.secure_protocol_id == SecureProtocolId::Default as u16 {
             self.acl = AuthCapabilityLevel::Acl3;
@@ -126,7 +126,7 @@ impl HostTokenAuthRequest {
         auth_request.encode(self.device_type)
     }
 
-    fn parse_token_auth_reply(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_auth_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecAuthReply::decode(sec_message, device_type)?;
 
         let token_info = HostDbManagerRegistry::get()
@@ -150,8 +150,8 @@ impl HostTokenAuthRequest {
         Ok(())
     }
 
-    fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_token_auth_reply(self.device_type, sec_message) {
+    fn decode_sec_token_auth_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+        if let Err(e) = self.decode_sec_token_auth_reply_message(self.device_type, sec_message) {
             log_e!("parse token auth reply message fail: device_type: {:?}, result: {:?}", self.device_type, e);
             return Err(ErrorCode::GeneralError);
         }
@@ -159,7 +159,7 @@ impl HostTokenAuthRequest {
         Ok(())
     }
 
-    fn create_end_fwk_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_fwk_token_auth_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let fwk_auth_reply = Box::new(FwkAuthReply {
             schedule_id: self.auth_param.schedule_id,
             template_id: self.auth_param.template_id,
@@ -191,8 +191,8 @@ impl Request for HostTokenAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
-        let sec_message = self.create_begin_sec_message()?;
+        self.decode_fwk_token_auth_request(ffi_input.fwk_message.as_slice()?)?;
+        let sec_message = self.encode_sec_token_auth_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
@@ -204,8 +204,8 @@ impl Request for HostTokenAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
-        let fwk_message = self.create_end_fwk_message()?;
+        self.decode_sec_token_auth_reply(ffi_input.sec_message.as_slice()?)?;
+        let fwk_message = self.encode_fwk_token_auth_reply()?;
         ffi_output.fwk_message.copy_from_vec(&fwk_message)?;
         Ok(())
     }

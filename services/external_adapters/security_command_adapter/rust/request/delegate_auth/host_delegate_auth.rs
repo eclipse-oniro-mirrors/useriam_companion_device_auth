@@ -17,7 +17,7 @@ use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::HostBeginDelegateAuthInputFfi;
 use crate::jobs::host_db_helper;
 use crate::jobs::message_crypto;
-use crate::request::delegate_auth::auth_message::{FwkAuthReply, FwkAuthRequest};
+use crate::request::delegate_auth::delegate_auth_message::{FwkAuthReply, FwkAuthRequest};
 use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
@@ -70,7 +70,7 @@ impl HostDelegateAuthRequest {
         })
     }
 
-    fn parse_begin_fwk_message(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_fwk_delegate_auth_request(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
         let output = FwkAuthRequest::decode(fwk_message)?;
         if self.auth_param.schedule_id != output.schedule_id {
             log_e!("scheduleId check fail");
@@ -85,7 +85,7 @@ impl HostDelegateAuthRequest {
         Ok(())
     }
 
-    fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_delegate_auth_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
         let device_capabilitys =
             HostDbManagerRegistry::get_mut().read_device_capability_info(self.auth_param.template_id)?;
@@ -110,7 +110,7 @@ impl HostDelegateAuthRequest {
         Ok(output)
     }
 
-    fn parse_auth_reply_data(&mut self, device_type: DeviceType, message_data: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_delegate_auth_reply_message(&mut self, device_type: DeviceType, message_data: &[u8]) -> Result<(), ErrorCode> {
         let output = SecCommonReply::decode(message_data, device_type)?;
         let session_key = host_db_helper::get_session_key(self.auth_param.template_id, device_type, &self.salt)?;
         let decrypt_data =
@@ -134,11 +134,11 @@ impl HostDelegateAuthRequest {
         Ok(())
     }
 
-    fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_delegate_auth_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let device_capabilitys =
             HostDbManagerRegistry::get_mut().read_device_capability_info(self.auth_param.template_id)?;
         for device_capability in device_capabilitys {
-            if let Err(e) = self.parse_auth_reply_data(device_capability.device_type, sec_message) {
+            if let Err(e) = self.decode_sec_delegate_auth_reply_message(device_capability.device_type, sec_message) {
                 log_e!(
                     "parse auth reply message fail: device_type: {:?}, result: {:?}",
                     device_capability.device_type,
@@ -151,7 +151,7 @@ impl HostDelegateAuthRequest {
         Ok(())
     }
 
-    fn create_end_fwk_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_fwk_delegate_auth_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let fwk_auth_reply = Box::new(FwkAuthReply {
             schedule_id: self.auth_param.schedule_id,
             template_id: self.auth_param.template_id,
@@ -183,8 +183,8 @@ impl Request for HostDelegateAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
-        let sec_message = self.create_begin_sec_message()?;
+        self.decode_fwk_delegate_auth_request(ffi_input.fwk_message.as_slice()?)?;
+        let sec_message = self.encode_sec_delegate_auth_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
@@ -196,8 +196,8 @@ impl Request for HostDelegateAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
-        let fwk_message = self.create_end_fwk_message()?;
+        self.decode_sec_delegate_auth_reply(ffi_input.sec_message.as_slice()?)?;
+        let fwk_message = self.encode_fwk_delegate_auth_reply()?;
         ffi_output.fwk_message.copy_from_vec(&fwk_message)?;
         ffi_output.auth_type = self.auth_type;
         ffi_output.atl = self.atl as i32;

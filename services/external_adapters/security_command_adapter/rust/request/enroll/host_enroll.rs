@@ -110,7 +110,7 @@ impl HostDeviceEnrollRequest {
         Err(ErrorCode::GeneralError)
     }
 
-    fn create_prepare_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_algo_negorate_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let key_nego_request = Box::new(SecKeyNegoRequest { algorithm_list: Vec::from([AlgoType::X25519 as u16]) });
         let output = match SecureProtocolId::try_from(self.secure_protocol_id).map_err(|e| p!(e))? {
             SecureProtocolId::Default => key_nego_request.encode(DeviceType::Default)?,
@@ -122,7 +122,7 @@ impl HostDeviceEnrollRequest {
         Ok(output)
     }
 
-    fn parse_begin_fwk_message(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_fwk_binding_requset(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
         let output = FwkEnrollRequest::decode(fwk_message)?;
         if self.enroll_param.schedule_id != output.schedule_id {
             log_e!("scheduleId check fail");
@@ -136,7 +136,7 @@ impl HostDeviceEnrollRequest {
         Ok(())
     }
 
-    fn parse_key_nego_reply(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_key_nego_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecKeyNegoReply::decode(sec_message, device_type)?;
         let key_pair = CryptoEngineRegistry::get().generate_x25519_key_pair().map_err(|e| p!(e))?;
         let sk = CryptoEngineRegistry::get()
@@ -156,10 +156,10 @@ impl HostDeviceEnrollRequest {
         Ok(())
     }
 
-    fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_key_nego_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         match SecureProtocolId::try_from(self.secure_protocol_id).map_err(|e| p!(e))? {
             SecureProtocolId::Default => {
-                if let Err(e) = self.parse_key_nego_reply(DeviceType::Default, sec_message) {
+                if let Err(e) = self.decode_sec_key_nego_reply_message(DeviceType::Default, sec_message) {
                     log_e!("parse key nego reply message fail: {:?}", e);
                     return Err(ErrorCode::GeneralError);
                 }
@@ -178,7 +178,7 @@ impl HostDeviceEnrollRequest {
         Ok(())
     }
 
-    fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_binding_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
         for key_nego_param in &self.key_negotial_param {
             let Some(key_pair) = key_nego_param.key_pair.as_ref() else {
@@ -212,7 +212,7 @@ impl HostDeviceEnrollRequest {
         Ok(output)
     }
 
-    fn parse_binding_reply(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_binding_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecBindingReply::decode(sec_message, device_type)?;
 
         let key_nego_param = self.get_aes_gcm_param(device_type).map_err(|e| p!(e))?;
@@ -269,10 +269,10 @@ impl HostDeviceEnrollRequest {
         Ok(())
     }
 
-    fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_binding_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let device_types: Vec<DeviceType> = self.key_negotial_param.iter().map(|param| param.device_type).collect();
         for device_type in device_types {
-            if let Err(e) = self.parse_binding_reply(device_type, sec_message) {
+            if let Err(e) = self.decode_sec_binding_reply_message(device_type, sec_message) {
                 log_e!("parse binding reply message fail: device_type: {:?}, result: {:?}", device_type, e);
                 return Err(ErrorCode::GeneralError);
             }
@@ -281,7 +281,7 @@ impl HostDeviceEnrollRequest {
         Ok(())
     }
 
-    fn create_end_sec_message(&mut self, template_id: u64) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_token_issue(&mut self, template_id: u64) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
         for token_info in &self.token_infos {
             let session_key = host_db_helper::get_session_key(template_id, token_info.device_type, &self.salt)?;
@@ -295,7 +295,7 @@ impl HostDeviceEnrollRequest {
         Ok(output)
     }
 
-    fn create_end_fwk_message(&mut self, result: i32, template_id: u64) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_fwk_binding_reply(&mut self, result: i32, template_id: u64) -> Result<Vec<u8>, ErrorCode> {
         let fwk_enroll_reply = Box::new(FwkEnrollReply {
             schedule_id: self.enroll_param.schedule_id,
             template_id,
@@ -399,7 +399,7 @@ impl Request for HostDeviceEnrollRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        let sec_message = self.create_prepare_sec_message()?;
+        let sec_message = self.encode_sec_algo_negorate_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
@@ -417,10 +417,10 @@ impl Request for HostDeviceEnrollRequest {
         self.enroll_param.companion_device_key = companion_device_key;
         self.enroll_param.schedule_id = ffi_input.schedule_id;
 
-        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
+        self.decode_fwk_binding_requset(ffi_input.fwk_message.as_slice()?)?;
+        self.decode_sec_key_nego_reply(ffi_input.sec_message.as_slice()?)?;
 
-        let sec_message = self.create_begin_sec_message()?;
+        let sec_message = self.encode_sec_binding_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }
@@ -432,12 +432,12 @@ impl Request for HostDeviceEnrollRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
+        self.decode_sec_binding_reply(ffi_input.sec_message.as_slice()?)?;
         let device_info = self.store_device_info()?;
         self.store_token(device_info.template_id)?;
 
-        let fwk_message = self.create_end_fwk_message(0, device_info.template_id)?;
-        let sec_message = self.create_end_sec_message(device_info.template_id)?;
+        let fwk_message = self.encode_fwk_binding_reply(0, device_info.template_id)?;
+        let sec_message = self.encode_sec_token_issue(device_info.template_id)?;
         ffi_output.fwk_message.copy_from_vec(&fwk_message)?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         ffi_output.template_id = device_info.template_id;

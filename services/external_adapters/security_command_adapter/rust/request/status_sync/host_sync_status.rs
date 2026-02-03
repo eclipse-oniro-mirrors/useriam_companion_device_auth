@@ -58,7 +58,7 @@ impl HostDeviceSyncStatusRequest {
         })
     }
 
-    fn parse_status_sync_reply(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_status_sync_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecCommonReply::decode(sec_message, device_type)?;
         let session_key = host_db_helper::get_session_key(self.template_id, device_type, &self.salt)?;
         let decrypt_data =
@@ -88,10 +88,10 @@ impl HostDeviceSyncStatusRequest {
         Ok(())
     }
 
-    fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_status_sync_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let device_capabilitys = HostDbManagerRegistry::get_mut().read_device_capability_info(self.template_id)?;
         for device_capability in device_capabilitys {
-            if let Err(e) = self.parse_status_sync_reply(device_capability.device_type, sec_message) {
+            if let Err(e) = self.decode_sec_status_sync_reply_message(device_capability.device_type, sec_message) {
                 log_e!(
                     "parse sync status reply message fail: device_type: {:?}, result: {:?}",
                     device_capability.device_type,
@@ -144,7 +144,7 @@ impl Request for HostDeviceSyncStatusRequest {
             ErrorCode::GeneralError
         })?;
 
-        if self.parse_end_sec_message(ffi_input.sec_message.as_slice()?).is_ok() {
+        if self.decode_sec_status_sync_reply(ffi_input.sec_message.as_slice()?).is_ok() {
             host_db_helper::update_companion_device_valid_flag(self.template_id, true)?;
         } else {
             host_db_helper::update_companion_device_valid_flag(self.template_id, false)?;

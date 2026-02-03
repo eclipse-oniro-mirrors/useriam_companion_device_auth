@@ -15,7 +15,7 @@
 
 use crate::common::constants::*;
 use crate::log_i;
-use crate::request::delegate_auth::auth_message::{FwkAuthReply, FwkAuthRequest};
+use crate::request::delegate_auth::delegate_auth_message::{FwkAuthReply, FwkAuthRequest};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::ut_registry_guard;

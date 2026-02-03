@@ -60,7 +60,7 @@ impl CompanionDeviceObtainTokenRequest {
         self.request_id
     }
 
-    fn parse_begin_fwk_message(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_fwk_token_obtaion_reqest(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
         let output = FwkObtainTokenRequest::decode(fwk_message)?;
 
         if output.property_mode != PROPERTY_MODE_UNFREEZE {
@@ -80,15 +80,15 @@ impl CompanionDeviceObtainTokenRequest {
         Ok(())
     }
 
-    fn parse_obtain_token_request(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_pre_obtaion_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecPreObtainTokenRequest::decode(sec_message, device_type)?;
         self.obtain_param.salt = output.salt;
         self.obtain_param.challenge = output.challenge;
         Ok(())
     }
 
-    fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_obtain_token_request(
+    fn decode_sec_token_pre_obtaion_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+        if let Err(e) = self.decode_sec_token_pre_obtaion_request_message(
             DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
             sec_message,
         ) {
@@ -99,7 +99,7 @@ impl CompanionDeviceObtainTokenRequest {
         Ok(())
     }
 
-    fn create_begin_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_token_obtain_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         self.session_key = companion_db_helper::get_session_key(self.binding_id, &self.obtain_param.salt)?;
 
         let mut encrypt_attribute = Attribute::new();
@@ -176,10 +176,10 @@ impl Request for CompanionDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_fwk_message(ffi_input.fwk_message.as_slice()?)?;
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
+        self.decode_fwk_token_obtaion_reqest(ffi_input.fwk_message.as_slice()?)?;
+        self.decode_sec_token_pre_obtaion_request(ffi_input.sec_message.as_slice()?)?;
 
-        let sec_message = self.create_begin_sec_message()?;
+        let sec_message = self.encode_sec_token_obtain_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         Ok(())
     }

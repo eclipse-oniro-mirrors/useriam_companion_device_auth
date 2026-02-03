@@ -53,7 +53,7 @@ impl CompanionDelegateAuthRequest {
         self.request_id
     }
 
-    fn parse_begin_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_delegate_auth_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let output = SecCommonRequest::decode(
             sec_message,
             DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
@@ -76,7 +76,7 @@ impl CompanionDelegateAuthRequest {
         Ok(())
     }
 
-    fn create_end_sec_message(&mut self) -> Result<Vec<u8>, ErrorCode> {
+    fn encode_sec_delegate_auth_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
         encrypt_attribute.set_i32(AttributeKey::AttrType, self.auth_type);
@@ -109,7 +109,7 @@ impl Request for CompanionDelegateAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_begin_sec_message(ffi_input.sec_message.as_slice()?)?;
+        self.decode_sec_delegate_auth_request(ffi_input.sec_message.as_slice()?)?;
 
         ffi_output.challenge = self.challenge;
         ffi_output.atl = self.atl as i32;
@@ -141,7 +141,7 @@ impl Request for CompanionDelegateAuthRequest {
             .map_err(|e| p!(e))?;
         self.atl = auth_token.token_data_plain.auth_trust_level;
 
-        let sec_message = self.create_end_sec_message()?;
+        let sec_message = self.encode_sec_delegate_auth_reply()?;
         companion_db_helper::update_host_device_last_used_time(self.binding_id)?;
 
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
