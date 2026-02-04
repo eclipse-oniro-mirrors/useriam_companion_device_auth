@@ -116,7 +116,7 @@ impl CompanionDeviceObtainTokenRequest {
         Ok(output)
     }
 
-    fn parse_obtain_token_reply(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn parse_obtain_token_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let issue_token = SecIssueToken::decrypt_issue_token(sec_message, device_type, &self.session_key)?;
 
         if issue_token.challenge != self.obtain_param.challenge {
@@ -133,8 +133,8 @@ impl CompanionDeviceObtainTokenRequest {
         Ok(())
     }
 
-    fn parse_end_sec_message(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self.parse_obtain_token_reply(
+    fn parse_obtain_token_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+        if let Err(e) = self.parse_obtain_token_reply_message(
             DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
             sec_message,
         ) {
@@ -191,7 +191,7 @@ impl Request for CompanionDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.parse_end_sec_message(ffi_input.sec_message.as_slice()?)?;
+        self.parse_obtain_token_reply(ffi_input.sec_message.as_slice()?)?;
         self.store_token()?;
 
         *ffi_output = CompanionEndObtainTokenOutputFfi::default();
