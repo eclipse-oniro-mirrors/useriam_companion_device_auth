@@ -328,7 +328,7 @@ public:
     {
     }
 
-    bool Initialize() override
+    bool Initialize()
     {
         return true;
     }
@@ -384,13 +384,9 @@ class MockSecurityCommandAdapter : public ISecurityCommandAdapter {
 public:
     MockSecurityCommandAdapter() = default;
 
-    ResultCode Initialize() override
+    ResultCode Initialize()
     {
         return ResultCode::SUCCESS;
-    }
-
-    void Finalize() override
-    {
     }
 
     ResultCode InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen, uint8_t *outputData,

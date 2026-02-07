@@ -429,6 +429,8 @@ pub struct HostEndAddCompanionInputFfi {
     pub request_id: i32,
     pub companion_status: PersistedCompanionStatusFfi,
     pub secure_protocol_id: u16,
+    pub protocol_list: Uint16Array64Ffi,
+    pub capability_list: Uint16Array64Ffi,
     pub sec_message: DataArray1024Ffi, /* device_id, user_id, track_ability_level, tag, iv, encrypt_data(device_id, user_id) */
 }
 assert_max_size!(HostEndAddCompanionInputFfi);

@@ -209,7 +209,6 @@ void MockGuard::SetupHostBindingManagerDefaults()
 
 void MockGuard::SetupSecurityAgentDefaults()
 {
-    ON_CALL(*securityAgent_, Init()).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, SetActiveUser(_)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostGetExecutorInfo(_)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostOnRegisterFinish(_)).WillByDefault(Return(ResultCode::SUCCESS));

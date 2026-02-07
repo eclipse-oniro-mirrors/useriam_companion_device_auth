@@ -16,8 +16,8 @@
 #ifndef COMPANION_DEVICE_AUTH_FRAMEWORK_CALLBACK_HOLDER_H
 #define COMPANION_DEVICE_AUTH_FRAMEWORK_CALLBACK_HOLDER_H
 
-#include "iam_logger.h"
 #include "common_defines.h"
+#include "iam_logger.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -42,13 +42,12 @@ public:
         }
 
         std::lock_guard<std::recursive_mutex> lock(mutex_);
-        auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
-            [callback](const std::shared_ptr<T> &item) {
-                if (callback == nullptr || item == nullptr) {
-                    return false;
-                }
-                return *callback == *item;
-            });
+        auto it = std::find_if(callbacks_.begin(), callbacks_.end(), [callback](const std::shared_ptr<T> &item) {
+            if (callback == nullptr || item == nullptr) {
+                return false;
+            }
+            return *callback == *item;
+        });
         if (it != callbacks_.end()) {
             IAM_LOGI("callback already exists");
             return SUCCESS;
@@ -95,13 +94,12 @@ public:
             return SUCCESS;
         }
 
-        auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
-            [callback](const std::shared_ptr<T> &item) {
-                if (callback == nullptr || item == nullptr) {
-                    return false;
-                }
-                return *callback == *item;
-            });
+        auto it = std::find_if(callbacks_.begin(), callbacks_.end(), [callback](const std::shared_ptr<T> &item) {
+            if (callback == nullptr || item == nullptr) {
+                return false;
+            }
+            return *callback == *item;
+        });
         if (it == callbacks_.end()) {
             IAM_LOGI("callback not found");
             return GENERAL_ERROR;

@@ -17,6 +17,7 @@
 //!
 //! Usage:
 //! ```rust
+//! use companion_device_auth::traits::time_keeper::MockTimeKeeper;
 //! let mut mock = MockTimeKeeper::new();
 //! mock.expect_get_rtc_time().returning(|| Ok(1000));
 //! mock.expect_get_rtc_time().returning(|| Ok(2000)); // sequence support

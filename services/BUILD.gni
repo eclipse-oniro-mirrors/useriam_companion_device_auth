@@ -59,7 +59,7 @@ companion_device_auth_service_include_dirs = [
   "utils/inc",
 ]
 
-companion_device_auth_service_local_sources = [
+companion_device_auth_service_static_sources = [
   "companion/src/companion.cpp",
   "companion/src/companion_manager_impl.cpp",
   "cross_device_comm/src/channel_manager.cpp",
@@ -111,7 +111,6 @@ companion_device_auth_service_local_sources = [
   "external_adapters/cpp/src/adapter_manager.cpp",
   "external_adapters/event_manager/src/event_manager_adapter_impl.cpp",
   "external_adapters/samgr/src/sa_manager_adapter_impl.cpp",
-  "external_adapters/security_command_adapter/cpp/src/security_command_adapter_impl.cpp",
   "external_adapters/system_param/src/system_param_manager_impl.cpp",
   "external_adapters/time_keeper/src/time_keeper_impl.cpp",
   "host_binding/src/host_binding.cpp",
@@ -122,7 +121,6 @@ companion_device_auth_service_local_sources = [
   "request/src/request_manager_impl.cpp",
   "security_agent/src/companion_device_auth_ffi_util.cpp",
   "security_agent/src/security_agent_impl.cpp",
-  "service_entry/src/companion_device_auth_service.cpp",
   "service_entry/src/subscription/available_device_subscription.cpp",
   "service_entry/src/subscription/continuous_auth_subscription.cpp",
   "service_entry/src/subscription/subscription_manager.cpp",
@@ -160,9 +158,8 @@ companion_device_auth_service_external_deps = [
 companion_device_auth_service_flags = []
 
 if (companion_device_auth_has_user_auth_framework) {
-  if (companion_device_auth_deploy_mode == "ap") {
-  } else {
-    companion_device_auth_service_local_sources += [
+  if (!companion_device_auth_role_companion_only) {
+    companion_device_auth_service_static_sources += [
       "external_adapters/user_auth/src/driver_manager_adapter_impl.cpp",
       "external_adapters/user_auth/src/idm_adapter_impl.cpp",
       "external_adapters/user_auth/src/user_auth_adapter_impl.cpp",
@@ -172,6 +169,7 @@ if (companion_device_auth_has_user_auth_framework) {
       "fwk_comm/src/fwk_comm_manager.cpp",
     ]
   }
+
   companion_device_auth_service_external_deps += [
     "user_auth_framework:userauth_client",
     "user_auth_framework:userauth_executors",
@@ -182,7 +180,7 @@ if (companion_device_auth_has_user_auth_framework) {
 if (companion_device_auth_has_soft_bus_channel) {
   companion_device_auth_service_include_dirs +=
       [ "cross_device_channels/soft_bus/inc" ]
-  companion_device_auth_service_local_sources += [
+  companion_device_auth_service_static_sources += [
     "cross_device_channels/soft_bus/src/device_manager_adapter_impl.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_adapter_impl.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_adapter_manager.cpp",
@@ -199,14 +197,18 @@ if (companion_device_auth_has_soft_bus_channel) {
 }
 
 if (companion_device_auth_has_account_os_account) {
-  companion_device_auth_service_local_sources +=
+  companion_device_auth_service_static_sources +=
       [ "external_adapters/user_id/src/default_user_id_manager.cpp" ]
   companion_device_auth_service_external_deps +=
       [ "os_account:os_account_innerkits" ]
 } else {
-  companion_device_auth_service_local_sources +=
+  companion_device_auth_service_static_sources +=
       [ "external_adapters/user_id/src/constant_user_id_manager.cpp" ]
 }
+
+companion_device_auth_service_local_sources =
+    companion_device_auth_service_static_sources +
+    [ "service_entry/src/companion_device_auth_service.cpp" ]
 
 companion_device_auth_service_sources = []
 foreach(src, companion_device_auth_service_local_sources) {
@@ -221,7 +223,10 @@ companion_device_auth_service_sources_for_test = companion_device_auth_service_s
 
 # Tests always use constant_user_id_manager instead of os_account-dependent default_user_id_manager
 companion_device_auth_service_sources_for_test -= [ "${companion_device_auth_path}/services/external_adapters/user_id/src/default_user_id_manager.cpp" ]
-companion_device_auth_service_sources_for_test += [ "${companion_device_auth_path}/services/external_adapters/user_id/src/constant_user_id_manager.cpp" ]
+companion_device_auth_service_sources_for_test += [
+  "${companion_device_auth_path}/services/external_adapters/user_id/src/constant_user_id_manager.cpp",
+  "${companion_device_auth_path}/services/external_adapters/security_command_adapter/cpp/src/security_command_adapter_impl.cpp",
+]
 
 companion_device_auth_test_include_dirs = []
 foreach(dir, companion_device_auth_service_include_dirs) {
@@ -233,17 +238,10 @@ companion_device_auth_service_deps = [
   "${companion_device_auth_path}/frameworks/native/ipc:companion_device_auth_stub",
 ]
 
-if (!companion_device_auth_enable_extension) {
+if (!companion_device_auth_has_ext) {
+  companion_device_auth_service_sources += [ "${companion_device_auth_path}/services/external_adapters/security_command_adapter/cpp/src/security_command_adapter_impl.cpp" ]
   companion_device_auth_service_deps += [
     "${companion_device_auth_path}/services/external_adapters/security_command_adapter:companiondeviceauthservice_rs",
     "${companion_device_auth_path}/services/external_adapters/security_command_adapter:companiondeviceauthservice_rs_cpp_if",
-  ]
-}
-
-if (companion_device_auth_enable_extension) {
-  companion_device_auth_service_external_deps += [
-    "ffrt:libffrt",
-    "hisysevent:libhisysevent",
-    "tee_client:libteec",
   ]
 }

@@ -17,7 +17,7 @@ use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
     HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi, HostGetInitKeyNegotiationInputFfi,
-    HostGetInitKeyNegotiationOutputFfi, PersistedCompanionStatusFfi,
+    HostGetInitKeyNegotiationOutputFfi, PersistedCompanionStatusFfi, Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::enroll::enroll_message::{SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply};
@@ -190,7 +190,9 @@ fn host_enroll_request_begin_test_wrong_input_type() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_encrypt()
@@ -500,7 +502,9 @@ fn host_enroll_request_begin_test_hkdf_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
@@ -543,7 +547,9 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_encrypt()
@@ -620,6 +626,8 @@ fn host_enroll_request_end_test_sec_message_decode_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
 
@@ -655,6 +663,8 @@ fn host_enroll_request_end_test_hkdf_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -693,6 +703,8 @@ fn host_enroll_request_end_test_decrypt_sec_message_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -726,6 +738,8 @@ fn host_enroll_request_end_test_device_id_mismatch() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -759,6 +773,8 @@ fn host_enroll_request_end_test_user_id_mismatch() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -792,6 +808,8 @@ fn host_enroll_request_end_test_protocol_list_mismatch() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -820,6 +838,8 @@ fn host_enroll_request_end_test_capability_list_mismatch() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -865,6 +885,8 @@ fn host_enroll_request_end_test_secure_random_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -897,6 +919,8 @@ fn host_enroll_request_end_test_get_rtc_time_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl0;
+    request.expected_protocol_list = PROTOCOL_VERSION.to_vec();
+    request.expected_capability_list = SUPPORT_CAPABILITY.to_vec();
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -909,6 +933,8 @@ fn host_enroll_request_end_test_get_rtc_time_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -939,6 +965,8 @@ fn host_enroll_request_end_test_add_device_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
+    request.expected_protocol_list = PROTOCOL_VERSION.to_vec();
+    request.expected_capability_list = SUPPORT_CAPABILITY.to_vec();
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -951,6 +979,8 @@ fn host_enroll_request_end_test_add_device_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -982,6 +1012,8 @@ fn host_enroll_request_end_test_add_token_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
+    request.expected_protocol_list = PROTOCOL_VERSION.to_vec();
+    request.expected_capability_list = SUPPORT_CAPABILITY.to_vec();
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -994,6 +1026,8 @@ fn host_enroll_request_end_test_add_token_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -1029,6 +1063,8 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
+    request.expected_protocol_list = PROTOCOL_VERSION.to_vec();
+    request.expected_capability_list = SUPPORT_CAPABILITY.to_vec();
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -1041,6 +1077,8 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -1074,6 +1112,8 @@ fn host_enroll_request_end_test_get_session_key_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
+    request.expected_protocol_list = PROTOCOL_VERSION.to_vec();
+    request.expected_capability_list = SUPPORT_CAPABILITY.to_vec();
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -1082,10 +1122,14 @@ fn host_enroll_request_end_test_get_session_key_fail() {
         SUPPORT_CAPABILITY,
         ExecutorSecurityLevel::Esl2 as i32,
     );
+    let capability_list = Uint16Array64Ffi::try_from(SUPPORT_CAPABILITY.to_vec()).unwrap();
+    let protocol_list = Uint16Array64Ffi::try_from(PROTOCOL_VERSION.to_vec()).unwrap();
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list,
+        capability_list,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -1132,6 +1176,8 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.acl = AuthCapabilityLevel::Acl2;
+    request.expected_protocol_list = PROTOCOL_VERSION.to_vec();
+    request.expected_capability_list = SUPPORT_CAPABILITY.to_vec();
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -1144,6 +1190,8 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 

@@ -42,11 +42,6 @@ public:
     }
     ~ConstantUserIdManager() override = default;
 
-    bool Initialize() override
-    {
-        return true;
-    }
-
     int32_t GetActiveUserId() const override
     {
         return DEFAULT_USER_ID;
@@ -80,10 +75,6 @@ std::shared_ptr<IUserIdManager> IUserIdManager::Create()
 {
     auto manager = std::make_shared<ConstantUserIdManager>();
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
-    if (!manager->Initialize()) {
-        IAM_LOGE("failed to init constant user id manager");
-        return nullptr;
-    }
     return manager;
 }
 

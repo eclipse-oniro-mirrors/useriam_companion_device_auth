@@ -40,7 +40,7 @@ void OutboundRequest::Start()
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     bool onStartRet = OnStart(errorGuard);
-    ENSURE_OR_RETURN(onStartRet);
+    ENSURE_OR_RETURN_DESC(GetDescription(), onStartRet);
 
     errorGuard.Cancel();
     IAM_LOGI("%{public}s started successfully", GetDescription());
@@ -93,7 +93,7 @@ bool OutboundRequest::OpenConnection()
 {
     IAM_LOGI("%{public}s open connection", GetDescription());
 
-    ENSURE_OR_RETURN_VAL(peerDeviceKey_.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey_.has_value(), false);
 
     if (!GetCrossDeviceCommManager().OpenConnection(*peerDeviceKey_, connectionName_)) {
         IAM_LOGE("%{public}s OpenConnection failed", GetDescription());
@@ -108,21 +108,23 @@ bool OutboundRequest::OpenConnection()
         [weakSelf = GetWeakPtr()](const std::string &connectionName, ConnectionStatus status,
             const std::string &reason) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            ENSURE_OR_RETURN(self->connectionName_ == connectionName);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
+            if (self->connectionName_ != connectionName) {
+                return;
+            }
 
             self->HandleConnectionStatus(connectionName, status, reason);
         });
-    ENSURE_OR_RETURN_VAL(connectionStatusSubscription_ != nullptr, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), connectionStatusSubscription_ != nullptr, false);
 
     requestAbortedSubscription_ =
         GetCrossDeviceCommManager().SubscribeMessage(connectionName_, MessageType::REQUEST_ABORTED,
             [weakSelf = GetWeakPtr()](const Attributes &request, std::function<void(const Attributes &)> onReply) {
                 auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+                ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
                 self->HandleRequestAborted(request, onReply);
             });
-    ENSURE_OR_RETURN_VAL(requestAbortedSubscription_ != nullptr, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), requestAbortedSubscription_ != nullptr, false);
 
     return true;
 }
@@ -166,10 +168,10 @@ void OutboundRequest::HandleRequestAborted(const Attributes &request,
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto abortReqOpt = DecodeRequestAbortedRequest(request);
-    ENSURE_OR_RETURN(abortReqOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), abortReqOpt.has_value());
     const auto &abortReq = *abortReqOpt;
 
-    ENSURE_OR_RETURN(abortReq.result != ResultCode::SUCCESS);
+    ENSURE_OR_RETURN_DESC(GetDescription(), abortReq.result != ResultCode::SUCCESS);
     IAM_LOGI("%{public}s received RequestAborted: result=%{public}d, reason=%{public}s", GetDescription(),
         abortReq.result, abortReq.reason.c_str());
 

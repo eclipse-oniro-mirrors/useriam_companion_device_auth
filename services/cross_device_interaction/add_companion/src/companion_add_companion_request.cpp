@@ -44,32 +44,32 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
     IAM_LOGI("%{public}s start", GetDescription());
 
     auto companionKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN_VAL(companionKeyOpt.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionKeyOpt.has_value(), false);
     companionDeviceKey_ = *companionKeyOpt;
 
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
-    ENSURE_OR_RETURN_VAL(secureProtocolId_ != SecureProtocolId::INVALID, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), secureProtocolId_ != SecureProtocolId::INVALID, false);
 
     beginAddHostBindingSubscription_ =
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::BEGIN_ADD_HOST_BINDING,
             [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+                ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
                 self->HandleBeginAddCompanion(msg, onMessageReply);
             });
-    ENSURE_OR_RETURN_VAL(beginAddHostBindingSubscription_ != nullptr, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), beginAddHostBindingSubscription_ != nullptr, false);
 
     endAddHostBindingSubscription_ =
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::END_ADD_HOST_BINDING,
             [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+                ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
                 self->HandleEndAddCompanion(msg, onMessageReply);
             });
-    ENSURE_OR_RETURN_VAL(endAddHostBindingSubscription_ != nullptr, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), endAddHostBindingSubscription_ != nullptr, false);
 
     auto initRequestOpt = DecodeInitKeyNegotiationRequest(initKeyNegoRequest_);
-    ENSURE_OR_RETURN_VAL(initRequestOpt.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), initRequestOpt.has_value(), false);
     if (initRequestOpt->hostDeviceKey != PeerDeviceKey()) {
         IAM_LOGE("%{public}s host device key mismatch", GetDescription());
         return false;
@@ -120,7 +120,7 @@ bool CompanionAddCompanionRequest::CompanionInitKeyNegotiation(const InitKeyNego
 bool CompanionAddCompanionRequest::SendInitKeyNegotiationReply(ResultCode result,
     const std::vector<uint8_t> &initKeyNegotiationReply)
 {
-    ENSURE_OR_RETURN_VAL(currentReply_ != nullptr, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), currentReply_ != nullptr, false);
 
     Attributes reply;
     InitKeyNegotiationReply replyMsg = { .result = result, .extraInfo = initKeyNegotiationReply };
@@ -134,13 +134,13 @@ bool CompanionAddCompanionRequest::SendInitKeyNegotiationReply(ResultCode result
 void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply)
 {
     IAM_LOGI("%{public}s start", GetDescription());
-    ENSURE_OR_RETURN(onMessageReply != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
 
     currentReply_ = std::move(onMessageReply);
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto requestOpt = DecodeBeginAddHostBindingRequest(attrInput);
-    ENSURE_OR_RETURN(requestOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt.has_value());
 
     std::vector<uint8_t> addHostBindingReply;
     ResultCode ret = GetHostBindingManager().BeginAddHostBinding(GetRequestId(), requestOpt->companionUserId,
@@ -164,13 +164,13 @@ void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &att
 void CompanionAddCompanionRequest::HandleEndAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply)
 {
     IAM_LOGI("%{public}s start", GetDescription());
-    ENSURE_OR_RETURN(onMessageReply != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
 
     currentReply_ = std::move(onMessageReply);
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto requestOpt = DecodeEndAddHostBindingRequest(attrInput);
-    ENSURE_OR_RETURN(requestOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt.has_value());
 
     IAM_LOGI("%{public}s Get resultCode %{public}d hostUserId %{public}d companionUserId %{public}d", GetDescription(),
         requestOpt->result, requestOpt->hostDeviceKey.deviceUserId, requestOpt->companionUserId);

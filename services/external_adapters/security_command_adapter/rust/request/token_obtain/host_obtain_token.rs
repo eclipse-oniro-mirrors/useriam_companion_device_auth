@@ -77,7 +77,11 @@ impl HostDeviceObtainTokenRequest {
         Ok(output)
     }
 
-    fn decode_sec_token_obtain_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_obtain_request_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecCommonRequest::decode(sec_message, device_type)?;
         let session_key = host_db_helper::get_session_key(self.obtain_param.template_id, device_type, &self.salt)?;
         let decrypt_data =
@@ -165,6 +169,8 @@ impl Request for HostDeviceObtainTokenRequest {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
+
+        host_db_helper::check_device_capability(self.obtain_param.template_id, Capability::ObtainToken)?;
 
         let sec_message = self.encode_sec_token_pre_obtain_requset()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;

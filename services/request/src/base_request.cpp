@@ -18,9 +18,11 @@
 #include <cinttypes>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 #include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_para2str.h"
 
 #include "misc_manager.h"
 #include "relative_timer.h"
@@ -80,6 +82,7 @@ static std::string FormatRequestId(RequestId requestId)
     ss << "0x" << std::hex << std::setfill('0') << std::setw(UINT32_8) << requestId;
     return ss.str();
 }
+
 } // namespace
 
 std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId requestId)
@@ -95,6 +98,37 @@ std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId 
     }
     return std::string("CdaRequest(") + GetRequestTypeAbbr(requestType) + "," + FormatRequestId(requestId) + "," +
         connectionName + ")";
+}
+
+std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId requestId,
+    const std::string &connectionName, TemplateId templateId)
+{
+    auto base = GenerateDescription(requestType, requestId, connectionName);
+    if (templateId != 0) {
+        base += ",T=" + GET_TRUNCATED_NUM_STR(templateId);
+    }
+    return base;
+}
+
+std::string BaseRequest::GenerateDescription(RequestType requestType, RequestId requestId,
+    const std::string &connectionName, const std::vector<TemplateId> &templateIdList)
+{
+    auto base = GenerateDescription(requestType, requestId, connectionName);
+    if (!templateIdList.empty()) {
+        base += ",T=[";
+        for (size_t i = 0; i < templateIdList.size(); ++i) {
+            if (i > 0)
+                base += ",";
+            base += GET_TRUNCATED_NUM_STR(templateIdList[i]);
+        }
+        base += "]";
+    }
+    return base;
+}
+
+std::string BaseRequest::FormatTemplateId(TemplateId templateId)
+{
+    return GET_TRUNCATED_NUM_STR(templateId);
 }
 
 BaseRequest::BaseRequest(RequestType requestType, ScheduleId scheduleId, uint32_t timeoutMs,
@@ -150,7 +184,7 @@ void BaseRequest::StartTimeout()
             Cancel(ResultCode::TIMEOUT);
         },
         timeoutMs_);
-    ENSURE_OR_RETURN(timeoutSubscription_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), timeoutSubscription_ != nullptr);
 }
 
 void BaseRequest::StopTimeout()

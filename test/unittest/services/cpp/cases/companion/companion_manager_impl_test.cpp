@@ -985,6 +985,16 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_004, TestSize.Level0)
     manager->hostUserId_ = activeUserId_;
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    // Set up mock to return a DeviceStatus with TOKEN_AUTH capability BEFORE Reload
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(deviceStatus));
+
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
     manager->Reload(persistedList, activeTemplateIds);
@@ -1006,6 +1016,16 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_005, TestSize.Level0)
     manager->hostUserId_ = activeUserId_;
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    // Set up mock to return a DeviceStatus with TOKEN_AUTH capability BEFORE Reload
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(deviceStatus));
+
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
     manager->Reload(persistedList, activeTemplateIds);
@@ -1031,6 +1051,16 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_006, TestSize.Level0)
     manager->hostUserId_ = activeUserId_;
 
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    // Set up mock to return a DeviceStatus with TOKEN_AUTH capability BEFORE Reload
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(deviceStatus));
+
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
     manager->Reload(persistedList, activeTemplateIds);

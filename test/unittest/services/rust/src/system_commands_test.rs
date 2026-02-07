@@ -25,8 +25,8 @@ use crate::request::enroll::host_enroll::HostDeviceEnrollRequest;
 use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};
 use crate::request::jobs::token_helper::DeviceTokenInfo;
 use crate::request::status_sync::host_sync_status::HostDeviceSyncStatusRequest;
-use crate::request::token_auth::token_auth_message::SecAuthReply;
 use crate::request::token_auth::host_token_auth::HostTokenAuthRequest;
+use crate::request::token_auth::token_auth_message::SecAuthReply;
 use crate::request::token_issue::companion_issue_token::CompanionDeviceIssueTokenRequest;
 use crate::request::token_issue::host_issue_token::HostDeviceIssueTokenRequest;
 use crate::request::token_issue::token_issue_message::SecPreIssueRequest;
@@ -60,6 +60,7 @@ fn create_mock_companion_device_info(template_id: u64) -> CompanionDeviceInfo {
         added_time: 123456,
         secure_protocol_id: 1,
         is_valid: true,
+        capability_list: vec![1, 2, 3],
     }
 }
 
@@ -105,6 +106,9 @@ fn mock_set_host_db_manager_for_host_update_token() {
     mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Ok(vec![create_mock_companion_device_capability()]));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     mock_host_db_manager
         .expect_get_token()
         .returning(|| Ok(create_mock_companion_token_info(AuthTrustLevel::Atl3)));
@@ -542,11 +546,17 @@ fn host_end_companion_check_test_success() {
     mock_host_db_manager.expect_update_device().returning(|| Ok(()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
+    let mut capability_list = Uint16Array64Ffi::default();
+    capability_list.data[0] = SUPPORT_CAPABILITY[0];
+    capability_list.data[1] = SUPPORT_CAPABILITY[1];
+    capability_list.data[2] = SUPPORT_CAPABILITY[2];
+    capability_list.len = 3;
+
     let input = HostEndCompanionCheckInputFfi {
         request_id: 1,
         template_id: 123,
         protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
+        capability_list,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
     };
@@ -731,7 +741,9 @@ fn host_begin_add_companion_test_success() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -874,6 +886,8 @@ fn host_end_add_companion_test_success() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndAddCompanionOutputFfi::default();
@@ -896,6 +910,8 @@ fn host_end_add_companion_test_remove_request_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndAddCompanionOutputFfi::default();
@@ -933,6 +949,8 @@ fn host_end_add_companion_test_request_end_fail() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi::default(),
         secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndAddCompanionOutputFfi::default();
@@ -1051,7 +1069,9 @@ fn host_pre_issue_token_test_success() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1067,6 +1087,9 @@ fn host_pre_issue_token_test_success() {
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Ok(Vec::new()));
@@ -1123,6 +1146,12 @@ fn host_pre_issue_token_test_request_prepare_fail() {
         .returning(|| Err(ErrorCode::GeneralError));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
+    let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
+
     let input = HostPreIssueTokenInputFfi { request_id: 1, template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut output = HostPreIssueTokenOutputFfi { sec_message: DataArray1024Ffi::default() };
     let result = host_pre_issue_token(&input, &mut output);
@@ -1143,7 +1172,9 @@ fn host_pre_issue_token_test_add_request_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1161,6 +1192,9 @@ fn host_pre_issue_token_test_add_request_fail() {
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Ok(Vec::new()));
@@ -1379,7 +1413,9 @@ fn host_begin_token_auth_test_success() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1466,6 +1502,12 @@ fn host_begin_token_auth_test_request_begin_fail() {
         .returning(|| Err(ErrorCode::GeneralError));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
+    let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
+
     let input = HostBeginTokenAuthInputFfi {
         request_id: 1,
         schedule_id: 1,
@@ -1491,7 +1533,9 @@ fn host_begin_token_auth_test_add_request_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1833,7 +1877,9 @@ fn host_begin_delegate_auth_test_success() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1849,6 +1895,9 @@ fn host_begin_delegate_auth_test_success() {
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Ok(Vec::new()));
@@ -1909,6 +1958,12 @@ fn host_begin_delegate_auth_test_request_begin_fail() {
         .returning(|| Err(ErrorCode::GeneralError));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
+    let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
+
     let input = HostBeginDelegateAuthInputFfi {
         request_id: 1,
         schedule_id: 1,
@@ -1934,7 +1989,9 @@ fn host_begin_delegate_auth_test_add_request_fail() {
     mock_crypto_engine
         .expect_generate_x25519_key_pair()
         .returning(|| Ok(create_mock_key_pair()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
@@ -1952,6 +2009,9 @@ fn host_begin_delegate_auth_test_add_request_fail() {
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Ok(Vec::new()));
@@ -2139,6 +2199,9 @@ fn host_process_pre_obtain_token_test_success() {
 
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Ok(Vec::new()));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
@@ -2177,6 +2240,9 @@ fn host_process_pre_obtain_token_test_request_begin_fail() {
 
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Err(ErrorCode::GeneralError));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
@@ -2203,6 +2269,9 @@ fn host_process_pre_obtain_token_test_add_request_fail() {
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Ok(Vec::new()));
@@ -2421,6 +2490,12 @@ fn host_update_token_test_get_fwk_pub_key_fail() {
         .returning(|| Err(ErrorCode::GeneralError));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
+    let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
+
     let input = HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
     let result = host_update_token(&input, &mut output);
@@ -2435,6 +2510,12 @@ fn host_update_token_test_deserialize_attribute_fail() {
     let mut mock_misc_manager = MockMiscManager::new();
     mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(vec![1u8, 2, 3]));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
+
+    let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let input = HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::default() };
     let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
@@ -2459,6 +2540,9 @@ fn host_update_token_test_read_device_capability_info_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Err(ErrorCode::NotFound));
@@ -2686,7 +2770,9 @@ fn companion_begin_add_host_binding_test_success() {
     log_i!("companion_begin_add_host_binding_test_success start");
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine
+        .expect_x25519_ecdh()
+        .returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
     mock_crypto_engine
         .expect_aes_gcm_decrypt()

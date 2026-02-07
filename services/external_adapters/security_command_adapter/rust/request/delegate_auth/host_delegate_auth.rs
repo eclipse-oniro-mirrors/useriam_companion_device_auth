@@ -110,7 +110,11 @@ impl HostDelegateAuthRequest {
         Ok(output)
     }
 
-    fn decode_sec_delegate_auth_reply_message(&mut self, device_type: DeviceType, message_data: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_delegate_auth_reply_message(
+        &mut self,
+        device_type: DeviceType,
+        message_data: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecCommonReply::decode(message_data, device_type)?;
         let session_key = host_db_helper::get_session_key(self.auth_param.template_id, device_type, &self.salt)?;
         let decrypt_data =
@@ -182,6 +186,8 @@ impl Request for HostDelegateAuthRequest {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
+
+        host_db_helper::check_device_capability(self.auth_param.template_id, Capability::DelegateAuth)?;
 
         self.decode_fwk_delegate_auth_request(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.encode_sec_delegate_auth_request()?;

@@ -33,6 +33,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 std::shared_ptr<CrossDeviceCommManagerImpl> CrossDeviceCommManagerImpl::Create(
+    const std::vector<BusinessId> &defaultBusinessIds, const std::vector<Capability> &localCapabilities,
     const std::vector<std::shared_ptr<ICrossDeviceChannel>> &channels)
 {
     ENSURE_OR_RETURN_VAL(channels.size() > 0, nullptr);
@@ -40,7 +41,7 @@ std::shared_ptr<CrossDeviceCommManagerImpl> CrossDeviceCommManagerImpl::Create(
     auto channelMgr = std::make_shared<ChannelManager>(channels);
     ENSURE_OR_RETURN_VAL(channelMgr != nullptr, nullptr);
 
-    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr, localCapabilities);
     ENSURE_OR_RETURN_VAL(localDeviceStatusMgr != nullptr, nullptr);
 
     auto connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
@@ -50,7 +51,8 @@ std::shared_ptr<CrossDeviceCommManagerImpl> CrossDeviceCommManagerImpl::Create(
     ENSURE_OR_RETURN_VAL(messageRouter != nullptr, nullptr);
     connectionMgr->SetMessageRouter(messageRouter);
 
-    auto deviceStatusMgr = DeviceStatusManager::Create(connectionMgr, channelMgr, localDeviceStatusMgr);
+    auto deviceStatusMgr =
+        DeviceStatusManager::Create(defaultBusinessIds, connectionMgr, channelMgr, localDeviceStatusMgr);
     ENSURE_OR_RETURN_VAL(deviceStatusMgr != nullptr, nullptr);
 
     auto manager = std::shared_ptr<CrossDeviceCommManagerImpl>(new (std::nothrow) CrossDeviceCommManagerImpl(channelMgr,

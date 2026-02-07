@@ -12,3 +12,5 @@
 # limitations under the License.
 
 companiondeviceauth.isAuthMaintainActive=useriam:useriam:0755
+companiondeviceauth.startSa=useriam:useriam:0755
+companiondeviceauth.isFunctionReady=useriam:useriam:0755

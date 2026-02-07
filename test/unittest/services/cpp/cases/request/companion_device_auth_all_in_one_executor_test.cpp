@@ -49,7 +49,7 @@ constexpr uint64_t UINT64_12345 = 12345;
 
 class FakeUserIdManager : public IUserIdManager {
 public:
-    bool Initialize() override
+    bool Initialize()
     {
         return true;
     }

@@ -51,10 +51,10 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto peerDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN(peerDeviceKey.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKey.has_value());
     DeviceKey companionDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN(localDeviceKey.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKey.has_value());
     companionDeviceKey = localDeviceKey.value();
     companionDeviceKey.deviceUserId = companionUserId_;
     RevokeTokenRequest requestMsg = { .hostUserId = peerDeviceKey->deviceUserId,
@@ -65,7 +65,7 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::COMPANION_REVOKE_TOKEN,
         request, [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleRevokeTokenReply(reply);
         });
     if (!sendRet) {
@@ -82,7 +82,7 @@ void CompanionRevokeTokenRequest::HandleRevokeTokenReply(const Attributes &messa
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeRevokeTokenReply(message);
-    ENSURE_OR_RETURN(replyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), replyOpt.has_value());
     const auto &reply = *replyOpt;
     if (reply.result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s revoke token failed result=%{public}d", GetDescription(),

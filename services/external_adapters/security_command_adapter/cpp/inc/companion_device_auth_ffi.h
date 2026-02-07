@@ -21,192 +21,11 @@
 #ifndef COMPANION_DEVICE_AUTH_FFI_H
 #define COMPANION_DEVICE_AUTH_FFI_H
 
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include "companion_device_auth_ffi_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define SALT_LEN_FFI 32
-
-#define UDID_LEN_FFI 64
-
-#define MAX_EVENT_NUM_FFI 20
-
-#define MAX_TEMPLATE_ID_NUM_PER_USER_FFI 10
-
-#define MAX_USER_NUM_FFI 5
-
-#define MAX_DATA_LEN_32 32
-
-#define MAX_DATA_LEN_64 64
-
-#define MAX_DATA_LEN_128 128
-
-#define MAX_DATA_LEN_256 256
-
-#define MAX_DATA_LEN_1024 1024
-
-#define MAX_DATA_LEN_20000 20000
-
-#define MAX_STRUCT_SIZE_FFI 409600
-
-#define PROPERTY_MODE_FREEZE 5
-
-#define PROPERTY_MODE_UNFREEZE 6
-
-enum CommandId {
-    INIT = 1,
-    GET_EXECUTOR_INFO = 2,
-    SET_ACTIVE_USER_ID = 3,
-    HOST_REGISTER_FINISH = 1001,
-    HOST_GET_PERSISTED_STATUS = 1002,
-    HOST_BEGIN_COMPANION_CHECK = 1003,
-    HOST_END_COMPANION_CHECK = 1004,
-    HOST_CANCEL_COMPANION_CHECK = 1005,
-    HOST_GET_INIT_KEY_NEGOTIATION = 1006,
-    HOST_BEGIN_ADD_COMPANION = 1007,
-    HOST_END_ADD_COMPANION = 1008,
-    HOST_CANCEL_ADD_COMPANION = 1009,
-    HOST_REMOVE_COMPANION = 1010,
-    HOST_PRE_ISSUE_TOKEN = 1011,
-    HOST_BEGIN_ISSUE_TOKEN = 1012,
-    HOST_END_ISSUE_TOKEN = 1013,
-    HOST_CANCEL_ISSUE_TOKEN = 1014,
-    HOST_BEGIN_TOKEN_AUTH = 1015,
-    HOST_END_TOKEN_AUTH = 1016,
-    HOST_REVOKE_TOKEN = 1017,
-    HOST_UPDATE_COMPANION_STATUS = 1018,
-    HOST_UPDATE_COMPANION_ENABLED_BUSINESS_IDS = 1019,
-    HOST_BEGIN_DELEGATE_AUTH = 1020,
-    HOST_END_DELEGATE_AUTH = 1021,
-    HOST_CANCEL_DELEGATE_AUTH = 1022,
-    HOST_PROCESS_PRE_OBTAIN_TOKEN = 1023,
-    HOST_PROCESS_OBTAIN_TOKEN = 1024,
-    HOST_CANCEL_OBTAIN_TOKEN = 1025,
-    HOST_CHECK_TEMPLATE_ENROLLED = 1027,
-    HOST_UPDATE_TOKEN = 1028,
-    COMPANION_GET_PERSISTED_STATUS = 2000,
-    COMPANION_PROCESS_CHECK = 2001,
-    COMPANION_INIT_KEY_NEGOTIATION = 2002,
-    COMPANION_BEGIN_ADD_HOST_BINDING = 2003,
-    COMPANION_END_ADD_HOST_BINDING = 2004,
-    COMPANION_REMOVE_HOST_BINDING = 2005,
-    COMPANION_PRE_ISSUE_TOKEN = 2006,
-    COMPANION_PROCESS_ISSUE_TOKEN = 2007,
-    COMPANION_CANCEL_ISSUE_TOKEN = 2008,
-    COMPANION_PROCESS_TOKEN_AUTH = 2009,
-    COMPANION_REVOKE_TOKEN = 2010,
-    COMPANION_BEGIN_DELEGATE_AUTH = 2011,
-    COMPANION_END_DELEGATE_AUTH = 2012,
-    COMPANION_BEGIN_OBTAIN_TOKEN = 2013,
-    COMPANION_END_OBTAIN_TOKEN = 2014,
-    COMPANION_CANCEL_OBTAIN_TOKEN = 2015,
-};
-
-typedef struct RustCommandParam RustCommandParam;
-
-struct RustCommandParam {
-    int32_t command_id;
-    const uint8_t *input_data;
-    uint32_t input_data_len;
-    uint8_t *output_data;
-    uint32_t output_data_len;
-    uint8_t *common_output_data;
-    uint32_t common_output_data_len;
-};
-
-typedef struct DataArray64Ffi {
-    uint8_t data[MAX_DATA_LEN_64];
-    uint32_t len;
-} DataArray64Ffi;
-
-typedef struct DataArray128Ffi {
-    uint8_t data[MAX_DATA_LEN_128];
-    uint32_t len;
-} DataArray128Ffi;
-
-typedef struct DataArray256Ffi {
-    uint8_t data[MAX_DATA_LEN_256];
-    uint32_t len;
-} DataArray256Ffi;
-
-typedef struct DataArray1024Ffi {
-    uint8_t data[MAX_DATA_LEN_1024];
-    uint32_t len;
-} DataArray1024Ffi;
-
-typedef struct TemplateIdArrayFfi {
-    uint64_t data[MAX_TEMPLATE_ID_NUM_PER_USER_FFI];
-    uint32_t len;
-} TemplateIdArrayFfi;
-
-typedef struct PlaceHolderFfi {
-    uint8_t placeHolder;
-} PlaceHolderFfi;
-
-typedef struct EventFfi {
-    uint64_t time;
-    struct DataArray64Ffi fileName;
-    uint32_t lineNumber;
-    int32_t eventType;
-    struct DataArray256Ffi eventInfo;
-} EventFfi;
-
-typedef struct EventArrayFfi {
-    struct EventFfi data[MAX_EVENT_NUM_FFI];
-    uint32_t len;
-} EventArrayFfi;
-
-typedef struct CommonOutputFfi {
-    int32_t result;
-    uint8_t hasFatalError;
-    struct EventArrayFfi events;
-} CommonOutputFfi;
-
-typedef struct DeviceKeyFfi {
-    int32_t deviceIdType;
-    struct DataArray64Ffi deviceId;
-    int32_t userId;
-} DeviceKeyFfi;
-
-typedef struct Int32Array64Ffi {
-    int32_t data[MAX_DATA_LEN_64];
-    uint32_t len;
-} Int32Array64Ffi;
-
-typedef struct PersistedCompanionStatusFfi {
-    uint64_t templateId;
-    int32_t hostUserId;
-    struct DeviceKeyFfi companionDeviceKey;
-    uint8_t isValid;
-    struct Int32Array64Ffi enabledBusinessIds;
-    uint64_t addedTime;
-    uint16_t secureProtocolId;
-    struct DataArray256Ffi deviceModel;
-    struct DataArray256Ffi deviceUserName;
-    struct DataArray256Ffi deviceName;
-} PersistedCompanionStatusFfi;
-
-typedef struct PersistedHostBindingStatusFfi {
-    int32_t bindingId;
-    int32_t companionUserId;
-    struct DeviceKeyFfi hostDeviceKey;
-    bool isTokenValid;
-} PersistedHostBindingStatusFfi;
-
-typedef struct CompanionStatusArrayFfi {
-    struct PersistedCompanionStatusFfi data[MAX_TEMPLATE_ID_NUM_PER_USER_FFI];
-    uint32_t len;
-} CompanionStatusArrayFfi;
-
-typedef struct HostBindingStatusArrayFfi {
-    struct PersistedHostBindingStatusFfi data[MAX_TEMPLATE_ID_NUM_PER_USER_FFI];
-    uint32_t len;
-} HostBindingStatusArrayFfi;
 
 typedef struct PlaceHolderFfi InitInputFfi;
 
@@ -246,20 +65,10 @@ typedef struct HostBeginCompanionCheckInputFfi {
     int32_t requestId;
 } HostBeginCompanionCheckInputFfi;
 
-typedef struct DataArray32Ffi {
-    uint8_t data[MAX_DATA_LEN_32];
-    uint32_t len;
-} DataArray32Ffi;
-
 typedef struct HostBeginCompanionCheckOutputFfi {
     uint64_t challenge;
     struct DataArray32Ffi salt;
 } HostBeginCompanionCheckOutputFfi;
-
-typedef struct Uint16Array64Ffi {
-    uint16_t data[MAX_DATA_LEN_64];
-    uint32_t len;
-} Uint16Array64Ffi;
 
 typedef struct HostEndCompanionCheckInputFfi {
     int32_t requestId;
@@ -283,11 +92,6 @@ typedef struct HostGetInitKeyNegotiationInputFfi {
     uint16_t secureProtocolId;
 } HostGetInitKeyNegotiationInputFfi;
 
-typedef struct DataArray20000Ffi {
-    uint8_t data[MAX_DATA_LEN_20000];
-    uint32_t len;
-} DataArray20000Ffi;
-
 typedef struct HostGetInitKeyNegotiationOutputFfi {
     struct DataArray20000Ffi secMessage;
 } HostGetInitKeyNegotiationOutputFfi;
@@ -310,6 +114,8 @@ typedef struct HostEndAddCompanionInputFfi {
     int32_t requestId;
     struct PersistedCompanionStatusFfi companionStatus;
     uint16_t secureProtocolId;
+    struct Uint16Array64Ffi protocolList;
+    struct Uint16Array64Ffi capabilityList;
     struct DataArray1024Ffi secMessage;
 } HostEndAddCompanionInputFfi;
 

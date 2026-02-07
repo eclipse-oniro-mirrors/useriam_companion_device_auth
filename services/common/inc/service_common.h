@@ -16,6 +16,7 @@
 #ifndef COMPANION_DEVICE_AUTH_SERVICE_COMMON_H
 #define COMPANION_DEVICE_AUTH_SERVICE_COMMON_H
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -53,6 +54,7 @@ enum class Capability : uint16_t {
     INVALID = 0,
     DELEGATE_AUTH = 1,
     TOKEN_AUTH = 2,
+    OBTAIN_TOKEN = 3,
 };
 
 enum class ProtocolId : uint16_t {
@@ -281,6 +283,8 @@ constexpr uint32_t ADAPTER_CALL_TIMEOUT_SEC = 3; // 3 seconds
 constexpr size_t MAX_MESSAGE_SIZE = 20000;
 constexpr int32_t MS_PER_SEC = 1000;
 constexpr int32_t NS_PER_MS = 1000 * 1000;
+constexpr int32_t BYTE_NUM_4 = 4;
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

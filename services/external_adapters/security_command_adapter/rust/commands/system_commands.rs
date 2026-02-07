@@ -408,6 +408,8 @@ pub fn host_update_token(
     input: &HostUpdateTokenInputFfi,
     output: &mut HostUpdateTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
+    crate::jobs::host_db_helper::check_device_capability(input.template_id, Capability::TokenAuth)?;
+
     let pub_key = MiscManagerRegistry::get_mut().get_fwk_pub_key().map_err(|e| p!(e))?;
     let message_codec = MessageCodec::new(MessageSignParam::Framework(pub_key));
     let attribute = message_codec

@@ -91,7 +91,7 @@ private:
 
 class FakeUserIdManager : public IUserIdManager {
 public:
-    bool Initialize() override
+    bool Initialize()
     {
         return true;
     }
@@ -278,7 +278,8 @@ public:
         channel_ = std::make_shared<FakeCrossDeviceChannel>(ChannelId::SOFTBUS);
         channelManager_ =
             std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> { channel_ });
-        localDeviceStatusManager_ = LocalDeviceStatusManager::Create(channelManager_);
+        localDeviceStatusManager_ = LocalDeviceStatusManager::Create(channelManager_,
+            { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN });
         ASSERT_NE(localDeviceStatusManager_, nullptr);
 
         connectionManager_ = ConnectionManager::Create(channelManager_, localDeviceStatusManager_);

@@ -74,8 +74,8 @@ public:
      * @param enabledBusinessIds Business identifiers that should remain enabled.
      * @return Return UpdateTemplateEnabledBusinessIds result(0:success; other:failed).
      */
-    virtual int32_t UpdateTemplateEnabledBusinessIds(
-        uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds) = 0;
+    virtual int32_t UpdateTemplateEnabledBusinessIds(uint64_t templateId,
+        const std::vector<int32_t> &enabledBusinessIds) = 0;
 
     /**
      * @brief Retrieve the full list of template statuses.
@@ -94,8 +94,8 @@ public:
      * @param callback Handler that processes template status updates.
      * @return Return SubscribeTemplateStatusChange result(0:success; other:failed).
      */
-    virtual int32_t SubscribeTemplateStatusChange(
-        int32_t userId, const std::shared_ptr<ITemplateStatusCallback> &callback) = 0;
+    virtual int32_t SubscribeTemplateStatusChange(int32_t userId,
+        const std::shared_ptr<ITemplateStatusCallback> &callback) = 0;
 
     /**
      * @brief Cancel template status subscription.

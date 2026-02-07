@@ -22,6 +22,7 @@
 #include "task_runner_manager.h"
 
 #include "adapter_manager.h"
+#include "mock_companion_manager.h"
 #include "mock_misc_manager.h"
 #include "mock_request_factory.h"
 #include "mock_request_manager.h"
@@ -44,6 +45,9 @@ public:
     {
         SingletonManager::GetInstance().Reset();
 
+        auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
+        SingletonManager::GetInstance().SetCompanionManager(companionMgr);
+
         auto requestFactory = std::shared_ptr<IRequestFactory>(&mockRequestFactory_, [](IRequestFactory *) {});
         SingletonManager::GetInstance().SetRequestFactory(requestFactory);
 
@@ -59,6 +63,8 @@ public:
         auto timeKeeper = std::make_shared<MockTimeKeeper>();
         AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
 
+        ON_CALL(mockCompanionManager_, IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
+        ON_CALL(mockCompanionManager_, IsCapabilitySupported(_, Capability::DELEGATE_AUTH)).WillByDefault(Return(true));
         ON_CALL(mockRequestFactory_, CreateHostTokenAuthRequest(_, _, _, _, _))
             .WillByDefault(Invoke([this](ScheduleId scheduleId, std::vector<uint8_t> fwkMsg, UserId hostUserId,
                                       TemplateId templateId, FwkResultCallback &&requestCallback) {
@@ -93,6 +99,7 @@ public:
 
 protected:
     std::shared_ptr<HostSingleMixAuthRequest> request_;
+    NiceMock<MockCompanionManager> mockCompanionManager_;
     NiceMock<MockRequestFactory> mockRequestFactory_;
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockMiscManager> mockMiscManager_;

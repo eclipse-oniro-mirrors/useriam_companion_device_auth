@@ -30,9 +30,12 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-IpcTemplateStatusCallbackService::IpcTemplateStatusCallbackService(
-    int32_t userId, const std::shared_ptr<ITemplateStatusCallback> &impl)
-    : userId_(userId), callback_(impl) {}
+IpcTemplateStatusCallbackService::IpcTemplateStatusCallbackService(int32_t userId,
+    const std::shared_ptr<ITemplateStatusCallback> &impl)
+    : userId_(userId),
+      callback_(impl)
+{
+}
 
 int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
     const std::vector<IpcTemplateStatus> &templateStatusList)

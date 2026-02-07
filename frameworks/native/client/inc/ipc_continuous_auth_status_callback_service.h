@@ -27,8 +27,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class IpcContinuousAuthStatusCallbackService : public IpcContinuousAuthStatusCallbackStub {
 public:
-    explicit IpcContinuousAuthStatusCallbackService(
-        int32_t userId, std::optional<uint64_t> templateId, const std::shared_ptr<IContinuousAuthStatusCallback> &impl);
+    explicit IpcContinuousAuthStatusCallbackService(int32_t userId, std::optional<uint64_t> templateId,
+        const std::shared_ptr<IContinuousAuthStatusCallback> &impl);
     ~IpcContinuousAuthStatusCallbackService() override = default;
 
     int32_t OnContinuousAuthStatusChange(const IpcContinuousAuthStatus &status) override;

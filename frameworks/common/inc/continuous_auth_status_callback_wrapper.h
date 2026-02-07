@@ -24,16 +24,21 @@ namespace CompanionDeviceAuth {
 template <typename T>
 class ContinuousAuthStatusCallbackWrapper : public IContinuousAuthStatusCallback {
 public:
-    ContinuousAuthStatusCallbackWrapper(T callback) : callback_(callback) {}
+    ContinuousAuthStatusCallbackWrapper(T callback) : callback_(callback)
+    {
+    }
     ~ContinuousAuthStatusCallbackWrapper() = default;
 
     void OnContinuousAuthStatusChange(const bool isAuthPassed, const std::optional<int32_t> authTrustLevel) override;
 
-    bool operator==(const ContinuousAuthStatusCallbackWrapper& other) const
+    bool operator==(const ContinuousAuthStatusCallbackWrapper &other) const
     {
         return callback_ == other.GetCallback();
     }
-    const T &GetCallback() const { return callback_; }
+    const T &GetCallback() const
+    {
+        return callback_;
+    }
 
 private:
     T callback_;

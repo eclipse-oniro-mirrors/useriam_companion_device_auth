@@ -69,6 +69,8 @@ pub struct HostDeviceEnrollRequest {
     pub salt: [u8; HKDF_SALT_SIZE],
     pub acl: AuthCapabilityLevel,
     pub atl: AuthTrustLevel,
+    pub expected_protocol_list: Vec<u16>,
+    pub expected_capability_list: Vec<u16>,
 }
 
 impl HostDeviceEnrollRequest {
@@ -93,6 +95,8 @@ impl HostDeviceEnrollRequest {
             salt,
             acl: AuthCapabilityLevel::Acl0,
             atl: AuthTrustLevel::Atl0,
+            expected_protocol_list: Vec::new(),
+            expected_capability_list: Vec::new(),
         })
     }
 
@@ -136,7 +140,11 @@ impl HostDeviceEnrollRequest {
         Ok(())
     }
 
-    fn decode_sec_key_nego_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_key_nego_reply_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecKeyNegoReply::decode(sec_message, device_type)?;
         let key_pair = CryptoEngineRegistry::get().generate_x25519_key_pair().map_err(|e| p!(e))?;
         let sk = CryptoEngineRegistry::get()
@@ -212,7 +220,11 @@ impl HostDeviceEnrollRequest {
         Ok(output)
     }
 
-    fn decode_sec_binding_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_binding_reply_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecBindingReply::decode(sec_message, device_type)?;
 
         let key_nego_param = self.get_aes_gcm_param(device_type).map_err(|e| p!(e))?;
@@ -237,13 +249,22 @@ impl HostDeviceEnrollRequest {
             log_e!("user_id check fail, {}, {}", self.enroll_param.companion_device_key.user_id, reply_info.user_id);
             return Err(ErrorCode::GeneralError);
         }
-        if reply_info.protocol_list != PROTOCOL_VERSION {
-            log_e!("protocol version is error, {:?}", reply_info.protocol_list);
+
+        if reply_info.protocol_list != self.expected_protocol_list {
+            log_e!(
+                "protocol verification failed, expected: {:?}, actual: {:?}",
+                self.expected_protocol_list,
+                reply_info.protocol_list
+            );
             return Err(ErrorCode::GeneralError);
         }
 
-        if reply_info.capability_list != SUPPORT_CAPABILITY {
-            log_e!("capability_list is error, {:?}", reply_info.capability_list);
+        if reply_info.capability_list != self.expected_capability_list {
+            log_e!(
+                "capability verification failed, expected: {:?}, actual: {:?}",
+                self.expected_capability_list,
+                reply_info.capability_list
+            );
             return Err(ErrorCode::GeneralError);
         }
 
@@ -328,6 +349,7 @@ impl HostDeviceEnrollRequest {
             added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             secure_protocol_id: self.secure_protocol_id,
             is_valid: true,
+            capability_list: self.expected_capability_list.clone(),
         });
 
         let base_info = Box::new(CompanionDeviceBaseInfo {
@@ -431,6 +453,16 @@ impl Request for HostDeviceEnrollRequest {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
+
+        self.expected_protocol_list = Vec::<u16>::try_from(ffi_input.protocol_list).map_err(|e| {
+            log_e!("Failed to convert protocol_list: {:?}", e);
+            ErrorCode::GeneralError
+        })?;
+
+        self.expected_capability_list = Vec::<u16>::try_from(ffi_input.capability_list).map_err(|e| {
+            log_e!("Failed to convert capability_list: {:?}", e);
+            ErrorCode::GeneralError
+        })?;
 
         self.decode_sec_binding_reply(ffi_input.sec_message.as_slice()?)?;
         let device_info = self.store_device_info()?;

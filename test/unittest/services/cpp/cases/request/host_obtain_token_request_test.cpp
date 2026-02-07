@@ -83,6 +83,7 @@ public:
 
         ON_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
             .WillByDefault(Return(std::make_optional(companionStatus_)));
+        ON_CALL(mockCompanionManager_, IsCapabilitySupported(_, Capability::OBTAIN_TOKEN)).WillByDefault(Return(true));
         ON_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
             .WillByDefault(Return(std::make_optional(SecureProtocolId::DEFAULT)));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, _, _))

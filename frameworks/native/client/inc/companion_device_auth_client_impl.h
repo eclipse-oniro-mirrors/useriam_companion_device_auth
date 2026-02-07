@@ -45,11 +45,11 @@ public:
 
     int32_t RegisterDeviceSelectCallback(const std::shared_ptr<IDeviceSelectCallback> &callback) override;
     int32_t UnregisterDeviceSelectCallback() override;
-    int32_t UpdateTemplateEnabledBusinessIds(
-        uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds) override;
+    int32_t UpdateTemplateEnabledBusinessIds(uint64_t templateId,
+        const std::vector<int32_t> &enabledBusinessIds) override;
     int32_t GetTemplateStatus(int32_t userId, std::vector<ClientTemplateStatus> &templateStatusList) override;
-    int32_t SubscribeTemplateStatusChange(
-        int32_t userId, const std::shared_ptr<ITemplateStatusCallback> &callback) override;
+    int32_t SubscribeTemplateStatusChange(int32_t userId,
+        const std::shared_ptr<ITemplateStatusCallback> &callback) override;
     int32_t UnsubscribeTemplateStatusChange(const std::shared_ptr<ITemplateStatusCallback> &callback) override;
     int32_t SubscribeAvailableDeviceStatus(int32_t userId,
         const std::shared_ptr<IAvailableDeviceStatusCallback> &callback) override;

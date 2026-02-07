@@ -18,8 +18,8 @@
 #include "iam_logger.h"
 #include "scope_guard.h"
 
-#include "continuous_auth_status_callback_wrapper.h"
 #include "companion_device_auth_napi_helper.h"
+#include "continuous_auth_status_callback_wrapper.h"
 
 #define LOG_TAG "CDA_NAPI"
 
@@ -70,8 +70,8 @@ void DoCallback(const JsRefHolder &jsRefHolder, const bool isAuthPassed, const s
 } // namespace
 
 template <>
-void ContinuousAuthStatusCallbackWrapper<JsRefHolder>::OnContinuousAuthStatusChange(
-    const bool isAuthPassed, const std::optional<int32_t> authTrustLevel)
+void ContinuousAuthStatusCallbackWrapper<JsRefHolder>::OnContinuousAuthStatusChange(const bool isAuthPassed,
+    const std::optional<int32_t> authTrustLevel)
 {
     uv_loop_s *loop = nullptr;
     napi_status napiStatus = napi_get_uv_event_loop(this->GetCallback().GetEnv(), &loop);
@@ -82,11 +82,12 @@ void ContinuousAuthStatusCallbackWrapper<JsRefHolder>::OnContinuousAuthStatusCha
     auto task = [jsRefHolder = this->GetCallback(), isAuthPassed, authTrustLevel]() {
         DoCallback(jsRefHolder, isAuthPassed, authTrustLevel);
     };
+    // clang-format off
     if (napi_send_event(this->GetCallback().GetEnv(), task, napi_eprio_immediate,
-        "ContinuousAuthStatusCallbackWrapper<JsRefHolder>::OnContinuousAuthStatusChange") !=
-        napi_status::napi_ok) {
+        "ContinuousAuthStatusCallbackWrapper<JsRefHolder>::OnContinuousAuthStatusChange") != napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
+    // clang-format on
 }
 
 } // namespace CompanionDeviceAuth

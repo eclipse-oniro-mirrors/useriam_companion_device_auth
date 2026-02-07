@@ -199,7 +199,7 @@ void SoftBusConnectionManager::HandleBind(int32_t socketId, const std::string &p
 void SoftBusConnectionManager::HandleError(int32_t socketId, int32_t errCode)
 {
     const uint32_t UINT32_8 = 8;
-    IAM_LOGE("HandleError: socketId=%{public}d, errCode=%{public}d", socketId, errCode);
+    IAM_LOGE("HandleError: socketId=%{public}d, errCode=0x%{public}08x", socketId, errCode);
 
     auto entry = FindSocketBySocketId(socketId);
     if (entry == nullptr) {
@@ -214,7 +214,7 @@ void SoftBusConnectionManager::HandleError(int32_t socketId, int32_t errCode)
 
 void SoftBusConnectionManager::HandleShutdown(int32_t socketId, int32_t reason)
 {
-    IAM_LOGI("HandleShutdown: socketId=%{public}d, reason=%{public}d", socketId, reason);
+    IAM_LOGI("HandleShutdown: socketId=%{public}d, reason=0x%{public}08x", socketId, reason);
 
     auto entry = FindSocketBySocketId(socketId);
     if (entry == nullptr) {

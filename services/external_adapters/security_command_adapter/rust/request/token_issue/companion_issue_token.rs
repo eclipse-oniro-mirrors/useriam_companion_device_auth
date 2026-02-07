@@ -72,7 +72,11 @@ impl CompanionDeviceIssueTokenRequest {
         self.request_id
     }
 
-    fn decode_sec_token_pre_issue_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_pre_issue_request_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecPreIssueRequest::decode(sec_message, device_type)?;
         self.pre_issue_param.salt = output.salt;
         Ok(())
@@ -106,7 +110,11 @@ impl CompanionDeviceIssueTokenRequest {
         Ok(output)
     }
 
-    fn decode_sec_token_issue_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_issue_request_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let issue_token = SecIssueToken::decrypt_issue_token(sec_message, device_type, &self.session_key)?;
 
         if issue_token.challenge != self.pre_issue_param.challenge {

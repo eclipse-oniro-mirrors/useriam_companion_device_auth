@@ -97,6 +97,7 @@ pub struct CompanionDeviceInfo {
     pub added_time: u64,
     pub secure_protocol_id: u16,
     pub is_valid: bool,
+    pub capability_list: Vec<u16>,
 }
 
 #[derive(Debug, Clone)]

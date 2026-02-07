@@ -22,12 +22,16 @@ use crate::log_i;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenRequest;
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
-use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk};
+use crate::traits::db_manager::{
+    CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, DeviceKey, UserInfo,
+};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
 use crate::utils::{Attribute, AttributeKey};
+use crate::String;
+use crate::Vec;
 use std::boxed::Box;
 
 fn create_valid_obtain_token_request(challenge: u64, atl: i32) -> Vec<u8> {
@@ -49,6 +53,18 @@ fn create_mock_companion_device_capability() -> CompanionDeviceCapability {
         device_type: DeviceType::Default,
         esl: ExecutorSecurityLevel::Esl3,
         track_ability_level: TrackAbilityLevel::Tal1,
+    }
+}
+
+fn create_mock_companion_device_info(template_id: u64) -> CompanionDeviceInfo {
+    CompanionDeviceInfo {
+        template_id,
+        device_key: DeviceKey { device_id: String::from("test_device"), device_id_type: 1, user_id: 100 },
+        user_info: UserInfo { user_id: 100, user_type: 0 },
+        added_time: 123456,
+        secure_protocol_id: 1,
+        is_valid: true,
+        capability_list: vec![1, 2, 3], // Includes both DelegateAuth(1) and TokenAuth(2)
     }
 }
 
@@ -74,6 +90,9 @@ fn mock_set_host_db_manager() {
         .expect_read_device_sk()
         .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 }
 
@@ -171,6 +190,9 @@ fn host_obtain_token_request_begin_test_success() {
 
     let mut mock_host_db_manager = MockHostDbManager::new();
     mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Ok(vec![create_mock_companion_device_capability()]));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
@@ -248,6 +270,9 @@ fn host_obtain_token_request_end_test_decode_sec_message_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Ok(vec![create_mock_companion_device_capability()]));

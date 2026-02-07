@@ -36,6 +36,7 @@ HostMixAuthRequest::HostMixAuthRequest(ScheduleId scheduleId, std::vector<uint8_
       templateIdList_(templateIdList),
       requestCallback_(std::move(requestCallback))
 {
+    UpdateDescription(GenerateDescription(requestType_, requestId_, "-", templateIdList_));
 }
 
 bool HostMixAuthRequest::AnyTemplateValid() const
@@ -67,7 +68,7 @@ void HostMixAuthRequest::Start()
             GetRequestFactory().CreateHostSingleMixAuthRequest(GetScheduleId(), fwkMsg_, hostUserId_, templateId,
                 [weakSelf = weak_from_this(), templateId](ResultCode result, const std::vector<uint8_t> &extraInfo) {
                     auto self = weakSelf.lock();
-                    ENSURE_OR_RETURN(self != nullptr);
+                    ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
                     self->HandleAuthResult(templateId, result, extraInfo);
                 });
         if (hostSingleMixAuthRequest == nullptr) {

@@ -18,8 +18,8 @@
 #include "iam_logger.h"
 #include "scope_guard.h"
 
-#include "template_status_callback_wrapper.h"
 #include "companion_device_auth_napi_helper.h"
+#include "template_status_callback_wrapper.h"
 
 #define LOG_TAG "CDA_NAPI"
 
@@ -49,8 +49,8 @@ void DoCallback(const JsRefHolder &jsRefHolder, const std::vector<ClientTemplate
         return;
     }
 
-    status = CompanionDeviceAuthNapiHelper::CallVoidNapiFunc(
-        jsRefHolder.GetEnv(), jsRefHolder.GetRef(), ARGS_ONE, &templateStatusListValue);
+    status = CompanionDeviceAuthNapiHelper::CallVoidNapiFunc(jsRefHolder.GetEnv(), jsRefHolder.GetRef(), ARGS_ONE,
+        &templateStatusListValue);
     if (status != napi_ok) {
         IAM_LOGE("CallVoidNapiFunc fail");
         return;
@@ -72,11 +72,12 @@ void TemplateStatusCallbackWrapper<JsRefHolder>::OnTemplateStatusChange(
     auto task = [jsRefHolder = this->GetCallback(), templateStatusList]() {
         DoCallback(jsRefHolder, templateStatusList);
     };
+    // clang-format off
     if (napi_send_event(this->GetCallback().GetEnv(), task, napi_eprio_immediate,
-        "TemplateStatusCallbackWrapper<JsRefHolder>::OnTemplateStatusChange") !=
-        napi_status::napi_ok) {
+        "TemplateStatusCallbackWrapper<JsRefHolder>::OnTemplateStatusChange") != napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
+    // clang-format on
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

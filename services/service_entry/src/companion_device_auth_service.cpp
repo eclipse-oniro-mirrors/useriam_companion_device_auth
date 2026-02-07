@@ -231,7 +231,11 @@ std::shared_ptr<CompanionDeviceAuthServiceInner> CompanionDeviceAuthServiceInner
     }
 #endif
 
-    auto crossDeviceCommManager = CrossDeviceCommManagerImpl::Create(channels);
+    std::vector<BusinessId> businessIds = { BusinessId::DEFAULT };
+    std::vector<Capability> localCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH,
+        Capability::OBTAIN_TOKEN };
+
+    auto crossDeviceCommManager = CrossDeviceCommManagerImpl::Create(businessIds, localCapabilities, channels);
     ENSURE_OR_RETURN_VAL(crossDeviceCommManager != nullptr, nullptr);
     singletonManager.SetCrossDeviceCommManager(crossDeviceCommManager);
 
@@ -530,8 +534,15 @@ bool CompanionDeviceAuthService::CheckPermission(int32_t &companionDeviceAuthRes
 void CompanionDeviceAuthService::OnStart()
 {
     IAM_LOGI("Start");
-    auto innerOpt =
-        RunOnResidentSync([]() { return CompanionDeviceAuthServiceInner::Create(); }, MAX_ON_START_WAIT_TIME_SEC);
+    auto innerOpt = RunOnResidentSync(
+        []() -> std::shared_ptr<CompanionDeviceAuthServiceInner> {
+            auto inner = CompanionDeviceAuthServiceInner::Create();
+            ENSURE_OR_RETURN_VAL(inner != nullptr, nullptr);
+            GetSystemParamManager().SetParam(CDA_IS_FUNCTION_READY_KEY, TRUE_STR);
+            IAM_LOGI("created inner service");
+            return inner;
+        },
+        MAX_ON_START_WAIT_TIME_SEC);
     if (!innerOpt.has_value() || innerOpt.value() == nullptr) {
         IAM_LOGE("failed to create inner service");
         return;

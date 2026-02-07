@@ -36,7 +36,8 @@ namespace CompanionDeviceAuth {
 
 class LocalDeviceStatusManager : public std::enable_shared_from_this<LocalDeviceStatusManager>, public NoCopyable {
 public:
-    static std::shared_ptr<LocalDeviceStatusManager> Create(std::shared_ptr<ChannelManager> channelMgr);
+    static std::shared_ptr<LocalDeviceStatusManager> Create(std::shared_ptr<ChannelManager> channelMgr,
+        const std::vector<Capability> &localCapabilities);
 
     virtual ~LocalDeviceStatusManager() = default;
 
@@ -51,7 +52,8 @@ public:
     virtual void SetAuthMaintainActive(bool isActive);
 
 private:
-    explicit LocalDeviceStatusManager(std::shared_ptr<ChannelManager> channelMgr);
+    LocalDeviceStatusManager(std::shared_ptr<ChannelManager> channelMgr,
+        const std::vector<Capability> &localCapabilities);
     bool Initialize();
 
     std::shared_ptr<ChannelManager> channelMgr_;

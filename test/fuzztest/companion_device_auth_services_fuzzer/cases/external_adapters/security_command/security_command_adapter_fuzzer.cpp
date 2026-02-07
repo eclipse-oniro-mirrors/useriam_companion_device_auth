@@ -37,12 +37,6 @@ static void FuzzInitialize(std::shared_ptr<SecurityCommandAdapterImpl> &adapter,
     (void)adapter->Initialize();
 }
 
-static void FuzzFinalize(std::shared_ptr<SecurityCommandAdapterImpl> &adapter, FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    adapter->Finalize();
-}
-
 static void FuzzInvokeCommand(std::shared_ptr<SecurityCommandAdapterImpl> &adapter, FuzzedDataProvider &fuzzData)
 {
     int32_t commandId = fuzzData.ConsumeIntegral<int32_t>();
@@ -83,23 +77,12 @@ static void FuzzMultipleInitializes(std::shared_ptr<SecurityCommandAdapterImpl> 
     }
 }
 
-static void FuzzInitializeFinalizeSequence(std::shared_ptr<SecurityCommandAdapterImpl> &adapter,
-    FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    (void)adapter->Initialize();
-    adapter->Finalize();
-    (void)adapter->Initialize();
-}
-
 static const SecurityCommandFuzzFunction g_fuzzFuncs[] = {
     FuzzInitialize,
-    FuzzFinalize,
     FuzzInvokeCommand,
     FuzzInvokeCommandWithNullInput,
     FuzzInvokeCommandWithNullOutput,
     FuzzMultipleInitializes,
-    FuzzInitializeFinalizeSequence,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SecurityCommandFuzzFunction);

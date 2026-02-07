@@ -28,9 +28,13 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-IpcContinuousAuthStatusCallbackService::IpcContinuousAuthStatusCallbackService(
-    int32_t userId, std::optional<uint64_t> templateId, const std::shared_ptr<IContinuousAuthStatusCallback> &impl)
-    : userId_(userId), templateId_(templateId), callback_(impl) {}
+IpcContinuousAuthStatusCallbackService::IpcContinuousAuthStatusCallbackService(int32_t userId,
+    std::optional<uint64_t> templateId, const std::shared_ptr<IContinuousAuthStatusCallback> &impl)
+    : userId_(userId),
+      templateId_(templateId),
+      callback_(impl)
+{
+}
 
 int32_t IpcContinuousAuthStatusCallbackService::OnContinuousAuthStatusChange(const IpcContinuousAuthStatus &status)
 {

@@ -37,18 +37,6 @@ constexpr uint32_t SIZE_64 = 64;
 
 using SecurityAgentFuzzFunction = void (*)(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData);
 
-static void FuzzInit(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    agent->Init();
-}
-
-static void FuzzInitialize(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    agent->Initialize();
-}
-
 static void FuzzSetActiveUser(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     SetActiveUserInput input;
@@ -480,8 +468,6 @@ static void FuzzHostCheckTemplateEnrolled(std::shared_ptr<ISecurityAgent> &agent
 }
 
 static const SecurityAgentFuzzFunction g_fuzzFuncs[] = {
-    FuzzInit,
-    FuzzInitialize,
     FuzzSetActiveUser,
     FuzzHostGetExecutorInfo,
     FuzzHostOnRegisterFinish,

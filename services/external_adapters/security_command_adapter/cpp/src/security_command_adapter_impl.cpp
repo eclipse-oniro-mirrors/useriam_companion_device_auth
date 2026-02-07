@@ -123,16 +123,6 @@ ResultCode SecurityCommandAdapterImpl::Initialize()
     return ResultCode::SUCCESS;
 }
 
-void SecurityCommandAdapterImpl::Finalize()
-{
-    if (!inited_) {
-        IAM_LOGI("SecurityCommandAdapter is not inited");
-        return;
-    }
-    inited_ = false;
-    IAM_LOGI("uninitialize security command adapter success");
-}
-
 ResultCode SecurityCommandAdapterImpl::InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen,
     uint8_t *outputData, uint32_t outputDataLen)
 {

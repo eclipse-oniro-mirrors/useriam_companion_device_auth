@@ -226,7 +226,6 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(ConnectionM
 
 void FuzzConnectionManager(FuzzedDataProvider &fuzzData)
 {
-    // Create a fuzz channel so LocalDeviceStatusManager::Init() succeeds
     auto fuzzChannel = std::make_shared<FuzzCrossDeviceChannel>(fuzzData);
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     channels.push_back(fuzzChannel);
@@ -236,7 +235,8 @@ void FuzzConnectionManager(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr,
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN });
     if (!localDeviceStatusMgr) {
         return;
     }

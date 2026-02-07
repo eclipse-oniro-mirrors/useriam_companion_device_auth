@@ -28,12 +28,11 @@ public:
 
     static std::shared_ptr<SecurityCommandAdapterImpl> Create();
 
-    ResultCode Initialize() override;
-    void Finalize() override;
     ResultCode InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen, uint8_t *outputData,
         uint32_t outputDataLen) override;
 
 private:
+    ResultCode Initialize();
     SecurityCommandAdapterImpl();
 
     bool inited_ = false;

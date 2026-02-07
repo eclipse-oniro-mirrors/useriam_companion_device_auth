@@ -163,8 +163,7 @@ bool CompanionDeviceAuthAniHelper::WrapDate(int64_t time, ani_object &outObj, an
         return false;
     }
     ani_long msObj = 0;
-    if ((status = env->Object_CallMethodByName_Long(outObj, "setTime", "l:l", &msObj, time)) !=
-        ANI_OK) {
+    if ((status = env->Object_CallMethodByName_Long(outObj, "setTime", "l:l", &msObj, time)) != ANI_OK) {
         IAM_LOGE("Object_CallMethodByName_Long fail");
         return false;
     }

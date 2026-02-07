@@ -55,8 +55,8 @@ fn companion_sync_status_request_new_test_success() {
     let request = result.unwrap();
     assert_eq!(request.get_request_id(), 123);
     assert_eq!(request.challenge, 0);
-    assert_eq!(request.protocol_list, PROTOCOL_VERSION.to_vec());
-    assert_eq!(request.capability_list, vec![0x01, 0x02]);
+    assert_eq!(request.expected_protocol_list, PROTOCOL_VERSION.to_vec());
+    assert_eq!(request.expected_capability_list, vec![0x01, 0x02]);
 }
 
 #[test]

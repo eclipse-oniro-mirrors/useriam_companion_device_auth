@@ -41,7 +41,7 @@ public:
     MOCK_METHOD(void, RevokeTokens, (UserId userId), (override));
 
 private:
-    MOCK_METHOD(bool, Initialize, (), (override));
+    MOCK_METHOD(bool, Initialize, (), ());
 };
 
 } // namespace CompanionDeviceAuth

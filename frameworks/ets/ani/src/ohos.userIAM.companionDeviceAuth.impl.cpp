@@ -22,10 +22,10 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
-#include "status_monitor.h"
 #include "ani_device_select_callback.h"
 #include "companion_device_auth_ani_helper.h"
 #include "ohos.userIAM.companionDeviceAuth.impl.hpp"
+#include "status_monitor.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -58,15 +58,13 @@ int32_t CheckPermission()
 
 using TaiheTemplateStatusCallback = ::taihe::callback<void(
     ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>;
-using TaiheAvailableDeviceStatusCallback = ::taihe::callback<void(
-    ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>;
-using TaiheContinuousAuthStatusCallback = ::taihe::callback<void(
-    bool isAuthPassed, ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>;
+using TaiheAvailableDeviceStatusCallback =
+    ::taihe::callback<void(::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>;
+using TaiheContinuousAuthStatusCallback = ::taihe::callback<void(bool isAuthPassed,
+    ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>;
 
-using AniStatusMonitor = CompanionDeviceAuth::StatusMonitor<
-    TaiheTemplateStatusCallback,
-    TaiheAvailableDeviceStatusCallback,
-    TaiheContinuousAuthStatusCallback>;
+using AniStatusMonitor = CompanionDeviceAuth::StatusMonitor<TaiheTemplateStatusCallback,
+    TaiheAvailableDeviceStatusCallback, TaiheContinuousAuthStatusCallback>;
 
 using AniTemplateStatusCallback = CompanionDeviceAuth::TemplateStatusCallbackWrapper<TaiheTemplateStatusCallback>;
 using AniAvailableDeviceStatusCallback =
@@ -76,7 +74,9 @@ using AniContinuousAuthStatusCallback =
 
 class StatusMonitorImpl {
 public:
-    explicit StatusMonitorImpl(int32_t localUserId) : statusMonitor_(localUserId) {}
+    explicit StatusMonitorImpl(int32_t localUserId) : statusMonitor_(localUserId)
+    {
+    }
 
     ::taihe::array<TaiheCompanionDeviceAuth::TemplateStatus> getTemplateStatusSync()
     {
@@ -105,14 +105,14 @@ public:
             temp.push_back(templateStatus);
         }
         ::taihe::array<TaiheCompanionDeviceAuth::TemplateStatus> result =
-            ::taihe::array<TaiheCompanionDeviceAuth::TemplateStatus>(taihe::copy_data_t {}, temp.data(),
-                temp.size());
+            ::taihe::array<TaiheCompanionDeviceAuth::TemplateStatus>(taihe::copy_data_t {}, temp.data(), temp.size());
         IAM_LOGI("end");
         return result;
     }
 
-    void onTemplateChange(::taihe::callback_view<void(
-        ::taihe::array_view<TaiheCompanionDeviceAuth::TemplateStatus> templateStatusList)> callback)
+    void onTemplateChange(
+        ::taihe::callback_view<void(::taihe::array_view<TaiheCompanionDeviceAuth::TemplateStatus> templateStatusList)>
+            callback)
     {
         IAM_LOGI("start");
         int32_t checkPermission = CheckPermission();
@@ -131,8 +131,9 @@ public:
         IAM_LOGI("end");
     }
 
-    void offTemplateChange(::taihe::optional_view<::taihe::callback<void(
-        ::taihe::array_view<TaiheCompanionDeviceAuth::TemplateStatus> templateStatusList)>> callback)
+    void offTemplateChange(::taihe::optional_view<
+        ::taihe::callback<void(::taihe::array_view<TaiheCompanionDeviceAuth::TemplateStatus> templateStatusList)>>
+            callback)
     {
         IAM_LOGI("start");
         int32_t checkPermission = CheckPermission();
@@ -156,8 +157,8 @@ public:
         IAM_LOGI("end");
     }
 
-    void onAvailableDeviceChange(::taihe::callback_view<void(
-            ::taihe::array_view<TaiheCompanionDeviceAuth::DeviceStatus> deviceStatusList)>
+    void onAvailableDeviceChange(
+        ::taihe::callback_view<void(::taihe::array_view<TaiheCompanionDeviceAuth::DeviceStatus> deviceStatusList)>
             callback)
     {
         IAM_LOGI("start");
@@ -168,8 +169,8 @@ public:
             return;
         }
 
-        int32_t ret = statusMonitor_.OnAvailableDeviceChange(
-            std::make_shared<AniAvailableDeviceStatusCallback>(callback));
+        int32_t ret =
+            statusMonitor_.OnAvailableDeviceChange(std::make_shared<AniAvailableDeviceStatusCallback>(callback));
         if (ret != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("OnAvailableDeviceChange fail");
             CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
@@ -178,8 +179,8 @@ public:
         IAM_LOGI("end");
     }
 
-    void offAvailableDeviceChange(::taihe::optional_view<::taihe::callback<void(
-            ::taihe::array_view<TaiheCompanionDeviceAuth::DeviceStatus> deviceStatusList)>>
+    void offAvailableDeviceChange(::taihe::optional_view<
+        ::taihe::callback<void(::taihe::array_view<TaiheCompanionDeviceAuth::DeviceStatus> deviceStatusList)>>
             callback)
     {
         IAM_LOGI("start");
@@ -206,7 +207,8 @@ public:
 
     void onContinuousAuthChange(TaiheCompanionDeviceAuth::ContinuousAuthParam const &param,
         ::taihe::callback_view<void(bool isAuthPassed,
-            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)> callback)
+            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
+            callback)
     {
         IAM_LOGI("start");
         int32_t checkPermission = CheckPermission();
@@ -220,8 +222,8 @@ public:
         if (param.templateId.has_value()) {
             templateId = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(*param.templateId);
         }
-        int32_t ret = statusMonitor_.OnContinuousAuthChange(
-            templateId, std::make_shared<AniContinuousAuthStatusCallback>(callback));
+        int32_t ret = statusMonitor_.OnContinuousAuthChange(templateId,
+            std::make_shared<AniContinuousAuthStatusCallback>(callback));
         if (ret != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("OnContinuousAuthChange fail");
             CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
@@ -326,9 +328,9 @@ void registerDeviceSelectCallback(
         return;
     }
 
-    deviceSelectCallback->SetCallback(::taihe::optional<
-        ::taihe::callback<TaiheCompanionDeviceAuth::DeviceSelectResult(int32_t selectPurpose)>> {
-        std::in_place_t {}, callback });
+    deviceSelectCallback->SetCallback(
+        ::taihe::optional<::taihe::callback<TaiheCompanionDeviceAuth::DeviceSelectResult(int32_t selectPurpose)>> {
+            std::in_place_t {}, callback });
 
     int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().RegisterDeviceSelectCallback(
         deviceSelectCallback);

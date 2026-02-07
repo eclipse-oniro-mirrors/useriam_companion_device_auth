@@ -69,6 +69,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_001, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -104,6 +105,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_003, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_)).WillOnce(Return(std::nullopt));
 
     ErrorGuard errorGuard([](ResultCode) {});
@@ -120,6 +122,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_004, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -143,6 +146,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnConnected_001, TestSize.Level0)
     companionStatus_.companionDeviceStatus.deviceKey = companionDeviceKey_;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus_)));
+    ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -171,6 +175,7 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_001, TestSize.Level0)
     companionStatus_.companionDeviceStatus.deviceKey = companionDeviceKey_;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus_)));
+    ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -209,6 +214,7 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_002, TestSize.Level0)
     companionStatus_.companionDeviceStatus.deviceKey = companionDeviceKey_;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus_)));
+    ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -248,6 +254,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_001, TestSize.Level0)
     companionStatus_.companionDeviceStatus.deviceKey = companionDeviceKey_;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus_)));
+    ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -290,6 +297,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_002, TestSize.Level0)
     companionStatus_.companionDeviceStatus.deviceKey = companionDeviceKey_;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus_)));
+    ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -327,6 +335,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_003, TestSize.Level0)
     companionStatus_.companionDeviceStatus.deviceKey = companionDeviceKey_;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus_)));
+    ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -367,6 +376,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_004, TestSize.Level0)
     companionStatus_.companionDeviceStatus.deviceKey = companionDeviceKey_;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus_)));
+    ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))

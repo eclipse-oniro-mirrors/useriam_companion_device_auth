@@ -45,6 +45,31 @@ namespace CompanionDeviceAuth {
             continue;                                     \
         }                                                 \
     } while (0)
+
+// these macros are used to check condition with description for better debugging
+#define ENSURE_OR_RETURN_DESC(desc, cond)                                  \
+    do {                                                                   \
+        if (!(cond)) {                                                     \
+            IAM_LOGE("%{public}s (" #cond ") check fail, return", (desc)); \
+            return;                                                        \
+        }                                                                  \
+    } while (0)
+
+#define ENSURE_OR_RETURN_DESC_VAL(desc, cond, retVal)                      \
+    do {                                                                   \
+        if (!(cond)) {                                                     \
+            IAM_LOGE("%{public}s (" #cond ") check fail, return", (desc)); \
+            return (retVal);                                               \
+        }                                                                  \
+    } while (0)
+
+#define ENSURE_OR_CONTINUE_DESC(desc, cond)                                  \
+    do {                                                                     \
+        if (!(cond)) {                                                       \
+            IAM_LOGE("%{public}s (" #cond ") check fail, continue", (desc)); \
+            continue;                                                        \
+        }                                                                    \
+    } while (0)
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

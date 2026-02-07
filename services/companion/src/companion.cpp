@@ -44,7 +44,7 @@ std::shared_ptr<Companion> Companion::Create(const PersistedCompanionStatus &per
 {
     auto companion =
         std::shared_ptr<Companion>(new (std::nothrow) Companion(persistedStatus, addedToIdm, managerWeakPtr));
-    ENSURE_OR_RETURN_VAL(companion != nullptr, nullptr);
+    ENSURE_OR_RETURN_DESC_VAL(companion->GetDescription(), companion != nullptr, nullptr);
 
     if (!companion->Initialize()) {
         IAM_LOGE("%{public}s failed to initialize", companion->GetDescription());
@@ -80,10 +80,10 @@ bool Companion::Initialize()
         GetCrossDeviceCommManager().SubscribeDeviceStatus(status_.companionDeviceStatus.deviceKey,
             [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
                 auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+                ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
                 self->HandleDeviceStatusChanged(deviceStatusList);
             });
-    ENSURE_OR_RETURN_VAL(deviceStatusSubscription_ != nullptr, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), deviceStatusSubscription_ != nullptr, false);
 
     auto initialStatus = GetCrossDeviceCommManager().GetDeviceStatus(status_.companionDeviceStatus.deviceKey);
     if (initialStatus.has_value()) {
@@ -172,12 +172,12 @@ void Companion::SetCompanionTokenAtl(std::optional<Atl> tokenAtl)
         tokenTimeoutSubscription_ = RelativeTimer::GetInstance().Register(
             [weakSelf = weak_from_this()]() {
                 auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+                ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
                 IAM_LOGI("%{public}s token timeout, revoking token", self->GetDescription());
                 self->SetCompanionTokenAtl(std::nullopt);
             },
             TOKEN_TIMEOUT_MS);
-        ENSURE_OR_RETURN(tokenTimeoutSubscription_ != nullptr);
+        ENSURE_OR_RETURN_DESC(GetDescription(), tokenTimeoutSubscription_ != nullptr);
         IAM_LOGI("%{public}s registered token timeout timer", GetDescription());
     }
 
@@ -197,12 +197,12 @@ void Companion::RefreshTokenTimer()
     tokenTimeoutSubscription_ = RelativeTimer::GetInstance().Register(
         [weakSelf = weak_from_this()]() {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             IAM_LOGI("%{public}s token timeout, revoking token", self->GetDescription());
             self->SetCompanionTokenAtl(std::nullopt);
         },
         TOKEN_TIMEOUT_MS);
-    ENSURE_OR_RETURN(tokenTimeoutSubscription_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), tokenTimeoutSubscription_ != nullptr);
     IAM_LOGI("%{public}s refreshed token timeout timer", GetDescription());
 }
 
@@ -222,7 +222,7 @@ void Companion::SetDeviceNames(const std::string &deviceName, const std::string 
 void Companion::NotifySubscribers()
 {
     auto manager = weakManager_.lock();
-    ENSURE_OR_RETURN(manager != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), manager != nullptr);
     manager->NotifyCompanionStatusChange();
 }
 
@@ -251,25 +251,16 @@ void Companion::StartTemplateAddToIdmTimer()
         HandleTemplateAddToIdmTimeout();
     });
 
-    auto nowMs = GetTimeKeeper().GetSystemTimeMs();
-    ENSURE_OR_RETURN(nowMs.has_value());
-    auto elapsedMs = safe_sub(nowMs.value(), static_cast<uint64_t>(status_.addedTime));
-    ENSURE_OR_RETURN(elapsedMs.has_value());
-    auto remainingMs =
-        safe_sub(static_cast<int64_t>(IDM_ADD_TEMPLATE_TIMEOUT_MS), static_cast<int64_t>(elapsedMs.value()));
-    ENSURE_OR_RETURN(remainingMs.has_value());
-    ENSURE_OR_RETURN(remainingMs.value() > 0);
-    ENSURE_OR_RETURN(remainingMs.value() < UINT32_MAX);
-    uint32_t remainingMsValue = static_cast<uint32_t>(remainingMs.value());
-    IAM_LOGI("%{public}s starting template add timer, remaining: %{public}u ms", GetDescription(), remainingMsValue);
+    IAM_LOGI("%{public}s starting template add timer, timeout: %{public}u ms", GetDescription(),
+        IDM_ADD_TEMPLATE_TIMEOUT_MS);
     templateAddToIdmTimer_ = RelativeTimer::GetInstance().Register(
         [weakSelf = weak_from_this()]() {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleTemplateAddToIdmTimeout();
         },
-        remainingMsValue);
-    ENSURE_OR_RETURN(templateAddToIdmTimer_ != nullptr);
+        IDM_ADD_TEMPLATE_TIMEOUT_MS);
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateAddToIdmTimer_ != nullptr);
     guard.Cancel();
     return;
 }
