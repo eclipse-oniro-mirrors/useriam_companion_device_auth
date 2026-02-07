@@ -38,6 +38,11 @@ public:
     static std::string GenerateDescription(RequestType requestType, RequestId requestId);
     static std::string GenerateDescription(RequestType requestType, RequestId requestId,
         const std::string &connectionName);
+    static std::string GenerateDescription(RequestType requestType, RequestId requestId,
+        const std::string &connectionName, TemplateId templateId);
+    static std::string GenerateDescription(RequestType requestType, RequestId requestId,
+        const std::string &connectionName, const std::vector<TemplateId> &templateIdList);
+    static std::string FormatTemplateId(TemplateId templateId);
 
     RequestType GetRequestType() const final override;
     const char *GetDescription() const final override;

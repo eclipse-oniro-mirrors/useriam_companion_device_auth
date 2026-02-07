@@ -146,17 +146,6 @@ static void FuzzNegotiateProtocol(std::shared_ptr<DeviceStatusManager> &mgr, Fuz
     (void)protocolId;
 }
 
-static void FuzzNegotiateCapabilities(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
-{
-    uint8_t capCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_CAPABILITIES_COUNT);
-    std::vector<Capability> capabilities;
-    for (uint8_t i = 0; i < capCount; ++i) {
-        capabilities.push_back(static_cast<Capability>(fuzzData.ConsumeIntegral<uint8_t>()));
-    }
-    auto caps = mgr->NegotiateCapabilities(capabilities);
-    (void)caps;
-}
-
 static void FuzzShouldMonitorDevice(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     PhysicalDeviceKey physicalKey;
@@ -239,7 +228,6 @@ static const DeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzStopPeriodicSync,
     FuzzUnsubscribeDeviceStatus,
     FuzzNegotiateProtocol,
-    FuzzNegotiateCapabilities,
     FuzzShouldMonitorDevice,
     FuzzHandleUserIdChange,
     FuzzHandleChannelDeviceStatusChange,
@@ -254,7 +242,6 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(DeviceStatu
 
 void FuzzDeviceStatusManager(FuzzedDataProvider &fuzzData)
 {
-    // Create a fuzz channel so LocalDeviceStatusManager::Init() succeeds
     auto fuzzChannel = std::make_shared<FuzzCrossDeviceChannel>(fuzzData);
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     channels.push_back(fuzzChannel);
@@ -264,7 +251,8 @@ void FuzzDeviceStatusManager(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr);
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr,
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN });
     if (!localDeviceStatusMgr) {
         return;
     }
@@ -274,7 +262,7 @@ void FuzzDeviceStatusManager(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    auto mgr = DeviceStatusManager::Create(connectionMgr, channelMgr, localDeviceStatusMgr);
+    auto mgr = DeviceStatusManager::Create({ BusinessId::DEFAULT }, connectionMgr, channelMgr, localDeviceStatusMgr);
     if (!mgr) {
         return;
     }

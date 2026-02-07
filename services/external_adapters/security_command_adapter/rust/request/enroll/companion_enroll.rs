@@ -108,7 +108,11 @@ impl CompanionDeviceEnrollRequest {
         }
     }
 
-    fn decode_sec_key_nego_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_key_nego_request_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecKeyNegoRequest::decode(sec_message, device_type)?;
         if !output.algorithm_list.contains(&(AlgoType::X25519 as u16)) {
             log_e!("algorithm list is contain X25519");
@@ -163,7 +167,11 @@ impl CompanionDeviceEnrollRequest {
         Ok((device_info, sk_info))
     }
 
-    fn decode_sec_binding_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_binding_request_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecBindingRequest::decode(sec_message, device_type)?;
 
         let key_pair = self.get_key_pair()?;
@@ -208,9 +216,10 @@ impl CompanionDeviceEnrollRequest {
     }
 
     fn decode_sec_binding_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        if let Err(e) = self
-            .decode_sec_binding_request_message(DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?, sec_message)
-        {
+        if let Err(e) = self.decode_sec_binding_request_message(
+            DeviceType::companion_from_secure_protocol_id(self.secure_protocol_id)?,
+            sec_message,
+        ) {
             log_e!("parse bingding request message fail: {:?}", e);
             return Err(ErrorCode::GeneralError);
         }

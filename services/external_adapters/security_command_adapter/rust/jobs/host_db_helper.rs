@@ -19,6 +19,30 @@ use crate::traits::db_manager::CompanionDeviceInfo;
 use crate::traits::host_db_manager::HostDbManagerRegistry;
 use crate::{log_e, log_i, p, Box, String, Vec};
 
+pub fn check_device_capability(template_id: u64, required_capability: Capability) -> Result<(), ErrorCode> {
+    let device_info = HostDbManagerRegistry::get().get_device(template_id).map_err(|e| {
+        log_e!("get_device failed for template_id:{:x}, err:{:?}", template_id as u16, e);
+        e
+    })?;
+
+    let capability_value = required_capability as u16;
+    if !device_info.capability_list.contains(&capability_value) {
+        log_e!(
+            "Device does not have required capability, template_id:{:x}, required:{:?}",
+            template_id as u16,
+            required_capability
+        );
+        return Err(ErrorCode::GeneralError);
+    }
+
+    log_i!(
+        "Device capability check passed, template_id:{:x}, capability:{:?}",
+        template_id as u16,
+        required_capability
+    );
+    Ok(())
+}
+
 pub fn update_companion_device_valid_flag(template_id: u64, is_valid: bool) -> Result<(), ErrorCode> {
     let mut device_info = HostDbManagerRegistry::get_mut().get_device(template_id)?;
     device_info.is_valid = is_valid;

@@ -40,11 +40,11 @@ taihe_shared_library("companiondeviceauth_ani") {
   ]
   sources = get_target_outputs(":companion_device_auth_taihe")
   sources += [
+    "src/ani_available_device_status_callback_wrapper.cpp",
     "src/ani_constructor.cpp",
+    "src/ani_continuous_auth_status_callback_wrapper.cpp",
     "src/ani_device_select_callback.cpp",
     "src/ani_template_status_callback_wrapper.cpp",
-    "src/ani_available_device_status_callback_wrapper.cpp",
-    "src/ani_continuous_auth_status_callback_wrapper.cpp",
     "src/companion_device_auth_ani_helper.cpp",
     "src/ohos.userIAM.companionDeviceAuth.impl.cpp",
   ]

@@ -39,7 +39,6 @@ public:
     ~SecurityAgentImpl() override = default;
 
     // Framework interaction
-    ResultCode Init() override;
     ResultCode SetActiveUser(const SetActiveUserInput &input) override;
     ResultCode HostGetExecutorInfo(HostGetExecutorInfoOutput &output) override;
     ResultCode HostOnRegisterFinish(const RegisterFinishInput &input) override;
@@ -131,7 +130,8 @@ public:
 
 private:
     SecurityAgentImpl();
-    bool Initialize() override;
+    bool Initialize();
+    ResultCode Init();
     std::unique_ptr<Subscription> activeUserSubscription_;
 };
 } // namespace CompanionDeviceAuth

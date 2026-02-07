@@ -367,6 +367,7 @@ pub enum Capability {
     Invalid = 0,
     DelegateAuth = 1,
     TokenAuth = 2,
+    ObtainToken = 3,
 }
 
 impl TryFrom<u16> for Capability {
@@ -376,6 +377,7 @@ impl TryFrom<u16> for Capability {
             0 => Ok(Capability::Invalid),
             1 => Ok(Capability::DelegateAuth),
             2 => Ok(Capability::TokenAuth),
+            3 => Ok(Capability::ObtainToken),
             _ => {
                 log_e!("Invalid capability level: {}", value);
                 Err(ErrorCode::BadParam)
@@ -385,4 +387,5 @@ impl TryFrom<u16> for Capability {
 }
 
 pub const PROTOCOL_VERSION: &[u16] = &[1];
-pub const SUPPORT_CAPABILITY: &[u16] = &[Capability::DelegateAuth as u16, Capability::TokenAuth as u16];
+pub const SUPPORT_CAPABILITY: &[u16] =
+    &[Capability::DelegateAuth as u16, Capability::TokenAuth as u16, Capability::ObtainToken as u16];

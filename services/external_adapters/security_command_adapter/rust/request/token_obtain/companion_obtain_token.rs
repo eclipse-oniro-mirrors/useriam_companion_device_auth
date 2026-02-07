@@ -80,7 +80,11 @@ impl CompanionDeviceObtainTokenRequest {
         Ok(())
     }
 
-    fn decode_sec_token_pre_obtaion_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_pre_obtaion_request_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecPreObtainTokenRequest::decode(sec_message, device_type)?;
         self.obtain_param.salt = output.salt;
         self.obtain_param.challenge = output.challenge;
@@ -116,7 +120,11 @@ impl CompanionDeviceObtainTokenRequest {
         Ok(output)
     }
 
-    fn parse_obtain_token_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn parse_obtain_token_reply_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let issue_token = SecIssueToken::decrypt_issue_token(sec_message, device_type, &self.session_key)?;
 
         if issue_token.challenge != self.obtain_param.challenge {

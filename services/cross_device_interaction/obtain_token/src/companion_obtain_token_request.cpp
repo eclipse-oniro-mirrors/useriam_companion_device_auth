@@ -49,7 +49,7 @@ bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
     localDeviceStatusSubscription_ =
         GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive([weakSelf = weak_from_this()](bool isActive) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleAuthMaintainActiveChanged(isActive);
         });
     if (localDeviceStatusSubscription_ == nullptr) {
@@ -72,7 +72,7 @@ void CompanionObtainTokenRequest::OnConnected()
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto localDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN(localDeviceKeyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKeyOpt.has_value());
     companionDeviceKey_ = localDeviceKeyOpt.value();
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
 
@@ -87,7 +87,7 @@ void CompanionObtainTokenRequest::OnConnected()
 
 bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
 {
-    ENSURE_OR_RETURN_VAL(GetPeerDeviceKey().has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
     Attributes request = {};
     PreObtainTokenRequest preObtainTokenRequest = {
         .hostUserId = GetPeerDeviceKey().value().deviceUserId,
@@ -99,7 +99,7 @@ bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::PRE_OBTAIN_TOKEN, request,
         [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandlePreObtainTokenReply(reply);
         });
     if (!sendRet) {
@@ -115,7 +115,7 @@ void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &re
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto preObtainTokenReplyOpt = DecodePreObtainTokenReply(reply);
-    ENSURE_OR_RETURN(preObtainTokenReplyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), preObtainTokenReplyOpt.has_value());
     const auto &preObtainTokenReply = *preObtainTokenReplyOpt;
 
     ResultCode result = static_cast<ResultCode>(preObtainTokenReply.result);
@@ -136,7 +136,7 @@ void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &re
 
 bool CompanionObtainTokenRequest::CompanionBeginObtainToken(const PreObtainTokenReply &preObtainTokenReply)
 {
-    ENSURE_OR_RETURN_VAL(GetPeerDeviceKey().has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
     auto hostBindingStatus =
         GetHostBindingManager().GetHostBindingStatus(companionDeviceKey_.deviceUserId, GetPeerDeviceKey().value());
     if (!hostBindingStatus.has_value()) {
@@ -164,7 +164,7 @@ bool CompanionObtainTokenRequest::CompanionBeginObtainToken(const PreObtainToken
 
 bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest)
 {
-    ENSURE_OR_RETURN_VAL(GetPeerDeviceKey().has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
     Attributes request = {};
     ObtainTokenRequest obtainRequest = {
         .hostUserId = GetPeerDeviceKey().value().deviceUserId,
@@ -176,7 +176,7 @@ bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::OBTAIN_TOKEN, request,
         [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleObtainTokenReply(reply);
         });
     if (!sendRet) {
@@ -192,7 +192,7 @@ void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto obtainTokenReplyOpt = DecodeObtainTokenReply(reply);
-    ENSURE_OR_RETURN(obtainTokenReplyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), obtainTokenReplyOpt.has_value());
     const auto &obtainTokenReply = *obtainTokenReplyOpt;
 
     ResultCode result = static_cast<ResultCode>(obtainTokenReply.result);

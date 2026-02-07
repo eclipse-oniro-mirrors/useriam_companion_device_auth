@@ -54,7 +54,7 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
     localDeviceStatusSubscription_ =
         GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive([weakSelf = weak_from_this()](bool isActive) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleAuthMaintainActiveChanged(isActive);
         });
     if (localDeviceStatusSubscription_ == nullptr) {
@@ -76,7 +76,7 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::ISSUE_TOKEN,
             [weakSelf = weak_from_this()](const Attributes &request, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+                ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
                 self->HandleIssueTokenMessage(request, onMessageReply);
             });
     if (issueTokenSubscription_ == nullptr) {
@@ -94,7 +94,7 @@ bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &pr
 {
     IAM_LOGI("%{public}s start", GetDescription());
     auto preIssueRequestOpt = DecodePreIssueTokenRequest(request_);
-    ENSURE_OR_RETURN_VAL(preIssueRequestOpt.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), preIssueRequestOpt.has_value(), false);
     const auto &preIssueRequest = *preIssueRequestOpt;
     if (preIssueRequest.hostDeviceKey != PeerDeviceKey()) {
         IAM_LOGE("%{public}s host device key mismatch", GetDescription());
@@ -104,11 +104,11 @@ bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &pr
     preIssueTokenRequest_ = preIssueRequest.extraInfo;
 
     SecureProtocolId secureProtocolId = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
-    ENSURE_OR_RETURN_VAL(secureProtocolId != SecureProtocolId::INVALID, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), secureProtocolId != SecureProtocolId::INVALID, false);
     secureProtocolId_ = secureProtocolId;
 
     auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(companionUserId_, PeerDeviceKey());
-    ENSURE_OR_RETURN_VAL(hostBindingStatus.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), hostBindingStatus.has_value(), false);
 
     bindingId_ = hostBindingStatus->bindingId;
 
@@ -133,7 +133,7 @@ bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &pr
 void CompanionIssueTokenRequest::SendPreIssueTokenReply(ResultCode result,
     const std::vector<uint8_t> &preIssueTokenReply)
 {
-    ENSURE_OR_RETURN(preIssueTokenReplyCallback_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), preIssueTokenReplyCallback_ != nullptr);
 
     Attributes reply = {};
     PreIssueTokenReply replyMsg = { .result = result, .extraInfo = preIssueTokenReply };
@@ -145,7 +145,7 @@ void CompanionIssueTokenRequest::SendPreIssueTokenReply(ResultCode result,
 void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
 {
     IAM_LOGI("%{public}s start", GetDescription());
-    ENSURE_OR_RETURN(onMessageReply != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
         Attributes reply;
         IssueTokenReply replyMsg = { .result = code, .extraInfo = {} };
@@ -155,7 +155,7 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
     });
 
     auto issueRequestOpt = DecodeIssueTokenRequest(request);
-    ENSURE_OR_RETURN(issueRequestOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), issueRequestOpt.has_value());
     const auto &issueRequest = *issueRequestOpt;
 
     std::vector<uint8_t> issueTokenReply;

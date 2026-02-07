@@ -47,7 +47,6 @@ public:
     DefaultUserIdManager();
     ~DefaultUserIdManager() override;
 
-    bool Initialize() override;
     UserId GetActiveUserId() const override;
     std::string GetActiveUserName() const override;
     std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override;
@@ -66,6 +65,9 @@ private:
         std::weak_ptr<DefaultUserIdManager> impl_;
     };
 
+    friend class IUserIdManager;
+
+    bool Initialize();
     void HandleOsAccountServiceReady();
     void HandleOsAccountServiceUnavailable();
     void SubscribeOsAccount();

@@ -37,6 +37,7 @@ pub const HOST_DEVICE_SK: &str = "companion_device_sk";
 
 const MAX_DEVICE_NUM: usize = 1;
 const MAX_TOKEN_NUM: usize = 1;
+const MAX_CAPABILITY_NUM: usize = 64;
 
 pub struct DefaultHostDbManager {
     pub companion_device_infos: Vec<CompanionDeviceInfo>,
@@ -105,6 +106,10 @@ impl DefaultHostDbManager {
             parcel.write_u64(companion_device_info.added_time);
             parcel.write_u16(companion_device_info.secure_protocol_id);
             parcel.write_u32(companion_device_info.is_valid as u32);
+            parcel.write_i32(companion_device_info.capability_list.len() as i32);
+            for &capability in &companion_device_info.capability_list {
+                parcel.write_u16(capability);
+            }
         }
     }
 
@@ -132,6 +137,17 @@ impl DefaultHostDbManager {
             let added_time = parcel.read_u64().map_err(|e| p!(e))?;
             let secure_protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
             let is_valid_u32 = parcel.read_u32().map_err(|e| p!(e))?;
+            let capability_list_len_raw = parcel.read_i32().map_err(|e| p!(e))?;
+            if capability_list_len_raw < 0 || capability_list_len_raw as usize > MAX_CAPABILITY_NUM {
+                log_e!("capability_list_len is invalid: {}", capability_list_len_raw);
+                return Err(ErrorCode::GeneralError);
+            }
+            let capability_list_len = capability_list_len_raw as usize;
+            let mut capability_list = Vec::with_capacity(capability_list_len);
+            for _ in 0..capability_list_len {
+                let capability = parcel.read_u16().map_err(|e| p!(e))?;
+                capability_list.push(capability);
+            }
 
             let companion_device_info = CompanionDeviceInfo {
                 template_id,
@@ -140,6 +156,7 @@ impl DefaultHostDbManager {
                 added_time,
                 secure_protocol_id,
                 is_valid: is_valid_u32 != 0,
+                capability_list,
             };
 
             self.companion_device_infos.push(companion_device_info);

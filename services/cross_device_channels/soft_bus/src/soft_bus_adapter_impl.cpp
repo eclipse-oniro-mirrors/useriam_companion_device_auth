@@ -17,6 +17,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_para2str.h"
 
 #include "scope_guard.h"
 #include "singleton_manager.h"
@@ -48,6 +49,8 @@ std::mutex g_callbackMutex;
 void SoftBusAdapterOnBind(int32_t socket, PeerSocketInfo info)
 {
     std::string networkId(info.networkId ? info.networkId : "");
+    IAM_LOGI("SoftBusAdapterOnBind enter, socket=%{public}d, networkId=%{public}s", socket,
+        GET_MASKED_STR_CSTR(networkId));
 
     std::shared_ptr<ISoftBusSocketCallback> callback;
     {
@@ -62,6 +65,7 @@ void SoftBusAdapterOnBind(int32_t socket, PeerSocketInfo info)
 
 void SoftBusAdapterOnBytes(int32_t socket, const void *data, uint32_t dataLen)
 {
+    IAM_LOGI("SoftBusAdapterOnBytes enter, socket=%{public}d, dataLen=%{public}u", socket, dataLen);
     std::vector<uint8_t> dataCopy(static_cast<const uint8_t *>(data), static_cast<const uint8_t *>(data) + dataLen);
 
     std::shared_ptr<ISoftBusSocketCallback> callback;
@@ -77,6 +81,8 @@ void SoftBusAdapterOnBytes(int32_t socket, const void *data, uint32_t dataLen)
 
 void SoftBusAdapterOnShutdown(int32_t socket, ShutdownReason reason)
 {
+    IAM_LOGI("SoftBusAdapterOnShutdown enter, socket=%{public}d, reason=0x%{public}08x", socket,
+        static_cast<int32_t>(reason));
     std::shared_ptr<ISoftBusSocketCallback> callback;
     {
         std::lock_guard<std::mutex> lock(g_callbackMutex);
@@ -90,6 +96,7 @@ void SoftBusAdapterOnShutdown(int32_t socket, ShutdownReason reason)
 
 void SoftBusAdapterOnError(int32_t socket, int32_t errorCode)
 {
+    IAM_LOGI("SoftBusAdapterOnError enter, socket=%{public}d, errorCode=0x%{public}08x", socket, errorCode);
     std::shared_ptr<ISoftBusSocketCallback> callback;
     {
         std::lock_guard<std::mutex> lock(g_callbackMutex);
@@ -103,8 +110,10 @@ void SoftBusAdapterOnError(int32_t socket, int32_t errorCode)
 
 bool SoftBusAdapterOnNegotiate(int32_t socket, PeerSocketInfo info)
 {
+    IAM_LOGI("SoftBusAdapterOnNegotiate enter, socket=%{public}d", socket);
     (void)socket;
     if (info.pkgName == nullptr) {
+        IAM_LOGE("SoftBusAdapterOnNegotiate pkgName is null");
         return false;
     }
     std::string peerPkgName(info.pkgName);

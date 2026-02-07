@@ -38,14 +38,21 @@ HostSingleMixAuthRequest::HostSingleMixAuthRequest(ScheduleId scheduleId, std::v
       templateId_(templateId),
       requestCallback_(std::move(requestCallback))
 {
+    UpdateDescription(GenerateDescription(requestType_, requestId_, "-", templateId_));
 }
 
 void HostSingleMixAuthRequest::Start()
 {
+    if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::TOKEN_AUTH)) {
+        IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by companion device", GetDescription());
+        HandleTokenAuthResult(ResultCode::GENERAL_ERROR, std::vector<uint8_t> {});
+        return;
+    }
+
     tokenAuthRequest_ = GetRequestFactory().CreateHostTokenAuthRequest(GetScheduleId(), fwkMsg_, hostUserId_,
         templateId_, [weakSelf = weak_from_this()](ResultCode result, const std::vector<uint8_t> &extraInfo) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleTokenAuthResult(result, extraInfo);
         });
     if (tokenAuthRequest_ == nullptr) {
@@ -89,10 +96,15 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
         CompleteWithSuccess(extraInfo);
         return;
     }
+    if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::DELEGATE_AUTH)) {
+        IAM_LOGE("%{public}s DELEGATE_AUTH capability not supported by companion device", GetDescription());
+        CompleteWithError(ResultCode::GENERAL_ERROR);
+        return;
+    }
     delegateAuthRequest_ = GetRequestFactory().CreateHostDelegateAuthRequest(GetScheduleId(), fwkMsg_, hostUserId_,
         templateId_, [weakSelf = weak_from_this()](ResultCode result, const std::vector<uint8_t> &extraInfo) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleDelegateAuthResult(result, extraInfo);
         });
     if (delegateAuthRequest_ == nullptr) {

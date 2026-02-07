@@ -15,6 +15,8 @@
 
 #include "message_router.h"
 
+#include <iomanip>
+#include <sstream>
 #include <utility>
 
 #include "iam_check.h"
@@ -96,7 +98,10 @@ std::unique_ptr<Subscription> MessageRouter::SubscribeIncomingConnection(Message
     key.msgType = msgType;
 
     IAM_LOGD("incoming connection subscription added: type=0x%{public}04x", static_cast<uint16_t>(msgType));
-    RegisterSubscription(key, std::move(onMessage), "incoming connection subscription added: type=0x%{public}04x");
+    std::ostringstream oss1;
+    oss1 << "incoming connection subscription added: type=0x" << std::hex << std::setw(BYTE_NUM_4) << std::setfill('0')
+         << static_cast<uint16_t>(msgType);
+    RegisterSubscription(key, std::move(onMessage), oss1.str());
 
     return std::make_unique<Subscription>([weakSelf = weak_from_this(), key]() {
         auto self = weakSelf.lock();
@@ -114,8 +119,10 @@ std::unique_ptr<Subscription> MessageRouter::SubscribeMessage(const std::string 
 
     IAM_LOGD("message subscription added: conn=%{public}s, type=0x%{public}04x", connectionName.c_str(),
         static_cast<uint16_t>(msgType));
-    RegisterSubscription(key, std::move(onMessage),
-        "message subscription added: conn=" + connectionName + ", type=0x%{public}04x");
+    std::ostringstream oss2;
+    oss2 << "message subscription added: conn=" << connectionName << ", type=0x" << std::hex << std::setw(BYTE_NUM_4)
+         << std::setfill('0') << static_cast<uint16_t>(msgType);
+    RegisterSubscription(key, std::move(onMessage), oss2.str());
 
     return std::make_unique<Subscription>([weakSelf = weak_from_this(), key]() {
         auto self = weakSelf.lock();

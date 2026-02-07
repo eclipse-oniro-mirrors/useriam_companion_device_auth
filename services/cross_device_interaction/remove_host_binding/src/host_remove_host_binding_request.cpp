@@ -60,10 +60,10 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto peerDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN(peerDeviceKey.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKey.has_value());
     DeviceKey hostDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN(localDeviceKey.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKey.has_value());
     hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
     RemoveHostBindingRequest requestMsg = {
@@ -77,7 +77,7 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::REMOVE_HOST_BINDING,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleRemoveHostBindingReply(message);
         });
     if (!sendRet) {
@@ -94,7 +94,7 @@ void HostRemoveHostBindingRequest::HandleRemoveHostBindingReply(const Attributes
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeRemoveHostBindingReply(message);
-    ENSURE_OR_RETURN(replyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), replyOpt.has_value());
     if (replyOpt->result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s remove host binding failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(replyOpt->result));

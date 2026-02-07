@@ -74,7 +74,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, Create_001, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     EXPECT_NE(manager, nullptr);
 }
 
@@ -84,7 +85,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, Create_002, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = {};
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     EXPECT_EQ(manager, nullptr);
 }
 
@@ -96,7 +98,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, Create_003, TestSize.Level0)
     EXPECT_CALL(*mockChannel, SubscribeAuthMaintainActive(_)).WillOnce(Return(nullptr));
 
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     EXPECT_EQ(manager, nullptr);
 }
 
@@ -110,7 +113,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, Create_004, TestSize.Level0)
         .WillOnce(Return(nullptr));
 
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     EXPECT_EQ(manager, nullptr);
 }
 
@@ -120,7 +124,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, Start_001, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     EXPECT_CALL(*mockChannel, Start()).WillOnce(Return(true));
@@ -135,7 +140,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, Start_002, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     EXPECT_CALL(*mockChannel, Start()).WillOnce(Return(true));
@@ -153,7 +159,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, Start_003, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     EXPECT_CALL(*mockChannel, Start()).WillOnce(Return(false));
@@ -168,7 +175,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SubscribeIsAuthMaintainActive_001, Test
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     bool callbackInvoked = false;
@@ -182,7 +190,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, GetDeviceStatus_001, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     DeviceKey deviceKey;
@@ -200,7 +209,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, GetAllDeviceStatus_001, TestSize.Level0
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     auto allStatus = manager->GetAllDeviceStatus();
@@ -213,7 +223,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SubscribeAllDeviceStatus_001, TestSize.
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     bool callbackInvoked = false;
@@ -228,7 +239,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SetSubscribeMode_001, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     manager->SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
@@ -240,7 +252,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, GetManageSubscribeTime_001, TestSize.Le
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     auto subscribeTime = manager->GetManageSubscribeTime();
@@ -253,7 +266,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SubscribeDeviceStatus_001, TestSize.Lev
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     DeviceKey deviceKey;
@@ -273,7 +287,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, OpenConnection_001, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     DeviceKey deviceKey;
@@ -292,7 +307,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, CloseConnection_001, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     manager->CloseConnection("test-connection");
@@ -304,7 +320,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, IsConnectionOpen_001, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     bool result = manager->IsConnectionOpen("test-connection");
@@ -317,7 +334,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, GetConnectionStatus_001, TestSize.Level
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     auto status = manager->GetConnectionStatus("test-connection");
@@ -330,7 +348,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, GetLocalDeviceKeyByConnectionName_001, 
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     auto deviceKey = manager->GetLocalDeviceKeyByConnectionName("test-connection");
@@ -343,7 +362,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, GetLocalDeviceKeyByConnectionName_002, 
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     auto deviceKey = manager->GetLocalDeviceKeyByConnectionName("");
@@ -356,7 +376,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SubscribeConnectionStatus_001, TestSize
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     bool callbackInvoked = false;
@@ -371,7 +392,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SubscribeIncomingConnection_001, TestSi
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     bool callbackInvoked = false;
@@ -386,7 +408,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SendMessage_001, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     Attributes request;
@@ -400,7 +423,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SubscribeMessage_001, TestSize.Level0)
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     bool callbackInvoked = false;
@@ -415,7 +439,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, CheckOperationIntent_001, TestSize.Leve
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     DeviceKey deviceKey;
@@ -433,7 +458,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, CheckOperationIntent_002, TestSize.Leve
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     DeviceKey deviceKey;
@@ -452,7 +478,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, HostGetSecureProtocolId_001, TestSize.L
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     DeviceKey companionDeviceKey;
@@ -470,7 +497,8 @@ HWTEST_F(CrossDeviceCommManagerImplTest, CompanionGetSecureProtocolId_001, TestS
 
     auto mockChannel = SetupMockChannel();
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
-    auto manager = CrossDeviceCommManagerImpl::Create(channels);
+    auto manager = CrossDeviceCommManagerImpl::Create({ BusinessId::DEFAULT },
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, channels);
     ASSERT_NE(manager, nullptr);
 
     auto protocolId = manager->CompanionGetSecureProtocolId();

@@ -30,8 +30,8 @@ pub struct HostDeviceSyncStatusRequest {
     pub challenge: u64,
     pub salt: [u8; HKDF_SALT_SIZE],
     pub template_id: u64,
-    pub protocol_list: Vec<u16>,
-    pub capability_list: Vec<u16>,
+    pub expected_protocol_list: Vec<u16>,
+    pub expected_capability_list: Vec<u16>,
 }
 
 impl HostDeviceSyncStatusRequest {
@@ -53,12 +53,16 @@ impl HostDeviceSyncStatusRequest {
             challenge: u64::from_ne_bytes(challenge),
             salt,
             template_id: 0,
-            protocol_list: Vec::new(),
-            capability_list: SUPPORT_CAPABILITY.to_vec(),
+            expected_protocol_list: Vec::new(),
+            expected_capability_list: SUPPORT_CAPABILITY.to_vec(),
         })
     }
 
-    fn decode_sec_status_sync_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_status_sync_reply_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecCommonReply::decode(sec_message, device_type)?;
         let session_key = host_db_helper::get_session_key(self.template_id, device_type, &self.salt)?;
         let decrypt_data =
@@ -73,14 +77,14 @@ impl HostDeviceSyncStatusRequest {
         let protocol_list = decrypt_attribute
             .get_u16_vec(AttributeKey::AttrProtocolList)
             .map_err(|e| p!(e))?;
-        if protocol_list != self.protocol_list {
+        if protocol_list != self.expected_protocol_list {
             log_e!("Protocol verification failed");
             return Err(ErrorCode::GeneralError);
         }
         let capabilities = decrypt_attribute
             .get_u16_vec(AttributeKey::AttrCapabilityList)
             .map_err(|e| p!(e))?;
-        if capabilities != self.capability_list {
+        if capabilities != self.expected_capability_list {
             log_e!("Capabilities verification failed");
             return Err(ErrorCode::GeneralError);
         }
@@ -134,15 +138,18 @@ impl Request for HostDeviceSyncStatusRequest {
         };
 
         self.template_id = ffi_input.template_id;
-        self.protocol_list = Vec::<u16>::try_from(ffi_input.protocol_list).map_err(|e| {
+        let ffi_protocol_list = Vec::<u16>::try_from(ffi_input.protocol_list).map_err(|e| {
             log_e!("Failed to convert protocol_list: {:?}", e);
             ErrorCode::GeneralError
         })?;
 
-        self.capability_list = Vec::<u16>::try_from(ffi_input.capability_list).map_err(|e| {
+        let ffi_capability_list = Vec::<u16>::try_from(ffi_input.capability_list).map_err(|e| {
             log_e!("Failed to convert capability_list: {:?}", e);
             ErrorCode::GeneralError
         })?;
+
+        self.expected_protocol_list = ffi_protocol_list;
+        self.expected_capability_list = ffi_capability_list;
 
         if self.decode_sec_status_sync_reply(ffi_input.sec_message.as_slice()?).is_ok() {
             host_db_helper::update_companion_device_valid_flag(self.template_id, true)?;

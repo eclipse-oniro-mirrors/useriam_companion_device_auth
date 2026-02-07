@@ -30,6 +30,7 @@ fn create_mock_companion_device_info() -> CompanionDeviceInfo {
         added_time: 0,
         secure_protocol_id: 0,
         is_valid: false,
+        capability_list: Vec::new(),
     }
 }
 

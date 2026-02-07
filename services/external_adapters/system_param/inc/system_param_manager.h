@@ -31,7 +31,8 @@ namespace CompanionDeviceAuth {
 inline constexpr const char *TRUE_STR = "true";
 inline constexpr const char *FALSE_STR = "false";
 
-inline constexpr const char *IS_AUTH_MAINTAIN_ACTIVE_KEY = "companiondeviceauth.isAuthMaintainActive";
+inline constexpr const char *CDA_IS_AUTH_MAINTAIN_ACTIVE_KEY = "companiondeviceauth.isAuthMaintainActive";
+inline constexpr const char *CDA_IS_FUNCTION_READY_KEY = "companiondeviceauth.isFunctionReady";
 
 using SystemParamCallback = std::function<void(const std::string &value)>;
 

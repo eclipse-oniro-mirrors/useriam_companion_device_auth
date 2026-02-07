@@ -70,7 +70,7 @@ std::string GetMaskedString(const std::string &val)
     return std::string(maskedLen, '*') + GetTruncatedString(val);
 }
 
-std::string GetTruncatedString(uint32_t val)
+std::string GetTruncatedString(uint16_t val)
 {
     std::ostringstream ss;
     ss << std::setfill('0') << std::setw(TRUNCATED_WIDTH) << std::hex << val;

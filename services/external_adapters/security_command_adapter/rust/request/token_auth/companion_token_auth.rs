@@ -47,7 +47,11 @@ impl CompanionTokenAuthRequest {
         self.binding_id
     }
 
-    fn decode_sec_token_auth_request_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_auth_request_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecCommonRequest::decode(sec_message, device_type)?;
 
         let session_key = companion_db_helper::get_session_key(self.binding_id, &output.salt)?;

@@ -56,7 +56,7 @@ std::weak_ptr<OutboundRequest> HostSyncDeviceStatusRequest::GetWeakPtr()
 
 void HostSyncDeviceStatusRequest::InvokeCallback(ResultCode result, const SyncDeviceStatus &syncDeviceStatus)
 {
-    ENSURE_OR_RETURN(callback_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), callback_ != nullptr);
     TaskRunnerManager::GetInstance().PostTaskOnResident(
         [cb = std::move(callback_), result, status = syncDeviceStatus]() mutable {
             if (cb) {
@@ -67,7 +67,7 @@ void HostSyncDeviceStatusRequest::InvokeCallback(ResultCode result, const SyncDe
 
 void HostSyncDeviceStatusRequest::CompleteWithError(ResultCode result)
 {
-    ENSURE_OR_RETURN(result != SUCCESS);
+    ENSURE_OR_RETURN_DESC(GetDescription(), result != SUCCESS);
     InvokeCallback(result, {});
 
     IAM_LOGE("%{public}s complete with error result=%{public}d", GetDescription(), result);
@@ -114,7 +114,7 @@ void HostSyncDeviceStatusRequest::BeginCompanionCheck()
 bool HostSyncDeviceStatusRequest::SendSyncDeviceStatusRequest(const std::vector<uint8_t> &salt, uint64_t challenge)
 {
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
 
     auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
     SyncDeviceStatusRequest syncDeviceStatusRequest = {};
@@ -130,7 +130,7 @@ bool HostSyncDeviceStatusRequest::SendSyncDeviceStatusRequest(const std::vector<
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::SYNC_DEVICE_STATUS,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleSyncDeviceStatusReply(message);
         });
     if (!sendRet) {
@@ -146,11 +146,11 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyDataOpt = DecodeSyncDeviceStatusReply(reply);
-    ENSURE_OR_RETURN(replyDataOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), replyDataOpt.has_value());
     const auto &replyData = *replyDataOpt;
 
     bool handleRet = EndCompanionCheck(replyData);
-    ENSURE_OR_RETURN(handleRet);
+    ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
 
     SyncDeviceStatus syncDeviceStatus = {};
     syncDeviceStatus.deviceKey = replyData.companionDeviceKey;
@@ -168,8 +168,8 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
 
 bool HostSyncDeviceStatusRequest::EndCompanionCheck(const SyncDeviceStatusReply &reply)
 {
-    ENSURE_OR_RETURN_VAL(reply.result == ResultCode::SUCCESS, false);
-    ENSURE_OR_RETURN_VAL(GetPeerDeviceKey().has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), reply.result == ResultCode::SUCCESS, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
 
     auto companionStatus = GetCompanionManager().GetCompanionStatus(hostUserId_, companionDeviceKey_);
     if (!companionStatus) {

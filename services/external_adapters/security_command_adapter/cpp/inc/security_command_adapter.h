@@ -29,8 +29,6 @@ class ISecurityCommandAdapter : public NoCopyable {
 public:
     virtual ~ISecurityCommandAdapter() = default;
 
-    virtual ResultCode Initialize() = 0;
-    virtual void Finalize() = 0;
     virtual ResultCode InvokeCommand(int32_t commandId, const uint8_t *inputData, uint32_t inputDataLen,
         uint8_t *outputData, uint32_t outputDataLen) = 0;
 

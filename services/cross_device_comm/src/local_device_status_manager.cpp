@@ -32,9 +32,11 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-std::shared_ptr<LocalDeviceStatusManager> LocalDeviceStatusManager::Create(std::shared_ptr<ChannelManager> channelMgr)
+std::shared_ptr<LocalDeviceStatusManager> LocalDeviceStatusManager::Create(std::shared_ptr<ChannelManager> channelMgr,
+    const std::vector<Capability> &localCapabilities)
 {
-    auto manager = std::shared_ptr<LocalDeviceStatusManager>(new (std::nothrow) LocalDeviceStatusManager(channelMgr));
+    auto manager = std::shared_ptr<LocalDeviceStatusManager>(
+        new (std::nothrow) LocalDeviceStatusManager(channelMgr, localCapabilities));
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
 
     if (!manager->Initialize()) {
@@ -45,12 +47,14 @@ std::shared_ptr<LocalDeviceStatusManager> LocalDeviceStatusManager::Create(std::
     return manager;
 }
 
-LocalDeviceStatusManager::LocalDeviceStatusManager(std::shared_ptr<ChannelManager> channelMgr) : channelMgr_(channelMgr)
+LocalDeviceStatusManager::LocalDeviceStatusManager(std::shared_ptr<ChannelManager> channelMgr,
+    const std::vector<Capability> &localCapabilities)
+    : channelMgr_(channelMgr)
 {
     profile_.protocols = { ProtocolId::VERSION_1 };
     profile_.hostSecureProtocols = { SecureProtocolId::DEFAULT };
     profile_.companionSecureProtocolId = SecureProtocolId::INVALID;
-    profile_.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
+    profile_.capabilities = localCapabilities;
     profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     authState_.isAuthMaintainActive = false;
 }

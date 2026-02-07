@@ -28,8 +28,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class IpcAvailableDeviceStatusCallbackService : public IpcAvailableDeviceStatusCallbackStub {
 public:
-    explicit IpcAvailableDeviceStatusCallbackService(
-        int32_t userId, const std::shared_ptr<IAvailableDeviceStatusCallback> &impl);
+    explicit IpcAvailableDeviceStatusCallbackService(int32_t userId,
+        const std::shared_ptr<IAvailableDeviceStatusCallback> &impl);
     ~IpcAvailableDeviceStatusCallbackService() override = default;
 
     int32_t OnAvailableDeviceStatusChange(const std::vector<IpcDeviceStatus> &deviceStatusList) override;

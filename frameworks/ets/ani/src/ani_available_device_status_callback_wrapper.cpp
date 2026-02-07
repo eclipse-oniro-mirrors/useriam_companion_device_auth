@@ -15,16 +15,16 @@
 
 #include "iam_logger.h"
 
-#include "companion_device_auth_ani_helper.h"
 #include "available_device_status_callback_wrapper.h"
+#include "companion_device_auth_ani_helper.h"
 
 #define LOG_TAG "CDA_ANI"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-using AniAvailableDeviceStatusCallbackWrapper = AvailableDeviceStatusCallbackWrapper<::taihe::callback<void(
-    ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>>;
+using AniAvailableDeviceStatusCallbackWrapper = AvailableDeviceStatusCallbackWrapper<
+    ::taihe::callback<void(::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>>;
 
 template <>
 void AniAvailableDeviceStatusCallbackWrapper::OnAvailableDeviceStatusChange(

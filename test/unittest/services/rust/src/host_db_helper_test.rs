@@ -37,6 +37,7 @@ fn create_mock_companion_device_info(template_id: u64) -> CompanionDeviceInfo {
         added_time: 123456,
         secure_protocol_id: 1,
         is_valid: true,
+        capability_list: vec![1, 2, 3],
     }
 }
 

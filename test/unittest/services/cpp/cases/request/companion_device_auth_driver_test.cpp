@@ -34,7 +34,7 @@ namespace {
 
 class FakeUserIdManager : public IUserIdManager {
 public:
-    bool Initialize() override
+    bool Initialize()
     {
         return true;
     }

@@ -109,8 +109,8 @@ int32_t CompanionDeviceAuthClientImpl::UnregisterDeviceSelectCallback()
     return ret;
 }
 
-int32_t CompanionDeviceAuthClientImpl::UpdateTemplateEnabledBusinessIds(
-    uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds)
+int32_t CompanionDeviceAuthClientImpl::UpdateTemplateEnabledBusinessIds(uint64_t templateId,
+    const std::vector<int32_t> &enabledBusinessIds)
 {
     IAM_LOGI("start, templateId:%{public}s, enabledBusinessIds size:%{public}zu", GET_MASKED_NUM_CSTR(templateId),
         enabledBusinessIds.size());
@@ -153,8 +153,8 @@ void CompanionDeviceAuthClientImpl::PrintIpcTemplateStatus(const IpcTemplateStat
         ipcTemplateStatus.localUserId, ipcTemplateStatus.addedTime, ipcTemplateStatus.enabledBusinessIds.size());
 }
 
-int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(
-    int32_t userId, std::vector<ClientTemplateStatus> &templateStatusList)
+int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(int32_t userId,
+    std::vector<ClientTemplateStatus> &templateStatusList)
 {
     IAM_LOGI("start");
     auto proxy = GetProxy();
@@ -230,8 +230,8 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChangeInner(
     return ret;
 }
 
-int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChange(
-    int32_t userId, const std::shared_ptr<ITemplateStatusCallback> &callback)
+int32_t CompanionDeviceAuthClientImpl::SubscribeTemplateStatusChange(int32_t userId,
+    const std::shared_ptr<ITemplateStatusCallback> &callback)
 {
     IAM_LOGI("start, userId:%{public}d", userId);
     if (!callback) {

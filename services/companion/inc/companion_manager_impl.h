@@ -61,6 +61,7 @@ public:
     ResultCode UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg, bool &needRedistribute) override;
 
     ResultCode HandleCompanionCheckFail(TemplateId templateId) override;
+    bool IsCapabilitySupported(TemplateId templateId, Capability capability) override;
 
     void StartIssueTokenRequests(const std::vector<TemplateId> &templateIds,
         const std::vector<uint8_t> &fwkUnlockMsg) override;

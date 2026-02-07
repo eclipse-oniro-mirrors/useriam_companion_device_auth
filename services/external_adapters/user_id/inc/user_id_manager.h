@@ -38,7 +38,6 @@ public:
 
     static std::shared_ptr<IUserIdManager> Create();
 
-    virtual bool Initialize() = 0;
     virtual UserId GetActiveUserId() const = 0;
     virtual std::string GetActiveUserName() const = 0;
     virtual std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) = 0;

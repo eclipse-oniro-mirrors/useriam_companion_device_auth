@@ -22,14 +22,19 @@ namespace CompanionDeviceAuth {
 template <typename T>
 class CallbackWrapper {
 public:
-    CallbackWrapper(T callback) : callback_(callback) {}
+    CallbackWrapper(T callback) : callback_(callback)
+    {
+    }
     ~CallbackWrapper() = default;
 
     bool operator==(const CallbackWrapper &other) const
     {
         return callback_ == other.GetCallback();
     }
-    const T &GetCallback() const { return callback_; }
+    const T &GetCallback() const
+    {
+        return callback_;
+    }
 
 private:
     T callback_;

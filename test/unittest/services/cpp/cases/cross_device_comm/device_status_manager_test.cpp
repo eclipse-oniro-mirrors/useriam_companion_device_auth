@@ -78,7 +78,8 @@ protected:
         }));
         ON_CALL(ctx.guard->GetUserIdManager(), GetActiveUserId).WillByDefault(Return(activeUserId_));
 
-        ctx.localStatusManager = LocalDeviceStatusManager::Create(ctx.channelMgr);
+        ctx.localStatusManager = LocalDeviceStatusManager::Create(ctx.channelMgr,
+            { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN });
         EXPECT_NE(ctx.localStatusManager, nullptr);
 
         ctx.connectionMgr = ConnectionManager::Create(ctx.channelMgr, ctx.localStatusManager);
@@ -88,7 +89,8 @@ protected:
             return ctx.nextSubscriptionId++;
         });
 
-        ctx.manager = DeviceStatusManager::Create(ctx.connectionMgr, ctx.channelMgr, ctx.localStatusManager);
+        ctx.manager = DeviceStatusManager::Create({ BusinessId::DEFAULT }, ctx.connectionMgr, ctx.channelMgr,
+            ctx.localStatusManager);
         if (ctx.manager == nullptr) {
             return ctx;
         }
@@ -536,7 +538,8 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonCapabilities, TestSiz
     auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
 
     SyncDeviceStatus syncStatus;
-    syncStatus.protocolIdList = { ProtocolId::VERSION_1 };
+    // Use incompatible protocol to trigger sync failure
+    syncStatus.protocolIdList = { static_cast<ProtocolId>(INT32_999) };
     syncStatus.capabilityList = { Capability::DELEGATE_AUTH };
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -642,7 +645,8 @@ HWTEST_F(DeviceStatusManagerTest, CollectFilteredDevices_NullChannel, TestSize.L
     auto channelMgrWithNull = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
         std::static_pointer_cast<ICrossDeviceChannel>(ctx.mockChannel), nullptr });
 
-    auto mgr = DeviceStatusManager::Create(ctx.connectionMgr, channelMgrWithNull, ctx.localStatusManager);
+    auto mgr = DeviceStatusManager::Create({ BusinessId::DEFAULT }, ctx.connectionMgr, channelMgrWithNull,
+        ctx.localStatusManager);
     ASSERT_NE(mgr, nullptr);
     mgr->activeUserId_ = activeUserId_;
     mgr->SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
@@ -693,31 +697,6 @@ HWTEST_F(DeviceStatusManagerTest, NegotiateProtocol_MultipleProtocols, TestSize.
 
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ(ProtocolId::INVALID, result.value());
-}
-
-HWTEST_F(DeviceStatusManagerTest, NegotiateCapabilities_MultipleCapabilities, TestSize.Level0)
-{
-    auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH,
-        Capability::INVALID };
-
-    std::vector<Capability> remoteCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
-    auto result = ctx.manager->NegotiateCapabilities(remoteCapabilities);
-
-    EXPECT_EQ(2u, result.size());
-    EXPECT_TRUE(std::find(result.begin(), result.end(), Capability::DELEGATE_AUTH) != result.end());
-    EXPECT_TRUE(std::find(result.begin(), result.end(), Capability::TOKEN_AUTH) != result.end());
-}
-
-HWTEST_F(DeviceStatusManagerTest, NegotiateCapabilities_NoCommon, TestSize.Level0)
-{
-    auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH };
-
-    std::vector<Capability> remoteCapabilities = { Capability::DELEGATE_AUTH };
-    auto result = ctx.manager->NegotiateCapabilities(remoteCapabilities);
-
-    EXPECT_EQ(0u, result.size());
 }
 
 HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_MultipleSynced, TestSize.Level0)

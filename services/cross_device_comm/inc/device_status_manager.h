@@ -46,8 +46,9 @@ namespace CompanionDeviceAuth {
 // Remote device status management and subscription mode control
 class DeviceStatusManager : public std::enable_shared_from_this<DeviceStatusManager>, public NoCopyable {
 public:
-    static std::shared_ptr<DeviceStatusManager> Create(std::shared_ptr<ConnectionManager> connectionMgr,
-        std::shared_ptr<ChannelManager> channelMgr, std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr);
+    static std::shared_ptr<DeviceStatusManager> Create(const std::vector<BusinessId> &defaultBusinessIds,
+        std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
+        std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr);
 
     ~DeviceStatusManager();
 
@@ -74,7 +75,8 @@ private:
         OnDeviceStatusChange callback;
     };
 
-    DeviceStatusManager(std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
+    DeviceStatusManager(const std::vector<BusinessId> &defaultBusinessIds,
+        std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
         std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr);
 
     bool Initialize();
@@ -89,7 +91,6 @@ private:
     bool UnsubscribeDeviceStatus(SubscribeId subscriptionId);
 
     std::optional<ProtocolId> NegotiateProtocol(const std::vector<ProtocolId> &remoteProtocols);
-    std::vector<Capability> NegotiateCapabilities(const std::vector<Capability> &remoteCapabilities);
 
     DeviceKey MakeTemporaryDeviceKey(const PhysicalDeviceKey &physicalKey);
 
@@ -111,6 +112,7 @@ private:
     std::optional<SteadyTimeMs> manageSubscribeTime_;
     std::vector<DeviceStatusSubscriptionInfo> subscriptions_;
     std::unique_ptr<Subscription> periodicSyncTimerSubscription_;
+    std::vector<BusinessId> defaultBusinessIds_;
 
     std::unique_ptr<Subscription> activeUserIdSubscription_;
     std::map<ChannelId, std::unique_ptr<Subscription>> channelSubscriptions_;

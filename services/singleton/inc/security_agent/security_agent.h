@@ -24,6 +24,12 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+
+class Companion;
+class CompanionManagerImpl;
+class HostBinding;
+class HostBindingManagerImpl;
+
 // Framework interaction input/output structs
 struct SetActiveUserInput {
     UserId userId;
@@ -123,6 +129,8 @@ struct HostEndAddCompanionInput {
     RequestId requestId;
     PersistedCompanionStatus companionStatus;
     SecureProtocolId secureProtocolId;
+    std::vector<uint16_t> protocolVersionList;
+    std::vector<uint16_t> capabilityList;
     std::vector<uint8_t> addHostBindingReply;
 };
 
@@ -422,14 +430,9 @@ public:
     virtual ~ISecurityAgent() = default;
 
     // Framework interaction
-    virtual ResultCode Init() = 0;
     virtual ResultCode SetActiveUser(const SetActiveUserInput &input) = 0;
     virtual ResultCode HostGetExecutorInfo(HostGetExecutorInfoOutput &output) = 0;
     virtual ResultCode HostOnRegisterFinish(const RegisterFinishInput &input) = 0;
-    virtual ResultCode HostGetPersistedCompanionStatus(const HostGetPersistedCompanionStatusInput &input,
-        HostGetPersistedCompanionStatusOutput &output) = 0;
-    virtual ResultCode CompanionGetPersistedHostBindingStatus(const CompanionGetPersistedHostBindingStatusInput &input,
-        CompanionGetPersistedHostBindingStatusOutput &output) = 0;
 
     // Companion check
     virtual ResultCode HostBeginCompanionCheck(const HostBeginCompanionCheckInput &input,
@@ -443,23 +446,10 @@ public:
     // Add companion device (binding)
     virtual ResultCode HostGetInitKeyNegotiationRequest(const HostGetInitKeyNegotiationRequestInput &input,
         HostGetInitKeyNegotiationRequestOutput &output) = 0;
-    virtual ResultCode HostBeginAddCompanion(const HostBeginAddCompanionInput &input,
-        HostBeginAddCompanionOutput &output) = 0;
-    virtual ResultCode HostEndAddCompanion(const HostEndAddCompanionInput &input,
-        HostEndAddCompanionOutput &output) = 0;
     virtual ResultCode HostCancelAddCompanion(const HostCancelAddCompanionInput &input) = 0;
 
     virtual ResultCode CompanionInitKeyNegotiation(const CompanionInitKeyNegotiationInput &input,
         CompanionInitKeyNegotiationOutput &output) = 0;
-    virtual ResultCode CompanionBeginAddHostBinding(const CompanionBeginAddHostBindingInput &input,
-        CompanionBeginAddHostBindingOutput &output) = 0;
-    virtual ResultCode CompanionEndAddHostBinding(const CompanionEndAddHostBindingInput &input,
-        CompanionEndAddHostBindingOutput &output) = 0;
-
-    // Delete companion device (unbinding)
-    virtual ResultCode HostRemoveCompanion(const HostRemoveCompanionInput &input,
-        HostRemoveCompanionOutput &output) = 0;
-    virtual ResultCode CompanionRemoveHostBinding(const CompanionRemoveHostBindingInput &input) = 0;
 
     // Delegate auth
     virtual ResultCode HostBeginDelegateAuth(const HostBeginDelegateAuthInput &input,
@@ -501,24 +491,42 @@ public:
     // Token auth
     virtual ResultCode HostBeginTokenAuth(const HostBeginTokenAuthInput &input, HostBeginTokenAuthOutput &output) = 0;
     virtual ResultCode HostEndTokenAuth(const HostEndTokenAuthInput &input, HostEndTokenAuthOutput &output) = 0;
-    virtual ResultCode HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output) = 0;
 
     virtual ResultCode CompanionProcessTokenAuth(const CompanionProcessTokenAuthInput &input,
         CompanionProcessTokenAuthOutput &output) = 0;
 
     // Update companion device status
-    virtual ResultCode HostUpdateCompanionStatus(const HostUpdateCompanionStatusInput &input) = 0;
-    virtual ResultCode HostUpdateCompanionEnabledBusinessIds(
-        const HostUpdateCompanionEnabledBusinessIdsInput &input) = 0;
     virtual ResultCode HostCheckTemplateEnrolled(const HostCheckTemplateEnrolledInput &input,
         HostCheckTemplateEnrolledOutput &output) = 0;
 
-    // Revoke token
-    virtual ResultCode HostRevokeToken(const HostRevokeTokenInput &input) = 0;
-    virtual ResultCode CompanionRevokeToken(const CompanionRevokeTokenInput &input) = 0;
-
 private:
-    virtual bool Initialize() = 0;
+    friend class Companion;
+    friend class CompanionManagerImpl;
+    friend class HostBinding;
+    friend class HostBindingManagerImpl;
+
+    virtual ResultCode HostGetPersistedCompanionStatus(const HostGetPersistedCompanionStatusInput &input,
+        HostGetPersistedCompanionStatusOutput &output) = 0;
+    virtual ResultCode HostBeginAddCompanion(const HostBeginAddCompanionInput &input,
+        HostBeginAddCompanionOutput &output) = 0;
+    virtual ResultCode HostEndAddCompanion(const HostEndAddCompanionInput &input,
+        HostEndAddCompanionOutput &output) = 0;
+    virtual ResultCode HostRemoveCompanion(const HostRemoveCompanionInput &input,
+        HostRemoveCompanionOutput &output) = 0;
+    virtual ResultCode HostUpdateCompanionStatus(const HostUpdateCompanionStatusInput &input) = 0;
+    virtual ResultCode HostUpdateCompanionEnabledBusinessIds(
+        const HostUpdateCompanionEnabledBusinessIdsInput &input) = 0;
+    virtual ResultCode HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output) = 0;
+    virtual ResultCode HostRevokeToken(const HostRevokeTokenInput &input) = 0;
+
+    virtual ResultCode CompanionGetPersistedHostBindingStatus(const CompanionGetPersistedHostBindingStatusInput &input,
+        CompanionGetPersistedHostBindingStatusOutput &output) = 0;
+    virtual ResultCode CompanionBeginAddHostBinding(const CompanionBeginAddHostBindingInput &input,
+        CompanionBeginAddHostBindingOutput &output) = 0;
+    virtual ResultCode CompanionEndAddHostBinding(const CompanionEndAddHostBindingInput &input,
+        CompanionEndAddHostBindingOutput &output) = 0;
+    virtual ResultCode CompanionRemoveHostBinding(const CompanionRemoveHostBindingInput &input) = 0;
+    virtual ResultCode CompanionRevokeToken(const CompanionRevokeTokenInput &input) = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

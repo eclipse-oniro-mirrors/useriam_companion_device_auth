@@ -65,6 +65,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_001, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
         .WillOnce(Return(std::make_optional(deviceStatus_)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
@@ -105,6 +106,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_003, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
         .WillOnce(Return(std::make_optional(deviceStatus_)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
@@ -126,6 +128,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_004, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
         .WillOnce(Return(std::make_optional(deviceStatus_)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _))
@@ -150,6 +153,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_005, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillOnce(Return(std::nullopt));
 
     ErrorGuard errorGuard([](ResultCode) {});

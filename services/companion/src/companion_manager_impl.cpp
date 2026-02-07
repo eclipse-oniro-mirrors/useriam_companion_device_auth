@@ -129,7 +129,7 @@ std::optional<CompanionStatus> CompanionManagerImpl::GetCompanionStatus(UserId h
 {
     auto companion = FindCompanionByDeviceUser(hostUserId, companionDeviceKey);
     if (companion == nullptr) {
-        IAM_LOGE("companion not found for device-user combination");
+        IAM_LOGW("companion not found for device-user combination");
         return std::nullopt;
     }
 
@@ -237,6 +237,8 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
     HostEndAddCompanionInput secInput { .requestId = input.requestId,
         .companionStatus = input.companionStatus,
         .secureProtocolId = input.secureProtocolId,
+        .protocolVersionList = input.protocolVersionList,
+        .capabilityList = input.capabilityList,
         .addHostBindingReply = input.addHostBindingReply };
 
     HostEndAddCompanionOutput secOutput {};
@@ -409,6 +411,25 @@ ResultCode CompanionManagerImpl::HandleCompanionCheckFail(TemplateId templateId)
     return ResultCode::SUCCESS;
 }
 
+bool CompanionManagerImpl::IsCapabilitySupported(TemplateId templateId, Capability capability)
+{
+    auto companionStatus = GetCompanionStatus(templateId);
+    if (!companionStatus.has_value()) {
+        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
+        return false;
+    }
+
+    auto it = std::find(companionStatus->companionDeviceStatus.capabilities.begin(),
+        companionStatus->companionDeviceStatus.capabilities.end(), capability);
+    if (it == companionStatus->companionDeviceStatus.capabilities.end()) {
+        IAM_LOGE("capability %{public}u not supported by companion device %{public}s",
+            static_cast<uint16_t>(capability), GET_MASKED_NUM_CSTR(templateId));
+        return false;
+    }
+
+    return true;
+}
+
 void CompanionManagerImpl::OnActiveUserIdChanged(UserId userId)
 {
     if (userId == hostUserId_) {
@@ -575,6 +596,13 @@ void CompanionManagerImpl::StartIssueTokenRequests(const std::vector<uint64_t> &
         CompanionStatus companionStatus = companion->GetStatus();
         if (!companionStatus.isValid) {
             IAM_LOGW("companion %{public}s is invalid, skip", companion->GetDescription());
+            continue;
+        }
+
+        auto it2 = std::find(companionStatus.companionDeviceStatus.capabilities.begin(),
+            companionStatus.companionDeviceStatus.capabilities.end(), Capability::TOKEN_AUTH);
+        if (it2 == companionStatus.companionDeviceStatus.capabilities.end()) {
+            IAM_LOGI("companion %{public}s does not support TOKEN_AUTH, skip", companion->GetDescription());
             continue;
         }
 

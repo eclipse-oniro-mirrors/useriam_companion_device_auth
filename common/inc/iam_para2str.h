@@ -30,7 +30,7 @@ const int SETW_VAL = 2;
 std::string GetMaskedString(uint16_t val);
 std::string GetTruncatedString(const std::string &val);
 std::string GetMaskedString(const std::string &val);
-std::string GetTruncatedString(uint32_t val);
+std::string GetTruncatedString(uint16_t val);
 std::string GetPointerNullStateString(void *p);
 const char *GetBoolStr(bool val);
 std::string GetUint8ArrayStr(const std::vector<uint8_t> &val);
@@ -40,6 +40,7 @@ void PrintUint8ArrayStr(const char *prefix, const std::vector<uint8_t> &val);
 #define GET_MASKED_NUM_CSTR(val) GET_MASKED_NUM_STRING(val).c_str()
 #define GET_MASKED_STR_STRING(val) GetMaskedString(val)
 #define GET_MASKED_STR_CSTR(val) GetMaskedString(val).c_str()
+#define GET_TRUNCATED_NUM_STR(val) GetTruncatedString(static_cast<uint16_t>(val))
 #define GET_TRUNCATED_STRING(val) GetTruncatedString(static_cast<uint16_t>(val))
 #define GET_TRUNCATED_CSTR(val) GET_TRUNCATED_STRING(val).c_str()
 

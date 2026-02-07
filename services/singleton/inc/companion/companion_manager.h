@@ -47,6 +47,8 @@ struct EndAddCompanionInput {
     RequestId requestId;
     PersistedCompanionStatus companionStatus;
     SecureProtocolId secureProtocolId;
+    std::vector<uint16_t> protocolVersionList;
+    std::vector<uint16_t> capabilityList;
     std::vector<uint8_t> addHostBindingReply;
 };
 
@@ -86,6 +88,7 @@ public:
     virtual void StartIssueTokenRequests(const std::vector<TemplateId> &templateIds,
         const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual ResultCode HandleCompanionCheckFail(TemplateId templateId) = 0;
+    virtual bool IsCapabilitySupported(TemplateId templateId, Capability capability) = 0;
 
     virtual void NotifyCompanionStatusChange() = 0;
     virtual void HandleRemoveHostBindingComplete(TemplateId templateId) = 0;

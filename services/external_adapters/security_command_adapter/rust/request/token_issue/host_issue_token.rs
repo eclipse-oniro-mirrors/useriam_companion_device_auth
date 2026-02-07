@@ -100,7 +100,11 @@ impl HostDeviceIssueTokenRequest {
         Ok(output)
     }
 
-    fn decode_sec_pre_issue_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_pre_issue_reply_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecCommonReply::decode(sec_message, device_type)?;
 
         let session_key = host_db_helper::get_session_key(self.token_issue_param.template_id, device_type, &self.salt)?;
@@ -157,7 +161,11 @@ impl HostDeviceIssueTokenRequest {
         Ok(output)
     }
 
-    fn decode_issue_token_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_issue_token_reply_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecIssueTokenReply::decode(sec_message, device_type)?;
         if output.result != 0 {
             log_e!("issue token returned error: {}", output.result);
@@ -196,6 +204,8 @@ impl Request for HostDeviceIssueTokenRequest {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
+
+        host_db_helper::check_device_capability(self.token_issue_param.template_id, Capability::TokenAuth)?;
 
         self.decode_fwk_token_issue_request(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.encode_sec_token_pre_issue_request()?;

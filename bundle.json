@@ -26,6 +26,10 @@
       "SystemCapability.UserIAM.UserAuth.CompanionDeviceAuth"
     ],
     "features":[
+      "companion_device_auth_enable_auth_state_maintain_simulation",
+      "companion_device_auth_enable_dynamic_load",
+      "companion_device_auth_enable_coverage",
+      "companion_device_auth_role_companion_only"
     ],
     "rom":"3380KB",
     "ram":"7271KB",
@@ -35,11 +39,9 @@
         "ability_runtime",
         "access_token",
         "ace_engine",
-        "bluetooth",
         "c_utils",
         "device_manager",
         "dsoftbus",
-        "ets_frontend",
         "hiappevent",
         "hicollie",
         "hilog",
@@ -67,14 +69,19 @@
           "//base/useriam/companion_device_auth/frameworks/ets/ani:companion_device_auth_ani"
         ],
         "service_group":[
-          "//base/useriam/companion_device_auth/sa_profile:companion_device_auth_sa_profile",
-          "//base/useriam/companion_device_auth/services:companiondeviceauthservice",
           "//base/useriam/companion_device_auth/frameworks/native/client:companion_device_auth_client",
-          "//base/useriam/companion_device_auth/sa_profile:companion_device_auth_sa_profile.init",
+          "//base/useriam/companion_device_auth/services:companion_device_auth_service_group",
+          "//base/useriam/companion_device_auth/sa_profile:sa_profile_group",
           "//base/useriam/companion_device_auth/param:param_files"
         ]
       },
       "inner_kits":[
+        {
+          "name":"//base/useriam/companion_device_auth/common:companion_device_auth_common"
+        },
+        {
+          "name":"//base/useriam/companion_device_auth/services:companion_device_auth_service_static"
+        }
       ],
       "test":[
         "//base/useriam/companion_device_auth/test/unittest:companion_device_auth_unittest",

@@ -42,7 +42,7 @@ namespace CompanionDeviceAuth {
 std::shared_ptr<HostBinding> HostBinding::Create(const PersistedHostBindingStatus &persistedStatus)
 {
     auto binding = std::shared_ptr<HostBinding>(new (std::nothrow) HostBinding(persistedStatus));
-    ENSURE_OR_RETURN_VAL(binding != nullptr, nullptr);
+    ENSURE_OR_RETURN_DESC_VAL(binding->GetDescription(), binding != nullptr, nullptr);
 
     if (!binding->Initialize()) {
         IAM_LOGE("%{public}s failed to initialize", binding->GetDescription());
@@ -75,7 +75,7 @@ bool HostBinding::Initialize()
     deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(status_.hostDeviceStatus.deviceKey,
         [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleDeviceStatusChanged(deviceStatusList);
         });
     if (deviceStatusSubscription_ == nullptr) {
@@ -89,7 +89,7 @@ bool HostBinding::Initialize()
     localDeviceStatusSubscription_ =
         GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive([weakSelf = weak_from_this()](bool isActive) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleAuthMaintainActiveChanged(isActive);
         });
     if (localDeviceStatusSubscription_ == nullptr) {
@@ -157,7 +157,7 @@ void HostBinding::SetTokenValid(bool isTokenValid)
 
         const DeviceKey &hostDeviceKey = status_.hostDeviceStatus.deviceKey;
         auto request = GetRequestFactory().CreateCompanionRevokeTokenRequest(status_.companionUserId, hostDeviceKey);
-        ENSURE_OR_RETURN(request != nullptr);
+        ENSURE_OR_RETURN_DESC(GetDescription(), request != nullptr);
 
         bool result = GetRequestManager().Start(request);
         if (!result) {

@@ -69,6 +69,8 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -103,6 +105,8 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_)).WillOnce(Return(std::nullopt));
 
     ErrorGuard errorGuard([](ResultCode) {});
@@ -119,6 +123,8 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -147,6 +153,8 @@ HWTEST_F(HostDelegateAuthRequestTest, OnConnected_001, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -185,6 +193,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_001, TestSize.Level0
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -224,6 +234,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_002, TestSize.Level0
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -266,6 +278,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_003, TestSize.Level0
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -302,6 +316,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_001, TestSize
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -341,6 +357,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_002, TestSize
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -380,6 +398,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_003, TestSize
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -410,6 +430,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_001, TestSiz
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -445,6 +467,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_002, TestSiz
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -473,6 +497,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_003, TestSiz
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -507,6 +533,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_004, TestSiz
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -543,6 +571,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequestMsg_001, Test
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -584,6 +614,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequestMsg_002, Test
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::DELEGATE_AUTH))
+        .WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));

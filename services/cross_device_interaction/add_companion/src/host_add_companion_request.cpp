@@ -25,6 +25,7 @@
 #include "error_guard.h"
 #include "misc_manager.h"
 #include "security_agent.h"
+#include "service_converter.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -47,10 +48,10 @@ bool HostAddCompanionRequest::OnStart([[maybe_unused]] ErrorGuard &errorGuard)
     bool selectorSet = GetMiscManager().GetDeviceDeviceSelectResult(tokenId_, SelectPurpose::SELECT_ADD_DEVICE,
         [weakSelf = weak_from_this()](const std::vector<DeviceKey> &selectedDevices) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleDeviceSelectResult(selectedDevices);
         });
-    ENSURE_OR_RETURN_VAL(selectorSet, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), selectorSet, false);
     return true;
 }
 
@@ -81,13 +82,13 @@ void HostAddCompanionRequest::OnConnected()
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto hostDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN(hostDeviceKeyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), hostDeviceKeyOpt.has_value());
     hostDeviceKey_ = hostDeviceKeyOpt.value();
 
     auto peerDeviceKeyOpt = GetPeerDeviceKey();
-    ENSURE_OR_RETURN(peerDeviceKeyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKeyOpt.has_value());
     auto secureProtocolIdOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(peerDeviceKeyOpt.value());
-    ENSURE_OR_RETURN(secureProtocolIdOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), secureProtocolIdOpt.has_value());
     secureProtocolId_ = *secureProtocolIdOpt;
 
     HostGetInitKeyNegotiationRequestInput input = {
@@ -112,7 +113,7 @@ void HostAddCompanionRequest::OnConnected()
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::INIT_KEY_NEGOTIATION,
         request, [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleInitKeyNegotiationReply(reply);
         });
     if (!sendRet) {
@@ -134,7 +135,7 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto initReplyOpt = DecodeInitKeyNegotiationReply(reply);
-    ENSURE_OR_RETURN(initReplyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), initReplyOpt.has_value());
 
     const auto &initReply = *initReplyOpt;
     if (initReply.result != ResultCode::SUCCESS) {
@@ -145,11 +146,11 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     }
 
     auto companionDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN(companionDeviceKey.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), companionDeviceKey.has_value());
 
     std::vector<uint8_t> addHostBindingRequest;
     bool ret = BeginAddCompanion(initReply, addHostBindingRequest, errorGuard);
-    ENSURE_OR_RETURN(ret);
+    ENSURE_OR_RETURN_DESC(GetDescription(), ret);
 
     BeginAddHostBindingRequest beginRequest = { .companionUserId = companionDeviceKey->deviceUserId,
         .extraInfo = std::move(addHostBindingRequest) };
@@ -159,7 +160,7 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::BEGIN_ADD_HOST_BINDING,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleBeginAddHostBindingReply(message);
         });
     if (!sendRet) {
@@ -174,7 +175,7 @@ bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &r
     std::vector<uint8_t> &addHostBindingRequest, ErrorGuard &errorGuard)
 {
     auto companionDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionDeviceKey.has_value(), false);
 
     BeginAddCompanionParams params = {};
     params.requestId = GetRequestId();
@@ -199,7 +200,7 @@ void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &r
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto beginReplyOpt = DecodeBeginAddHostBindingReply(reply);
-    ENSURE_OR_RETURN(beginReplyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), beginReplyOpt.has_value());
 
     if (beginReplyOpt->result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s companion check failed result=%{public}d", GetDescription(),
@@ -209,7 +210,7 @@ void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &r
     }
 
     bool handleRet = EndAddCompanion(*beginReplyOpt, addCompanionFwkMsg_);
-    ENSURE_OR_RETURN(handleRet);
+    ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
 
     bool sendRet = SendEndAddHostBindingMsg(ResultCode::SUCCESS);
     if (!sendRet) {
@@ -223,10 +224,10 @@ void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &r
 bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &reply, std::vector<uint8_t> &fwkMsg)
 {
     auto companionDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionDeviceKey.has_value(), false);
 
     auto deviceStatus = GetCrossDeviceCommManager().GetDeviceStatus(*companionDeviceKey);
-    ENSURE_OR_RETURN_VAL(deviceStatus.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), deviceStatus.has_value(), false);
 
     PersistedCompanionStatus companionStatus = {};
     companionStatus.hostUserId = hostDeviceKey_.deviceUserId;
@@ -237,9 +238,14 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
     companionStatus.deviceName = deviceStatus->deviceName;
     companionStatus.isValid = true;
 
+    std::vector<uint16_t> protocolVersionList = { static_cast<uint16_t>(deviceStatus->protocolId) };
+    std::vector<uint16_t> capabilityList = CapabilityConverter::ToUnderlyingVec(deviceStatus->capabilities);
+
     EndAddCompanionInput input = { .requestId = GetRequestId(),
         .companionStatus = companionStatus,
         .secureProtocolId = secureProtocolId_,
+        .protocolVersionList = protocolVersionList,
+        .capabilityList = capabilityList,
         .addHostBindingReply = std::move(reply.extraInfo) };
     EndAddCompanionOutput output = {};
     ResultCode ret = GetCompanionManager().EndAddCompanion(input, output);
@@ -250,6 +256,7 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
     needCancelCompanionAdd_ = false;
     needCancelIssueToken_ = true;
     templateId_ = output.templateId;
+    UpdateDescription(GenerateDescription(requestType_, requestId_, GetConnectionName(), templateId_));
 
     fwkMsg = std::move(output.fwkMsg);
     pendingTokenData_ = std::move(output.tokenData);
@@ -260,7 +267,7 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
 bool HostAddCompanionRequest::SendEndAddHostBindingMsg(ResultCode result)
 {
     auto companionDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionDeviceKey.has_value(), false);
 
     EndAddHostBindingRequest requestMsg = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionDeviceKey->deviceUserId,
@@ -272,7 +279,7 @@ bool HostAddCompanionRequest::SendEndAddHostBindingMsg(ResultCode result)
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::END_ADD_HOST_BINDING,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleEndAddHostBindingReply(message);
         });
     if (!sendRet) {
@@ -288,7 +295,7 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
 
     IAM_LOGI("%{public}s start", GetDescription());
     auto replyMsgOpt = DecodeEndAddHostBindingReply(reply);
-    ENSURE_OR_RETURN(replyMsgOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), replyMsgOpt.has_value());
 
     const auto &replyMsg = *replyMsgOpt;
 
@@ -299,7 +306,7 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
         return;
     }
 
-    ENSURE_OR_RETURN(templateId_ != 0);
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_ != 0);
     GetCompanionManager().SetCompanionTokenAtl(templateId_, tokenAtl_);
     needCancelIssueToken_ = false;
     IAM_LOGI("%{public}s token activated successfully", GetDescription());
@@ -310,7 +317,7 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
 
 void HostAddCompanionRequest::InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo)
 {
-    ENSURE_OR_RETURN(requestCallback_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), requestCallback_ != nullptr);
     TaskRunnerManager::GetInstance().PostTaskOnResident(
         [cb = std::move(requestCallback_), result, extra = extraInfo]() mutable {
             if (cb) {

@@ -21,9 +21,9 @@
 
 #include "iam_logger.h"
 
+#include "available_device_status_callback_holder.h"
 #include "common_defines.h"
 #include "companion_device_auth_client.h"
-#include "available_device_status_callback_holder.h"
 #include "continuous_auth_status_callback_holder.h"
 #include "template_status_callback_holder.h"
 
@@ -56,7 +56,9 @@ public:
     explicit StatusMonitor(int32_t userId)
         : userId_(userId),
           templateStatusCallbackHodler_(std::make_shared<TemplateStatusCallbackHolder<T>>()),
-          availableDeviceStatusCallbackHodler_(std::make_shared<AvailableDeviceStatusCallbackHolder<A>>()) {}
+          availableDeviceStatusCallbackHodler_(std::make_shared<AvailableDeviceStatusCallbackHolder<A>>())
+    {
+    }
     ~StatusMonitor() = default;
 
     int32_t GetTemplateStatus(std::vector<ClientTemplateStatus> &clientTemplateStatusList)
@@ -74,69 +76,57 @@ public:
     int32_t OnTemplateChange(const std::shared_ptr<TemplateStatusCallbackWrapper<T>> &callback)
     {
         IAM_LOGI("start");
-        return templateStatusCallbackHodler_->AddCallback(
-            callback,
-            [this]() {
-                int32_t ret = CompanionDeviceAuthClient::GetInstance()
-                    .SubscribeTemplateStatusChange(userId_, templateStatusCallbackHodler_);
-                if (ret != SUCCESS) {
-                    IAM_LOGE("SubscribeTemplateStatusChange fail, ret:%{public}d", ret);
-                }
-                return ret;
+        return templateStatusCallbackHodler_->AddCallback(callback, [this]() {
+            int32_t ret = CompanionDeviceAuthClient::GetInstance().SubscribeTemplateStatusChange(userId_,
+                templateStatusCallbackHodler_);
+            if (ret != SUCCESS) {
+                IAM_LOGE("SubscribeTemplateStatusChange fail, ret:%{public}d", ret);
             }
-        );
+            return ret;
+        });
     }
 
     int32_t OffTemplateChange(const std::shared_ptr<TemplateStatusCallbackWrapper<T>> &callback)
     {
         IAM_LOGI("start");
-        return templateStatusCallbackHodler_->RemoveCallback(
-            callback,
-            [this]() {
-                int32_t ret = CompanionDeviceAuthClient::GetInstance()
-                    .UnsubscribeTemplateStatusChange(templateStatusCallbackHodler_);
-                if (ret != SUCCESS) {
-                    IAM_LOGE("UnsubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
-                }
-                return ret;
+        return templateStatusCallbackHodler_->RemoveCallback(callback, [this]() {
+            int32_t ret =
+                CompanionDeviceAuthClient::GetInstance().UnsubscribeTemplateStatusChange(templateStatusCallbackHodler_);
+            if (ret != SUCCESS) {
+                IAM_LOGE("UnsubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
             }
-        );
+            return ret;
+        });
     }
 
     int32_t OnAvailableDeviceChange(const std::shared_ptr<AvailableDeviceStatusCallbackWrapper<A>> &callback)
     {
         IAM_LOGI("start");
-        return availableDeviceStatusCallbackHodler_->AddCallback(
-            callback,
-            [this]() {
-                int32_t ret = CompanionDeviceAuthClient::GetInstance()
-                    .SubscribeAvailableDeviceStatus(userId_, availableDeviceStatusCallbackHodler_);
-                if (ret != SUCCESS) {
-                    IAM_LOGE("SubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
-                }
-                return ret;
+        return availableDeviceStatusCallbackHodler_->AddCallback(callback, [this]() {
+            int32_t ret = CompanionDeviceAuthClient::GetInstance().SubscribeAvailableDeviceStatus(userId_,
+                availableDeviceStatusCallbackHodler_);
+            if (ret != SUCCESS) {
+                IAM_LOGE("SubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
             }
-        );
+            return ret;
+        });
     }
 
     int32_t OffAvailableDeviceChange(const std::shared_ptr<AvailableDeviceStatusCallbackWrapper<A>> &callback)
     {
         IAM_LOGI("start");
-        return availableDeviceStatusCallbackHodler_->RemoveCallback(
-            callback,
-            [this]() {
-                int32_t ret = CompanionDeviceAuthClient::GetInstance()
-                    .UnsubscribeAvailableDeviceStatus(availableDeviceStatusCallbackHodler_);
-                if (ret != SUCCESS) {
-                    IAM_LOGE("UnsubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
-                }
-                return ret;
+        return availableDeviceStatusCallbackHodler_->RemoveCallback(callback, [this]() {
+            int32_t ret = CompanionDeviceAuthClient::GetInstance().UnsubscribeAvailableDeviceStatus(
+                availableDeviceStatusCallbackHodler_);
+            if (ret != SUCCESS) {
+                IAM_LOGE("UnsubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
             }
-        );
+            return ret;
+        });
     }
 
-    int32_t OnContinuousAuthChange(
-        std::optional<uint64_t> templateId, const std::shared_ptr<ContinuousAuthStatusCallbackWrapper<C>> &callback)
+    int32_t OnContinuousAuthChange(std::optional<uint64_t> templateId,
+        const std::shared_ptr<ContinuousAuthStatusCallbackWrapper<C>> &callback)
     {
         IAM_LOGI("start");
         std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -152,17 +142,14 @@ public:
             return GENERAL_ERROR;
         }
 
-        int32_t result = callbackHolder->AddCallback(
-            callback,
-            [this, templateId, &callbackHolder]() {
-                int32_t ret = CompanionDeviceAuthClient::GetInstance()
-                    .SubscribeContinuousAuthStatusChange(userId_, templateId, callbackHolder);
-                if (ret != SUCCESS) {
-                    IAM_LOGE("SubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
-                }
-                return ret;
+        int32_t result = callbackHolder->AddCallback(callback, [this, templateId, &callbackHolder]() {
+            int32_t ret = CompanionDeviceAuthClient::GetInstance().SubscribeContinuousAuthStatusChange(userId_,
+                templateId, callbackHolder);
+            if (ret != SUCCESS) {
+                IAM_LOGE("SubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
             }
-        );
+            return ret;
+        });
         if (result == SUCCESS) {
             continuousAuthStatusCallbackMap_[templateId] = callbackHolder;
         }
@@ -179,15 +166,14 @@ public:
                 it = continuousAuthStatusCallbackMap_.erase(it);
                 continue;
             }
-            ret = it->second->RemoveCallback(callback,
-                [this, &it]() {
-                    int32_t ret = CompanionDeviceAuthClient::GetInstance()
-                        .UnsubscribeContinuousAuthStatusChange(it->second);
-                    if (ret != SUCCESS) {
-                        IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
-                    }
-                    return ret;
-                });
+            ret = it->second->RemoveCallback(callback, [this, &it]() {
+                int32_t ret =
+                    CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(it->second);
+                if (ret != SUCCESS) {
+                    IAM_LOGE("UnsubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);
+                }
+                return ret;
+            });
             if (ret != SUCCESS) {
                 IAM_LOGE("RemoveCallback fail, ret:%{public}d", ret);
                 return ret;

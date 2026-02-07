@@ -42,19 +42,19 @@ void InboundRequest::Start()
 
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
-    ENSURE_OR_RETURN(!connectionName_.empty());
+    ENSURE_OR_RETURN_DESC(GetDescription(), !connectionName_.empty());
     connectionStatusSubscription_ = GetCrossDeviceCommManager().SubscribeConnectionStatus(connectionName_,
         [weakSelf = GetWeakPtr()](const std::string &connName, ConnectionStatus status, const std::string &reason) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            ENSURE_OR_RETURN(self->connectionName_ == connName);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self->connectionName_ == connName);
 
             self->HandleConnectionStatus(connName, status, reason);
         });
-    ENSURE_OR_RETURN(connectionStatusSubscription_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), connectionStatusSubscription_ != nullptr);
 
     ConnectionStatus status = GetCrossDeviceCommManager().GetConnectionStatus(connectionName_);
-    ENSURE_OR_RETURN(status == ConnectionStatus::CONNECTED);
+    ENSURE_OR_RETURN_DESC(GetDescription(), status == ConnectionStatus::CONNECTED);
 
     bool ret = OnStart(errorGuard);
     if (!ret) {

@@ -23,7 +23,9 @@ use crate::request::jobs::common_message::SecCommonReply;
 use crate::request::token_issue::host_issue_token::HostDeviceIssueTokenRequest;
 use crate::request::token_issue::token_issue_message::SecIssueTokenReply;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{CompanionDeviceCapability, CompanionDeviceSk};
+use crate::traits::db_manager::{
+    CompanionDeviceCapability, CompanionDeviceInfo, CompanionDeviceSk, DeviceKey, UserInfo,
+};
 use crate::traits::host_db_manager::{HostDbManagerRegistry, MockHostDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
@@ -31,6 +33,8 @@ use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
 use crate::utils::{Attribute, AttributeKey};
+use crate::String;
+use crate::Vec;
 use std::boxed::Box;
 
 fn create_mock_key_pair() -> KeyPair {
@@ -96,7 +100,22 @@ fn mock_set_host_db_manager() {
         .expect_read_device_sk()
         .returning(|| Ok(vec![CompanionDeviceSk { device_type: DeviceType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
     mock_host_db_manager.expect_add_token().returning(|| Ok(()));
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
+}
+
+fn create_mock_companion_device_info(template_id: u64) -> CompanionDeviceInfo {
+    CompanionDeviceInfo {
+        template_id,
+        device_key: DeviceKey { device_id: String::from("test_device"), device_id_type: 1, user_id: 100 },
+        user_info: UserInfo { user_id: 100, user_type: 0 },
+        added_time: 123456,
+        secure_protocol_id: 1,
+        is_valid: true,
+        capability_list: vec![1, 2, 3], // Includes both DelegateAuth(1) and TokenAuth(2)
+    }
 }
 
 #[test]
@@ -129,6 +148,12 @@ fn host_issue_token_request_prepare_test_property_mode_not_unfreeze() {
     mock_set_crypto_engine();
     mock_set_misc_manager();
 
+    let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
+
     let fwk_message = create_valid_fwk_issue_token_request(
         999,
         AuthType::CompanionDevice as u32,
@@ -157,6 +182,12 @@ fn host_issue_token_request_prepare_test_auth_type_not_companion_device() {
     mock_set_crypto_engine();
     mock_set_misc_manager();
 
+    let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
+
     let fwk_message =
         create_valid_fwk_issue_token_request(PROPERTY_MODE_UNFREEZE, 999, AuthTrustLevel::Atl3 as i32, &[123u64]);
 
@@ -180,6 +211,12 @@ fn host_issue_token_request_prepare_test_template_id_not_found() {
 
     mock_set_crypto_engine();
     mock_set_misc_manager();
+
+    let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let fwk_message = create_valid_fwk_issue_token_request(
         PROPERTY_MODE_UNFREEZE,
@@ -208,6 +245,12 @@ fn host_issue_token_request_prepare_test_atl_try_from_fail() {
 
     mock_set_crypto_engine();
     mock_set_misc_manager();
+
+    let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
+    HostDbManagerRegistry::set(Box::new(mock_host_db_manager));
 
     let fwk_message = create_valid_fwk_issue_token_request(
         PROPERTY_MODE_UNFREEZE,
@@ -238,6 +281,9 @@ fn host_issue_token_request_prepare_test_read_device_capability_info_fail() {
     mock_set_misc_manager();
 
     let mut mock_host_db_manager = MockHostDbManager::new();
+    mock_host_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device_info(123)));
     mock_host_db_manager
         .expect_read_device_capability_info()
         .returning(|| Err(ErrorCode::NotFound));

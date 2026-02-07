@@ -24,10 +24,11 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 template <typename T>
-class AvailableDeviceStatusCallbackWrapper : public IAvailableDeviceStatusCallback,
-                                             public CallbackWrapper<T> {
+class AvailableDeviceStatusCallbackWrapper : public IAvailableDeviceStatusCallback, public CallbackWrapper<T> {
 public:
-    AvailableDeviceStatusCallbackWrapper(T callback) : CallbackWrapper<T>(callback) {}
+    AvailableDeviceStatusCallbackWrapper(T callback) : CallbackWrapper<T>(callback)
+    {
+    }
     ~AvailableDeviceStatusCallbackWrapper() = default;
 
     void OnAvailableDeviceStatusChange(const std::vector<ClientDeviceStatus> deviceStatusList) override;

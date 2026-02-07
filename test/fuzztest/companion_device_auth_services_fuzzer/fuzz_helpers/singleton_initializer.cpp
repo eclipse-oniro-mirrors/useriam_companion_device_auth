@@ -173,6 +173,13 @@ public:
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 
+    bool IsCapabilitySupported(TemplateId templateId, Capability capability) override
+    {
+        (void)templateId;
+        (void)capability;
+        return fuzzData_.ConsumeBool();
+    }
+
     void StartIssueTokenRequests(const std::vector<TemplateId> &templateIds,
         const std::vector<uint8_t> &fwkUnlockMsg) override
     {
@@ -278,7 +285,7 @@ public:
     }
 
 private:
-    bool Initialize() override
+    bool Initialize()
     {
         return true;
     }
@@ -335,11 +342,6 @@ class MockSecurityAgent : public ISecurityAgent {
 public:
     explicit MockSecurityAgent(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
     {
-    }
-
-    ResultCode Init() override
-    {
-        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 
     ResultCode SetActiveUser(const SetActiveUserInput &input) override
@@ -774,7 +776,7 @@ public:
     }
 
 private:
-    bool Initialize() override
+    bool Initialize()
     {
         return true;
     }

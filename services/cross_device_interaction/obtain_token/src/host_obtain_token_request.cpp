@@ -60,10 +60,17 @@ bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
         IAM_LOGE("%{public}s companion status not found", GetDescription());
         return false;
     }
+
+    if (!GetCompanionManager().IsCapabilitySupported(companionStatus->templateId, Capability::OBTAIN_TOKEN)) {
+        IAM_LOGE("%{public}s OBTAIN_TOKEN capability not supported by companion device", GetDescription());
+        return false;
+    }
+
     if (!EnsureCompanionAuthMaintainActive(preRequest.companionDeviceKey, errorGuard)) {
         return false;
     }
     templateId_ = companionStatus->templateId;
+    UpdateDescription(GenerateDescription(requestType_, requestId_, GetConnectionName(), templateId_));
     auto secureProtocolOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(preRequest.companionDeviceKey);
     if (!secureProtocolOpt.has_value()) {
         IAM_LOGE("%{public}s failed to get secure protocol id", GetDescription());
@@ -94,7 +101,7 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::OBTAIN_TOKEN,
             [weakSelf = weak_from_this()](const Attributes &request, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+                ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
                 self->HandleObtainTokenMessage(request, onMessageReply);
             });
     if (obtainTokenSubscription_ == nullptr) {
@@ -127,7 +134,7 @@ bool HostObtainTokenRequest::ProcessPreObtainToken(std::vector<uint8_t> &preObta
 
 void HostObtainTokenRequest::SendPreObtainTokenReply(ResultCode result, const std::vector<uint8_t> &preObtainTokenReply)
 {
-    ENSURE_OR_RETURN(preObtainTokenReplyCallback_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), preObtainTokenReplyCallback_ != nullptr);
     Attributes reply = {};
     PreObtainTokenReply preReply = {};
     preReply.result = result;
@@ -140,7 +147,7 @@ void HostObtainTokenRequest::SendPreObtainTokenReply(ResultCode result, const st
 void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
 {
     IAM_LOGI("%{public}s start", GetDescription());
-    ENSURE_OR_RETURN(onMessageReply != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
         Attributes reply;
         reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(code));
@@ -280,7 +287,7 @@ bool HostObtainTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &
     deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey,
         [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandlePeerDeviceStatusChanged(deviceStatusList);
         });
     if (deviceStatusSubscription_ == nullptr) {

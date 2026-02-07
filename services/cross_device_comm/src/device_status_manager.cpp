@@ -39,11 +39,12 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-std::shared_ptr<DeviceStatusManager> DeviceStatusManager::Create(std::shared_ptr<ConnectionManager> connectionMgr,
-    std::shared_ptr<ChannelManager> channelMgr, std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr)
+std::shared_ptr<DeviceStatusManager> DeviceStatusManager::Create(const std::vector<BusinessId> &defaultBusinessIds,
+    std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
+    std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr)
 {
     auto manager = std::shared_ptr<DeviceStatusManager>(
-        new (std::nothrow) DeviceStatusManager(connectionMgr, channelMgr, localDeviceStatusMgr));
+        new (std::nothrow) DeviceStatusManager(defaultBusinessIds, connectionMgr, channelMgr, localDeviceStatusMgr));
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
 
     if (!manager->Initialize()) {
@@ -54,9 +55,11 @@ std::shared_ptr<DeviceStatusManager> DeviceStatusManager::Create(std::shared_ptr
     return manager;
 }
 
-DeviceStatusManager::DeviceStatusManager(std::shared_ptr<ConnectionManager> connectionMgr,
-    std::shared_ptr<ChannelManager> channelMgr, std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr)
-    : connectionMgr_(connectionMgr),
+DeviceStatusManager::DeviceStatusManager(const std::vector<BusinessId> &defaultBusinessIds,
+    std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
+    std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr)
+    : defaultBusinessIds_(defaultBusinessIds),
+      connectionMgr_(connectionMgr),
       channelMgr_(channelMgr),
       localDeviceStatusMgr_(localDeviceStatusMgr)
 {
@@ -193,14 +196,12 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     deviceStatus.OnSyncSuccess();
     auto negotiatedProtocol = NegotiateProtocol(syncDeviceStatus.protocolIdList);
     ENSURE_OR_RETURN(negotiatedProtocol.has_value());
-    auto negotiatedCapabilities = NegotiateCapabilities(syncDeviceStatus.capabilityList);
-    ENSURE_OR_RETURN(negotiatedCapabilities.size() > 0);
 
     deviceStatus.deviceUserName = syncDeviceStatus.deviceUserName;
     deviceStatus.protocolId = negotiatedProtocol.value();
     deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
-    deviceStatus.capabilities = negotiatedCapabilities;
-    deviceStatus.supportedBusinessIds = { BusinessId::DEFAULT };
+    deviceStatus.capabilities = syncDeviceStatus.capabilityList;
+    deviceStatus.supportedBusinessIds = defaultBusinessIds_;
 
     guard.Cancel();
     deviceStatus.isSynced = true;
@@ -353,22 +354,6 @@ std::optional<ProtocolId> DeviceStatusManager::NegotiateProtocol(const std::vect
 
     IAM_LOGW("no common protocol found");
     return std::nullopt;
-}
-
-std::vector<Capability> DeviceStatusManager::NegotiateCapabilities(const std::vector<Capability> &remoteCapabilities)
-{
-    ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, std::vector<Capability> {});
-    auto localProfile = localDeviceStatusMgr_->GetLocalDeviceProfile();
-
-    std::vector<Capability> intersection;
-    for (const auto &remoteCap : remoteCapabilities) {
-        auto it = std::find_if(localProfile.capabilities.begin(), localProfile.capabilities.end(),
-            [&remoteCap](const Capability &localCap) { return localCap == remoteCap; });
-        if (it != localProfile.capabilities.end()) {
-            intersection.push_back(remoteCap);
-        }
-    }
-    return intersection;
 }
 
 void DeviceStatusManager::NotifySubscribers()

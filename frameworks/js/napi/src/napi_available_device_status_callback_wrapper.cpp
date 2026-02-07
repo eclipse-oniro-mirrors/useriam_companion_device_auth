@@ -69,14 +69,14 @@ void AvailableDeviceStatusCallbackWrapper<JsRefHolder>::OnAvailableDeviceStatusC
         IAM_LOGE("napi_get_uv_event_loop fail");
         return;
     }
-    auto task = [jsRefHolder = this->GetCallback(), deviceStatusList]() {
-        DoCallback(jsRefHolder, deviceStatusList);
-    };
+    auto task = [jsRefHolder = this->GetCallback(), deviceStatusList]() { DoCallback(jsRefHolder, deviceStatusList); };
+    // clang-format off
     if (napi_send_event(this->GetCallback().GetEnv(), task, napi_eprio_immediate,
         "AvailableDeviceStatusCallbackWrapper<JsRefHolder>::OnAvailableDeviceStatusChange") !=
         napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
     }
+    // clang-format on
 }
 
 } // namespace CompanionDeviceAuth

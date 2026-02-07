@@ -26,7 +26,6 @@ namespace CompanionDeviceAuth {
 
 class MockSecurityAgent : public ISecurityAgent {
 public:
-    MOCK_METHOD(ResultCode, Init, (), (override));
     MOCK_METHOD(ResultCode, SetActiveUser, (const SetActiveUserInput &input), (override));
     MOCK_METHOD(ResultCode, HostGetExecutorInfo, (HostGetExecutorInfoOutput & output), (override));
     MOCK_METHOD(ResultCode, HostOnRegisterFinish, (const RegisterFinishInput &input), (override));
@@ -118,7 +117,7 @@ public:
         (const HostCheckTemplateEnrolledInput &input, HostCheckTemplateEnrolledOutput &output), (override));
 
 private:
-    MOCK_METHOD(bool, Initialize, (), (override));
+    MOCK_METHOD(bool, Initialize, (), ());
 };
 
 } // namespace CompanionDeviceAuth

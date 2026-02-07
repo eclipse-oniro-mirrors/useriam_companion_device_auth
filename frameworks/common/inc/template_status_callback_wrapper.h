@@ -24,16 +24,21 @@ namespace CompanionDeviceAuth {
 template <typename T>
 class TemplateStatusCallbackWrapper : public ITemplateStatusCallback {
 public:
-    TemplateStatusCallbackWrapper(T callback) : callback_(callback) {}
+    TemplateStatusCallbackWrapper(T callback) : callback_(callback)
+    {
+    }
     ~TemplateStatusCallbackWrapper() = default;
 
     void OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList) override;
 
-    bool operator==(const TemplateStatusCallbackWrapper& other) const
+    bool operator==(const TemplateStatusCallbackWrapper &other) const
     {
         return callback_ == other.GetCallback();
     }
-    const T &GetCallback() const { return callback_; }
+    const T &GetCallback() const
+    {
+        return callback_;
+    }
 
 private:
     T callback_;

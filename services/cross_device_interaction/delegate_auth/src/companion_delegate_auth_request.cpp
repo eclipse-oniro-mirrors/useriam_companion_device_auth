@@ -57,7 +57,7 @@ bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
     IAM_LOGI("%{public}s start", GetDescription());
 
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
-    ENSURE_OR_RETURN_VAL(secureProtocolId_ != SecureProtocolId::INVALID, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), secureProtocolId_ != SecureProtocolId::INVALID, false);
 
     bool ret = CompanionBeginDelegateAuth();
     if (!ret) {
@@ -72,21 +72,21 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
     uint64_t challenge = 0;
     Atl atl = 0;
     bool ret = SecureAgentBeginDelegateAuth(challenge, atl);
-    ENSURE_OR_RETURN_VAL(ret, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), ret, false);
 
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
 
     AuthResultCallback callback = [weakSelf = weak_from_this()](int32_t result, const std::vector<uint8_t> &token) {
         auto self = weakSelf.lock();
-        ENSURE_OR_RETURN(self != nullptr);
+        ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
         ResultCode resultCode = (result == ResultCode::SUCCESS) ? ResultCode::SUCCESS : ResultCode::GENERAL_ERROR;
         self->HandleDelegateAuthResult(resultCode, token);
     };
 
     uint64_t contextId = GetUserAuthAdapter().BeginDelegateAuth(localDeviceKey->deviceUserId,
         ConvertUint64ToUint8Vec(challenge), static_cast<uint32_t>(atl), callback);
-    ENSURE_OR_RETURN_VAL(contextId != 0, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), contextId != 0, false);
     contextId_ = contextId;
     return true;
 }
@@ -94,7 +94,7 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
 bool CompanionDelegateAuthRequest::SecureAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl)
 {
     auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(companionUserId_, PeerDeviceKey());
-    ENSURE_OR_RETURN_VAL(hostBindingStatus.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), hostBindingStatus.has_value(), false);
     int32_t hostBindingId = hostBindingStatus->bindingId;
 
     CompanionDelegateAuthBeginInput input = {};
@@ -145,7 +145,7 @@ bool CompanionDelegateAuthRequest::SendDelegateAuthResult(ResultCode resultCode,
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::SEND_DELEGATE_AUTH_RESULT,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleSendDelegateAuthResultReply(message);
         });
     if (!sendRet) {
@@ -177,7 +177,7 @@ void CompanionDelegateAuthRequest::HandleSendDelegateAuthResultReply(const Attri
 {
     IAM_LOGI("%{public}s start", GetDescription());
     auto replyOpt = DecodeSendDelegateAuthResultReply(message);
-    ENSURE_OR_RETURN(replyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), replyOpt.has_value());
     if (replyOpt->result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s delegate auth failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(replyOpt->result));

@@ -28,8 +28,8 @@ pub struct CompanionDeviceSyncStatusRequest {
     pub secure_protocol_id: u16,
     pub challenge: u64,
     pub salt: Vec<u8>,
-    pub protocol_list: Vec<u16>,
-    pub capability_list: Vec<u16>,
+    pub expected_protocol_list: Vec<u16>,
+    pub expected_capability_list: Vec<u16>,
 }
 
 impl CompanionDeviceSyncStatusRequest {
@@ -45,16 +45,16 @@ impl CompanionDeviceSyncStatusRequest {
             secure_protocol_id: input.secure_protocol_id,
             challenge: input.challenge,
             salt: input.salt.data[..input.salt.len as usize].to_vec(),
-            protocol_list: PROTOCOL_VERSION.to_vec(),
-            capability_list: input.capability_list.try_into().map_err(|e| p!(e))?,
+            expected_protocol_list: PROTOCOL_VERSION.to_vec(),
+            expected_capability_list: input.capability_list.try_into().map_err(|e| p!(e))?,
         })
     }
 
     fn encode_sec_status_sync_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrChallenge, self.challenge);
-        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocol_list);
-        encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.capability_list);
+        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.expected_protocol_list);
+        encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.expected_capability_list);
 
         let attribute_bytes = encrypt_attribute.to_bytes()?;
 

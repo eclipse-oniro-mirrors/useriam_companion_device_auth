@@ -12,3 +12,5 @@
 # limitations under the License.
 
 companiondeviceauth.isAuthMaintainActive=false
+companiondeviceauth.startSa=false
+companiondeviceauth.isFunctionReady=false

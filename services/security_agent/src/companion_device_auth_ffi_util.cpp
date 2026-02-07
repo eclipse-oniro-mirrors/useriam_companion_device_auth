@@ -369,6 +369,11 @@ bool EncodeHostEndAddCompanionInput(const HostEndAddCompanionInput &input, HostE
         return false;
     }
 
+    if (!VectorToFfiArray(input.protocolVersionList, ffi.protocolList, "protocol list") ||
+        !VectorToFfiArray(input.capabilityList, ffi.capabilityList, "capability list")) {
+        return false;
+    }
+
     return EncodeMessageArray(input.addHostBindingReply, ffi.secMessage);
 }
 

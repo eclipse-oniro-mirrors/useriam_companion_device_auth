@@ -113,8 +113,8 @@ napi_status NapiDeviceSelectCallback::DoCallback(int32_t selectPurpose, napi_val
         return status;
     }
 
-    return CompanionDeviceAuthNapiHelper::CallNapiFuncWithResult(
-        env_, callback_->GetRef(), ARGS_ONE, &napiSelectPurpose, result);
+    return CompanionDeviceAuthNapiHelper::CallNapiFuncWithResult(env_, callback_->GetRef(), ARGS_ONE,
+        &napiSelectPurpose, result);
 }
 
 void NapiDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,

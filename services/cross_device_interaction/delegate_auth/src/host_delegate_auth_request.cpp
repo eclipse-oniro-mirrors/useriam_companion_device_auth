@@ -40,6 +40,7 @@ HostDelegateAuthRequest::HostDelegateAuthRequest(ScheduleId scheduleId, const st
       templateId_(templateId),
       requestCallback_(std::move(requestCallback))
 {
+    UpdateDescription(GenerateDescription(requestType_, requestId_, "-", templateId_));
 }
 
 bool HostDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
@@ -50,6 +51,13 @@ bool HostDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
         IAM_LOGI("%{public}s GetCompanionStatus fail", GetDescription());
         return false;
     }
+
+    if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::DELEGATE_AUTH)) {
+        IAM_LOGE("%{public}s DELEGATE_AUTH capability not supported by companion device", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
+        return false;
+    }
+
     const DeviceKey &companionDeviceKey = companionStatus->companionDeviceStatus.deviceKey;
     SetPeerDeviceKey(companionDeviceKey);
     auto secureProtocolOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(companionDeviceKey);
@@ -82,7 +90,7 @@ bool HostDelegateAuthRequest::InitDelegateResultSubscription()
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::SEND_DELEGATE_AUTH_RESULT,
             [weakSelf = weak_from_this()](const Attributes &request, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+                ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
                 self->HandleSendDelegateAuthRequestMsg(request, onMessageReply);
             });
     if (delegateResultSubscription_ == nullptr) {
@@ -117,10 +125,10 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
 
     needCancelDelegateAuth_ = true;
     auto peerDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN(peerDeviceKey.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKey.has_value());
     DeviceKey hostDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN(localDeviceKey.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKey.has_value());
     hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
     StartDelegateAuthRequest startRequest = { .hostDeviceKey = hostDeviceKey,
@@ -132,7 +140,7 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::START_DELEGATE_AUTH,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleStartDelegateAuthReply(message);
         });
     if (!sendRet) {
@@ -149,7 +157,7 @@ void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &mes
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeStartDelegateAuthReply(message);
-    ENSURE_OR_RETURN(replyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), replyOpt.has_value());
     if (replyOpt->result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s start delegate auth failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(replyOpt->result));
@@ -166,7 +174,7 @@ bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &re
     IAM_LOGI("%{public}s start", GetDescription());
 
     auto resultMsgOpt = DecodeSendDelegateAuthResultRequest(request);
-    ENSURE_OR_RETURN_VAL(resultMsgOpt.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), resultMsgOpt.has_value(), false);
     const auto &resultMsg = *resultMsgOpt;
     HostEndDelegateAuthInput input = {};
     input.requestId = GetRequestId();
@@ -194,7 +202,7 @@ void HostDelegateAuthRequest::HandleSendDelegateAuthRequestMsg(const Attributes 
     OnMessageReply &onMessageReply)
 {
     IAM_LOGI("%{public}s HandleSendDelegateAuthRequestMsg", GetDescription());
-    ENSURE_OR_RETURN(onMessageReply != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
         Attributes reply;
         reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(code));
@@ -227,7 +235,7 @@ void HostDelegateAuthRequest::InvokeCallback(ResultCode result, const std::vecto
         IAM_LOGI("%{public}s callback already sent", GetDescription());
         return;
     }
-    ENSURE_OR_RETURN(requestCallback_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), requestCallback_ != nullptr);
     callbackInvoked_ = true;
     TaskRunnerManager::GetInstance().PostTaskOnResident(
         [cb = std::move(requestCallback_), result, msg = fwkMsg]() mutable {

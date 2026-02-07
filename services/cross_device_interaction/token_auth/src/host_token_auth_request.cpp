@@ -40,6 +40,7 @@ HostTokenAuthRequest::HostTokenAuthRequest(ScheduleId scheduleId, const std::vec
       templateId_(templateId),
       requestCallback_(std::move(requestCallback))
 {
+    UpdateDescription(GenerateDescription(requestType_, requestId_, "-", templateId_));
 }
 
 HostTokenAuthRequest::~HostTokenAuthRequest()
@@ -53,6 +54,13 @@ bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
     if (!companionStatus.has_value()) {
         return false;
     }
+
+    if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::TOKEN_AUTH)) {
+        IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by companion device", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
+        return false;
+    }
+
     const DeviceKey &companionDeviceKey = companionStatus->companionDeviceStatus.deviceKey;
     SetPeerDeviceKey(companionDeviceKey);
     companionUserId_ = companionStatus->companionDeviceStatus.deviceKey.deviceUserId;
@@ -111,7 +119,7 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
 {
     DeviceKey hostDeviceKey = {};
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
     hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
     TokenAuthRequest requestMsg = { .hostDeviceKey = hostDeviceKey,
@@ -123,7 +131,7 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::TOKEN_AUTH, request,
         [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
+            ENSURE_OR_RETURN_DESC(self->GetDescription(), self != nullptr);
             self->HandleTokenAuthReply(reply);
         });
     if (!sendRet) {
@@ -191,7 +199,7 @@ void HostTokenAuthRequest::InvokeCallback(ResultCode result, const std::vector<u
         IAM_LOGI("%{public}s callback already sent", GetDescription());
         return;
     }
-    ENSURE_OR_RETURN(requestCallback_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), requestCallback_ != nullptr);
     callbackInvoked_ = true;
     TaskRunnerManager::GetInstance().PostTaskOnResident(
         [cb = std::move(requestCallback_), result, extra = extraInfo]() mutable {

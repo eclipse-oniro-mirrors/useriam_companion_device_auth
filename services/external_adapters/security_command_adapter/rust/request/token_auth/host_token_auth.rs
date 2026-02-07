@@ -126,7 +126,11 @@ impl HostTokenAuthRequest {
         auth_request.encode(self.device_type)
     }
 
-    fn decode_sec_token_auth_reply_message(&mut self, device_type: DeviceType, sec_message: &[u8]) -> Result<(), ErrorCode> {
+    fn decode_sec_token_auth_reply_message(
+        &mut self,
+        device_type: DeviceType,
+        sec_message: &[u8],
+    ) -> Result<(), ErrorCode> {
         let output = SecAuthReply::decode(sec_message, device_type)?;
 
         let token_info = HostDbManagerRegistry::get()
@@ -190,6 +194,8 @@ impl Request for HostTokenAuthRequest {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
+
+        host_db_helper::check_device_capability(self.auth_param.template_id, Capability::TokenAuth)?;
 
         self.decode_fwk_token_auth_request(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.encode_sec_token_auth_request()?;

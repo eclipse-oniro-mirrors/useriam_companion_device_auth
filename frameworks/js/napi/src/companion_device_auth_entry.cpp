@@ -19,8 +19,8 @@
 
 #include "iam_logger.h"
 
-#include "status_monitor.h"
 #include "companion_device_auth_napi_impl.h"
+#include "status_monitor.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -153,8 +153,8 @@ napi_value GetTemplateStatus(napi_env env, napi_callback_info info)
     int32_t checkPermission = CheckPermission();
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_reject_deferred(
-            env, promiseDeferred, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
+        napi_reject_deferred(env, promiseDeferred,
+            CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
         return promiseValue;
     }
 
@@ -281,7 +281,7 @@ napi_value OnAvailableDeviceChange(napi_env env, napi_callback_info info)
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
         return nullptr;
     }
-    
+
     int32_t ret = statusMonitor->OnAvailableDeviceChange(
         std::make_shared<NapiAvailableDeviceStatusCallback>(JsRefHolder(env, *callback)));
     if (ret != SUCCESS) {
@@ -331,8 +331,8 @@ napi_value OffAvailableDeviceChange(napi_env env, napi_callback_info info)
     return nullptr;
 }
 
-bool GetOnContinuousAuthChangeParam(napi_env env, napi_callback_info info,
-    std::optional<uint64_t> &templateIdOpt, std::shared_ptr<NapiContinuousAuthStatusCallback> &callback)
+bool GetOnContinuousAuthChangeParam(napi_env env, napi_callback_info info, std::optional<uint64_t> &templateIdOpt,
+    std::shared_ptr<NapiContinuousAuthStatusCallback> &callback)
 {
     napi_value argv[ARGS_TWO];
     size_t argc = ARGS_TWO;
@@ -585,8 +585,8 @@ napi_value UpdateEnabledBusinessIds(napi_env env, napi_callback_info info)
     int32_t checkPermission = CheckPermission();
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_reject_deferred(
-            env, promiseDeferred, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
+        napi_reject_deferred(env, promiseDeferred,
+            CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
         return voidPromise;
     }
 
