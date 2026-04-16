@@ -217,7 +217,7 @@ FwkResultCode Inner::Authenticate(uint64_t scheduleId, const FwkAuthenticatePara
     };
 
     HostMixAuthParams params = { scheduleId, fwkParam.extraInfo, fwkParam.userId, fwkParam.templateIdList,
-        cdaParam.tokenId, cdaParam.businessId, fwkParam.authIntent };
+        cdaParam.tokenId, cdaParam.businessId, fwkParam.authIntent, fwkParam.authScene, fwkParam.title };
     auto request = GetRequestFactory().CreateHostMixAuthRequest(params, std::move(requestCallback));
     if (request == nullptr) {
         IAM_LOGE("CreateHostMixAuthRequest failed");

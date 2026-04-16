@@ -141,6 +141,9 @@ void FuzzHostMixAuthRequest(FuzzedDataProvider &fuzzData)
     params.tokenId = optionalTokenId;
     params.businessId = std::nullopt;
     params.authIntent = authIntent;
+    int32_t authScene = fuzzData.ConsumeIntegral<int32_t>();
+    params.authScene = static_cast<UserAuth::AuthScene>(authScene);
+    params.title = fuzzData.ConsumeRandomLengthString(FUZZ_MAX_MESSAGE_LENGTH);
 
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
     if (!request) {

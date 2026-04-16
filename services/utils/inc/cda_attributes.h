@@ -70,6 +70,8 @@ public:
         ATTR_CDA_SA_SELECT_CONTEXT = 210000,
         ATTR_CDA_SA_TEMPLATE_ID = 210001,
         ATTR_CDA_SA_AUTH_INTENT = 210002,
+        ATTR_CDA_SA_AUTH_SCENE = 210003,
+        ATTR_CDA_SA_WIDGET_TITLE = 210004,
         /** Companion device auth secure specific attributes begin from 300000 */
         ATTR_CDA_SECURE_BEGIN = 300000,
     };
