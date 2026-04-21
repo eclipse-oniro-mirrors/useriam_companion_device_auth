@@ -23,7 +23,7 @@
 #include "fuzz_data_generator.h"
 #include "fuzz_registry.h"
 #include "security_agent.h"
-#include "security_agent_imp.h"
+#include "security_agent_impl.h"
 
 namespace OHOS {
 namespace UserIam {

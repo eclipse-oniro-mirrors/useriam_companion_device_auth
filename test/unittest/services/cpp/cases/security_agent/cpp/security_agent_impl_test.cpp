@@ -25,7 +25,7 @@
 #include "companion_device_auth_ffi_types.h"
 #include "mock_guard.h"
 #include "mock_user_id_manager.h"
-#include "security_agent_imp.h"
+#include "security_agent_impl.h"
 #include "security_command_adapter.h"
 #include "singleton_manager.h"
 

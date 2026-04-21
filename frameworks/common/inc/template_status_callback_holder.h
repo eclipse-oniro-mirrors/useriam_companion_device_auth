@@ -30,15 +30,33 @@ public:
     TemplateStatusCallbackHolder() = default;
     ~TemplateStatusCallbackHolder() = default;
 
+    void OnCallbackAdded(const std::shared_ptr<TemplateStatusCallbackWrapper<T>> &callback) override
+    {
+        std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+        if (callback != nullptr && hasCached_) {
+            callback->OnTemplateStatusChange(cachedStatus_);
+        }
+    }
+
     void OnTemplateStatusChange(const std::vector<ClientTemplateStatus> templateStatusList) override
     {
-        std::vector<std::shared_ptr<TemplateStatusCallbackWrapper<T>>> callbacks = this->GetCallbacks();
+        std::vector<std::shared_ptr<TemplateStatusCallbackWrapper<T>>> callbacks;
+        {
+            std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+            cachedStatus_ = templateStatusList;
+            hasCached_ = true;
+            callbacks = this->GetCallbacksUnchecked();
+        }
         for (const auto &callback : callbacks) {
             if (callback != nullptr) {
                 callback->OnTemplateStatusChange(templateStatusList);
             }
         }
     }
+
+private:
+    std::vector<ClientTemplateStatus> cachedStatus_;
+    bool hasCached_ = false;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

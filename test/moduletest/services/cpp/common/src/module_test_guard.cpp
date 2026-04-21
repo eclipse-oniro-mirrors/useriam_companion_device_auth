@@ -475,7 +475,7 @@ ResultCode ModuleTestGuard::RemoveCompanion(TemplateId templateId, FwkResultCall
 {
     // Use CompanionManager.RemoveCompanion() (production path)
     // Note: This is a synchronous operation; callback is provided for test convenience
-    ResultCode ret = GetCompanionManager().RemoveCompanion(templateId);
+    ResultCode ret = GetCompanionManager().RemoveCompanion(templateId, true);
     if (callback) {
         callback(ret, {});
     }
@@ -717,6 +717,9 @@ bool ModuleTestGuard::RegisterCompanionDirect(UserId hostUserId, const DeviceKey
 
     GetIdmAdapter().TestAddTemplate(hostUserId, templateId);
     GetIdmAdapter().TestSimulateTemplateChange(hostUserId, { templateId });
+    TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
+
+    GetCompanionManager().SetCompanionTokenAuthAtl(templateId, 1);
     TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
 
     auto statusCheck = GetCompanionManager().GetCompanionStatus(templateId);

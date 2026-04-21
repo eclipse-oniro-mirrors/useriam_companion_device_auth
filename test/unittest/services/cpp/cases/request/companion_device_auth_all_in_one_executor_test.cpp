@@ -47,6 +47,7 @@ constexpr int32_t INT32_100 = 100;
 constexpr uint64_t UINT64_123 = 123;
 constexpr uint64_t UINT64_456 = 456;
 constexpr uint64_t UINT64_12345 = 12345;
+constexpr int32_t COMMAND_ID_SET_COMPANION_INVALID = 10001;
 
 class FakeUserIdManager : public IUserIdManager {
 public:
@@ -530,7 +531,9 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Delete_001, TestSize.Level0)
 
     std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
 
-    EXPECT_CALL(guard.GetCompanionManager(), RemoveCompanion(_)).Times(2).WillRepeatedly(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(guard.GetCompanionManager(), RemoveCompanion(_, _))
+        .Times(2)
+        .WillRepeatedly(Return(ResultCode::SUCCESS));
 
     FwkResultCode ret = executor->Delete(templateIdList);
 
@@ -560,7 +563,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Delete_003, TestSize.Level0)
 
     std::vector<uint64_t> templateIdList = { 123 };
 
-    EXPECT_CALL(guard.GetCompanionManager(), RemoveCompanion(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(guard.GetCompanionManager(), RemoveCompanion(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     FwkResultCode ret = executor->Delete(templateIdList);
 
@@ -1043,6 +1046,121 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_010
     info.SetUint8ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_ROOT), rootTlv);
     std::vector<uint8_t> extraInfo = info.Serialize();
 
+    EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+
+    FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
+
+    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+}
+
+HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleSetCompanionInvalid_001, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
+    ASSERT_NE(nullptr, executor);
+
+    FwkPropertyMode commandId = static_cast<FwkPropertyMode>(COMMAND_ID_SET_COMPANION_INVALID);
+    std::string jsonStr = R"({"templateId":[123,0,0,0,0,0,0,0]})";
+    std::vector<uint8_t> extraInfo(jsonStr.begin(), jsonStr.end());
+    auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
+
+    EXPECT_CALL(guard.GetCompanionManager(), SetTemplateInvalid(UINT64_123)).Times(1);
+    EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+
+    FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
+
+    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+}
+
+HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleSetCompanionInvalid_002, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
+    ASSERT_NE(nullptr, executor);
+
+    FwkPropertyMode commandId = static_cast<FwkPropertyMode>(COMMAND_ID_SET_COMPANION_INVALID);
+    std::vector<uint8_t> extraInfo = { 0xFF, 0xFE, 0xFD };
+    auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
+
+    EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+
+    FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
+
+    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+}
+
+HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleSetCompanionInvalid_003, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
+    ASSERT_NE(nullptr, executor);
+
+    FwkPropertyMode commandId = static_cast<FwkPropertyMode>(COMMAND_ID_SET_COMPANION_INVALID);
+    std::string jsonStr = "{}";
+    std::vector<uint8_t> extraInfo(jsonStr.begin(), jsonStr.end());
+    auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
+
+    EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+
+    FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
+
+    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+}
+
+HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleSetCompanionInvalid_004, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
+    ASSERT_NE(nullptr, executor);
+
+    FwkPropertyMode commandId = static_cast<FwkPropertyMode>(COMMAND_ID_SET_COMPANION_INVALID);
+    std::string jsonStr = R"({"templateId":"abc"})";
+    std::vector<uint8_t> extraInfo(jsonStr.begin(), jsonStr.end());
+    auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
+
+    EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+
+    FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
+
+    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+}
+
+HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleSetCompanionInvalid_005, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
+    ASSERT_NE(nullptr, executor);
+
+    FwkPropertyMode commandId = static_cast<FwkPropertyMode>(COMMAND_ID_SET_COMPANION_INVALID);
+    std::string jsonStr = R"({"templateId":[1,2,3]})";
+    std::vector<uint8_t> extraInfo(jsonStr.begin(), jsonStr.end());
+    auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
+
+    EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+
+    FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
+
+    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+}
+
+HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleSetCompanionInvalid_006, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
+    ASSERT_NE(nullptr, executor);
+
+    FwkPropertyMode commandId = static_cast<FwkPropertyMode>(COMMAND_ID_SET_COMPANION_INVALID);
+    std::string jsonStr = R"({"templateId":{"0":123,"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0}})";
+    std::vector<uint8_t> extraInfo(jsonStr.begin(), jsonStr.end());
+    auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
+
+    EXPECT_CALL(guard.GetCompanionManager(), SetTemplateInvalid(UINT64_123)).Times(1);
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
 
     FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);

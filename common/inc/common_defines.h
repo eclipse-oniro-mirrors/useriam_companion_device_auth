@@ -51,6 +51,7 @@ enum ResultCode : int32_t {
     INVALID_BUSINESS_ID = 20003,
     USER_ID_NOT_FOUND = 20004,
     TOKEN_NOT_FOUND = 20005,
+    TOKEN_VERIFY_FAILED = 20006,
 };
 
 enum class DeviceIdType : int32_t {

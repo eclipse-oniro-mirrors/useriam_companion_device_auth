@@ -78,8 +78,7 @@ ResultCode BaseServiceCore::SubscribeAvailableDeviceStatus(int32_t localUserId,
     }
 
     subscriptionManager_->AddAvailableDeviceStatusCallback(localUserId, deviceStatusCallback);
-    TaskRunnerManager::GetInstance().PostTaskOnResident(
-        []() { GetCrossDeviceCommManager().RefreshDeviceStatus(); });
+    TaskRunnerManager::GetInstance().PostTaskOnResident([]() { GetCrossDeviceCommManager().RefreshDeviceStatus(); });
     IAM_LOGI("End");
     return ResultCode::SUCCESS;
 }
@@ -110,8 +109,7 @@ ResultCode BaseServiceCore::SubscribeTemplateStatusChange(int32_t localUserId,
     }
 
     subscriptionManager_->AddTemplateStatusCallback(localUserId, templateStatusCallback);
-    TaskRunnerManager::GetInstance().PostTaskOnResident(
-        []() { GetCrossDeviceCommManager().RefreshDeviceStatus(); });
+    TaskRunnerManager::GetInstance().PostTaskOnResident([]() { GetCrossDeviceCommManager().RefreshDeviceStatus(); });
     IAM_LOGI("End");
     return ResultCode::SUCCESS;
 }

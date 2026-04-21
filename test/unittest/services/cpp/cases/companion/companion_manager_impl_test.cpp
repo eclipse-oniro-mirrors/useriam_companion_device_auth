@@ -623,7 +623,7 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_001, TestSize.Level0)
 
     EXPECT_CALL(guard.GetSecurityAgent(), HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
-    ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345);
+    ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345, true);
     EXPECT_EQ(ret, ResultCode::GENERAL_ERROR);
 }
 
@@ -643,7 +643,7 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_002, TestSize.Level0)
     EXPECT_CALL(guard.GetSecurityAgent(), HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _)).WillOnce(Return(nullptr));
 
-    ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345);
+    ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345, true);
 
     EXPECT_EQ(ret, ResultCode::SUCCESS);
     EXPECT_FALSE(manager->GetCompanionStatus(TEMPLATE_ID_12345).has_value());
@@ -669,7 +669,7 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_003, TestSize.Level0)
         }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(false));
 
-    ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345);
+    ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345, true);
 
     EXPECT_EQ(ret, ResultCode::SUCCESS);
     EXPECT_FALSE(manager->GetCompanionStatus(TEMPLATE_ID_12345).has_value());
@@ -695,7 +695,7 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_004, TestSize.Level0)
         }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
-    ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345);
+    ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345, true);
 
     EXPECT_EQ(ret, ResultCode::SUCCESS);
     EXPECT_FALSE(manager->GetCompanionStatus(TEMPLATE_ID_12345).has_value()); // Companion is removed

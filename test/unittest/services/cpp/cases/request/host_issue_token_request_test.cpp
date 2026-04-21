@@ -19,8 +19,8 @@
 #include "mock_guard.h"
 
 #include "host_issue_token_request.h"
-#include "mock_request.h"
 #include "issue_token_message.h"
+#include "mock_request.h"
 
 using namespace testing;
 using namespace testing::ext;

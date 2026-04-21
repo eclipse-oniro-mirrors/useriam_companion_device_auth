@@ -119,7 +119,8 @@ std::optional<CompanionStatus> CompanionManagerImpl::GetCompanionStatus(UserId h
 {
     auto companion = FindCompanionByDeviceUser(hostUserId, companionDeviceKey);
     if (companion == nullptr) {
-        IAM_LOGI("companion not found for device-user combination");
+        IAM_LOGI("companion not found for device-user combination, userId %{public}d, deviceKey %{public}s", hostUserId,
+            companionDeviceKey.GetDesc().c_str());
         return std::nullopt;
     }
 
@@ -302,7 +303,7 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
     return ResultCode::SUCCESS;
 }
 
-ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId)
+ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId, bool removeHostBinding)
 {
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion != nullptr) {
@@ -321,6 +322,13 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId)
     if (companion == nullptr) {
         return ResultCode::SUCCESS;
     }
+
+    if (!removeHostBinding) {
+        HandleRemoveHostBindingComplete(templateId);
+        IAM_LOGI("remove companion (local only) success, template id %{public}s", GET_MASKED_NUM_CSTR(templateId));
+        return ResultCode::SUCCESS;
+    }
+
     companion->SetAddedToIdm(false);
     NotifyCompanionStatusChange();
     ScopeGuard guard([this, templateId]() { HandleRemoveHostBindingComplete(templateId); });
@@ -586,9 +594,11 @@ ResultCode CompanionManagerImpl::AddCompanionInternal(const std::shared_ptr<Comp
         return ResultCode::GENERAL_ERROR;
     }
 
-    if (FindCompanionByDeviceUser(userId, deviceKey) != nullptr) {
-        IAM_LOGE("user %{public}d, device %{public}s already exists", userId, deviceKey.GetDesc().c_str());
-        return ResultCode::GENERAL_ERROR;
+    auto oldCompanion = FindCompanionByDeviceUser(userId, deviceKey);
+    if (oldCompanion != nullptr) {
+        IAM_LOGI("user %{public}d, device %{public}s already exists, removing old companion", userId,
+            deviceKey.GetDesc().c_str());
+        RemoveCompanion(oldCompanion->GetTemplateId(), false);
     }
 
     companions_.push_back(companion);

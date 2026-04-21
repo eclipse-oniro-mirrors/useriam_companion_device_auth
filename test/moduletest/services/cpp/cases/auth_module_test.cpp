@@ -998,8 +998,10 @@ HWTEST_F(AuthModuleTest, HostTokenAuthNoTokenE2E_001, TestSize.Level0)
 
     // 5. Get connection and seq
     auto allConnNames = guard.GetChannel().GetAllConnectionNames();
+    ASSERT_FALSE(allConnNames.empty()) << "Expected a connection";
     const auto &actualConnName = allConnNames[0];
     auto sentMsgs = guard.GetChannel().GetSentMessages(actualConnName);
+    ASSERT_FALSE(sentMsgs.empty()) << "Expected TOKEN_AUTH request to be sent";
     auto msgInfo = DecodeRawMsg(sentMsgs[0]);
     ASSERT_TRUE(msgInfo.has_value());
 

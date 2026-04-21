@@ -32,17 +32,15 @@ namespace CompanionDeviceAuth {
 
 // Rust ErrorCode enumeration (mirrors services/security_agent/rust/common/constants.rs)
 enum class RustErrorCode : int32_t {
-    SUCCESS = 0,               // ErrorCode::Success
-    FAIL = 1,                  // ErrorCode::Fail
-    GENERAL_ERROR = 2,         // ErrorCode::GeneralError
-    TIMEOUT = 4,               // ErrorCode::Timeout
-    BAD_PARAM = 8,             // ErrorCode::BadParam
-    READ_PARCEL_ERROR = 1003,  // ErrorCode::ReadParcelError
-    WRITE_PARCEL_ERROR = 1004, // ErrorCode::WriteParcelError
-    NOT_FOUND = 10006,         // ErrorCode::NotFound
-    ID_EXISTS = 10015,         // ErrorCode::IdExists
-    EXCEED_LIMIT = 100017,     // ErrorCode::ExceedLimit
-    TOKEN_NOT_FOUND = 20005,   // ErrorCode::TokenNotFound
+    SUCCESS = 0,                 // ErrorCode::Success
+    FAIL = 1,                    // ErrorCode::Fail
+    GENERAL_ERROR = 2,           // ErrorCode::GeneralError
+    TIMEOUT = 4,                 // ErrorCode::Timeout
+    BAD_PARAM = 8,               // ErrorCode::BadParam
+    NOT_FOUND = 10006,           // ErrorCode::NotFound
+    ID_EXISTS = 10015,           // ErrorCode::IdExists
+    TOKEN_NOT_FOUND = 20005,     // ErrorCode::TokenNotFound
+    TOKEN_VERIFY_FAILED = 20006, // ErrorCode::TokenVerifyFailed
 };
 
 struct RustErrorCodeMapping {
@@ -56,12 +54,10 @@ static constexpr RustErrorCodeMapping RUST_ERROR_CODE_MAPPINGS[] = {
     { RustErrorCode::GENERAL_ERROR, ResultCode::GENERAL_ERROR },
     { RustErrorCode::TIMEOUT, ResultCode::TIMEOUT },
     { RustErrorCode::BAD_PARAM, ResultCode::INVALID_PARAMETERS },
-    { RustErrorCode::READ_PARCEL_ERROR, ResultCode::GENERAL_ERROR },
-    { RustErrorCode::WRITE_PARCEL_ERROR, ResultCode::GENERAL_ERROR },
     { RustErrorCode::NOT_FOUND, ResultCode::NOT_ENROLLED },
     { RustErrorCode::ID_EXISTS, ResultCode::INVALID_PARAMETERS },
-    { RustErrorCode::EXCEED_LIMIT, ResultCode::GENERAL_ERROR },
     { RustErrorCode::TOKEN_NOT_FOUND, ResultCode::TOKEN_NOT_FOUND },
+    { RustErrorCode::TOKEN_VERIFY_FAILED, ResultCode::TOKEN_VERIFY_FAILED },
 };
 
 static constexpr size_t RUST_ERROR_CODE_MAPPING_COUNT = sizeof(RUST_ERROR_CODE_MAPPINGS) / sizeof(RustErrorCodeMapping);
@@ -71,9 +67,13 @@ static ResultCode ConvertRustErrorCode(int32_t rustErrorCode)
     RustErrorCode rustErrCode = static_cast<RustErrorCode>(rustErrorCode);
     for (size_t i = 0; i < RUST_ERROR_CODE_MAPPING_COUNT; ++i) {
         if (RUST_ERROR_CODE_MAPPINGS[i].rustErrorCode == rustErrCode) {
-            return RUST_ERROR_CODE_MAPPINGS[i].cppResultCode;
+            ResultCode cppCode = RUST_ERROR_CODE_MAPPINGS[i].cppResultCode;
+            IAM_LOGI("convert rust error code %{public}d to ResultCode %{public}d", static_cast<int32_t>(rustErrCode),
+                static_cast<int32_t>(cppCode));
+            return cppCode;
         }
     }
+    IAM_LOGE("unknown rust error code %{public}d, fallback to GENERAL_ERROR", rustErrorCode);
     return ResultCode::GENERAL_ERROR;
 }
 

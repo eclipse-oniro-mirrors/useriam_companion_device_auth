@@ -96,7 +96,8 @@ std::optional<napi_ref> GetCallbackRef(napi_env env, napi_callback_info info)
         return std::nullopt;
     }
     if (argc == 0) {
-        return std::nullopt;
+        // No callback provided, return nullptr ref for Off* functions to unsubscribe all
+        return static_cast<napi_ref>(nullptr);
     }
     if (argc == ARGS_ONE) {
         napi_ref ref = nullptr;
@@ -222,7 +223,7 @@ napi_value OnTemplateChange(napi_env env, napi_callback_info info)
     }
 
     auto callback = GetCallbackRef(env, info);
-    if (!callback) {
+    if (!callback || *callback == nullptr) {
         IAM_LOGE("GetCallbackRef fail");
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
         return nullptr;
@@ -294,7 +295,7 @@ napi_value OnAvailableDeviceChange(napi_env env, napi_callback_info info)
     }
 
     auto callback = GetCallbackRef(env, info);
-    if (!callback) {
+    if (!callback || *callback == nullptr) {
         IAM_LOGE("GetCallbackRef fail");
         napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
         return nullptr;

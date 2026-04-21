@@ -39,7 +39,7 @@ public:
         (override));
     MOCK_METHOD(ResultCode, EndAddCompanion, (const EndAddCompanionInput &input, EndAddCompanionOutput &output),
         (override));
-    MOCK_METHOD(ResultCode, RemoveCompanion, (TemplateId templateId), (override));
+    MOCK_METHOD(ResultCode, RemoveCompanion, (TemplateId templateId, bool removeHostBinding), (override));
     MOCK_METHOD(ResultCode, UpdateCompanionStatus,
         (TemplateId templateId, const std::string &deviceName, const std::string &deviceUserName), (override));
     MOCK_METHOD(ResultCode, UpdateCompanionEnabledBusinessIds,

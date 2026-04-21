@@ -112,7 +112,8 @@ std::optional<HostBindingStatus> HostBindingManagerImpl::GetHostBindingStatus(Us
 {
     auto binding = FindBindingByDeviceUser(companionUserId, hostDeviceKey);
     if (binding == nullptr) {
-        IAM_LOGI("binding not found for device-user combination");
+        IAM_LOGI("binding not found for device-user combination, companionUserId %{public}d, hostDeviceKey %{public}s",
+            companionUserId, hostDeviceKey.GetDesc().c_str());
         return std::nullopt;
     }
 
