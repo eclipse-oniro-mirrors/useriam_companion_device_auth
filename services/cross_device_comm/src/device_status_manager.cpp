@@ -552,13 +552,15 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 deviceStatus.deviceName != status.deviceName ||
                 deviceStatus.deviceModelInfo != status.deviceModelInfo ||
                 deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive ||
-                deviceStatus.deviceType != status.deviceType;
+                deviceStatus.deviceType != status.deviceType ||
+                deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs;
             if (hasChange) {
                 deviceStatus.channelId = status.channelId;
                 deviceStatus.deviceName = status.deviceName;
                 deviceStatus.deviceModelInfo = status.deviceModelInfo;
                 deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
                 deviceStatus.deviceType = status.deviceType;
+                deviceStatus.atlRevokeDelayMs = status.atlRevokeDelayMs;
                 deviceChanged = true;
             }
             if (resync) {

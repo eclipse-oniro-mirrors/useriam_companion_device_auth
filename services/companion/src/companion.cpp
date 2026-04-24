@@ -121,6 +121,7 @@ void Companion::HandleDeviceStatusUpdate(const DeviceStatus &deviceStatus)
         return;
     }
 
+    HandleAuthMaintainActiveChanged(deviceStatus);
     status_.companionDeviceStatus = deviceStatus;
     IAM_LOGI("%{public}s device status updated", GetDescription());
 
@@ -133,9 +134,53 @@ void Companion::HandleDeviceOffline()
         return;
     }
 
-    status_.companionDeviceStatus.isOnline = false;
     IAM_LOGE("%{public}s device offline", GetDescription());
+    status_.companionDeviceStatus.isOnline = false;
+    authMaintainInactiveTimer_.reset();
+    SetCompanionTokenAuthAtl(std::nullopt);
     NotifySubscribers();
+}
+
+void Companion::HandleAuthMaintainActiveChanged(const DeviceStatus &deviceStatus)
+{
+    bool oldActive = status_.companionDeviceStatus.isAuthMaintainActive;
+    if (oldActive == deviceStatus.isAuthMaintainActive) {
+        return;
+    }
+
+    IAM_LOGI("%{public}s isAuthMaintainActive changed: %{public}d -> %{public}d", GetDescription(),
+        oldActive, deviceStatus.isAuthMaintainActive);
+
+    if (deviceStatus.isAuthMaintainActive) {
+        authMaintainInactiveTimer_.reset();
+        return;
+    }
+
+    if (!status_.tokenAuthAtl.has_value()) {
+        return;
+    }
+
+    auto delayMs = deviceStatus.atlRevokeDelayMs;
+    if (!delayMs.has_value()) {
+        return;
+    }
+
+    if (delayMs.value() == 0) {
+        IAM_LOGI("%{public}s auth maintain inactive, immediate atl revoke", GetDescription());
+        SetCompanionTokenAuthAtl(std::nullopt);
+        return;
+    }
+
+    IAM_LOGI("%{public}s auth maintain inactive, scheduling atl revoke in %{public}u ms", GetDescription(),
+        delayMs.value());
+    authMaintainInactiveTimer_ = RelativeTimer::GetInstance().Register(
+        [weakSelf = weak_from_this()]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            IAM_LOGI("%{public}s auth maintain inactive timeout, revoking atl", self->GetDescription());
+            self->SetCompanionTokenAuthAtl(std::nullopt);
+        },
+        delayMs.value());
 }
 
 void Companion::SetEnabledBusinessIds(const std::vector<BusinessId> &enabledBusinessIds)
@@ -169,6 +214,7 @@ void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl)
 
     tokenTimeoutSubscription_.reset();
     if (oldTokenAuthAtl.has_value() && !tokenAuthAtl.has_value()) {
+        authMaintainInactiveTimer_.reset();
         HostRevokeTokenInput input = { status_.templateId };
         (void)GetSecurityAgent().HostRevokeToken(input);
     } else if (tokenAuthAtl.has_value()) {

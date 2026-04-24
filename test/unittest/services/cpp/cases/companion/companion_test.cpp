@@ -42,6 +42,7 @@ constexpr UserId USER_ID_100 = 100;
 constexpr UserId USER_ID_200 = 200;
 constexpr BusinessId BUSINESS_ID_1 = static_cast<BusinessId>(1);
 constexpr BusinessId BUSINESS_ID_2 = static_cast<BusinessId>(2);
+constexpr uint32_t TEST_ATL_REVOKE_DELAY_MS = 30000;
 constexpr BusinessId BUSINESS_ID_3 = static_cast<BusinessId>(3);
 constexpr BusinessId BUSINESS_ID_4 = static_cast<BusinessId>(4);
 constexpr int32_t INT32_1 = 1;
@@ -71,12 +72,14 @@ PersistedCompanionStatus MakePersistedStatus(TemplateId templateId, UserId hostU
     return status;
 }
 
-DeviceStatus MakeDeviceStatus(const DeviceKey &deviceKey, bool isOnline = true, bool isAuthMaintainActive = true)
+DeviceStatus MakeDeviceStatus(const DeviceKey &deviceKey, bool isOnline = true, bool isAuthMaintainActive = true,
+    std::optional<uint32_t> atlRevokeDelayMs = std::nullopt)
 {
     DeviceStatus status;
     status.deviceKey = deviceKey;
     status.isOnline = isOnline;
     status.isAuthMaintainActive = isAuthMaintainActive;
+    status.atlRevokeDelayMs = atlRevokeDelayMs;
     status.deviceName = "TestDevice";
     status.deviceUserName = "TestUser";
     status.deviceModelInfo = "TestModel";
@@ -493,6 +496,175 @@ HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_003, TestSize.Level0)
     EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_, _)).Times(0);
 
     companionWithNullManager->HandleTemplateAddToIdmTimeout();
+}
+
+// --- HandleAuthMaintainActiveChanged tests ---
+
+HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayNullopt_NoRevoke, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->SetCompanionTokenAuthAtl(INT32_3);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // First set authMaintain active (no delay configured yet)
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true);
+    companion->HandleDeviceStatusUpdate(activeStatus);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+
+    // atlRevokeDelayMs = nullopt, authMaintain goes inactive → no revoke
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false);
+    companion->HandleDeviceStatusUpdate(inactiveStatus);
+
+    EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayZero_ImmediateRevoke, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->SetCompanionTokenAuthAtl(INT32_3);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // First set authMaintain active with delay=0
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, 0);
+    companion->HandleDeviceStatusUpdate(activeStatus);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+
+    // atlRevokeDelayMs = 0 → immediate revoke
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, 0);
+    companion->HandleDeviceStatusUpdate(inactiveStatus);
+
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayNonZero_TimerFiresAndRevokes, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->SetCompanionTokenAuthAtl(INT32_3);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // First set authMaintain active with delay=TEST_ATL_REVOKE_DELAY_MS
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS);
+    companion->HandleDeviceStatusUpdate(activeStatus);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+
+    // atlRevokeDelayMs = TEST_ATL_REVOKE_DELAY_MS → timer scheduled
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS);
+    companion->HandleDeviceStatusUpdate(inactiveStatus);
+
+    // ATL still present before timer fires
+    EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // Timer fires → ATL revoked
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
+    RelativeTimer::GetInstance().ExecuteAll();
+
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+HWTEST_F(CompanionTest, AuthMaintainInactive_TimerCancelledOnRecovery, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->SetCompanionTokenAuthAtl(INT32_3);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // First set authMaintain active
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS);
+    companion->HandleDeviceStatusUpdate(activeStatus);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+
+    // authMaintain goes inactive → timer scheduled
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS);
+    companion->HandleDeviceStatusUpdate(inactiveStatus);
+    EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // authMaintain recovers before timer fires → timer cancelled, ATL preserved
+    companion->HandleDeviceStatusUpdate(activeStatus);
+    EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+    // authMaintainInactiveTimer_ was cancelled, so only tokenTimeoutSubscription_ remains
+    // (we do not call ExecuteAll here because the token timeout timer would also fire)
+}
+
+HWTEST_F(CompanionTest, AuthMaintainInactive_NoAtl_NoRevoke, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    // First set authMaintain active with delay
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS);
+    companion->HandleDeviceStatusUpdate(activeStatus);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+
+    // No ATL set, authMaintain goes inactive with delay → nothing happens
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS);
+    companion->HandleDeviceStatusUpdate(inactiveStatus);
+
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+    RelativeTimer::GetInstance().ExecuteAll();
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+HWTEST_F(CompanionTest, AuthMaintainInactive_DeviceOffline_CancelsTimer, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->SetCompanionTokenAuthAtl(INT32_3);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // Set online + authMaintain active with delay
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS);
+    companion->status_.companionDeviceStatus = activeStatus;
+
+    // authMaintain goes inactive → timer scheduled
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS);
+    companion->HandleDeviceStatusUpdate(inactiveStatus);
+
+    // Device offline → timer cancelled, ATL revoked
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
+    companion->HandleDeviceOffline();
+
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+HWTEST_F(CompanionTest, HandleDeviceOffline_WithAtl_RevokesToken, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->SetCompanionTokenAuthAtl(INT32_3);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    companion->status_.companionDeviceStatus.isOnline = true;
+
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
+
+    companion->HandleDeviceOffline();
+
+    EXPECT_FALSE(companion->GetStatus().companionDeviceStatus.isOnline);
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
 }
 
 } // namespace

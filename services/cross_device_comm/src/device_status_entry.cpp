@@ -38,6 +38,7 @@ DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus,
       capabilities(),
       supportedBusinessIds(),
       isAuthMaintainActive(physicalStatus.isAuthMaintainActive),
+      atlRevokeDelayMs(physicalStatus.atlRevokeDelayMs),
       isSynced(false),
       isSyncInProgress(false)
 {
@@ -60,6 +61,7 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       capabilities(std::move(other.capabilities)),
       supportedBusinessIds(std::move(other.supportedBusinessIds)),
       isAuthMaintainActive(other.isAuthMaintainActive),
+      atlRevokeDelayMs(other.atlRevokeDelayMs),
       isSynced(other.isSynced),
       isSyncInProgress(other.isSyncInProgress),
       syncRetryTimer_(std::move(other.syncRetryTimer_))
@@ -116,6 +118,7 @@ DeviceStatus DeviceStatusEntry::BuildDeviceStatus(UserId userId) const
     status.isOnline = isSynced;
     status.isAuthMaintainActive = isAuthMaintainActive;
     status.deviceType = deviceType;
+    status.atlRevokeDelayMs = atlRevokeDelayMs;
     return status;
 }
 
