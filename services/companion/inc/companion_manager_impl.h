@@ -51,7 +51,7 @@ public:
     ResultCode BeginAddCompanion(const BeginAddCompanionParams &params, std::vector<uint8_t> &outAddHostBindingRequest,
         uint16_t &selectedAlgorithm) override;
     ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) override;
-    ResultCode RemoveCompanion(TemplateId templateId) override;
+    ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding) override;
 
     ResultCode UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
         const std::string &deviceUserName) override;

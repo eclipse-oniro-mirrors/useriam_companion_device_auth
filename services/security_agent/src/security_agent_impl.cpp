@@ -27,7 +27,7 @@
 #include "companion_device_auth_ffi.h"
 #include "companion_device_auth_ffi_util.h"
 #include "event_manager_adapter.h"
-#include "security_agent_imp.h"
+#include "security_agent_impl.h"
 #include "singleton_manager.h"
 
 #define LOG_TAG "CDA_SA"
@@ -79,10 +79,10 @@ ResultCode SecurityAgentImpl::SetActiveUser(const SetActiveUserInput &input)
     auto ffiOutput = std::make_unique<SetActiveUserOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::SET_ACTIVE_USER_ID,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::SET_ACTIVE_USER_ID,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(SetActiveUserInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(SetActiveUserOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -96,10 +96,10 @@ ResultCode SecurityAgentImpl::HostGetExecutorInfo(HostGetExecutorInfoOutput &out
     auto ffiOutput = std::make_unique<GetExecutorInfoOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::GET_EXECUTOR_INFO,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::GET_EXECUTOR_INFO,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(GetExecutorInfoInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(GetExecutorInfoOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeExecutorInfo(*ffiOutput, output.executorInfo);
     ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);
@@ -118,10 +118,10 @@ ResultCode SecurityAgentImpl::HostOnRegisterFinish(const RegisterFinishInput &in
     auto ffiOutput = std::make_unique<HostRegisterFinishOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_REGISTER_FINISH,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_REGISTER_FINISH,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostRegisterFinishInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostRegisterFinishOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -137,10 +137,10 @@ ResultCode SecurityAgentImpl::HostGetPersistedCompanionStatus(const HostGetPersi
     auto ffiOutput = std::make_unique<HostGetPersistedStatusOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_GET_PERSISTED_STATUS,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_GET_PERSISTED_STATUS,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostGetPersistedStatusInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostGetPersistedStatusOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodePersistedCompanionStatusList(ffiOutput->companionStatusList, output.companionStatusList);
     ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);
@@ -159,10 +159,10 @@ ResultCode SecurityAgentImpl::CompanionGetPersistedHostBindingStatus(
     auto ffiOutput = std::make_unique<CompanionGetPersistedStatusOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_GET_PERSISTED_STATUS,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_GET_PERSISTED_STATUS,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionGetPersistedStatusInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionGetPersistedStatusOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodePersistedHostBindingStatusList(ffiOutput->bindingStatusList, output.hostBindingStatusList);
     ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);
@@ -184,10 +184,10 @@ ResultCode SecurityAgentImpl::HostBeginCompanionCheck(const HostBeginCompanionCh
     auto ffiOutput = std::make_unique<HostBeginCompanionCheckOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_COMPANION_CHECK,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_COMPANION_CHECK,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostBeginCompanionCheckInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostBeginCompanionCheckOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     if (!DecodeHostBeginCompanionCheckOutput(*ffiOutput, output)) {
         IAM_LOGE("failed to decode output");
@@ -207,10 +207,10 @@ ResultCode SecurityAgentImpl::HostEndCompanionCheck(const HostEndCompanionCheckI
     auto ffiOutput = std::make_unique<HostEndCompanionCheckOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_COMPANION_CHECK,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_COMPANION_CHECK,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostEndCompanionCheckInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostEndCompanionCheckOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -225,10 +225,10 @@ ResultCode SecurityAgentImpl::HostCancelCompanionCheck(const HostCancelCompanion
     auto ffiOutput = std::make_unique<HostCancelCompanionCheckOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_COMPANION_CHECK,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_COMPANION_CHECK,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostCancelCompanionCheckInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostCancelCompanionCheckOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -245,10 +245,10 @@ ResultCode SecurityAgentImpl::CompanionProcessCheck(const CompanionProcessCheckI
     auto ffiOutput = std::make_unique<CompanionProcessCheckOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PROCESS_CHECK,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PROCESS_CHECK,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionProcessCheckInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionProcessCheckOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionProcessCheckOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);
@@ -268,10 +268,10 @@ ResultCode SecurityAgentImpl::HostGetInitKeyNegotiationRequest(const HostGetInit
     auto ffiOutput = std::make_unique<HostGetInitKeyNegotiationOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_GET_INIT_KEY_NEGOTIATION,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_GET_INIT_KEY_NEGOTIATION,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostGetInitKeyNegotiationInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostGetInitKeyNegotiationOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostInitKeyNegotiationOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);
@@ -290,10 +290,10 @@ ResultCode SecurityAgentImpl::HostBeginAddCompanion(const HostBeginAddCompanionI
     auto ffiOutput = std::make_unique<HostBeginAddCompanionOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_ADD_COMPANION,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_ADD_COMPANION,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostBeginAddCompanionInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostBeginAddCompanionOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostBeginAddCompanionOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -312,10 +312,10 @@ ResultCode SecurityAgentImpl::HostEndAddCompanion(const HostEndAddCompanionInput
     auto ffiOutput = std::make_unique<HostEndAddCompanionOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_ADD_COMPANION,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_ADD_COMPANION,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostEndAddCompanionInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostEndAddCompanionOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostEndAddCompanionOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -332,10 +332,10 @@ ResultCode SecurityAgentImpl::HostCancelAddCompanion(const HostCancelAddCompanio
     auto ffiOutput = std::make_unique<HostCancelAddCompanionOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_ADD_COMPANION,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_ADD_COMPANION,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostCancelAddCompanionInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostCancelAddCompanionOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -352,10 +352,10 @@ ResultCode SecurityAgentImpl::CompanionInitKeyNegotiation(const CompanionInitKey
     auto ffiOutput = std::make_unique<CompanionInitKeyNegotiationOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_INIT_KEY_NEGOTIATION,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_INIT_KEY_NEGOTIATION,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionInitKeyNegotiationInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionInitKeyNegotiationOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionInitKeyNegotiationOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -374,10 +374,10 @@ ResultCode SecurityAgentImpl::CompanionBeginAddHostBinding(const CompanionBeginA
     auto ffiOutput = std::make_unique<CompanionBeginAddHostBindingOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_BEGIN_ADD_HOST_BINDING,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_BEGIN_ADD_HOST_BINDING,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionBeginAddHostBindingInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionBeginAddHostBindingOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionBeginAddHostBindingOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -396,10 +396,10 @@ ResultCode SecurityAgentImpl::CompanionEndAddHostBinding(const CompanionEndAddHo
     auto ffiOutput = std::make_unique<CompanionEndAddHostBindingOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_END_ADD_HOST_BINDING,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_END_ADD_HOST_BINDING,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionEndAddHostBindingInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionEndAddHostBindingOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionEndAddHostBindingOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -417,10 +417,10 @@ ResultCode SecurityAgentImpl::HostRemoveCompanion(const HostRemoveCompanionInput
     auto ffiOutput = std::make_unique<HostRemoveCompanionOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_REMOVE_COMPANION,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_REMOVE_COMPANION,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostRemoveCompanionInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostRemoveCompanionOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     output.userId = ffiOutput->userId;
     bool decodeRet = DecodeDeviceKey(ffiOutput->companionDeviceKey, output.companionDeviceKey);
@@ -438,10 +438,10 @@ ResultCode SecurityAgentImpl::CompanionRemoveHostBinding(const CompanionRemoveHo
     auto ffiOutput = std::make_unique<CompanionRemoveHostBindingOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_REMOVE_HOST_BINDING,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_REMOVE_HOST_BINDING,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionRemoveHostBindingInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionRemoveHostBindingOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -458,10 +458,10 @@ ResultCode SecurityAgentImpl::HostBeginDelegateAuth(const HostBeginDelegateAuthI
     auto ffiOutput = std::make_unique<HostBeginDelegateAuthOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_DELEGATE_AUTH,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_DELEGATE_AUTH,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostBeginDelegateAuthInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostBeginDelegateAuthOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostBeginDelegateAuthOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -480,10 +480,10 @@ ResultCode SecurityAgentImpl::HostEndDelegateAuth(const HostEndDelegateAuthInput
     auto ffiOutput = std::make_unique<HostEndDelegateAuthOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_DELEGATE_AUTH,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_DELEGATE_AUTH,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostEndDelegateAuthInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostEndDelegateAuthOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostEndDelegateAuthOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -500,10 +500,10 @@ ResultCode SecurityAgentImpl::HostCancelDelegateAuth(const HostCancelDelegateAut
     auto ffiOutput = std::make_unique<HostCancelDelegateAuthOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_DELEGATE_AUTH,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_DELEGATE_AUTH,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostCancelDelegateAuthInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostCancelDelegateAuthOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -520,10 +520,10 @@ ResultCode SecurityAgentImpl::CompanionBeginDelegateAuth(const CompanionDelegate
     auto ffiOutput = std::make_unique<CompanionBeginDelegateAuthOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_BEGIN_DELEGATE_AUTH,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_BEGIN_DELEGATE_AUTH,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionBeginDelegateAuthInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionBeginDelegateAuthOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionBeginDelegateAuthOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -542,10 +542,10 @@ ResultCode SecurityAgentImpl::CompanionEndDelegateAuth(const CompanionDelegateAu
     auto ffiOutput = std::make_unique<CompanionEndDelegateAuthOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_END_DELEGATE_AUTH,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_END_DELEGATE_AUTH,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionEndDelegateAuthInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionEndDelegateAuthOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionEndDelegateAuthOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -563,10 +563,10 @@ ResultCode SecurityAgentImpl::HostPreIssueToken(const HostPreIssueTokenInput &in
     auto ffiOutput = std::make_unique<HostPreIssueTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_PRE_ISSUE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_PRE_ISSUE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostPreIssueTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostPreIssueTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostPreIssueTokenOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -585,10 +585,10 @@ ResultCode SecurityAgentImpl::HostBeginIssueToken(const HostBeginIssueTokenInput
     auto ffiOutput = std::make_unique<HostBeginIssueTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_ISSUE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_ISSUE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostBeginIssueTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostBeginIssueTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostBeginIssueTokenOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -606,10 +606,10 @@ ResultCode SecurityAgentImpl::HostEndIssueToken(const HostEndIssueTokenInput &in
     auto ffiOutput = std::make_unique<HostEndIssueTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_ISSUE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_ISSUE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostEndIssueTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostEndIssueTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostEndIssueTokenOutput(*ffiOutput, output.atl);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -627,10 +627,10 @@ ResultCode SecurityAgentImpl::HostCancelIssueToken(const HostCancelIssueTokenInp
     auto ffiOutput = std::make_unique<HostCancelIssueTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_ISSUE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_ISSUE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostCancelIssueTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostCancelIssueTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -647,10 +647,10 @@ ResultCode SecurityAgentImpl::CompanionPreIssueToken(const CompanionPreIssueToke
     auto ffiOutput = std::make_unique<CompanionPreIssueTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PRE_ISSUE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PRE_ISSUE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionPreIssueTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionPreIssueTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionPreIssueTokenOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -669,10 +669,10 @@ ResultCode SecurityAgentImpl::CompanionProcessIssueToken(const CompanionProcessI
     auto ffiOutput = std::make_unique<CompanionProcessIssueTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PROCESS_ISSUE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PROCESS_ISSUE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionProcessIssueTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionProcessIssueTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionProcessIssueTokenOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -689,10 +689,10 @@ ResultCode SecurityAgentImpl::CompanionCancelIssueToken(const CompanionCancelIss
     auto ffiOutput = std::make_unique<CompanionCancelIssueTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_CANCEL_ISSUE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_CANCEL_ISSUE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionCancelIssueTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionCancelIssueTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -709,10 +709,10 @@ ResultCode SecurityAgentImpl::HostProcessPreObtainToken(const HostProcessPreObta
     auto ffiOutput = std::make_unique<HostProcessPreObtainTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_PROCESS_PRE_OBTAIN_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_PROCESS_PRE_OBTAIN_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostProcessPreObtainTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostProcessPreObtainTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostProcessPreObtainTokenOutput(*ffiOutput, output.preObtainTokenReply);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -732,10 +732,10 @@ ResultCode SecurityAgentImpl::HostProcessObtainToken(const HostProcessObtainToke
     auto ffiOutput = std::make_unique<HostProcessObtainTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_PROCESS_OBTAIN_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_PROCESS_OBTAIN_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostProcessObtainTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostProcessObtainTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostProcessObtainTokenOutput(*ffiOutput, output.obtainTokenReply, output.atl);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -753,10 +753,10 @@ ResultCode SecurityAgentImpl::HostCancelObtainToken(const HostCancelObtainTokenI
     auto ffiOutput = std::make_unique<HostCancelObtainTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_OBTAIN_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CANCEL_OBTAIN_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostCancelObtainTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostCancelObtainTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -773,10 +773,10 @@ ResultCode SecurityAgentImpl::CompanionBeginObtainToken(const CompanionBeginObta
     auto ffiOutput = std::make_unique<CompanionBeginObtainTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_BEGIN_OBTAIN_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_BEGIN_OBTAIN_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionBeginObtainTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionBeginObtainTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionBeginObtainTokenOutput(*ffiOutput, output.obtainTokenRequest, output.atl);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -795,10 +795,10 @@ ResultCode SecurityAgentImpl::CompanionEndObtainToken(const CompanionEndObtainTo
     auto ffiOutput = std::make_unique<CompanionEndObtainTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_END_OBTAIN_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_END_OBTAIN_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionEndObtainTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionEndObtainTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -813,10 +813,10 @@ ResultCode SecurityAgentImpl::CompanionCancelObtainToken(const CompanionCancelOb
     auto ffiOutput = std::make_unique<CompanionCancelObtainTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_CANCEL_OBTAIN_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_CANCEL_OBTAIN_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionCancelObtainTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionCancelObtainTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -832,10 +832,10 @@ ResultCode SecurityAgentImpl::HostBeginTokenAuth(const HostBeginTokenAuthInput &
     auto ffiOutput = std::make_unique<HostBeginTokenAuthOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_TOKEN_AUTH,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BEGIN_TOKEN_AUTH,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostBeginTokenAuthInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostBeginTokenAuthOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostBeginTokenAuthOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -853,10 +853,10 @@ ResultCode SecurityAgentImpl::HostEndTokenAuth(const HostEndTokenAuthInput &inpu
     auto ffiOutput = std::make_unique<HostEndTokenAuthOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_TOKEN_AUTH,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_END_TOKEN_AUTH,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostEndTokenAuthInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostEndTokenAuthOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostEndTokenAuthOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -874,10 +874,10 @@ ResultCode SecurityAgentImpl::HostUpdateToken(const HostUpdateTokenInput &input,
     auto ffiOutput = std::make_unique<HostUpdateTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_UPDATE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_UPDATE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostUpdateTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostUpdateTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostUpdateTokenOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -896,10 +896,10 @@ ResultCode SecurityAgentImpl::CompanionProcessTokenAuth(const CompanionProcessTo
     auto ffiOutput = std::make_unique<CompanionProcessTokenAuthOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PROCESS_TOKEN_AUTH,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PROCESS_TOKEN_AUTH,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionProcessTokenAuthInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionProcessTokenAuthOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeCompanionProcessTokenAuthOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
@@ -916,10 +916,10 @@ ResultCode SecurityAgentImpl::HostRevokeToken(const HostRevokeTokenInput &input)
     auto ffiOutput = std::make_unique<HostRevokeTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_REVOKE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_REVOKE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostRevokeTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostRevokeTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -934,10 +934,10 @@ ResultCode SecurityAgentImpl::CompanionRevokeToken(const CompanionRevokeTokenInp
     auto ffiOutput = std::make_unique<CompanionRevokeTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_REVOKE_TOKEN,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_REVOKE_TOKEN,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionRevokeTokenInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionRevokeTokenOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -953,10 +953,10 @@ ResultCode SecurityAgentImpl::HostUpdateCompanionStatus(const HostUpdateCompanio
     auto ffiOutput = std::make_unique<HostUpdateCompanionStatusOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_UPDATE_COMPANION_STATUS,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_UPDATE_COMPANION_STATUS,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostUpdateCompanionStatusInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostUpdateCompanionStatusOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -973,11 +973,11 @@ ResultCode SecurityAgentImpl::HostUpdateCompanionEnabledBusinessIds(
     auto ffiOutput = std::make_unique<HostUpdateCompanionEnabledBusinessIdsOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult =
+    ResultCode invokeResult =
         GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_UPDATE_COMPANION_ENABLED_BUSINESS_IDS,
             reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostUpdateCompanionEnabledBusinessIdsInputFfi),
             reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostUpdateCompanionEnabledBusinessIdsOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -993,10 +993,10 @@ ResultCode SecurityAgentImpl::HostSetCompanionInvalid(const HostSetCompanionInva
     auto ffiOutput = std::make_unique<HostSetCompanionInvalidOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_SET_COMPANION_INVALID,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_SET_COMPANION_INVALID,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostSetCompanionInvalidInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostSetCompanionInvalidOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     IAM_LOGI("success");
     return SUCCESS;
@@ -1013,10 +1013,10 @@ ResultCode SecurityAgentImpl::HostCheckTemplateEnrolled(const HostCheckTemplateE
     auto ffiOutput = std::make_unique<HostCheckTemplateEnrolledOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    int32_t invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CHECK_TEMPLATE_ENROLLED,
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_CHECK_TEMPLATE_ENROLLED,
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostCheckTemplateEnrolledInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostCheckTemplateEnrolledOutputFfi));
-    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
     bool decodeRet = DecodeHostCheckTemplateEnrolledOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);

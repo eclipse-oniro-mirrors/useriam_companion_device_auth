@@ -34,6 +34,20 @@ public:
     CallbackHolder() = default;
     virtual ~CallbackHolder() = default;
 
+protected:
+    // Called under mutex_ when adding a non-first callback.
+    // Implementations should sync cached state to the new callback.
+    virtual void OnCallbackAdded(const std::shared_ptr<T> &callback)
+    {
+    }
+
+    // Returns a copy of callbacks without locking. Caller must hold mutex_.
+    std::vector<std::shared_ptr<T>> GetCallbacksUnchecked() const
+    {
+        return callbacks_;
+    }
+
+public:
     int32_t AddCallback(const std::shared_ptr<T> &callback, std::function<int()> func)
     {
         IAM_LOGI("start");
@@ -57,6 +71,7 @@ public:
         if (!callbacks_.empty()) {
             IAM_LOGI("callback already registered, add only");
             callbacks_.push_back(callback);
+            OnCallbackAdded(callback);
             return SUCCESS;
         }
 
@@ -129,8 +144,10 @@ public:
         return callbacks_.empty();
     }
 
-private:
+protected:
     mutable std::recursive_mutex mutex_;
+
+private:
     std::vector<std::shared_ptr<T>> callbacks_;
 };
 } // namespace CompanionDeviceAuth

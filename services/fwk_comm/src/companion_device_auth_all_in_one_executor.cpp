@@ -23,6 +23,8 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include <nlohmann/json.hpp>
+
 #include "adapter_manager.h"
 #include "cda_attributes.h"
 #include "common_defines.h"
@@ -52,6 +54,8 @@ const uint32_t ATTR_DATA = 100020;
 const uint32_t ATTR_AUTH_TYPE = 100024;
 const uint32_t ATTR_USER_ID = 100041;
 const uint32_t ATTR_LOCK_STATE_AUTH_TYPE = 100075;
+constexpr size_t UINT8_BIT_WIDTH = 8;
+constexpr int32_t COMMAND_ID_SET_COMPANION_INVALID = 10001;
 } // namespace
 
 struct CdaAuthenticateParam {
@@ -83,6 +87,7 @@ public:
     FwkResultCode SendCommand(FwkPropertyMode commandId, const std::vector<uint8_t> &extraInfo,
         const std::shared_ptr<FwkIExecuteCallback> &callbackObj);
     void HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vector<uint8_t> &extraInfo);
+    void HandleSetCompanionInvalid(const std::vector<uint8_t> &extraInfo);
 
 private:
     std::optional<FreezeCommand> DecodeFreezeCommand(const std::vector<uint8_t> &dataTlv);
@@ -236,7 +241,7 @@ FwkResultCode Inner::Delete(const std::vector<uint64_t> &templateIdList)
     }
 
     for (TemplateId templateId : templateIdList) {
-        ResultCode ret = GetCompanionManager().RemoveCompanion(templateId);
+        ResultCode ret = GetCompanionManager().RemoveCompanion(templateId, true);
         if (ret != ResultCode::SUCCESS) {
             IAM_LOGE("RemoveCompanion failed for templateId %{public}s, ret=%{public}d",
                 GET_MASKED_NUM_CSTR(templateId), ret);
@@ -266,16 +271,61 @@ FwkResultCode Inner::SendCommand(FwkPropertyMode commandId, const std::vector<ui
     IAM_LOGI("start");
     ENSURE_OR_RETURN_VAL(callbackObj != nullptr, FwkResultCode::GENERAL_ERROR);
     // The framework does not interpret the ResultCode in OnResult; always return SUCCESS.
-    // OnResult is called after processing completes so that the callback fires at a deterministic point.
+    // OnResult is called before processing so that the callback fires at a deterministic point.
     callbackObj->OnResult(FwkResultCode::SUCCESS, {});
-    if (commandId != FwkPropertyMode::PROPERTY_MODE_FREEZE && commandId != FwkPropertyMode::PROPERTY_MODE_UNFREEZE) {
-        IAM_LOGI("SendCommand not implemented for commandId=%{public}d, returning success", commandId);
-        return FwkResultCode::SUCCESS;
+    if (commandId == static_cast<FwkPropertyMode>(COMMAND_ID_SET_COMPANION_INVALID)) {
+        HandleSetCompanionInvalid(extraInfo);
+    } else if (commandId == FwkPropertyMode::PROPERTY_MODE_FREEZE ||
+        commandId == FwkPropertyMode::PROPERTY_MODE_UNFREEZE) {
+        HandleFreezeRelatedCommand(commandId, extraInfo);
+    } else {
+        IAM_LOGI("SendCommand not implemented for commandId=%{public}d", commandId);
     }
-
-    HandleFreezeRelatedCommand(commandId, extraInfo);
     IAM_LOGI("end");
     return FwkResultCode::SUCCESS;
+}
+
+void Inner::HandleSetCompanionInvalid(const std::vector<uint8_t> &extraInfo)
+{
+    IAM_LOGI("start");
+    std::string jsonStr(extraInfo.begin(), extraInfo.end());
+    try {
+        auto json = nlohmann::json::parse(jsonStr);
+        if (!json.is_object() || !json.contains("templateId")) {
+            IAM_LOGE("invalid extraInfo: not an object or missing templateId");
+            return;
+        }
+        auto &val = json["templateId"];
+        // JS Uint8Array serializes as {"0":173,"1":157,...}; accept both formats
+        bool isArray = val.is_array();
+        bool isObj = val.is_object();
+        if (!isArray && !isObj) {
+            IAM_LOGE("invalid templateId: not an array or object");
+            return;
+        }
+        if (isArray && val.size() != sizeof(uint64_t)) {
+            IAM_LOGE("invalid templateId: array size %{public}zu != %{public}zu", val.size(), sizeof(uint64_t));
+            return;
+        }
+        uint64_t templateId = 0;
+        for (size_t i = 0; i < sizeof(uint64_t); ++i) {
+            if (isObj && !val.contains(std::to_string(i))) {
+                IAM_LOGE("invalid templateId: missing key %{public}zu", i);
+                return;
+            }
+            auto &elem = isArray ? val[i] : val[std::to_string(i)];
+            if (!elem.is_number_integer() || elem.get<int64_t>() < 0 || elem.get<int64_t>() > UINT8_MAX) {
+                IAM_LOGE("invalid templateId: element %{public}zu is not a valid uint8", i);
+                return;
+            }
+            templateId |= static_cast<uint64_t>(elem.get<uint8_t>()) << (i * UINT8_BIT_WIDTH);
+        }
+        IAM_LOGI("setting companion invalid, templateId %{public}s", GET_MASKED_NUM_CSTR(templateId));
+        GetCompanionManager().SetTemplateInvalid(templateId);
+    } catch (const nlohmann::json::exception &) {
+        IAM_LOGE("failed to parse extraInfo as JSON");
+    }
+    IAM_LOGI("end");
 }
 
 std::optional<FreezeCommand> Inner::DecodeFreezeCommand(const std::vector<uint8_t> &dataTlv)

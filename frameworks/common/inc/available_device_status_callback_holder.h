@@ -30,15 +30,33 @@ public:
     AvailableDeviceStatusCallbackHolder() = default;
     ~AvailableDeviceStatusCallbackHolder() = default;
 
+    void OnCallbackAdded(const std::shared_ptr<AvailableDeviceStatusCallbackWrapper<T>> &callback) override
+    {
+        std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+        if (callback != nullptr && hasCached_) {
+            callback->OnAvailableDeviceStatusChange(cachedStatus_);
+        }
+    }
+
     void OnAvailableDeviceStatusChange(const std::vector<ClientDeviceStatus> deviceStatusList) override
     {
-        std::vector<std::shared_ptr<AvailableDeviceStatusCallbackWrapper<T>>> callbacks = this->GetCallbacks();
+        std::vector<std::shared_ptr<AvailableDeviceStatusCallbackWrapper<T>>> callbacks;
+        {
+            std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+            cachedStatus_ = deviceStatusList;
+            hasCached_ = true;
+            callbacks = this->GetCallbacksUnchecked();
+        }
         for (const auto &callback : callbacks) {
             if (callback != nullptr) {
                 callback->OnAvailableDeviceStatusChange(deviceStatusList);
             }
         }
     }
+
+private:
+    std::vector<ClientDeviceStatus> cachedStatus_;
+    bool hasCached_ = false;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

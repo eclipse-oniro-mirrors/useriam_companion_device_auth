@@ -164,7 +164,7 @@ impl HostTokenAuthRequest {
 
         if result != 0 {
             log_e!("hmac verification failed");
-            return Err(ErrorCode::Fail);
+            return Err(ErrorCode::TokenVerifyFailed);
         }
 
         Ok(())
@@ -173,7 +173,7 @@ impl HostTokenAuthRequest {
     fn decode_sec_token_auth_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         if let Err(e) = self.decode_sec_token_auth_reply_message(self.processor_type, sec_message) {
             log_e!("parse token auth reply message fail: processor_type: {:?}, result: {:?}", self.processor_type, e);
-            return Err(ErrorCode::GeneralError);
+            return Err(e);
         }
 
         Ok(())

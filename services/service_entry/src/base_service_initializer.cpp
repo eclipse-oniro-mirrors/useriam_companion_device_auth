@@ -37,7 +37,7 @@
 #include "request_factory_impl.h"
 #include "request_manager_impl.h"
 #include "sa_manager_adapter_impl.h"
-#include "security_agent_imp.h"
+#include "security_agent_impl.h"
 #include "security_command_adapter_impl.h"
 #include "singleton_manager.h"
 #include "soft_bus_channel.h"

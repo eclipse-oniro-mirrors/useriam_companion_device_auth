@@ -19,8 +19,8 @@
 #include "mock_guard.h"
 
 #include "adapter_manager.h"
-#include "mock_request.h"
 #include "host_token_auth_request.h"
+#include "mock_request.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 #include "token_auth_message.h"
@@ -69,6 +69,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_001, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus)));
@@ -103,6 +104,27 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_002, TestSize.Level0)
     EXPECT_FALSE(result);
 }
 
+HWTEST_F(HostTokenAuthRequestTest, OnStart_TokenAuthAtlNull, TestSize.Level0)
+{
+    MockGuard guard;
+
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    CompanionStatus companionStatus;
+    companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    // tokenAuthAtl is std::nullopt by default
+
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
+        .WillOnce(Return(std::make_optional(companionStatus)));
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+
+    EXPECT_FALSE(result);
+}
+
 HWTEST_F(HostTokenAuthRequestTest, OnStart_003, TestSize.Level0)
 {
     MockGuard guard;
@@ -113,6 +135,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_003, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus)));
@@ -135,6 +158,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_004, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus)));
@@ -165,6 +189,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnConnected_001, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus)));
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
@@ -204,6 +229,7 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_001, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus)));
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
@@ -245,6 +271,7 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_002, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus)));
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
@@ -287,6 +314,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_001, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus)));
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
@@ -332,6 +360,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_002, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus)));
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
@@ -372,6 +401,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_003, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus)));
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
@@ -415,6 +445,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_004, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus)));
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
@@ -460,6 +491,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_005, TestSize.Level0)
 
     CompanionStatus companionStatus;
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
     ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillByDefault(Return(std::make_optional(companionStatus)));
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
@@ -489,6 +521,55 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_005, TestSize.Level0)
 
     EXPECT_TRUE(*callbackCalled);
     EXPECT_EQ(*callbackResult, ResultCode::TOKEN_NOT_FOUND);
+}
+
+HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_006, TestSize.Level0)
+{
+    MockGuard guard;
+
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
+    auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+    auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    CompanionStatus companionStatus;
+    companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
+    ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
+        .WillByDefault(Return(std::make_optional(companionStatus)));
+    ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
+        .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    EXPECT_TRUE(request->OnStart(errorGuard));
+
+    TokenAuthReply reply = { .result = ResultCode::SUCCESS, .extraInfo = { 1, 2, 3, 4 } };
+    Attributes message;
+    EncodeTokenAuthReply(reply, message);
+
+    // When TOKEN_VERIFY_FAILED is returned by HostEndTokenAuth (HMAC mismatch),
+    // SetCompanionTokenAuthAtl with nullopt should be called to set companion ATL null
+    EXPECT_CALL(guard.GetSecurityAgent(), HostEndTokenAuth(_, _)).WillOnce(Return(ResultCode::TOKEN_VERIFY_FAILED));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(TEMPLATE_ID, _)).WillOnce(Return(true));
+
+    request->HandleTokenAuthReply(message);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::TOKEN_VERIFY_FAILED);
 }
 
 HWTEST_F(HostTokenAuthRequestTest, CompleteWithError_001, TestSize.Level0)

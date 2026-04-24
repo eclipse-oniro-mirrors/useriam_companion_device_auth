@@ -34,6 +34,7 @@ fn error_code_test() {
     assert_eq!(ErrorCode::try_from(10015).unwrap(), ErrorCode::IdExists);
     assert_eq!(ErrorCode::try_from(10017).unwrap(), ErrorCode::ExceedLimit);
     assert_eq!(ErrorCode::try_from(20005).unwrap(), ErrorCode::TokenNotFound);
+    assert_eq!(ErrorCode::try_from(20006).unwrap(), ErrorCode::TokenVerifyFailed);
     assert_eq!(ErrorCode::try_from(-1), Err(ErrorCode::BadParam));
 }
 

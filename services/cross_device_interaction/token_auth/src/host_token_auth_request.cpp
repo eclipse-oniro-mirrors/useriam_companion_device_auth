@@ -61,6 +61,11 @@ bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
 
+    if (!companionStatus->tokenAuthAtl.has_value()) {
+        IAM_LOGE("%{public}s token auth atl is null, companion not authorized for token auth", GetDescription());
+        return false;
+    }
+
     if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::TOKEN_AUTH)) {
         IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by companion device", GetDescription());
         return false;
@@ -170,9 +175,15 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
 
     std::vector<uint8_t> tokenAuthReply = replyMsg.extraInfo;
     std::vector<uint8_t> fwkMsg = {};
-    bool endTokenAuthRet = SecureAgentEndTokenAuth(tokenAuthReply, fwkMsg);
-    if (!endTokenAuthRet) {
-        IAM_LOGE("%{public}s SecureAgentEndTokenAuth failed", GetDescription());
+    ResultCode endTokenAuthRet = SecureAgentEndTokenAuth(tokenAuthReply, fwkMsg);
+    if (endTokenAuthRet != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s SecureAgentEndTokenAuth failed ret=%{public}d", GetDescription(),
+            static_cast<int32_t>(endTokenAuthRet));
+        if (endTokenAuthRet == ResultCode::TOKEN_VERIFY_FAILED) {
+            IAM_LOGI("%{public}s token verify failed, set companion atl null", GetDescription());
+            (void)GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, std::nullopt);
+        }
+        errorGuard.UpdateErrorCode(endTokenAuthRet);
         return;
     }
     needEndTokenAuth_ = false;
@@ -180,7 +191,7 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
     CompleteWithSuccess(fwkMsg);
 }
 
-bool HostTokenAuthRequest::SecureAgentEndTokenAuth(const std::vector<uint8_t> &tokenAuthReply,
+ResultCode HostTokenAuthRequest::SecureAgentEndTokenAuth(const std::vector<uint8_t> &tokenAuthReply,
     std::vector<uint8_t> &outFwkMsg)
 {
     HostEndTokenAuthInput input = {};
@@ -193,10 +204,10 @@ bool HostTokenAuthRequest::SecureAgentEndTokenAuth(const std::vector<uint8_t> &t
     ResultCode ret = GetSecurityAgent().HostEndTokenAuth(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s HostEndTokenAuth failed ret=%{public}d", GetDescription(), ret);
-        return false;
+        return ret;
     }
     outFwkMsg.swap(output.fwkMsg);
-    return true;
+    return ResultCode::SUCCESS;
 }
 
 void HostTokenAuthRequest::InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo)

@@ -132,9 +132,10 @@ public:
         return result;
     }
 
-    ResultCode RemoveCompanion(TemplateId templateId) override
+    ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding) override
     {
         (void)templateId;
+        (void)removeHostBinding;
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 
@@ -1385,8 +1386,8 @@ public:
         (void)type;
         (void)data;
         // Deliver to persisted handlers with fuzzed data
-        EventData fuzzedData = fuzzData_.ConsumeBytes<uint8_t>(
-            fuzzData_.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
+        EventData fuzzedData =
+            fuzzData_.ConsumeBytes<uint8_t>(fuzzData_.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
         for (auto &handler : persistHandlers_) {
             handler(fuzzedData);
         }
@@ -1396,8 +1397,8 @@ public:
     {
         (void)type;
         if (handler && fuzzData_.ConsumeBool()) {
-            EventData data = fuzzData_.ConsumeBytes<uint8_t>(
-                fuzzData_.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
+            EventData data =
+                fuzzData_.ConsumeBytes<uint8_t>(fuzzData_.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
             handler(data);
         }
         return std::make_shared<Subscription>([] {});

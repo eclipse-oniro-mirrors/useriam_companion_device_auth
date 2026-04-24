@@ -30,15 +30,35 @@ public:
     ContinuousAuthStatusCallbackHolder() = default;
     ~ContinuousAuthStatusCallbackHolder() = default;
 
+    void OnCallbackAdded(const std::shared_ptr<ContinuousAuthStatusCallbackWrapper<T>> &callback) override
+    {
+        std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+        if (callback != nullptr && hasCached_) {
+            callback->OnContinuousAuthStatusChange(cachedIsAuthPassed_, cachedAuthTrustLevel_);
+        }
+    }
+
     void OnContinuousAuthStatusChange(const bool isAuthPassed, const std::optional<int32_t> authTrustLevel) override
     {
-        std::vector<std::shared_ptr<ContinuousAuthStatusCallbackWrapper<T>>> callbacks = this->GetCallbacks();
+        std::vector<std::shared_ptr<ContinuousAuthStatusCallbackWrapper<T>>> callbacks;
+        {
+            std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+            cachedIsAuthPassed_ = isAuthPassed;
+            cachedAuthTrustLevel_ = authTrustLevel;
+            hasCached_ = true;
+            callbacks = this->GetCallbacksUnchecked();
+        }
         for (const auto &callback : callbacks) {
             if (callback != nullptr) {
                 callback->OnContinuousAuthStatusChange(isAuthPassed, authTrustLevel);
             }
         }
     }
+
+private:
+    bool cachedIsAuthPassed_ = false;
+    std::optional<int32_t> cachedAuthTrustLevel_;
+    bool hasCached_ = false;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
