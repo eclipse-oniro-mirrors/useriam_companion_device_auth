@@ -67,6 +67,11 @@ private:
     void ParseAdditionalInfo();
     std::vector<BusinessId> ParseBusinessIdsFromJson(const nlohmann::json &businessIdsArray);
     void ValidateAndFilterBusinessIds(const std::vector<BusinessId> &parsedIds);
+    std::optional<DeviceKey> QueryLocalDeviceKey();
+    std::optional<SecureProtocolId> QuerySecureProtocolId(const DeviceKey &peerDeviceKey);
+    ResultCode CallSecurityAgentGetInitKeyNegotiationRequest(std::vector<uint8_t> &initKeyNegotiationRequest);
+    ResultCode SendInitKeyNegotiationRequest(const std::vector<uint8_t> &initKeyNegotiationRequest);
+    BeginAddCompanionParams BuildBeginAddCompanionParams(const InitKeyNegotiationReply &reply) const;
 
     std::vector<uint8_t> fwkMsg_;
     uint32_t tokenId_ = 0;

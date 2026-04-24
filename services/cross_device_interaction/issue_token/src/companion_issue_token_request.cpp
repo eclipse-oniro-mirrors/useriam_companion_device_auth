@@ -105,26 +105,43 @@ bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &pr
     eventCollector_.SetCompanionUserId(companionUserId_);
     eventCollector_.SetConnectionName(GetConnectionName());
 
-    SecureProtocolId secureProtocolId = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
+    SecureProtocolId secureProtocolId = QuerySecureProtocolId();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), secureProtocolId != SecureProtocolId::INVALID, false);
     secureProtocolId_ = secureProtocolId;
 
-    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(companionUserId_, PeerDeviceKey());
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), hostBindingStatus.has_value(), false);
-
-    bindingId_ = hostBindingStatus->bindingId;
+    auto bindingIdOpt = QueryBindingIdFromHostBinding();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), bindingIdOpt.has_value(), false);
+    bindingId_ = *bindingIdOpt;
     desc_.SetBindingId(bindingId_);
     eventCollector_.SetBindingId(bindingId_);
 
-    CompanionPreIssueTokenInput input = BuildCompanionPreIssueTokenInput();
+    return CallSecurityAgentPreIssueToken(preIssueTokenReply);
+}
 
+SecureProtocolId CompanionIssueTokenRequest::QuerySecureProtocolId()
+{
+    return GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
+}
+
+std::optional<BindingId> CompanionIssueTokenRequest::QueryBindingIdFromHostBinding()
+{
+    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(companionUserId_, PeerDeviceKey());
+    if (!hostBindingStatus.has_value()) {
+        IAM_LOGE("%{public}s GetHostBindingStatus failed", GetDescription());
+        return std::nullopt;
+    }
+    return hostBindingStatus->bindingId;
+}
+
+bool CompanionIssueTokenRequest::CallSecurityAgentPreIssueToken(std::vector<uint8_t> &preIssueTokenReply)
+{
+    auto input = BuildCompanionPreIssueTokenInput();
     CompanionPreIssueTokenOutput output = {};
     ResultCode ret = GetSecurityAgent().CompanionPreIssueToken(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionPreIssueToken failed ret=%{public}d", GetDescription(), ret);
         return false;
     }
-
     needCancelIssueToken_ = true;
     preIssueTokenReply = output.preIssueTokenReply;
     return true;

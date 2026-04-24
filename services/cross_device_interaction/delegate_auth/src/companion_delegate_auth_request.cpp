@@ -106,14 +106,30 @@ CompanionDelegateAuthBeginInput CompanionDelegateAuthRequest::BuildCompanionDele
     return input;
 }
 
-bool CompanionDelegateAuthRequest::SecureAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl)
+std::optional<BindingId> CompanionDelegateAuthRequest::QueryBindingIdFromHostBinding()
 {
     auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(companionUserId_, PeerDeviceKey());
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), hostBindingStatus.has_value(), false);
-    bindingId_ = hostBindingStatus->bindingId;
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), hostBindingStatus.has_value(), std::nullopt);
+    return hostBindingStatus->bindingId;
+}
+
+bool CompanionDelegateAuthRequest::SecureAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl)
+{
+    auto bindingIdOpt = QueryBindingIdFromHostBinding();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), bindingIdOpt.has_value(), false);
+    bindingId_ = *bindingIdOpt;
     desc_.SetBindingId(bindingId_);
     eventCollector_.SetBindingId(bindingId_);
 
+    if (!CallSecurityAgentBeginDelegateAuth(challenge, atl)) {
+        return false;
+    }
+    needEndDelegateAuth_ = true;
+    return true;
+}
+
+bool CompanionDelegateAuthRequest::CallSecurityAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl)
+{
     CompanionDelegateAuthBeginOutput output = {};
     ResultCode ret = GetSecurityAgent().CompanionBeginDelegateAuth(BuildCompanionDelegateAuthBeginInput(), output);
     if (ret != ResultCode::SUCCESS) {
@@ -122,7 +138,6 @@ bool CompanionDelegateAuthRequest::SecureAgentBeginDelegateAuth(uint64_t &challe
     }
     challenge = output.challenge;
     atl = output.atl;
-    needEndDelegateAuth_ = true;
     return true;
 }
 
@@ -168,25 +183,32 @@ bool CompanionDelegateAuthRequest::SendDelegateAuthResult(ResultCode resultCode,
     return true;
 }
 
+bool CompanionDelegateAuthRequest::CallSecurityAgentEndDelegateAuth(ResultCode resultCode,
+    const std::vector<uint8_t> &authToken, CompanionDelegateAuthEndOutput &output)
+{
+    CompanionDelegateAuthEndInput input = {};
+    input.requestId = GetRequestId();
+    input.resultCode = resultCode;
+    input.authToken = authToken;
+    ResultCode ret = GetSecurityAgent().CompanionEndDelegateAuth(input, output);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s CompanionEndDelegateAuth failed ret=%{public}d", GetDescription(), ret);
+    }
+    return ret == ResultCode::SUCCESS;
+}
+
 bool CompanionDelegateAuthRequest::SecurityAgentEndDelegateAuth(ResultCode resultCode,
     const std::vector<uint8_t> &authToken, std::vector<uint8_t> &delegateAuthResult)
 {
     IAM_LOGI("%{public}s result=%{public}d", GetDescription(), resultCode);
 
-    CompanionDelegateAuthEndInput input = {};
-    input.requestId = GetRequestId();
-    input.resultCode = resultCode;
-    input.authToken = authToken;
     CompanionDelegateAuthEndOutput output = {};
-    ResultCode ret = GetSecurityAgent().CompanionEndDelegateAuth(input, output);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s CompanionEndDelegateAuth failed ret=%{public}d", GetDescription(), ret);
-    }
+    bool ret = CallSecurityAgentEndDelegateAuth(resultCode, authToken, output);
     needEndDelegateAuth_ = false;
     eventCollector_.SetSuccessAuthType(output.authType);
     eventCollector_.SetAtl(output.atl);
     delegateAuthResult.swap(output.delegateAuthResult);
-    return ret == ResultCode::SUCCESS;
+    return ret;
 }
 
 void CompanionDelegateAuthRequest::HandleSendDelegateAuthResultReply(const Attributes &message)

@@ -196,6 +196,23 @@ bool HostIssueTokenRequest::SendIssueTokenRequest(const std::vector<uint8_t> &is
     return true;
 }
 
+ResultCode HostIssueTokenRequest::CallSecurityAgentEndIssueToken(const std::vector<uint8_t> &issueTokenReply, Atl &atl)
+{
+    HostEndIssueTokenInput input = {};
+    input.requestId = GetRequestId();
+    input.secureProtocolId = secureProtocolId_;
+    input.issueTokenReply = issueTokenReply;
+    HostEndIssueTokenOutput output = {};
+    ResultCode ret = GetSecurityAgent().HostEndIssueToken(input, output);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s HostEndIssueToken failed ret=%{public}d", GetDescription(), ret);
+        return ret;
+    }
+    IAM_LOGI("%{public}s HostEndIssueToken success atl=%{public}d", GetDescription(), output.atl);
+    atl = output.atl;
+    return ResultCode::SUCCESS;
+}
+
 void HostIssueTokenRequest::HandleIssueTokenReply(const Attributes &message)
 {
     IAM_LOGI("%{public}s start", GetDescription());
@@ -210,23 +227,16 @@ void HostIssueTokenRequest::HandleIssueTokenReply(const Attributes &message)
         errorGuard.UpdateErrorCode(reply.result);
         return;
     }
-    HostEndIssueTokenInput input = {};
-    input.requestId = GetRequestId();
-    input.secureProtocolId = secureProtocolId_;
-    input.issueTokenReply = reply.extraInfo;
-    HostEndIssueTokenOutput output = {};
-    ResultCode ret = GetSecurityAgent().HostEndIssueToken(input, output);
-
-    eventCollector_.SetAtl(output.atl);
-
+    Atl atl = 0;
+    ResultCode ret = CallSecurityAgentEndIssueToken(reply.extraInfo, atl);
     needCancelIssueToken_ = false;
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s HostEndIssueToken failed ret=%{public}d", GetDescription(), ret);
         errorGuard.UpdateErrorCode(ret);
         return;
     }
-    IAM_LOGI("%{public}s HostEndIssueToken success atl=%{public}d", GetDescription(), output.atl);
-    bool setTokenAtlRet = GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, output.atl);
+    eventCollector_.SetAtl(atl);
+    bool setTokenAtlRet = GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, atl);
     if (!setTokenAtlRet) {
         IAM_LOGE("%{public}s SetCompanionTokenAuthAtl failed", GetDescription());
     }

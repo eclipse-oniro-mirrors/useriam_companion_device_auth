@@ -51,6 +51,7 @@ private:
     bool SendIssueTokenRequest(const std::vector<uint8_t> &issueTokenRequest);
     void HandlePreIssueTokenReply(const Attributes &message);
     void HandleIssueTokenReply(const Attributes &message);
+    ResultCode CallSecurityAgentEndIssueToken(const std::vector<uint8_t> &issueTokenReply, Atl &atl);
     bool EnsureCompanionAuthMaintainActive(const DeviceKey &deviceKey, ErrorGuard &errorGuard);
     void HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
     void CompleteWithSuccess();

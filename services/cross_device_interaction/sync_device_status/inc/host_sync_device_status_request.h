@@ -55,6 +55,10 @@ private:
     bool SendSyncDeviceStatusRequest(const std::vector<uint8_t> &salt, uint64_t challenge);
     void HandleSyncDeviceStatusReply(const Attributes &reply);
     bool EndCompanionCheck(const SyncDeviceStatusReply &reply);
+    std::optional<CompanionStatus> QueryCompanionStatus();
+    ResultCode CallHostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply);
+    void ProcessCompanionCheckResult(ResultCode checkResult, const CompanionStatus &companionStatus,
+        const SyncDeviceStatusReply &reply);
     bool NeedBeginCompanionCheck() const;
     SyncDeviceStatusRequest BuildSyncDeviceStatusRequest(const LocalDeviceProfile &profile,
         const std::vector<uint8_t> &salt, uint64_t challenge);

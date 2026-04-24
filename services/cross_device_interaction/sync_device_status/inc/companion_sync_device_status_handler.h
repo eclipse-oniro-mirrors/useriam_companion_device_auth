@@ -43,6 +43,8 @@ private:
     void SetCompanionDeviceKeyUserId(SyncDeviceStatusReply &syncReply, UserId companionUserId);
     CompanionProcessCheckInput BuildCompanionProcessCheckInput(const HostBindingStatus &hostBindingStatus,
         const SyncDeviceStatusRequest &syncRequest, SecureProtocolId secureProtocolId);
+    UserId QueryActiveUserId();
+    std::optional<HostBindingStatus> QueryHostBindingStatus(UserId companionUserId, const DeviceKey &hostDeviceKey);
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

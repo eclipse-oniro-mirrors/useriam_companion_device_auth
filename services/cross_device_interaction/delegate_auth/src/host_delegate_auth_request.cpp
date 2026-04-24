@@ -170,6 +170,21 @@ void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &mes
     errorGuard.Cancel();
 }
 
+bool HostDelegateAuthRequest::CallSecurityAgentEndDelegateAuth(const std::vector<uint8_t> &delegateAuthResult,
+    HostEndDelegateAuthOutput &output)
+{
+    HostEndDelegateAuthInput input = {};
+    input.requestId = GetRequestId();
+    input.secureProtocolId = secureProtocolId_;
+    input.delegateAuthResult = delegateAuthResult;
+    ResultCode ret = GetSecurityAgent().HostEndDelegateAuth(input, output);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s HostEndDelegateAuth failed ret=%{public}d", GetDescription(), ret);
+        return false;
+    }
+    return true;
+}
+
 bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &outFwkMsg)
 {
     IAM_LOGI("%{public}s start", GetDescription());
@@ -177,14 +192,8 @@ bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &re
     auto resultMsgOpt = DecodeSendDelegateAuthResultRequest(request);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), resultMsgOpt.has_value(), false);
     const auto &resultMsg = *resultMsgOpt;
-    HostEndDelegateAuthInput input = {};
-    input.requestId = GetRequestId();
-    input.secureProtocolId = secureProtocolId_;
-    input.delegateAuthResult = resultMsg.extraInfo;
     HostEndDelegateAuthOutput output = {};
-    ResultCode ret = GetSecurityAgent().HostEndDelegateAuth(input, output);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s HostEndDelegateAuth failed ret=%{public}d", GetDescription(), ret);
+    if (!CallSecurityAgentEndDelegateAuth(resultMsg.extraInfo, output)) {
         return false;
     }
     if (resultMsg.result != ResultCode::SUCCESS) {
