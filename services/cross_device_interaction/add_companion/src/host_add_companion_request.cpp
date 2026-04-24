@@ -161,13 +161,13 @@ void HostAddCompanionRequest::OnConnected()
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
-    auto hostDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
+    auto hostDeviceKeyOpt = QueryLocalDeviceKey();
     ENSURE_OR_RETURN_DESC(GetDescription(), hostDeviceKeyOpt.has_value());
     hostDeviceKey_ = hostDeviceKeyOpt.value();
 
     auto peerDeviceKeyOpt = GetPeerDeviceKey();
     ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKeyOpt.has_value());
-    auto secureProtocolIdOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(peerDeviceKeyOpt.value());
+    auto secureProtocolIdOpt = QuerySecureProtocolId(peerDeviceKeyOpt.value());
     ENSURE_OR_RETURN_DESC(GetDescription(), secureProtocolIdOpt.has_value());
     secureProtocolId_ = *secureProtocolIdOpt;
 
@@ -176,6 +176,36 @@ void HostAddCompanionRequest::OnConnected()
     eventCollector_.SetConnectionName(GetConnectionName());
     eventCollector_.SetScheduleId(GetScheduleId());
 
+    std::vector<uint8_t> initKeyNegotiationRequest;
+    ResultCode ret = CallSecurityAgentGetInitKeyNegotiationRequest(initKeyNegotiationRequest);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s CallSecurityAgentGetInitKeyNegotiationRequest failed", GetDescription());
+        errorGuard.UpdateErrorCode(ret);
+        return;
+    }
+
+    ret = SendInitKeyNegotiationRequest(initKeyNegotiationRequest);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s SendInitKeyNegotiationRequest failed", GetDescription());
+        errorGuard.UpdateErrorCode(ret);
+        return;
+    }
+    errorGuard.Cancel();
+}
+
+std::optional<DeviceKey> HostAddCompanionRequest::QueryLocalDeviceKey()
+{
+    return GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
+}
+
+std::optional<SecureProtocolId> HostAddCompanionRequest::QuerySecureProtocolId(const DeviceKey &peerDeviceKey)
+{
+    return GetCrossDeviceCommManager().HostGetSecureProtocolId(peerDeviceKey);
+}
+
+ResultCode HostAddCompanionRequest::CallSecurityAgentGetInitKeyNegotiationRequest(
+    std::vector<uint8_t> &initKeyNegotiationRequest)
+{
     HostGetInitKeyNegotiationRequestInput input = {
         .requestId = GetRequestId(),
         .secureProtocolId = secureProtocolId_,
@@ -184,19 +214,19 @@ void HostAddCompanionRequest::OnConnected()
     ResultCode ret = GetSecurityAgent().HostGetInitKeyNegotiationRequest(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s HostGetInitKeyNegotiationRequest failed ret=%{public}d", GetDescription(), ret);
-        errorGuard.UpdateErrorCode(ret);
-        return;
+        return ret;
     }
-
     needCancelCompanionAdd_ = true;
-
     eventCollector_.SetAlgorithmList(output.algorithmList);
+    initKeyNegotiationRequest = std::move(output.initKeyNegotiationRequest);
+    return ResultCode::SUCCESS;
+}
 
-    InitKeyNegotiationRequest initRequest { .hostDeviceKey = hostDeviceKey_,
-        .extraInfo = std::move(output.initKeyNegotiationRequest) };
+ResultCode HostAddCompanionRequest::SendInitKeyNegotiationRequest(const std::vector<uint8_t> &initKeyNegotiationRequest)
+{
+    InitKeyNegotiationRequest initRequest { .hostDeviceKey = hostDeviceKey_, .extraInfo = initKeyNegotiationRequest };
     Attributes request = {};
     EncodeInitKeyNegotiationRequest(initRequest, request);
-
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::INIT_KEY_NEGOTIATION,
         request, [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
@@ -205,10 +235,9 @@ void HostAddCompanionRequest::OnConnected()
         });
     if (!sendRet) {
         IAM_LOGE("%{public}s SendMessage failed", GetDescription());
-        errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
-        return;
+        return ResultCode::COMMUNICATION_ERROR;
     }
-    errorGuard.Cancel();
+    return ResultCode::SUCCESS;
 }
 
 std::weak_ptr<OutboundRequest> HostAddCompanionRequest::GetWeakPtr()
@@ -258,12 +287,10 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     errorGuard.Cancel();
 }
 
-bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &reply,
-    std::vector<uint8_t> &addHostBindingRequest, ErrorGuard &errorGuard)
+BeginAddCompanionParams HostAddCompanionRequest::BuildBeginAddCompanionParams(
+    const InitKeyNegotiationReply &reply) const
 {
     auto companionDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionDeviceKey.has_value(), false);
-
     BeginAddCompanionParams params = {};
     params.requestId = GetRequestId();
     params.scheduleId = GetScheduleId();
@@ -272,6 +299,14 @@ bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &r
     params.fwkMsg = fwkMsg_;
     params.secureProtocolId = secureProtocolId_;
     params.initKeyNegotiationReply = reply.extraInfo;
+    return params;
+}
+
+bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &reply,
+    std::vector<uint8_t> &addHostBindingRequest, ErrorGuard &errorGuard)
+{
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
+    auto params = BuildBeginAddCompanionParams(reply);
     uint16_t selectedAlgorithm;
     ResultCode ret = GetCompanionManager().BeginAddCompanion(params, addHostBindingRequest, selectedAlgorithm);
     if (ret != ResultCode::SUCCESS) {

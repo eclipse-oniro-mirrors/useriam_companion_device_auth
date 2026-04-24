@@ -56,6 +56,9 @@ private:
     void HandleAuthMaintainActiveChanged(bool isActive);
 
     CompanionPreIssueTokenInput BuildCompanionPreIssueTokenInput() const;
+    SecureProtocolId QuerySecureProtocolId();
+    std::optional<BindingId> QueryBindingIdFromHostBinding();
+    bool CallSecurityAgentPreIssueToken(std::vector<uint8_t> &preIssueTokenReply);
 
     Attributes request_;
     int32_t companionUserId_ = 0;

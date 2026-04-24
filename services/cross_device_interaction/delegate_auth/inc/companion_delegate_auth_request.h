@@ -47,8 +47,12 @@ protected:
     void CompleteWithSuccess();
 
 private:
+    std::optional<BindingId> QueryBindingIdFromHostBinding();
     bool SecureAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl);
+    bool CallSecurityAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl);
     CompanionDelegateAuthBeginInput BuildCompanionDelegateAuthBeginInput() const;
+    bool CallSecurityAgentEndDelegateAuth(ResultCode resultCode, const std::vector<uint8_t> &authToken,
+        CompanionDelegateAuthEndOutput &output);
     bool SecurityAgentEndDelegateAuth(ResultCode resultCode, const std::vector<uint8_t> &authToken,
         std::vector<uint8_t> &extraInfo);
     void HandleDelegateAuthResult(ResultCode resultCode, const std::vector<uint8_t> &extraInfo);

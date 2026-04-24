@@ -210,7 +210,7 @@ bool HostSyncDeviceStatusRequest::EndCompanionCheck(const SyncDeviceStatusReply 
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), reply.result == ResultCode::SUCCESS, false);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
 
-    auto companionStatus = GetCompanionManager().GetCompanionStatus(hostUserId_, companionDeviceKey_);
+    auto companionStatus = QueryCompanionStatus();
     if (!companionStatus) {
         IAM_LOGI("%{public}s companionStatus not exist", GetDescription());
         return true;
@@ -219,24 +219,41 @@ bool HostSyncDeviceStatusRequest::EndCompanionCheck(const SyncDeviceStatusReply 
     eventCollector_.SetTemplateIdList({ companionStatus->templateId });
     desc_.SetTemplateId(companionStatus->templateId);
 
-    HostEndCompanionCheckInput input = BuildHostEndCompanionCheckInput(companionStatus->templateId, reply);
-    ResultCode ret = GetSecurityAgent().HostEndCompanionCheck(input);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s HostEndCompanionCheck failed ret=%{public}d", GetDescription(), ret);
-        GetCompanionManager().HandleCompanionCheckFail(companionStatus->templateId);
-    } else {
-        const auto &currentStatus = companionStatus->companionDeviceStatus;
-        bool needUpdate =
-            currentStatus.deviceUserName != reply.deviceUserName || currentStatus.deviceName != companionDeviceName_;
-        if (needUpdate) {
-            (void)GetCompanionManager().UpdateCompanionStatus(companionStatus->templateId, companionDeviceName_,
-                reply.deviceUserName);
-        }
-    }
+    ResultCode ret = CallHostEndCompanionCheck(companionStatus->templateId, reply);
+    ProcessCompanionCheckResult(ret, *companionStatus, reply);
+
     if (cancelCompanionCheckGuard_ != nullptr) {
         cancelCompanionCheckGuard_->Cancel();
     }
     return true;
+}
+
+std::optional<CompanionStatus> HostSyncDeviceStatusRequest::QueryCompanionStatus()
+{
+    return GetCompanionManager().GetCompanionStatus(hostUserId_, companionDeviceKey_);
+}
+
+ResultCode HostSyncDeviceStatusRequest::CallHostEndCompanionCheck(TemplateId templateId,
+    const SyncDeviceStatusReply &reply)
+{
+    HostEndCompanionCheckInput input = BuildHostEndCompanionCheckInput(templateId, reply);
+    return GetSecurityAgent().HostEndCompanionCheck(input);
+}
+
+void HostSyncDeviceStatusRequest::ProcessCompanionCheckResult(ResultCode checkResult,
+    const CompanionStatus &companionStatus, const SyncDeviceStatusReply &reply)
+{
+    if (checkResult != ResultCode::SUCCESS) {
+        GetCompanionManager().HandleCompanionCheckFail(companionStatus.templateId);
+    } else {
+        const auto &currentStatus = companionStatus.companionDeviceStatus;
+        bool needUpdate =
+            currentStatus.deviceUserName != reply.deviceUserName || currentStatus.deviceName != companionDeviceName_;
+        if (needUpdate) {
+            GetCompanionManager().UpdateCompanionStatus(companionStatus.templateId, companionDeviceName_,
+                reply.deviceUserName);
+        }
+    }
 }
 
 bool HostSyncDeviceStatusRequest::NeedBeginCompanionCheck() const

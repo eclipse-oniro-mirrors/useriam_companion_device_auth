@@ -48,7 +48,9 @@ protected:
 private:
     bool SendPreObtainTokenRequest();
     void HandlePreObtainTokenReply(const Attributes &reply);
+    std::optional<BindingId> QueryBindingIdFromHostBinding();
     bool GetBindingIdFromHostBindingStatus();
+    CompanionBeginObtainTokenInput BuildCompanionBeginObtainTokenInput(const std::vector<uint8_t> &extraInfo) const;
     bool CompanionBeginObtainToken(const std::vector<uint8_t> &extraInfo);
     bool SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest);
     void HandleObtainTokenReply(const Attributes &reply);

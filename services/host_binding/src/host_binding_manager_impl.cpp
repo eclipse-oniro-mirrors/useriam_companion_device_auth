@@ -190,14 +190,27 @@ ResultCode HostBindingManagerImpl::BeginAddHostBinding(const BeginAddHostBinding
     return ResultCode::SUCCESS;
 }
 
+CompanionEndAddHostBindingInput HostBindingManagerImpl::BuildCompanionEndAddHostBindingInput(
+    const EndAddHostBindingInput &input)
+{
+    return CompanionEndAddHostBindingInput { .requestId = input.requestId,
+        .resultCode = input.resultCode,
+        .tokenData = input.tokenData };
+}
+
+void HostBindingManagerImpl::FillEndAddHostBindingOutput(const CompanionEndAddHostBindingOutput &ffiOutput,
+    EndAddHostBindingOutput &output)
+{
+    output.atl = ffiOutput.atl;
+    output.esl = ffiOutput.esl;
+}
+
 ResultCode HostBindingManagerImpl::EndAddHostBinding(const EndAddHostBindingInput &input,
     EndAddHostBindingOutput &output)
 {
     IAM_LOGI("end add host binding, request id 0x%{public}08X, result %{public}d", input.requestId, input.resultCode);
 
-    CompanionEndAddHostBindingInput ffiInput { .requestId = input.requestId,
-        .resultCode = input.resultCode,
-        .tokenData = input.tokenData };
+    auto ffiInput = BuildCompanionEndAddHostBindingInput(input);
     CompanionEndAddHostBindingOutput ffiOutput {};
     ResultCode ret = GetSecurityAgent().CompanionEndAddHostBinding(ffiInput, ffiOutput);
     if (ret != ResultCode::SUCCESS) {
@@ -208,8 +221,7 @@ ResultCode HostBindingManagerImpl::EndAddHostBinding(const EndAddHostBindingInpu
         return ret;
     }
 
-    output.atl = ffiOutput.atl;
-    output.esl = ffiOutput.esl;
+    FillEndAddHostBindingOutput(ffiOutput, output);
 
     if (input.resultCode != ResultCode::SUCCESS) {
         if (input.bindingId != 0) {

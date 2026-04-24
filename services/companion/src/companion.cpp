@@ -65,10 +65,7 @@ Companion::Companion(const PersistedCompanionStatus &persistedStatus, bool added
 {
     CHECK_RUNNING_ON_RESIDENT_THREAD();
     status_.FromPersisted(persistedStatus);
-    std::ostringstream oss;
-    oss << "CdaCompanion(T:" << GET_TRUNCATED_STRING(status_.templateId)
-        << ",D:" << GetTruncatedString(persistedStatus.companionDeviceKey.deviceId) << ")";
-    description_ = oss.str();
+    description_ = BuildDescription(status_.templateId, persistedStatus.companionDeviceKey.deviceId);
 }
 
 Companion::~Companion()
@@ -76,6 +73,13 @@ Companion::~Companion()
     CHECK_RUNNING_ON_RESIDENT_THREAD();
     IAM_LOGI("%{public}s destroyed", GetDescription());
     SetCompanionTokenAuthAtl(std::nullopt);
+}
+
+std::string Companion::BuildDescription(TemplateId templateId, const std::string &deviceId)
+{
+    std::ostringstream oss;
+    oss << "CdaCompanion(T:" << GET_TRUNCATED_STRING(templateId) << ",D:" << GetTruncatedString(deviceId) << ")";
+    return oss.str();
 }
 
 bool Companion::Initialize()

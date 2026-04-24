@@ -68,6 +68,10 @@ private:
     ResultCode AddBindingInternal(const std::shared_ptr<HostBinding> &binding);
     ResultCode RemoveBindingInternal(BindingId bindingId);
 
+    CompanionEndAddHostBindingInput BuildCompanionEndAddHostBindingInput(const EndAddHostBindingInput &input);
+    void FillEndAddHostBindingOutput(const CompanionEndAddHostBindingOutput &ffiOutput,
+        EndAddHostBindingOutput &output);
+
     UserId activeUserId_ { INVALID_USER_ID };
     std::vector<std::shared_ptr<HostBinding>> bindings_;
 

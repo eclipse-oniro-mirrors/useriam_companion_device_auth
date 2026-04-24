@@ -88,6 +88,7 @@ private:
     void HandleDeviceOffline();
     void StartTemplateAddToIdmTimer();
     void HandleTemplateAddToIdmTimeout();
+    static std::string BuildDescription(TemplateId templateId, const std::string &deviceId);
 
     CompanionStatus status_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;

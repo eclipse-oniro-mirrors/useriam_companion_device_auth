@@ -86,7 +86,7 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
     }
     const auto &syncRequest = *syncRequestOpt;
 
-    auto companionUserId = GetUserIdManager().GetActiveUserId();
+    auto companionUserId = QueryActiveUserId();
     if (companionUserId == INVALID_USER_ID) {
         IAM_LOGE("%{public}s GetActiveUserId failed", desc.GetCStr());
         return;
@@ -96,7 +96,7 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), syncReplyOpt.has_value());
     SyncDeviceStatusReply syncReply = std::move(*syncReplyOpt);
 
-    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(companionUserId, syncRequest.hostDeviceKey);
+    auto hostBindingStatus = QueryHostBindingStatus(companionUserId, syncRequest.hostDeviceKey);
     if (hostBindingStatus.has_value()) {
         desc.SetBindingId(hostBindingStatus->bindingId);
         eventCollector.SetBindingId(hostBindingStatus->bindingId);
@@ -143,6 +143,16 @@ bool CompanionSyncDeviceStatusHandler::CompanionProcessCheck(const HostBindingSt
     }
     outCompanionCheckResponse.swap(output.companionCheckResponse);
     return true;
+}
+UserId CompanionSyncDeviceStatusHandler::QueryActiveUserId()
+{
+    return GetUserIdManager().GetActiveUserId();
+}
+
+std::optional<HostBindingStatus> CompanionSyncDeviceStatusHandler::QueryHostBindingStatus(UserId companionUserId,
+    const DeviceKey &hostDeviceKey)
+{
+    return GetHostBindingManager().GetHostBindingStatus(companionUserId, hostDeviceKey);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
