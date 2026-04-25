@@ -86,6 +86,7 @@ private:
     void HandleDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
     void HandleDeviceStatusUpdate(const DeviceStatus &deviceStatus);
     void HandleDeviceOffline();
+    void HandleAuthMaintainActiveChanged(const DeviceStatus &deviceStatus);
     void StartTemplateAddToIdmTimer();
     void HandleTemplateAddToIdmTimeout();
     static std::string BuildDescription(TemplateId templateId, const std::string &deviceId);
@@ -94,6 +95,7 @@ private:
     std::unique_ptr<Subscription> deviceStatusSubscription_;
     std::unique_ptr<Subscription> tokenTimeoutSubscription_;
     std::unique_ptr<Subscription> templateAddToIdmTimer_;
+    std::unique_ptr<Subscription> authMaintainInactiveTimer_;
     std::string description_;
     bool addedToIdm_;
     std::weak_ptr<CompanionManagerImpl> weakManager_;

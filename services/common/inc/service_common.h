@@ -179,7 +179,8 @@ public:
             deviceName == other.deviceName && protocolId == other.protocolId &&
             secureProtocolId == other.secureProtocolId && capabilities == other.capabilities &&
             supportedBusinessIds == other.supportedBusinessIds && isOnline == other.isOnline &&
-            isAuthMaintainActive == other.isAuthMaintainActive && deviceType == other.deviceType;
+            isAuthMaintainActive == other.isAuthMaintainActive && deviceType == other.deviceType &&
+            atlRevokeDelayMs == other.atlRevokeDelayMs;
     }
 
     DeviceKey deviceKey {};
@@ -194,6 +195,7 @@ public:
     bool isOnline { false };
     bool isAuthMaintainActive { false };
     DeviceType deviceType { DeviceType::INVALID };
+    std::optional<uint32_t> atlRevokeDelayMs;
 };
 
 struct LocalDeviceProfile {
