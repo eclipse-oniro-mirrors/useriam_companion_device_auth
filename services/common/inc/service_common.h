@@ -313,13 +313,12 @@ constexpr uint32_t CONNECTION_IDLE_MONITOR_INTERVAL_MS = 10 * 1000; // 10 second
 constexpr uint32_t MAX_SYNC_WAIT_TIME_SEC = 2;                      // 2 second
 constexpr uint32_t MAX_ON_START_WAIT_TIME_SEC = UINT32_MAX;
 constexpr uint32_t SET_PARAM_DELAY_MS = 100;     // 100ms
-constexpr uint32_t ADAPTER_CALL_TIMEOUT_SEC = 3; // 3 seconds
 constexpr size_t MAX_MESSAGE_SIZE = 20000;
 constexpr size_t MAX_ENABLED_BUSINESS_IDS = 64;
 constexpr int32_t MS_PER_SEC = 1000;
 constexpr int32_t NS_PER_MS = 1000 * 1000;
 constexpr int32_t BYTE_NUM_4 = 4;
-constexpr unsigned int API_CALL_TIMEOUT = 20; // 20s
+constexpr unsigned int API_CALL_TIMEOUT = 61; // 61s
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

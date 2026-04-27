@@ -48,7 +48,7 @@ bool FwkCommManager::Initialize()
     auto driver = std::make_shared<CompanionDeviceAuthDriver>();
     ENSURE_OR_RETURN_VAL(driver != nullptr, false);
 
-    XCollieHelper xcollie("FwkCommManager-StartDriver", ADAPTER_CALL_TIMEOUT_SEC);
+    XCollieHelper xcollie("FwkCommManager-StartDriver", API_CALL_TIMEOUT);
     return GetDriverManagerAdapter().Start(driver);
 }
 
