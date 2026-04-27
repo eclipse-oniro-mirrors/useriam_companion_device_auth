@@ -65,7 +65,7 @@ Companion::Companion(const PersistedCompanionStatus &persistedStatus, bool added
 {
     CHECK_RUNNING_ON_RESIDENT_THREAD();
     status_.FromPersisted(persistedStatus);
-    description_ = BuildDescription(status_.templateId, persistedStatus.companionDeviceKey.deviceId);
+    description_ = BuildDescription(status_);
 }
 
 Companion::~Companion()
@@ -75,10 +75,11 @@ Companion::~Companion()
     SetCompanionTokenAuthAtl(std::nullopt);
 }
 
-std::string Companion::BuildDescription(TemplateId templateId, const std::string &deviceId)
+std::string Companion::BuildDescription(const CompanionStatus &status)
 {
     std::ostringstream oss;
-    oss << "CdaCompanion(T:" << GET_TRUNCATED_STRING(templateId) << ",D:" << GetTruncatedString(deviceId) << ")";
+    oss << "CdaCompanion(T:" << GET_TRUNCATED_STRING(status.templateId) << ",D:"
+        << GetTruncatedString(status.companionDeviceStatus.deviceKey.deviceId) << ")";
     return oss.str();
 }
 

@@ -59,6 +59,9 @@ private:
     ResultCode CallHostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply);
     void ProcessCompanionCheckResult(ResultCode checkResult, const CompanionStatus &companionStatus,
         const SyncDeviceStatusReply &reply);
+    void HandleCompanionCheckFail(TemplateId templateId);
+    void UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
+        const std::string &deviceUserName);
     bool NeedBeginCompanionCheck() const;
     SyncDeviceStatusRequest BuildSyncDeviceStatusRequest(const LocalDeviceProfile &profile,
         const std::vector<uint8_t> &salt, uint64_t challenge);

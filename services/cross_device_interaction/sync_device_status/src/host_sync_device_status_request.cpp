@@ -244,16 +244,26 @@ void HostSyncDeviceStatusRequest::ProcessCompanionCheckResult(ResultCode checkRe
     const CompanionStatus &companionStatus, const SyncDeviceStatusReply &reply)
 {
     if (checkResult != ResultCode::SUCCESS) {
-        GetCompanionManager().HandleCompanionCheckFail(companionStatus.templateId);
+        HandleCompanionCheckFail(companionStatus.templateId);
     } else {
         const auto &currentStatus = companionStatus.companionDeviceStatus;
         bool needUpdate =
             currentStatus.deviceUserName != reply.deviceUserName || currentStatus.deviceName != companionDeviceName_;
         if (needUpdate) {
-            GetCompanionManager().UpdateCompanionStatus(companionStatus.templateId, companionDeviceName_,
-                reply.deviceUserName);
+            UpdateCompanionStatus(companionStatus.templateId, companionDeviceName_, reply.deviceUserName);
         }
     }
+}
+
+void HostSyncDeviceStatusRequest::HandleCompanionCheckFail(TemplateId templateId)
+{
+    GetCompanionManager().HandleCompanionCheckFail(templateId);
+}
+
+void HostSyncDeviceStatusRequest::UpdateCompanionStatus(TemplateId templateId,
+    const std::string &deviceName, const std::string &deviceUserName)
+{
+    GetCompanionManager().UpdateCompanionStatus(templateId, deviceName, deviceUserName);
 }
 
 bool HostSyncDeviceStatusRequest::NeedBeginCompanionCheck() const
