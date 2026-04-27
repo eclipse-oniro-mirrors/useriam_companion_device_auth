@@ -89,7 +89,7 @@ private:
     void HandleAuthMaintainActiveChanged(const DeviceStatus &deviceStatus);
     void StartTemplateAddToIdmTimer();
     void HandleTemplateAddToIdmTimeout();
-    static std::string BuildDescription(TemplateId templateId, const std::string &deviceId);
+    static std::string BuildDescription(const CompanionStatus &status);
 
     CompanionStatus status_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
