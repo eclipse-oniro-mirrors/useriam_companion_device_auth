@@ -40,7 +40,7 @@ namespace CompanionDeviceAuth {
 
 namespace {
 thread_local bool g_runningOnDefaultTaskRunner = false;
-constexpr uint32_t TASK_BLOCK_MONITOR_TIMEOUT = 20;
+constexpr uint32_t TASK_BLOCK_MONITOR_TIMEOUT = 70;
 } // namespace
 
 TaskRunnerManager &TaskRunnerManager::GetInstance()
