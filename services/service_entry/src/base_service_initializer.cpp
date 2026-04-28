@@ -137,6 +137,11 @@ bool BaseServiceInitializer::InitializeDependentSteps()
         return false;
     }
 
+    if (!InitializeExtension()) {
+        IAM_LOGE("InitializeExtension failed");
+        return false;
+    }
+
     return true;
 }
 
@@ -328,9 +333,15 @@ bool BaseServiceInitializer::InitializeFwkComm()
     return true;
 }
 
+bool BaseServiceInitializer::InitializeExtension()
+{
+    return true;
+}
+
 // Compile-time defined initialization table (zero runtime overhead)
 const BaseServiceInitializer::BasicInitStep BaseServiceInitializer::BASIC_INIT_TABLE[] = {
     { &BaseServiceInitializer::InitializeTimeKeeper, "InitializeTimeKeeper" },
+    { &BaseServiceInitializer::InitializeMiscManager, "InitializeMiscManager" },
     { &BaseServiceInitializer::InitializeEventManagerAdapter, "InitializeEventManagerAdapter" },
     { &BaseServiceInitializer::InitializeSaManagerAdapter, "InitializeSaManagerAdapter" },
     { &BaseServiceInitializer::InitializeSecurityCommandAdapter, "InitializeSecurityCommandAdapter" },
@@ -339,7 +350,6 @@ const BaseServiceInitializer::BasicInitStep BaseServiceInitializer::BASIC_INIT_T
     { &BaseServiceInitializer::InitializeUserAuthFramework, "InitializeUserAuthFramework" },
     { &BaseServiceInitializer::InitializeRequestManager, "InitializeRequestManager" },
     { &BaseServiceInitializer::InitializeRequestFactory, "InitializeRequestFactory" },
-    { &BaseServiceInitializer::InitializeMiscManager, "InitializeMiscManager" },
     { &BaseServiceInitializer::InitializeSecurityAgent, "InitializeSecurityAgent" },
     { &BaseServiceInitializer::InitializeIncomingMessageHandlerRegistry, "InitializeIncomingMessageHandlerRegistry" },
     { &BaseServiceInitializer::InitializeEventBus, "InitializeEventBus" },

@@ -536,6 +536,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_002, TestSize.Level0)
 
     binding->status_.localAuthMaintainActive = true;
     binding->status_.isTokenValid = true;
+    binding->status_.hostDeviceStatus.atlRevokeDelayMs = 0;
 
     binding->HandleAuthMaintainActiveChanged(false);
 

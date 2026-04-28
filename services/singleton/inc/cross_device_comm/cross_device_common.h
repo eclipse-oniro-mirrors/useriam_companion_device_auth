@@ -71,8 +71,8 @@ public:
     {
         return physicalDeviceKey == other.physicalDeviceKey && channelId == other.channelId &&
             deviceName == other.deviceName && deviceModelInfo == other.deviceModelInfo &&
-            isAuthMaintainActive == other.isAuthMaintainActive && deviceType == other.deviceType &&
-            atlRevokeDelayMs == other.atlRevokeDelayMs;
+            networkId == other.networkId && isAuthMaintainActive == other.isAuthMaintainActive &&
+            deviceType == other.deviceType && atlRevokeDelayMs == other.atlRevokeDelayMs;
     }
 };
 

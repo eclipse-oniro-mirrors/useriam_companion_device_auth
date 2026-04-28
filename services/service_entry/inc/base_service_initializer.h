@@ -67,6 +67,7 @@ protected:
     virtual bool RegisterHandlers();
     virtual bool StartCrossDeviceCommManager();
     virtual bool InitializeFwkComm();
+    virtual bool InitializeExtension();
 
     // Member variables to store dependencies between initialization steps
     std::shared_ptr<IncomingMessageHandlerRegistry> incomingMessageHandlerRegistryHolder_;

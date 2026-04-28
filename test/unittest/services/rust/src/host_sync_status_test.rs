@@ -422,7 +422,18 @@ fn host_sync_status_request_end_test_attribute_try_from_bytes_fail() {
     let _guard = ut_registry_guard!();
     log_i!("host_sync_status_request_end_test_attribute_try_from_bytes_fail start");
 
-    mock_set_companion_device_db_manager();
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| {
+        Ok(vec![CompanionDeviceCapability {
+            processor_type: ProcessorType::Default,
+            esl: ExecutorSecurityLevel::Esl3,
+            track_ability_level: TrackAbilityLevel::Tal1,
+        }])
+    });
+    mock_companion_device_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
@@ -562,7 +573,18 @@ fn host_sync_status_request_end_test_success() {
     log_i!("host_sync_status_request_end_test_success start");
 
     mock_set_crypto_engine();
-    mock_set_companion_device_db_manager();
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| {
+        Ok(vec![CompanionDeviceCapability {
+            processor_type: ProcessorType::Default,
+            esl: ExecutorSecurityLevel::Esl3,
+            track_ability_level: TrackAbilityLevel::Tal1,
+        }])
+    });
+    mock_companion_device_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0 };
     let mut request = HostDeviceSyncStatusRequest::new(&input).unwrap();

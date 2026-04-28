@@ -55,7 +55,7 @@ public:
     MOCK_METHOD(bool, IsCapabilitySupported, (TemplateId templateId, Capability capability), (override));
     MOCK_METHOD(void, NotifyCompanionStatusChange, (), (override));
     MOCK_METHOD(void, HandleRemoveHostBindingComplete, (TemplateId templateId), (override));
-    MOCK_METHOD(void, SetTemplateInvalid, (TemplateId templateId), (override));
+    MOCK_METHOD(void, SetTemplateInvalid, (TemplateId templateId, const std::string &reason), (override));
 };
 
 } // namespace CompanionDeviceAuth

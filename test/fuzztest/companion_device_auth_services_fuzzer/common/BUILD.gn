@@ -53,9 +53,11 @@ ohos_static_library("companion_device_auth_service_fuzzer_common") {
     "${companion_device_auth_path}/common:companion_device_auth_common_config",
   ]
 
-  deps = companion_device_auth_service_deps_for_test
+  deps = companion_device_auth_service_deps_for_test - [
+           "${companion_device_auth_path}/common:companion_device_auth_common",
+         ]
   deps +=
-      [ "${companion_device_auth_path}/common:companion_device_auth_common" ]
+      [ "${companion_device_auth_path}/common:companion_device_auth_common_nocfi" ]
 
   external_deps = companion_device_auth_service_external_deps
 

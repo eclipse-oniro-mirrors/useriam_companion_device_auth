@@ -36,7 +36,10 @@ std::shared_ptr<HostBindingManagerImpl> HostBindingManagerImpl::Create()
 {
     auto manager = std::shared_ptr<HostBindingManagerImpl>(new (std::nothrow) HostBindingManagerImpl());
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
-    manager->Initialize();
+    if (!manager->Initialize()) {
+        IAM_LOGE("Initialize failed");
+        return nullptr;
+    }
     return manager;
 }
 
@@ -212,22 +215,18 @@ ResultCode HostBindingManagerImpl::EndAddHostBinding(const EndAddHostBindingInpu
 
     auto ffiInput = BuildCompanionEndAddHostBindingInput(input);
     CompanionEndAddHostBindingOutput ffiOutput {};
+    // Rust end() only distributes tokens and never deletes the binding, so skip
+    // RemoveBindingInternal here to keep C++ and Rust state consistent.
+    // Binding cleanup is handled by RemoveHostBinding or BeginAddHostBinding replacement.
     ResultCode ret = GetSecurityAgent().CompanionEndAddHostBinding(ffiInput, ffiOutput);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("security agent failed to end add host binding, ret %{public}d", ret);
-        if (input.bindingId != 0) {
-            RemoveBindingInternal(input.bindingId);
-        }
         return ret;
     }
 
     FillEndAddHostBindingOutput(ffiOutput, output);
 
     if (input.resultCode != ResultCode::SUCCESS) {
-        if (input.bindingId != 0) {
-            IAM_LOGI("removing failed binding %{public}s", GET_MASKED_NUM_STRING(input.bindingId).c_str());
-            RemoveBindingInternal(input.bindingId);
-        }
         return input.resultCode;
     }
     SetHostBindingTokenValid(input.bindingId, true);

@@ -76,7 +76,6 @@ constexpr const char *KEY_SELECTED_PROTOCOL_ID_LIST = "selectedProtocolIdList";
 constexpr const char *KEY_SECURE_PROTOCOL_ID = "secureProtocolId";
 constexpr const char *KEY_TEMPLATE_AUTH_RESULT = "templateAuthResult";
 constexpr const char *KEY_SUCCESS_TEMPLATE_ID = "successTemplateId";
-
 } // namespace
 
 void InteractionEventCollector::SetAtl(Atl atl)
@@ -139,8 +138,8 @@ void InteractionEventCollector::AddTemplateAuthResult(TemplateId templateId, Res
     if (!templateAuthResult_.empty()) {
         templateAuthResult_.append(",");
     }
-    templateAuthResult_.append(std::to_string(templateId))
-        .append(" ")
+    templateAuthResult_.append(ToHexString(templateId))
+        .append(":")
         .append(std::to_string(static_cast<int32_t>(result)));
 }
 
@@ -152,47 +151,47 @@ void InteractionEventCollector::SetSuccessTemplateId(TemplateId templateId)
 void InteractionEventCollector::BuildExtraInfoStep1(std::ostringstream &oss) const
 {
     if (atl_.has_value()) {
-        oss << "; " << KEY_ATL << ":" << *atl_;
+        oss << ";" << KEY_ATL << ":" << *atl_;
     }
     if (bindingId_.has_value()) {
-        oss << "; " << KEY_BINDING_ID << ":" << *bindingId_;
+        oss << ";" << KEY_BINDING_ID << ":" << ToHexString(*bindingId_);
     }
     if (contextId_.has_value()) {
-        oss << "; " << KEY_CONTEXT_ID << ":" << *contextId_;
+        oss << ";" << KEY_CONTEXT_ID << ":" << ToHexString(*contextId_);
     }
     if (successAuthType_.has_value()) {
-        oss << "; " << KEY_SUCCESS_AUTH_TYPE << ":" << *successAuthType_;
+        oss << ";" << KEY_SUCCESS_AUTH_TYPE << ":" << *successAuthType_;
     }
     if (algorithmList_.has_value()) {
-        oss << "; " << KEY_ALGORITHM_LIST << ":" << GetVectorString<uint16_t>(*algorithmList_);
+        oss << ";" << KEY_ALGORITHM_LIST << ":" << GetVectorString<uint16_t>(*algorithmList_);
     }
     if (selectedAlgorithm_.has_value()) {
-        oss << "; " << KEY_SELECTED_ALGORITHM << ":" << *selectedAlgorithm_;
+        oss << ";" << KEY_SELECTED_ALGORITHM << ":" << *selectedAlgorithm_;
     }
 }
 
 void InteractionEventCollector::BuildExtraInfoStep2(std::ostringstream &oss) const
 {
     if (esl_.has_value()) {
-        oss << "; " << KEY_ESL << ":" << *esl_;
+        oss << ";" << KEY_ESL << ":" << *esl_;
     }
     if (protocolIdList_.has_value()) {
-        oss << "; " << KEY_PROTOCOL_ID_LIST << ":" << GetVectorString<uint16_t>(*protocolIdList_);
+        oss << ";" << KEY_PROTOCOL_ID_LIST << ":" << GetVectorString<uint16_t>(*protocolIdList_);
     }
     if (capabilityList_.has_value()) {
-        oss << "; " << KEY_CAPABILITY_LIST << ":" << GetVectorString<uint16_t>(*capabilityList_);
+        oss << ";" << KEY_CAPABILITY_LIST << ":" << GetVectorString<uint16_t>(*capabilityList_);
     }
     if (selectedProtocolIdList_.has_value()) {
-        oss << "; " << KEY_SELECTED_PROTOCOL_ID_LIST << ":" << GetVectorString<uint16_t>(*selectedProtocolIdList_);
+        oss << ";" << KEY_SELECTED_PROTOCOL_ID_LIST << ":" << GetVectorString<uint16_t>(*selectedProtocolIdList_);
     }
     if (secureProtocolId_.has_value()) {
-        oss << "; " << KEY_SECURE_PROTOCOL_ID << ":" << *secureProtocolId_;
+        oss << ";" << KEY_SECURE_PROTOCOL_ID << ":" << *secureProtocolId_;
     }
     if (!templateAuthResult_.empty()) {
-        oss << "; " << KEY_TEMPLATE_AUTH_RESULT << ":" << templateAuthResult_;
+        oss << ";" << KEY_TEMPLATE_AUTH_RESULT << ":" << templateAuthResult_;
     }
     if (successTemplateId_.has_value()) {
-        oss << "; " << KEY_SUCCESS_TEMPLATE_ID << ":" << *successTemplateId_;
+        oss << ";" << KEY_SUCCESS_TEMPLATE_ID << ":" << ToHexString(*successTemplateId_);
     }
 }
 
@@ -202,8 +201,8 @@ std::string InteractionEventCollector::GetExtraInfo() const
     BuildExtraInfoStep1(oss);
     BuildExtraInfoStep2(oss);
     std::string result = oss.str();
-    static constexpr size_t PREFIX_LEN = 2; // "; " prefix length
-    if (result.size() >= PREFIX_LEN && result[0] == ';' && result[1] == ' ') {
+    static constexpr size_t PREFIX_LEN = 1; // ";" prefix length
+    if (result.size() >= PREFIX_LEN && result[0] == ';') {
         result.erase(0, PREFIX_LEN);
     }
     return result;

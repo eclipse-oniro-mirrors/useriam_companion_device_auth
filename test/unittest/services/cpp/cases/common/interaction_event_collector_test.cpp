@@ -44,14 +44,14 @@ HWTEST_F(InteractionEventCollectorTest, SetBindingId_001, TestSize.Level0)
 {
     InteractionEventCollector collector("test");
     collector.SetBindingId(42);
-    EXPECT_NE(collector.GetExtraInfo().find("bindingId:42"), std::string::npos);
+    EXPECT_NE(collector.GetExtraInfo().find("bindingId:0000002a"), std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, SetContextId_001, TestSize.Level0)
 {
     InteractionEventCollector collector("test");
     collector.SetContextId(12345);
-    EXPECT_NE(collector.GetExtraInfo().find("contextId:12345"), std::string::npos);
+    EXPECT_NE(collector.GetExtraInfo().find("contextId:0000000000003039"), std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, SetSuccessAuthType_001, TestSize.Level0)
@@ -114,7 +114,7 @@ HWTEST_F(InteractionEventCollectorTest, AddTemplateAuthResult_001, TestSize.Leve
 {
     InteractionEventCollector collector("test");
     collector.AddTemplateAuthResult(123, ResultCode::SUCCESS);
-    EXPECT_NE(collector.GetExtraInfo().find("templateAuthResult:123 0"), std::string::npos);
+    EXPECT_NE(collector.GetExtraInfo().find("templateAuthResult:000000000000007b:0"), std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, AddTemplateAuthResult_002_MultipleResults, TestSize.Level0)
@@ -123,14 +123,14 @@ HWTEST_F(InteractionEventCollectorTest, AddTemplateAuthResult_002_MultipleResult
     collector.AddTemplateAuthResult(123, ResultCode::SUCCESS);
     collector.AddTemplateAuthResult(456, ResultCode::FAIL);
     std::string extraInfo = collector.GetExtraInfo();
-    EXPECT_NE(extraInfo.find("templateAuthResult:123 0,456"), std::string::npos);
+    EXPECT_NE(extraInfo.find("templateAuthResult:000000000000007b:0,00000000000001c8"), std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, SetSuccessTemplateId_001, TestSize.Level0)
 {
     InteractionEventCollector collector("test");
     collector.SetSuccessTemplateId(456);
-    EXPECT_NE(collector.GetExtraInfo().find("successTemplateId:456"), std::string::npos);
+    EXPECT_NE(collector.GetExtraInfo().find("successTemplateId:00000000000001c8"), std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, MultipleSetMethods_AppendExtraInfo, TestSize.Level0)
@@ -184,8 +184,8 @@ HWTEST_F(InteractionEventCollectorTest, SetContextId_UpdateOverwrites, TestSize.
     InteractionEventCollector collector("test");
     collector.SetContextId(100);
     collector.SetContextId(200);
-    EXPECT_NE(collector.GetExtraInfo().find("contextId:200"), std::string::npos);
-    EXPECT_EQ(collector.GetExtraInfo().find("contextId:100"), std::string::npos);
+    EXPECT_NE(collector.GetExtraInfo().find("contextId:00000000000000c8"), std::string::npos);
+    EXPECT_EQ(collector.GetExtraInfo().find("contextId:0000000000000064"), std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, SetEsl_UpdateOverwrites, TestSize.Level0)

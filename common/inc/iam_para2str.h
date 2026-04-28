@@ -26,6 +26,9 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 const int32_t TRUNCATED_WIDTH = 4;
 const int SETW_VAL = 2;
+const int HEX_WIDTH_UINT16 = 4;
+const int HEX_WIDTH_UINT32 = 8;
+const int HEX_WIDTH_UINT64 = 16;
 
 std::string GetMaskedString(uint16_t val);
 std::string GetTruncatedString(const std::string &val);
@@ -73,6 +76,24 @@ std::string GetMaskedVectorString(const std::vector<T> &vec)
         result += GetMaskedString(static_cast<uint16_t>(vec[i]));
         if (i + 1 < vec.size()) {
             result += ", ";
+        }
+    }
+    result += "]";
+    return result;
+}
+
+std::string ToHexString(uint64_t val);
+std::string ToHexString(uint32_t val);
+std::string ToHexString(uint16_t val);
+
+template <typename T>
+std::string GetHexVectorString(const std::vector<T> &vec)
+{
+    std::string result = "[";
+    for (size_t i = 0; i < vec.size(); ++i) {
+        result += ToHexString(vec[i]);
+        if (i + 1 < vec.size()) {
+            result += ",";
         }
     }
     result += "]";

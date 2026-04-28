@@ -158,10 +158,32 @@ void HostBinding::HandleAuthMaintainActiveChanged(bool isActive)
         return;
     }
 
-    if (!isActive) {
-        IAM_LOGE("%{public}s local auth maintain inactive, revoking token", GetDescription());
-        SetTokenValid(false, "auth maintain inactive");
+    if (isActive) {
+        authMaintainInactiveTimer_.reset();
+        return;
     }
+
+    auto delayMs = status_.hostDeviceStatus.atlRevokeDelayMs;
+    if (!delayMs.has_value()) {
+        return;
+    }
+
+    if (delayMs.value() == 0) {
+        IAM_LOGI("%{public}s auth maintain inactive, immediate token revoke", GetDescription());
+        SetTokenValid(false, "auth maintain inactive");
+        return;
+    }
+
+    IAM_LOGI("%{public}s auth maintain inactive, scheduling token revoke in %{public}u ms", GetDescription(),
+        delayMs.value());
+    authMaintainInactiveTimer_ = RelativeTimer::GetInstance().Register(
+        [weakSelf = weak_from_this()]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            IAM_LOGI("%{public}s auth maintain inactive timeout, revoking token", self->GetDescription());
+            self->SetTokenValid(false, "auth maintain inactive");
+        },
+        delayMs.value());
 }
 
 void HostBinding::SetTokenValid(bool isTokenValid, const std::string &triggerReason)

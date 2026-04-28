@@ -1065,7 +1065,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleSetCompanionInvalid_001,
     std::vector<uint8_t> extraInfo(jsonStr.begin(), jsonStr.end());
     auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
 
-    EXPECT_CALL(guard.GetCompanionManager(), SetTemplateInvalid(UINT64_123)).Times(1);
+    EXPECT_CALL(guard.GetCompanionManager(), SetTemplateInvalid(UINT64_123, _)).Times(1);
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
 
     FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
@@ -1160,7 +1160,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleSetCompanionInvalid_006,
     std::vector<uint8_t> extraInfo(jsonStr.begin(), jsonStr.end());
     auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
 
-    EXPECT_CALL(guard.GetCompanionManager(), SetTemplateInvalid(UINT64_123)).Times(1);
+    EXPECT_CALL(guard.GetCompanionManager(), SetTemplateInvalid(UINT64_123, _)).Times(1);
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
 
     FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);

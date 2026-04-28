@@ -43,7 +43,10 @@ std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 {
     auto impl = std::shared_ptr<SecurityAgentImpl>(new (std::nothrow) SecurityAgentImpl());
     ENSURE_OR_RETURN_VAL(impl != nullptr, nullptr);
-    impl->Initialize();
+    if (!impl->Initialize()) {
+        IAM_LOGE("Initialize failed");
+        return nullptr;
+    }
     return impl;
 }
 

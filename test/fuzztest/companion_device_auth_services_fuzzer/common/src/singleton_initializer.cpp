@@ -201,9 +201,10 @@ public:
         (void)templateId;
     }
 
-    void SetTemplateInvalid(TemplateId templateId) override
+    void SetTemplateInvalid(TemplateId templateId, const std::string &reason) override
     {
         (void)templateId;
+        (void)reason;
     }
 
 private:
