@@ -835,24 +835,7 @@ bool DecodeEvent(const EventFfi &ffi, Event &event)
 
 bool DecodeEventArray(const EventArrayFfi &ffi, std::vector<Event> &events)
 {
-    if (ffi.len > MAX_EVENT_NUM_FFI) {
-        IAM_LOGE("Event count exceeds maximum: %{public}u > %{public}u", ffi.len, MAX_EVENT_NUM_FFI);
-        return false;
-    }
-
-    events.clear();
-    events.reserve(ffi.len);
-
-    for (uint32_t i = 0; i < ffi.len; ++i) {
-        Event event {};
-        if (!DecodeEvent(ffi.data[i], event)) {
-            IAM_LOGE("Failed to convert event at index %{public}u", i);
-            return false;
-        }
-        events.push_back(std::move(event));
-    }
-
-    return true;
+    return FfiArrayToVectorWithConvert(ffi, events, DecodeEvent, "event array");
 }
 
 bool DecodeCommonOutput(const CommonOutputFfi &ffi, CommonOutput &output)

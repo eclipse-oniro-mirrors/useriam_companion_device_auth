@@ -160,6 +160,27 @@ std::string GetCallStack()
     return result;
 }
 
+std::string ToHexString(uint64_t val)
+{
+    std::ostringstream oss;
+    oss << std::setfill('0') << std::setw(HEX_WIDTH_UINT64) << std::hex << val;
+    return oss.str();
+}
+
+std::string ToHexString(uint32_t val)
+{
+    std::ostringstream oss;
+    oss << std::setfill('0') << std::setw(HEX_WIDTH_UINT32) << std::hex << val;
+    return oss.str();
+}
+
+std::string ToHexString(uint16_t val)
+{
+    std::ostringstream oss;
+    oss << std::setfill('0') << std::setw(HEX_WIDTH_UINT16) << std::hex << val;
+    return oss.str();
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

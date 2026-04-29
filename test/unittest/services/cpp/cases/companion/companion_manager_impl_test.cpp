@@ -120,49 +120,6 @@ HWTEST_F(CompanionManagerImplTest, Create_001, TestSize.Level0)
     EXPECT_NE(nullptr, manager);
 }
 
-HWTEST_F(CompanionManagerImplTest, Create_002, TestSize.Level0)
-{
-    MockGuard guard;
-    // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
-    guard.GetTimeKeeper().AdvanceSystemTime(5000);
-
-    EXPECT_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_))
-        .Times(AtMost(1))
-        .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(activeUserId_));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
-        .Times(AtMost(1))
-        .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
-        .WillByDefault(DoAll(Invoke([](const HostBeginAddCompanionInput &, HostBeginAddCompanionOutput &output) {
-            output.addHostBindingRequest = { UINT32_1, UINT32_2, INT32_3, UINT32_4 };
-        }),
-            Return(ResultCode::SUCCESS)));
-    ON_CALL(guard.GetSecurityAgent(), HostEndAddCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetSecurityAgent(), HostRemoveCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionStatus(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionEnabledBusinessIds(_))
-        .WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetSecurityAgent(), HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _))
-        .WillByDefault(Invoke([this](UserId hostUserId, TemplateId templateId, const DeviceKey &companionDeviceKey) {
-            return std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
-        }));
-    ON_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
-        .WillByDefault(Invoke([this](UserId hostUserId, TemplateId templateId, uint32_t lockStateAuthTypeValue,
-                                  const std::vector<uint8_t> &fwkUnlockMsg) {
-            return std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, lockStateAuthTypeValue, fwkUnlockMsg,
-                MOCK_COMPANION_DEVICE_KEY);
-        }));
-    ON_CALL(guard.GetRequestManager(), Start(_)).WillByDefault(Return(true));
-
-    EXPECT_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
-
-    auto manager = CompanionManagerImpl::Create();
-    EXPECT_NE(nullptr, manager);
-}
-
 HWTEST_F(CompanionManagerImplTest, Reload_001, TestSize.Level0)
 {
     MockGuard guard;

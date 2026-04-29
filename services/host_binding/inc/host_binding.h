@@ -72,6 +72,7 @@ private:
     HostBindingStatus status_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
     std::unique_ptr<Subscription> localDeviceStatusSubscription_;
+    std::unique_ptr<Subscription> authMaintainInactiveTimer_;
 
     std::string description_ = "";
 };

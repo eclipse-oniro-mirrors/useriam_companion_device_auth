@@ -21,7 +21,30 @@ config("companion_device_auth_common_config") {
 ohos_static_library("companion_device_auth_common") {
   sanitize = companion_device_auth_default_sanitize
 
-  sources = [ "src/iam_para2str.cpp" ]
+  sources = [
+    "src/iam_para2str.cpp",
+  ]
+
+  public_configs = [ ":companion_device_auth_common_config" ]
+
+  remove_configs = [ "//build/config/compiler:no_exceptions" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+  ]
+
+  subsystem_name = companion_device_auth_subsystem_name
+  part_name = companion_device_auth_part_name
+}
+
+ohos_static_library("companion_device_auth_common_nocfi") {
+  sanitize = companion_device_auth_no_cfi_sanitize
+
+  sources = [
+    "src/iam_para2str.cpp",
+  ]
 
   public_configs = [ ":companion_device_auth_common_config" ]
 

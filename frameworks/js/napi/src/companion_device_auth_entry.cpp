@@ -585,7 +585,9 @@ napi_value GetStatusMonitor(napi_env env, napi_callback_info info)
 napi_value RegisterDeviceSelectCallbackInner(napi_env env, napi_callback_info info)
 {
     int32_t errorCode = ResultCode::GENERAL_ERROR;
-    ScopeGuard guard([&]() { napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, errorCode)); });
+    ScopeGuard guard([&env, &errorCode]() {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, errorCode));
+    });
 
     napi_value argv[ARGS_ONE];
     size_t argc = ARGS_ONE;
@@ -671,7 +673,7 @@ napi_value UpdateEnabledBusinessIdsInner(napi_env env, napi_callback_info info, 
     napi_deferred promiseDeferred)
 {
     int32_t errorCode = ResultCode::GENERAL_ERROR;
-    ScopeGuard guard([&]() {
+    ScopeGuard guard([&env, &promiseDeferred, &errorCode]() {
         napi_reject_deferred(env, promiseDeferred,
             CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, errorCode));
     });

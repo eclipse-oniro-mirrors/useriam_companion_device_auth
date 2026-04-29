@@ -93,7 +93,7 @@ public:
 
     virtual void NotifyCompanionStatusChange() = 0;
     virtual void HandleRemoveHostBindingComplete(TemplateId templateId) = 0;
-    virtual void SetTemplateInvalid(TemplateId templateId) = 0;
+    virtual void SetTemplateInvalid(TemplateId templateId, const std::string &reason) = 0;
 };
 
 } // namespace CompanionDeviceAuth

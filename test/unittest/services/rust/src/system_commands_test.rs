@@ -561,7 +561,7 @@ fn host_end_companion_check_test_request_end_fail() {
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
-    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Ok(Vec::new()));
+    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Err(ErrorCode::GeneralError));
     mock_companion_device_db_manager.expect_get_device().returning(|| Err(ErrorCode::GeneralError));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 

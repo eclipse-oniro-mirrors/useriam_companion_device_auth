@@ -140,9 +140,7 @@ impl Request for HostDeviceSyncStatusRequest {
 
         self.template_id = ffi_input.template_id;
 
-        if self.decode_sec_status_sync_reply(ffi_input.sec_message.as_slice()?).is_ok() {
-            companion_device_db_helper::update_companion_device_valid_flag(self.template_id, true)?;
-        } else {
+        if self.decode_sec_status_sync_reply(ffi_input.sec_message.as_slice()?).is_err() {
             companion_device_db_helper::update_companion_device_valid_flag(self.template_id, false)?;
             log_e!("proc status sync reply fail");
             return Err(ErrorCode::GeneralError);

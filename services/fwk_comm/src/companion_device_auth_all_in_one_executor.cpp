@@ -15,6 +15,7 @@
 
 #include "companion_device_auth_all_in_one_executor.h"
 
+#include <atomic>
 #include <cstdint>
 #include <future>
 #include <optional>
@@ -321,7 +322,7 @@ void Inner::HandleSetCompanionInvalid(const std::vector<uint8_t> &extraInfo)
             templateId |= static_cast<uint64_t>(elem.get<uint8_t>()) << (i * UINT8_BIT_WIDTH);
         }
         IAM_LOGI("setting companion invalid, templateId %{public}s", GET_MASKED_NUM_CSTR(templateId));
-        GetCompanionManager().SetTemplateInvalid(templateId);
+        GetCompanionManager().SetTemplateInvalid(templateId, "fwkCommand");
     } catch (const nlohmann::json::exception &) {
         IAM_LOGE("failed to parse extraInfo as JSON");
     }
@@ -566,9 +567,15 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::RunOnResidentSync(std::functi
     auto resultPromise = std::make_shared<std::promise<FwkResultCode>>();
     ENSURE_OR_RETURN_VAL(resultPromise != nullptr, FwkResultCode::GENERAL_ERROR);
     auto future = resultPromise->get_future();
+    auto cancelled = std::make_shared<std::atomic<bool>>(false);
+    ENSURE_OR_RETURN_VAL(cancelled != nullptr, FwkResultCode::GENERAL_ERROR);
 
     TaskRunnerManager::GetInstance().PostTaskOnResident(
-        [taskFunc = std::move(func), promise = resultPromise]() mutable {
+        [taskFunc = std::move(func), promise = resultPromise, cancelled]() mutable {
+            if (cancelled->load()) {
+                IAM_LOGI("RunOnResidentSync task cancelled before execution");
+                return;
+            }
             try {
                 promise->set_value(taskFunc());
             } catch (...) {
@@ -584,6 +591,7 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::RunOnResidentSync(std::functi
     if (status != std::future_status::ready) {
         IAM_LOGE("RunOnResidentSync timeout - task not completed in %{public}u second, status: %{public}d", timeoutSec,
             static_cast<int32_t>(status));
+        cancelled->store(true);
         return FwkResultCode::TIMEOUT;
     }
 

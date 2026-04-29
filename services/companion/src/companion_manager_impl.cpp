@@ -26,6 +26,7 @@
 
 #include "adapter_manager.h"
 #include "cda_scope_guard.h"
+#include "event_manager_adapter.h"
 #include "companion.h"
 #include "host_remove_host_binding_request.h"
 #include "relative_timer.h"
@@ -46,7 +47,10 @@ std::shared_ptr<CompanionManagerImpl> CompanionManagerImpl::Create()
 {
     auto manager = std::shared_ptr<CompanionManagerImpl>(new (std::nothrow) CompanionManagerImpl());
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
-    manager->Initialize();
+    if (!manager->Initialize()) {
+        IAM_LOGE("Initialize failed");
+        return nullptr;
+    }
     return manager;
 }
 
@@ -686,7 +690,7 @@ void CompanionManagerImpl::HandleRemoveHostBindingComplete(TemplateId templateId
     NotifyCompanionStatusChange();
 }
 
-void CompanionManagerImpl::SetTemplateInvalid(TemplateId templateId)
+void CompanionManagerImpl::SetTemplateInvalid(TemplateId templateId, const std::string &reason)
 {
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion == nullptr) {
@@ -696,6 +700,8 @@ void CompanionManagerImpl::SetTemplateInvalid(TemplateId templateId)
 
     HostSetCompanionInvalidInput input { .templateId = templateId };
     ResultCode ret = GetSecurityAgent().HostSetCompanionInvalid(input);
+    ReportSystemFault("SET_TEMPLATE_INVALID", reason,
+        "templateId:" + std::to_string(templateId) + " ret:" + std::to_string(ret));
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("HostSetCompanionInvalid failed ret %{public}d", ret);
         return;

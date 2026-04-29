@@ -646,7 +646,7 @@ HWTEST_F(XxxModuleTest, ScenarioE2E_001, TestSize.Level0)
 | `auth_module_test.cpp` | HostDelegateAuthPreemptedE2E_001 | 请求抢占 — 新 DelegateAuth 取消旧请求 → 旧回调 CANCELED |
 | `auth_module_test.cpp` | HostTokenAuthPreemptedE2E_001 | 请求抢占 — 新 TokenAuth 取消旧请求 → 旧回调 CANCELED |
 | `auth_module_test.cpp` | CompanionDelegateAuthFullFlowE2E_001 | 伴随侧 DelegateAuth 完整流程 — Begin + End 两轮 + 回调验证 |
-| `auth_module_test.cpp` | UserSwitchCancelsRequestE2E_001 | 用户切换 → 活跃请求回调返回 COMMUNICATION_ERROR |
+| `auth_module_test.cpp` | UserSwitchCancelsRequestE2E_001 | 用户切换 → 不取消活跃请求（请求保持等待状态，最终由超时机制处理） |
 | `auth_module_test.cpp` | HostTokenAuthCallbackExtraInfoVerifiedE2E_001 | 结果校验增强 — TokenAuth 回调 extraInfo 等于 HostEndTokenAuth 输出的 fwkMsg |
 | `auth_module_test.cpp` | HostDelegateAuthCallbackExtraInfoVerifiedE2E_001 | 结果校验增强 — DelegateAuth 回调 extraInfo 等于 HostEndDelegateAuth 输出的 fwkMsg |
 | `timeout_module_test.cpp` | SyncDeviceStatusTimeoutE2E_001 | OutboundRequest 超时 — SyncDeviceStatus 推进时间 >60s → 回调 TIMEOUT |

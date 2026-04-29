@@ -494,23 +494,31 @@ std::optional<typename std::invoke_result<Func>::type> CompanionDeviceAuthServic
     auto promise = std::make_shared<std::promise<Ret>>();
     ENSURE_OR_RETURN_VAL(promise != nullptr, std::nullopt);
     auto future = promise->get_future();
+    auto cancelled = std::make_shared<std::atomic<bool>>(false);
+    ENSURE_OR_RETURN_VAL(cancelled != nullptr, std::nullopt);
 
-    TaskRunnerManager::GetInstance().PostTaskOnResident([task = std::forward<Func>(func), promise]() mutable {
-        try {
-            promise->set_value(task());
-        } catch (...) {
-            try {
-                promise->set_exception(std::current_exception());
-            } catch (...) {
-                IAM_LOGE("RunOnResidentSync set_exception failed");
+    TaskRunnerManager::GetInstance().PostTaskOnResident(
+        [task = std::forward<Func>(func), promise, cancelled]() mutable {
+            if (cancelled->load()) {
+                IAM_LOGI("RunOnResidentSync task cancelled before execution");
+                return;
             }
-        }
-    });
+            try {
+                promise->set_value(task());
+            } catch (...) {
+                try {
+                    promise->set_exception(std::current_exception());
+                } catch (...) {
+                    IAM_LOGE("RunOnResidentSync set_exception failed");
+                }
+            }
+        });
 
     auto status = future.wait_for(std::chrono::seconds(timeoutSec));
     if (status != std::future_status::ready) {
         IAM_LOGE("RunOnResidentSync timeout - task not completed in %{public}u second, status: %{public}d", timeoutSec,
             static_cast<int32_t>(status));
+        cancelled->store(true);
         return std::nullopt;
     }
 

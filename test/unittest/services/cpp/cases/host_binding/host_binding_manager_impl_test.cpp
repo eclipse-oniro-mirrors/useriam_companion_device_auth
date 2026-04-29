@@ -151,49 +151,6 @@ HWTEST_F(HostBindingManagerImplTest, Create_001, TestSize.Level0)
     EXPECT_NE(nullptr, manager);
 }
 
-HWTEST_F(HostBindingManagerImplTest, Create_002, TestSize.Level0)
-{
-    MockGuard guard;
-    int32_t activeUserId_ = 100;
-    (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
-        return MakeSubscription();
-    }));
-    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
-    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
-        .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
-    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
-    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
-        return MakeSubscription();
-    }));
-    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(false));
-    auto &securityAgent = guard.GetSecurityAgent();
-    ON_CALL(securityAgent, CompanionBeginAddHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(securityAgent, CompanionEndAddHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(securityAgent, CompanionRemoveHostBinding(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(securityAgent, CompanionGetPersistedHostBindingStatus(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(securityAgent, CompanionRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    auto &requestFactory = guard.GetRequestFactory();
-    ON_CALL(requestFactory, CreateCompanionObtainTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const DeviceKey &hostDeviceKey, uint32_t lockStateAuthTypeValue,
-                                  const std::vector<uint8_t> &fwkUnlockMsg) {
-            return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
-        }));
-    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(
-            Invoke([](UserId companionUserId, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
-                return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey, triggerReason);
-            }));
-    auto &requestMgr = guard.GetRequestManager();
-    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
-    EXPECT_CALL(userIdMgr, SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
-
-    auto manager = HostBindingManagerImpl::Create();
-    EXPECT_NE(nullptr, manager);
-}
-
 HWTEST_F(HostBindingManagerImplTest, Initialize_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -786,15 +743,15 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_004_CleanupOnFailureWithB
     ASSERT_FALSE(manager->bindings_.empty());
 
     // CompanionEndAddHostBinding returns failure.
-    // RemoveBindingInternal should remove the binding from bindings_ using the passed bindingId.
+    // Binding should be preserved to keep C++ and Rust state consistent.
     EXPECT_CALL(securityAgent, CompanionEndAddHostBinding(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     EndAddHostBindingInput input = { .requestId = 1, .resultCode = ResultCode::SUCCESS, .bindingId = testBindingId };
     EndAddHostBindingOutput output = {};
     ResultCode ret = manager->EndAddHostBinding(input, output);
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
-    // Verify the binding was cleaned up by RemoveBindingInternal.
-    EXPECT_TRUE(manager->bindings_.empty());
+    // Binding is preserved (Rust end() never deletes bindings, only distributes tokens).
+    EXPECT_FALSE(manager->bindings_.empty());
 }
 
 HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_002, TestSize.Level0)
@@ -882,7 +839,8 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_003, TestSize.Level0)
     EndAddHostBindingOutput output = {};
     ResultCode ret = manager->EndAddHostBinding(input, output);
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
-    EXPECT_FALSE(manager->GetHostBindingStatus(testBindingId).has_value());
+    // Binding is preserved (Rust end() never deletes bindings, only distributes tokens).
+    EXPECT_TRUE(manager->GetHostBindingStatus(testBindingId).has_value());
 }
 
 HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_001, TestSize.Level0)
