@@ -20,7 +20,8 @@ use crate::utils::parcel::Parcel;
 use crate::String;
 use alloc::{collections::BTreeMap, vec};
 use core::mem;
-
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::ATTRIBUTE as u16;
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
 #[repr(i32)]
 pub enum AttributeKey {

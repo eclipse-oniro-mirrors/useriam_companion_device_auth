@@ -29,6 +29,7 @@
 #include "xcollie_helper.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_SOFT_BUS_ADAPTER_IMPL
 
 namespace OHOS {
 namespace UserIam {

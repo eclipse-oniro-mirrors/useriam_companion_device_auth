@@ -23,6 +23,7 @@
 #include "common_message.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_ISSUE_TOKEN_MESSAGE
 
 namespace OHOS {
 namespace UserIam {

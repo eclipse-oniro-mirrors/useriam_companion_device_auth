@@ -28,6 +28,7 @@
 #include "user_id_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_CONSTANT_USER_ID_MANAGER
 
 namespace OHOS {
 namespace UserIam {

@@ -30,6 +30,7 @@
 #include "template_status_subscription.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_SUBSCRIPTION_MANAGER
 
 namespace OHOS {
 namespace UserIam {

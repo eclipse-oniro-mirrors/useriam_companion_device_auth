@@ -18,6 +18,8 @@ use crate::traits::db_manager::{
     CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
 };
 use crate::{log_e, singleton_registry, Box, Vec};
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::COMPANION_DEVICE_DB_MANAGER as u16;
 
 pub type CompanionDeviceFilter = Box<dyn Fn(&CompanionDevice) -> bool>;
 pub type CompanionTokenFilter = Box<dyn Fn(&CompanionDeviceToken) -> bool>;

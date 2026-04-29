@@ -25,7 +25,8 @@ use alloc::{format, vec};
 use core::mem;
 #[cfg(any(test, feature = "test-utils"))]
 use std::format;
-
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::DEFAULT_HOST_BINDING_DB_MANAGER as u16;
 pub const CURRENT_VERSION: i32 = 0;
 pub const MAX_TOKEN_LENGTH: i32 = 32;
 pub const HOST_BINDING_DB: &str = "host_binding_db";

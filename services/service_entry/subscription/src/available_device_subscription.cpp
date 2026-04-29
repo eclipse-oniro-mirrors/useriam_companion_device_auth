@@ -29,6 +29,7 @@
 #include "user_id_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_AVAILABLE_DEVICE_SUBSCRIPTION
 
 namespace OHOS {
 namespace UserIam {

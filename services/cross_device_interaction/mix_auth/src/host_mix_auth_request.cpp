@@ -28,6 +28,7 @@
 #include "task_runner_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_HOST_MIX_AUTH_REQUEST
 
 namespace OHOS {
 namespace UserIam {

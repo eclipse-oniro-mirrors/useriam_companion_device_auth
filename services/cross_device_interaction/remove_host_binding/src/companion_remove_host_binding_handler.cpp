@@ -25,6 +25,7 @@
 #include "singleton_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_COMPANION_REMOVE_HOST_BINDING_HANDLER
 
 namespace OHOS {
 namespace UserIam {

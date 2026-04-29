@@ -25,6 +25,7 @@
 #include "companion_device_auth_ffi_util.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_SECURITY_COMMAND_ADAPTER_IMPL
 
 namespace OHOS {
 namespace UserIam {

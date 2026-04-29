@@ -38,6 +38,7 @@
 #include "user_idm_client_defines.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_IDM_ADAPTER_IMPL
 
 namespace OHOS {
 namespace UserIam {

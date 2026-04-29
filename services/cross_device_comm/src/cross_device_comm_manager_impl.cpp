@@ -27,6 +27,7 @@
 #include "message_router.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_CROSS_DEVICE_COMM_MANAGER_IMPL
 
 namespace OHOS {
 namespace UserIam {

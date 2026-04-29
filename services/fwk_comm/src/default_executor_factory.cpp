@@ -21,6 +21,7 @@
 #include "companion_device_auth_all_in_one_executor.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_DEFAULT_EXECUTOR_FACTORY
 
 namespace OHOS {
 namespace UserIam {

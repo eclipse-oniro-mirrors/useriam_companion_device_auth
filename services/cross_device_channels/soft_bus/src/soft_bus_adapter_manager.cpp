@@ -26,6 +26,7 @@
 #include "soft_bus_adapter_impl.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_SOFT_BUS_ADAPTER_MANAGER
 
 namespace OHOS {
 namespace UserIam {

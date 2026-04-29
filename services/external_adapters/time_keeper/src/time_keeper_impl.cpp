@@ -26,6 +26,7 @@
 #include "service_common.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_TIME_KEEPER_IMPL
 
 namespace OHOS {
 namespace UserIam {

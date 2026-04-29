@@ -28,6 +28,7 @@
 #include "token_auth_message.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_COMPANION_TOKEN_AUTH_HANDLER
 
 namespace OHOS {
 namespace UserIam {

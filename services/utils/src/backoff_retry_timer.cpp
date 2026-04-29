@@ -24,6 +24,7 @@
 #include "relative_timer.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_BACKOFF_RETRY_TIMER
 
 namespace OHOS {
 namespace UserIam {

@@ -20,7 +20,8 @@ use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
 use crate::utils::{Attribute, AttributeKey};
 use crate::Vec;
 use crate::{log_e, p};
-
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::MESSAGE_CODEC as u16;
 pub enum MessageSignParam {
     NoSign,
     Executor(KeyPair),
