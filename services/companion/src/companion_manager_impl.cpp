@@ -26,8 +26,8 @@
 
 #include "adapter_manager.h"
 #include "cda_scope_guard.h"
-#include "event_manager_adapter.h"
 #include "companion.h"
+#include "event_manager_adapter.h"
 #include "host_remove_host_binding_request.h"
 #include "relative_timer.h"
 #include "request_factory.h"

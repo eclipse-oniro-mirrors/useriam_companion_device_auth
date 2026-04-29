@@ -15,9 +15,6 @@
 
 #include "xcollie_helper.h"
 
-#include <functional>
-#include <memory>
-
 #include "xcollie/xcollie.h"
 #include "xcollie/xcollie_define.h"
 
@@ -30,14 +27,27 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-XCollieHelper::XCollieHelper(const std::string &name, unsigned int timeout)
+XCollieHelper::XCollieHelper(const std::string &name, unsigned int timeout, bool enableLog)
+    : name_(name),
+      enableLog_(enableLog),
+      startTime_(std::chrono::steady_clock::now())
 {
+    if (enableLog_) {
+        IAM_LOGI("XCollieHelper %{public}s start", name_.c_str());
+    }
     id_ = HiviewDFX::XCollie::GetInstance().SetTimer(name, timeout, nullptr, nullptr, HiviewDFX::XCOLLIE_FLAG_DEFAULT);
 }
 
 XCollieHelper::~XCollieHelper()
 {
     HiviewDFX::XCollie::GetInstance().CancelTimer(id_);
+    if (enableLog_) {
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime_)
+                .count();
+        IAM_LOGI("XCollieHelper %{public}s end, elapsed %{public}lldms", name_.c_str(),
+            static_cast<long long>(elapsed));
+    }
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

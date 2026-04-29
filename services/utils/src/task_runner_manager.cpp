@@ -157,7 +157,7 @@ void TaskRunnerManager::PostTask(const std::string &name, std::function<void()> 
     auto taskRunner = taskRunnerMap_[name];
     ENSURE_OR_RETURN(taskRunner != nullptr);
 
-    auto taskBlockMonitor = std::make_shared<XCollieHelper>("taskBlockMonitor", TASK_BLOCK_MONITOR_TIMEOUT);
+    auto taskBlockMonitor = std::make_shared<XCollieHelper>("taskBlockMonitor", TASK_BLOCK_MONITOR_TIMEOUT, false);
     ENSURE_OR_RETURN(taskBlockMonitor != nullptr);
 
     taskRunner->PostTask([taskRunner, taskBlockMonitor, originalTask = std::move(task)]() mutable { originalTask(); });
