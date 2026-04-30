@@ -19,7 +19,7 @@ use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::CompanionDevice;
 use crate::{log_e, log_i, p, Box, String, Vec};
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::COMPANION_DEVICE_DB_HELPER as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::CompanionDeviceDbHelper as u16;
 pub fn check_device_capability(template_id: u64, required_capability: Capability) -> Result<(), ErrorCode> {
     let device_info = CompanionDeviceDbManagerRegistry::get().get_device(template_id).map_err(|e| {
         log_e!("get_device failed for template_id:{:04x}, err:{:?}", template_id as u16, e);

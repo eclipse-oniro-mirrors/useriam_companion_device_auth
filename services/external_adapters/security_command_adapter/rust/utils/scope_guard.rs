@@ -16,6 +16,8 @@
 extern crate alloc;
 
 use crate::log_d;
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::ScopeGuard as u16;
 use crate::vec;
 use crate::Vec;
 use alloc::boxed::Box;

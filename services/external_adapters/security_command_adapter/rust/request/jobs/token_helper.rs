@@ -20,7 +20,7 @@ use crate::traits::db_manager::CompanionDeviceToken;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::{log_e, p, Vec};
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::TOKEN_HELPER as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::TokenHelper as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeviceTokenInfo {
     pub processor_type: ProcessorType,

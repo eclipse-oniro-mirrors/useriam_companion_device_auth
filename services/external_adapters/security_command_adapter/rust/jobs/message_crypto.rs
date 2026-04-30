@@ -25,7 +25,7 @@ use alloc::borrow::ToOwned;
 #[cfg(any(test, feature = "test-utils"))]
 use std::borrow::ToOwned;
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::MESSAGE_CRYPTO as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::MessageCrypto as u16;
 type EncryptedMessage = (Vec<u8>, [u8; AES_GCM_TAG_SIZE], [u8; AES_GCM_IV_SIZE]);
 
 fn init_aes_gcm_param(key: &[u8], iv: [u8; AES_GCM_IV_SIZE]) -> Result<Box<AesGcmParam>, ErrorCode> {

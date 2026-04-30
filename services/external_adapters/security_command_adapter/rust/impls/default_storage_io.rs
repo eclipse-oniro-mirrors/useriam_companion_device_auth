@@ -15,8 +15,11 @@
 
 use crate::common::constants::ErrorCode;
 use crate::log_e;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::storage_io::StorageIo;
 use crate::{CString, String, Vec};
+
+pub(crate) const FILE_ID: u16 = RustFileId::DefaultStorageIo as u16;
 
 #[cfg(not(any(test, feature = "test-utils")))]
 use alloc::format;

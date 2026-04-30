@@ -21,7 +21,7 @@ use crate::traits::misc_manager::MiscManager;
 use crate::Vec;
 use core::mem::size_of;
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::DEFAULT_MISC_MANAGER as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::DefaultMiscManager as u16;
 pub struct DefaultMiscManager {
     #[allow(dead_code)]
     udid: Option<Udid>,

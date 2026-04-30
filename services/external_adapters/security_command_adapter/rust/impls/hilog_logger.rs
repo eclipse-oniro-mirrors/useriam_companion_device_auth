@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+use crate::traits::log_trace::file_id_to_name;
 use crate::traits::logger::{LogLevel, Logger};
 use crate::String;
 #[cfg(not(any(test, feature = "test-utils")))]
@@ -27,8 +28,6 @@ use std::format;
 extern crate std;
 
 use hilog_rust::{hilog, HiLogLabel, LogType};
-use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::HILOG_LOGGER as u16;
 
 const LOG_LABEL: HiLogLabel = HiLogLabel { log_type: LogType::LogCore, domain: 0xD002421, tag: "CDA_SEC" };
 
@@ -46,19 +45,10 @@ impl Default for HilogLogger {
 }
 
 impl Logger for HilogLogger {
-    fn log(&self, level: LogLevel, file_path: &str, line_num: u32, args: fmt::Arguments<'_>) {
+    fn log(&self, level: LogLevel, file_id: u16, line_num: u32, args: fmt::Arguments<'_>) {
         let mut message = String::new();
         let _ = write!(&mut message, "{}", args);
-        let file_name = if let Some(last_slash) = file_path.rfind('/') {
-            let after_slash = last_slash + 1;
-            if after_slash < file_path.len() {
-                &file_path[after_slash..]
-            } else {
-                file_path
-            }
-        } else {
-            file_path
-        };
+        let file_name = file_id_to_name(file_id);
         match level {
             LogLevel::DEBUG => {
                 hilog_rust::debug!(LOG_LABEL, "[{}:{}]{}", @public(file_name), @public(line_num), @public(message));

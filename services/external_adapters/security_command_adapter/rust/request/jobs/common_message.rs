@@ -18,7 +18,7 @@ use crate::jobs::message_crypto;
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, p, Box, Vec};
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::COMMON_MESSAGE as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::CommonMessage as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct SecCommonRequest {
     pub salt: [u8; HKDF_SALT_SIZE],

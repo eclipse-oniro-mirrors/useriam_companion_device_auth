@@ -17,7 +17,7 @@ use crate::singleton_registry;
 use crate::CString;
 use crate::{log_e, Vec};
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::EVENT_MANAGER as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::EventManager as u16;
 
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
 #[repr(i32)]

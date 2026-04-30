@@ -1,3 +1,6 @@
+
+use crate::traits::log_trace::TestFileId;
+const FILE_ID: u16 = TestFileId::CompanionDeviceAuthEntryTest as u16;
 /*
  * Copyright (C) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,6 +77,12 @@ fn handle_rust_command_test() {
     assert!(handle_rust_command(CommandId::Init as i32, &input, &mut output, &mut common_output).is_ok());
 
     mock_set_init_command_env();
-    assert!(handle_rust_command(CommandId::Init as i32, &input, &mut output, &mut common_output).is_ok());
+    assert!(handle_rust_command(
+        CommandId::Init as i32,
+        &input,
+        &mut output,
+        &mut common_output
+    )
+    .is_ok());
     assert!(handle_rust_command(99999, &input, &mut output, &mut common_output).is_ok());
 }

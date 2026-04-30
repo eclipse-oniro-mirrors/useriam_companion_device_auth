@@ -75,7 +75,7 @@ use crate::utils::AttributeKey;
 use crate::{log_e, log_i, p, Box, Vec};
 use core::convert::TryFrom;
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::SYSTEM_COMMANDS as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::SystemCommands as u16;
 #[allow(dead_code)]
 static mut INIT_FLAG: bool = false;
 

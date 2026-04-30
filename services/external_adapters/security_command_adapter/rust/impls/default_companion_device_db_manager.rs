@@ -31,7 +31,7 @@ use core::mem;
 #[cfg(any(test, feature = "test-utils"))]
 use std::format;
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::DEFAULT_COMPANION_DEVICE_DB_MANAGER as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::DefaultCompanionDeviceDbManager as u16;
 pub const CURRENT_VERSION: i32 = 0;
 pub const COMPANION_DEVICE_DB: &str = "companion_device_db";
 pub const COMPANION_DEVICE_PROFILE: &str = "companion_device_profile";

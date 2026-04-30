@@ -24,7 +24,7 @@ use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::{log_e, log_i, Box, Vec};
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::COMPANION_ISSUE_TOKEN as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::CompanionIssueToken as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct PreIssueParam {
     pub salt: [u8; HKDF_SALT_SIZE],
