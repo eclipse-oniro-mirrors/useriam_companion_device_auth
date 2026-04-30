@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <set>
 #include <utility>
 
 #include "iam_check.h"
@@ -258,6 +259,58 @@ ResultCode CompanionManagerImpl::InvokeHostEndAddCompanion(const HostEndAddCompa
     HostEndAddCompanionOutput &output)
 {
     return GetSecurityAgent().HostEndAddCompanion(input, output);
+}
+
+void CompanionManagerImpl::ReconcileWithSecurityAgent()
+{
+    IAM_LOGI("start");
+    if (hostUserId_ == INVALID_USER_ID) {
+        IAM_LOGE("no active user");
+        return;
+    }
+
+    HostGetPersistedCompanionStatusInput input { hostUserId_ };
+    HostGetPersistedCompanionStatusOutput output {};
+    ResultCode ret = GetSecurityAgent().HostGetPersistedCompanionStatus(input, output);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("failed to get persisted companion status, ret %{public}d", ret);
+        return;
+    }
+
+    std::set<TemplateId> securityAgentTemplateIds;
+    for (const auto &persisted : output.companionStatusList) {
+        securityAgentTemplateIds.insert(persisted.templateId);
+    }
+
+    // remove
+    std::vector<TemplateId> toRemove;
+    for (const auto &companion : companions_) {
+        ENSURE_OR_CONTINUE(companion != nullptr);
+        if (securityAgentTemplateIds.find(companion->GetTemplateId()) == securityAgentTemplateIds.end()) {
+            toRemove.push_back(companion->GetTemplateId());
+        }
+    }
+    for (auto templateId : toRemove) {
+        IAM_LOGI("removing companion %{public}s not in persisted data", GET_MASKED_NUM_CSTR(templateId));
+        RemoveCompanionInternal(templateId);
+    }
+
+    // add
+    auto activeUserTemplateIds = AdapterManager::GetInstance().GetIdmAdapter().GetUserTemplates(hostUserId_);
+    auto nowMs = GetTimeKeeper().GetSystemTimeMs();
+    ENSURE_OR_RETURN(nowMs.has_value());
+
+    for (const auto &persisted : output.companionStatusList) {
+        auto existing = FindCompanionByTemplateId(persisted.templateId);
+        if (existing != nullptr) {
+            continue;
+        }
+        IAM_LOGI("adding companion %{public}s from persisted data", GET_MASKED_NUM_CSTR(persisted.templateId));
+        ReloadSingleCompanion(persisted, activeUserTemplateIds, nowMs.value());
+    }
+
+    NotifyCompanionStatusChange();
+    IAM_LOGI("reconcile complete, %{public}zu companions", companions_.size());
 }
 
 ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output)

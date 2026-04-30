@@ -69,6 +69,7 @@ public:
     void NotifyCompanionStatusChange() override;
     void HandleRemoveHostBindingComplete(TemplateId templateId) override;
     void SetTemplateInvalid(TemplateId templateId, const std::string &reason) override;
+    void ReconcileWithSecurityAgent() override;
 
 private:
     CompanionManagerImpl();

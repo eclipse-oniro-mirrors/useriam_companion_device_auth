@@ -136,6 +136,8 @@ FwkResultCode Inner::OnRegisterFinish(const std::vector<uint64_t> &templateIdLis
         return FwkResultCode::GENERAL_ERROR;
     }
 
+    GetCompanionManager().ReconcileWithSecurityAgent();
+
     IAM_LOGI("end");
     return FwkResultCode::SUCCESS;
 }
