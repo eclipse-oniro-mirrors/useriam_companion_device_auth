@@ -17,6 +17,7 @@
 #include "iam_logger.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_SUBSCRIPTION_UTIL
 
 namespace OHOS {
 namespace UserIam {

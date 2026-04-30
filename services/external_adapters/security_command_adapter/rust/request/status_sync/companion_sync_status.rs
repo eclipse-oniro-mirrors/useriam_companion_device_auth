@@ -21,7 +21,8 @@ use crate::request::jobs::common_message::SecCommonReply;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
-
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::COMPANION_SYNC_STATUS as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDeviceSyncStatusRequest {
     pub binding_id: i32,

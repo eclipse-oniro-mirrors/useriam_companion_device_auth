@@ -27,6 +27,8 @@ use std::format;
 extern crate std;
 
 use hilog_rust::{hilog, HiLogLabel, LogType};
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::HILOG_LOGGER as u16;
 
 const LOG_LABEL: HiLogLabel = HiLogLabel { log_type: LogType::LogCore, domain: 0xD002421, tag: "CDA_SEC" };
 

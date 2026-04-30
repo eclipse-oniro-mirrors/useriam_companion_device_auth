@@ -44,6 +44,7 @@
 #include "task_runner_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_CDA_ALL_IN_ONE_EXECUTOR
 
 namespace OHOS {
 namespace UserIam {

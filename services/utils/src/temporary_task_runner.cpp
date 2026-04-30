@@ -26,6 +26,7 @@
 #include "task_runner_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_TEMPORARY_TASK_RUNNER
 
 namespace OHOS {
 namespace UserIam {

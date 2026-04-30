@@ -28,6 +28,7 @@
 #include "task_runner_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_SOFT_BUS_DEVICE_STATUS_MANAGER
 
 namespace OHOS {
 namespace UserIam {

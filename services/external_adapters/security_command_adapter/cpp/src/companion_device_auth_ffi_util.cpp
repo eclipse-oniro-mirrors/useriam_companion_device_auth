@@ -24,6 +24,7 @@
 #include "iam_safe_arithmetic.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_CDA_FFI_UTIL
 
 namespace OHOS {
 namespace UserIam {

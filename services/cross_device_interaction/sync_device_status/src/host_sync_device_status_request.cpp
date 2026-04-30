@@ -30,6 +30,7 @@
 #include "task_runner_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_HOST_SYNC_DEVICE_STATUS_REQUEST
 
 namespace OHOS {
 namespace UserIam {

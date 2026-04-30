@@ -34,6 +34,7 @@
 #include "time_keeper.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_MESSAGE_ROUTER
 
 namespace OHOS {
 namespace UserIam {

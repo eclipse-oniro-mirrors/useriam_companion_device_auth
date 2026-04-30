@@ -15,6 +15,8 @@
 
 use crate::common::constants::ErrorCode;
 use crate::singleton_registry;
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::STORAGE_IO as u16;
 
 pub trait StorageIo {
     fn exists(&self, file_name: &str) -> Result<bool, ErrorCode>;

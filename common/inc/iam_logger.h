@@ -17,6 +17,7 @@
 #define COMPANION_DEVICE_AUTH_IAM_LOGGER_H
 
 #include "hilog/log.h"
+#include "iam_log_tracer.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -37,11 +38,12 @@ namespace CompanionDeviceAuth {
 #undef LOG_TAG
 #endif
 
+#define IAM_LOG_HOOK() ((void)0)
+
 #define COMPANION_DEVICE_AUTH_DEBUG(...) HILOG_DEBUG(LOG_CORE, __VA_ARGS__)
 #define COMPANION_DEVICE_AUTH_INFO(...) HILOG_INFO(LOG_CORE, __VA_ARGS__)
 #define COMPANION_DEVICE_AUTH_WARN(...) HILOG_WARN(LOG_CORE, __VA_ARGS__)
 #define COMPANION_DEVICE_AUTH_ERROR(...) HILOG_ERROR(LOG_CORE, __VA_ARGS__)
-#define COMPANION_DEVICE_AUTH_FATAL(...) HILOG_FATAL(LOG_CORE, __VA_ARGS__)
 
 #define ARGS(fmt, ...) "[%{public}s@%{public}s:%{public}d] " fmt, __FUNCTION__, IAM_LOG_FILE, __LINE__, ##__VA_ARGS__
 #define IAM_LOG(level, ...) COMPANION_DEVICE_AUTH_##level(ARGS(__VA_ARGS__))
@@ -49,8 +51,11 @@ namespace CompanionDeviceAuth {
 #define IAM_LOGD(...) IAM_LOG(DEBUG, __VA_ARGS__)
 #define IAM_LOGI(...) IAM_LOG(INFO, __VA_ARGS__)
 #define IAM_LOGW(...) IAM_LOG(WARN, __VA_ARGS__)
-#define IAM_LOGE(...) IAM_LOG(ERROR, __VA_ARGS__)
-#define IAM_LOGF(...) IAM_LOG(FATAL, __VA_ARGS__)
+#define IAM_LOGE(...)                \
+    do {                             \
+        IAM_LOG_HOOK();              \
+        IAM_LOG(ERROR, __VA_ARGS__); \
+    } while (0)
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

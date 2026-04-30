@@ -26,6 +26,7 @@
 #include "service_common.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_SA_MANAGER_ADAPTER_IMPL
 
 namespace OHOS {
 namespace UserIam {

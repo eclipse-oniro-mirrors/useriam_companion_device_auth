@@ -27,6 +27,7 @@
 #include "singleton_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_HOST_OBTAIN_TOKEN_REQUEST
 
 namespace OHOS {
 namespace UserIam {

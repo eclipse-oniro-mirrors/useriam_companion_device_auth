@@ -37,7 +37,8 @@ use crate::utils::{Attribute, AttributeKey};
 use crate::String;
 use crate::{log_e, log_i, p, Box, Vec};
 use token_helper::DeviceTokenInfo;
-
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::HOST_ENROLL as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct KeyNegotialParam {
     pub processor_type: ProcessorType,

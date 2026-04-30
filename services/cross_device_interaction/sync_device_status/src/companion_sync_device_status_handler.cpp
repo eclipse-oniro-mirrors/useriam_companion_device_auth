@@ -27,6 +27,7 @@
 #include "singleton_manager.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_COMPANION_SYNC_DEVICE_STATUS_HANDLER
 
 namespace OHOS {
 namespace UserIam {

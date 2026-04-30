@@ -21,7 +21,8 @@ use crate::common::constants::MAX_EVENT_NUM;
 use crate::log_e;
 use crate::traits::event_manager::{Event, EventManager, EventType};
 use crate::Vec;
-
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::DEFAULT_EVENT_MANAGER as u16;
 pub struct DefaultEventManager {
     events: Vec<Event>,
     has_fatal_error: bool,

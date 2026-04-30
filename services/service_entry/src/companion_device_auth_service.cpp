@@ -61,6 +61,7 @@
 #include "user_auth_adapter_impl.h"
 
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_CDA_SERVICE
 
 namespace OHOS {
 namespace UserIam {

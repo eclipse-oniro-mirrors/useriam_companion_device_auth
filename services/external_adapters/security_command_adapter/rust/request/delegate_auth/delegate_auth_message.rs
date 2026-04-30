@@ -19,6 +19,8 @@ use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, p, Box, Vec};
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::DELEGATE_AUTH_MESSAGE as u16;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkAuthRequest {
