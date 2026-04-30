@@ -207,6 +207,10 @@ public:
         (void)reason;
     }
 
+    void ReconcileWithSecurityAgent() override
+    {
+    }
+
 private:
     bool Initialize()
     {

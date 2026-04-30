@@ -56,6 +56,7 @@ public:
     MOCK_METHOD(void, NotifyCompanionStatusChange, (), (override));
     MOCK_METHOD(void, HandleRemoveHostBindingComplete, (TemplateId templateId), (override));
     MOCK_METHOD(void, SetTemplateInvalid, (TemplateId templateId, const std::string &reason), (override));
+    MOCK_METHOD(void, ReconcileWithSecurityAgent, (), (override));
 };
 
 } // namespace CompanionDeviceAuth
