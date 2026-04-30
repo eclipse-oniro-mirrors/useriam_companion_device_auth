@@ -29,7 +29,7 @@ use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::HOST_TOKEN_AUTH as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::HostTokenAuth as u16;
 pub const TOKEN_VALID_PERIOD: u64 = 4 * 60 * 60 * 1000;
 
 #[derive(Debug, Clone, PartialEq)]

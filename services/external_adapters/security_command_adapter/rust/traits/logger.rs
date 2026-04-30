@@ -33,13 +33,13 @@ impl core::fmt::Display for LogLevel {
 }
 
 pub trait Logger {
-    fn log(&self, level: LogLevel, file_path: &str, line_num: u32, args: crate::Arguments<'_>);
+    fn log(&self, level: LogLevel, file_id: u16, line_num: u32, args: crate::Arguments<'_>);
 }
 
 struct DummyLogger;
 
 impl Logger for DummyLogger {
-    fn log(&self, _level: LogLevel, _file_path: &str, _line_num: u32, _args: crate::Arguments<'_>) {}
+    fn log(&self, _level: LogLevel, _file_id: u16, _line_num: u32, _args: crate::Arguments<'_>) {}
 }
 
 singleton_registry!(LoggerRegistry, Logger, DummyLogger);
@@ -55,7 +55,7 @@ macro_rules! log_d {
         {
             $crate::traits::logger::get_logger().log(
                 $crate::traits::logger::LogLevel::DEBUG,
-                file!(),
+                FILE_ID,
                 line!(),
                 format_args!($($arg)*)
             );
@@ -69,7 +69,7 @@ macro_rules! log_i {
         {
             $crate::traits::logger::get_logger().log(
                 $crate::traits::logger::LogLevel::INFO,
-                file!(),
+                FILE_ID,
                 line!(),
                 format_args!($($arg)*)
             );
@@ -80,14 +80,12 @@ macro_rules! log_i {
 #[macro_export]
 macro_rules! log_e {
     ($($arg:tt)*) => {
-        {
-            $crate::traits::logger::get_logger().log(
-                $crate::traits::logger::LogLevel::ERROR,
-                file!(),
-                line!(),
-                format_args!($($arg)*)
-            );
-        }
+        $crate::traits::logger::get_logger().log(
+            $crate::traits::logger::LogLevel::ERROR,
+            FILE_ID,
+            line!(),
+            format_args!($($arg)*)
+        );
     }
 }
 

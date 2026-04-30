@@ -25,7 +25,8 @@ use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p};
-
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::HostSyncStatus as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct HostDeviceSyncStatusRequest {
     pub request_id: i32,

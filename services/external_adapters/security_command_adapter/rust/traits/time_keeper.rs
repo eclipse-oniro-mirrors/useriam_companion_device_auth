@@ -17,7 +17,7 @@ use crate::common::constants::ErrorCode;
 use crate::log_e;
 use crate::singleton_registry;
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::TIME_KEEPER as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::TimeKeeper as u16;
 
 pub trait TimeKeeper {
     fn get_system_time(&self) -> Result<u64, ErrorCode>;

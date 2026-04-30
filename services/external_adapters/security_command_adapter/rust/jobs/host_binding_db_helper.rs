@@ -20,7 +20,7 @@ use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::{log_e, p, Vec};
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::HOST_BINDING_DB_HELPER as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::HostBindingDbHelper as u16;
 pub fn add_host_binding(device_info: &HostBinding, sk_info: &HostBindingSk) -> Result<Option<i32>, ErrorCode> {
     let mut same_device_replaced_binding_id = None;
     if let Ok(info) = HostBindingDbManagerRegistry::get()

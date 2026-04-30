@@ -26,7 +26,8 @@ use crate::commands::system_commands::{
     host_get_init_key_negotiation, host_get_persisted_status, host_on_register_finish, host_pre_issue_token,
     host_process_obtain_token, host_process_pre_obtain_token, host_remove_companion, host_revoke_token,
     host_set_companion_invalid, host_update_companion_enabled_business_ids, host_update_companion_status,
-    host_update_token, init, set_active_user_id,
+    host_update_token, init,
+    set_active_user_id,
 };
 use crate::common::constants::ErrorCode;
 use crate::ensure_or_return_val;
@@ -56,7 +57,8 @@ use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::Box;
 use crate::{log_e, log_i};
 use core::mem::size_of;
-
+use crate::traits::log_trace::RustFileId;
+pub(crate) const FILE_ID: u16 = RustFileId::Entry as u16;
 struct CmdInfo {
     command_id: CommandId,
     handler: &'static dyn CmdHandler,
@@ -204,6 +206,7 @@ pub fn handle_rust_command(
     common_output: &mut [u8],
 ) -> Result<(), ErrorCode> {
     ensure_or_return_val!(common_output.len() == size_of::<CommonOutputFfi>(), ErrorCode::BadParam);
+
     let result: ErrorCode = match handle_rust_command_inner(command_id, input, output) {
         Ok(()) => {
             log_i!("handle command id {:?} success", command_id);
@@ -214,6 +217,7 @@ pub fn handle_rust_command(
             e
         },
     };
+
     let common_output_ffi = CommonOutputFfi { result: result as i32, ..Default::default() };
 
     unsafe {

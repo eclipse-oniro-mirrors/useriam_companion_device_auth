@@ -21,6 +21,7 @@ pub mod test_utils {
         event_manager::{EventManagerRegistry, MockEventManager},
         host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager},
         logger::{LogLevel, Logger, LoggerRegistry},
+        log_trace::file_id_to_name,
         misc_manager::{MiscManagerRegistry, MockMiscManager},
         request_manager::{MockRequestManager, RequestManagerRegistry},
         storage_io::{MockStorageIo, StorageIoRegistry},
@@ -47,9 +48,9 @@ pub mod test_utils {
     }
 
     impl Logger for TestLogger {
-        fn log(&self, level: LogLevel, file_path: &str, line_num: u32, args: core::fmt::Arguments<'_>) {
+        fn log(&self, level: LogLevel, file_id: u16, line_num: u32, args: core::fmt::Arguments<'_>) {
             const MAX_LOG_LINE_LEN: usize = 256;
-            let file_name = file_path.rsplit('/').last().unwrap_or(file_path);
+            let file_name = file_id_to_name(file_id);
             let prefix = format!("[LOG] [{:?}] [{}:{}] ", level, file_name, line_num);
             let message = format!("{}", args);
             let max_message_len = MAX_LOG_LINE_LEN - prefix.len();

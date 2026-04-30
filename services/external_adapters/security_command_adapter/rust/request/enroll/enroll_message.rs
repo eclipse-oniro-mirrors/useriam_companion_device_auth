@@ -21,7 +21,7 @@ use crate::utils::{Attribute, AttributeKey};
 use crate::String;
 use crate::{log_e, p, Box, Vec};
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::ENROLL_MESSAGE as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::EnrollMessage as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkEnrollRequest {
     pub schedule_id: u64,

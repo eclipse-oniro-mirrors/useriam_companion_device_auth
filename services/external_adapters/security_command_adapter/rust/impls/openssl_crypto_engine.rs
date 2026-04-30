@@ -34,7 +34,7 @@ use openssl::rand::rand_bytes;
 use openssl::sign::{Signer, Verifier};
 use openssl::symm::{Cipher, Crypter, Mode};
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::OPENSSL_CRYPTO_ENGINE as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::OpensslCryptoEngine as u16;
 pub struct OpenSSLCryptoEngine;
 
 impl OpenSSLCryptoEngine {

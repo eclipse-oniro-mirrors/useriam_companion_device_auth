@@ -19,7 +19,7 @@ use crate::log_e;
 use crate::singleton_registry;
 use crate::Box;
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::CRYPTO_ENGINE as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::CryptoEngine as u16;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyPair {

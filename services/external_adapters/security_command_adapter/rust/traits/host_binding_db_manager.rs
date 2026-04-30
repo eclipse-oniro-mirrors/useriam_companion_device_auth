@@ -17,7 +17,7 @@ use crate::common::constants::ErrorCode;
 use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken};
 use crate::traits::log_trace::RustFileId;
 use crate::{log_e, singleton_registry, Box, Vec};
-pub(crate) const FILE_ID: u16 = RustFileId::HOST_BINDING_DB_MANAGER as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::HostBindingDbManager as u16;
 
 pub trait HostBindingDbManager {
     fn add_device(&mut self, device_info: &HostBinding, sk_info: &HostBindingSk) -> Result<Option<i32>, ErrorCode>;

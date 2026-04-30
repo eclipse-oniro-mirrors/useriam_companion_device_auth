@@ -20,7 +20,7 @@ use crate::singleton_registry;
 use crate::traits::crypto_engine::KeyPair;
 use crate::Vec;
 use crate::traits::log_trace::RustFileId;
-pub(crate) const FILE_ID: u16 = RustFileId::MISC_MANAGER as u16;
+pub(crate) const FILE_ID: u16 = RustFileId::MiscManager as u16;
 
 pub trait MiscManager {
     fn get_distribute_key(&self, local_udid: Udid, peer_udid: Udid) -> Result<crate::Vec<u8>, ErrorCode>;
