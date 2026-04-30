@@ -16,6 +16,7 @@
 #ifndef COMPANION_DEVICE_AUTH_XCOLLIE_HELPER_H
 #define COMPANION_DEVICE_AUTH_XCOLLIE_HELPER_H
 
+#include <chrono>
 #include <string>
 
 namespace OHOS {
@@ -23,11 +24,14 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class XCollieHelper {
 public:
-    XCollieHelper(const std::string &name, unsigned int timeout);
+    XCollieHelper(const std::string &name, unsigned int timeout, bool enableLog = true);
     ~XCollieHelper();
 
 private:
     int id_ = -1;
+    std::string name_;
+    bool enableLog_ = true;
+    std::chrono::steady_clock::time_point startTime_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

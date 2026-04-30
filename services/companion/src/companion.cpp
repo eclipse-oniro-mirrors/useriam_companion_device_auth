@@ -79,8 +79,8 @@ Companion::~Companion()
 std::string Companion::BuildDescription(const CompanionStatus &status)
 {
     std::ostringstream oss;
-    oss << "CdaCompanion(T:" << GET_TRUNCATED_STRING(status.templateId) << ",D:"
-        << GetTruncatedString(status.companionDeviceStatus.deviceKey.deviceId) << ")";
+    oss << "CdaCompanion(T:" << GET_TRUNCATED_STRING(status.templateId)
+        << ",D:" << GetTruncatedString(status.companionDeviceStatus.deviceKey.deviceId) << ")";
     return oss.str();
 }
 
@@ -150,8 +150,8 @@ void Companion::HandleAuthMaintainActiveChanged(const DeviceStatus &deviceStatus
         return;
     }
 
-    IAM_LOGI("%{public}s isAuthMaintainActive changed: %{public}d -> %{public}d", GetDescription(),
-        oldActive, deviceStatus.isAuthMaintainActive);
+    IAM_LOGI("%{public}s isAuthMaintainActive changed: %{public}d -> %{public}d", GetDescription(), oldActive,
+        deviceStatus.isAuthMaintainActive);
 
     if (deviceStatus.isAuthMaintainActive) {
         authMaintainInactiveTimer_.reset();
