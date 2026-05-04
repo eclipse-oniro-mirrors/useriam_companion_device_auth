@@ -23,6 +23,7 @@
 #include "adapter_manager.h"
 #include "error_guard.h"
 #include "host_binding_manager.h"
+#include "iam_log_tracer.h"
 #include "obtain_token_message.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
@@ -72,6 +73,7 @@ bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 
 void CompanionObtainTokenRequest::OnConnected()
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
@@ -116,6 +118,7 @@ bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
 
 void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &reply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
@@ -218,6 +221,7 @@ bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8
 
 void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
@@ -308,6 +312,7 @@ std::weak_ptr<OutboundRequest> CompanionObtainTokenRequest::GetWeakPtr()
 
 void CompanionObtainTokenRequest::HandleAuthMaintainActiveChanged(bool isActive)
 {
+    LogTraceGuard guard;
     if (isActive) {
         return;
     }

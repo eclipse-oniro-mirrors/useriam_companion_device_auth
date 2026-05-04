@@ -24,6 +24,7 @@
 #include "companion_manager.h"
 #include "companion_sync_device_status_handler.h"
 #include "error_guard.h"
+#include "iam_log_tracer.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 #include "sync_device_status_message.h"
@@ -51,6 +52,7 @@ HostSyncDeviceStatusRequest::HostSyncDeviceStatusRequest(int32_t hostUserId, con
 
 void HostSyncDeviceStatusRequest::OnConnected()
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     BeginCompanionCheck();
 }
@@ -182,6 +184,7 @@ bool HostSyncDeviceStatusRequest::SendSyncDeviceStatusRequest(const std::vector<
 
 void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &reply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 

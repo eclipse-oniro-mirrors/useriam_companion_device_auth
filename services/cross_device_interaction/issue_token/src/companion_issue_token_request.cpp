@@ -24,6 +24,7 @@
 #include "common_message.h"
 #include "error_guard.h"
 #include "host_binding_manager.h"
+#include "iam_log_tracer.h"
 #include "issue_token_message.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
@@ -44,6 +45,7 @@ CompanionIssueTokenRequest::CompanionIssueTokenRequest(const std::string &connec
 
 bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
 
     if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
@@ -172,6 +174,7 @@ void CompanionIssueTokenRequest::SendPreIssueTokenReply(ResultCode result,
 
 void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
@@ -271,6 +274,7 @@ bool CompanionIssueTokenRequest::ShouldCancelOnNewRequest(RequestType newRequest
 
 void CompanionIssueTokenRequest::HandleAuthMaintainActiveChanged(bool isActive)
 {
+    LogTraceGuard guard;
     if (isActive) {
         return;
     }

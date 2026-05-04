@@ -38,6 +38,8 @@ fn create_rust_command_param(
         input_data_len: input_data_len.unwrap_or(0),
         output_data: output_data.unwrap_or(ptr::null_mut()),
         output_data_len: output_data_len.unwrap_or(0),
+        common_input_data: ptr::null(),
+        common_input_data_len: 0,
         common_output_data: common_output_data.unwrap_or(ptr::null_mut()),
         common_output_data_len: common_output_data_len.unwrap_or(0),
     }

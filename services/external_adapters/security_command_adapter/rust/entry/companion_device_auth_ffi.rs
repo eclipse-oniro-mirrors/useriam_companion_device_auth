@@ -36,6 +36,7 @@ pub const MAX_DATA_LEN_20000: usize = 20000;
 pub const MAX_STRUCT_SIZE_FFI: usize = 40960;
 pub const PROPERTY_MODE_FREEZE: u32 = 5;
 pub const PROPERTY_MODE_UNFREEZE: u32 = 6;
+pub const MAX_LOG_TRACE_NUM_FFI: usize = 100;
 
 macro_rules! assert_max_size {
     ($t:ty) => {
@@ -197,6 +198,29 @@ impl Default for EventArrayFfi {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct LogTraceEntryFfi {
+    pub code: i32,
+    pub file_id: u16,
+    pub line_num: u16,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct LogTraceArrayFfi {
+    pub data: [LogTraceEntryFfi; MAX_LOG_TRACE_NUM_FFI],
+    pub len: u32,
+}
+
+impl Default for LogTraceArrayFfi {
+    fn default() -> Self {
+        LogTraceArrayFfi { data: [LogTraceEntryFfi::default(); MAX_LOG_TRACE_NUM_FFI], len: 0 }
+    }
+}
+
+#[repr(C)]
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 #[derive(Default)]
@@ -204,6 +228,7 @@ pub struct CommonOutputFfi {
     pub result: i32,
     pub has_fatal_error: u8,
     pub events: EventArrayFfi,
+    pub log_trace: LogTraceArrayFfi,
 }
 assert_max_size!(CommonOutputFfi);
 
@@ -1184,6 +1209,15 @@ pub enum CallerTypeFfi {
     Ta = 1,
 }
 
+// CommonInputFfi: C++ → Rust control flags
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct CommonInputFfi {
+    pub trace_enabled: u8,
+    pub invoke_id: u16,
+}
+
 // cbindgen module
 #[cxx::bridge]
 mod ffi {
@@ -1193,6 +1227,8 @@ mod ffi {
         pub input_data_len: u32,
         pub output_data: *mut u8,
         pub output_data_len: u32,
+        pub common_input_data: *const u8,
+        pub common_input_data_len: u32,
         pub common_output_data: *mut u8,
         pub common_output_data_len: u32,
     }
@@ -1240,7 +1276,16 @@ fn invoke_rust_command_inner(param: RustCommandParam) -> Result<(), ErrorCode> {
     let common_output =
         unsafe { slice::from_raw_parts_mut(param.common_output_data, param.common_output_data_len as usize) };
 
-    handle_rust_command(param.command_id, input, output, common_output)
+    // Parse CommonInputFfi (optional: tolerate zero-len for backward compatibility)
+    let common_input = if !param.common_input_data.is_null()
+        && param.common_input_data_len as usize == mem::size_of::<CommonInputFfi>()
+    {
+        unsafe { slice::from_raw_parts(param.common_input_data, param.common_input_data_len as usize) }
+    } else {
+        &[]
+    };
+
+    handle_rust_command(param.command_id, input, output, common_input, common_output)
 }
 
 #[no_mangle]

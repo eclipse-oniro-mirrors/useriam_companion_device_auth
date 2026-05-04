@@ -18,6 +18,7 @@
 #include <cinttypes>
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
@@ -51,6 +52,7 @@ HostSingleMixAuthRequest::HostSingleMixAuthRequest(const AuthRequestParams &para
 
 void HostSingleMixAuthRequest::Start()
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     StartTimeout(weak_from_this());
 
@@ -90,6 +92,7 @@ void HostSingleMixAuthRequest::Start()
 
 bool HostSingleMixAuthRequest::Cancel(ResultCode resultCode)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     if (cancelled_) {
         IAM_LOGI("%{public}s already cancelled, skip", GetDescription());
@@ -113,6 +116,7 @@ std::optional<DeviceKey> HostSingleMixAuthRequest::GetPeerDeviceKey() const
 
 void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const std::vector<uint8_t> &extraInfo)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s result:%{public}d", GetDescription(), result);
     if (cancelled_) {
         IAM_LOGI("%{public}s already cancelled, skip", GetDescription());
@@ -157,6 +161,7 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
 
 void HostSingleMixAuthRequest::HandleDelegateAuthResult(ResultCode result, const std::vector<uint8_t> &extraInfo)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s result:%{public}d", GetDescription(), result);
     if (cancelled_) {
         IAM_LOGI("%{public}s already cancelled, skip", GetDescription());

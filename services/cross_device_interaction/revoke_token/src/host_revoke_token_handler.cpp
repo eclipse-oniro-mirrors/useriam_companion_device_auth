@@ -16,6 +16,7 @@
 #include "host_revoke_token_handler.h"
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "companion_manager.h"
@@ -41,6 +42,7 @@ void HostRevokeTokenHandler::HandleRequest(const Attributes &request, Attributes
 {
     InteractionDesc desc(HANDLER_PREFIX, "HHRvT");
     IAM_LOGI("%{public}s start", desc.GetCStr());
+    LogTraceGuard guard;
 
     InteractionEventCollector eventCollector("HHRvT");
     ErrorGuard errorGuard([&reply, &eventCollector](ResultCode result) {

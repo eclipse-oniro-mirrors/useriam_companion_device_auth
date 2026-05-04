@@ -18,11 +18,13 @@
 #include "securec.h"
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "common_defines.h"
 #include "companion_device_auth_ffi.h"
 #include "companion_device_auth_ffi_util.h"
+#include "singleton_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_SECURITY_COMMAND_ADAPTER_IMPL
@@ -137,35 +139,54 @@ ResultCode SecurityCommandAdapterImpl::InvokeCommand(int32_t commandId, const ui
         return ResultCode::GENERAL_ERROR;
     }
 
-    CommonOutputFfi commonOutputFfi = {};
+    auto commonInputFfi = std::make_unique<CommonInputFfi>();
+    ENSURE_OR_RETURN_VAL(commonInputFfi != nullptr, ResultCode::GENERAL_ERROR);
+    commonInputFfi->traceEnabled = LogTracer::GetInstance().IsActive() ? 1 : 0;
+    commonInputFfi->invokeId = static_cast<uint16_t>(GetMiscManager().GetNextGlobalId());
+
+    auto commonOutputFfi = std::make_unique<CommonOutputFfi>();
+    ENSURE_OR_RETURN_VAL(commonOutputFfi != nullptr, ResultCode::GENERAL_ERROR);
+
+    IAM_LOGI("command %{public}d invoke begin, invokeId %{public}s", commandId,
+        ToHexString(commonInputFfi->invokeId).c_str());
+
     RustCommandParam param = {};
     param.command_id = commandId;
     param.input_data = inputData;
     param.input_data_len = inputDataLen;
     param.output_data = outputData;
     param.output_data_len = outputDataLen;
-    param.common_output_data = (uint8_t *)(&commonOutputFfi);
-    param.common_output_data_len = sizeof(commonOutputFfi);
+    param.common_input_data = reinterpret_cast<const uint8_t *>(commonInputFfi.get());
+    param.common_input_data_len = sizeof(CommonInputFfi);
+    param.common_output_data = reinterpret_cast<uint8_t *>(commonOutputFfi.get());
+    param.common_output_data_len = sizeof(CommonOutputFfi);
 
-    IAM_LOGI("command %{public}d invoke begin", commandId);
     int32_t result = invoke_rust_command(param);
     if (result != static_cast<int32_t>(ResultCode::SUCCESS)) {
-        IAM_LOGE("command %{public}d invoke fail, result: %{public}x", commandId, result);
+        IAM_LOGE("command %{public}d invoke fail, invokeId %{public}s, result: %{public}x", commandId,
+            ToHexString(commonInputFfi->invokeId).c_str(), result);
         return ConvertRustErrorCode(result);
     }
 
     CommonOutput commonOutput {};
-    if (!DecodeCommonOutput(commonOutputFfi, commonOutput)) {
-        IAM_LOGE("command %{public}d failed to convert CommonOutputFfi", commandId);
+    if (!DecodeCommonOutput(*commonOutputFfi, commonOutput)) {
+        IAM_LOGE("command %{public}d failed to convert CommonOutputFfi, invokeId %{public}s", commandId,
+            ToHexString(commonInputFfi->invokeId).c_str());
         return ResultCode::GENERAL_ERROR;
     }
 
+    if (!commonOutput.logTrace.empty()) {
+        LogTracer::GetInstance().Import(commonOutput.logTrace);
+    }
+
     if (commonOutput.result != static_cast<int32_t>(ResultCode::SUCCESS)) {
-        IAM_LOGE("command %{public}d execute fail, result: %{public}d", commandId, commonOutput.result);
+        IAM_LOGE("command %{public}d execute fail, invokeId %{public}s, result: %{public}d", commandId,
+            ToHexString(commonInputFfi->invokeId).c_str(), commonOutput.result);
         return ConvertRustErrorCode(commonOutput.result);
     }
 
-    IAM_LOGI("command %{public}d invoke success", commandId);
+    IAM_LOGI("command %{public}d invoke success, invokeId %{public}s", commandId,
+        ToHexString(commonInputFfi->invokeId).c_str());
     return ResultCode::SUCCESS;
 }
 

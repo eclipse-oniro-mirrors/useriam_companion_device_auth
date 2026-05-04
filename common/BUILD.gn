@@ -21,7 +21,10 @@ config("companion_device_auth_common_config") {
 ohos_static_library("companion_device_auth_common") {
   sanitize = companion_device_auth_default_sanitize
 
-  sources = [ "src/iam_para2str.cpp" ]
+  sources = [
+    "src/iam_log_tracer.cpp",
+    "src/iam_para2str.cpp",
+  ]
 
   public_configs = [ ":companion_device_auth_common_config" ]
 
@@ -40,7 +43,10 @@ ohos_static_library("companion_device_auth_common") {
 ohos_static_library("companion_device_auth_common_nocfi") {
   sanitize = companion_device_auth_no_cfi_sanitize
 
-  sources = [ "src/iam_para2str.cpp" ]
+  sources = [
+    "src/iam_log_tracer.cpp",
+    "src/iam_para2str.cpp",
+  ]
 
   public_configs = [ ":companion_device_auth_common_config" ]
 

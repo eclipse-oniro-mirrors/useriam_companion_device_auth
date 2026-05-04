@@ -16,6 +16,7 @@
 #include "host_delegate_auth_request.h"
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
@@ -81,6 +82,7 @@ bool HostDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 
 void HostDelegateAuthRequest::OnConnected()
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     HostBeginDelegateAuth();
 }
@@ -214,6 +216,7 @@ bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &re
 void HostDelegateAuthRequest::HandleSendDelegateAuthRequestMsg(const Attributes &request,
     OnMessageReply &onMessageReply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s HandleSendDelegateAuthRequestMsg", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {

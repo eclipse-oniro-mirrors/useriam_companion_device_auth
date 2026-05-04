@@ -23,6 +23,9 @@
 #include "iam_logger.h"
 #include "iam_safe_arithmetic.h"
 
+static_assert(MAX_LOG_TRACE_NUM_FFI == OHOS::UserIam::CompanionDeviceAuth::MAX_LOG_TRACE_COUNT,
+    "FFI and C++ log trace buffer sizes must match");
+
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_CDA_FFI_UTIL
 
@@ -843,6 +846,14 @@ bool DecodeCommonOutput(const CommonOutputFfi &ffi, CommonOutput &output)
 {
     output.result = ffi.result;
     output.hasFatalError = ffi.hasFatalError;
+
+    auto decodeLogTrace = [](const LogTraceEntryFfi &src, LogEntry &dst) -> bool {
+        dst = { src.code, src.fileId, src.lineNum };
+        return true;
+    };
+    if (!FfiArrayToVectorWithConvert(ffi.logTrace, output.logTrace, decodeLogTrace, "log trace")) {
+        return false;
+    }
 
     return DecodeEventArray(ffi.events, output.events);
 }

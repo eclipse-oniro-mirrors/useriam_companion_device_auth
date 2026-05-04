@@ -46,6 +46,9 @@ impl Default for HilogLogger {
 
 impl Logger for HilogLogger {
     fn log(&self, level: LogLevel, file_id: u16, line_num: u32, args: fmt::Arguments<'_>) {
+        if level == LogLevel::ERROR {
+            crate::traits::log_trace::record(file_id, line_num);
+        }
         let mut message = String::new();
         let _ = write!(&mut message, "{}", args);
         let file_name = file_id_to_name(file_id);

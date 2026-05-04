@@ -16,6 +16,7 @@
 #include "companion_delegate_auth_request.h"
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
@@ -57,6 +58,7 @@ std::weak_ptr<InboundRequest> CompanionDelegateAuthRequest::GetWeakPtr()
 
 bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
 
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
@@ -144,6 +146,7 @@ bool CompanionDelegateAuthRequest::CallSecurityAgentBeginDelegateAuth(uint64_t &
 
 void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCode, const std::vector<uint8_t> &token)
 {
+    LogTraceGuard guard;
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     IAM_LOGI("%{public}s start", GetDescription());
@@ -214,6 +217,7 @@ bool CompanionDelegateAuthRequest::SecurityAgentEndDelegateAuth(ResultCode resul
 
 void CompanionDelegateAuthRequest::HandleSendDelegateAuthResultReply(const Attributes &message)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     auto replyOpt = DecodeSendDelegateAuthResultReply(message);
     ENSURE_OR_RETURN_DESC(GetDescription(), replyOpt.has_value());

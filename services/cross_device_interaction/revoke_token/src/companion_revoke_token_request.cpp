@@ -21,6 +21,7 @@
 #include "adapter_manager.h"
 #include "error_guard.h"
 #include "host_revoke_token_handler.h"
+#include "iam_log_tracer.h"
 #include "revoke_token_message.h"
 #include "singleton_manager.h"
 
@@ -44,6 +45,7 @@ CompanionRevokeTokenRequest::CompanionRevokeTokenRequest(int32_t companionUserId
 
 void CompanionRevokeTokenRequest::OnConnected()
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     SendRevokeTokenRequest();
 }
@@ -85,6 +87,7 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
 
 void CompanionRevokeTokenRequest::HandleRevokeTokenReply(const Attributes &message)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 

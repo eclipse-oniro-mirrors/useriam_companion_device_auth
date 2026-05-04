@@ -38,7 +38,11 @@ namespace CompanionDeviceAuth {
 #undef LOG_TAG
 #endif
 
+#ifdef ENABLE_LOG_TRACE
+#define IAM_LOG_HOOK() OHOS::UserIam::CompanionDeviceAuth::LogTracer::GetInstance().Record(LOG_FILE_ID, __LINE__)
+#else
 #define IAM_LOG_HOOK() ((void)0)
+#endif
 
 #define COMPANION_DEVICE_AUTH_DEBUG(...) HILOG_DEBUG(LOG_CORE, __VA_ARGS__)
 #define COMPANION_DEVICE_AUTH_INFO(...) HILOG_INFO(LOG_CORE, __VA_ARGS__)

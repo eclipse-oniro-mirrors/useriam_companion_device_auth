@@ -22,6 +22,7 @@
 #include "companion_manager.h"
 #include "companion_pre_issue_token_handler.h"
 #include "error_guard.h"
+#include "iam_log_tracer.h"
 #include "issue_token_message.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
@@ -81,6 +82,7 @@ bool HostIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 
 void HostIssueTokenRequest::OnConnected()
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     HostPreIssueToken();
 }
@@ -136,6 +138,7 @@ bool HostIssueTokenRequest::SendPreIssueTokenRequest(const std::vector<uint8_t> 
 
 void HostIssueTokenRequest::HandlePreIssueTokenReply(const Attributes &message)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
@@ -216,6 +219,7 @@ ResultCode HostIssueTokenRequest::CallSecurityAgentEndIssueToken(const std::vect
 
 void HostIssueTokenRequest::HandleIssueTokenReply(const Attributes &message)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
@@ -276,6 +280,7 @@ bool HostIssueTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &d
 
 void HostIssueTokenRequest::HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList)
 {
+    LogTraceGuard guard;
     auto peerDeviceKey = GetPeerDeviceKey();
     ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKey.has_value());
     for (const auto &status : deviceStatusList) {

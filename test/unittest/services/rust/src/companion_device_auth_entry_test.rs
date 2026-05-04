@@ -18,7 +18,9 @@ const FILE_ID: u16 = TestFileId::CompanionDeviceAuthEntryTest as u16;
 
 use crate::common::constants::ErrorCode;
 use crate::entry::companion_device_auth_entry::{handle_rust_command, handle_rust_env_uninit};
-use crate::entry::companion_device_auth_ffi::{CommandId, CommonOutputFfi, InitInputFfi, InitOutputFfi};
+use crate::entry::companion_device_auth_ffi::{
+    CommandId, CommonInputFfi, CommonOutputFfi, InitInputFfi, InitOutputFfi,
+};
 use crate::log_i;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
@@ -66,23 +68,45 @@ fn handle_rust_command_test() {
 
     let input = [0u8; size_of::<InitInputFfi>()];
     let mut output = [0u8; size_of::<InitOutputFfi>()];
+    let common_input = [0u8; size_of::<CommonInputFfi>()];
     let mut common_output = [0u8; size_of::<CommonOutputFfi>() + 1];
 
     assert_eq!(
-        handle_rust_command(CommandId::Init as i32, &input, &mut output, &mut common_output),
+        handle_rust_command(
+            CommandId::Init as i32,
+            &input,
+            &mut output,
+            &common_input,
+            &mut common_output
+        ),
         Err(ErrorCode::BadParam)
     );
 
     let mut common_output = [0u8; size_of::<CommonOutputFfi>()];
-    assert!(handle_rust_command(CommandId::Init as i32, &input, &mut output, &mut common_output).is_ok());
+    assert!(handle_rust_command(
+        CommandId::Init as i32,
+        &input,
+        &mut output,
+        &common_input,
+        &mut common_output
+    )
+    .is_ok());
 
     mock_set_init_command_env();
     assert!(handle_rust_command(
         CommandId::Init as i32,
         &input,
         &mut output,
+        &common_input,
         &mut common_output
     )
     .is_ok());
-    assert!(handle_rust_command(99999, &input, &mut output, &mut common_output).is_ok());
+    assert!(handle_rust_command(
+        99999,
+        &input,
+        &mut output,
+        &common_input,
+        &mut common_output
+    )
+    .is_ok());
 }

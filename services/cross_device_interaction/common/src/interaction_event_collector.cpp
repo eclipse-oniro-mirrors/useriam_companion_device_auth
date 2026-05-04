@@ -17,6 +17,10 @@
 
 #include "event_manager_adapter.h"
 #include "iam_para2str.h"
+#include "iam_logger.h"
+
+#define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_INTERACTION_EVENT_COLLECTOR
 
 namespace OHOS {
 namespace UserIam {
@@ -76,6 +80,8 @@ constexpr const char *KEY_SELECTED_PROTOCOL_ID_LIST = "selectedProtocolIdList";
 constexpr const char *KEY_SECURE_PROTOCOL_ID = "secureProtocolId";
 constexpr const char *KEY_TEMPLATE_AUTH_RESULT = "templateAuthResult";
 constexpr const char *KEY_SUCCESS_TEMPLATE_ID = "successTemplateId";
+constexpr const char *KEY_LOG_TRACE = "logTrace";
+
 } // namespace
 
 void InteractionEventCollector::SetAtl(Atl atl)
@@ -193,6 +199,9 @@ void InteractionEventCollector::BuildExtraInfoStep2(std::ostringstream &oss) con
     if (successTemplateId_.has_value()) {
         oss << ";" << KEY_SUCCESS_TEMPLATE_ID << ":" << ToHexString(*successTemplateId_);
     }
+    if (!logTrace_.empty()) {
+        oss << ";" << KEY_LOG_TRACE << ":" << logTrace_;
+    }
 }
 
 std::string InteractionEventCollector::GetExtraInfo() const
@@ -211,6 +220,8 @@ std::string InteractionEventCollector::GetExtraInfo() const
 void InteractionEventCollector::Report(ResultCode result)
 {
     result_ = result;
+    logTrace_ = LogTracer::GetInstance().ExportAsString();
+    IAM_LOGI("requestType: %{public}s, logTrace: %{public}s", requestType_.c_str(), logTrace_.c_str());
     ReportInteractionEvent(*this);
 }
 

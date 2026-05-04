@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "common_defines.h"
+#include "iam_log_tracer.h"
 #include "service_common.h"
 
 namespace OHOS {
@@ -130,6 +131,7 @@ private:
     std::optional<uint16_t> secureProtocolId_;
     std::string templateAuthResult_;
     std::optional<TemplateId> successTemplateId_;
+    std::string logTrace_;
 };
 
 } // namespace CompanionDeviceAuth

@@ -18,6 +18,7 @@
 #include <cinttypes>
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
@@ -71,6 +72,7 @@ bool HostMixAuthRequest::AnyTemplateValid() const
 void HostMixAuthRequest::HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices,
     const std::optional<std::vector<uint8_t>> &selectContext)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s HandleDeviceSelectResult size:%{public}zu", GetDescription(), selectedDevices.size());
 
     if (selectedDevices.empty()) {
@@ -173,6 +175,7 @@ void HostMixAuthRequest::StartAuthWithTemplateList(const std::vector<TemplateId>
 
 void HostMixAuthRequest::Start()
 {
+    LogTraceGuard guard;
     StartTimeout(weak_from_this());
 
     if (!AnyTemplateValid()) {
@@ -205,6 +208,7 @@ void HostMixAuthRequest::Start()
 
 bool HostMixAuthRequest::Cancel(ResultCode resultCode)
 {
+    LogTraceGuard guard;
     if (cancelled_) {
         IAM_LOGI("%{public}s already cancelled, skip", GetDescription());
         return true;
@@ -224,6 +228,7 @@ bool HostMixAuthRequest::Cancel(ResultCode resultCode)
 void HostMixAuthRequest::HandleAuthResult(TemplateId templateId, ResultCode result,
     const std::vector<uint8_t> &extraInfo)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s templateId:%{public}s result:%{public}d", GetDescription(), GET_MASKED_NUM_CSTR(templateId),
         result);
     eventCollector_.AddTemplateAuthResult(templateId, result);

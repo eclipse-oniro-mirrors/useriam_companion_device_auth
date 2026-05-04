@@ -16,6 +16,7 @@
 #include "companion_sync_device_status_handler.h"
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
@@ -67,6 +68,7 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
 {
     InteractionDesc desc(HANDLER_PREFIX, "HCSync");
     IAM_LOGI("%{public}s start", desc.GetCStr());
+    LogTraceGuard guard;
 
     InteractionEventCollector eventCollector("HCSync");
     ErrorGuard errorGuard([&reply, &eventCollector](ResultCode result) {

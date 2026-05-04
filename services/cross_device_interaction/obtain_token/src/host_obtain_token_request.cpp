@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
@@ -87,6 +88,7 @@ bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
 
 bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     if (!ParsePreObtainTokenRequest(errorGuard)) {
         IAM_LOGE("%{public}s ParsePreObtainTokenRequest failed", GetDescription());
@@ -151,6 +153,7 @@ void HostObtainTokenRequest::SendPreObtainTokenReply(ResultCode result, const st
 
 void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
@@ -318,6 +321,7 @@ bool HostObtainTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &
 
 void HostObtainTokenRequest::HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList)
 {
+    LogTraceGuard guard;
     const auto &peerDeviceKey = PeerDeviceKey();
     for (const auto &status : deviceStatusList) {
         if (status.deviceKey != peerDeviceKey) {

@@ -16,6 +16,7 @@
 #include "companion_remove_host_binding_handler.h"
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "error_guard.h"
@@ -39,6 +40,7 @@ void CompanionRemoveHostBindingHandler::HandleRequest(const Attributes &request,
 {
     InteractionDesc desc(HANDLER_PREFIX, "HCRmB");
     IAM_LOGI("%{public}s start", desc.GetCStr());
+    LogTraceGuard guard;
 
     InteractionEventCollector eventCollector("HCRmB");
     ErrorGuard errorGuard([&reply, &eventCollector](ResultCode result) {
