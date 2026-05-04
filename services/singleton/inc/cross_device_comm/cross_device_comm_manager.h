@@ -58,6 +58,7 @@ public:
     virtual bool IsConnectionOpen(const std::string &connectionName) = 0;
     virtual ConnectionStatus GetConnectionStatus(const std::string &connectionName) = 0;
     virtual std::optional<DeviceKey> GetLocalDeviceKeyByConnectionName(const std::string &connectionName) = 0;
+    virtual std::optional<DeviceKey> GetLocalDeviceKey(ChannelId channelId) = 0;
     virtual std::unique_ptr<Subscription> SubscribeConnectionStatus(const std::string &connectionName,
         OnConnectionStatusChange &&onConnectionStatusChange) = 0;
     virtual std::unique_ptr<Subscription> SubscribeIncomingConnection(MessageType msgType, OnMessage &&onMessage) = 0;

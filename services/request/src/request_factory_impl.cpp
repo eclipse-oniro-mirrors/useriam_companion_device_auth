@@ -20,6 +20,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_para2str.h"
 
 #include "companion_add_companion_request.h"
 #include "companion_delegate_auth_request.h"
@@ -66,7 +67,7 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostTokenAuthRequest(const A
 {
     auto companionStatus = GetCompanionManager().GetCompanionStatus(params.templateId);
     if (!companionStatus.has_value()) {
-        IAM_LOGE("GetCompanionStatus failed for templateId %{public}" PRIu64, params.templateId);
+        IAM_LOGE("GetCompanionStatus failed for templateId %{public}s", GET_MASKED_NUM_CSTR(params.templateId));
         return nullptr;
     }
     const DeviceKey &companionDeviceKey = companionStatus->companionDeviceStatus.deviceKey;
@@ -98,7 +99,7 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostIssueTokenRequest(UserId
 {
     auto companionStatus = GetCompanionManager().GetCompanionStatus(templateId);
     if (!companionStatus.has_value()) {
-        IAM_LOGE("GetCompanionStatus failed for templateId %{public}" PRIu64, templateId);
+        IAM_LOGE("GetCompanionStatus failed for templateId %{public}s", GET_MASKED_NUM_CSTR(templateId));
         return nullptr;
     }
     const DeviceKey &companionDeviceKey = companionStatus->companionDeviceStatus.deviceKey;
@@ -114,7 +115,7 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostDelegateAuthRequest(cons
 {
     auto companionStatus = GetCompanionManager().GetCompanionStatus(params.templateId);
     if (!companionStatus.has_value()) {
-        IAM_LOGE("GetCompanionStatus failed for templateId %{public}" PRIu64, params.templateId);
+        IAM_LOGE("GetCompanionStatus failed for templateId %{public}s", GET_MASKED_NUM_CSTR(params.templateId));
         return nullptr;
     }
     const DeviceKey &companionDeviceKey = companionStatus->companionDeviceStatus.deviceKey;

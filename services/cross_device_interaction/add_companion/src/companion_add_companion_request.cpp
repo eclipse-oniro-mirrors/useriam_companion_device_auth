@@ -179,6 +179,7 @@ void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &att
 
     auto requestOpt = DecodeBeginAddHostBindingRequest(attrInput);
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt->companionUserId == companionDeviceKey_.deviceUserId);
 
     BeginAddHostBindingInput beginInput =
         BuildBeginAddHostBindingInput(requestOpt->companionUserId, requestOpt->extraInfo);
@@ -213,6 +214,7 @@ void CompanionAddCompanionRequest::HandleEndAddCompanion(const Attributes &attrI
 
     auto requestOpt = DecodeEndAddHostBindingRequest(attrInput);
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt->hostDeviceKey == PeerDeviceKey());
 
     IAM_LOGI("%{public}s Get resultCode %{public}d hostUserId %{public}d companionUserId %{public}d", GetDescription(),
         requestOpt->result, requestOpt->hostDeviceKey.deviceUserId, requestOpt->companionUserId);

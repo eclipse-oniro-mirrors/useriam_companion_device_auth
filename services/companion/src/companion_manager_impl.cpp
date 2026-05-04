@@ -329,6 +329,9 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
         return ResultCode::GENERAL_ERROR;
     }
 
+    // SecurityAgent completes token issuance and persists companion state in Rust layer.
+    // If C++ in-memory steps fail (Companion::Create / AddCompanionInternal), ScopeGuard
+    // rolls back the SecurityAgent state so the caller can safely retry.
     HostEndAddCompanionInput secInput = BuildHostEndAddCompanionInput(input);
     HostEndAddCompanionOutput secOutput {};
     ResultCode ret = InvokeHostEndAddCompanion(secInput, secOutput);
@@ -336,6 +339,13 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
         IAM_LOGE("security agent failed to end add companion, ret %{public}d", ret);
         return ret;
     }
+
+    ScopeGuard secAgentGuard([this, templateId = secOutput.templateId]() {
+        IAM_LOGE("rolling back SecurityAgent for %{public}s", GET_MASKED_NUM_CSTR(templateId));
+        HostRemoveCompanionInput removeInput { templateId };
+        HostRemoveCompanionOutput removeOutput {};
+        (void)GetSecurityAgent().HostRemoveCompanion(removeInput, removeOutput);
+    });
 
     PersistedCompanionStatus updatedStatus = input.companionStatus;
     updatedStatus.templateId = secOutput.templateId;
@@ -354,6 +364,7 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
         return ret;
     }
 
+    secAgentGuard.Cancel();
     ProcessEndAddCompanionOutput(secOutput, output);
     NotifyCompanionStatusChange();
 
@@ -755,7 +766,7 @@ void CompanionManagerImpl::SetTemplateInvalid(TemplateId templateId, const std::
     HostSetCompanionInvalidInput input { .templateId = templateId };
     ResultCode ret = GetSecurityAgent().HostSetCompanionInvalid(input);
     ReportSystemFault("SET_TEMPLATE_INVALID", reason,
-        "templateId:" + std::to_string(templateId) + " ret:" + std::to_string(ret));
+        "templateId:" + GET_MASKED_NUM_STRING(templateId) + " ret:" + std::to_string(ret));
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("HostSetCompanionInvalid failed ret %{public}d", ret);
         return;

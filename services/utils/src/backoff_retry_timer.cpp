@@ -34,6 +34,15 @@ BackoffRetryTimer::BackoffRetryTimer(const Config &config, RetryCallback &&callb
     : callback_(std::move(callback)),
       config_(config)
 {
+    if (config_.baseDelayMs == 0) {
+        IAM_LOGE("baseDelayMs is invalid, fallback to default %{public}u", Config::DEFAULT_BASE_DELAY_MS);
+        config_.baseDelayMs = Config::DEFAULT_BASE_DELAY_MS;
+    }
+    if (config_.maxDelayMs < config_.baseDelayMs) {
+        IAM_LOGW("maxDelayMs %{public}u < baseDelayMs %{public}u, clamped to baseDelayMs", config_.maxDelayMs,
+            config_.baseDelayMs);
+        config_.maxDelayMs = config_.baseDelayMs;
+    }
 }
 
 void BackoffRetryTimer::OnFailure()

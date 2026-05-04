@@ -100,6 +100,11 @@ bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &pr
         return false;
     }
     companionUserId_ = preIssueRequest.companionUserId;
+
+    auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionUserId_ == localDeviceKey->deviceUserId, false);
+
     preIssueTokenRequest_ = preIssueRequest.extraInfo;
 
     eventCollector_.SetHostDeviceKey(PeerDeviceKey());

@@ -135,7 +135,7 @@ std::vector<HostBindingStatus> HostBindingManagerImpl::GetAllHostBindingStatus()
         }
     }
 
-    IAM_LOGE("returning %{public}zu host binding statuses", result.size());
+    IAM_LOGI("returning %{public}zu host binding statuses", result.size());
     return result;
 }
 

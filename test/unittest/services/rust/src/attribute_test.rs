@@ -20,7 +20,7 @@ use crate::common::constants::ErrorCode;
 use crate::log_i;
 use crate::ut_registry_guard;
 use crate::utils::parcel::Parcel;
-use crate::utils::{Attribute, AttributeKey};
+use crate::utils::{Attribute, AttributeKey, MAX_MSG_LEN};
 
 #[test]
 fn attribute_key_test() {
@@ -72,7 +72,7 @@ fn try_from_bytes_fail_test() {
     parcel.write_i32_le(0);
     assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::ReadParcelError));
     parcel.write_u32_le(4);
-    assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::ReadParcelError));
+    assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::GeneralError));
     parcel.write_bytes(&[1, 2, 3, 4]);
     assert!(Attribute::try_from_bytes(parcel.as_slice()).is_ok());
 }
@@ -214,6 +214,48 @@ fn u8_slices_test() {
 
     attribute.set_u8_slices(AttributeKey::AttrResultCode, &[&[0u8]]);
     assert!(attribute.get_u8_vecs(AttributeKey::AttrResultCode).is_ok());
+}
+
+#[test]
+fn try_from_bytes_msg_too_long_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("try_from_bytes_msg_too_long_test start");
+
+    let data = vec![0u8; MAX_MSG_LEN + 1];
+    assert_eq!(Attribute::try_from_bytes(&data), Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn try_from_bytes_attr_data_too_long_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("try_from_bytes_attr_data_too_long_test start");
+
+    let mut parcel = Parcel::new();
+    parcel.write_i32_le(AttributeKey::AttrRoot as i32);
+    parcel.write_u32_le((MAX_MSG_LEN + 1) as u32);
+    assert_eq!(Attribute::try_from_bytes(parcel.as_slice()), Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn get_u8_vecs_raw_data_too_long_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("get_u8_vecs_raw_data_too_long_test start");
+
+    let mut attribute = Attribute::new();
+    attribute.set_u8_slice(AttributeKey::AttrResultCode, &vec![0u8; MAX_MSG_LEN + 1]);
+    assert_eq!(attribute.get_u8_vecs(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn get_u8_vecs_element_too_long_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("get_u8_vecs_element_too_long_test start");
+
+    let mut parcel = Parcel::new();
+    parcel.write_u32_le((MAX_MSG_LEN + 1) as u32);
+    let mut attribute = Attribute::new();
+    attribute.set_u8_slice(AttributeKey::AttrResultCode, parcel.as_slice());
+    assert_eq!(attribute.get_u8_vecs(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
 }
 
 #[test]

@@ -921,6 +921,11 @@ public:
         return std::optional<DeviceKey>();
     }
 
+    std::optional<DeviceKey> GetLocalDeviceKey(ChannelId) override
+    {
+        return std::optional<DeviceKey>();
+    }
+
     std::unique_ptr<Subscription> SubscribeConnectionStatus(const std::string &connectionName,
         OnConnectionStatusChange &&onConnectionStatusChange) override
     {

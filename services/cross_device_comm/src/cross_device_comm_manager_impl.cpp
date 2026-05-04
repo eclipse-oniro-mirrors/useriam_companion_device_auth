@@ -209,6 +209,12 @@ std::optional<DeviceKey> CrossDeviceCommManagerImpl::GetLocalDeviceKeyByConnecti
     return localDeviceStatusMgr_->GetLocalDeviceKey(connection->channelId);
 }
 
+std::optional<DeviceKey> CrossDeviceCommManagerImpl::GetLocalDeviceKey(ChannelId channelId)
+{
+    ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, std::nullopt);
+    return localDeviceStatusMgr_->GetLocalDeviceKey(channelId);
+}
+
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeConnectionStatus(const std::string &connectionName,
     OnConnectionStatusChange &&onConnectionStatusChange)
 {

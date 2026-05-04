@@ -237,6 +237,34 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_006, TestSize.Level
     EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
 }
 
+HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_007, TestSize.Level0)
+{
+    MockGuard guard;
+
+    handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
+
+    Attributes request;
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
+        .capabilityList = { Capability::TOKEN_AUTH },
+        .hostDeviceKey = hostDeviceKey_,
+        .salt = { 1, 2, 3 },
+        .challenge = 0 };
+    EncodeSyncDeviceStatusRequest(syncDeviceStatusRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(DeviceIdType::UNKNOWN));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, "wrong_device_id");
+
+    Attributes reply;
+    ErrorGuard errorGuard([&reply](ResultCode result) {
+        (void)reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(result));
+    });
+    handler_->HandleRequest(request, reply);
+    int32_t replyResult = 0;
+
+    EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
+    EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

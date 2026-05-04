@@ -22,7 +22,6 @@
 #ifndef ICONTINUOUS_AUTH_STATUS_CALLBACK_H
 #define ICONTINUOUS_AUTH_STATUS_CALLBACK_H
 
-#include <iostream>
 #include <optional>
 
 namespace OHOS {
