@@ -44,11 +44,12 @@ use crate::entry::companion_device_auth_ffi::CommandId::{
     HostSetCompanionInvalid, HostUpdateCompanionEnabledBusinessIds, HostUpdateCompanionStatus, HostUpdateToken, Init,
     SetActiveUserId,
 };
-use crate::entry::companion_device_auth_ffi::{CommandId, CommonOutputFfi};
+use crate::entry::companion_device_auth_ffi::{CommandId, CommonInputFfi, CommonOutputFfi};
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::event_manager::EventManagerRegistry;
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
+use crate::traits::log_trace;
 use crate::traits::logger::LoggerRegistry;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::request_manager::RequestManagerRegistry;
@@ -203,22 +204,44 @@ pub fn handle_rust_command(
     command_id: i32,
     input: &[u8],
     output: &mut [u8],
+    common_input: &[u8],
     common_output: &mut [u8],
 ) -> Result<(), ErrorCode> {
     ensure_or_return_val!(common_output.len() == size_of::<CommonOutputFfi>(), ErrorCode::BadParam);
 
+    // Parse CommonInputFfi to determine if tracing should be enabled
+    let (trace_enabled, invoke_id) = if common_input.len() == size_of::<CommonInputFfi>() {
+        let ffi = unsafe { common_input.as_ptr().cast::<CommonInputFfi>().read_unaligned() };
+        (ffi.trace_enabled != 0, ffi.invoke_id)
+    } else {
+        (false, 0u16)
+    };
+
+    if trace_enabled {
+        log_trace::enable();
+    }
+
     let result: ErrorCode = match handle_rust_command_inner(command_id, input, output) {
         Ok(()) => {
-            log_i!("handle command id {:?} success", command_id);
+            log_i!("handle command id {:?} success, invokeId {:04X}", command_id, invoke_id);
             ErrorCode::Success
         },
         Err(e) => {
-            log_e!("handle command id {:?} error:{:?}", command_id, e);
+            log_e!("handle command id {:?} error:{:?}, invokeId {:04X}", command_id, e, invoke_id);
             e
         },
     };
+    let mut log_trace_ffi = crate::entry::companion_device_auth_ffi::LogTraceArrayFfi::default();
+    if trace_enabled {
+        log_trace_ffi.len = log_trace::export(&mut log_trace_ffi.data);
+    }
+    log_trace::disable();
 
-    let common_output_ffi = CommonOutputFfi { result: result as i32, ..Default::default() };
+    let common_output_ffi = CommonOutputFfi {
+        result: result as i32,
+        log_trace: log_trace_ffi,
+        ..Default::default()
+    };
 
     unsafe {
         core::ptr::write_unaligned(common_output.as_mut_ptr() as *mut CommonOutputFfi, common_output_ffi);

@@ -81,7 +81,7 @@ pub enum RustFileId {
     StorageIo = 0x02C6,
     TimeKeeper = 0x02C7,
     Logger = 0x02C8,
-    // utils/ (0x02D0-0x02DF)
+    // utils/
     Attribute = 0x02D0,
     MessageCodec = 0x02D1,
     Parcel = 0x02D2,
@@ -271,4 +271,107 @@ fn test_file_id_to_name(file_id: u16) -> &'static str {
         0x032F => "auth_token_test.rs",
         _ => "unknown",
     }
+}
+
+
+/// Must match MAX_LOG_TRACE_NUM_FFI in companion_device_auth_ffi.rs.
+const MAX_ENTRIES: usize = crate::entry::companion_device_auth_ffi::MAX_LOG_TRACE_NUM_FFI;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct LogTraceEntry {
+    pub code: i32,
+    pub file_id: u16,
+    pub line_num: u16,
+}
+
+impl Default for LogTraceEntry {
+    fn default() -> Self {
+        Self {
+            code: 0,
+            file_id: 0,
+            line_num: 0,
+        }
+    }
+}
+
+struct LogTraceState {
+    enabled: bool,
+    entries: [LogTraceEntry; MAX_ENTRIES],
+    record_count: u32,
+    write_index: u32,
+}
+
+const INIT_ENTRY: LogTraceEntry = LogTraceEntry {
+    code: 0,
+    file_id: 0,
+    line_num: 0,
+};
+
+static mut STATE: LogTraceState = LogTraceState {
+    enabled: false,
+    entries: [INIT_ENTRY; MAX_ENTRIES],
+    record_count: 0,
+    write_index: 0,
+};
+
+/// Enable trace recording and clear previous entries.
+pub fn enable() {
+    unsafe {
+        STATE.enabled = true;
+        STATE.record_count = 0;
+        STATE.write_index = 0;
+    }
+}
+
+/// Disable trace recording and clear the buffer.
+pub fn disable() {
+    unsafe {
+        STATE.enabled = false;
+        STATE.record_count = 0;
+        STATE.write_index = 0;
+    }
+}
+
+/// Record a trace entry. Called from Logger::log implementations for ERROR level.
+pub fn record(file_id: u16, line_num: u32) {
+    unsafe {
+        if !STATE.enabled {
+            return;
+        }
+        let idx = STATE.write_index as usize;
+        STATE.entries[idx] = LogTraceEntry {
+            code: 0,
+            file_id,
+            line_num: line_num as u16,
+        };
+        STATE.write_index = (STATE.write_index + 1) % MAX_ENTRIES as u32;
+        if STATE.record_count < MAX_ENTRIES as u32 {
+            STATE.record_count += 1;
+        }
+    }
+}
+
+/// Export recorded entries to FFI array. Returns the number of entries exported.
+pub fn export(
+    entries: &mut [crate::entry::companion_device_auth_ffi::LogTraceEntryFfi],
+) -> u32 {
+    let (count, write_index) = unsafe { (STATE.record_count, STATE.write_index) };
+    if entries.len() < MAX_ENTRIES || count as usize > entries.len() {
+        return 0;
+    }
+    for i in 0..count as usize {
+        let src_idx = if count < MAX_ENTRIES as u32 {
+            i
+        } else {
+            (write_index as usize + i) % MAX_ENTRIES
+        };
+        let src = unsafe { STATE.entries[src_idx] };
+        entries[i] = crate::entry::companion_device_auth_ffi::LogTraceEntryFfi {
+            code: src.code,
+            file_id: src.file_id,
+            line_num: src.line_num,
+        };
+    }
+    count
 }

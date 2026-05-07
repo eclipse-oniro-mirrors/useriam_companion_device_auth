@@ -54,6 +54,8 @@ extern "C" {
 
 #define MAX_STRUCT_SIZE_FFI 40960
 
+#define MAX_LOG_TRACE_NUM_FFI 100
+
 enum CommandId {
     INIT = 1,
     GET_EXECUTOR_INFO = 2,
@@ -106,12 +108,19 @@ enum CommandId {
 
 typedef struct RustCommandParam RustCommandParam;
 
+typedef struct CommonInputFfi {
+    uint8_t traceEnabled;
+    uint16_t invokeId;
+} CommonInputFfi;
+
 struct RustCommandParam {
     int32_t command_id;
     const uint8_t *input_data;
     uint32_t input_data_len;
     uint8_t *output_data;
     uint32_t output_data_len;
+    const uint8_t *common_input_data;
+    uint32_t common_input_data_len;
     uint8_t *common_output_data;
     uint32_t common_output_data_len;
 };
@@ -168,10 +177,22 @@ typedef struct EventArrayFfi {
     uint32_t len;
 } EventArrayFfi;
 
+typedef struct LogTraceEntryFfi {
+    int32_t code;
+    uint16_t fileId;
+    uint16_t lineNum;
+} LogTraceEntryFfi;
+
+typedef struct LogTraceArrayFfi {
+    struct LogTraceEntryFfi data[MAX_LOG_TRACE_NUM_FFI];
+    uint32_t len;
+} LogTraceArrayFfi;
+
 typedef struct CommonOutputFfi {
     int32_t result;
     uint8_t hasFatalError;
     struct EventArrayFfi events;
+    struct LogTraceArrayFfi logTrace;
 } CommonOutputFfi;
 
 typedef struct DeviceKeyFfi {

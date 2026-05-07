@@ -31,6 +31,7 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
     "cases/common/event_bus_impl_test.cpp",
     "cases/common/interaction_desc_test.cpp",
     "cases/common/interaction_event_collector_test.cpp",
+    "cases/common/log_tracer_test.cpp",
     "cases/common/misc_manager_impl_test.cpp",
     "cases/common/scope_guard_test.cpp",
     "cases/companion/companion_add_companion_request_test.cpp",

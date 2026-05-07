@@ -38,6 +38,7 @@ namespace CompanionDeviceAuth {
 
 #undef LOG_TAG
 #define LOG_TAG "CDA_SA"
+#define LOG_FILE_ID LOG_FILE_CALLBACK_SUBSCRIPTION_BASE
 
 template <typename CallbackType, typename DerivedType>
 class CallbackSubscriptionBase : public std::enable_shared_from_this<DerivedType>, public NoCopyable {
@@ -148,4 +149,5 @@ protected:
 } // namespace OHOS
 
 #undef LOG_TAG
+#undef LOG_FILE_ID
 #endif // COMPANION_DEVICE_AUTH_CALLBACK_SUBSCRIPTION_BASE_H

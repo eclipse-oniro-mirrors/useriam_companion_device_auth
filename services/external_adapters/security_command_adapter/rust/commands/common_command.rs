@@ -273,6 +273,7 @@ impl TryFrom<CommonOutput> for CommonOutputFfi {
             result: value.result as i32,
             has_fatal_error: value.has_fatal_error as u8,
             events: value.events.try_into().map_err(|e| p!(e))?,
+            log_trace: Default::default(),
         })
     }
 }

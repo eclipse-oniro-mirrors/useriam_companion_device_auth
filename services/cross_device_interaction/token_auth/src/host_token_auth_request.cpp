@@ -22,6 +22,7 @@
 #include "companion_manager.h"
 #include "companion_token_auth_handler.h"
 #include "error_guard.h"
+#include "iam_log_tracer.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
@@ -89,6 +90,7 @@ bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
 
 void HostTokenAuthRequest::OnConnected()
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     HostBeginTokenAuth();
 }
@@ -154,6 +156,7 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
 
 void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 

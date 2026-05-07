@@ -16,7 +16,13 @@
 #ifndef COMPANION_DEVICE_AUTH_IAM_LOG_TRACER_H
 #define COMPANION_DEVICE_AUTH_IAM_LOG_TRACER_H
 
+#include <array>
 #include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "nocopyable.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -134,6 +140,7 @@ enum LogTraceFileId : uint16_t {
     LOG_FILE_COMPANION_REVOKE_TOKEN_REQUEST = 0x01C4,
     LOG_FILE_HOST_REVOKE_TOKEN_HANDLER = 0x01C5,
     LOG_FILE_KEEP_ALIVE_HANDLER = 0x01C6,
+    LOG_FILE_INTERACTION_EVENT_COLLECTOR = 0x01C7,
 
     // services/request (0x01Dx)
     LOG_FILE_REQUEST_MANAGER_IMPL = 0x01D0,
@@ -148,10 +155,53 @@ enum LogTraceFileId : uint16_t {
     LOG_FILE_AVAILABLE_DEVICE_SUBSCRIPTION = 0x01E5,
     LOG_FILE_TEMPLATE_STATUS_SUBSCRIPTION = 0x01E6,
     LOG_FILE_CONTINUOUS_AUTH_SUBSCRIPTION = 0x01E7,
+    LOG_FILE_CALLBACK_SUBSCRIPTION_BASE = 0x01E8,
 
     // services/companion (0x01Fx)
     LOG_FILE_COMPANION = 0x01F0,
     LOG_FILE_COMPANION_MANAGER_IMPL = 0x01F1,
+};
+
+struct LogEntry {
+    int32_t code = 0;
+    uint16_t fileId = 0;
+    uint16_t lineNum = 0;
+};
+
+constexpr uint32_t MAX_LOG_TRACE_COUNT = 100;
+
+class LogTracer : private NoCopyable {
+public:
+    static LogTracer &GetInstance()
+    {
+        thread_local LogTracer instance;
+        return instance;
+    }
+
+    bool IsActive() const;
+    void Record(uint16_t fileId, uint16_t lineNum, int32_t code = 0);
+    void Import(const std::vector<LogEntry> &entries);
+    std::string ExportAsString() const;
+
+private:
+    LogTracer() = default;
+    ~LogTracer() = default;
+
+    void WriteEntry(const LogEntry &entry);
+    std::vector<LogEntry> Export() const;
+
+    uint32_t activeGuardCount_ = 0;
+    std::unique_ptr<std::array<LogEntry, MAX_LOG_TRACE_COUNT>> entries_;
+    uint32_t recordCount_ = 0;
+    uint32_t writeIndex_ = 0;
+
+    friend class LogTraceGuard;
+};
+
+class LogTraceGuard : public NoCopyable {
+public:
+    LogTraceGuard();
+    ~LogTraceGuard();
 };
 
 } // namespace CompanionDeviceAuth

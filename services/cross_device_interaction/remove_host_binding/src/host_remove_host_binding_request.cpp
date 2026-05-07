@@ -22,6 +22,7 @@
 #include "companion_manager.h"
 #include "companion_remove_host_binding_handler.h"
 #include "error_guard.h"
+#include "iam_log_tracer.h"
 #include "remove_host_binding_message.h"
 #include "singleton_manager.h"
 
@@ -58,6 +59,7 @@ bool HostRemoveHostBindingRequest::OnStart(ErrorGuard &errorGuard)
 
 void HostRemoveHostBindingRequest::OnConnected()
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     SendRemoveHostBindingRequest();
 }
@@ -97,6 +99,7 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
 
 void HostRemoveHostBindingRequest::HandleRemoveHostBindingReply(const Attributes &message)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 

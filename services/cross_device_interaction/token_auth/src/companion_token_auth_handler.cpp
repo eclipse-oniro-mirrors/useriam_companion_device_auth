@@ -16,6 +16,7 @@
 #include "companion_token_auth_handler.h"
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "cross_device_comm_manager.h"
@@ -42,6 +43,7 @@ void CompanionTokenAuthHandler::HandleRequest(const Attributes &request, Attribu
 {
     InteractionDesc desc(HANDLER_PREFIX, "HCTkA");
     IAM_LOGI("%{public}s start", desc.GetCStr());
+    LogTraceGuard guard;
 
     InteractionEventCollector eventCollector("HCTkA");
     ErrorGuard errorGuard([&reply, &eventCollector](ResultCode result) {

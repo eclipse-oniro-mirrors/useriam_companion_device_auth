@@ -16,6 +16,7 @@
 #include "inbound_request.h"
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "error_guard.h"
@@ -40,6 +41,7 @@ InboundRequest::InboundRequest(RequestType requestType, const std::string &conne
 void InboundRequest::Start()
 {
     IAM_LOGI("%{public}s start", GetDescription());
+    LogTraceGuard guard;
 
     StartTimeout(GetWeakPtr());
 
@@ -71,6 +73,7 @@ void InboundRequest::Start()
 
 bool InboundRequest::Cancel(ResultCode resultCode)
 {
+    LogTraceGuard guard;
     if (cancelled_) {
         IAM_LOGI("%{public}s already cancelled, skip", GetDescription());
         return true;
@@ -100,6 +103,7 @@ const std::string &InboundRequest::GetConnectionName() const
 void InboundRequest::HandleConnectionStatus(const std::string &connName, ConnectionStatus status,
     const std::string &reason)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s connection status changed: %{public}s, status: %{public}d, reason: %{public}s",
         GetDescription(), connName.c_str(), status, reason.c_str());
 

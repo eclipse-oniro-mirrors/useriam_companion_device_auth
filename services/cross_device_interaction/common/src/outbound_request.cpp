@@ -16,6 +16,7 @@
 #include "outbound_request.h"
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "relative_timer.h"
@@ -37,6 +38,7 @@ OutboundRequest::OutboundRequest(RequestType requestType, ScheduleId scheduleId,
 void OutboundRequest::Start()
 {
     IAM_LOGI("%{public}s start", GetDescription());
+    LogTraceGuard guard;
 
     StartTimeout(GetWeakPtr());
 
@@ -60,6 +62,7 @@ bool OutboundRequest::OnStart(ErrorGuard &errorGuard)
 
 bool OutboundRequest::Cancel(ResultCode resultCode)
 {
+    LogTraceGuard guard;
     if (cancelled_) {
         IAM_LOGI("%{public}s already cancelled, skip", GetDescription());
         return true;
@@ -149,6 +152,7 @@ void OutboundRequest::CloseConnection()
 void OutboundRequest::HandleConnectionStatus(const std::string &connName, ConnectionStatus status,
     const std::string &reason)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s connection status changed: %{public}s, status: %{public}d, reason: %{public}s",
         GetDescription(), connName.c_str(), status, reason.c_str());
 
@@ -170,6 +174,7 @@ void OutboundRequest::HandleConnectionStatus(const std::string &connName, Connec
 void OutboundRequest::HandleRequestAborted(const Attributes &request,
     [[maybe_unused]] std::function<void(const Attributes &)> onReply)
 {
+    LogTraceGuard guard;
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto abortReqOpt = DecodeRequestAbortedRequest(request);

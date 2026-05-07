@@ -176,7 +176,7 @@ companion_device_auth_service_external_deps = [
   "user_auth_framework:userauth_executors",
 ]
 
-companion_device_auth_service_flags = []
+companion_device_auth_service_flags = [ "-DENABLE_LOG_TRACE" ]
 
 if (companion_device_auth_has_soft_bus_channel) {
   companion_device_auth_service_include_dirs +=

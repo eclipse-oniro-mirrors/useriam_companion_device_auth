@@ -16,7 +16,7 @@
 use crate::common::constants::ErrorCode;
 use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken};
 use crate::traits::log_trace::RustFileId;
-use crate::{log_e, singleton_registry, Box, Vec};
+use crate::{log_e, singleton_registry, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::HostBindingDbManager as u16;
 
 pub trait HostBindingDbManager {

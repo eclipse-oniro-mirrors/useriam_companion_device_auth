@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "companion_device_auth_ffi.h"
+#include "iam_log_tracer.h"
 #include "security_agent.h"
 #include "service_common.h"
 
@@ -159,6 +160,7 @@ struct CommonOutput {
     int32_t result;
     bool hasFatalError;
     std::vector<Event> events;
+    std::vector<LogEntry> logTrace;
 };
 
 bool DecodeEvent(const EventFfi &ffi, Event &event);

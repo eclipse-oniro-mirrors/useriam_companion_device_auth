@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
@@ -44,6 +45,7 @@ CompanionAddCompanionRequest::CompanionAddCompanionRequest(const std::string &co
 
 bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
 
     auto companionKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
@@ -171,6 +173,7 @@ bool CompanionAddCompanionRequest::SendInitKeyNegotiationReply(ResultCode result
 
 void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
 
@@ -206,6 +209,7 @@ void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &att
 
 void CompanionAddCompanionRequest::HandleEndAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
 

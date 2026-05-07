@@ -19,6 +19,7 @@
 #include <nlohmann/json.hpp>
 
 #include "iam_check.h"
+#include "iam_log_tracer.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
@@ -161,6 +162,7 @@ void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceK
 
 void HostAddCompanionRequest::OnConnected()
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
@@ -250,6 +252,7 @@ std::weak_ptr<OutboundRequest> HostAddCompanionRequest::GetWeakPtr()
 
 void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &reply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
@@ -323,6 +326,7 @@ bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &r
 
 void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &reply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
@@ -462,6 +466,7 @@ bool HostAddCompanionRequest::SendEndAddHostBindingMsg(ResultCode result)
 
 void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &reply)
 {
+    LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
