@@ -71,6 +71,7 @@ public:
     bool IsConnectionOpen(const std::string &connectionName) override;
     ConnectionStatus GetConnectionStatus(const std::string &connectionName) override;
     std::optional<DeviceKey> GetLocalDeviceKeyByConnectionName(const std::string &connectionName) override;
+    std::optional<DeviceKey> GetLocalDeviceKey(ChannelId channelId) override;
     std::unique_ptr<Subscription> SubscribeConnectionStatus(const std::string &connectionName,
         OnConnectionStatusChange &&onConnectionStatusChange) override;
     std::unique_ptr<Subscription> SubscribeIncomingConnection(MessageType msgType, OnMessage &&onMessage) override;

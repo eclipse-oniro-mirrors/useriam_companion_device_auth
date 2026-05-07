@@ -30,7 +30,7 @@ namespace CompanionDeviceAuth {
 std::shared_ptr<ExecutorFactoryImpl> ExecutorFactoryImpl::Create()
 {
     IAM_LOGI("start");
-    auto factory = std::shared_ptr<ExecutorFactoryImpl>(new ExecutorFactoryImpl());
+    auto factory = std::shared_ptr<ExecutorFactoryImpl>(new (std::nothrow) ExecutorFactoryImpl());
     ENSURE_OR_RETURN_VAL(factory != nullptr, nullptr);
     return factory;
 }

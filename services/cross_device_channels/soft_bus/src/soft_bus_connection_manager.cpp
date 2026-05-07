@@ -29,6 +29,8 @@
 #include "subscription.h"
 #include "task_runner_manager.h"
 
+#include "iam_para2str.h"
+
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_SOFT_BUS_CONNECTION_MANAGER
 
@@ -39,6 +41,29 @@ namespace CompanionDeviceAuth {
 namespace {
 constexpr const char *SOFTBUS_SA_NAME = "SoftBusServer";
 constexpr size_t MAX_SOFTBUS_CONNECTIONS = 200;
+constexpr size_t MAX_CONNECTION_NAME_LEN = 256;
+
+bool IsValidInboundConnectionName(const std::string &connectionName, const PhysicalDeviceKey &peerKey)
+{
+    if (connectionName.empty() || connectionName.size() > MAX_CONNECTION_NAME_LEN) {
+        IAM_LOGE("connectionName length invalid: %{public}zu", connectionName.size());
+        return false;
+    }
+    auto localKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKey(ChannelId::SOFTBUS);
+    if (!localKeyOpt.has_value()) {
+        IAM_LOGE("Failed to get local device key");
+        return false;
+    }
+    std::string localShort = GetTruncatedString(localKeyOpt.value().deviceId);
+    std::string remoteShort = GetTruncatedString(peerKey.deviceId);
+    std::string expectedPrefix = remoteShort + ":" + localShort + ":";
+    if (connectionName.compare(0, expectedPrefix.size(), expectedPrefix) != 0) {
+        IAM_LOGE("connectionName prefix mismatch: %{public}s, expected prefix: %{public}s", connectionName.c_str(),
+            expectedPrefix.c_str());
+        return false;
+    }
+    return true;
+}
 } // namespace
 
 std::shared_ptr<SoftBusConnectionManager> SoftBusConnectionManager::Create()
@@ -178,7 +203,7 @@ bool SoftBusConnectionManager::SendMessage(const std::string &connectionName, co
 
 void SoftBusConnectionManager::HandleBind(int32_t socketId, const std::string &peerNetworkId)
 {
-    IAM_LOGI("HandleBind: socketId=%{public}d, peer=%{public}s", socketId, peerNetworkId.c_str());
+    IAM_LOGI("HandleBind: socketId=%{public}d, peer=%{public}s", socketId, GetMaskedString(peerNetworkId).c_str());
 
     auto entry = FindSocketBySocketId(socketId);
     if (entry != nullptr) {
@@ -268,6 +293,10 @@ void SoftBusConnectionManager::HandleBytes(int32_t socketId, const void *data, u
             !connectionName.empty()) {
             if (FindSocketByConnectionName(connectionName) != nullptr) {
                 IAM_LOGE("connectionName already exists: %{public}s, reject inbound", connectionName.c_str());
+                return;
+            }
+            if (!IsValidInboundConnectionName(connectionName, connection->GetPhysicalDeviceKey())) {
+                IAM_LOGE("Invalid inbound connectionName: %{public}s", connectionName.c_str());
                 return;
             }
             IAM_LOGI("Updated connectionName from message: %{public}s", connectionName.c_str());

@@ -16,6 +16,7 @@
 #ifndef COMPANION_DEVICE_AUTH_BACKOFF_RETRY_TIMER_H
 #define COMPANION_DEVICE_AUTH_BACKOFF_RETRY_TIMER_H
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 
@@ -32,6 +33,7 @@ public:
     using RetryCallback = std::function<void()>;
 
     struct Config {
+        static constexpr uint32_t DEFAULT_BASE_DELAY_MS = 1;
         uint32_t baseDelayMs;
         uint32_t maxDelayMs;
     };

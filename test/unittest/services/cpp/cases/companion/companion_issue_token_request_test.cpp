@@ -36,6 +36,9 @@ constexpr int32_t COMPANION_USER_ID = 200;
 const DeviceKey HOST_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
     .deviceId = "host_device_id",
     .deviceUserId = 100 };
+const DeviceKey COMPANION_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
+    .deviceId = "companion_device_id",
+    .deviceUserId = COMPANION_USER_ID };
 const HostBindingStatus HOST_BINDING_STATUS = {};
 
 std::unique_ptr<Subscription> MakeSubscription()
@@ -62,6 +65,8 @@ protected:
 HWTEST_F(CompanionIssueTokenRequestTest, OnStart_001, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     auto replyCalled = std::make_shared<bool>(false);
     auto receivedResult = std::make_shared<int32_t>(-1);
     OnMessageReply replyCallback = [replyCalled, receivedResult](const Attributes &reply) {
@@ -125,6 +130,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_002, TestSize.Level0)
 HWTEST_F(CompanionIssueTokenRequestTest, OnStart_003, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     auto replyCalled = std::make_shared<bool>(false);
     auto receivedResult = std::make_shared<int32_t>(-1);
     OnMessageReply replyCallback = [replyCalled, receivedResult](const Attributes &reply) {
@@ -155,6 +162,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_003, TestSize.Level0)
 HWTEST_F(CompanionIssueTokenRequestTest, OnStart_004, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     auto replyCalled = std::make_shared<bool>(false);
     auto receivedResult = std::make_shared<int32_t>(-1);
     OnMessageReply replyCallback = [replyCalled, receivedResult](const Attributes &reply) {
@@ -278,6 +287,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_002, TestSize.Le
 HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_003, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     OnMessageReply replyCallback = [](const Attributes &reply) {};
     auto preIssueTokenRequest = MakePreIssueTokenRequest();
     auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
@@ -295,6 +306,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_003, TestSize.Le
 HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_004, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     OnMessageReply replyCallback = [](const Attributes &reply) {};
     auto preIssueTokenRequest = MakePreIssueTokenRequest();
     auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
@@ -313,6 +326,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_004, TestSize.Le
 HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_005, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     OnMessageReply replyCallback = [](const Attributes &reply) {};
     auto preIssueTokenRequest = MakePreIssueTokenRequest();
     auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
@@ -333,6 +348,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_005, TestSize.Le
 HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_001, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     OnMessageReply replyCallback = [](const Attributes &reply) {};
     auto preIssueTokenRequest = MakePreIssueTokenRequest();
     auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
@@ -382,6 +399,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_001, TestSize.L
 HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_002, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     OnMessageReply replyCallback = [](const Attributes &reply) {};
     auto preIssueTokenRequest = MakePreIssueTokenRequest();
     auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
@@ -420,6 +439,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_002, TestSize.L
 HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_003, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     OnMessageReply replyCallback = [](const Attributes &reply) {};
     auto preIssueTokenRequest = MakePreIssueTokenRequest();
     auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
@@ -468,6 +489,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_003, TestSize.L
 HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_004, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     OnMessageReply replyCallback = [](const Attributes &reply) {};
     auto preIssueTokenRequest = MakePreIssueTokenRequest();
     auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
@@ -624,6 +647,27 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleAuthMaintainActiveChanged_002, Te
         std::move(replyCallback), HOST_DEVICE_KEY);
 
     ASSERT_NO_THROW(request->HandleAuthMaintainActiveChanged(false));
+}
+
+HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_006, TestSize.Level0)
+{
+    MockGuard guard;
+
+    DeviceKey wrongDeviceKey = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
+        .deviceId = "wrong_device_id",
+        .deviceUserId = 999 };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(wrongDeviceKey)));
+
+    OnMessageReply replyCallback = [](const Attributes &reply) {};
+    auto preIssueTokenRequest = MakePreIssueTokenRequest();
+    auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
+        std::move(replyCallback), HOST_DEVICE_KEY);
+
+    std::vector<uint8_t> preIssueTokenReply;
+    bool result = request->CompanionPreIssueToken(preIssueTokenReply);
+
+    EXPECT_FALSE(result);
 }
 
 } // namespace

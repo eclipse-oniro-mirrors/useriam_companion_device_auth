@@ -99,8 +99,7 @@ impl TryFrom<i32> for AttributeKey {
     }
 }
 
-pub const MAX_SUB_MSG_NUM: usize = 10;
-pub const MAX_EXECUTOR_MSG_LEN: usize = 2048;
+pub const MAX_MSG_LEN: usize = 20000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attribute {
@@ -123,6 +122,10 @@ impl Attribute {
             log_e!("msg is empty");
             return Err(ErrorCode::BadParam);
         }
+        if msg.len() > MAX_MSG_LEN {
+            log_e!("msg len {} exceeds limit {}", msg.len(), MAX_MSG_LEN);
+            return Err(ErrorCode::GeneralError);
+        }
 
         let mut attribute = Attribute::new();
         let mut parcel = Parcel::from(msg);
@@ -130,6 +133,10 @@ impl Attribute {
         while parcel.has_next() {
             let attr_key = parcel.read_i32_le().map_err(|e| p!(e))?;
             let length = parcel.read_u32_le().map_err(|e| p!(e))? as usize;
+            if length > parcel.data.len() - parcel.read_pos {
+                log_e!("attr len {} exceeds remaining {}", length, parcel.data.len() - parcel.read_pos);
+                return Err(ErrorCode::GeneralError);
+            }
 
             let mut data = vec![0u8; length];
             parcel.read_bytes(&mut data).map_err(|e| p!(e))?;
@@ -319,13 +326,22 @@ impl Attribute {
     }
 
     pub fn get_u8_vecs(&self, key: AttributeKey) -> Result<Vec<Vec<u8>>, ErrorCode> {
-        let mut parcel = Parcel::from(self.map.get(&key).map(|val| val.as_slice()).ok_or_else(|| {
+        let raw = self.map.get(&key).map(|val| val.as_slice()).ok_or_else(|| {
             log_e!("Attribute is not set, key:{:?}", key);
             ErrorCode::GeneralError
-        })?);
+        })?;
+        if raw.len() > MAX_MSG_LEN {
+            log_e!("u8_vecs raw len {} exceeds limit {}", raw.len(), MAX_MSG_LEN);
+            return Err(ErrorCode::GeneralError);
+        }
+        let mut parcel = Parcel::from(raw);
         let mut u8_vecs = Vec::new();
         while parcel.has_next() {
             let length = parcel.read_u32_le().map_err(|e| p!(e))? as usize;
+            if length > parcel.data.len() - parcel.read_pos {
+                log_e!("u8_vec element len {} exceeds remaining {}", length, parcel.data.len() - parcel.read_pos);
+                return Err(ErrorCode::GeneralError);
+            }
             let mut data = vec![0u8; length];
             parcel.read_bytes(&mut data).map_err(|e| p!(e))?;
             u8_vecs.push(data);

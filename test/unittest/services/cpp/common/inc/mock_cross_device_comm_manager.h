@@ -50,6 +50,7 @@ public:
     MOCK_METHOD(ConnectionStatus, GetConnectionStatus, (const std::string &connectionName), (override));
     MOCK_METHOD(std::optional<DeviceKey>, GetLocalDeviceKeyByConnectionName, (const std::string &connectionName),
         (override));
+    MOCK_METHOD(std::optional<DeviceKey>, GetLocalDeviceKey, (ChannelId channelId), (override));
 
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeConnectionStatus,
         (const std::string &connectionName, OnConnectionStatusChange &&onConnectionStatusChange), (override));

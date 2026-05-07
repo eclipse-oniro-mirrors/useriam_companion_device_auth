@@ -53,13 +53,13 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST);
 
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
         .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
-        .WillOnce(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetUserAuthAdapter(), BeginDelegateAuth(_, _, _, _)).WillOnce(Return(12345));
 
     ErrorGuard errorGuard([](ResultCode) {});
@@ -75,12 +75,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_002, TestSize.Level0)
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST);
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
-        .WillOnce(Return(SecureProtocolId::DEFAULT));
-    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
-        .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
-    EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillRepeatedly(Return(std::nullopt));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
@@ -95,6 +91,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST);
 
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::INVALID));
 
@@ -111,6 +109,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST);
 
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
@@ -392,6 +392,25 @@ HWTEST_F(CompanionDelegateAuthRequestTest, ShouldCancelOnNewRequest_002, TestSiz
         START_DELEGATE_AUTH_REQUEST);
 
     bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    EXPECT_FALSE(result);
+}
+
+HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_005, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
+        START_DELEGATE_AUTH_REQUEST);
+
+    DeviceKey wrongDeviceKey = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
+        .deviceId = "wrong_device_id",
+        .deviceUserId = 999 };
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillRepeatedly(Return(std::make_optional(wrongDeviceKey)));
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+
     EXPECT_FALSE(result);
 }
 

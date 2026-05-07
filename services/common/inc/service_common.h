@@ -262,7 +262,7 @@ struct CompanionStatus {
     std::string GetDesc() const
     {
         std::ostringstream oss;
-        oss << "(T:" << templateId << ", D:" << companionDeviceStatus.deviceKey.GetDesc() << ")";
+        oss << "(T:" << GET_MASKED_NUM_STRING(templateId) << ", D:" << companionDeviceStatus.deviceKey.GetDesc() << ")";
         return oss.str();
     }
 

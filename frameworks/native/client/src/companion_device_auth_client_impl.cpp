@@ -340,6 +340,7 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeAvailableDeviceStatus(int32_t us
 
     sptr<IpcAvailableDeviceStatusCallbackService> wrapper(
         new (std::nothrow) IpcAvailableDeviceStatusCallbackService(userId, callback));
+    ENSURE_OR_RETURN_VAL(wrapper != nullptr, GENERAL_ERROR);
     int32_t ret = SubscribeAvailableDeviceStatusInner(wrapper);
     if (ret != SUCCESS) {
         IAM_LOGE("SubscribeAvailableDeviceStatus fail, ret:%{public}d", ret);
@@ -448,6 +449,7 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(int32
 
     sptr<IpcContinuousAuthStatusCallbackService> wrapper(
         new (std::nothrow) IpcContinuousAuthStatusCallbackService(userId, templateId, callback));
+    ENSURE_OR_RETURN_VAL(wrapper != nullptr, GENERAL_ERROR);
     int32_t ret = SubscribeContinuousAuthStatusChangeInner(wrapper);
     if (ret != SUCCESS) {
         IAM_LOGE("SubscribeContinuousAuthStatusChange fail, ret:%{public}d", ret);

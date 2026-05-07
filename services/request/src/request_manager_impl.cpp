@@ -21,6 +21,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_para2str.h"
 #include "iam_safe_arithmetic.h"
 
 #include "singleton_manager.h"

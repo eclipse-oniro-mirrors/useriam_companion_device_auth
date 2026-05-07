@@ -58,7 +58,7 @@ void CompanionPreIssueTokenHandler::HandleRequest(const Attributes &request, OnM
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), hostDeviceKeyOpt.has_value());
 
     auto issueTokenRequest = GetRequestFactory().CreateCompanionIssueTokenRequest(connectionName, request,
-        std::move(onMessageReply), hostDeviceKeyOpt.value());
+        OnMessageReply(onMessageReply), hostDeviceKeyOpt.value());
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), issueTokenRequest != nullptr);
 
     bool startRet = GetRequestManager().Start(issueTokenRequest);
