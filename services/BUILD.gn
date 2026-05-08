@@ -65,7 +65,7 @@ ohos_static_library("companion_device_auth_service_static") {
   ]
 
   # Add flag for static library compilation
-  cflags = [ "-DSTATIC_LIBRARY" ]
+  cflags = companion_device_auth_service_flags + [ "-DSTATIC_LIBRARY" ]
 
   deps = companion_device_auth_service_deps
   external_deps = companion_device_auth_service_external_deps

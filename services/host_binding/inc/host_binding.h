@@ -68,6 +68,7 @@ private:
     void HandleHostDeviceStatusUpdate(const DeviceStatus &deviceStatus);
     void HandleHostDeviceOffline();
     void HandleAuthMaintainActiveChanged(bool isActive);
+    bool ShouldRevokeTokenOnInactive() const;
 
     HostBindingStatus status_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
