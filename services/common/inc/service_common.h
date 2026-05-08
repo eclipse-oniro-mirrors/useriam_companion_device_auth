@@ -318,7 +318,7 @@ constexpr size_t MAX_ENABLED_BUSINESS_IDS = 64;
 constexpr int32_t MS_PER_SEC = 1000;
 constexpr int32_t NS_PER_MS = 1000 * 1000;
 constexpr int32_t BYTE_NUM_4 = 4;
-constexpr unsigned int API_CALL_TIMEOUT = 61; // 61s
+constexpr unsigned int API_CALL_TIMEOUT = 81; // 81s
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
