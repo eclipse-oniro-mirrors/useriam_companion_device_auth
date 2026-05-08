@@ -144,6 +144,16 @@ void HostBinding::HandleHostDeviceOffline()
     SetTokenValid(false, "host device offline");
 }
 
+bool HostBinding::ShouldRevokeTokenOnInactive() const
+{
+    auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    if (!profile.hostBindingRevokeTokenOnInactive) {
+        IAM_LOGI("%{public}s skip revoke token on inactive due to configuration", GetDescription());
+        return false;
+    }
+    return true;
+}
+
 void HostBinding::HandleAuthMaintainActiveChanged(bool isActive)
 {
     if (status_.localAuthMaintainActive == isActive) {
@@ -153,9 +163,7 @@ void HostBinding::HandleAuthMaintainActiveChanged(bool isActive)
     status_.localAuthMaintainActive = isActive;
     IAM_LOGI("%{public}s local auth maintain active -> %{public}d", GetDescription(), isActive);
 
-    auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
-    if (!profile.hostBindingRevokeTokenOnInactive) {
-        IAM_LOGI("%{public}s skip revoke token on inactive due to configuration", GetDescription());
+    if (!ShouldRevokeTokenOnInactive()) {
         return;
     }
 
