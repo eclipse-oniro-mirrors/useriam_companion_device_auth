@@ -178,6 +178,10 @@ companion_device_auth_service_external_deps = [
 
 companion_device_auth_service_flags = [ "-DENABLE_LOG_TRACE" ]
 
+if (companion_device_auth_enable_auth_state_maintain_simulation) {
+  companion_device_auth_service_flags += [ "-DAUTH_STATE_MAINTAIN_SIMULATION" ]
+}
+
 if (companion_device_auth_has_soft_bus_channel) {
   companion_device_auth_service_include_dirs +=
       [ "cross_device_channels/soft_bus/inc" ]

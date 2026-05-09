@@ -343,12 +343,12 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckSuccessE2E_001, Te
 //
 // What this tests:
 //   Pre-register a companion → sync → companionCheckResponse in reply
-//   → HostEndCompanionCheck FAILS → HandleCompanionCheckFail called
+//   → HostEndCompanionCheck FAILS → SetTemplateInvalid called
 //   → callback still fires (sync completes despite check failure)
 //
 // E2E level: HIGH
 //   - Entry: service-level SubscribeAvailableDeviceStatus API
-//   - Verification: HandleCompanionCheckFail called, callback still fires
+//   - Verification: SetTemplateInvalid called, callback still fires
 // ============================================================================
 HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckFailureE2E_001, TestSize.Level0)
 {
@@ -367,7 +367,7 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckFailureE2E_001, Te
     EXPECT_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _))
         .WillRepeatedly(DoAll(SetArgReferee<1>(checkOutput), Return(ResultCode::SUCCESS)));
 
-    // HostEndCompanionCheck FAILS → should trigger HandleCompanionCheckFail
+    // HostEndCompanionCheck FAILS → should trigger SetTemplateInvalid
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_)).WillRepeatedly(Return(ResultCode::GENERAL_ERROR));
 
     // 2. Setup Phase: Register a companion via direct API call.

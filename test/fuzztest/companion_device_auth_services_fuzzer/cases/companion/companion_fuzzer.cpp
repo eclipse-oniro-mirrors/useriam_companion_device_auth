@@ -57,13 +57,6 @@ static void FuzzSetCompanionTokenAuthAtl(std::shared_ptr<Companion> &companion, 
     }
 }
 
-static void FuzzSetDeviceNames(std::shared_ptr<Companion> &companion, FuzzedDataProvider &fuzzData)
-{
-    std::string deviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    std::string deviceUserName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    companion->SetDeviceNames(deviceName, deviceUserName);
-}
-
 static void FuzzNotifySubscribers(std::shared_ptr<Companion> &companion, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
@@ -104,7 +97,6 @@ static const CompanionFuzzFunction g_fuzzFuncs[] = {
     FuzzSetEnabledBusinessIds,
     FuzzSetCompanionValid,
     FuzzSetCompanionTokenAuthAtl,
-    FuzzSetDeviceNames,
     FuzzNotifySubscribers,
     FuzzGetters,
     FuzzDeviceStatusHandling,

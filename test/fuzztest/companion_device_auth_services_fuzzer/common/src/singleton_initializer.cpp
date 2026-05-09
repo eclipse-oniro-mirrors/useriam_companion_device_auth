@@ -139,15 +139,6 @@ public:
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 
-    ResultCode UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
-        const std::string &deviceUserName) override
-    {
-        (void)templateId;
-        (void)deviceName;
-        (void)deviceUserName;
-        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
-    }
-
     ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
         const std::vector<BusinessId> &enabledBusinessIds) override
     {
@@ -168,12 +159,6 @@ public:
         (void)templateId;
         (void)fwkMsg;
         needRedistribute = fuzzData_.ConsumeBool();
-        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
-    }
-
-    ResultCode HandleCompanionCheckFail(TemplateId templateId) override
-    {
-        (void)templateId;
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 

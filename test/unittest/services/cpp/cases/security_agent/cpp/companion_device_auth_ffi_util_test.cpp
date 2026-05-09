@@ -930,6 +930,7 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_001, TestSize.Level0)
     MockGuard guard;
     HostUpdateCompanionStatusInput input;
     input.templateId = INT32_7777;
+    input.companionDeviceModelInfo = "TestModel";
     input.companionDeviceName = "TestDevice";
     input.companionDeviceUserName = "TestUser";
 

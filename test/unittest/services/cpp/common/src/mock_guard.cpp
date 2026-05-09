@@ -205,12 +205,10 @@ void MockGuard::SetupCompanionManagerDefaults()
     ON_CALL(*companionManager_, BeginAddCompanion(_, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, EndAddCompanion(_, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, RemoveCompanion(_, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
-    ON_CALL(*companionManager_, UpdateCompanionStatus(_, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, UpdateCompanionEnabledBusinessIds(_, _))
         .WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
     ON_CALL(*companionManager_, UpdateToken(_, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
-    ON_CALL(*companionManager_, HandleCompanionCheckFail(_)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, StartIssueTokenRequests(_, _, _)).WillByDefault(Return());
     ON_CALL(*companionManager_, NotifyCompanionStatusChange()).WillByDefault(Return());
     ON_CALL(*companionManager_, HandleRemoveHostBindingComplete(_)).WillByDefault(Return());

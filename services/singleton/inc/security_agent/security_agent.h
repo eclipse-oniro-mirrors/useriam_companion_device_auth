@@ -414,6 +414,7 @@ struct HostUpdateTokenOutput {
 // Update companion status input/output structs
 struct HostUpdateCompanionStatusInput {
     TemplateId templateId;
+    std::string companionDeviceModelInfo;
     std::string companionDeviceName;
     std::string companionDeviceUserName;
 };
@@ -518,12 +519,7 @@ public:
     virtual ResultCode HostCheckTemplateEnrolled(const HostCheckTemplateEnrolledInput &input,
         HostCheckTemplateEnrolledOutput &output) = 0;
 
-private:
-    friend class Companion;
-    friend class CompanionManagerImpl;
-    friend class HostBinding;
-    friend class HostBindingManagerImpl;
-
+    // Host — Companion data management
     virtual ResultCode HostGetPersistedCompanionStatus(const HostGetPersistedCompanionStatusInput &input,
         HostGetPersistedCompanionStatusOutput &output) = 0;
     virtual ResultCode HostBeginAddCompanion(const HostBeginAddCompanionInput &input,
@@ -539,6 +535,7 @@ private:
     virtual ResultCode HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output) = 0;
     virtual ResultCode HostRevokeToken(const HostRevokeTokenInput &input) = 0;
 
+    // Companion — Host binding data management
     virtual ResultCode CompanionGetPersistedHostBindingStatus(const CompanionGetPersistedHostBindingStatusInput &input,
         CompanionGetPersistedHostBindingStatusOutput &output) = 0;
     virtual ResultCode CompanionBeginAddHostBinding(const CompanionBeginAddHostBindingInput &input,

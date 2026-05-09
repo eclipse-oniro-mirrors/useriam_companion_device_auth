@@ -424,30 +424,6 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId, bool rem
     return ResultCode::SUCCESS;
 }
 
-ResultCode CompanionManagerImpl::UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
-    const std::string &deviceUserName)
-{
-    auto companion = FindCompanionByTemplateId(templateId);
-    if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
-        return ResultCode::GENERAL_ERROR;
-    }
-
-    HostUpdateCompanionStatusInput input { .templateId = templateId,
-        .companionDeviceName = deviceName,
-        .companionDeviceUserName = deviceUserName };
-    ResultCode ret = GetSecurityAgent().HostUpdateCompanionStatus(input);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("HostUpdateCompanionStatus failed ret %{public}d", ret);
-        return ret;
-    }
-
-    companion->SetDeviceNames(deviceName, deviceUserName);
-
-    IAM_LOGI("update companion status success, template id %{public}s", GET_MASKED_NUM_CSTR(templateId));
-    return ResultCode::SUCCESS;
-}
-
 ResultCode CompanionManagerImpl::UpdateCompanionEnabledBusinessIds(TemplateId templateId,
     const std::vector<BusinessId> &enabledBusinessIds)
 {
@@ -506,20 +482,6 @@ ResultCode CompanionManagerImpl::UpdateToken(TemplateId templateId, const std::v
         companion->RefreshTokenTimer();
     }
 
-    return ResultCode::SUCCESS;
-}
-
-ResultCode CompanionManagerImpl::HandleCompanionCheckFail(TemplateId templateId)
-{
-    auto companion = FindCompanionByTemplateId(templateId);
-    if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
-        return ResultCode::GENERAL_ERROR;
-    }
-
-    companion->SetCompanionValid(false);
-
-    IAM_LOGI("companion check failed, template id %{public}s set to invalid", GET_MASKED_NUM_CSTR(templateId));
     return ResultCode::SUCCESS;
 }
 

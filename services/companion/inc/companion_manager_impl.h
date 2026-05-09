@@ -53,14 +53,11 @@ public:
     ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) override;
     ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding) override;
 
-    ResultCode UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
-        const std::string &deviceUserName) override;
     ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
         const std::vector<BusinessId> &enabledBusinessIds) override;
     bool SetCompanionTokenAuthAtl(TemplateId templateId, std::optional<Atl> atl) override;
     ResultCode UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg, bool &needRedistribute) override;
 
-    ResultCode HandleCompanionCheckFail(TemplateId templateId) override;
     bool IsCapabilitySupported(TemplateId templateId, Capability capability) override;
 
     void StartIssueTokenRequests(const std::vector<TemplateId> &templateIds, uint32_t lockStateAuthTypeValue,

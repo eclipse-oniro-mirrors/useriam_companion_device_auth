@@ -78,8 +78,6 @@ public:
     virtual ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) = 0;
     virtual ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding) = 0;
 
-    virtual ResultCode UpdateCompanionStatus(TemplateId templateId, const std::string &deviceName,
-        const std::string &deviceUserName) = 0;
     virtual ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
         const std::vector<BusinessId> &enabledBusinessIds) = 0;
     virtual bool SetCompanionTokenAuthAtl(TemplateId templateId, std::optional<Atl> atl) = 0;
@@ -88,7 +86,6 @@ public:
         bool &needRedistribute) = 0;
     virtual void StartIssueTokenRequests(const std::vector<TemplateId> &templateIds, uint32_t lockStateAuthTypeValue,
         const std::vector<uint8_t> &fwkUnlockMsg) = 0;
-    virtual ResultCode HandleCompanionCheckFail(TemplateId templateId) = 0;
     virtual bool IsCapabilitySupported(TemplateId templateId, Capability capability) = 0;
 
     virtual void NotifyCompanionStatusChange() = 0;

@@ -194,6 +194,7 @@ bool SoftBusDeviceStatusManager::Start()
         });
     ENSURE_OR_RETURN_VAL(saStatusListener_ != nullptr, false);
 
+#ifdef AUTH_STATE_MAINTAIN_SIMULATION
     systemParamSubscription_ =
         GetSystemParamManager().WatchParam(CDA_IS_AUTH_MAINTAIN_ACTIVE_KEY, [weakSelf](const std::string &value) {
             bool isAuthMaintainActive = value == TRUE_STR;
@@ -207,6 +208,9 @@ bool SoftBusDeviceStatusManager::Start()
     auto initialIsLocalAuthMaintainActive =
         GetSystemParamManager().GetParam(CDA_IS_AUTH_MAINTAIN_ACTIVE_KEY, FALSE_STR) == TRUE_STR;
     HandleLocalIsAuthMaintainActiveChange(initialIsLocalAuthMaintainActive);
+#else
+    HandleLocalIsAuthMaintainActiveChange(false);
+#endif
 
     started_ = true;
     return true;
