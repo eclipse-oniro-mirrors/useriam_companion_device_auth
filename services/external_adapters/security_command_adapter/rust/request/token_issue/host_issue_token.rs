@@ -114,7 +114,7 @@ impl HostDeviceIssueTokenRequest {
         for capability_info in capability_infos {
             if let Err(e) = self.decode_sec_pre_issue_reply_message(capability_info.processor_type, sec_message) {
                 log_e!(
-                    "parse pre issue token reply message fail: device_type: {:?}, result: {:?}",
+                    "parse pre issue token reply message fail: processor_type: {:?}, result: {:?}",
                     capability_info.processor_type,
                     e
                 );
@@ -123,7 +123,7 @@ impl HostDeviceIssueTokenRequest {
         }
 
         if self.token_infos.is_empty() {
-            log_e!("pre issue token parameters found");
+            log_e!("no pre issue token parameters found");
             return Err(ErrorCode::GeneralError);
         }
 
@@ -169,7 +169,7 @@ impl HostDeviceIssueTokenRequest {
         let processor_types: Vec<ProcessorType> = self.token_infos.iter().map(|param| param.processor_type).collect();
         for processor_type in processor_types {
             if let Err(e) = self.decode_issue_token_reply_message(processor_type, sec_message) {
-                log_e!("parse issue token replay message fail: processor_type: {:?}, result: {:?}", processor_type, e);
+                log_e!("parse issue token reply message fail: processor_type: {:?}, result: {:?}", processor_type, e);
                 return Err(ErrorCode::GeneralError);
             }
         }

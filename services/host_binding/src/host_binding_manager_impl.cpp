@@ -62,7 +62,7 @@ bool HostBindingManagerImpl::Initialize()
 void HostBindingManagerImpl::OnActiveUserIdChanged(UserId userId)
 {
     if (userId == activeUserId_) {
-        IAM_LOGI("active user id is the same as the companion user id");
+        IAM_LOGI("active user id unchanged");
         return;
     }
 

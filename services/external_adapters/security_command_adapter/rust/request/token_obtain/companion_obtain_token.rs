@@ -93,8 +93,8 @@ impl CompanionDeviceObtainTokenRequest {
     }
 
     fn decode_sec_token_pre_obtain_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        let device_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
-        let output = SecPreObtainTokenRequest::decode(sec_message, device_type)?;
+        let processor_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
+        let output = SecPreObtainTokenRequest::decode(sec_message, processor_type)?;
         if output.salt.len() != HKDF_SALT_SIZE {
             log_e!("salt len is err: {}", output.salt.len());
             return Err(ErrorCode::GeneralError);
@@ -122,8 +122,8 @@ impl CompanionDeviceObtainTokenRequest {
     }
 
     fn parse_obtain_token_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        let device_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
-        let issue_token = SecIssueToken::decrypt_issue_token(sec_message, device_type, &self.session_key)?;
+        let processor_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
+        let issue_token = SecIssueToken::decrypt_issue_token(sec_message, processor_type, &self.session_key)?;
 
         if issue_token.challenge != self.companion_challenge {
             log_e!("Challenge verification failed");

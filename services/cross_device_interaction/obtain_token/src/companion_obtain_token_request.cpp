@@ -266,7 +266,7 @@ bool CompanionObtainTokenRequest::CompanionEndObtainToken(const ObtainTokenReply
 
 void CompanionObtainTokenRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s: receive obtain token request failed, result=%{public}d", GetDescription(), result);
+    IAM_LOGI("%{public}s: obtain token request failed, result=%{public}d", GetDescription(), result);
     localDeviceStatusSubscription_.reset();
     if (needCancelObtainToken_) {
         CompanionCancelObtainTokenInput input = { GetRequestId() };

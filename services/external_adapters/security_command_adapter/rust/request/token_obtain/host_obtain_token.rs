@@ -119,7 +119,7 @@ impl HostDeviceObtainTokenRequest {
         for capability_info in capability_infos {
             if let Err(e) = self.decode_sec_token_obtain_request_message(capability_info.processor_type, sec_message) {
                 log_e!(
-                    "parse obtain token request message fail: device_type: {:?}, result: {:?}",
+                    "parse obtain token reply message fail: processor_type: {:?}, result: {:?}",
                     capability_info.processor_type,
                     e
                 );

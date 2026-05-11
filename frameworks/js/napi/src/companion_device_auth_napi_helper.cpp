@@ -405,7 +405,7 @@ napi_status CompanionDeviceAuthNapiHelper::ConvertNapiValueToClientDeviceSelectR
         std::vector<uint8_t> clientSelectionContext;
         status = CompanionDeviceAuthNapiHelper::GetUint8ArrayValue(env, selectionContext, clientSelectionContext);
         if (status != napi_ok) {
-            IAM_LOGE("ConvertNapiUint8ArrayToUint64 fail, ret:%{public}d", status);
+            IAM_LOGE("GetUint8ArrayValue fail, ret:%{public}d", status);
             return status;
         }
         result.selectionContext = clientSelectionContext;
@@ -548,7 +548,7 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertDeviceStatusListToNapiValue(nap
         napi_value element = ConvertDeviceStatusToNapiValue(env, deviceStatusList[i]);
         status = napi_set_element(env, deviceStatusListValue, i, element);
         if (status != napi_ok) {
-            IAM_LOGE("napi_create_array_with_length fail at index: %{public}zu", i);
+            IAM_LOGE("napi_set_element fail at index: %{public}zu", i);
             continue;
         }
     }
@@ -725,14 +725,14 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertTemplateStatusToNapiValue(napi_
     ret = CompanionDeviceAuthNapiHelper::SetBusinessIdsProperty(env, templateStatusValue, "enabledBusinessIds",
         status.enabledBusinessIds);
     if (ret != napi_ok) {
-        IAM_LOGE("SetEnabledBusinessIdsProperty fail ret:%{public}d", ret);
+        IAM_LOGE("SetBusinessIdsProperty fail ret:%{public}d", ret);
         return nullptr;
     }
 
     ret = CompanionDeviceAuthNapiHelper::SetDeviceStatusProperty(env, templateStatusValue, "deviceStatus",
         status.deviceStatus);
     if (ret != napi_ok) {
-        IAM_LOGE("SetEnabledBusinessIdsProperty fail ret:%{public}d", ret);
+        IAM_LOGE("SetDeviceStatusProperty fail ret:%{public}d", ret);
         return nullptr;
     }
 
@@ -761,7 +761,7 @@ napi_value CompanionDeviceAuthNapiHelper::GenerateBusinessError(napi_env env, in
         msgStr = g_result2Str.at(GENERAL_ERROR);
         error = FRAMEWORKS_GENERAL_ERROR;
     }
-    IAM_LOGI("ThrowBusinessError, errorCode: %{public}d, errmsg: %{public}s", error, msgStr.c_str());
+    IAM_LOGI("GenerateBusinessError, errorCode: %{public}d, errmsg: %{public}s", error, msgStr.c_str());
     NAPI_CALL(env, napi_create_int32(env, error, &code));
     NAPI_CALL(env, napi_create_string_utf8(env, msgStr.c_str(), NAPI_AUTO_LENGTH, &msg));
     NAPI_CALL(env, napi_create_error(env, nullptr, msg, &businessError));

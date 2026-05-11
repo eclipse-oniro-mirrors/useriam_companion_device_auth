@@ -50,7 +50,7 @@ impl MessageCodec {
                 data_and_sign_attr.set_u8_slice(AttributeKey::AttrSignature, &signature_bytes);
             },
             MessageSignParam::Framework(_) => {
-                log_e!("executor sign is not supported");
+                log_e!("framework sign is not supported");
                 return Err(ErrorCode::GeneralError);
             },
         }

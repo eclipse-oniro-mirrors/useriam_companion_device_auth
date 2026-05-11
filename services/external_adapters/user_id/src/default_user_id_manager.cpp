@@ -331,7 +331,7 @@ std::shared_ptr<IUserIdManager> IUserIdManager::Create()
     auto manager = std::make_shared<DefaultUserIdManager>();
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
     if (manager->Initialize() == false) {
-        IAM_LOGE("failed to init fixed user id manager");
+        IAM_LOGE("failed to init default user id manager");
         return nullptr;
     }
     return manager;

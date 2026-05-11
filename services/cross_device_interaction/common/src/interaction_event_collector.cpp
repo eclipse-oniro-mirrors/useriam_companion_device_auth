@@ -16,8 +16,8 @@
 #include "interaction_event_collector.h"
 
 #include "event_manager_adapter.h"
-#include "iam_para2str.h"
 #include "iam_logger.h"
+#include "iam_para2str.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_INTERACTION_EVENT_COLLECTOR

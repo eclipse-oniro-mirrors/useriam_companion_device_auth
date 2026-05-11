@@ -262,7 +262,7 @@ FwkResultCode Inner::Cancel(uint64_t scheduleId)
     IAM_LOGI("start");
     IAM_LOGI("scheduleId:%{public}s", GET_TRUNCATED_CSTR(scheduleId));
     if (!GetRequestManager().CancelRequestByScheduleId(scheduleId)) {
-        IAM_LOGE("Failed cancel request");
+        IAM_LOGE("cancel request not found or already completed");
     }
 
     IAM_LOGI("end");

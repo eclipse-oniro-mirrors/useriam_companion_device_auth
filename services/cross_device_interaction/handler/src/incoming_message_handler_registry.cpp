@@ -56,7 +56,7 @@ void IncomingMessageHandlerRegistry::AddHandler(std::shared_ptr<IncomingMessageH
 bool IncomingMessageHandlerRegistry::RegisterHandlers()
 {
     if (handlersRegistered_) {
-        IAM_LOGE("handlers already registered");
+        IAM_LOGE("handlers already registered, skipping");
         return true;
     }
 

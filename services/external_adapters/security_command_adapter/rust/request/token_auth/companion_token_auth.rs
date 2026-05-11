@@ -72,7 +72,7 @@ impl CompanionTokenAuthRequest {
             ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?,
             sec_message,
         ) {
-            log_e!("parse device auth fail: {:?}", e);
+            log_e!("parse token auth fail: {:?}", e);
             return Err(ErrorCode::GeneralError);
         }
         Ok(())

@@ -55,7 +55,7 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
     napi_status status = deviceSelectCallbackHolder->callback->DoCallback(deviceSelectCallbackHolder->selectPurpose,
         &napiDeviceSelectResult);
     if (status != napi_ok) {
-        IAM_LOGE("DoDeviceSelectCallback fail, ret:%{public}d", status);
+        IAM_LOGE("DoCallback fail, ret:%{public}d", status);
         napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
         return;
     }

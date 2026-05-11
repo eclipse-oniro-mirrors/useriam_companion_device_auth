@@ -76,11 +76,11 @@ where
     F: FnOnce(&T, &mut R) -> Result<(), ErrorCode>,
 {
     if input.len() != size_of::<T>() {
-        log_e!("input len is not match {}:{}", input.len(), size_of::<T>());
+        log_e!("input len does not match {}:{}", input.len(), size_of::<T>());
         return Err(ErrorCode::BadParam);
     }
     if output.len() != size_of::<R>() {
-        log_e!("output len is not match {}:{}", output.len(), size_of::<R>());
+        log_e!("output len does not match {}:{}", output.len(), size_of::<R>());
         return Err(ErrorCode::BadParam);
     }
 

@@ -103,7 +103,7 @@ impl HostTokenAuthRequest {
             self.acl = AuthCapabilityLevel::Acl3;
             ProcessorType::default()
         } else {
-            log_e!("secure_protocol_id is not support secure_protocol_id: {}", self.auth_param.secure_protocol_id);
+            log_e!("secure_protocol_id is not supported: {}", self.auth_param.secure_protocol_id);
             return Err(ErrorCode::GeneralError);
         };
         let token_info =

@@ -233,7 +233,7 @@ void CompanionAddCompanionRequest::HandleEndAddCompanion(const Attributes &attrI
     EndAddHostBindingOutput endOutput = {};
     ResultCode ret = EndAddHostBinding(requestOpt->result, std::move(tokenData), endOutput);
     if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s CompanionEndAddHostBinding failed ret=%{public}d", GetDescription(), ret);
+        IAM_LOGE("%{public}s EndAddHostBinding failed ret=%{public}d", GetDescription(), ret);
         errorGuard.UpdateErrorCode(ret);
         return;
     }
@@ -285,7 +285,7 @@ void CompanionAddCompanionRequest::SendErrorReply(ResultCode result)
 
 void CompanionAddCompanionRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
+    IAM_LOGE("%{public}s complete with error: %{public}d", GetDescription(), result);
     SendErrorReply(result);
     if (needCancelAddCompanion_) {
         EndAddHostBindingOutput endOutput = {};

@@ -161,7 +161,7 @@ impl HostDeviceEnrollRequest {
         let output = match SecureProtocolId::try_from(self.secure_protocol_id).map_err(|e| p!(e))? {
             SecureProtocolId::Default => key_nego_request.encode(ProcessorType::default())?,
             _ => {
-                log_e!("secure_protocol_id type is not support, secure_protocol_id: {}", self.secure_protocol_id);
+                log_e!("secure_protocol_id is not supported: {}", self.secure_protocol_id);
                 return Err(ErrorCode::GeneralError);
             },
         };
@@ -215,7 +215,7 @@ impl HostDeviceEnrollRequest {
                 }
             },
             _ => {
-                log_e!("secure_protocol_id type is not support, secure_protocol_id: {}", self.secure_protocol_id);
+                log_e!("secure_protocol_id is not supported: {}", self.secure_protocol_id);
                 return Err(ErrorCode::GeneralError);
             },
         }

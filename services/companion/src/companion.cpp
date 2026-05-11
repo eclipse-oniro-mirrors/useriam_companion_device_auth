@@ -241,7 +241,7 @@ void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl)
 void Companion::RefreshTokenTimer()
 {
     if (!status_.tokenAuthAtl.has_value()) {
-        IAM_LOGE("%{public}s no token auth atl, skip refresh timer", GetDescription());
+        IAM_LOGI("%{public}s no token auth atl, skip refresh timer", GetDescription());
         return;
     }
 
@@ -261,8 +261,7 @@ void Companion::RefreshTokenTimer()
 void Companion::HandleCompanionStatusChange(const DeviceStatus &deviceStatus)
 {
     const auto &oldStatus = status_.companionDeviceStatus;
-    if (oldStatus.deviceModelInfo == deviceStatus.deviceModelInfo &&
-        oldStatus.deviceName == deviceStatus.deviceName &&
+    if (oldStatus.deviceModelInfo == deviceStatus.deviceModelInfo && oldStatus.deviceName == deviceStatus.deviceName &&
         oldStatus.deviceUserName == deviceStatus.deviceUserName) {
         return;
     }
