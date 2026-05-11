@@ -57,6 +57,9 @@ private:
     void ProcessCompanionInitKeyNegotiationOutput(const CompanionInitKeyNegotiationOutput &output,
         std::vector<uint8_t> &initKeyNegotiationReply);
 
+    ResultCode CallBeginAddHostBinding(int32_t companionUserId, const std::vector<uint8_t> &extraInfo,
+        BeginAddHostBindingOutput &beginOutput);
+
     void HandleBeginAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply);
     void HandleEndAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply);
     ResultCode EndAddHostBinding(ResultCode resultCode, std::vector<uint8_t> &&tokenData,

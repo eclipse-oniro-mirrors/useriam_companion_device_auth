@@ -394,7 +394,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_003, TestSize.Lev
 
     FwkResultCode ret = executor->Authenticate(scheduleId, param, callback);
 
-    EXPECT_EQ(FwkResultCode::GENERAL_ERROR, ret);
+    EXPECT_EQ(FwkResultCode::NO_VALID_CREDENTIAL, ret);
 }
 
 HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Authenticate_004, TestSize.Level0)
