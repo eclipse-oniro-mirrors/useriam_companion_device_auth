@@ -77,7 +77,7 @@ void EventManagerAdapterImpl::ReportInteractionEvent(const InteractionEventColle
         companionDeviceKey, STR_CONNECTION_NAME, connectionName, STR_SCHEDULE_ID, scheduleId, STR_TRIGGER_REASON,
         triggerReason, STR_TEMPLATE_ID_LIST, templateIdList, STR_EXTRA_INFO, eventCollector.GetExtraInfo());
     if (ret != 0) {
-        IAM_LOGE("hisusysevent write failed! ret %{public}d", ret);
+        IAM_LOGE("hisysevent write failed! ret %{public}d", ret);
     }
 }
 

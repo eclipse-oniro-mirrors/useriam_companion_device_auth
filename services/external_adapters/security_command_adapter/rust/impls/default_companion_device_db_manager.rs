@@ -325,12 +325,12 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
         }
 
         if self.companion_device_infos.len() >= MAX_DEVICE_NUM {
-            log_e!("device num is reached limit");
+            log_e!("device limit reached");
             return Err(ErrorCode::ExceedLimit);
         }
 
         if self.get_device_index_by_template_id(device_info.template_id).is_some() {
-            log_i!("template id already exists");
+            log_e!("template id already exists");
             return Err(ErrorCode::BadParam);
         }
 
@@ -378,7 +378,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
                 device
             })
             .ok_or_else(|| {
-                log_i!("No device matching filter found for remove");
+                log_e!("No device matching filter found for remove");
                 ErrorCode::NotFound
             })?;
         if let Err(err) = self.write_device_db() {
@@ -394,7 +394,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
     fn update_device(&mut self, device_info: &CompanionDevice) -> Result<(), ErrorCode> {
         log_i!("update_device start");
         let index = self.get_device_index_by_template_id(device_info.template_id).ok_or_else(|| {
-            log_i!("No template id matching");
+            log_e!("No template id matching");
             ErrorCode::NotFound
         })?;
 
@@ -430,7 +430,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
             },
             None => {
                 if self.companion_token_infos.len() >= MAX_TOKEN_NUM {
-                    log_e!("token num is reached limit");
+                    log_e!("token limit reached");
                     return Err(ErrorCode::ExceedLimit);
                 }
                 self.companion_token_infos.push(token_info.clone());
@@ -472,7 +472,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
                 token
             })
             .ok_or_else(|| {
-                log_i!(
+                log_e!(
                     "Token not found for remove, template_id: {:x}, processor_type: {:?}",
                     template_id as u16,
                     processor_type
@@ -486,14 +486,14 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
         if let Some(index) = self.get_token_index_by_template_info(token_info.template_id, token_info.processor_type) {
             self.companion_token_infos[index] = token_info.clone();
             log_i!(
-                "Token updated successfully for template_id: {:x}, device_type: {:?}",
+                "Token updated successfully for template_id: {:x}, processor_type: {:?}",
                 token_info.template_id as u16,
                 token_info.processor_type
             );
             Ok(())
         } else {
             log_e!(
-                "Token not found for update, template_id: {:x}, device_type: {:?}",
+                "Token not found for update, template_id: {:x}, processor_type: {:?}",
                 token_info.template_id as u16,
                 token_info.processor_type
             );
@@ -585,7 +585,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
         let filename = format!("{:x}_{}", template_id, COMPANION_DEVICE_SK);
         let sk_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
         if sk_info_data.is_empty() {
-            log_i!("device capability info is empty");
+            log_i!("device sk info is empty");
             return Err(ErrorCode::GeneralError);
         }
 

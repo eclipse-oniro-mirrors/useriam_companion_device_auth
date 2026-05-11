@@ -73,8 +73,8 @@ impl CompanionDeviceIssueTokenRequest {
     }
 
     fn decode_sec_token_pre_issue_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        let device_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
-        let output = SecPreIssueRequest::decode(sec_message, device_type)?;
+        let processor_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
+        let output = SecPreIssueRequest::decode(sec_message, processor_type)?;
         self.pre_issue_param.salt = output.salt;
         Ok(())
     }
@@ -87,8 +87,8 @@ impl CompanionDeviceIssueTokenRequest {
     }
 
     fn decode_sec_token_issue_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
-        let device_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
-        let issue_token = SecIssueToken::decrypt_issue_token(sec_message, device_type, &self.session_key)?;
+        let processor_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
+        let issue_token = SecIssueToken::decrypt_issue_token(sec_message, processor_type, &self.session_key)?;
 
         if issue_token.challenge != self.pre_issue_param.companion_challenge {
             log_e!("Challenge verification failed");

@@ -247,7 +247,7 @@ void CompanionDelegateAuthRequest::CompleteWithError(ResultCode result)
         contextId_.reset();
     }
     if (needEndDelegateAuth_) {
-        IAM_LOGI("%{public}s security agent begin completed, calling End", GetDescription());
+        IAM_LOGI("%{public}s security agent begin was started, calling End for cleanup", GetDescription());
         std::vector<uint8_t> delegateAuthResult;
         (void)SecurityAgentEndDelegateAuth(result, {}, delegateAuthResult);
         needEndDelegateAuth_ = false;

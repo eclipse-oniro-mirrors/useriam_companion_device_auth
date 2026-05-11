@@ -153,7 +153,7 @@ impl HostDelegateAuthRequest {
         for device_capability in &device_capabilities {
             if let Err(e) = self.decode_sec_delegate_auth_reply_message(device_capability.processor_type, sec_message) {
                 log_e!(
-                    "parse auth reply message fail: device_type: {:?}, result: {:?}",
+                    "parse auth reply message fail: processor_type: {:?}, result: {:?}",
                     device_capability.processor_type,
                     e
                 );

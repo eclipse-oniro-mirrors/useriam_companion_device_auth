@@ -316,7 +316,7 @@ bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &r
     uint16_t selectedAlgorithm;
     ResultCode ret = GetCompanionManager().BeginAddCompanion(params, addHostBindingRequest, selectedAlgorithm);
     if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s HostBeginAddCompanion failed ret=%{public}d", GetDescription(), ret);
+        IAM_LOGE("%{public}s BeginAddCompanion failed ret=%{public}d", GetDescription(), ret);
         errorGuard.UpdateErrorCode(ret);
         return false;
     }
@@ -334,7 +334,7 @@ void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &r
     ENSURE_OR_RETURN_DESC(GetDescription(), beginReplyOpt.has_value());
 
     if (beginReplyOpt->result != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s companion check failed result=%{public}d", GetDescription(),
+        IAM_LOGE("%{public}s begin add host binding reply failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(beginReplyOpt->result));
         errorGuard.UpdateErrorCode(beginReplyOpt->result);
         return;
@@ -508,7 +508,7 @@ void HostAddCompanionRequest::InvokeCallback(ResultCode result, const std::vecto
 
 void HostAddCompanionRequest::CompleteWithError(ResultCode result)
 {
-    IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
+    IAM_LOGE("%{public}s complete with error: %{public}d", GetDescription(), result);
 
     // After enrollment succeeded, token distribution failure is non-critical per spec
     if (enrollmentSucceeded_) {

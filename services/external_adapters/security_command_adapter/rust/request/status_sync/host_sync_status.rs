@@ -99,7 +99,7 @@ impl HostDeviceSyncStatusRequest {
         for device_capability in &device_capabilities {
             if let Err(e) = self.decode_sec_status_sync_reply_message(device_capability.processor_type, sec_message) {
                 log_e!(
-                    "parse sync status reply message fail: device_type: {:?}, result: {:?}",
+                    "parse sync status reply message fail: processor_type: {:?}, result: {:?}",
                     device_capability.processor_type,
                     e
                 );

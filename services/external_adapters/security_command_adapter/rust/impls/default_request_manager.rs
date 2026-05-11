@@ -40,7 +40,7 @@ impl RequestManager for DefaultRequestManager {
         }
 
         if self.requests.len() >= MAX_REQUEST_NUM {
-            log_e!("request is reached limit");
+            log_e!("request limit reached");
             self.requests.remove(0);
         }
 

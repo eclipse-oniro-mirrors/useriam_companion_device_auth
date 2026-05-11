@@ -60,12 +60,12 @@ impl StorageIo for DefaultStorageIo {
         match self.exists(file_name) {
             Ok(exists) => {
                 if !exists {
-                    log_e!("file is not exist: {}", masked_file_name(file_name));
+                    log_e!("file does not exist: {}", masked_file_name(file_name));
                     return Ok(Vec::new());
                 }
             },
             Err(e) => {
-                log_e!("failed to check file exist: {:?}", e);
+                log_e!("failed to check file existence: {:?}", e);
                 return Err(e);
             },
         }

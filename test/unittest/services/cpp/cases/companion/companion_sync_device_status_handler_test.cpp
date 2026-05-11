@@ -250,8 +250,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_007, TestSize.Level
         .salt = { 1, 2, 3 },
         .challenge = 0 };
     EncodeSyncDeviceStatusRequest(syncDeviceStatusRequest, request);
-    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(DeviceIdType::UNKNOWN));
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(DeviceIdType::UNKNOWN));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, "wrong_device_id");
 
     Attributes reply;

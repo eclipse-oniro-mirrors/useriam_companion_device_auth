@@ -378,7 +378,7 @@ impl TryFrom<u32> for AuthType {
             4 => Ok(AuthType::Fingerprint),
             64 => Ok(AuthType::CompanionDevice),
             _ => {
-                log_e!("Invalid auth capability level: {}", value);
+                log_e!("Invalid auth type: {}", value);
                 Err(ErrorCode::BadParam)
             },
         }
@@ -405,7 +405,7 @@ impl TryFrom<u16> for Capability {
             2 => Ok(Capability::TokenAuth),
             3 => Ok(Capability::ObtainToken),
             _ => {
-                log_e!("Invalid capability level: {}", value);
+                log_e!("Invalid capability: {}", value);
                 Err(ErrorCode::BadParam)
             },
         }

@@ -188,7 +188,7 @@ void ConnectionManager::CloseConnection(const std::string &connectionName, const
 
         bool sendRet = messageRouter->SendMessage(connectionName, MessageType::DISCONNECT, request,
             [connectionName](const Attributes &) {
-                IAM_LOGE("unexpected reply to disconnect request for: %{public}s", connectionName.c_str());
+                IAM_LOGI("reply received for disconnect request (ignoring): %{public}s", connectionName.c_str());
             });
         if (!sendRet) {
             IAM_LOGE("failed to send disconnect request for: %{public}s", connectionName.c_str());
@@ -461,7 +461,7 @@ void ConnectionManager::HandleIdleMonitorTimer()
         }
 
         if (idleTimeMsOpt.value() >= CONNECTION_IDLE_TIMEOUT_MS) {
-            IAM_LOGE("connection idle for %{public}" PRIu64 " ms: %{public}s, send keep alive", idleTimeMsOpt.value(),
+            IAM_LOGI("connection idle for %{public}" PRIu64 " ms: %{public}s, send keep alive", idleTimeMsOpt.value(),
                 connection.connectionName.c_str());
             auto messageRouter = weakMessageRouter_.lock();
             ENSURE_OR_RETURN(messageRouter != nullptr);

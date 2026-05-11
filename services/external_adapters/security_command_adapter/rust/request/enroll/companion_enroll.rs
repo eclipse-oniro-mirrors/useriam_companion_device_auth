@@ -139,7 +139,7 @@ impl CompanionDeviceEnrollRequest {
         let processor_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
         let output = SecKeyNegoRequest::decode(sec_message, processor_type)?;
         if !output.algorithm_list.contains(&(AlgoType::X25519 as u16)) {
-            log_e!("algorithm list is not contain X25519");
+            log_e!("algorithm list does not contain X25519");
             return Err(ErrorCode::GeneralError);
         }
         self.algorithm_list = output.algorithm_list.clone();

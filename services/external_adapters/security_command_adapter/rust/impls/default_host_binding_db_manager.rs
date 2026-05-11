@@ -274,7 +274,7 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         log_i!("remove_device start");
         match self.get_index_by_binding_id(binding_id) {
             None => {
-                log_i!("No device matching filter found for remove");
+                log_e!("No device matching filter found for remove");
                 Err(ErrorCode::NotFound)
             },
             Some(index) => {
@@ -295,12 +295,12 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
     fn update_device(&mut self, device_info: &HostBinding) -> Result<(), ErrorCode> {
         log_i!("update_device start");
         let index1 = self.get_index_by_binding_id(device_info.binding_id).ok_or_else(|| {
-            log_i!("No binding id matching");
+            log_e!("No binding id matching");
             ErrorCode::NotFound
         })?;
         let index2 =
             self.get_index_by_device_key(device_info.user_info.user_id, &device_info.device_key).ok_or_else(|| {
-                log_i!("No device key matching");
+                log_e!("No device key matching");
                 ErrorCode::NotFound
             })?;
         if index1 != index2 {

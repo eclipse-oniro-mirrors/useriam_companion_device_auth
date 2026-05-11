@@ -480,7 +480,7 @@ void SoftBusDeviceStatusManager::HandleDeviceManagerServiceUnavailable()
 bool SoftBusDeviceStatusManager::RegisterDeviceStatusCallback()
 {
     if (dsCallback_ != nullptr) {
-        IAM_LOGE("dsCallback is already set");
+        IAM_LOGI("dsCallback is already set, skipping re-registration");
         return true;
     }
 

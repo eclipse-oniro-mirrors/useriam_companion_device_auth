@@ -51,13 +51,13 @@ pub fn encrypt_sec_message(message: &[u8], key: &[u8]) -> Result<EncryptedMessag
 pub fn decrypt_sec_message(sec_message: &[u8], key: &[u8], tag: &[u8], iv: &[u8]) -> Result<Vec<u8>, ErrorCode> {
     let mut tag_array = [0u8; AES_GCM_TAG_SIZE];
     if tag.len() != AES_GCM_TAG_SIZE {
-        log_e!("tag len is not match, {}", tag.len());
+        log_e!("tag len does not match, {}", tag.len());
         return Err(ErrorCode::GeneralError);
     }
     tag_array.copy_from_slice(tag);
     let mut iv_array = [0u8; AES_GCM_IV_SIZE];
     if iv.len() != AES_GCM_IV_SIZE {
-        log_e!("iv len is not match, {}", iv.len());
+        log_e!("iv len does not match, {}", iv.len());
         return Err(ErrorCode::GeneralError);
     }
     iv_array.copy_from_slice(iv);

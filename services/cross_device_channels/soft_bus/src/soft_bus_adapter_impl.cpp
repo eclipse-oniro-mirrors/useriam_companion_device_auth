@@ -102,7 +102,7 @@ void SoftBusAdapterOnShutdown(int32_t socket, ShutdownReason reason)
 
 void SoftBusAdapterOnError(int32_t socket, int32_t errorCode)
 {
-    IAM_LOGI("SoftBusAdapterOnError enter, socket=%{public}d, errorCode=0x%{public}08x", socket, errorCode);
+    IAM_LOGE("SoftBusAdapterOnError enter, socket=%{public}d, errorCode=0x%{public}08x", socket, errorCode);
     std::shared_ptr<ISoftBusSocketCallback> callback;
     {
         std::lock_guard<std::mutex> lock(g_callbackMutex);

@@ -219,7 +219,7 @@ bool HostObtainTokenRequest::ProcessHostProcessObtainTokenOutput(const HostProce
 {
     eventCollector_.SetAtl(output.atl);
     obtainTokenReply = output.obtainTokenReply;
-    IAM_LOGI("%{public}s HostProcessObtainToken success atl=%{public}d", GetDescription(), output.atl);
+    IAM_LOGI("%{public}s HostProcessObtainToken completed atl=%{public}d", GetDescription(), output.atl);
 
     bool setTokenAtlRet = GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, output.atl);
     if (!setTokenAtlRet) {

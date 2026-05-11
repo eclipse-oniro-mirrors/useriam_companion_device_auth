@@ -196,7 +196,7 @@ napi_value GetTemplateStatus(napi_env env, napi_callback_info info)
         templateStatusList =
             CompanionDeviceAuthNapiHelper::ConvertTemplateStatusListToNapiValue(env, clientTemplateStatusList);
         if (templateStatusList == nullptr) {
-            IAM_LOGE("TemplateStatusListToNapiValue fail");
+            IAM_LOGE("ConvertTemplateStatusListToNapiValue fail");
             ret = GENERAL_ERROR;
         }
     }

@@ -80,7 +80,7 @@ macro_rules! impl_data_array {
 
             pub fn copy_from_slice(&mut self, slice: &[u8]) -> Result<(), ErrorCode> {
                 if slice.len() as usize > self.data.len() {
-                    log_e!("input too large: {}, input length: {}", self.data.len(), slice.len());
+                    log_e!("input too large: max {}, input length: {}", self.data.len(), slice.len());
                     return Err(ErrorCode::BadParam);
                 }
 

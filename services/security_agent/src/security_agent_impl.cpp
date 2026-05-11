@@ -57,7 +57,7 @@ bool SecurityAgentImpl::Initialize()
     activeUserSubscription_ = userIdManager.SubscribeActiveUserId([this](UserId userId) {
         auto result = SetActiveUser(SetActiveUserInput { userId });
         if (result != SUCCESS) {
-            IAM_LOGE("failed to update active user %{public}d", result);
+            IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
         }
     });
     if (activeUserSubscription_ == nullptr) {
