@@ -109,6 +109,7 @@ public:
             .WillByDefault(Return(ByMove(MakeSubscription())));
         ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
         ON_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+        ON_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillByDefault(Return());
     }
 
@@ -349,58 +350,81 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_003, TestSize.Level0)
     EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
 }
 
-HWTEST_F(CompanionTest, SetDeviceNames_001, TestSize.Level0)
+// --- HandleCompanionStatusChange tests ---
+
+HWTEST_F(CompanionTest, HandleCompanionStatusChange_NoChange_NoUpdateCalled, TestSize.Level0)
 {
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
+    // DeviceStatus has same deviceModelInfo/deviceName/deviceUserName as persisted status
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).Times(0);
     EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
 
-    companion->SetDeviceNames("NewDevice", "NewUser");
-
-    auto status = companion->GetStatus();
-    EXPECT_EQ("NewDevice", status.companionDeviceStatus.deviceName);
-    EXPECT_EQ("NewUser", status.companionDeviceStatus.deviceUserName);
-}
-
-HWTEST_F(CompanionTest, SetDeviceNames_002, TestSize.Level0)
-{
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
-    ASSERT_NE(nullptr, companion);
-
-    companion->SetDeviceNames("TestDevice", "TestUser");
-}
-
-HWTEST_F(CompanionTest, SetDeviceNames_003, TestSize.Level0)
-{
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
-    ASSERT_NE(nullptr, companion);
-
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
-
-    companion->SetDeviceNames("NewDevice", "TestUser");
-
-    auto status = companion->GetStatus();
-    EXPECT_EQ("NewDevice", status.companionDeviceStatus.deviceName);
-    EXPECT_EQ("TestUser", status.companionDeviceStatus.deviceUserName);
-}
-
-HWTEST_F(CompanionTest, SetDeviceNames_004, TestSize.Level0)
-{
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
-    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
-    ASSERT_NE(nullptr, companion);
-
-    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
-
-    companion->SetDeviceNames("TestDevice", "NewUser");
+    companion->HandleDeviceStatusUpdate(deviceStatus);
 
     auto status = companion->GetStatus();
     EXPECT_EQ("TestDevice", status.companionDeviceStatus.deviceName);
-    EXPECT_EQ("NewUser", status.companionDeviceStatus.deviceUserName);
+    EXPECT_EQ("TestUser", status.companionDeviceStatus.deviceUserName);
+    EXPECT_EQ("TestModel", status.companionDeviceStatus.deviceModelInfo);
+}
+
+HWTEST_F(CompanionTest, HandleCompanionStatusChange_DeviceNameChanged_UpdateCalled, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    deviceStatus.deviceName = "NewDeviceName";
+    EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+
+    companion->HandleDeviceStatusUpdate(deviceStatus);
+
+    auto status = companion->GetStatus();
+    EXPECT_EQ("NewDeviceName", status.companionDeviceStatus.deviceName);
+}
+
+HWTEST_F(CompanionTest, HandleCompanionStatusChange_ModelInfoChanged_UpdateCalled, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    deviceStatus.deviceModelInfo = "NewModelInfo";
+    EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+
+    companion->HandleDeviceStatusUpdate(deviceStatus);
+
+    auto status = companion->GetStatus();
+    EXPECT_EQ("NewModelInfo", status.companionDeviceStatus.deviceModelInfo);
+}
+
+HWTEST_F(CompanionTest, HandleCompanionStatusChange_UpdateFailed_StatusStillUpdated, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    deviceStatus.deviceName = "NewDeviceName";
+    EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+
+    companion->HandleDeviceStatusUpdate(deviceStatus);
+
+    // Memory state updated even though persist failed
+    auto status = companion->GetStatus();
+    EXPECT_EQ("NewDeviceName", status.companionDeviceStatus.deviceName);
 }
 
 HWTEST_F(CompanionTest, NotifySubscribersManagerNull, TestSize.Level0)

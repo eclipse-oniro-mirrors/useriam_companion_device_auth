@@ -500,7 +500,8 @@ bool EncodeHostUpdateCompanionStatusInput(const HostUpdateCompanionStatusInput &
 {
     ffi.templateId = input.templateId;
 
-    if (!EncodeStringToDataArray(input.companionDeviceName, ffi.deviceName, "companion device name") ||
+    if (!EncodeStringToDataArray(input.companionDeviceModelInfo, ffi.deviceModelInfo, "companion device model info") ||
+        !EncodeStringToDataArray(input.companionDeviceName, ffi.deviceName, "companion device name") ||
         !EncodeStringToDataArray(input.companionDeviceUserName, ffi.deviceUserName, "companion device user name")) {
         return false;
     }

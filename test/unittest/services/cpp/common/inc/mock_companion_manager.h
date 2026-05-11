@@ -40,14 +40,11 @@ public:
     MOCK_METHOD(ResultCode, EndAddCompanion, (const EndAddCompanionInput &input, EndAddCompanionOutput &output),
         (override));
     MOCK_METHOD(ResultCode, RemoveCompanion, (TemplateId templateId, bool removeHostBinding), (override));
-    MOCK_METHOD(ResultCode, UpdateCompanionStatus,
-        (TemplateId templateId, const std::string &deviceName, const std::string &deviceUserName), (override));
     MOCK_METHOD(ResultCode, UpdateCompanionEnabledBusinessIds,
         (TemplateId templateId, const std::vector<BusinessId> &enabledBusinessIds), (override));
     MOCK_METHOD(bool, SetCompanionTokenAuthAtl, (TemplateId templateId, std::optional<Atl> atl), (override));
     MOCK_METHOD(ResultCode, UpdateToken,
         (TemplateId templateId, const std::vector<uint8_t> &fwkMsg, bool &needRedistribute), (override));
-    MOCK_METHOD(ResultCode, HandleCompanionCheckFail, (TemplateId templateId), (override));
     MOCK_METHOD(void, StartIssueTokenRequests,
         (const std::vector<TemplateId> &templateIds, uint32_t lockStateAuthTypeValue,
             const std::vector<uint8_t> &fwkUnlockMsg),

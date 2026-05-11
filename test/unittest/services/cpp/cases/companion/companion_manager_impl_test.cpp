@@ -542,8 +542,6 @@ HWTEST_F(CompanionManagerImplTest, EndAddCompanion_004, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    // Add mock for UpdateCompanionStatus which is called during AddCompanionInternal
-    ON_CALL(guard.GetCompanionManager(), UpdateCompanionStatus(_, _, _)).WillByDefault(Return(ResultCode::SUCCESS));
 
     ResultCode ret = manager->EndAddCompanion(input, output);
 
@@ -658,54 +656,6 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_004, TestSize.Level0)
     EXPECT_FALSE(manager->GetCompanionStatus(TEMPLATE_ID_12345).has_value()); // Companion is removed
 }
 
-HWTEST_F(CompanionManagerImplTest, UpdateCompanionStatus_001, TestSize.Level0)
-{
-    MockGuard guard;
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    ResultCode ret = manager->UpdateCompanionStatus(TEMPLATE_ID_12345, "NewDevice", "NewUser");
-    EXPECT_EQ(ret, ResultCode::GENERAL_ERROR);
-}
-
-HWTEST_F(CompanionManagerImplTest, UpdateCompanionStatus_002, TestSize.Level0)
-{
-    MockGuard guard;
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    manager->hostUserId_ = activeUserId_;
-
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
-    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
-    manager->Reload(persistedList, activeTemplateIds);
-
-    EXPECT_CALL(guard.GetSecurityAgent(), HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
-
-    ResultCode ret = manager->UpdateCompanionStatus(TEMPLATE_ID_12345, "NewDevice", "NewUser");
-    EXPECT_EQ(ret, ResultCode::GENERAL_ERROR);
-}
-
-HWTEST_F(CompanionManagerImplTest, UpdateCompanionStatus_003, TestSize.Level0)
-{
-    MockGuard guard;
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    manager->hostUserId_ = activeUserId_;
-
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
-    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
-    manager->Reload(persistedList, activeTemplateIds);
-
-    EXPECT_CALL(guard.GetSecurityAgent(), HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::SUCCESS));
-
-    ResultCode ret = manager->UpdateCompanionStatus(TEMPLATE_ID_12345, "NewDevice", "NewUser");
-    EXPECT_EQ(ret, ResultCode::SUCCESS);
-}
-
 HWTEST_F(CompanionManagerImplTest, UpdateCompanionEnabledBusinessIds_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -789,37 +739,6 @@ HWTEST_F(CompanionManagerImplTest, SetCompanionTokenAuthAtl_002, TestSize.Level0
     ASSERT_TRUE(status.has_value());
     ASSERT_TRUE(status->tokenAuthAtl.has_value());
     EXPECT_EQ(status->tokenAuthAtl.value(), INT32_3);
-}
-
-HWTEST_F(CompanionManagerImplTest, HandleCompanionCheckFail_001, TestSize.Level0)
-{
-    MockGuard guard;
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    ResultCode ret = manager->HandleCompanionCheckFail(TEMPLATE_ID_12345);
-    EXPECT_EQ(ret, ResultCode::GENERAL_ERROR);
-}
-
-HWTEST_F(CompanionManagerImplTest, HandleCompanionCheckFail_002, TestSize.Level0)
-{
-    MockGuard guard;
-    auto manager = CompanionManagerImpl::Create();
-    ASSERT_NE(nullptr, manager);
-
-    manager->hostUserId_ = activeUserId_;
-
-    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
-    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
-    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
-    manager->Reload(persistedList, activeTemplateIds);
-
-    ResultCode ret = manager->HandleCompanionCheckFail(TEMPLATE_ID_12345);
-    EXPECT_EQ(ret, ResultCode::SUCCESS);
-
-    auto status = manager->GetCompanionStatus(TEMPLATE_ID_12345);
-    ASSERT_TRUE(status.has_value());
-    EXPECT_FALSE(status->isValid);
 }
 
 HWTEST_F(CompanionManagerImplTest, OnActiveUserIdChanged_001, TestSize.Level0)

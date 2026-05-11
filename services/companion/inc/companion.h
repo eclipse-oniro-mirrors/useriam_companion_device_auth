@@ -74,7 +74,6 @@ public:
     void SetEnabledBusinessIds(const std::vector<BusinessId> &enabledBusinessIds);
     void SetCompanionValid(bool isValid);
     void SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl);
-    void SetDeviceNames(const std::string &deviceName, const std::string &deviceUserName);
     void RefreshTokenTimer();
     void NotifySubscribers();
     void SetAddedToIdm(bool addedToIdm);
@@ -87,6 +86,7 @@ private:
     void HandleDeviceStatusUpdate(const DeviceStatus &deviceStatus);
     void HandleDeviceOffline();
     void HandleAuthMaintainActiveChanged(const DeviceStatus &deviceStatus);
+    void HandleCompanionStatusChange(const DeviceStatus &deviceStatus);
     void StartTemplateAddToIdmTimer();
     void HandleTemplateAddToIdmTimeout();
     static std::string BuildDescription(const CompanionStatus &status);

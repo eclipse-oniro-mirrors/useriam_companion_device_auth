@@ -47,6 +47,7 @@ public:
     std::unique_ptr<Subscription> SubscribeIncomingConnection(OnIncomingConnection &&callback);
     void ReportConnectionEstablished(const std::string &connectionName);
     void ReportConnectionClosed(const std::string &connectionName, const std::string &reason);
+    void NotifyIncomingConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey);
 
 private:
     SoftBusConnectionManager();
@@ -64,9 +65,6 @@ private:
     void UnsubscribeRawMessage(SubscribeId subscriptionId);
     void UnsubscribeConnectionStatus(SubscribeId subscriptionId);
     void UnsubscribeIncomingConnection(SubscribeId subscriptionId);
-    void NotifyIncomingConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey);
-
-    friend class SoftbusConnection;
 
     struct RawMessageSubscription {
         SubscribeId subscriptionId;

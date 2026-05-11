@@ -27,6 +27,7 @@
 #include "cda_scope_guard.h"
 #include "companion_manager_impl.h"
 #include "relative_timer.h"
+#include "security_agent.h"
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
@@ -124,9 +125,9 @@ void Companion::HandleDeviceStatusUpdate(const DeviceStatus &deviceStatus)
     }
 
     HandleAuthMaintainActiveChanged(deviceStatus);
+    HandleCompanionStatusChange(deviceStatus);
     status_.companionDeviceStatus = deviceStatus;
     IAM_LOGI("%{public}s device status updated", GetDescription());
-
     NotifySubscribers();
 }
 
@@ -257,17 +258,25 @@ void Companion::RefreshTokenTimer()
     IAM_LOGI("%{public}s refreshed token timeout timer", GetDescription());
 }
 
-void Companion::SetDeviceNames(const std::string &deviceName, const std::string &deviceUserName)
+void Companion::HandleCompanionStatusChange(const DeviceStatus &deviceStatus)
 {
-    if (status_.companionDeviceStatus.deviceName == deviceName &&
-        status_.companionDeviceStatus.deviceUserName == deviceUserName) {
+    const auto &oldStatus = status_.companionDeviceStatus;
+    if (oldStatus.deviceModelInfo == deviceStatus.deviceModelInfo &&
+        oldStatus.deviceName == deviceStatus.deviceName &&
+        oldStatus.deviceUserName == deviceStatus.deviceUserName) {
         return;
     }
 
-    status_.companionDeviceStatus.deviceName = deviceName;
-    status_.companionDeviceStatus.deviceUserName = deviceUserName;
-    IAM_LOGI("%{public}s updating device names", GetDescription());
-    NotifySubscribers();
+    HostUpdateCompanionStatusInput input { .templateId = status_.templateId,
+        .companionDeviceModelInfo = deviceStatus.deviceModelInfo,
+        .companionDeviceName = deviceStatus.deviceName,
+        .companionDeviceUserName = deviceStatus.deviceUserName };
+    ResultCode ret = GetSecurityAgent().HostUpdateCompanionStatus(input);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s HostUpdateCompanionStatus failed ret %{public}d", GetDescription(), ret);
+        return;
+    }
+    IAM_LOGI("%{public}s update companion status success", GetDescription());
 }
 
 void Companion::NotifySubscribers()

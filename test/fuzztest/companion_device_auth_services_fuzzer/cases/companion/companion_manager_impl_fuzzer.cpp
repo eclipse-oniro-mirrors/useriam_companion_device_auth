@@ -80,15 +80,6 @@ static void FuzzSubscribeCompanionDeviceStatusChange(std::shared_ptr<CompanionMa
     (void)subscription;
 }
 
-static void FuzzUpdateCompanionStatus(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
-{
-    TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
-    std::string deviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    std::string deviceUserName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    ResultCode result = manager->UpdateCompanionStatus(templateId, deviceName, deviceUserName);
-    (void)result;
-}
-
 static void FuzzUpdateCompanionEnabledBusinessIds(std::shared_ptr<CompanionManagerImpl> &manager,
     FuzzedDataProvider &fuzzData)
 {
@@ -113,13 +104,6 @@ static void FuzzSetCompanionTokenAuthAtl(std::shared_ptr<CompanionManagerImpl> &
         bool result = manager->SetCompanionTokenAuthAtl(templateId, std::nullopt);
         (void)result;
     }
-}
-
-static void FuzzHandleCompanionCheckFail(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
-{
-    TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
-    ResultCode result = manager->HandleCompanionCheckFail(templateId);
-    (void)result;
 }
 
 static void FuzzStartIssueTokenRequests(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
@@ -303,11 +287,9 @@ static const CompanionManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzGetAllCompanionStatus,
     FuzzSubscribeCompanionDeviceStatusChange,
     FuzzUnsubscribeCompanionDeviceStatusChange,
-    FuzzUpdateCompanionStatus,
     FuzzUpdateCompanionEnabledBusinessIds,
     FuzzSetCompanionTokenAuthAtl,
     FuzzUpdateToken,
-    FuzzHandleCompanionCheckFail,
     FuzzStartIssueTokenRequests,
     FuzzRevokeTokens,
     FuzzFindCompanionByTemplateId,

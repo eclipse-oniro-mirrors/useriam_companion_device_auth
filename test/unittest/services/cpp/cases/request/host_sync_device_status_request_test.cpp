@@ -103,8 +103,7 @@ public:
             .WillByDefault(Return(std::make_optional(HOST_DEVICE_KEY)));
         ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(PROFILE));
         ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
-        ON_CALL(mockCompanionManager_, UpdateCompanionStatus(_, _, _)).WillByDefault(Return(ResultCode::SUCCESS));
-        ON_CALL(mockCompanionManager_, HandleCompanionCheckFail(_)).WillByDefault(Return(ResultCode::SUCCESS));
+        ON_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).WillByDefault(Return());
         ON_CALL(mockEventManagerAdapter_, ReportInteractionEvent(_)).WillByDefault(Return());
     }
 
@@ -244,7 +243,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_001, TestS
     CompanionStatus companionStatus;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockCompanionManager_, UpdateCompanionStatus(_, _, _)).WillOnce(Return(ResultCode::SUCCESS));
 
     request->HandleSyncDeviceStatusReply(reply);
 
@@ -318,7 +316,6 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_004, TestS
     CompanionStatus companionStatus;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockCompanionManager_, UpdateCompanionStatus(_, _, _)).WillOnce(Return(ResultCode::SUCCESS));
 
     request->cancelCompanionCheckGuard_ = nullptr;
     request->HandleSyncDeviceStatusReply(reply);
@@ -364,7 +361,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_003, TestSize.Level0
     CompanionStatus companionStatus;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
-    EXPECT_CALL(mockCompanionManager_, HandleCompanionCheckFail(_)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).WillOnce(Return());
 
     bool result = request->EndCompanionCheck(syncDeviceStatusReply);
 
