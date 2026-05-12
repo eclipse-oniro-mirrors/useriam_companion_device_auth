@@ -206,7 +206,7 @@ FwkResultCode Inner::Authenticate(uint64_t scheduleId, const FwkAuthenticatePara
 
     if (fwkParam.templateIdList.empty()) {
         IAM_LOGE("templateIdList is empty");
-        return FwkResultCode::GENERAL_ERROR;
+        return FwkResultCode::NO_VALID_CREDENTIAL;
     }
 
     IAM_LOGI("scheduleId:%{public}s", GET_TRUNCATED_CSTR(scheduleId));

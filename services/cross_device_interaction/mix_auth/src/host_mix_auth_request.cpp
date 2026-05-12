@@ -105,6 +105,11 @@ std::vector<TemplateId> HostMixAuthRequest::GetFilteredTemplateList(const std::v
             continue;
         }
 
+        if (!companionStatus->isValid) {
+            IAM_LOGE("%{public}s companion is invalid, skip", GetDescription());
+            continue;
+        }
+
         TemplateId templateId = companionStatus->templateId;
         if (std::find(templateIdList_.begin(), templateIdList_.end(), templateId) == templateIdList_.end()) {
             continue;

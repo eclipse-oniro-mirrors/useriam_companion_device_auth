@@ -171,6 +171,13 @@ bool CompanionAddCompanionRequest::SendInitKeyNegotiationReply(ResultCode result
     return true;
 }
 
+ResultCode CompanionAddCompanionRequest::CallBeginAddHostBinding(int32_t companionUserId,
+    const std::vector<uint8_t> &extraInfo, BeginAddHostBindingOutput &beginOutput)
+{
+    BeginAddHostBindingInput beginInput = BuildBeginAddHostBindingInput(companionUserId, extraInfo);
+    return GetHostBindingManager().BeginAddHostBinding(beginInput, beginOutput);
+}
+
 void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply)
 {
     LogTraceGuard guard;
@@ -184,12 +191,10 @@ void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &att
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt.has_value());
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt->companionUserId == companionDeviceKey_.deviceUserId);
 
-    BeginAddHostBindingInput beginInput =
-        BuildBeginAddHostBindingInput(requestOpt->companionUserId, requestOpt->extraInfo);
     BeginAddHostBindingOutput beginOutput = {};
-    ResultCode ret = GetHostBindingManager().BeginAddHostBinding(beginInput, beginOutput);
+    ResultCode ret = CallBeginAddHostBinding(requestOpt->companionUserId, requestOpt->extraInfo, beginOutput);
     if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s BeginAddHostBinding failed ret=%{public}d", GetDescription(), ret);
+        IAM_LOGE("%{public}s CallBeginAddHostBinding failed ret=%{public}d", GetDescription(), ret);
         errorGuard.UpdateErrorCode(ret);
         return;
     }
