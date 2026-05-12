@@ -137,28 +137,27 @@ int32_t CompanionDeviceAuthClientImpl::UpdateTemplateEnabledBusinessIds(uint64_t
 
 void CompanionDeviceAuthClientImpl::PrintIpcTemplateStatus(const IpcTemplateStatus &ipcTemplateStatus)
 {
-    IAM_LOGI("deviceIdType:%{public}d, deviceId:%{public}s, deviceUserId:%{public}d",
+    IAM_LOGI("templateId:%{public}s, confirmed:%{public}d, valid:%{public}d, localUserId:%{public}d, "
+             "addedTime:%{public}" PRId64 ", enabledBusinessIds:%{public}s, "
+             "key(idType:%{public}d, id:%{public}s, userId:%{public}d), "
+             "userName:%{public}s, modelInfo:%{public}s, name:%{public}s, online:%{public}d, "
+             "supportedBusinessIds:%{public}s",
+        GET_MASKED_NUM_CSTR(ipcTemplateStatus.templateId), ipcTemplateStatus.isConfirmed, ipcTemplateStatus.isValid,
+        ipcTemplateStatus.localUserId, ipcTemplateStatus.addedTime,
+        GetVectorString(ipcTemplateStatus.enabledBusinessIds).c_str(),
         ipcTemplateStatus.deviceStatus.deviceKey.deviceIdType,
         GetMaskedString(ipcTemplateStatus.deviceStatus.deviceKey.deviceId).c_str(),
-        ipcTemplateStatus.deviceStatus.deviceKey.deviceUserId);
-
-    IAM_LOGI("deviceUserName:%{public}s, deviceModelInfo:%{public}s, deviceName:%{public}s, isOnline:%{public}d, "
-             "supportedBusinessIds size:%{public}zu",
+        ipcTemplateStatus.deviceStatus.deviceKey.deviceUserId,
         GET_MASKED_STR_CSTR(ipcTemplateStatus.deviceStatus.deviceUserName),
         GET_MASKED_STR_CSTR(ipcTemplateStatus.deviceStatus.deviceModelInfo),
         GET_MASKED_STR_CSTR(ipcTemplateStatus.deviceStatus.deviceName), ipcTemplateStatus.deviceStatus.isOnline,
-        ipcTemplateStatus.deviceStatus.supportedBusinessIds.size());
-
-    IAM_LOGI("templateId:%{public}s, isConfirmed:%{public}d, isValid:%{public}d, userId:%{public}d, "
-             "addedTime:%{public}" PRId64 ", enabledBusinessIds size:%{public}zu",
-        GET_MASKED_NUM_CSTR(ipcTemplateStatus.templateId), ipcTemplateStatus.isConfirmed, ipcTemplateStatus.isValid,
-        ipcTemplateStatus.localUserId, ipcTemplateStatus.addedTime, ipcTemplateStatus.enabledBusinessIds.size());
+        GetVectorString(ipcTemplateStatus.deviceStatus.supportedBusinessIds).c_str());
 }
 
 int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(int32_t userId,
     std::vector<ClientTemplateStatus> &templateStatusList)
 {
-    IAM_LOGI("start");
+    IAM_LOGI("start, userId:%{public}d", userId);
     auto proxy = GetProxy();
     if (!proxy) {
         IAM_LOGE("proxy is nullptr");
@@ -418,15 +417,14 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChangeInner(
 
     auto templateId = callback->GetTemplateId();
 
+    IAM_LOGI("start, userId:%{public}d, templateId:%{public}s", callback->GetUserId(),
+        GET_OPTIONAL_TRUNCATED_CSTR(templateId));
+
     IpcSubscribeContinuousAuthStatusParam param {};
     param.localUserId = callback->GetUserId();
-    param.hasTemplateId = false;
+    param.hasTemplateId = templateId.has_value();
     if (templateId.has_value()) {
-        IAM_LOGI("templateId:%{public}s", GET_MASKED_NUM_CSTR(templateId.value()));
-        param.hasTemplateId = true;
         param.templateId = templateId.value();
-    } else {
-        IAM_LOGI("templateId not exist");
     }
 
     int32_t ret = GENERAL_ERROR;
@@ -441,7 +439,7 @@ int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChangeInner(
 int32_t CompanionDeviceAuthClientImpl::SubscribeContinuousAuthStatusChange(int32_t userId,
     std::optional<uint64_t> templateId, const std::shared_ptr<IContinuousAuthStatusCallback> &callback)
 {
-    IAM_LOGI("start, userId:%{public}d", userId);
+    IAM_LOGI("start, userId:%{public}d, templateId:%{public}s", userId, GET_OPTIONAL_TRUNCATED_CSTR(templateId));
     if (!callback) {
         IAM_LOGE("callback is nullptr");
         return GENERAL_ERROR;
@@ -512,7 +510,7 @@ int32_t CompanionDeviceAuthClientImpl::UnsubscribeContinuousAuthStatusChange(
 
 int32_t CompanionDeviceAuthClientImpl::CheckLocalUserIdValid(int32_t userId, bool &isUserIdValid)
 {
-    IAM_LOGI("start");
+    IAM_LOGI("start, userId:%{public}d", userId);
     auto proxy = GetProxy();
     if (!proxy) {
         IAM_LOGE("proxy is nullptr");

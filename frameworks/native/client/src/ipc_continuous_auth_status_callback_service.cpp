@@ -19,6 +19,7 @@
 
 #include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_para2str.h"
 
 #include "common_defines.h"
 #include "companion_device_auth_common_defines.h"
@@ -38,8 +39,10 @@ IpcContinuousAuthStatusCallbackService::IpcContinuousAuthStatusCallbackService(i
 
 int32_t IpcContinuousAuthStatusCallbackService::OnContinuousAuthStatusChange(const IpcContinuousAuthStatus &status)
 {
-    IAM_LOGI("start, isAuthPassed:%{public}d, hasAuthTrustLevel:%{public}d, authTrustLevel:%{public}d",
-        status.isAuthPassed, status.hasAuthTrustLevel, status.authTrustLevel);
+    IAM_LOGI("start, userId:%{public}d, templateId:%{public}s, isAuthPassed:%{public}d, "
+             "hasAuthTrustLevel:%{public}d, authTrustLevel:%{public}d",
+        userId_, GET_OPTIONAL_TRUNCATED_CSTR(templateId_), status.isAuthPassed, status.hasAuthTrustLevel,
+        status.authTrustLevel);
     ENSURE_OR_RETURN_VAL(callback_ != nullptr, GENERAL_ERROR);
     if (!status.hasAuthTrustLevel) {
         callback_->OnContinuousAuthStatusChange(status.isAuthPassed);

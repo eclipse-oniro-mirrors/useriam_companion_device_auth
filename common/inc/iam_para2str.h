@@ -55,6 +55,14 @@ std::string GetOptionalString(const std::optional<T> &val)
 }
 
 template <typename T>
+std::string GetOptionalTruncatedString(const std::optional<T> &val)
+{
+    return val.has_value() ? GetTruncatedString(static_cast<uint16_t>(val.value())) : "nullopt";
+}
+
+#define GET_OPTIONAL_TRUNCATED_CSTR(val) GetOptionalTruncatedString(val).c_str()
+
+template <typename T>
 std::string GetVectorString(const std::vector<T> &vec)
 {
     std::string result = "[";

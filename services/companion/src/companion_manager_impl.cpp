@@ -654,10 +654,7 @@ ResultCode CompanionManagerImpl::RemoveCompanionInternal(TemplateId templateId)
 void CompanionManagerImpl::StartIssueTokenRequests(const std::vector<uint64_t> &templateIds,
     uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg)
 {
-    IAM_LOGI("start, templateIds size=%{public}zu", templateIds.size());
-    for (const auto &templateId : templateIds) {
-        IAM_LOGI("templateId %{public}s", GET_MASKED_NUM_CSTR(templateId));
-    }
+    IAM_LOGI("start, templateIds:%{public}s", GetMaskedVectorString(templateIds).c_str());
 
     for (const auto &companion : companions_) {
         ENSURE_OR_CONTINUE(companion != nullptr);
