@@ -161,7 +161,7 @@ FwkResultCode Inner::Enroll(uint64_t scheduleId, const FwkEnrollParam &param,
         return FwkResultCode::GENERAL_ERROR;
     }
 
-    IAM_LOGI("scheduleId:%{public}s", GET_TRUNCATED_CSTR(scheduleId));
+    IAM_LOGI("scheduleId:%{public}s", ToHexString(scheduleId).c_str());
     auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(callbackObj);
     ENSURE_OR_RETURN_VAL(callback != nullptr, FwkResultCode::GENERAL_ERROR);
     FwkResultCallback requestCallback = [callback](ResultCode result, const std::vector<uint8_t> &extraInfo) {
@@ -209,7 +209,7 @@ FwkResultCode Inner::Authenticate(uint64_t scheduleId, const FwkAuthenticatePara
         return FwkResultCode::GENERAL_ERROR;
     }
 
-    IAM_LOGI("scheduleId:%{public}s", GET_TRUNCATED_CSTR(scheduleId));
+    IAM_LOGI("scheduleId:%{public}s", ToHexString(scheduleId).c_str());
     auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(callbackObj);
     ENSURE_OR_RETURN_VAL(callback != nullptr, FwkResultCode::GENERAL_ERROR);
     FwkResultCallback requestCallback = [callback](ResultCode result, const std::vector<uint8_t> &extraInfo) {
@@ -259,8 +259,7 @@ FwkResultCode Inner::Delete(const std::vector<uint64_t> &templateIdList)
 
 FwkResultCode Inner::Cancel(uint64_t scheduleId)
 {
-    IAM_LOGI("start");
-    IAM_LOGI("scheduleId:%{public}s", GET_TRUNCATED_CSTR(scheduleId));
+    IAM_LOGI("start, scheduleId:%{public}s", ToHexString(scheduleId).c_str());
     if (!GetRequestManager().CancelRequestByScheduleId(scheduleId)) {
         IAM_LOGE("cancel request not found or already completed");
     }

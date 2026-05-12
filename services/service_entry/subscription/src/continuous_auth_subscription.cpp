@@ -65,8 +65,8 @@ std::shared_ptr<ContinuousAuthSubscription> ContinuousAuthSubscription::Create(U
 
 bool ContinuousAuthSubscription::Initialize()
 {
-    IAM_LOGI("Initialize continuous auth subscription, userId:%{public}d, hasTemplateId:%{public}d", userId_,
-        templateId_.has_value());
+    IAM_LOGI("Initialize continuous auth subscription, userId:%{public}d, templateId:%{public}s", userId_,
+        GET_OPTIONAL_TRUNCATED_CSTR(templateId_));
 
     companionStatusSubscription_ = GetCompanionManager().SubscribeCompanionDeviceStatusChange(
         [weakSelf = weak_from_this()](const std::vector<CompanionStatus> &companionStatusList) {
@@ -130,8 +130,8 @@ void ContinuousAuthSubscription::OnCallbackRemoteDied(const sptr<IIpcContinuousA
 
 void ContinuousAuthSubscription::HandleCompanionStatusChange(const std::vector<CompanionStatus> &companionStatusList)
 {
-    IAM_LOGI("HandleCompanionStatusChange, userId:%{public}d, hasTemplateId:%{public}d, total:%{public}zu", userId_,
-        templateId_.has_value(), companionStatusList.size());
+    IAM_LOGI("HandleCompanionStatusChange, userId:%{public}d, templateId:%{public}s, total:%{public}zu", userId_,
+        GET_OPTIONAL_TRUNCATED_CSTR(templateId_), companionStatusList.size());
 
     std::optional<Atl> authTrustLevel = std::nullopt;
 

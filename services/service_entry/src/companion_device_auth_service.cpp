@@ -182,7 +182,7 @@ void CompanionDeviceAuthService::OnStop()
 ErrCode CompanionDeviceAuthService::SubscribeAvailableDeviceStatus(int32_t localUserId,
     const sptr<IIpcAvailableDeviceStatusCallback> &deviceStatusCallback, int32_t &companionDeviceAuthResult)
 {
-    IAM_LOGI("Start");
+    IAM_LOGI("Start, localUserId:%{public}d", localUserId);
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
     if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
@@ -233,7 +233,7 @@ ErrCode CompanionDeviceAuthService::UnsubscribeAvailableDeviceStatus(
 ErrCode CompanionDeviceAuthService::SubscribeTemplateStatusChange(int32_t localUserId,
     const sptr<IIpcTemplateStatusCallback> &templateStatusCallback, int32_t &companionDeviceAuthResult)
 {
-    IAM_LOGI("Start");
+    IAM_LOGI("Start, localUserId:%{public}d", localUserId);
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
     if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
@@ -285,7 +285,10 @@ ErrCode CompanionDeviceAuthService::SubscribeContinuousAuthStatusChange(
     const IpcSubscribeContinuousAuthStatusParam &subscribeContinuousAuthStatusParam,
     const sptr<IIpcContinuousAuthStatusCallback> &continuousAuthStatusCallback, int32_t &companionDeviceAuthResult)
 {
-    IAM_LOGI("Start");
+    IAM_LOGI("Start, localUserId:%{public}d, hasTemplateId:%{public}d, templateId:%{public}s",
+        subscribeContinuousAuthStatusParam.localUserId,
+        subscribeContinuousAuthStatusParam.hasTemplateId,
+        GET_MASKED_NUM_CSTR(subscribeContinuousAuthStatusParam.templateId));
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
     if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
@@ -338,7 +341,8 @@ ErrCode CompanionDeviceAuthService::UnsubscribeContinuousAuthStatusChange(
 ErrCode CompanionDeviceAuthService::UpdateTemplateEnabledBusinessIds(uint64_t templateId,
     const std::vector<int32_t> &enabledBusinessIds, int32_t &companionDeviceAuthResult)
 {
-    IAM_LOGI("Start");
+    IAM_LOGI("Start, templateId:%{public}s, enabledBusinessIds:%{public}s",
+        GET_MASKED_NUM_CSTR(templateId), GetVectorString(enabledBusinessIds).c_str());
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
     if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
@@ -364,7 +368,7 @@ ErrCode CompanionDeviceAuthService::UpdateTemplateEnabledBusinessIds(uint64_t te
 ErrCode CompanionDeviceAuthService::GetTemplateStatus(int32_t localUserId,
     std::vector<IpcTemplateStatus> &templateStatusArray, int32_t &companionDeviceAuthResult)
 {
-    IAM_LOGI("Start");
+    IAM_LOGI("Start, localUserId:%{public}d", localUserId);
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
     if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
@@ -446,7 +450,7 @@ ErrCode CompanionDeviceAuthService::UnregisterDeviceSelectCallback(int32_t &comp
 ErrCode CompanionDeviceAuthService::CheckLocalUserIdValid(int32_t localUserId, bool &isUserIdValid,
     int32_t &companionDeviceAuthResult)
 {
-    IAM_LOGI("Start");
+    IAM_LOGI("Start, localUserId:%{public}d", localUserId);
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
     if (!CheckPermission(companionDeviceAuthResult)) {
         return ERR_OK;
