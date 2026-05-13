@@ -28,6 +28,8 @@
 
 using namespace testing;
 using namespace testing::ext;
+using OHOS::UserIam::UserAuth::AUTH_SCENE_DEFAULT;
+using OHOS::UserIam::UserAuth::AUTH_SCENE_WIDGET_AUTH_NO_DISTURB;
 
 namespace OHOS {
 namespace UserIam {
@@ -54,7 +56,7 @@ HWTEST_F(HostMixAuthRequestTest, Start_001, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -82,7 +84,7 @@ HWTEST_F(HostMixAuthRequestTest, Start_002, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -113,7 +115,7 @@ HWTEST_F(HostMixAuthRequestTest, Start_003, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -142,7 +144,8 @@ HWTEST_F(HostMixAuthRequestTest, Start_004, TestSize.Level0)
     MockGuard guard;
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
-    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, {}, std::nullopt, std::nullopt, AUTH_INTENTION };
+    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, {}, std::nullopt, std::nullopt, AUTH_INTENTION,
+        AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     request->templateIdList_ = {};
@@ -167,7 +170,7 @@ HWTEST_F(HostMixAuthRequestTest, Cancel_001, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -201,7 +204,7 @@ HWTEST_F(HostMixAuthRequestTest, Cancel_002, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     request->cancelled_ = true;
@@ -217,7 +220,7 @@ HWTEST_F(HostMixAuthRequestTest, Cancel_003, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     request->requestMap_[1] = 0;
@@ -242,7 +245,7 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_001, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -275,7 +278,7 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_002, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -304,7 +307,7 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_ZeroRequestIdStillCallbacksSuc
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -335,7 +338,7 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_004, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -369,7 +372,7 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_005, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -400,7 +403,7 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_007, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -436,7 +439,7 @@ HWTEST_F(HostMixAuthRequestTest, GetMaxConcurrency_001, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     EXPECT_EQ(request->GetMaxConcurrency(), 1);
@@ -448,7 +451,7 @@ HWTEST_F(HostMixAuthRequestTest, ShouldCancelOnNewRequest_001, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     // HostMixAuthRequest does not preempt on any request type
@@ -462,7 +465,7 @@ HWTEST_F(HostMixAuthRequestTest, ShouldCancelOnNewRequest_002, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);
@@ -475,7 +478,7 @@ HWTEST_F(HostMixAuthRequestTest, InvokeCallback_001, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     request->requestCallback_ = nullptr;
@@ -489,7 +492,7 @@ HWTEST_F(HostMixAuthRequestTest, Start_WithTokenId, TestSize.Level0)
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     // Set tokenId to a value to test device selection path
@@ -519,6 +522,99 @@ HWTEST_F(HostMixAuthRequestTest, Start_WithTokenId, TestSize.Level0)
     TaskRunnerManager::GetInstance().ExecuteAll();
     // Callback is not called because request started successfully
     EXPECT_FALSE(*callbackCalled);
+}
+
+HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithAuthScene, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
+        AUTH_INTENTION, AUTH_SCENE_WIDGET_AUTH_NO_DISTURB, "" };
+    auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
+
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::GENERAL_ERROR);
+    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(TEMPLATE_ID)).WillRepeatedly(Return(validStatus));
+
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, SCHEDULE_ID);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    request->Start();
+    request->HandleAuthResult(TEMPLATE_ID, ResultCode::SUCCESS, EXTRA_INFO);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::SUCCESS);
+}
+
+HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithTitle, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "Test Title" };
+    auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
+
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::GENERAL_ERROR);
+    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(TEMPLATE_ID)).WillRepeatedly(Return(validStatus));
+
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, SCHEDULE_ID);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    request->Start();
+    request->HandleAuthResult(TEMPLATE_ID, ResultCode::SUCCESS, EXTRA_INFO);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::SUCCESS);
+}
+
+HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithAuthSceneAndTitle, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
+        AUTH_INTENTION, AUTH_SCENE_WIDGET_AUTH_NO_DISTURB, "Widget Auth Title" };
+    auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
+
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::GENERAL_ERROR);
+    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(TEMPLATE_ID)).WillRepeatedly(Return(validStatus));
+
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, SCHEDULE_ID);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    request->Start();
+    request->HandleAuthResult(TEMPLATE_ID, ResultCode::SUCCESS, EXTRA_INFO);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::SUCCESS);
 }
 
 } // namespace

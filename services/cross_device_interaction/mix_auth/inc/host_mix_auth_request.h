@@ -60,6 +60,8 @@ private:
     std::optional<BusinessId> businessId_;
     std::optional<std::vector<uint8_t>> selectContext_ = std::nullopt;
     int32_t authIntent_ = 0;
+    UserAuth::AuthScene authScene_ {UserAuth::AUTH_SCENE_DEFAULT};
+    std::string title_;
     FwkResultCallback requestCallback_;
     std::unordered_map<TemplateId, RequestId> requestMap_;
 };

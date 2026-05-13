@@ -42,6 +42,8 @@ HostMixAuthRequest::HostMixAuthRequest(const HostMixAuthParams &params, FwkResul
       tokenId_(params.tokenId),
       businessId_(params.businessId),
       authIntent_(params.authIntent),
+      authScene_(params.authScene),
+      title_(params.title),
       requestCallback_(std::move(requestCallback))
 {
     desc_.SetTemplateIdList(templateIdList_);
@@ -307,6 +309,10 @@ void HostMixAuthRequest::CompleteWithSuccess(TemplateId templateId, const std::v
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_AUTH_INTENT, authIntent_);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostUserId_);
     attributes.SetUint64Value(Attributes::ATTR_CDA_SA_TEMPLATE_ID, templateId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_AUTH_SCENE, static_cast<int32_t>(authScene_));
+    if (!title_.empty()) {
+        attributes.SetStringValue(Attributes::ATTR_CDA_SA_WIDGET_TITLE, title_);
+    }
     if (selectContext_) {
         attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_SELECT_CONTEXT, *selectContext_);
     }

@@ -220,8 +220,10 @@ static void FuzzCreateHostMixAuthRequest(std::shared_ptr<RequestFactoryImpl> &fa
         (void)result;
         (void)extraInfo;
     };
+    int32_t authScene = fuzzData.ConsumeIntegral<int32_t>();
+    std::string title = fuzzData.ConsumeRandomLengthString(FUZZ_MAX_MESSAGE_LENGTH);
     HostMixAuthParams params = { scheduleId, fwkMsg, hostUserId, templateIdList, optionalTokenId, std::nullopt,
-        authIntent };
+        authIntent, static_cast<UserAuth::AuthScene>(authScene), title };
     auto request = factory->CreateHostMixAuthRequest(params, std::move(callback));
     (void)request;
 }
