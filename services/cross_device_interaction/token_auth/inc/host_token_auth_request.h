@@ -22,6 +22,7 @@
 #include "outbound_request.h"
 #include "request_factory.h"
 #include "security_agent.h"
+#include "subscription.h"
 #include "user_id_manager.h"
 
 namespace OHOS {
@@ -51,6 +52,8 @@ private:
     ResultCode SecureAgentEndTokenAuth(const std::vector<uint8_t> &tokenAuthReply, std::vector<uint8_t> &outFwkMsg);
     void HandleTokenAuthReply(const Attributes &reply);
     void CompleteWithSuccess(const std::vector<uint8_t> &extraInfo);
+    bool EnsureCompanionAuthMaintainActive(const DeviceKey &deviceKey, ErrorGuard &errorGuard);
+    void HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
 
     std::vector<uint8_t> fwkMsg_;
     UserId hostUserId_ = INVALID_USER_ID;
@@ -59,6 +62,7 @@ private:
     FwkResultCallback requestCallback_;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::DEFAULT;
     bool needEndTokenAuth_ = false;
+    std::unique_ptr<Subscription> deviceStatusSubscription_;
 
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo);
 };

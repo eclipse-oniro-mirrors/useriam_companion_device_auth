@@ -308,12 +308,17 @@ bool SoftBusDeviceStatusManager::ConvertToPhysicalDevices(const std::vector<DmDe
         IAM_LOGI("Device %{public}s model info: %{public}s", GetMaskedString(deviceIdResult.value()).c_str(),
             deviceModelInfo.c_str());
 
-        // Soft bus does not support cross-device isAuthMaintain sync, so it is always true; related verification is
-        // done on the companion device.
         DeviceType deviceType = ConvertToDeviceType(static_cast<DmDeviceType>(device.deviceTypeId));
+#ifdef AUTH_STATE_MAINTAIN_SIMULATION
+        // Soft bus does not support cross-device isAuthMaintain sync, simulation mode always true
+        bool isAuthMaintainActive = true;
+        IAM_LOGI("AUTH_STATE_MAINTAIN_SIMULATION enabled, isAuthMaintainActive=%{public}d", isAuthMaintainActive);
+#else
+        bool isAuthMaintainActive = false;
+#endif
         retPhysicalDeviceStatuses.emplace_back(
             PhysicalDeviceStatus { PhysicalDeviceKey { DeviceIdType::UNIFIED_DEVICE_ID, deviceIdResult.value() },
-                ChannelId::SOFTBUS, device.deviceName, deviceModelInfo, networkId, true, deviceType });
+                ChannelId::SOFTBUS, device.deviceName, deviceModelInfo, networkId, isAuthMaintainActive, deviceType });
     }
 
     return true;
