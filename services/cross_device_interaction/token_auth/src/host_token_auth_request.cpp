@@ -74,6 +74,10 @@ bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
     }
 
     const DeviceKey &companionDeviceKey = companionStatus->companionDeviceStatus.deviceKey;
+    if (!EnsureCompanionAuthMaintainActive(companionDeviceKey, errorGuard)) {
+        return false;
+    }
+
     companionUserId_ = companionStatus->companionDeviceStatus.deviceKey.deviceUserId;
     auto secureProtocolOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(companionDeviceKey);
     if (!secureProtocolOpt.has_value()) {
@@ -290,6 +294,47 @@ bool HostTokenAuthRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
     }
 
     return false;
+}
+
+bool HostTokenAuthRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &deviceKey, ErrorGuard &errorGuard)
+{
+    auto deviceStatus = GetCrossDeviceCommManager().GetDeviceStatus(deviceKey);
+    if (!deviceStatus.has_value()) {
+        IAM_LOGE("%{public}s failed to get device status", GetDescription());
+        return false;
+    }
+    if (!deviceStatus->isAuthMaintainActive) {
+        IAM_LOGE("%{public}s device not in auth maintain active state", GetDescription());
+        return false;
+    }
+    deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey, false,
+        [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandlePeerDeviceStatusChanged(deviceStatusList);
+        });
+    if (deviceStatusSubscription_ == nullptr) {
+        IAM_LOGE("%{public}s failed to subscribe device status", GetDescription());
+        return false;
+    }
+    return true;
+}
+
+void HostTokenAuthRequest::HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList)
+{
+    LogTraceGuard guard;
+    auto peerDeviceKey = GetPeerDeviceKey();
+    ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKey.has_value());
+    for (const auto &status : deviceStatusList) {
+        if (status.deviceKey != *peerDeviceKey) {
+            continue;
+        }
+        if (!status.isAuthMaintainActive) {
+            IAM_LOGE("%{public}s companion device left auth maintain state", GetDescription());
+            CompleteWithError(ResultCode::GENERAL_ERROR);
+        }
+        return;
+    }
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

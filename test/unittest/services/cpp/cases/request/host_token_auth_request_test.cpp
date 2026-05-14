@@ -47,6 +47,7 @@ const DeviceKey OTHER_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
 const DeviceKey HOST_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
     .deviceId = "host_device_id",
     .deviceUserId = 100 };
+const DeviceStatus DEVICE_STATUS = { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = true };
 const int32_t AUTH_INTENTION = 1;
 
 std::unique_ptr<Subscription> MakeSubscription()
@@ -74,6 +75,10 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_001, TestSize.Level0)
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -140,6 +145,10 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_003, TestSize.Level0)
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_)).WillOnce(Return(std::nullopt));
 
     ErrorGuard errorGuard([](ResultCode) {});
@@ -163,6 +172,10 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_004, TestSize.Level0)
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
         .WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
@@ -195,6 +208,11 @@ HWTEST_F(HostTokenAuthRequestTest, OnConnected_001, TestSize.Level0)
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -235,6 +253,11 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_001, TestSize.Level0)
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -277,6 +300,11 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_002, TestSize.Level0)
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -320,6 +348,11 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_001, TestSize.Level0)
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -366,6 +399,11 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_002, TestSize.Level0)
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -407,6 +445,11 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_003, TestSize.Level0)
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -451,6 +494,11 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_004, TestSize.Level0)
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -497,6 +545,11 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_005, TestSize.Level0)
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -544,6 +597,11 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_006, TestSize.Level0)
     ON_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillByDefault(Return(true));
     ON_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillByDefault(Return(SecureProtocolId::DEFAULT));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
