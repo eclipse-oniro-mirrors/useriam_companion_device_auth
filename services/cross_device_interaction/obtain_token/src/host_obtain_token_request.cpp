@@ -24,6 +24,7 @@
 #include "adapter_manager.h"
 #include "companion_manager.h"
 #include "error_guard.h"
+#include "misc_manager.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 
@@ -90,6 +91,11 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (GetMiscManager().IsCompanionAuthBlocked()) {
+        IAM_LOGE("%{public}s companion auth blocked", GetDescription());
+        SendPreObtainTokenReply(ResultCode::LOCKED, {});
+        return false;
+    }
     if (!ParsePreObtainTokenRequest(errorGuard)) {
         IAM_LOGE("%{public}s ParsePreObtainTokenRequest failed", GetDescription());
         SendPreObtainTokenReply(ResultCode::GENERAL_ERROR, {});

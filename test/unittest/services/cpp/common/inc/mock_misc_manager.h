@@ -33,6 +33,8 @@ public:
         (uint32_t tokenId, SelectPurpose selectPurpose, DeviceSelectResultHandler &&resultHandler), (override));
     MOCK_METHOD(void, ClearDeviceSelectCallback, (uint32_t tokenId), (override));
     MOCK_METHOD(std::optional<std::string>, GetLocalUdid, (), (override));
+    MOCK_METHOD(void, SetCompanionAuthBlocked, (bool blocked), (override));
+    MOCK_METHOD(bool, IsCompanionAuthBlocked, (), (const, override));
 };
 
 } // namespace CompanionDeviceAuth

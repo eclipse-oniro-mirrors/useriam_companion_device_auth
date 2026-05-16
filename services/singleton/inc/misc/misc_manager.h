@@ -48,6 +48,8 @@ public:
         DeviceSelectResultHandler &&resultHandler) = 0;
     virtual void ClearDeviceSelectCallback(uint32_t tokenId) = 0;
     virtual std::optional<std::string> GetLocalUdid() = 0;
+    virtual void SetCompanionAuthBlocked(bool blocked) = 0;
+    virtual bool IsCompanionAuthBlocked() const = 0;
 
 protected:
     IMiscManager() = default;
