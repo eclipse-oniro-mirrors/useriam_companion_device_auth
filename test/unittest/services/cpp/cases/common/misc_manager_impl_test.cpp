@@ -318,6 +318,22 @@ HWTEST_F(MiscManagerImplTest, GetLocalUdid_001, TestSize.Level0)
     EXPECT_TRUE(udid.has_value());
 }
 
+HWTEST_F(MiscManagerImplTest, CompanionAuthBlocked_001, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = MiscManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    EXPECT_TRUE(manager->IsCompanionAuthBlocked());
+
+    manager->SetCompanionAuthBlocked(false);
+    EXPECT_FALSE(manager->IsCompanionAuthBlocked());
+
+    manager->SetCompanionAuthBlocked(false);
+    EXPECT_FALSE(manager->IsCompanionAuthBlocked());
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

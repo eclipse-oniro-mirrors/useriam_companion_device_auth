@@ -387,12 +387,14 @@ void Inner::HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vec
 
     ENSURE_OR_RETURN(pendingIssueTokenManager_ != nullptr);
     if (commandId == FwkPropertyMode::PROPERTY_MODE_FREEZE && lockStateAuthType == AuthType::PIN) {
+        GetMiscManager().SetCompanionAuthBlocked(true);
         pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
         for (const auto &templateId : freezeCommand.templateIdList) {
             GetCompanionManager().SetCompanionTokenAuthAtl(templateId, std::nullopt);
         }
         GetHostBindingManager().RevokeTokens(freezeCommand.userId);
     } else if (commandId == FwkPropertyMode::PROPERTY_MODE_UNFREEZE) {
+        GetMiscManager().SetCompanionAuthBlocked(false);
         if (GetUserIdManager().GetActiveUserId() == freezeCommand.userId) {
             pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
             GetCompanionManager().StartIssueTokenRequests(freezeCommand.templateIdList,
@@ -525,12 +527,19 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::GetProperty(const std::vector
     (void)templateIdList;
     (void)keys;
     property.authSubType = 0;
-    property.lockoutDuration = 0;
-    property.remainAttempts = INT32_MAX;
     property.enrollmentProgress.clear();
     property.sensorInfo.clear();
     property.nextFailLockoutDuration = 0;
     property.credentialLength = 0;
+    bool blocked = GetMiscManager().IsCompanionAuthBlocked();
+    IAM_LOGI("companion auth blocked %{public}d", blocked);
+    if (blocked) {
+        property.lockoutDuration = INT32_MAX;
+        property.remainAttempts = 0;
+    } else {
+        property.lockoutDuration = 0;
+        property.remainAttempts = INT32_MAX;
+    }
     return FwkResultCode::SUCCESS;
 }
 

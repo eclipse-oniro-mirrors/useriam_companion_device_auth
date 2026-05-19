@@ -44,6 +44,9 @@ public:
 
     std::optional<std::string> GetLocalUdid() override;
 
+    void SetCompanionAuthBlocked(bool blocked) override;
+    bool IsCompanionAuthBlocked() const override;
+
 private:
     MiscManagerImpl();
     struct CallbackInfo {
@@ -53,6 +56,7 @@ private:
 
     uint64_t globalIdCounter_;
     std::map<uint32_t, CallbackInfo> callbacks_;
+    bool companionAuthBlocked_ { true };
 };
 
 } // namespace CompanionDeviceAuth

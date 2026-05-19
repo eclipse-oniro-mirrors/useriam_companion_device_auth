@@ -66,6 +66,16 @@ public:
         return udid_;
     }
 
+    void SetCompanionAuthBlocked(bool blocked) override
+    {
+        blocked_ = blocked;
+    }
+
+    bool IsCompanionAuthBlocked() const override
+    {
+        return blocked_;
+    }
+
     // Test backdoors
     void TestSetLocalUdid(const std::string &udid)
     {
@@ -84,6 +94,7 @@ public:
 private:
     std::atomic<uint64_t> counter_ { 1 };
     std::string udid_ = "test-udid-12345";
+    bool blocked_ { false };
     std::map<uint32_t, sptr<IIpcDeviceSelectCallback>> callbacks_;
     std::map<uint32_t, DeviceSelectResultHandler> pendingHandlers_;
 };

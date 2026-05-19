@@ -82,6 +82,16 @@ public:
         return std::string("local-udid");
     }
 
+    void SetCompanionAuthBlocked(bool blocked) override
+    {
+        (void)blocked;
+    }
+
+    bool IsCompanionAuthBlocked() const override
+    {
+        return false;
+    }
+
     bool CheckBusinessIds(const std::vector<BusinessId> &)
     {
         return true;

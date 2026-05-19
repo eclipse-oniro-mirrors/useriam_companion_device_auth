@@ -708,9 +708,31 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, GetProperty_001, TestSize.Leve
     std::vector<FwkAttributeKey> keys;
     FwkProperty property;
 
+    EXPECT_CALL(guard.GetMiscManager(), IsCompanionAuthBlocked()).WillOnce(Return(false));
     FwkResultCode ret = executor->GetProperty(templateIdList, keys, property);
 
     EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+    EXPECT_EQ(property.lockoutDuration, 0);
+    EXPECT_EQ(property.remainAttempts, INT32_MAX);
+}
+
+HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, GetProperty_002_Blocked, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
+    ASSERT_NE(nullptr, executor);
+
+    std::vector<uint64_t> templateIdList;
+    std::vector<FwkAttributeKey> keys;
+    FwkProperty property;
+
+    EXPECT_CALL(guard.GetMiscManager(), IsCompanionAuthBlocked()).WillOnce(Return(true));
+    FwkResultCode ret = executor->GetProperty(templateIdList, keys, property);
+
+    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+    EXPECT_EQ(property.lockoutDuration, INT32_MAX);
+    EXPECT_EQ(property.remainAttempts, 0);
 }
 
 HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, SetCachedTemplates_001, TestSize.Level0)
@@ -902,6 +924,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_006
     EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(UINT64_456, testing::Eq(std::optional<Atl>())))
         .Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), RevokeTokens(_, _)).Times(1);
+    EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(true)).Times(1);
 
     FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
 
@@ -937,6 +960,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_007
     std::vector<uint8_t> extraInfo = info.Serialize();
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+    EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(false)).Times(1);
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _, _)).Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), StartObtainTokenRequests(_, _, _)).Times(1);
@@ -1010,6 +1034,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_009
     std::vector<uint8_t> extraInfo = info.Serialize();
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+    EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(false)).Times(1);
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _, _)).Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), StartObtainTokenRequests(_, _, _)).Times(1);

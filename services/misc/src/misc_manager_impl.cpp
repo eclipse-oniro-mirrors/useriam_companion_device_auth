@@ -206,6 +206,17 @@ std::optional<std::string> MiscManagerImpl::GetLocalUdid()
     return std::nullopt;
 }
 
+void MiscManagerImpl::SetCompanionAuthBlocked(bool blocked)
+{
+    companionAuthBlocked_ = blocked;
+    IAM_LOGI("set companion auth blocked %{public}d", blocked);
+}
+
+bool MiscManagerImpl::IsCompanionAuthBlocked() const
+{
+    return companionAuthBlocked_;
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

@@ -332,6 +332,16 @@ public:
         return std::optional<std::string>();
     }
 
+    void SetCompanionAuthBlocked(bool blocked) override
+    {
+        (void)blocked;
+    }
+
+    bool IsCompanionAuthBlocked() const override
+    {
+        return GenerateFuzzBool(fuzzData_);
+    }
+
 private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };
