@@ -52,6 +52,9 @@ public:
     ResultCode RegisterDeviceSelectCallback(uint32_t tokenId,
         const sptr<IIpcDeviceSelectCallback> &deviceSelectCallback);
     ResultCode UnregisterDeviceSelectCallback(uint32_t tokenId);
+    ResultCode RegisterPasscodePromptCallback(uint32_t tokenId,
+        const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback);
+    ResultCode UnregisterPasscodePromptCallback(uint32_t tokenId);
     bool CheckLocalUserIdValid(int32_t localUserId);
 
 private:

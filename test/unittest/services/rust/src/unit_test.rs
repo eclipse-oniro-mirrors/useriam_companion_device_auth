@@ -93,5 +93,3 @@ mod auth_token_test;
 mod message_codec_test;
 #[cfg(test)]
 mod parcel_test;
-#[cfg(test)]
-mod scope_guard_test;

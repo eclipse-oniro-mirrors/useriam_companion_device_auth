@@ -93,8 +93,9 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
         self->HandleDelegateAuthResult(resultCode, token);
     };
 
+    std::vector<AuthType> authTypes = { AuthType::PIN, AuthType::FACE, AuthType::FINGERPRINT };
     uint64_t contextId = GetUserAuthAdapter().BeginDelegateAuth(localDeviceKey->deviceUserId,
-        ConvertUint64ToUint8Vec(challenge), static_cast<uint32_t>(atl), callback);
+        ConvertUint64ToUint8Vec(challenge), static_cast<uint32_t>(atl), authTypes, callback);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), contextId != 0, false);
     contextId_ = contextId;
     desc_.SetContextId(contextId);

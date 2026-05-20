@@ -20,6 +20,7 @@
 #include <functional>
 #include <vector>
 
+#include "common_defines.h"
 #include "nocopyable.h"
 
 namespace OHOS {
@@ -33,7 +34,7 @@ public:
     virtual ~IUserAuthAdapter() = default;
 
     virtual uint64_t BeginDelegateAuth(int32_t userId, const std::vector<uint8_t> &challenge, uint32_t authTrustLevel,
-        AuthResultCallback callback) = 0;
+        const std::vector<AuthType> &authTypes, AuthResultCallback callback) = 0;
     virtual int32_t CancelAuthentication(uint64_t contextId) = 0;
 
 protected:

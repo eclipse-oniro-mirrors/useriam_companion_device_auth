@@ -28,7 +28,7 @@ public:
     ~UserAuthAdapterImpl() override = default;
 
     uint64_t BeginDelegateAuth(int32_t userId, const std::vector<uint8_t> &challenge, uint32_t authTrustLevel,
-        AuthResultCallback callback) override;
+        const std::vector<AuthType> &authTypes, AuthResultCallback callback) override;
     int32_t CancelAuthentication(uint64_t contextId) override;
 };
 

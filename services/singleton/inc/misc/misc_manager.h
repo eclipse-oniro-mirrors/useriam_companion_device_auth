@@ -28,6 +28,7 @@
 #include "common_defines.h"
 #include "companion_device_auth_types.h"
 #include "iipc_device_select_callback.h"
+#include "iipc_passcode_prompt_callback.h"
 #include "service_common.h"
 
 namespace OHOS {
@@ -36,6 +37,8 @@ namespace CompanionDeviceAuth {
 
 using DeviceSelectResultHandler =
     std::function<void(const std::vector<DeviceKey> &, const std::optional<std::vector<uint8_t>> &)>;
+
+using PasscodePromptCallback = std::function<void(const std::vector<uint8_t> &passcode)>;
 
 class IMiscManager : public NoCopyable {
 public:
@@ -47,6 +50,12 @@ public:
     virtual bool GetDeviceDeviceSelectResult(uint32_t tokenId, SelectPurpose selectPurpose,
         DeviceSelectResultHandler &&resultHandler) = 0;
     virtual void ClearDeviceSelectCallback(uint32_t tokenId) = 0;
+    virtual bool SetPasscodePromptCallback(uint32_t tokenId,
+        const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback) = 0;
+    virtual void ClearPasscodePromptCallback(uint32_t tokenId) = 0;
+    virtual bool PromptPasscode(uint32_t tokenId, const std::vector<uint8_t> &challenge,
+        const std::vector<uint8_t> &publicKey, AsymEncryptAlgorithm asymEncryptAlgorithm,
+        PasscodePromptCallback &&promptCallback) = 0;
     virtual std::optional<std::string> GetLocalUdid() = 0;
     virtual void SetCompanionAuthBlocked(bool blocked) = 0;
     virtual bool IsCompanionAuthBlocked() const = 0;

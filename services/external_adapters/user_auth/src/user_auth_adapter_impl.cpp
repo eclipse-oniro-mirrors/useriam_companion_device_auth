@@ -89,10 +89,15 @@ private:
 } // namespace
 
 uint64_t UserAuthAdapterImpl::BeginDelegateAuth(int32_t userId, const std::vector<uint8_t> &challenge,
-    uint32_t authTrustLevel, AuthResultCallback callback)
+    uint32_t authTrustLevel, const std::vector<AuthType> &authTypes, AuthResultCallback callback)
 {
     if (!callback) {
         IAM_LOGE("Callback is null");
+        return 0;
+    }
+
+    if (authTypes.empty()) {
+        IAM_LOGE("AuthTypes is empty");
         return 0;
     }
 
@@ -105,8 +110,9 @@ uint64_t UserAuthAdapterImpl::BeginDelegateAuth(int32_t userId, const std::vecto
     authParam.userId = userId;
     authParam.challenge = challenge;
     authParam.authTrustLevel = static_cast<UserAuth::AuthTrustLevel>(authTrustLevel);
-    authParam.authTypes = std::vector<UserAuth::AuthType> { UserAuth::AuthType::PIN, UserAuth::AuthType::FACE,
-        UserAuth::AuthType::FINGERPRINT };
+    for (auto type : authTypes) {
+        authParam.authTypes.push_back(static_cast<UserAuth::AuthType>(type));
+    }
 
     UserAuth::WidgetParam widgetParam = {};
     widgetParam.title = "Delegate Authentication";

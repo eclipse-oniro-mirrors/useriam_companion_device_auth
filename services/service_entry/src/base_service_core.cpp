@@ -289,6 +289,29 @@ ResultCode BaseServiceCore::UnregisterDeviceSelectCallback(uint32_t tokenId)
     return ResultCode::SUCCESS;
 }
 
+ResultCode BaseServiceCore::RegisterPasscodePromptCallback(uint32_t tokenId,
+    const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback)
+{
+    IAM_LOGI("Start");
+    ENSURE_OR_RETURN_VAL(passcodePromptCallback != nullptr, ResultCode::INVALID_PARAMETERS);
+
+    if (!GetMiscManager().SetPasscodePromptCallback(tokenId, passcodePromptCallback)) {
+        IAM_LOGE("failed to SetPasscodePromptCallback");
+        return ResultCode::GENERAL_ERROR;
+    }
+
+    IAM_LOGI("End");
+    return ResultCode::SUCCESS;
+}
+
+ResultCode BaseServiceCore::UnregisterPasscodePromptCallback(uint32_t tokenId)
+{
+    IAM_LOGI("Start");
+    GetMiscManager().ClearPasscodePromptCallback(tokenId);
+    IAM_LOGI("End");
+    return ResultCode::SUCCESS;
+}
+
 bool BaseServiceCore::CheckLocalUserIdValid(int32_t localUserId)
 {
     IAM_LOGI("Start");

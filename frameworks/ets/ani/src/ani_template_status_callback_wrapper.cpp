@@ -15,6 +15,7 @@
 
 #include "taihe/runtime.hpp"
 
+#include "iam_check.h"
 #include "iam_logger.h"
 
 #include "companion_device_auth_ani_helper.h"
@@ -35,6 +36,7 @@ void AniTemplateStatusCallbackWrapper::OnTemplateStatusChange(
     IAM_LOGI("start");
     ::taihe::env_guard guard;
     ani_env *env = guard.get_env();
+    ENSURE_OR_RETURN(env != nullptr);
 
     std::vector<companionDeviceAuth::TemplateStatus> temp;
     for (size_t i = 0; i < templateStatusList.size(); ++i) {

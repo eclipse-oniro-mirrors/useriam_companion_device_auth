@@ -46,11 +46,15 @@ public:
     void SetTemplateId(TemplateId templateId);
     void SetTemplateIdList(const std::vector<TemplateId> &templateIdList);
     void SetSubRequestIdList(const std::vector<RequestId> &subRequestIdList);
+    void SetUserId(UserId userId);
+    void SetPkgName(const std::string &pkgName);
 
     const char *GetCStr() const;
 
 private:
     void Rebuild();
+    void AppendSubRequestIds(std::ostringstream &oss) const;
+    void AppendTemplateIds(std::ostringstream &oss) const;
 
     std::string prefix_;
     std::string type_;
@@ -62,6 +66,8 @@ private:
     std::optional<TemplateId> templateId_;
     std::vector<TemplateId> templateIdList_;
     std::vector<RequestId> subRequestIdList_;
+    std::optional<UserId> userId_;
+    std::string pkgName_;
     std::string description_;
 };
 } // namespace CompanionDeviceAuth

@@ -28,6 +28,7 @@
 #include "iam_para2str.h"
 
 #include "callback_death_recipient.h"
+#include "ipc_passcode_submit_callback_stub.h"
 #include "ipc_set_device_select_result_callback_stub.h"
 #include "parameter.h"
 #include "service_common.h"
@@ -102,6 +103,47 @@ public:
 
 private:
     DeviceSelectResultHandler handler_ {};
+};
+
+class MiscPasscodePromptCallback : public IpcPasscodeSubmitCallbackStub {
+public:
+    explicit MiscPasscodePromptCallback(PasscodePromptCallback &&handler) : handler_(std::move(handler))
+    {
+    }
+    ~MiscPasscodePromptCallback() override = default;
+
+    ErrCode OnPasscodeSubmit(const std::vector<uint8_t> &passcode) override
+    {
+        IAM_LOGI("OnPasscodeSubmit invoked, encrypted data len:%{public}zu", passcode.size());
+        if (!handler_) {
+            IAM_LOGE("handler has already been consumed");
+            return GENERAL_ERROR;
+        }
+        std::vector<uint8_t> passcodeVec(passcode.begin(), passcode.end());
+        TaskRunnerManager::GetInstance().PostTaskOnResident(
+            [handler = std::move(handler_), passcode = std::move(passcodeVec)]() mutable {
+                if (handler) {
+                    handler(passcode);
+                }
+            });
+        return ERR_OK;
+    }
+
+    int32_t CallbackEnter(uint32_t code) override
+    {
+        (void)code;
+        return ERR_OK;
+    }
+
+    int32_t CallbackExit(uint32_t code, int32_t result) override
+    {
+        (void)code;
+        (void)result;
+        return ERR_OK;
+    }
+
+private:
+    PasscodePromptCallback handler_ {};
 };
 } // namespace
 
@@ -193,6 +235,77 @@ void MiscManagerImpl::ClearDeviceSelectCallback(uint32_t tokenId)
 
     callbacks_.erase(it);
     IAM_LOGI("cleared device select callback");
+}
+
+bool MiscManagerImpl::SetPasscodePromptCallback(uint32_t tokenId,
+    const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback)
+{
+    ENSURE_OR_RETURN_VAL(passcodePromptCallback != nullptr, false);
+
+    auto obj = passcodePromptCallback->AsObject();
+    ENSURE_OR_RETURN_VAL(obj != nullptr, false);
+
+    sptr<IRemoteObject::DeathRecipient> deathRecipient =
+        CallbackDeathRecipient::Register(obj, [weakSelf = weak_from_this(), tokenId]() {
+            IAM_LOGI("passcode prompt callback died, clearing callback");
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->ClearPasscodePromptCallback(tokenId);
+        });
+    ENSURE_OR_RETURN_VAL(deathRecipient != nullptr, false);
+
+    auto it = passcodePromptCallbacks_.find(tokenId);
+    if (it != passcodePromptCallbacks_.end()) {
+        IAM_LOGI("replacing existing passcode prompt callback");
+    }
+
+    passcodePromptCallbacks_[tokenId] = { passcodePromptCallback, deathRecipient };
+    IAM_LOGI("set passcode prompt callback");
+    return true;
+}
+
+void MiscManagerImpl::ClearPasscodePromptCallback(uint32_t tokenId)
+{
+    auto it = passcodePromptCallbacks_.find(tokenId);
+    if (it == passcodePromptCallbacks_.end()) {
+        return;
+    }
+
+    passcodePromptCallbacks_.erase(it);
+    IAM_LOGI("cleared passcode prompt callback");
+}
+
+bool MiscManagerImpl::PromptPasscode(uint32_t tokenId, const std::vector<uint8_t> &challenge,
+    const std::vector<uint8_t> &publicKey, AsymEncryptAlgorithm asymEncryptAlgorithm,
+    PasscodePromptCallback &&promptCallback)
+{
+    ENSURE_OR_RETURN_VAL(promptCallback != nullptr, false);
+
+    sptr<IIpcPasscodePromptCallback> passcodePromptCallback;
+    auto it = passcodePromptCallbacks_.find(tokenId);
+    if (it != passcodePromptCallbacks_.end()) {
+        passcodePromptCallback = it->second.callback;
+    }
+    ENSURE_OR_RETURN_VAL(passcodePromptCallback != nullptr, false);
+
+    sptr<MiscPasscodePromptCallback> ipcSubmitCallback =
+        new (std::nothrow) MiscPasscodePromptCallback(std::move(promptCallback));
+    ENSURE_OR_RETURN_VAL(ipcSubmitCallback != nullptr, false);
+
+    IpcPasscodePromptOptions ipcOptions;
+    ipcOptions.challenge = challenge;
+    ipcOptions.publicKey = publicKey;
+    ipcOptions.asymEncryptAlgorithm = static_cast<int8_t>(asymEncryptAlgorithm);
+
+    ErrCode ret = passcodePromptCallback->OnPasscodePrompt(ipcSubmitCallback, ipcOptions);
+    if (ret != ERR_OK) {
+        IAM_LOGE("OnPasscodePrompt failed, ret:%{public}d", ret);
+        return false;
+    }
+
+    IAM_LOGI("requested passcode prompt, challenge len:%{public}zu, publicKey len:%{public}zu, algorithm:%{public}d",
+        challenge.size(), publicKey.size(), static_cast<uint8_t>(asymEncryptAlgorithm));
+    return true;
 }
 
 std::optional<std::string> MiscManagerImpl::GetLocalUdid()

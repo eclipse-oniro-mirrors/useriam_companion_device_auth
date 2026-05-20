@@ -43,7 +43,6 @@ enum ResultCode : int32_t {
     AUTH_TOKEN_CHECK_FAILED = 15,
     AUTH_TOKEN_EXPIRED = 16,
     COMMUNICATION_ERROR = 17,
-
     NO_VALID_CREDENTIAL = 18,
 
     CHECK_PERMISSION_FAILED = 20001,
@@ -72,12 +71,25 @@ enum class AuthType : int32_t {
     FACE = 2,
     FINGERPRINT = 4,
     COMPANION_DEVICE = 64,
+    CUSTOM_AUTH = 128,
 };
 
 enum class BusinessId : int32_t {
     DEFAULT = 0,
     VENDOR_BEGIN = 10000,
 };
+
+enum class AsymEncryptAlgorithm : uint8_t {
+    UNKNOWN = 0,
+    RSA_4096_OAEP_SHA256 = 1,
+};
+
+inline bool IsValidAsymEncryptAlgorithm(uint8_t value)
+{
+    return value == static_cast<uint8_t>(AsymEncryptAlgorithm::RSA_4096_OAEP_SHA256);
+}
+
+constexpr int32_t RSA_4096_KEY_BITS = 4096;
 
 constexpr size_t ARGS_ONE = 1;
 constexpr size_t ARGS_TWO = 2;
@@ -92,6 +104,7 @@ const int32_t FRAMEWORKS_GENERAL_ERROR = 32600001;
 const int32_t FRAMEWORKS_NOT_FOUND = 32600002;
 const int32_t FRAMEWORKS_INVALID_PARAMS = 32600003;
 const std::string USE_USER_IDM_PERMISSION = "ohos.permission.USE_USER_IDM";
+const std::string ACCESS_USER_AUTH_INTERNAL_PERMISSION = "ohos.permission.ACCESS_USER_AUTH_INTERNAL";
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

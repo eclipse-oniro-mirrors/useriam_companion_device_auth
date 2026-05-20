@@ -50,6 +50,7 @@
         "json",
         "jsoncpp",
         "napi",
+        "openssl",
         "os_account",
         "runtime_core",
         "rust_cxx",

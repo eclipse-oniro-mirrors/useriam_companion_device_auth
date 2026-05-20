@@ -101,3 +101,15 @@ struct IpcSubscribeContinuousAuthStatusParam {
     unsigned long templateId;
 };
 
+/**
+ * @brief Options carried by the framework when prompting for a companion device passcode.
+ */
+struct IpcPasscodePromptOptions {
+    /** Challenge that the framework expects to be returned together with the passcode. */
+    unsigned char[] challenge;
+    /** Public key (DER-encoded SubjectPublicKeyInfo) for encrypting the passcode. */
+    unsigned char[] publicKey;
+    /** Asymmetric encryption algorithm (enum AsymEncryptAlgorithm represented by uint8). */
+    byte asymEncryptAlgorithm;
+};
+

@@ -29,7 +29,6 @@
 using namespace testing;
 using namespace testing::ext;
 using OHOS::UserIam::UserAuth::AUTH_SCENE_DEFAULT;
-using OHOS::UserIam::UserAuth::AUTH_SCENE_WIDGET_AUTH_NO_DISTURB;
 
 namespace OHOS {
 namespace UserIam {
@@ -530,7 +529,7 @@ HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithAuthScene, TestSize.Lev
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION, AUTH_SCENE_WIDGET_AUTH_NO_DISTURB, "" };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -592,7 +591,7 @@ HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithAuthSceneAndTitle, Test
 
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION, AUTH_SCENE_WIDGET_AUTH_NO_DISTURB, "Widget Auth Title" };
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "Widget Auth Title" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     auto callbackCalled = std::make_shared<bool>(false);

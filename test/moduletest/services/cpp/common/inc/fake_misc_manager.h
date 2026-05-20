@@ -76,6 +76,21 @@ public:
         return blocked_;
     }
 
+    bool SetPasscodePromptCallback(uint32_t, const sptr<IIpcPasscodePromptCallback> &) override
+    {
+        return true;
+    }
+
+    void ClearPasscodePromptCallback(uint32_t) override
+    {
+    }
+
+    bool PromptPasscode(uint32_t, const std::vector<uint8_t> &, const std::vector<uint8_t> &, AsymEncryptAlgorithm,
+        PasscodePromptCallback &&) override
+    {
+        return true;
+    }
+
     // Test backdoors
     void TestSetLocalUdid(const std::string &udid)
     {

@@ -342,6 +342,21 @@ public:
         return GenerateFuzzBool(fuzzData_);
     }
 
+    bool SetPasscodePromptCallback(uint32_t, const sptr<IIpcPasscodePromptCallback> &) override
+    {
+        return GenerateFuzzBool(fuzzData_);
+    }
+
+    void ClearPasscodePromptCallback(uint32_t) override
+    {
+    }
+
+    bool PromptPasscode(uint32_t, const std::vector<uint8_t> &, const std::vector<uint8_t> &, AsymEncryptAlgorithm,
+        PasscodePromptCallback &&) override
+    {
+        return GenerateFuzzBool(fuzzData_);
+    }
+
 private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };

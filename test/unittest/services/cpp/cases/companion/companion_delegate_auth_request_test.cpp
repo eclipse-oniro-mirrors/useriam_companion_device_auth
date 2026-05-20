@@ -60,7 +60,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
         .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetUserAuthAdapter(), BeginDelegateAuth(_, _, _, _)).WillOnce(Return(12345));
+    EXPECT_CALL(guard.GetUserAuthAdapter(), BeginDelegateAuth(_, _, _, _, _)).WillOnce(Return(12345));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);

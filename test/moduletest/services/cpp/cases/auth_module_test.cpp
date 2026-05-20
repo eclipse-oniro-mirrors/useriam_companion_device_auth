@@ -1534,8 +1534,9 @@ HWTEST_F(AuthModuleTest, CompanionDelegateAuthFullFlowE2E_001, TestSize.Level0)
             return ResultCode::SUCCESS;
         });
     AuthResultCallback capturedCallback;
-    EXPECT_CALL(guard.GetUserAuthAdapter(), BeginDelegateAuth(_, _, _, _))
-        .WillOnce([&](int32_t, const std::vector<uint8_t> &, uint32_t, AuthResultCallback cb) -> uint64_t {
+    EXPECT_CALL(guard.GetUserAuthAdapter(), BeginDelegateAuth(_, _, _, _, _))
+        .WillOnce([&](int32_t, const std::vector<uint8_t> &, uint32_t, const std::vector<AuthType> &,
+                      AuthResultCallback cb) -> uint64_t {
             capturedCallback = std::move(cb);
             return 1001;
         });

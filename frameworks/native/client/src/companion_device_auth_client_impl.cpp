@@ -530,6 +530,59 @@ int32_t CompanionDeviceAuthClientImpl::CheckLocalUserIdValid(int32_t userId, boo
     return ret;
 }
 
+int32_t CompanionDeviceAuthClientImpl::RegisterPasscodePromptCallback(
+    const std::shared_ptr<IPasscodePromptCallback> &callback)
+{
+    IAM_LOGI("start");
+    ENSURE_OR_RETURN_VAL(callback != nullptr, GENERAL_ERROR);
+    auto proxy = GetProxy();
+    ENSURE_OR_RETURN_VAL(proxy != nullptr, GENERAL_ERROR);
+
+    sptr<IpcPasscodePromptCallbackService> wrapper(new (std::nothrow) IpcPasscodePromptCallbackService(callback));
+    ENSURE_OR_RETURN_VAL(wrapper != nullptr, GENERAL_ERROR);
+
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    int32_t ret = GENERAL_ERROR;
+    int32_t ipcRet = proxy->RegisterPasscodePromptCallback(wrapper, ret);
+    if (ipcRet != SUCCESS) {
+        IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
+        return GENERAL_ERROR;
+    }
+
+    if (ret != SUCCESS) {
+        IAM_LOGE("RegisterPasscodePromptCallback fail, ret:%{public}d", ret);
+        return ret;
+    }
+
+    passcodePromptCallback_ = callback;
+    return ret;
+}
+
+int32_t CompanionDeviceAuthClientImpl::UnregisterPasscodePromptCallback()
+{
+    IAM_LOGI("start");
+    auto proxy = GetProxy();
+    if (!proxy) {
+        IAM_LOGE("proxy is nullptr");
+        return GENERAL_ERROR;
+    }
+
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    int32_t ret = GENERAL_ERROR;
+    int32_t ipcRet = proxy->UnregisterPasscodePromptCallback(ret);
+    if (ipcRet != SUCCESS) {
+        IAM_LOGE("ipc call return fail, ret:%{public}d", ipcRet);
+        return GENERAL_ERROR;
+    }
+
+    if (ret != SUCCESS) {
+        IAM_LOGE("UnregisterPasscodePromptCallback fail, ret:%{public}d", ret);
+    }
+
+    passcodePromptCallback_ = nullptr;
+    return ret;
+}
+
 sptr<ICompanionDeviceAuth> CompanionDeviceAuthClientImpl::GetProxy()
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
@@ -556,6 +609,18 @@ void CompanionDeviceAuthClientImpl::ReregisterDeviceSelectCallback()
         return;
     }
     RegisterDeviceSelectCallback(deviceSelectCallback_);
+}
+
+void CompanionDeviceAuthClientImpl::ReregisterPasscodePromptCallback()
+{
+    IAM_LOGI("start");
+
+    std::lock_guard<std::recursive_mutex> guard(mutex_);
+    if (passcodePromptCallback_ == nullptr) {
+        return;
+    }
+    IAM_LOGI("re-register passcode prompt callback");
+    RegisterPasscodePromptCallback(passcodePromptCallback_);
 }
 
 void CompanionDeviceAuthClientImpl::ResubscribeTemplateStatusChange()
@@ -615,6 +680,7 @@ void CompanionDeviceAuthClientImpl::SubscribeCompanionDeviceAuthSaStatus()
         "CompanionDeviceAuthService", SUBSYS_USERIAM_SYS_ABILITY_COMPANIONDEVICEAUTH,
         [this]() {
             ReregisterDeviceSelectCallback();
+            ReregisterPasscodePromptCallback();
             ResubscribeTemplateStatusChange();
             ResubscribeContinuousAuthStatusChange();
             ResubscribeAvailableDeviceStatus();

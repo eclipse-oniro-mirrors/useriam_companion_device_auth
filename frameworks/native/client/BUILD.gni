@@ -14,12 +14,16 @@
 import("../../../companion_device_auth.gni")
 
 companion_device_auth_client_sources = [
+  "src/asym_encryptor.cpp",
   "src/companion_device_auth_client_impl.cpp",
   "src/ipc_available_device_status_callback_service.cpp",
   "src/ipc_client_fetcher.cpp",
   "src/ipc_continuous_auth_status_callback_service.cpp",
   "src/ipc_device_select_callback_service.cpp",
+  "src/ipc_passcode_prompt_callback_service.cpp",
   "src/ipc_template_status_callback_service.cpp",
+  "src/passcode_submit_callback_impl.cpp",
+  "src/rsa_oaep_encryptor.cpp",
   "src/set_device_select_result_callback.cpp",
   "src/system_ability_listener.cpp",
 ]
@@ -43,6 +47,7 @@ companion_device_auth_client_external_deps = [
   "init:libbegetutil",
   "ipc:ipc_single",
   "napi:ace_napi",
+  "openssl:libcrypto_shared",
   "samgr:samgr_proxy",
 ]
 

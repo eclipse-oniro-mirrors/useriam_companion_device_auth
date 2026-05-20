@@ -85,7 +85,6 @@ pub enum RustFileId {
     Attribute = 0x02D0,
     MessageCodec = 0x02D1,
     Parcel = 0x02D2,
-    ScopeGuard = 0x02D3,
 }
 
 /// Per-file IDs for test files.
@@ -95,7 +94,6 @@ pub enum RustFileId {
 pub enum TestFileId {
     TypesTest = 0x0300,
     ConstantsTest = 0x0301,
-    ScopeGuardTest = 0x0302,
     MessageCodecTest = 0x0303,
     AttributeTest = 0x0304,
     ParcelTest = 0x0305,
@@ -208,7 +206,6 @@ pub fn file_id_to_name(file_id: u16) -> &'static str {
         0x02D0 => "attribute.rs",
         0x02D1 => "message_codec.rs",
         0x02D2 => "parcel.rs",
-        0x02D3 => "scope_guard.rs",
         _ => test_file_id_to_name(file_id),
     }
 }
@@ -223,7 +220,6 @@ fn test_file_id_to_name(file_id: u16) -> &'static str {
     match file_id {
         0x0300 => "types_test.rs",           // TypesTest
         0x0301 => "constants_test.rs",       // ConstantsTest
-        0x0302 => "scope_guard_test.rs",     // ScopeGuardTest
         0x0303 => "message_codec_test.rs",   // MessageCodecTest
         0x0304 => "attribute_test.rs",       // AttributeTest
         0x0305 => "parcel_test.rs",          // ParcelTest

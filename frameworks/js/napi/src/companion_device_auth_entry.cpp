@@ -32,6 +32,7 @@
 #include "companion_device_auth_napi_helper.h"
 #include "idevice_select_callback.h"
 #include "napi_device_select_callback.h"
+#include "napi_passcode_prompt_callback.h"
 #include "status_monitor.h"
 
 #define LOG_TAG "CDA_NAPI"
@@ -45,14 +46,14 @@ using NapiAvailableDeviceStatusCallback = AvailableDeviceStatusCallbackWrapper<J
 using NapiContinuousAuthStatusCallback = ContinuousAuthStatusCallbackWrapper<JsRefHolder>;
 
 namespace {
-int32_t CheckPermission()
+int32_t CheckPermission(const std::string &permission)
 {
     using namespace Security::AccessToken;
     uint64_t fullTokenId = IPCSkeleton::GetCallingFullTokenID();
     AccessTokenID tokenId = fullTokenId & TOKEN_ID_LOW_MASK;
 
-    if (AccessTokenKit::VerifyAccessToken(tokenId, USE_USER_IDM_PERMISSION) != RET_SUCCESS) {
-        IAM_LOGE("CheckUseUserIdmPermission fail");
+    if (AccessTokenKit::VerifyAccessToken(tokenId, permission) != RET_SUCCESS) {
+        IAM_LOGE("check permission %{public}s failed", permission.c_str());
         return CHECK_PERMISSION_FAILED;
     }
 
@@ -166,7 +167,7 @@ napi_value GetTemplateStatus(napi_env env, napi_callback_info info)
         return nullptr;
     }
 
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_reject_deferred(env, promiseDeferred,
@@ -205,7 +206,7 @@ napi_value GetTemplateStatus(napi_env env, napi_callback_info info)
 napi_value OnTemplateChange(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
@@ -239,7 +240,7 @@ napi_value OnTemplateChange(napi_env env, napi_callback_info info)
 napi_value OffTemplateChange(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
@@ -277,7 +278,7 @@ napi_value OffTemplateChange(napi_env env, napi_callback_info info)
 napi_value OnAvailableDeviceChange(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
@@ -312,7 +313,7 @@ napi_value OnAvailableDeviceChange(napi_env env, napi_callback_info info)
 napi_value OffAvailableDeviceChange(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
@@ -415,7 +416,7 @@ bool GetOnContinuousAuthChangeParam(napi_env env, napi_callback_info info, std::
 napi_value OnContinuousAuthChange(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
@@ -450,7 +451,7 @@ napi_value OnContinuousAuthChange(napi_env env, napi_callback_info info)
 napi_value OffContinuousAuthChange(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
@@ -540,7 +541,7 @@ napi_value StatusMonitorClass(napi_env env)
 napi_value GetStatusMonitor(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
@@ -628,10 +629,87 @@ napi_value RegisterDeviceSelectCallbackInner(napi_env env, napi_callback_info in
     return nullptr;
 }
 
+napi_value RegisterPasscodePromptCallback(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    int32_t checkPermission = CheckPermission(ACCESS_USER_AUTH_INTERNAL_PERMISSION);
+    if (checkPermission != SUCCESS) {
+        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
+        return nullptr;
+    }
+
+    int32_t errorCode = ResultCode::GENERAL_ERROR;
+    ScopeGuard guard([&env, &errorCode]() {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, errorCode));
+    });
+
+    napi_value argv[ARGS_ONE];
+    size_t argc = ARGS_ONE;
+    napi_status status = napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (status != napi_ok) {
+        IAM_LOGE("napi_get_cb_info fail, ret:%{public}d", status);
+        return nullptr;
+    }
+    if (argc != ARGS_ONE) {
+        IAM_LOGE("invalid param, argc:%{public}zu", argc);
+        return nullptr;
+    }
+
+    auto passcodePromptCallback = std::make_shared<NapiPasscodePromptCallback>(env);
+    ENSURE_OR_RETURN_VAL(passcodePromptCallback != nullptr, nullptr);
+
+    napi_ref ref = nullptr;
+    status = CompanionDeviceAuthNapiHelper::GetFunctionRef(env, argv[PARAM0], ref);
+    if (status != napi_ok || ref == nullptr) {
+        IAM_LOGE("GetFunctionRef fail %{public}d", status);
+        return nullptr;
+    }
+
+    auto callbackRef = std::make_shared<JsRefHolder>(env, ref);
+    ENSURE_OR_RETURN_VAL(callbackRef != nullptr, nullptr);
+    if (!callbackRef->IsValid()) {
+        IAM_LOGE("generate callbackRef fail");
+        return nullptr;
+    }
+
+    passcodePromptCallback->SetCallback(callbackRef);
+    int32_t ret = CompanionDeviceAuthClient::GetInstance().RegisterPasscodePromptCallback(passcodePromptCallback);
+    if (ret != SUCCESS) {
+        IAM_LOGE("RegisterPasscodePromptCallback fail, ret:%{public}d", ret);
+        errorCode = ret;
+        return nullptr;
+    }
+
+    guard.Cancel();
+    IAM_LOGI("success");
+    return nullptr;
+}
+
+napi_value UnregisterPasscodePromptCallback(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    int32_t checkPermission = CheckPermission(ACCESS_USER_AUTH_INTERNAL_PERMISSION);
+    if (checkPermission != SUCCESS) {
+        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
+        return nullptr;
+    }
+
+    int32_t ret = CompanionDeviceAuthClient::GetInstance().UnregisterPasscodePromptCallback();
+    if (ret != SUCCESS) {
+        IAM_LOGE("UnregisterPasscodePromptCallback fail, ret:%{public}d", ret);
+        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+        return nullptr;
+    }
+    IAM_LOGI("success");
+    return nullptr;
+}
+
 napi_value RegisterDeviceSelectCallback(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
@@ -656,7 +734,7 @@ napi_value UnregisterDeviceSelectCallbackInner(napi_env env, napi_callback_info 
 napi_value UnregisterDeviceSelectCallback(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
@@ -729,7 +807,7 @@ napi_value UpdateEnabledBusinessIds(napi_env env, napi_callback_info info)
         return nullptr;
     }
 
-    int32_t checkPermission = CheckPermission();
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
     if (checkPermission != SUCCESS) {
         IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
         napi_reject_deferred(env, promiseDeferred,
@@ -791,6 +869,9 @@ napi_value CompanionDeviceAuthInit(napi_env env, napi_value exports)
         DECLARE_NAPI_FUNCTION("registerDeviceSelectCallback", CompanionDeviceAuth::RegisterDeviceSelectCallback),
         DECLARE_NAPI_FUNCTION("unregisterDeviceSelectCallback", CompanionDeviceAuth::UnregisterDeviceSelectCallback),
         DECLARE_NAPI_FUNCTION("updateEnabledBusinessIds", CompanionDeviceAuth::UpdateEnabledBusinessIds),
+        DECLARE_NAPI_FUNCTION("registerPasscodePromptCallback", CompanionDeviceAuth::RegisterPasscodePromptCallback),
+        DECLARE_NAPI_FUNCTION("unregisterPasscodePromptCallback",
+            CompanionDeviceAuth::UnregisterPasscodePromptCallback),
     };
     status = napi_define_properties(env, exports, sizeof(exportFuncs) / sizeof(napi_property_descriptor), exportFuncs);
     if (status != napi_ok) {

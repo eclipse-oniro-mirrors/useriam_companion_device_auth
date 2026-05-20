@@ -29,6 +29,8 @@ ohos_fuzztest("CompanionDeviceAuthClientFuzzer") {
 
   sources = companion_device_auth_client_full_sources + [
               "cases/companion_device_auth_client_impl_fuzzer.cpp",
+              "cases/passcode_submit_callback_impl_fuzzer.cpp",
+              "cases/rsa_oaep_encryptor_fuzzer.cpp",
               "companion_device_auth_client_fuzzer.cpp",
             ]
   sources += companion_device_auth_fake_sources
@@ -54,6 +56,7 @@ ohos_fuzztest("CompanionDeviceAuthClientFuzzer") {
     "hilog:libhilog",
     "init:libbegetutil",
     "ipc:ipc_core",
+    "openssl:libcrypto_shared",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "user_auth_framework:userauth_client",

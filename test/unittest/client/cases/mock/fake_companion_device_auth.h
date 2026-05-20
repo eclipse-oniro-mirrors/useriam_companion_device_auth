@@ -23,6 +23,7 @@
 #include "iipc_available_device_status_callback.h"
 #include "iipc_continuous_auth_status_callback.h"
 #include "iipc_device_select_callback.h"
+#include "iipc_passcode_prompt_callback.h"
 #include "iipc_template_status_callback.h"
 
 namespace OHOS {
@@ -64,6 +65,9 @@ public:
         (uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds, int32_t &resultCode), (override));
     MOCK_METHOD(ErrCode, CheckLocalUserIdValid, (int32_t localUserId, bool &isUserIdValid, int32_t &resultCode),
         (override));
+    MOCK_METHOD(ErrCode, RegisterPasscodePromptCallback,
+        (const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback, int32_t &resultCode), (override));
+    MOCK_METHOD(ErrCode, UnregisterPasscodePromptCallback, (int32_t & resultCode), (override));
 
     // IRemoteBroker interface - stub implementation
     sptr<IRemoteObject> AsObject() override

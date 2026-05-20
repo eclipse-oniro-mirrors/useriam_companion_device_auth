@@ -35,6 +35,13 @@ public:
     MOCK_METHOD(std::optional<std::string>, GetLocalUdid, (), (override));
     MOCK_METHOD(void, SetCompanionAuthBlocked, (bool blocked), (override));
     MOCK_METHOD(bool, IsCompanionAuthBlocked, (), (const, override));
+    MOCK_METHOD(bool, SetPasscodePromptCallback,
+        (uint32_t tokenId, const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback), (override));
+    MOCK_METHOD(void, ClearPasscodePromptCallback, (uint32_t tokenId), (override));
+    MOCK_METHOD(bool, PromptPasscode,
+        (uint32_t tokenId, const std::vector<uint8_t> &challenge, const std::vector<uint8_t> &publicKey,
+            AsymEncryptAlgorithm asymEncryptAlgorithm, PasscodePromptCallback &&promptCallback),
+        (override));
 };
 
 } // namespace CompanionDeviceAuth
