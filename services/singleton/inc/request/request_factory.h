@@ -43,6 +43,7 @@ struct AuthRequestParams {
     UserId hostUserId;
     TemplateId templateId;
     int32_t authIntent;
+    UserAuth::AuthScene authScene;
 };
 
 struct HostMixAuthParams {

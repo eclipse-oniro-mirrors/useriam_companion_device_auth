@@ -40,6 +40,7 @@ HostSingleMixAuthRequest::HostSingleMixAuthRequest(const AuthRequestParams &para
       hostUserId_(params.hostUserId),
       templateId_(params.templateId),
       authIntent_(params.authIntent),
+      authScene_(params.authScene),
       requestCallback_(std::move(requestCallback)),
       peerDeviceKey_(companionDeviceKey)
 {
@@ -66,7 +67,8 @@ void HostSingleMixAuthRequest::Start()
         .fwkMsg = fwkMsg_,
         .hostUserId = hostUserId_,
         .templateId = templateId_,
-        .authIntent = authIntent_ };
+        .authIntent = authIntent_,
+        .authScene = authScene_ };
     auto tokenAuthRequest = GetRequestFactory().CreateHostTokenAuthRequest(tokenAuthParams,
         [weakSelf = weak_from_this()](ResultCode result, const std::vector<uint8_t> &extraInfo) {
             auto self = weakSelf.lock();
@@ -127,6 +129,11 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
         CompleteWithSuccess(extraInfo);
         return;
     }
+    if (authScene_ == UserAuth::AUTH_SCENE_WIDGET_AUTH_NO_DISTURB) {
+        IAM_LOGI("%{public}s AUTH_SCENE_WIDGET_AUTH_NO_DISTURB, skip delegate auth", GetDescription());
+        CompleteWithError(ResultCode::GENERAL_ERROR);
+        return;
+    }
     if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::DELEGATE_AUTH)) {
         IAM_LOGE("%{public}s DELEGATE_AUTH capability not supported by companion device", GetDescription());
         CompleteWithError(ResultCode::GENERAL_ERROR);
@@ -136,7 +143,8 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
         .fwkMsg = fwkMsg_,
         .hostUserId = hostUserId_,
         .templateId = templateId_,
-        .authIntent = authIntent_ };
+        .authIntent = authIntent_,
+        .authScene = authScene_ };
     auto delegateAuthRequest = GetRequestFactory().CreateHostDelegateAuthRequest(delegateAuthParams,
         [weakSelf = weak_from_this()](ResultCode result, const std::vector<uint8_t> &extraInfo) {
             auto self = weakSelf.lock();
