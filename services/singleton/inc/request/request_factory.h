@@ -53,7 +53,7 @@ struct HostMixAuthParams {
     std::optional<uint32_t> tokenId;
     std::optional<BusinessId> businessId;
     int32_t authIntent;
-    UserAuth::AuthScene authScene {UserAuth::AUTH_SCENE_DEFAULT};
+    UserAuth::AuthScene authScene { UserAuth::AUTH_SCENE_DEFAULT };
     std::string title;
 };
 

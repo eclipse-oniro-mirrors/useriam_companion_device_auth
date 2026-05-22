@@ -88,6 +88,8 @@ public:
     FwkResultCode Cancel(uint64_t scheduleId);
     FwkResultCode SendCommand(FwkPropertyMode commandId, const std::vector<uint8_t> &extraInfo,
         const std::shared_ptr<FwkIExecuteCallback> &callbackObj);
+    FwkResultCode GetProperty(const std::vector<uint64_t> &templateIdList, const std::vector<FwkAttributeKey> &keys,
+        FwkProperty &property);
     void HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vector<uint8_t> &extraInfo);
     void HandleSetCompanionInvalid(const std::vector<uint8_t> &extraInfo);
 
@@ -285,6 +287,29 @@ FwkResultCode Inner::SendCommand(FwkPropertyMode commandId, const std::vector<ui
         IAM_LOGI("SendCommand not implemented for commandId=%{public}d", commandId);
     }
     IAM_LOGI("end");
+    return FwkResultCode::SUCCESS;
+}
+
+FwkResultCode Inner::GetProperty(const std::vector<uint64_t> &templateIdList, const std::vector<FwkAttributeKey> &keys,
+    FwkProperty &property)
+{
+    IAM_LOGI("start");
+    (void)templateIdList;
+    (void)keys;
+    property.authSubType = 0;
+    property.enrollmentProgress.clear();
+    property.sensorInfo.clear();
+    property.nextFailLockoutDuration = 0;
+    property.credentialLength = 0;
+    bool blocked = GetMiscManager().IsCompanionAuthBlocked();
+    IAM_LOGI("companion auth blocked %{public}d", blocked);
+    if (blocked) {
+        property.lockoutDuration = INT32_MAX;
+        property.remainAttempts = 0;
+    } else {
+        property.lockoutDuration = 0;
+        property.remainAttempts = INT32_MAX;
+    }
     return FwkResultCode::SUCCESS;
 }
 
@@ -524,23 +549,15 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::GetProperty(const std::vector
     const std::vector<FwkAttributeKey> &keys, FwkProperty &property)
 {
     IAM_LOGI("start");
-    (void)templateIdList;
-    (void)keys;
-    property.authSubType = 0;
-    property.enrollmentProgress.clear();
-    property.sensorInfo.clear();
-    property.nextFailLockoutDuration = 0;
-    property.credentialLength = 0;
-    bool blocked = GetMiscManager().IsCompanionAuthBlocked();
-    IAM_LOGI("companion auth blocked %{public}d", blocked);
-    if (blocked) {
-        property.lockoutDuration = INT32_MAX;
-        property.remainAttempts = 0;
-    } else {
-        property.lockoutDuration = 0;
-        property.remainAttempts = INT32_MAX;
-    }
-    return FwkResultCode::SUCCESS;
+    auto inner = inner_;
+    ENSURE_OR_RETURN_VAL(inner != nullptr, FwkResultCode::GENERAL_ERROR);
+    auto propertyBox = std::make_shared<FwkProperty>();
+    ENSURE_OR_RETURN_VAL(propertyBox != nullptr, FwkResultCode::GENERAL_ERROR);
+    FwkResultCode ret = RunOnResidentSync([inner, templateIdListCopy = templateIdList, keysCopy = keys, propertyBox]() {
+        return inner->GetProperty(templateIdListCopy, keysCopy, *propertyBox);
+    });
+    property = *propertyBox;
+    return ret;
 }
 
 FwkResultCode CompanionDeviceAuthAllInOneExecutor::SetCachedTemplates(const std::vector<uint64_t> &templateIdList)

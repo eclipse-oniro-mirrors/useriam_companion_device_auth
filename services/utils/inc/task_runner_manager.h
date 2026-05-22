@@ -45,7 +45,7 @@ public:
     // If not, logs a fatal error, reports system fault.
     // This is a design verification check - all business logic must run on the resident thread.
     // @param caller The function signature of the caller, used for fault reporting.
-    void CheckRunningOnResidentThread(const char *caller) const;
+    void CheckRunningOnResidentThread(const char *caller);
 
     virtual bool CreateTaskRunner(const std::string &name);
     virtual void DestroyTaskRunner(const std::string &name);
