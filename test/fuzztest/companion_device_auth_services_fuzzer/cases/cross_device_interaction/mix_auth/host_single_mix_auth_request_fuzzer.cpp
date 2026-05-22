@@ -143,11 +143,13 @@ void FuzzHostSingleMixAuthRequest(FuzzedDataProvider &fuzzData)
         (void)extraInfo;
     };
 
+    int32_t authScene = fuzzData.ConsumeIntegral<int32_t>();
     AuthRequestParams params = { .scheduleId = scheduleId,
         .fwkMsg = fwkMsg,
         .hostUserId = hostUserId,
         .templateId = templateId,
-        .authIntent = authIntent };
+        .authIntent = authIntent,
+        .authScene = static_cast<UserAuth::AuthScene>(authScene) };
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     auto request = std::make_shared<HostSingleMixAuthRequest>(params, companionDeviceKey, std::move(callback));
     if (!request) {

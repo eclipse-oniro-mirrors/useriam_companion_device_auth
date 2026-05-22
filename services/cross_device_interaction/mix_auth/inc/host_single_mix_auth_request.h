@@ -52,6 +52,7 @@ private:
     UserId hostUserId_ = INVALID_USER_ID;
     TemplateId templateId_ = 0;
     int32_t authIntent_ = 0;
+    UserAuth::AuthScene authScene_ { UserAuth::AUTH_SCENE_DEFAULT };
     FwkResultCallback requestCallback_;
     std::optional<RequestId> tokenAuthRequestId_;
     std::optional<RequestId> delegateAuthRequestId_;
