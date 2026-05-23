@@ -201,4 +201,6 @@ private:
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
+
+#undef LOG_TAG
 #endif // STATUS_MONITOR_H

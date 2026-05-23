@@ -57,6 +57,7 @@ ohos_fuzztest("CompanionDeviceAuthClientFuzzer") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "user_auth_framework:userauth_client",
+    "user_auth_framework:userauth_executors",
   ]
 
   remove_configs = [ "//build/config/compiler:no_exceptions" ]

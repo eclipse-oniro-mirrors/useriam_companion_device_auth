@@ -153,4 +153,6 @@ private:
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
+
+#undef LOG_TAG
 #endif // COMPANION_DEVICE_AUTH_FRAMEWORK_CALLBACK_HOLDER_H

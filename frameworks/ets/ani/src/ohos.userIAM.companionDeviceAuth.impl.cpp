@@ -26,9 +26,6 @@
 #include "ohos.userIAM.companionDeviceAuth.impl.hpp"
 #include "status_monitor.h"
 
-#ifdef LOG_TAG
-#undef LOG_TAG
-#endif
 #define LOG_TAG "CDA_ANI"
 
 namespace CompanionDeviceAuth = OHOS::UserIam::CompanionDeviceAuth;

@@ -437,8 +437,8 @@ bool ModuleTestGuard::AuthenticateTokenAuth(ScheduleId scheduleId, const std::ve
     TemplateId templateId, uint32_t lockStateAuthType, FwkResultCallback &&callback)
 {
     // Create HostTokenAuthRequest (mimics Executor.Authenticate() for TokenAuth)
-    AuthRequestParams params = { scheduleId, fwkMsg, userId, templateId,
-        static_cast<int32_t>(lockStateAuthType), UserAuth::AUTH_SCENE_DEFAULT };
+    AuthRequestParams params = { scheduleId, fwkMsg, userId, templateId, static_cast<int32_t>(lockStateAuthType),
+        UserAuth::AUTH_SCENE_DEFAULT };
     auto request = GetRequestFactory().CreateHostTokenAuthRequest(params, std::move(callback));
     if (request == nullptr) {
         IAM_LOGE("CreateHostTokenAuthRequest failed");
@@ -452,8 +452,8 @@ bool ModuleTestGuard::AuthenticateDelegateAuth(ScheduleId scheduleId, const std:
     TemplateId templateId, uint32_t authIntent, FwkResultCallback &&callback)
 {
     // Create HostDelegateAuthRequest (mimics Executor.Authenticate() for DelegateAuth)
-    AuthRequestParams params = { scheduleId, fwkMsg, userId, templateId,
-        static_cast<int32_t>(authIntent), UserAuth::AUTH_SCENE_DEFAULT };
+    AuthRequestParams params = { scheduleId, fwkMsg, userId, templateId, static_cast<int32_t>(authIntent),
+        UserAuth::AUTH_SCENE_DEFAULT };
     auto request = GetRequestFactory().CreateHostDelegateAuthRequest(params, std::move(callback));
     if (request == nullptr) {
         IAM_LOGE("CreateHostDelegateAuthRequest failed");
