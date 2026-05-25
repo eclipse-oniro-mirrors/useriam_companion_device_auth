@@ -412,8 +412,8 @@ HWTEST_F(HostSingleMixAuthRequestTest, HandleTokenAuthResult_NoDisturb_SuccessSt
     EXPECT_EQ(*callbackResult, ResultCode::SUCCESS);
 }
 
-HWTEST_F(HostSingleMixAuthRequestTest,
-    HandleTokenAuthResult_NoDisturb_DoesNotCreateDelegateAuthRequest, TestSize.Level0)
+HWTEST_F(HostSingleMixAuthRequestTest, HandleTokenAuthResult_NoDisturb_DoesNotCreateDelegateAuthRequest,
+    TestSize.Level0)
 {
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION,
         AUTH_SCENE_WIDGET_AUTH_NO_DISTURB };

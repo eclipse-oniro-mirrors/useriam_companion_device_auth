@@ -220,6 +220,9 @@ foreach(src, companion_device_auth_service_local_sources) {
       [ "${companion_device_auth_path}/services/" + src ]
 }
 
+companion_device_auth_service_sources +=
+    [ "${companion_device_auth_path}/common/src/iam_log_tracer.cpp" ]
+
 companion_device_auth_service_sources_for_test = companion_device_auth_service_sources - [
                                                    "${companion_device_auth_path}/services/utils/src/relative_timer.cpp",
                                                    "${companion_device_auth_path}/services/utils/src/task_runner_manager.cpp",

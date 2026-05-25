@@ -57,6 +57,7 @@ ohos_static_library("companion_device_auth_service_static") {
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
 
   sources = companion_device_auth_service_static_sources
+  sources += [ "${companion_device_auth_path}/common/src/iam_log_tracer.cpp" ]
 
   public_configs = [
     ":service_config",
