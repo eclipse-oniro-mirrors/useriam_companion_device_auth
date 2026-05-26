@@ -96,6 +96,9 @@
           "name":"//base/useriam/companion_device_auth/services:companion_device_auth_service_static"
         },
         {
+          "name":"//base/useriam/companion_device_auth/services:companion_device_auth_service_header_static"
+        },
+        {
           "name":"//base/useriam/companion_device_auth/test/unittest/services/cpp/common:companion_device_auth_service_unittest_common"
         },
         {
