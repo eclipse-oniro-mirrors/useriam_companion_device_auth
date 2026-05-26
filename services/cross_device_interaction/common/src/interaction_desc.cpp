@@ -78,9 +78,46 @@ void InteractionDesc::SetSubRequestIdList(const std::vector<RequestId> &subReque
     Rebuild();
 }
 
+void InteractionDesc::SetUserId(UserId userId)
+{
+    userId_ = userId;
+    Rebuild();
+}
+
+void InteractionDesc::SetPkgName(const std::string &pkgName)
+{
+    pkgName_ = pkgName;
+    Rebuild();
+}
+
 const char *InteractionDesc::GetCStr() const
 {
     return description_.c_str();
+}
+
+void InteractionDesc::AppendSubRequestIds(std::ostringstream &oss) const
+{
+    oss << ",SR=[";
+    for (size_t i = 0; i < subRequestIdList_.size(); ++i) {
+        if (i > 0) {
+            oss << ",";
+        }
+        oss << std::hex << std::uppercase << std::setfill('0') << std::setw(TRUNCATED_WIDTH)
+            << static_cast<uint16_t>(subRequestIdList_[i]) << std::dec;
+    }
+    oss << "]";
+}
+
+void InteractionDesc::AppendTemplateIds(std::ostringstream &oss) const
+{
+    oss << ",T=[";
+    for (size_t i = 0; i < templateIdList_.size(); ++i) {
+        if (i > 0) {
+            oss << ",";
+        }
+        oss << GET_TRUNCATED_STRING(templateIdList_[i]);
+    }
+    oss << "]";
 }
 
 void InteractionDesc::Rebuild()
@@ -102,15 +139,7 @@ void InteractionDesc::Rebuild()
         oss << ",S:" << GET_TRUNCATED_STRING(*scheduleId_);
     }
     if (!subRequestIdList_.empty()) {
-        oss << ",SR=[";
-        for (size_t i = 0; i < subRequestIdList_.size(); ++i) {
-            if (i > 0) {
-                oss << ",";
-            }
-            oss << std::hex << std::uppercase << std::setfill('0') << std::setw(TRUNCATED_WIDTH)
-                << static_cast<uint16_t>(subRequestIdList_[i]) << std::dec;
-        }
-        oss << "]";
+        AppendSubRequestIds(oss);
     }
     if (bindingId_.has_value()) {
         oss << ",B:" << GET_TRUNCATED_STRING(*bindingId_);
@@ -119,14 +148,13 @@ void InteractionDesc::Rebuild()
         oss << ",T:" << GET_TRUNCATED_STRING(*templateId_);
     }
     if (!templateIdList_.empty()) {
-        oss << ",T=[";
-        for (size_t i = 0; i < templateIdList_.size(); ++i) {
-            if (i > 0) {
-                oss << ",";
-            }
-            oss << GET_TRUNCATED_STRING(templateIdList_[i]);
-        }
-        oss << "]";
+        AppendTemplateIds(oss);
+    }
+    if (userId_.has_value()) {
+        oss << ",U:" << *userId_;
+    }
+    if (!pkgName_.empty()) {
+        oss << ",P:" << pkgName_;
     }
     oss << ")";
     description_ = oss.str();

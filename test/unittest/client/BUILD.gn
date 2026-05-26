@@ -27,6 +27,8 @@ ohos_unittest("companion_device_auth_client_test") {
   sources = companion_device_auth_client_full_sources + [
               # Test sources
               "cases/companion_device_auth_client_impl_test.cpp",
+              "cases/passcode_submit_callback_impl_test.cpp",
+              "cases/rsa_oaep_encryptor_test.cpp",
               "cases/system_ability_listener_test.cpp",
             ]
 

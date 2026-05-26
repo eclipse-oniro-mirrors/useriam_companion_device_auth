@@ -23,15 +23,13 @@ use core::mem::size_of;
 use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::DefaultMiscManager as u16;
 pub struct DefaultMiscManager {
-    #[allow(dead_code)]
-    udid: Option<Udid>,
     key_pair: Option<KeyPair>,
     fwk_pub_key: Option<Vec<u8>>,
 }
 
 impl DefaultMiscManager {
     pub fn new() -> Self {
-        DefaultMiscManager { udid: None, key_pair: None, fwk_pub_key: None }
+        DefaultMiscManager { key_pair: None, fwk_pub_key: None }
     }
 }
 

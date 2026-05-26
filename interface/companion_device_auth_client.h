@@ -33,6 +33,7 @@
 #include "iavailable_device_status_callback.h"
 #include "icontinuous_auth_status_callback.h"
 #include "idevice_select_callback.h"
+#include "ipasscode_prompt_callback.h"
 #include "itemplate_status_callback.h"
 
 namespace OHOS {
@@ -155,6 +156,10 @@ public:
      * @return Return CheckLocalUserIdValid result(0:success; other:failed).
      */
     virtual int32_t CheckLocalUserIdValid(int32_t userId, bool &isUserIdValid) = 0;
+
+    virtual int32_t RegisterPasscodePromptCallback(const std::shared_ptr<IPasscodePromptCallback> &callback) = 0;
+
+    virtual int32_t UnregisterPasscodePromptCallback() = 0;
 
 protected:
     /**

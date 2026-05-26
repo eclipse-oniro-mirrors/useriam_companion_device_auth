@@ -42,6 +42,13 @@ public:
         DeviceSelectResultHandler &&resultHandler) override;
     void ClearDeviceSelectCallback(uint32_t tokenId) override;
 
+    bool SetPasscodePromptCallback(uint32_t tokenId,
+        const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback) override;
+    void ClearPasscodePromptCallback(uint32_t tokenId) override;
+
+    bool PromptPasscode(uint32_t tokenId, const std::vector<uint8_t> &challenge, const std::vector<uint8_t> &publicKey,
+        AsymEncryptAlgorithm asymEncryptAlgorithm, PasscodePromptCallback &&promptCallback) override;
+
     std::optional<std::string> GetLocalUdid() override;
 
     void SetCompanionAuthBlocked(bool blocked) override;
@@ -53,10 +60,15 @@ private:
         sptr<IIpcDeviceSelectCallback> callback;
         sptr<IRemoteObject::DeathRecipient> deathRecipient;
     };
+    struct PasscodePromptCallbackInfo {
+        sptr<IIpcPasscodePromptCallback> callback;
+        sptr<IRemoteObject::DeathRecipient> deathRecipient;
+    };
 
     uint64_t globalIdCounter_;
     std::map<uint32_t, CallbackInfo> callbacks_;
     bool companionAuthBlocked_ { true };
+    std::map<uint32_t, PasscodePromptCallbackInfo> passcodePromptCallbacks_;
 };
 
 } // namespace CompanionDeviceAuth

@@ -77,6 +77,9 @@ public:
     ErrCode RegisterDeviceSelectCallback(const sptr<IIpcDeviceSelectCallback> &deviceSelectCallback,
         int32_t &companionDeviceAuthResult) override;
     ErrCode UnregisterDeviceSelectCallback(int32_t &companionDeviceAuthResult) override;
+    ErrCode RegisterPasscodePromptCallback(const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback,
+        int32_t &companionDeviceAuthResult) override;
+    ErrCode UnregisterPasscodePromptCallback(int32_t &companionDeviceAuthResult) override;
     ErrCode CheckLocalUserIdValid(int32_t localUserId, bool &isUserIdValid,
         int32_t &companionDeviceAuthResult) override;
     int32_t CallbackEnter(uint32_t code) override;
@@ -88,7 +91,7 @@ protected:
     void OnStop() override;
 
 private:
-    bool CheckPermission(int32_t &companionDeviceAuthResult);
+    bool CheckPermission(const std::string &permission, int32_t &companionDeviceAuthResult);
 
     template <typename Func>
     std::optional<typename std::invoke_result<Func>::type> RunOnResidentSync(Func &&func,

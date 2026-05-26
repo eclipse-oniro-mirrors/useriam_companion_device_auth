@@ -317,7 +317,7 @@ void ModuleTestGuard::SetupDefaultValues()
     initializer_->GetTimeKeeper().AdvanceSteadyTime(DEFAULT_TIME_ADVANCE_MS);
 
     // MockUserAuthAdapter: reasonable ON_CALL defaults
-    ON_CALL(initializer_->GetUserAuthAdapter(), BeginDelegateAuth(_, _, _, _))
+    ON_CALL(initializer_->GetUserAuthAdapter(), BeginDelegateAuth(_, _, _, _, _))
         .WillByDefault(Return(1)); // non-zero contextId = success
     ON_CALL(initializer_->GetUserAuthAdapter(), CancelAuthentication(_)).WillByDefault(Return(0)); // SUCCESS
 }

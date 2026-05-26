@@ -30,6 +30,8 @@ idl_gen_interface("companion_device_auth_ipc_interface") {
     "IIpcDeviceSelectCallback.idl",
     "IIpcTemplateStatusCallback.idl",
     "IIpcSetDeviceSelectResultCallback.idl",
+    "IIpcPasscodePromptCallback.idl",
+    "IIpcPasscodeSubmitCallback.idl",
   ]
 
   log_domainid = "0xD002421"
@@ -59,6 +61,12 @@ ohos_source_set("companion_device_auth_proxy") {
   sources +=
       filter_include(output_file_path,
                      [ "*ipc_set_device_select_result_callback_proxy.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_passcode_prompt_callback_stub.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_passcode_submit_callback_proxy.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_passcode_submit_callback_stub.cpp" ])
 
   public_configs = [ ":companion_device_auth_native_ipc_config" ]
   remove_configs = [ "//build/config/compiler:no_exceptions" ]
@@ -100,6 +108,10 @@ ohos_source_set("companion_device_auth_stub") {
   sources +=
       filter_include(output_file_path,
                      [ "*ipc_set_device_select_result_callback_stub.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_passcode_prompt_callback_proxy.cpp" ])
+  sources += filter_include(output_file_path,
+                            [ "*ipc_passcode_submit_callback_stub.cpp" ])
 
   public_configs = [ ":companion_device_auth_native_ipc_config" ]
   remove_configs = [ "//build/config/compiler:no_exceptions" ]

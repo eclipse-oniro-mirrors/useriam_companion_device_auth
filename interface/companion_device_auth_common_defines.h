@@ -90,6 +90,10 @@ struct ClientDeviceSelectResult {
     /** Optional context information related to the device selection process. */
     std::optional<std::vector<uint8_t>> selectionContext;
 };
+
+struct ClientPasscodePromptParams {
+    std::vector<uint8_t> challenge;
+};
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

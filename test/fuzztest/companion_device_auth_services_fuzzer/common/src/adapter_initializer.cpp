@@ -115,12 +115,13 @@ public:
     }
 
     uint64_t BeginDelegateAuth(int32_t userId, const std::vector<uint8_t> &challenge, uint32_t authTrustLevel,
-        AuthResultCallback callback) override
+        const std::vector<AuthType> &authTypes, AuthResultCallback callback) override
     {
         (void)userId;
         (void)challenge;
         (void)authTrustLevel;
         (void)callback;
+        (void)authTypes;
         return fuzzData_.ConsumeIntegral<uint64_t>();
     }
 

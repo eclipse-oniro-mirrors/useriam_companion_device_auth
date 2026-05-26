@@ -63,7 +63,6 @@ ohos_rust_unittest("rust_companion_device_auth_services_test") {
     "src/openssl_crypto_engine_test.rs",
     "src/parcel_test.rs",
     "src/request_manager_test.rs",
-    "src/scope_guard_test.rs",
     "src/storage_io_test.rs",
     "src/system_commands_test.rs",
     "src/time_keeper_test.rs",

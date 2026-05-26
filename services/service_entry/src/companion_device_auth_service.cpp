@@ -103,10 +103,10 @@ void CompanionDeviceAuthService::SetWeakPtr(const wptr<IRemoteObject> &weakSelf)
     weakSelf_ = weakSelf;
 }
 
-bool CompanionDeviceAuthService::CheckPermission(int32_t &companionDeviceAuthResult)
+bool CompanionDeviceAuthService::CheckPermission(const std::string &permission, int32_t &companionDeviceAuthResult)
 {
-    if (!AccessTokenUtil::CheckPermission(*this, USE_USER_IDM_PERMISSION)) {
-        IAM_LOGE("check use user idm permission failed");
+    if (!AccessTokenUtil::CheckPermission(*this, permission)) {
+        IAM_LOGE("check permission %{public}s failed", permission.c_str());
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED);
         return false;
     }
@@ -184,7 +184,7 @@ ErrCode CompanionDeviceAuthService::SubscribeAvailableDeviceStatus(int32_t local
 {
     IAM_LOGI("Start, localUserId:%{public}d", localUserId);
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -210,7 +210,7 @@ ErrCode CompanionDeviceAuthService::UnsubscribeAvailableDeviceStatus(
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -235,7 +235,7 @@ ErrCode CompanionDeviceAuthService::SubscribeTemplateStatusChange(int32_t localU
 {
     IAM_LOGI("Start, localUserId:%{public}d", localUserId);
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -261,7 +261,7 @@ ErrCode CompanionDeviceAuthService::UnsubscribeTemplateStatusChange(
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -289,7 +289,7 @@ ErrCode CompanionDeviceAuthService::SubscribeContinuousAuthStatusChange(
         subscribeContinuousAuthStatusParam.localUserId, subscribeContinuousAuthStatusParam.hasTemplateId,
         GET_MASKED_NUM_CSTR(subscribeContinuousAuthStatusParam.templateId));
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -316,7 +316,7 @@ ErrCode CompanionDeviceAuthService::UnsubscribeContinuousAuthStatusChange(
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -343,7 +343,7 @@ ErrCode CompanionDeviceAuthService::UpdateTemplateEnabledBusinessIds(uint64_t te
     IAM_LOGI("Start, templateId:%{public}s, enabledBusinessIds:%{public}s", GET_MASKED_NUM_CSTR(templateId),
         GetVectorString(enabledBusinessIds).c_str());
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -369,7 +369,7 @@ ErrCode CompanionDeviceAuthService::GetTemplateStatus(int32_t localUserId,
 {
     IAM_LOGI("Start, localUserId:%{public}d", localUserId);
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -398,7 +398,7 @@ ErrCode CompanionDeviceAuthService::RegisterDeviceSelectCallback(
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -425,7 +425,7 @@ ErrCode CompanionDeviceAuthService::UnregisterDeviceSelectCallback(int32_t &comp
 {
     IAM_LOGI("Start");
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;
@@ -446,12 +446,65 @@ ErrCode CompanionDeviceAuthService::UnregisterDeviceSelectCallback(int32_t &comp
     return ERR_OK;
 }
 
+ErrCode CompanionDeviceAuthService::RegisterPasscodePromptCallback(
+    const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback, int32_t &companionDeviceAuthResult)
+{
+    IAM_LOGI("Start");
+    companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
+    if (!CheckPermission(ACCESS_USER_AUTH_INTERNAL_PERMISSION, companionDeviceAuthResult)) {
+        return ERR_OK;
+    }
+    std::shared_ptr<BaseServiceCore> core;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        core = core_;
+    }
+    ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
+    uint32_t tokenId = AccessTokenUtil::GetAccessTokenId(*this);
+    ENSURE_OR_RETURN_VAL(tokenId != 0, ResultCode::GENERAL_ERROR);
+    auto resultOpt = RunOnResidentSync([core, passcodePromptCallback, tokenId]() {
+        return core->RegisterPasscodePromptCallback(tokenId, passcodePromptCallback);
+    });
+    if (!resultOpt.has_value()) {
+        IAM_LOGE("RegisterPasscodePromptCallback timeout");
+        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
+        return ERR_OK;
+    }
+    companionDeviceAuthResult = static_cast<int32_t>(resultOpt.value());
+    return ERR_OK;
+}
+
+ErrCode CompanionDeviceAuthService::UnregisterPasscodePromptCallback(int32_t &companionDeviceAuthResult)
+{
+    IAM_LOGI("Start");
+    companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
+    if (!CheckPermission(ACCESS_USER_AUTH_INTERNAL_PERMISSION, companionDeviceAuthResult)) {
+        return ERR_OK;
+    }
+    std::shared_ptr<BaseServiceCore> core;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        core = core_;
+    }
+    ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
+    uint32_t tokenId = AccessTokenUtil::GetAccessTokenId(*this);
+    ENSURE_OR_RETURN_VAL(tokenId != 0, ResultCode::GENERAL_ERROR);
+    auto resultOpt = RunOnResidentSync([core, tokenId]() { return core->UnregisterPasscodePromptCallback(tokenId); });
+    if (!resultOpt.has_value()) {
+        IAM_LOGE("UnregisterPasscodePromptCallback timeout");
+        companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
+        return ERR_OK;
+    }
+    companionDeviceAuthResult = static_cast<int32_t>(resultOpt.value());
+    return ERR_OK;
+}
+
 ErrCode CompanionDeviceAuthService::CheckLocalUserIdValid(int32_t localUserId, bool &isUserIdValid,
     int32_t &companionDeviceAuthResult)
 {
     IAM_LOGI("Start, localUserId:%{public}d", localUserId);
     companionDeviceAuthResult = static_cast<int32_t>(ResultCode::GENERAL_ERROR);
-    if (!CheckPermission(companionDeviceAuthResult)) {
+    if (!CheckPermission(USE_USER_IDM_PERMISSION, companionDeviceAuthResult)) {
         return ERR_OK;
     }
     std::shared_ptr<BaseServiceCore> core;

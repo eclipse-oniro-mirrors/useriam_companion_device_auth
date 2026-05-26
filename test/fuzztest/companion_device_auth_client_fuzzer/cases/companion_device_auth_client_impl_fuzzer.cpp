@@ -208,6 +208,20 @@ public:
         result = mockResult_;
         return mockIpcResult_;
     }
+
+    int32_t RegisterPasscodePromptCallback(const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback,
+        int32_t &result) override
+    {
+        (void)passcodePromptCallback;
+        result = mockResult_;
+        return mockIpcResult_;
+    }
+
+    int32_t UnregisterPasscodePromptCallback(int32_t &result) override
+    {
+        result = mockResult_;
+        return mockIpcResult_;
+    }
 };
 
 // Fuzz test callbacks

@@ -96,3 +96,11 @@ function updateEnabledBusinessIdsSync(templateId: @typedarray Array<u8>, enabled
 function registerDeviceSelectCallback(callback: (selectPurpose: i32) => DeviceSelectResult): void;
 
 function unregisterDeviceSelectCallback(): void;
+
+struct PasscodePromptOptions {
+    challenge: @typedarray Array<u8>;
+}
+
+function registerPasscodePromptCallback(callback: (submit: (passcode: @typedarray Array<u8>) => void, options: PasscodePromptOptions) => void): void;
+
+function unregisterPasscodePromptCallback(): void;

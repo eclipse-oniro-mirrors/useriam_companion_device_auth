@@ -34,6 +34,7 @@
 #include "ipc_available_device_status_callback_service.h"
 #include "ipc_continuous_auth_status_callback_service.h"
 #include "ipc_device_select_callback_service.h"
+#include "ipc_passcode_prompt_callback_service.h"
 #include "ipc_template_status_callback_service.h"
 
 namespace OHOS {
@@ -60,6 +61,8 @@ public:
     int32_t UnsubscribeContinuousAuthStatusChange(
         const std::shared_ptr<IContinuousAuthStatusCallback> &callback) override;
     int32_t CheckLocalUserIdValid(int32_t userId, bool &isUserIdValid) override;
+    int32_t RegisterPasscodePromptCallback(const std::shared_ptr<IPasscodePromptCallback> &callback) override;
+    int32_t UnregisterPasscodePromptCallback() override;
     void SubscribeCompanionDeviceAuthSaStatus();
 
 #ifdef ENABLE_TEST
@@ -72,6 +75,7 @@ protected:
 
 private:
     void ReregisterDeviceSelectCallback();
+    void ReregisterPasscodePromptCallback();
     void ResubscribeTemplateStatusChange();
     void ResubscribeContinuousAuthStatusChange();
     void ResubscribeAvailableDeviceStatus();
@@ -87,6 +91,7 @@ private:
     sptr<IRemoteObject::DeathRecipient> deathRecipient_ { nullptr };
     std::recursive_mutex mutex_;
     std::shared_ptr<IDeviceSelectCallback> deviceSelectCallback_ { nullptr };
+    std::shared_ptr<IPasscodePromptCallback> passcodePromptCallback_ { nullptr };
     std::vector<sptr<IpcTemplateStatusCallbackService>> templateStatusCallbacks_;
     std::vector<sptr<IpcContinuousAuthStatusCallbackService>> continuousAuthStatusCallbacks_;
     std::vector<sptr<IpcAvailableDeviceStatusCallbackService>> availableDeviceStatusCallbacks_;

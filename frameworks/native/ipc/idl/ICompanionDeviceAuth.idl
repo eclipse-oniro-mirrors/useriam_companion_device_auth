@@ -18,6 +18,7 @@ import IIpcAvailableDeviceStatusCallback;
 import IIpcTemplateStatusCallback;
 import IIpcContinuousAuthStatusCallback;
 import IIpcDeviceSelectCallback;
+import IIpcPasscodePromptCallback;
 
 option_stub_hooks on;
 
@@ -52,4 +53,9 @@ interface OHOS.UserIam.CompanionDeviceAuth.ICompanionDeviceAuth {
         [in] int[] enabledBusinessIds, [out] int resultCode);
     
     void CheckLocalUserIdValid([in] int localUserId, [out] boolean isUserIdValid, [out] int resultCode);
+
+    void RegisterPasscodePromptCallback([in] IIpcPasscodePromptCallback passcodePromptCallback,
+        [out] int resultCode);
+
+    void UnregisterPasscodePromptCallback([out] int resultCode);
 }
