@@ -20,6 +20,10 @@ config("service_config") {
   include_dirs = companion_device_auth_service_include_dirs
 }
 
+config("optimize_for_size") {
+  cflags = [ "-Oz" ]
+}
+
 ohos_shared_library("companiondeviceauthservice") {
   sanitize = companion_device_auth_default_sanitize
   branch_protector_ret = "pac_ret"
@@ -28,7 +32,10 @@ ohos_shared_library("companiondeviceauthservice") {
 
   sources = companion_device_auth_service_sources
 
-  configs = [ ":service_config" ]
+  configs = [
+    ":service_config",
+    ":optimize_for_size",
+  ]
 
   cflags = companion_device_auth_service_flags
   deps = companion_device_auth_service_deps
@@ -64,6 +71,8 @@ ohos_static_library("companion_device_auth_service_static") {
     "${companion_device_auth_path}/frameworks/native/ipc:companion_device_auth_native_ipc_config",
     "${companion_device_auth_path}/common:companion_device_auth_common_config",
   ]
+
+  configs = [ ":optimize_for_size" ]
 
   # Add flag for static library compilation
   cflags = companion_device_auth_service_flags + [ "-DSTATIC_LIBRARY" ]
