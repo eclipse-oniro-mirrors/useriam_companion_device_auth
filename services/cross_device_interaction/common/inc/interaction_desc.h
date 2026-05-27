@@ -45,6 +45,8 @@ public:
     void SetBindingId(BindingId bindingId);
     void SetTemplateId(TemplateId templateId);
     void SetTemplateIdList(const std::vector<TemplateId> &templateIdList);
+    void SetDeviceId(const DeviceKey &deviceKey);
+    void SetDeviceIdList(const std::vector<DeviceKey> &deviceKeyList);
     void SetSubRequestIdList(const std::vector<RequestId> &subRequestIdList);
     void SetUserId(UserId userId);
     void SetPkgName(const std::string &pkgName);
@@ -55,6 +57,7 @@ private:
     void Rebuild();
     void AppendSubRequestIds(std::ostringstream &oss) const;
     void AppendTemplateIds(std::ostringstream &oss) const;
+    void AppendDeviceIds(std::ostringstream &oss) const;
 
     std::string prefix_;
     std::string type_;
@@ -65,6 +68,8 @@ private:
     std::optional<BindingId> bindingId_;
     std::optional<TemplateId> templateId_;
     std::vector<TemplateId> templateIdList_;
+    std::string deviceId_;
+    std::vector<std::string> deviceIdList_;
     std::vector<RequestId> subRequestIdList_;
     std::optional<UserId> userId_;
     std::string pkgName_;

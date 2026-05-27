@@ -44,6 +44,7 @@ HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params
 {
     SetPeerDeviceKey(companionDeviceKey);
     desc_.SetTemplateId(templateId_);
+    desc_.SetDeviceId(companionDeviceKey);
     eventCollector_.SetHostUserId(params.hostUserId);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
     eventCollector_.SetScheduleId(params.scheduleId);

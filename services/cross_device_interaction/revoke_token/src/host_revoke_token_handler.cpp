@@ -68,6 +68,7 @@ void HostRevokeTokenHandler::HandleRequest(const Attributes &request, Attributes
     }
 
     desc.SetTemplateId(companionStatus->templateId);
+    desc.SetDeviceId(requestMsg.companionDeviceKey);
     eventCollector.SetTemplateIdList({ companionStatus->templateId });
     GetCompanionManager().SetCompanionTokenAuthAtl(companionStatus->templateId, std::nullopt);
 

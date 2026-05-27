@@ -224,6 +224,115 @@ HWTEST_F(InteractionDescTest, FullFieldsWithScheduleAndSR_001, TestSize.Level0)
     EXPECT_STREQ(desc.GetCStr(), "CdaR(HMixA,conn1,R:00000042,S:00FF,SR=[0001,0002],T=[0064,00C8])");
 }
 
+HWTEST_F(InteractionDescTest, SetDeviceId_001, TestSize.Level0)
+{
+    DeviceKey dk;
+    dk.deviceId = "AA:BB:CC:DD:EE:FF";
+    InteractionDesc desc(REQUEST_PREFIX, "HTkA");
+    desc.SetDeviceId(dk);
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,D:AAFF)");
+}
+
+HWTEST_F(InteractionDescTest, SetDeviceId_002, TestSize.Level0)
+{
+    DeviceKey dk;
+    dk.deviceId = "short";
+    InteractionDesc desc(REQUEST_PREFIX, "HTkA");
+    desc.SetDeviceId(dk);
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,D:hort)");
+}
+
+HWTEST_F(InteractionDescTest, SetDeviceId_003, TestSize.Level0)
+{
+    DeviceKey dk;
+    dk.deviceId = "";
+    InteractionDesc desc(REQUEST_PREFIX, "HTkA");
+    desc.SetDeviceId(dk);
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,D:0000)");
+}
+
+HWTEST_F(InteractionDescTest, SetDeviceIdList_001, TestSize.Level0)
+{
+    DeviceKey dk1;
+    dk1.deviceId = "AA:BB:CC:DD:EE:FF";
+    DeviceKey dk2;
+    dk2.deviceId = "11:22:33:44:55:66";
+    InteractionDesc desc(REQUEST_PREFIX, "HMixA");
+    desc.SetDeviceIdList({ dk1, dk2 });
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HMixA,D=[AAFF,1166])");
+}
+
+HWTEST_F(InteractionDescTest, SetDeviceIdList_002, TestSize.Level0)
+{
+    InteractionDesc desc(REQUEST_PREFIX, "HMixA");
+    desc.SetDeviceIdList({});
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HMixA)");
+}
+
+HWTEST_F(InteractionDescTest, DeviceIdWithConnectionName_001, TestSize.Level0)
+{
+    DeviceKey dk;
+    dk.deviceId = "AA:BB:CC:DD:EE:FF";
+    InteractionDesc desc(REQUEST_PREFIX, "HTkA");
+    desc.SetDeviceId(dk);
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,D:AAFF)");
+
+    desc.SetConnectionName("conn1");
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,conn1,D:AAFF)");
+}
+
+HWTEST_F(InteractionDescTest, DeviceIdListWithConnectionName_001, TestSize.Level0)
+{
+    DeviceKey dk;
+    dk.deviceId = "AA:BB:CC:DD:EE:FF";
+    InteractionDesc desc(REQUEST_PREFIX, "HMixA");
+    desc.SetDeviceIdList({ dk });
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HMixA,D=[AAFF])");
+
+    desc.SetConnectionName("conn1");
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HMixA,conn1,D=[AAFF])");
+}
+
+HWTEST_F(InteractionDescTest, DeviceIdAndListMutuallyExclusive_001, TestSize.Level0)
+{
+    DeviceKey dk1;
+    dk1.deviceId = "AA:BB:CC:DD:EE:FF";
+    DeviceKey dk2;
+    dk2.deviceId = "11:22:33:44:55:66";
+    InteractionDesc desc(REQUEST_PREFIX, "HTkA");
+    desc.SetDeviceId(dk1);
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,D:AAFF)");
+
+    desc.SetDeviceIdList({ dk2 });
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,D=[1166])");
+
+    desc.SetDeviceId(dk1);
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,D:AAFF)");
+}
+
+HWTEST_F(InteractionDescTest, DeviceIdWithTemplateId_001, TestSize.Level0)
+{
+    DeviceKey dk;
+    dk.deviceId = "AA:BB:CC:DD:EE:FF";
+    InteractionDesc desc(REQUEST_PREFIX, "HTkA");
+    desc.SetTemplateId(123);
+    desc.SetDeviceId(dk);
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,D:AAFF,T:007B)");
+}
+
+HWTEST_F(InteractionDescTest, DeviceIdWithConnectionNameAndTemplateId_001, TestSize.Level0)
+{
+    DeviceKey dk;
+    dk.deviceId = "AA:BB:CC:DD:EE:FF";
+    InteractionDesc desc(REQUEST_PREFIX, "HTkA");
+    desc.SetDeviceId(dk);
+    desc.SetTemplateId(123);
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,D:AAFF,T:007B)");
+
+    desc.SetConnectionName("conn1");
+    EXPECT_STREQ(desc.GetCStr(), "CdaR(HTkA,conn1,D:AAFF,T:007B)");
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

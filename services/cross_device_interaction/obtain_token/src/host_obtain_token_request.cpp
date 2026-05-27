@@ -76,6 +76,7 @@ bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
     }
     templateId_ = companionStatus->templateId;
     desc_.SetTemplateId(templateId_);
+    desc_.SetDeviceId(preRequest.companionDeviceKey);
     auto secureProtocolOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(preRequest.companionDeviceKey);
     if (!secureProtocolOpt.has_value()) {
         IAM_LOGE("%{public}s failed to get secure protocol id", GetDescription());
