@@ -91,6 +91,7 @@ void HostMixAuthRequest::HandleDeviceSelectResult(const std::vector<DeviceKey> &
     }
 
     desc_.SetTemplateIdList(filteredList);
+    desc_.SetDeviceIdList(selectedDevices);
     eventCollector_.SetTemplateIdList(filteredList);
     selectContext_ = selectContext;
     StartAuthWithTemplateList(filteredList);

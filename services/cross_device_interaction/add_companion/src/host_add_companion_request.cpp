@@ -151,6 +151,7 @@ void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceK
     }
 
     SetPeerDeviceKey(selectedDevices[0]);
+    desc_.SetDeviceId(selectedDevices[0]);
 
     if (!OpenConnection()) {
         IAM_LOGE("%{public}s OpenConnection failed", GetDescription());

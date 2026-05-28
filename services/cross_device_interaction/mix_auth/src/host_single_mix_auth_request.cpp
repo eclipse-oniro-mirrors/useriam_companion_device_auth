@@ -45,6 +45,7 @@ HostSingleMixAuthRequest::HostSingleMixAuthRequest(const AuthRequestParams &para
       peerDeviceKey_(companionDeviceKey)
 {
     desc_.SetTemplateId(templateId_);
+    desc_.SetDeviceId(companionDeviceKey);
     eventCollector_.SetHostUserId(params.hostUserId);
     eventCollector_.SetScheduleId(params.scheduleId);
     eventCollector_.SetTriggerReason("authIntent " + std::to_string(params.authIntent));

@@ -42,6 +42,7 @@ HostIssueTokenRequest::HostIssueTokenRequest(UserId hostUserId, TemplateId templ
 {
     SetPeerDeviceKey(companionDeviceKey);
     desc_.SetTemplateId(templateId_);
+    desc_.SetDeviceId(companionDeviceKey);
     eventCollector_.SetHostUserId(hostUserId);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
     eventCollector_.SetTriggerReason("host device auth type " + std::to_string(lockStateAuthTypeValue) + " success");

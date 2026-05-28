@@ -45,6 +45,7 @@ HostSyncDeviceStatusRequest::HostSyncDeviceStatusRequest(int32_t hostUserId, con
       callback_(std::move(callback))
 {
     SetPeerDeviceKey(companionDeviceKey_);
+    desc_.SetDeviceId(companionDeviceKey_);
     eventCollector_.SetHostUserId(hostUserId);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
     eventCollector_.SetConnectionName(GetConnectionName());

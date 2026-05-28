@@ -72,6 +72,24 @@ void InteractionDesc::SetTemplateIdList(const std::vector<TemplateId> &templateI
     Rebuild();
 }
 
+void InteractionDesc::SetDeviceId(const DeviceKey &deviceKey)
+{
+    deviceId_ = GetTruncatedString(deviceKey.deviceId);
+    deviceIdList_.clear();
+    Rebuild();
+}
+
+void InteractionDesc::SetDeviceIdList(const std::vector<DeviceKey> &deviceKeyList)
+{
+    deviceIdList_.clear();
+    deviceIdList_.reserve(deviceKeyList.size());
+    for (const auto &key : deviceKeyList) {
+        deviceIdList_.push_back(GetTruncatedString(key.deviceId));
+    }
+    deviceId_.clear();
+    Rebuild();
+}
+
 void InteractionDesc::SetSubRequestIdList(const std::vector<RequestId> &subRequestIdList)
 {
     subRequestIdList_ = subRequestIdList;
@@ -120,6 +138,18 @@ void InteractionDesc::AppendTemplateIds(std::ostringstream &oss) const
     oss << "]";
 }
 
+void InteractionDesc::AppendDeviceIds(std::ostringstream &oss) const
+{
+    oss << ",D=[";
+    for (size_t i = 0; i < deviceIdList_.size(); ++i) {
+        if (i > 0) {
+            oss << ",";
+        }
+        oss << deviceIdList_[i];
+    }
+    oss << "]";
+}
+
 void InteractionDesc::Rebuild()
 {
     constexpr int requestIdHexWidth = 8;
@@ -143,6 +173,11 @@ void InteractionDesc::Rebuild()
     }
     if (bindingId_.has_value()) {
         oss << ",B:" << GET_TRUNCATED_STRING(*bindingId_);
+    }
+    if (!deviceId_.empty()) {
+        oss << ",D:" << deviceId_;
+    } else if (!deviceIdList_.empty()) {
+        AppendDeviceIds(oss);
     }
     if (templateId_.has_value()) {
         oss << ",T:" << GET_TRUNCATED_STRING(*templateId_);

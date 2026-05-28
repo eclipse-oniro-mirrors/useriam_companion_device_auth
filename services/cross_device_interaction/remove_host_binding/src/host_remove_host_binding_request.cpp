@@ -53,6 +53,7 @@ bool HostRemoveHostBindingRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
     desc_.SetTemplateId(templateId_);
+    desc_.SetDeviceId(companionDeviceKey_);
     eventCollector_.SetConnectionName(GetConnectionName());
     return true;
 }
