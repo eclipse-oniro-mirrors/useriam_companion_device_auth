@@ -715,7 +715,7 @@ HWTEST_F(CompanionManagerImplTest, SetCompanionTokenAuthAtl_001, TestSize.Level0
     auto manager = CompanionManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    bool result = manager->SetCompanionTokenAuthAtl(TEMPLATE_ID_12345, std::nullopt);
+    bool result = manager->SetCompanionTokenAuthAtl(TEMPLATE_ID_12345, std::nullopt, false);
     EXPECT_FALSE(result);
 }
 
@@ -732,7 +732,7 @@ HWTEST_F(CompanionManagerImplTest, SetCompanionTokenAuthAtl_002, TestSize.Level0
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
     manager->Reload(persistedList, activeTemplateIds);
 
-    bool result = manager->SetCompanionTokenAuthAtl(TEMPLATE_ID_12345, INT32_3);
+    bool result = manager->SetCompanionTokenAuthAtl(TEMPLATE_ID_12345, INT32_3, false);
     EXPECT_TRUE(result);
 
     auto status = manager->GetCompanionStatus(TEMPLATE_ID_12345);

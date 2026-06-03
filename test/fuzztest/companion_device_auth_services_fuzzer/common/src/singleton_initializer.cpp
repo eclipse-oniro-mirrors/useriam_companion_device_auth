@@ -147,10 +147,11 @@ public:
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 
-    bool SetCompanionTokenAuthAtl(TemplateId templateId, std::optional<Atl> atl) override
+    bool SetCompanionTokenAuthAtl(TemplateId templateId, std::optional<Atl> atl, bool forEnrollment) override
     {
         (void)templateId;
         (void)atl;
+        (void)forEnrollment;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0;
     }
 

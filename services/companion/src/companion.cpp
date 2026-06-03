@@ -208,7 +208,7 @@ void Companion::SetCompanionValid(bool isValid)
     NotifySubscribers();
 }
 
-void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl)
+void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl, bool forEnrollment)
 {
     std::optional<Atl> oldTokenAuthAtl = status_.tokenAuthAtl;
     status_.tokenAuthAtl = tokenAuthAtl;
@@ -231,6 +231,19 @@ void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl)
             TOKEN_TIMEOUT_MS);
         ENSURE_OR_RETURN_DESC(GetDescription(), tokenTimeoutSubscription_ != nullptr);
         IAM_LOGI("%{public}s registered token timeout timer", GetDescription());
+
+        if (forEnrollment && !status_.companionDeviceStatus.isAuthMaintainActive) {
+            IAM_LOGI("%{public}s device not worn when enroll, start %{public}u ms timer", GetDescription(),
+                TOKEN_ENROLL_NOT_WORN_TIMEOUT_MS);
+            authMaintainInactiveTimer_ = RelativeTimer::GetInstance().Register(
+                [weakSelf = weak_from_this()]() {
+                    auto self = weakSelf.lock();
+                    ENSURE_OR_RETURN(self != nullptr);
+                    IAM_LOGI("%{public}s enroll not worn timeout, revoking token", self->GetDescription());
+                    self->SetCompanionTokenAuthAtl(std::nullopt);
+                },
+                TOKEN_ENROLL_NOT_WORN_TIMEOUT_MS);
+        }
     }
 
     if (status_.tokenAuthAtl != oldTokenAuthAtl) {

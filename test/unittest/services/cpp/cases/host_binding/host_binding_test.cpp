@@ -98,7 +98,7 @@ HWTEST_F(HostBindingTest, Create_001, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -146,7 +146,7 @@ HWTEST_F(HostBindingTest, Create_002, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -190,7 +190,7 @@ HWTEST_F(HostBindingTest, Create_003, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -235,7 +235,7 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_001, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -283,7 +283,7 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_002, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -332,7 +332,7 @@ HWTEST_F(HostBindingTest, HandleHostDeviceStatusUpdate_001, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -380,7 +380,7 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_001, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -428,7 +428,7 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_002, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -474,7 +474,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_001, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -522,7 +522,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_002, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -571,7 +571,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_003, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -617,7 +617,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_001, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -661,7 +661,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_002, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -708,7 +708,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_003, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -759,7 +759,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_004, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -810,7 +810,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_005, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
@@ -856,7 +856,7 @@ HWTEST_F(HostBindingTest, Destructor_001, TestSize.Level0)
     mockCompanionStatus.isValid = true;
     mockCompanionStatus.tokenAuthAtl = std::nullopt;
     ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
-    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _)).WillByDefault(Return(true));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
 
     auto &requestFactory = guard.GetRequestFactory();
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));

@@ -691,6 +691,47 @@ HWTEST_F(CompanionTest, HandleDeviceOffline_WithAtl_RevokesToken, TestSize.Level
     EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
 }
 
+// --- SetCompanionTokenAuthAtl with forEnrollment coverage ---
+
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentWorn_NoNotWornTimer, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+
+    // Device is online and worn at creation time
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+    EXPECT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+
+    // Set ATL with forEnrollment=true: not-worn timer should NOT be started because device IS worn
+    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+
+    auto status = companion->GetStatus();
+    ASSERT_TRUE(status.tokenAuthAtl.has_value());
+    EXPECT_EQ(INT32_3, status.tokenAuthAtl.value());
+}
+
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_NotForEnrollment_NoNotWornTimer, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+
+    // Device status defaults to offline/not-worn, but not-worn timer
+    // should NOT be started because forEnrollment is false
+    auto companion = Companion::Create(persistedStatus, true, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->SetCompanionTokenAuthAtl(INT32_3);
+
+    auto status = companion->GetStatus();
+    ASSERT_TRUE(status.tokenAuthAtl.has_value());
+    EXPECT_EQ(INT32_3, status.tokenAuthAtl.value());
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

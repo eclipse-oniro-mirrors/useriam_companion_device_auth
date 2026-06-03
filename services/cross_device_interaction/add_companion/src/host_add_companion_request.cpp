@@ -485,7 +485,7 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
     }
 
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_ != 0);
-    GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, tokenAuthAtl_);
+    GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, tokenAuthAtl_, true);
     IAM_LOGI("%{public}s token activated successfully", GetDescription());
 
     errorGuard.Cancel();

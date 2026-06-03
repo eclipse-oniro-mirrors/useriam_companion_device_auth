@@ -447,7 +447,7 @@ ResultCode CompanionManagerImpl::UpdateCompanionEnabledBusinessIds(TemplateId te
     return ResultCode::SUCCESS;
 }
 
-bool CompanionManagerImpl::SetCompanionTokenAuthAtl(TemplateId templateId, std::optional<Atl> atl)
+bool CompanionManagerImpl::SetCompanionTokenAuthAtl(TemplateId templateId, std::optional<Atl> atl, bool forEnrollment)
 {
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion == nullptr) {
@@ -455,7 +455,7 @@ bool CompanionManagerImpl::SetCompanionTokenAuthAtl(TemplateId templateId, std::
         return false;
     }
 
-    companion->SetCompanionTokenAuthAtl(atl);
+    companion->SetCompanionTokenAuthAtl(atl, forEnrollment);
     return true;
 }
 

@@ -59,7 +59,7 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_001, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
         .WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, Eq(std::nullopt))).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, Eq(std::nullopt), _)).WillOnce(Return(true));
 
     Attributes reply;
     ErrorGuard errorGuard([](ResultCode) {});
@@ -123,7 +123,7 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_004, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
         .WillOnce(Return(std::make_optional(companionStatus_)));
-    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, Eq(std::nullopt))).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, Eq(std::nullopt), _)).WillOnce(Return(true));
 
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {
