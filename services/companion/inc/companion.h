@@ -73,7 +73,7 @@ public:
 
     void SetEnabledBusinessIds(const std::vector<BusinessId> &enabledBusinessIds);
     void SetCompanionValid(bool isValid);
-    void SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl);
+    void SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl, bool forEnrollment = false);
     void RefreshTokenTimer();
     void NotifySubscribers();
     void SetAddedToIdm(bool addedToIdm);

@@ -333,7 +333,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_001, TestSize.Leve
     };
 
     EXPECT_CALL(mockSecurityAgent_, HostProcessObtainToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAuthAtl(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAuthAtl(_, _, _)).WillOnce(Return(true));
 
     request->HandleObtainTokenMessage(req, messageReply);
 
@@ -577,7 +577,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_002, TestSize.
     ObtainTokenRequest req = { .hostUserId = 100, .extraInfo = {}, .companionDeviceKey = COMPANION_DEVICE_KEY };
     std::vector<uint8_t> obtainTokenReply;
 
-    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAuthAtl(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAuthAtl(_, _, _)).WillOnce(Return(true));
 
     bool result = request->HandleHostProcessObtainToken(req, obtainTokenReply);
 

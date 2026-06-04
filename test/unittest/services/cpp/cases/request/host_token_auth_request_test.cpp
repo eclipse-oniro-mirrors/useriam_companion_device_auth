@@ -566,7 +566,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_005, TestSize.Level0)
     EncodeTokenAuthReply(reply, message);
 
     // When TOKEN_NOT_FOUND is received, SetCompanionTokenAuthAtl with nullopt should be called to revoke token
-    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(TEMPLATE_ID, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(TEMPLATE_ID, _, _)).WillOnce(Return(true));
 
     request->HandleTokenAuthReply(message);
 
@@ -620,7 +620,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_006, TestSize.Level0)
     // When TOKEN_VERIFY_FAILED is returned by HostEndTokenAuth (HMAC mismatch),
     // SetCompanionTokenAuthAtl with nullopt should be called to set companion ATL null
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndTokenAuth(_, _)).WillOnce(Return(ResultCode::TOKEN_VERIFY_FAILED));
-    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(TEMPLATE_ID, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(TEMPLATE_ID, _, _)).WillOnce(Return(true));
 
     request->HandleTokenAuthReply(message);
 

@@ -395,7 +395,7 @@ HWTEST_F(HostIssueTokenRequestTest, HandleIssueTokenReply_005, TestSize.Level0)
     EncodeIssueTokenReply(reply, message);
 
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndIssueToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _, _)).WillOnce(Return(true));
 
     ASSERT_NO_THROW(request->HandleIssueTokenReply(message));
 }
