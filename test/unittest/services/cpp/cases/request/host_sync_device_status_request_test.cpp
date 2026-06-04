@@ -20,6 +20,7 @@
 #include "mock_cross_device_comm_manager.h"
 #include "mock_event_manager_adapter.h"
 #include "mock_misc_manager.h"
+#include "mock_request.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
 #include "mock_time_keeper.h"
@@ -485,7 +486,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, ShouldCancelOnNewRequest_001, TestSize
     auto request = std::make_shared<HostSyncDeviceStatusRequest>(HOST_USER_ID, COMPANION_DEVICE_KEY,
         COMPANION_DEVICE_NAME, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_SYNC_DEVICE_STATUS_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_SYNC_DEVICE_STATUS_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
 
     EXPECT_FALSE(result);
 }

@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
+#include "mock_request.h"
 
 #include "add_companion_message.h"
 #include "host_add_companion_request.h"
@@ -732,7 +733,8 @@ HWTEST_F(HostAddCompanionRequestTest, ShouldCancelOnNewRequest_001, TestSize.Lev
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_TRUE(result);
 }
 
@@ -744,7 +746,8 @@ HWTEST_F(HostAddCompanionRequestTest, ShouldCancelOnNewRequest_002, TestSize.Lev
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_DELEGATE_AUTH_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_TRUE(result);
 }
 
@@ -756,7 +759,8 @@ HWTEST_F(HostAddCompanionRequestTest, ShouldCancelOnNewRequest_003, TestSize.Lev
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

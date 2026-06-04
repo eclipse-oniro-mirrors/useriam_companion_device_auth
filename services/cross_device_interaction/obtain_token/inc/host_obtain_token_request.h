@@ -35,8 +35,7 @@ public:
     ~HostObtainTokenRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
-    bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
-        uint32_t subsequentSameTypeCount) const override;
+    bool ShouldCancelOnNewRequest(const IRequest &newRequest, uint32_t subsequentSameTypeCount) const override;
 
 protected:
     bool OnStart(ErrorGuard &errorGuard) override;
@@ -63,7 +62,6 @@ private:
 
     UserId hostUserId_ = INVALID_USER_ID;
     UserId companionUserId_ = INVALID_USER_ID;
-    TemplateId templateId_ = 0;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     bool needCancelObtainToken_ = false;
 };

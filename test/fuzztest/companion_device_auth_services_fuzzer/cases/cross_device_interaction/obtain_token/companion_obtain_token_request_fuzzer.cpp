@@ -22,6 +22,7 @@
 #include "companion_obtain_token_request.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_mock_request.h"
 #include "fuzz_registry.h"
 #include "obtain_token_message.h"
 
@@ -47,7 +48,8 @@ static void FuzzShouldCancelOnNewRequest(std::shared_ptr<CompanionObtainTokenReq
         newPeer = GenerateFuzzDeviceKey(fuzzData);
     }
     uint32_t count = fuzzData.ConsumeIntegral<uint32_t>();
-    (void)request->ShouldCancelOnNewRequest(newType, newPeer, count);
+    FuzzMockRequest mockNewRequest(newType, newPeer);
+    (void)request->ShouldCancelOnNewRequest(mockNewRequest, count);
 }
 
 static void FuzzOnStart(std::shared_ptr<CompanionObtainTokenRequest> &request, FuzzedDataProvider &fuzzData)

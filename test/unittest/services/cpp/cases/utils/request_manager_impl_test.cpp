@@ -99,9 +99,9 @@ public:
     MOCK_METHOD(RequestId, GetRequestId, (), (const, override));
     MOCK_METHOD(ScheduleId, GetScheduleId, (), (const, override));
     MOCK_METHOD(std::optional<DeviceKey>, GetPeerDeviceKey, (), (const, override));
+    MOCK_METHOD(std::optional<TemplateId>, GetTemplateId, (), (const, override));
     MOCK_METHOD(uint32_t, GetMaxConcurrency, (), (const, override));
-    MOCK_METHOD(bool, ShouldCancelOnNewRequest, (RequestType, const std::optional<DeviceKey> &, uint32_t),
-        (const, override));
+    MOCK_METHOD(bool, ShouldCancelOnNewRequest, (const IRequest &, uint32_t), (const, override));
 
     bool CanStart(const std::vector<std::shared_ptr<IRequest>> &prevRequests) const override
     {

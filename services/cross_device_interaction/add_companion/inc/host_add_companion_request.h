@@ -40,8 +40,7 @@ public:
     ~HostAddCompanionRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
-    bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
-        uint32_t subsequentSameTypeCount) const override;
+    bool ShouldCancelOnNewRequest(const IRequest &newRequest, uint32_t subsequentSameTypeCount) const override;
 
 protected:
     bool OnStart(ErrorGuard &errorGuard) override;
@@ -78,7 +77,6 @@ private:
     std::string additionalInfo_; // Store additionalInfo for parsing
     std::vector<uint8_t> addCompanionFwkMsg_ {};
     std::vector<uint8_t> pendingTokenData_ {}; // Token data for EndAddHostBinding message
-    TemplateId templateId_ {};                 // TemplateId after successful binding
     Atl tokenAuthAtl_ = 0;                     // ATL level of token auth
     bool needCancelCompanionAdd_ = false;
     bool enrollmentSucceeded_ = false;

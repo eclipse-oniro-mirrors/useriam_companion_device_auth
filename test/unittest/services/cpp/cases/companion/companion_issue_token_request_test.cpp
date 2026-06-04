@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
+#include "mock_request.h"
 
 #include "common_message.h"
 #include "companion_issue_token_request.h"
@@ -611,7 +612,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, ShouldCancelOnNewRequest_001, TestSize.
         std::move(replyCallback), HOST_DEVICE_KEY);
 
     // std::nullopt doesn't match any device, so shouldn't cancel
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_ISSUE_TOKEN_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_ISSUE_TOKEN_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 
@@ -623,7 +625,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, ShouldCancelOnNewRequest_002, TestSize.
     auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
         std::move(replyCallback), HOST_DEVICE_KEY);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

@@ -36,9 +36,9 @@ HostRemoveHostBindingRequest::HostRemoveHostBindingRequest(UserId hostUserId, Te
     const DeviceKey &companionDeviceKey)
     : OutboundRequest(RequestType::HOST_REMOVE_HOST_BINDING_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
       hostUserId_(hostUserId),
-      companionDeviceKey_(companionDeviceKey),
-      templateId_(templateId)
+      companionDeviceKey_(companionDeviceKey)
 {
+    templateId_ = templateId;
     SetPeerDeviceKey(companionDeviceKey_);
     eventCollector_.SetHostUserId(hostUserId);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
@@ -48,11 +48,12 @@ HostRemoveHostBindingRequest::HostRemoveHostBindingRequest(UserId hostUserId, Te
 bool HostRemoveHostBindingRequest::OnStart(ErrorGuard &errorGuard)
 {
     IAM_LOGI("%{public}s start", GetDescription());
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
     if (!OpenConnection()) {
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
         return false;
     }
-    desc_.SetTemplateId(templateId_);
+    desc_.SetTemplateId(*templateId_);
     desc_.SetDeviceId(companionDeviceKey_);
     eventCollector_.SetConnectionName(GetConnectionName());
     return true;
@@ -124,7 +125,8 @@ std::weak_ptr<OutboundRequest> HostRemoveHostBindingRequest::GetWeakPtr()
 void HostRemoveHostBindingRequest::CompleteWithError(ResultCode result)
 {
     IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
-    GetCompanionManager().HandleRemoveHostBindingComplete(templateId_);
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
+    GetCompanionManager().HandleRemoveHostBindingComplete(*templateId_);
     eventCollector_.Report(result);
     Destroy();
 }
@@ -132,7 +134,8 @@ void HostRemoveHostBindingRequest::CompleteWithError(ResultCode result)
 void HostRemoveHostBindingRequest::CompleteWithSuccess()
 {
     IAM_LOGI("%{public}s complete with success", GetDescription());
-    GetCompanionManager().HandleRemoveHostBindingComplete(templateId_);
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
+    GetCompanionManager().HandleRemoveHostBindingComplete(*templateId_);
     eventCollector_.Report(ResultCode::SUCCESS);
     Destroy();
 }
@@ -142,12 +145,11 @@ uint32_t HostRemoveHostBindingRequest::GetMaxConcurrency() const
     return 10; // Spec: max 10 concurrent HostRemoveHostBindingRequest
 }
 
-bool HostRemoveHostBindingRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+bool HostRemoveHostBindingRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
     [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostRemoveHostBindingRequest preempts existing one
-    if (newRequestType == RequestType::HOST_REMOVE_HOST_BINDING_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_REMOVE_HOST_BINDING_REQUEST) {
         IAM_LOGI("%{public}s: preempted by new HostRemoveHostBinding", GetDescription());
         return true;
     }

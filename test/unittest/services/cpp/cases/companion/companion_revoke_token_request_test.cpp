@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
+#include "mock_request.h"
 
 #include "companion_revoke_token_request.h"
 #include "revoke_token_message.h"
@@ -123,7 +124,8 @@ HWTEST_F(CompanionRevokeTokenRequestTest, ShouldCancelOnNewRequest_001, TestSize
 
     auto request = std::make_shared<CompanionRevokeTokenRequest>(COMPANION_USER_ID, HOST_DEVICE_KEY, REASON);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_REVOKE_TOKEN_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_REVOKE_TOKEN_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_TRUE(result);
 }
 
@@ -133,7 +135,8 @@ HWTEST_F(CompanionRevokeTokenRequestTest, ShouldCancelOnNewRequest_002, TestSize
 
     auto request = std::make_shared<CompanionRevokeTokenRequest>(COMPANION_USER_ID, HOST_DEVICE_KEY, REASON);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

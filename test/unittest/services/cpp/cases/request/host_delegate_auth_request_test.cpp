@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
+#include "mock_request.h"
 
 #include "delegate_auth_message.h"
 #include "host_delegate_auth_request.h"
@@ -759,7 +760,8 @@ HWTEST_F(HostDelegateAuthRequestTest, ShouldCancelOnNewRequest_001, TestSize.Lev
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_TRUE(result);
 }
 
@@ -772,11 +774,14 @@ HWTEST_F(HostDelegateAuthRequestTest, ShouldCancelOnNewRequest_002, TestSize.Lev
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
     // Different device (nullopt) should not preempt
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_DELEGATE_AUTH_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 
     // Same device should preempt
-    result = request->ShouldCancelOnNewRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, COMPANION_DEVICE_KEY, 0);
+    auto newRequest2 = std::make_shared<MockIRequest>(RequestType::HOST_DELEGATE_AUTH_REQUEST);
+    newRequest2->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
+    result = request->ShouldCancelOnNewRequest(*newRequest2, 0);
     EXPECT_TRUE(result);
 }
 
@@ -788,7 +793,8 @@ HWTEST_F(HostDelegateAuthRequestTest, ShouldCancelOnNewRequest_003, TestSize.Lev
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

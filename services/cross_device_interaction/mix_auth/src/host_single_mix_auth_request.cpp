@@ -38,13 +38,13 @@ HostSingleMixAuthRequest::HostSingleMixAuthRequest(const AuthRequestParams &para
     : BaseRequest(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS, "-"),
       fwkMsg_(params.fwkMsg),
       hostUserId_(params.hostUserId),
-      templateId_(params.templateId),
       authIntent_(params.authIntent),
       authScene_(params.authScene),
       requestCallback_(std::move(requestCallback)),
       peerDeviceKey_(companionDeviceKey)
 {
-    desc_.SetTemplateId(templateId_);
+    templateId_ = params.templateId;
+    desc_.SetTemplateId(params.templateId);
     desc_.SetDeviceId(companionDeviceKey);
     eventCollector_.SetHostUserId(params.hostUserId);
     eventCollector_.SetScheduleId(params.scheduleId);
@@ -58,7 +58,8 @@ void HostSingleMixAuthRequest::Start()
     IAM_LOGI("%{public}s start", GetDescription());
     StartTimeout(weak_from_this());
 
-    if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::TOKEN_AUTH)) {
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
+    if (!GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::TOKEN_AUTH)) {
         IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by companion device", GetDescription());
         HandleTokenAuthResult(ResultCode::GENERAL_ERROR, std::vector<uint8_t> {});
         return;
@@ -67,7 +68,7 @@ void HostSingleMixAuthRequest::Start()
     AuthRequestParams tokenAuthParams = { .scheduleId = GetScheduleId(),
         .fwkMsg = fwkMsg_,
         .hostUserId = hostUserId_,
-        .templateId = templateId_,
+        .templateId = *templateId_,
         .authIntent = authIntent_,
         .authScene = authScene_ };
     auto tokenAuthRequest = GetRequestFactory().CreateHostTokenAuthRequest(tokenAuthParams,
@@ -86,7 +87,7 @@ void HostSingleMixAuthRequest::Start()
     desc_.SetSubRequestIdList(subRequestIds_);
     if (!GetRequestManager().Start(tokenAuthRequest)) {
         IAM_LOGE("%{public}s tokenAuthRequest Start failed for templateId %{public}s", GetDescription(),
-            GET_MASKED_NUM_CSTR(templateId_));
+            GET_MASKED_NUM_CSTR(*templateId_));
         CompleteWithError(ResultCode::GENERAL_ERROR);
         return;
     }
@@ -135,7 +136,8 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
         CompleteWithError(ResultCode::GENERAL_ERROR);
         return;
     }
-    if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::DELEGATE_AUTH)) {
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
+    if (!GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::DELEGATE_AUTH)) {
         IAM_LOGE("%{public}s DELEGATE_AUTH capability not supported by companion device", GetDescription());
         CompleteWithError(ResultCode::GENERAL_ERROR);
         return;
@@ -143,7 +145,7 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
     AuthRequestParams delegateAuthParams = { .scheduleId = GetScheduleId(),
         .fwkMsg = fwkMsg_,
         .hostUserId = hostUserId_,
-        .templateId = templateId_,
+        .templateId = *templateId_,
         .authIntent = authIntent_,
         .authScene = authScene_ };
     auto delegateAuthRequest = GetRequestFactory().CreateHostDelegateAuthRequest(delegateAuthParams,
@@ -162,7 +164,7 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
     desc_.SetSubRequestIdList(subRequestIds_);
     if (!GetRequestManager().Start(delegateAuthRequest)) {
         IAM_LOGE("%{public}s delegateAuthRequest Start failed for templateId %{public}s", GetDescription(),
-            GET_MASKED_NUM_CSTR(templateId_));
+            GET_MASKED_NUM_CSTR(*templateId_));
         CompleteWithError(ResultCode::GENERAL_ERROR);
         return;
     }
@@ -189,11 +191,12 @@ uint32_t HostSingleMixAuthRequest::GetMaxConcurrency() const
     return 10; // Spec: max 10 concurrent HostSingleMixAuthRequest
 }
 
-bool HostSingleMixAuthRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
+bool HostSingleMixAuthRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostSingleMixAuthRequest to same device preempts existing one
-    if (newRequestType == RequestType::HOST_SINGLE_MIX_AUTH_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_SINGLE_MIX_AUTH_REQUEST) {
+        auto newPeerDevice = newRequest.GetPeerDeviceKey();
         if (newPeerDevice.has_value() && peerDeviceKey_ == newPeerDevice.value()) {
             IAM_LOGI("%{public}s: preempted by new HostSingleMixAuth to same device", GetDescription());
             return true;

@@ -75,7 +75,7 @@ bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
         return false;
     }
     templateId_ = companionStatus->templateId;
-    desc_.SetTemplateId(templateId_);
+    desc_.SetTemplateId(companionStatus->templateId);
     desc_.SetDeviceId(preRequest.companionDeviceKey);
     auto secureProtocolOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(preRequest.companionDeviceKey);
     if (!secureProtocolOpt.has_value()) {
@@ -84,7 +84,7 @@ bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
     }
     secureProtocolId_ = secureProtocolOpt.value();
     eventCollector_.SetHostUserId(hostUserId_);
-    eventCollector_.SetTemplateIdList({ templateId_ });
+    eventCollector_.SetTemplateIdList({ companionStatus->templateId });
     return true;
 }
 
@@ -130,9 +130,10 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 
 bool HostObtainTokenRequest::ProcessPreObtainToken(std::vector<uint8_t> &preObtainTokenReply)
 {
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
     HostProcessPreObtainTokenInput input = {};
     input.requestId = GetRequestId();
-    input.templateId = templateId_;
+    input.templateId = *templateId_;
     input.secureProtocolId = secureProtocolId_;
 
     HostProcessPreObtainTokenOutput output = {};
@@ -213,9 +214,10 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
 HostProcessObtainTokenInput HostObtainTokenRequest::BuildHostProcessObtainTokenInput(
     const std::vector<uint8_t> &obtainTokenRequest)
 {
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), HostProcessObtainTokenInput {});
     HostProcessObtainTokenInput input = {};
     input.requestId = GetRequestId();
-    input.templateId = templateId_;
+    input.templateId = *templateId_;
     input.secureProtocolId = secureProtocolId_;
     input.obtainTokenRequest = obtainTokenRequest;
     return input;
@@ -228,7 +230,8 @@ bool HostObtainTokenRequest::ProcessHostProcessObtainTokenOutput(const HostProce
     obtainTokenReply = output.obtainTokenReply;
     IAM_LOGI("%{public}s HostProcessObtainToken completed atl=%{public}d", GetDescription(), output.atl);
 
-    bool setTokenAtlRet = GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, output.atl);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
+    bool setTokenAtlRet = GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, output.atl);
     if (!setTokenAtlRet) {
         IAM_LOGE("%{public}s SetCompanionTokenAuthAtl failed", GetDescription());
     }
@@ -284,17 +287,18 @@ uint32_t HostObtainTokenRequest::GetMaxConcurrency() const
     return 10; // Spec: max 10 concurrent HostObtainTokenRequest
 }
 
-bool HostObtainTokenRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
+bool HostObtainTokenRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostAddCompanionRequest preempts HostObtainTokenRequest
-    if (newRequestType == RequestType::HOST_ADD_COMPANION_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_ADD_COMPANION_REQUEST) {
         IAM_LOGI("%{public}s: preempted by new HostAddCompanion", GetDescription());
         return true;
     }
 
     // Spec: new HostObtainTokenRequest to same device preempts existing one
-    if (newRequestType == RequestType::HOST_OBTAIN_TOKEN_REQUEST && GetPeerDeviceKey() == newPeerDevice) {
+    if (newRequest.GetRequestType() == RequestType::HOST_OBTAIN_TOKEN_REQUEST &&
+        GetPeerDeviceKey() == newRequest.GetPeerDeviceKey()) {
         IAM_LOGI("%{public}s: preempted by new HostObtainToken to same device", GetDescription());
         return true;
     }

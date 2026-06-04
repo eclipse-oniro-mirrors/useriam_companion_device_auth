@@ -36,8 +36,7 @@ public:
     bool Cancel(ResultCode resultCode) override final;
 
     uint32_t GetMaxConcurrency() const override;
-    bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
-        uint32_t subsequentSameTypeCount) const override;
+    bool ShouldCancelOnNewRequest(const IRequest &newRequest, uint32_t subsequentSameTypeCount) const override;
 
 private:
     void CompleteWithError(ResultCode result) override;

@@ -454,7 +454,8 @@ HWTEST_F(HostMixAuthRequestTest, ShouldCancelOnNewRequest_001, TestSize.Level0)
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
     // HostMixAuthRequest does not preempt on any request type
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_MIX_AUTH_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_MIX_AUTH_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 
@@ -467,7 +468,8 @@ HWTEST_F(HostMixAuthRequestTest, ShouldCancelOnNewRequest_002, TestSize.Level0)
         AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

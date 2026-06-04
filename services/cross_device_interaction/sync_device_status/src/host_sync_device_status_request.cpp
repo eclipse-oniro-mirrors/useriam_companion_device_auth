@@ -275,8 +275,7 @@ uint32_t HostSyncDeviceStatusRequest::GetMaxConcurrency() const
     return 100; // Spec: max 100 concurrent HostSyncDeviceStatusRequest (TA limited to 10 by CA)
 }
 
-bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest([[maybe_unused]] RequestType newRequestType,
-    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest([[maybe_unused]] const IRequest &newRequest,
     [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: not preempted by any request type

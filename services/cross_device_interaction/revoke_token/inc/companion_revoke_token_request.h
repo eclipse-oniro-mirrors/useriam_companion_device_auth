@@ -32,8 +32,7 @@ public:
     ~CompanionRevokeTokenRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
-    bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
-        uint32_t subsequentSameTypeCount) const override;
+    bool ShouldCancelOnNewRequest(const IRequest &newRequest, uint32_t subsequentSameTypeCount) const override;
 
 protected:
     void OnConnected() override;

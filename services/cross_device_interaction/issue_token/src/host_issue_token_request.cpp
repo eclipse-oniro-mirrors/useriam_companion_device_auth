@@ -37,11 +37,11 @@ HostIssueTokenRequest::HostIssueTokenRequest(UserId hostUserId, TemplateId templ
     const std::vector<uint8_t> &fwkUnlockMsg, const DeviceKey &companionDeviceKey)
     : OutboundRequest(RequestType::HOST_ISSUE_TOKEN_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
       hostUserId_(hostUserId),
-      templateId_(templateId),
       fwkUnlockMsg_(fwkUnlockMsg)
 {
+    templateId_ = templateId;
     SetPeerDeviceKey(companionDeviceKey);
-    desc_.SetTemplateId(templateId_);
+    desc_.SetTemplateId(templateId);
     desc_.SetDeviceId(companionDeviceKey);
     eventCollector_.SetHostUserId(hostUserId);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
@@ -51,12 +51,13 @@ HostIssueTokenRequest::HostIssueTokenRequest(UserId hostUserId, TemplateId templ
 
 bool HostIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
-    auto companionStatus = GetCompanionManager().GetCompanionStatus(templateId_);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
+    auto companionStatus = GetCompanionManager().GetCompanionStatus(*templateId_);
     if (!companionStatus.has_value()) {
         return false;
     }
 
-    if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::TOKEN_AUTH)) {
+    if (!GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::TOKEN_AUTH)) {
         IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by companion device", GetDescription());
         return false;
     }
@@ -90,9 +91,10 @@ void HostIssueTokenRequest::OnConnected()
 
 void HostIssueTokenRequest::HostPreIssueToken()
 {
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
     HostPreIssueTokenInput input = {};
     input.requestId = GetRequestId();
-    input.templateId = templateId_;
+    input.templateId = *templateId_;
     input.fwkUnlockMsg = fwkUnlockMsg_;
     HostPreIssueTokenOutput output = {};
     ResultCode ret = GetSecurityAgent().HostPreIssueToken(input, output);
@@ -242,7 +244,8 @@ void HostIssueTokenRequest::HandleIssueTokenReply(const Attributes &message)
         return;
     }
     eventCollector_.SetAtl(atl);
-    bool setTokenAtlRet = GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, atl);
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
+    bool setTokenAtlRet = GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, atl);
     if (!setTokenAtlRet) {
         IAM_LOGE("%{public}s SetCompanionTokenAuthAtl failed", GetDescription());
     }
@@ -343,19 +346,20 @@ bool HostIssueTokenRequest::CanStart(const std::vector<std::shared_ptr<IRequest>
     return true;
 }
 
-bool HostIssueTokenRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
+bool HostIssueTokenRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostAddCompanionRequest preempts HostIssueTokenRequest
-    if (newRequestType == RequestType::HOST_ADD_COMPANION_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_ADD_COMPANION_REQUEST) {
         IAM_LOGI("%{public}s: preempted by new HostAddCompanion", GetDescription());
         return true;
     }
 
     // Spec: new HostIssueTokenRequest to same device preempts existing one
     // Only preempt when both peerDeviceKeys are valid and equal
-    if (newRequestType == RequestType::HOST_ISSUE_TOKEN_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_ISSUE_TOKEN_REQUEST) {
         auto currentPeerDevice = GetPeerDeviceKey();
+        auto newPeerDevice = newRequest.GetPeerDeviceKey();
         if (currentPeerDevice.has_value() && newPeerDevice.has_value() &&
             currentPeerDevice.value() == newPeerDevice.value()) {
             IAM_LOGI("%{public}s: preempted by new HostIssueToken to same device", GetDescription());

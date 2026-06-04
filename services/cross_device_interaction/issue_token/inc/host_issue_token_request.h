@@ -36,8 +36,7 @@ public:
 
     uint32_t GetMaxConcurrency() const override;
     bool CanStart(const std::vector<std::shared_ptr<IRequest>> &prevRequests) const override;
-    bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
-        uint32_t subsequentSameTypeCount) const override;
+    bool ShouldCancelOnNewRequest(const IRequest &newRequest, uint32_t subsequentSameTypeCount) const override;
 
 protected:
     bool OnStart(ErrorGuard &errorGuard) override;
@@ -58,7 +57,6 @@ private:
 
     UserId hostUserId_ = INVALID_USER_ID;
     UserId companionUserId_ = INVALID_USER_ID;
-    TemplateId templateId_ = 0;
     std::vector<uint8_t> fwkUnlockMsg_;
     bool needCancelIssueToken_ = false;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::DEFAULT;

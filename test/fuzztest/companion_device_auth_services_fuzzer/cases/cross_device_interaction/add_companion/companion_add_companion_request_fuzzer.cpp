@@ -22,6 +22,7 @@
 #include "companion_add_companion_request.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_mock_request.h"
 #include "fuzz_registry.h"
 
 namespace OHOS {
@@ -49,7 +50,8 @@ static void FuzzShouldCancelOnNewRequest(std::shared_ptr<CompanionAddCompanionRe
         newPeerDevice = GenerateFuzzDeviceKey(fuzzData);
     }
     uint32_t subsequentSameTypeCount = fuzzData.ConsumeIntegral<uint32_t>();
-    (void)request->ShouldCancelOnNewRequest(newRequestType, newPeerDevice, subsequentSameTypeCount);
+    FuzzMockRequest mockNewRequest(newRequestType, newPeerDevice);
+    (void)request->ShouldCancelOnNewRequest(mockNewRequest, subsequentSameTypeCount);
 }
 
 static void FuzzStart(std::shared_ptr<CompanionAddCompanionRequest> &request, FuzzedDataProvider &fuzzData)

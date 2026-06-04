@@ -39,11 +39,11 @@ HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params
     : OutboundRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(params.fwkMsg),
       hostUserId_(params.hostUserId),
-      templateId_(params.templateId),
       requestCallback_(std::move(requestCallback))
 {
+    templateId_ = params.templateId;
     SetPeerDeviceKey(companionDeviceKey);
-    desc_.SetTemplateId(templateId_);
+    desc_.SetTemplateId(params.templateId);
     desc_.SetDeviceId(companionDeviceKey);
     eventCollector_.SetHostUserId(params.hostUserId);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
@@ -55,7 +55,8 @@ HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params
 bool HostDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 {
     IAM_LOGI("%{public}s start", GetDescription());
-    if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::DELEGATE_AUTH)) {
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
+    if (!GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::DELEGATE_AUTH)) {
         IAM_LOGE("%{public}s DELEGATE_AUTH capability not supported by companion device", GetDescription());
         return false;
     }
@@ -116,10 +117,11 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
         return;
     }
 
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
     HostBeginDelegateAuthInput input = {};
     input.requestId = GetRequestId();
     input.scheduleId = GetScheduleId();
-    input.templateId = templateId_;
+    input.templateId = *templateId_;
     input.fwkMsg = fwkMsg_;
     HostBeginDelegateAuthOutput output = {};
     ResultCode ret = GetSecurityAgent().HostBeginDelegateAuth(input, output);
@@ -291,18 +293,19 @@ uint32_t HostDelegateAuthRequest::GetMaxConcurrency() const
     return 1; // Spec: max 1 concurrent HostDelegateAuthRequest, must specify device
 }
 
-bool HostDelegateAuthRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
+bool HostDelegateAuthRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostAddCompanionRequest preempts HostDelegateAuthRequest
-    if (newRequestType == RequestType::HOST_ADD_COMPANION_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_ADD_COMPANION_REQUEST) {
         IAM_LOGI("%{public}s: preempted by new HostAddCompanion", GetDescription());
         return true;
     }
 
     // Spec: new HostDelegateAuthRequest to same device preempts existing one
-    if (newRequestType == RequestType::HOST_DELEGATE_AUTH_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_DELEGATE_AUTH_REQUEST) {
         auto currentPeerDevice = GetPeerDeviceKey();
+        auto newPeerDevice = newRequest.GetPeerDeviceKey();
         if (currentPeerDevice.has_value() && newPeerDevice.has_value() &&
             currentPeerDevice.value() == newPeerDevice.value()) {
             IAM_LOGI("%{public}s: preempted by new HostDelegateAuth to same device", GetDescription());

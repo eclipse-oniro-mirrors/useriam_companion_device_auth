@@ -265,11 +265,12 @@ uint32_t CompanionIssueTokenRequest::GetMaxConcurrency() const
     return 10; // Spec: max 10 concurrent CompanionIssueTokenRequest
 }
 
-bool CompanionIssueTokenRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
+bool CompanionIssueTokenRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new CompanionIssueTokenRequest to same device preempts existing one
-    if (newRequestType == RequestType::COMPANION_ISSUE_TOKEN_REQUEST && GetPeerDeviceKey() == newPeerDevice) {
+    if (newRequest.GetRequestType() == RequestType::COMPANION_ISSUE_TOKEN_REQUEST &&
+        GetPeerDeviceKey() == newRequest.GetPeerDeviceKey()) {
         IAM_LOGI("%{public}s: preempted by new CompanionIssueToken to same device", GetDescription());
         return true;
     }

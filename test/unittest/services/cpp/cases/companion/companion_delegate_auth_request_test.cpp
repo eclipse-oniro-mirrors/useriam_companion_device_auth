@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
+#include "mock_request.h"
 
 #include "companion_delegate_auth_request.h"
 #include "delegate_auth_message.h"
@@ -376,11 +377,14 @@ HWTEST_F(CompanionDelegateAuthRequestTest, ShouldCancelOnNewRequest_001, TestSiz
         START_DELEGATE_AUTH_REQUEST);
 
     // Different device (nullopt) should not preempt
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_DELEGATE_AUTH_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_DELEGATE_AUTH_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 
     // Same device should preempt
-    result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_DELEGATE_AUTH_REQUEST, HOST_DEVICE_KEY, 0);
+    auto newRequest2 = std::make_shared<MockIRequest>(RequestType::COMPANION_DELEGATE_AUTH_REQUEST);
+    newRequest2->SetPeerDeviceKey(HOST_DEVICE_KEY);
+    result = request->ShouldCancelOnNewRequest(*newRequest2, 0);
     EXPECT_TRUE(result);
 }
 
@@ -391,7 +395,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, ShouldCancelOnNewRequest_002, TestSiz
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

@@ -1066,6 +1066,11 @@ public:
         return std::optional<DeviceKey>();
     }
 
+    std::optional<TemplateId> GetTemplateId() const override
+    {
+        return std::nullopt;
+    }
+
     uint32_t GetMaxConcurrency() const override
     {
         uint32_t leftRange = 1;
@@ -1079,11 +1084,9 @@ public:
         return fuzzData_.ConsumeBool();
     }
 
-    bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
-        uint32_t subsequentSameTypeCount) const override
+    bool ShouldCancelOnNewRequest(const IRequest &newRequest, uint32_t subsequentSameTypeCount) const override
     {
-        (void)newRequestType;
-        (void)newPeerDevice;
+        (void)newRequest;
         (void)subsequentSameTypeCount;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0;
     }

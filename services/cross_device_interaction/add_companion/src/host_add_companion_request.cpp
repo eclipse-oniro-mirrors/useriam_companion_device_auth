@@ -392,21 +392,23 @@ void HostAddCompanionRequest::ProcessEndAddCompanionOutput(const EndAddCompanion
     std::vector<uint8_t> &fwkMsg)
 {
     needCancelCompanionAdd_ = false;
-    templateId_ = output.templateId;
-    desc_.SetTemplateId(templateId_);
+    auto templateId = output.templateId;
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId != 0);
+    templateId_ = templateId;
+    desc_.SetTemplateId(templateId);
 
     fwkMsg = output.fwkMsg;
     pendingTokenData_ = output.tokenData;
     tokenAuthAtl_ = output.atl;
 
-    eventCollector_.SetTemplateIdList({ templateId_ });
+    eventCollector_.SetTemplateIdList({ templateId });
     eventCollector_.SetAtl(output.atl);
     eventCollector_.SetEsl(output.esl);
 
     // Update enabled business IDs if parsed from additionalInfo
-    if (!enabledBusinessIdsFromAdditionalInfo_.empty() && templateId_ != 0) {
+    if (!enabledBusinessIdsFromAdditionalInfo_.empty()) {
         ResultCode ret =
-            GetCompanionManager().UpdateCompanionEnabledBusinessIds(templateId_, enabledBusinessIdsFromAdditionalInfo_);
+            GetCompanionManager().UpdateCompanionEnabledBusinessIds(templateId, enabledBusinessIdsFromAdditionalInfo_);
         if (ret != ResultCode::SUCCESS) {
             IAM_LOGE("%{public}s UpdateCompanionEnabledBusinessIds failed ret=%{public}d", GetDescription(), ret);
         } else {
@@ -484,8 +486,8 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
         return;
     }
 
-    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_ != 0);
-    GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, tokenAuthAtl_, true);
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
+    GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, tokenAuthAtl_, true);
     IAM_LOGI("%{public}s token activated successfully", GetDescription());
 
     errorGuard.Cancel();
@@ -545,18 +547,17 @@ uint32_t HostAddCompanionRequest::GetMaxConcurrency() const
     return 1; // Spec: max 1 concurrent HostAddCompanionRequest
 }
 
-bool HostAddCompanionRequest::ShouldCancelOnNewRequest([[maybe_unused]] RequestType newRequestType,
-    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+bool HostAddCompanionRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
     [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostAddCompanionRequest preempts existing one
-    if (newRequestType == RequestType::HOST_ADD_COMPANION_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_ADD_COMPANION_REQUEST) {
         IAM_LOGI("%{public}s: preempted by new HostAddCompanion", GetDescription());
         return true;
     }
 
     // Spec: new HostDelegateAuthRequest preempts HostAddCompanionRequest
-    if (newRequestType == RequestType::HOST_DELEGATE_AUTH_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_DELEGATE_AUTH_REQUEST) {
         IAM_LOGI("%{public}s: preempted by new HostDelegateAuth", GetDescription());
         return true;
     }

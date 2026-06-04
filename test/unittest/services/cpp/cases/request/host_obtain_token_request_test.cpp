@@ -20,6 +20,7 @@
 #include "mock_cross_device_comm_manager.h"
 #include "mock_event_manager_adapter.h"
 #include "mock_misc_manager.h"
+#include "mock_request.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
 #include "mock_time_keeper.h"
@@ -41,6 +42,7 @@ namespace CompanionDeviceAuth {
 namespace {
 
 // 测试数据常量
+const TemplateId TEST_TEMPLATE_ID = 1;
 const std::string CONNECTION_NAME = "test_connection";
 const DeviceKey COMPANION_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
     .deviceId = "companion_device_id",
@@ -85,6 +87,7 @@ public:
         AdapterManager::GetInstance().SetEventManagerAdapter(eventManagerAdapter);
 
         CompanionStatus companionStatus;
+        companionStatus.templateId = TEST_TEMPLATE_ID;
         ON_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
             .WillByDefault(Return(std::make_optional(companionStatus)));
         ON_CALL(mockCompanionManager_, IsCapabilitySupported(_, Capability::OBTAIN_TOKEN)).WillByDefault(Return(true));
@@ -151,6 +154,7 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_001, TestSize.Level0)
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
     CompanionStatus companionStatus;
+    companionStatus.templateId = TEST_TEMPLATE_ID;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
@@ -233,6 +237,7 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_004, TestSize.Level0)
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
     CompanionStatus companionStatus;
+    companionStatus.templateId = TEST_TEMPLATE_ID;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_)).WillOnce(Return(std::nullopt));
 
@@ -261,6 +266,7 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_005, TestSize.Level0)
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
     CompanionStatus companionStatus;
+    companionStatus.templateId = TEST_TEMPLATE_ID;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
@@ -291,6 +297,7 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_006, TestSize.Level0)
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
     CompanionStatus companionStatus;
+    companionStatus.templateId = TEST_TEMPLATE_ID;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
@@ -577,6 +584,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_002, TestSize.
     ObtainTokenRequest req = { .hostUserId = 100, .extraInfo = {}, .companionDeviceKey = COMPANION_DEVICE_KEY };
     std::vector<uint8_t> obtainTokenReply;
 
+    request->templateId_ = TEST_TEMPLATE_ID;
     EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAuthAtl(_, _, _)).WillOnce(Return(true));
 
     bool result = request->HandleHostProcessObtainToken(req, obtainTokenReply);
@@ -639,7 +647,8 @@ HWTEST_F(HostObtainTokenRequestTest, ShouldCancelOnNewRequest_001, TestSize.Leve
     auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_TRUE(result);
 }
 
@@ -654,7 +663,8 @@ HWTEST_F(HostObtainTokenRequestTest, ShouldCancelOnNewRequest_002, TestSize.Leve
     request->peerDeviceKey_ = emptyKey;
 
     // When peerDeviceKey_ is an empty DeviceKey and new request has nullopt, they don't match
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_OBTAIN_TOKEN_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_OBTAIN_TOKEN_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 
@@ -665,7 +675,8 @@ HWTEST_F(HostObtainTokenRequestTest, ShouldCancelOnNewRequest_003, TestSize.Leve
     auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_OBTAIN_TOKEN_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_OBTAIN_TOKEN_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

@@ -123,12 +123,11 @@ uint32_t CompanionRevokeTokenRequest::GetMaxConcurrency() const
     return 10; // Spec: max 10 concurrent CompanionRevokeTokenRequest
 }
 
-bool CompanionRevokeTokenRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+bool CompanionRevokeTokenRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
     [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new CompanionRevokeTokenRequest preempts existing one
-    if (newRequestType == RequestType::COMPANION_REVOKE_TOKEN_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::COMPANION_REVOKE_TOKEN_REQUEST) {
         IAM_LOGI("%{public}s: preempted by new CompanionRevokeToken", GetDescription());
         return true;
     }
