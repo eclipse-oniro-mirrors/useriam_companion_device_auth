@@ -41,6 +41,7 @@ public:
     RequestId GetRequestId() const final override;
     ScheduleId GetScheduleId() const final override;
     std::optional<DeviceKey> GetPeerDeviceKey() const override;
+    std::optional<TemplateId> GetTemplateId() const override;
     bool CanStart(const std::vector<std::shared_ptr<IRequest>> &prevRequests) const override;
 
 protected:
@@ -56,6 +57,7 @@ protected:
     const RequestType requestType_;
     RequestId requestId_ = 0;
     const ScheduleId scheduleId_ = 0;
+    std::optional<TemplateId> templateId_;
     const uint32_t timeoutMs_ = 0;
     std::unique_ptr<Subscription> timeoutSubscription_;
     bool cancelled_ = false;

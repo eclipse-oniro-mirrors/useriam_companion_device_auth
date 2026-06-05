@@ -22,6 +22,7 @@
 #include "companion_revoke_token_request.h"
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_mock_request.h"
 #include "fuzz_registry.h"
 
 namespace OHOS {
@@ -46,7 +47,8 @@ static void FuzzShouldCancelOnNewRequest(std::shared_ptr<CompanionRevokeTokenReq
         newPeer = GenerateFuzzDeviceKey(fuzzData);
     }
     uint32_t count = fuzzData.ConsumeIntegral<uint32_t>();
-    (void)request->ShouldCancelOnNewRequest(newType, newPeer, count);
+    FuzzMockRequest mockNewRequest(newType, newPeer);
+    (void)request->ShouldCancelOnNewRequest(mockNewRequest, count);
 }
 
 static void FuzzOnConnected(std::shared_ptr<CompanionRevokeTokenRequest> &request, FuzzedDataProvider &fuzzData)

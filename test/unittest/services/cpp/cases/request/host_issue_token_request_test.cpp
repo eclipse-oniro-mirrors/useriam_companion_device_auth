@@ -548,7 +548,8 @@ HWTEST_F(HostIssueTokenRequestTest, ShouldCancelOnNewRequest_001, TestSize.Level
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_TRUE(result);
 }
 
@@ -561,7 +562,8 @@ HWTEST_F(HostIssueTokenRequestTest, ShouldCancelOnNewRequest_002, TestSize.Level
     request->peerDeviceKey_ = std::nullopt;
 
     // When peerDeviceKey is nullopt, cannot determine if same device, so should not cancel
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_ISSUE_TOKEN_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ISSUE_TOKEN_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 
@@ -572,7 +574,8 @@ HWTEST_F(HostIssueTokenRequestTest, ShouldCancelOnNewRequest_003, TestSize.Level
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

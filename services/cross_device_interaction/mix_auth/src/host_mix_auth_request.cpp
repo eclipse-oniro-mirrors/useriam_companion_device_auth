@@ -279,8 +279,7 @@ uint32_t HostMixAuthRequest::GetMaxConcurrency() const
     return 1; // Spec: max 1 concurrent HostMixAuthRequest
 }
 
-bool HostMixAuthRequest::ShouldCancelOnNewRequest([[maybe_unused]] RequestType newRequestType,
-    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+bool HostMixAuthRequest::ShouldCancelOnNewRequest([[maybe_unused]] const IRequest &newRequest,
     [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: HostMixAuthRequest does not preempt on new requests

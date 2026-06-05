@@ -570,7 +570,8 @@ HWTEST_F(HostSingleMixAuthRequestTest, ShouldCancelOnNewRequest_001, TestSize.Le
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostSingleMixAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_MIX_AUTH_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_MIX_AUTH_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 
@@ -580,7 +581,8 @@ HWTEST_F(HostSingleMixAuthRequestTest, ShouldCancelOnNewRequest_002, TestSize.Le
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostSingleMixAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 
@@ -590,7 +592,8 @@ HWTEST_F(HostSingleMixAuthRequestTest, ShouldCancelOnNewRequest_003, TestSize.Le
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostSingleMixAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

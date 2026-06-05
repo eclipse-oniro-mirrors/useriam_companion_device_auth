@@ -69,7 +69,7 @@ bool RequestManagerImpl::Start(const std::shared_ptr<IRequest> &request)
         for (auto it = container.rbegin(); it != container.rend(); ++it) {
             const auto &existingRequest = *it;
             ENSURE_OR_CONTINUE(existingRequest != nullptr);
-            if (existingRequest->ShouldCancelOnNewRequest(request->GetRequestType(), request->GetPeerDeviceKey(), 0)) {
+            if (existingRequest->ShouldCancelOnNewRequest(*request, 0)) {
                 requestToCancel.push_back(existingRequest);
                 continue;
             }

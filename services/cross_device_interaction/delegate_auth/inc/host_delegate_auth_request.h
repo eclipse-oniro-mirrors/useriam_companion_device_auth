@@ -37,8 +37,7 @@ public:
     ~HostDelegateAuthRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
-    bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
-        uint32_t subsequentSameTypeCount) const override;
+    bool ShouldCancelOnNewRequest(const IRequest &newRequest, uint32_t subsequentSameTypeCount) const override;
 
 protected:
     bool OnStart(ErrorGuard &errorGuard) override;
@@ -61,7 +60,6 @@ private:
 
     std::vector<uint8_t> fwkMsg_;
     UserId hostUserId_ = INVALID_USER_ID;
-    TemplateId templateId_ = 0;
     FwkResultCallback requestCallback_;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::DEFAULT;
     std::unique_ptr<Subscription> delegateResultSubscription_;

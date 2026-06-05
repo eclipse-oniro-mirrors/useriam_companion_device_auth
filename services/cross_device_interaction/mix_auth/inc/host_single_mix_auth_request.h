@@ -36,8 +36,7 @@ public:
 
     std::optional<DeviceKey> GetPeerDeviceKey() const override;
     uint32_t GetMaxConcurrency() const override;
-    bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
-        uint32_t subsequentSameTypeCount) const override;
+    bool ShouldCancelOnNewRequest(const IRequest &newRequest, uint32_t subsequentSameTypeCount) const override;
 
 private:
     void CompleteWithError(ResultCode result) override;
@@ -50,7 +49,6 @@ private:
 
     std::vector<uint8_t> fwkMsg_;
     UserId hostUserId_ = INVALID_USER_ID;
-    TemplateId templateId_ = 0;
     int32_t authIntent_ = 0;
     UserAuth::AuthScene authScene_ { UserAuth::AUTH_SCENE_DEFAULT };
     FwkResultCallback requestCallback_;

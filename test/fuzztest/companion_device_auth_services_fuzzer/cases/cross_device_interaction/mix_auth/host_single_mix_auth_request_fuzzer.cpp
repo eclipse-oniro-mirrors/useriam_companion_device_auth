@@ -21,6 +21,7 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_mock_request.h"
 #include "fuzz_registry.h"
 #include "host_single_mix_auth_request.h"
 
@@ -46,7 +47,8 @@ static void FuzzShouldCancelOnNewRequest(std::shared_ptr<HostSingleMixAuthReques
         deviceKey = GenerateFuzzDeviceKey(fuzzData);
     }
     uint32_t count = fuzzData.ConsumeIntegral<uint32_t>();
-    (void)request->ShouldCancelOnNewRequest(requestType, deviceKey, count);
+    FuzzMockRequest mockNewRequest(requestType, deviceKey);
+    (void)request->ShouldCancelOnNewRequest(mockNewRequest, count);
 }
 
 static void FuzzStart(std::shared_ptr<HostSingleMixAuthRequest> &request, FuzzedDataProvider &fuzzData)

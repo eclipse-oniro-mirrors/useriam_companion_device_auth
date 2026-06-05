@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
+#include "mock_request.h"
 
 #include "adapter_manager.h"
 #include "host_remove_host_binding_request.h"
@@ -186,7 +187,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, ShouldCancelOnNewRequest_001, TestSiz
 
     auto request = std::make_shared<HostRemoveHostBindingRequest>(HOST_USER_ID, TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_REMOVE_HOST_BINDING_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_REMOVE_HOST_BINDING_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_TRUE(result);
 }
 
@@ -196,7 +198,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, ShouldCancelOnNewRequest_002, TestSiz
 
     auto request = std::make_shared<HostRemoveHostBindingRequest>(HOST_USER_ID, TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::HOST_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
 }
 

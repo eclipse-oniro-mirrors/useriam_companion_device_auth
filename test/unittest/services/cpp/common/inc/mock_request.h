@@ -77,6 +77,11 @@ public:
         return peerDeviceKey_;
     }
 
+    std::optional<TemplateId> GetTemplateId() const override
+    {
+        return std::nullopt;
+    }
+
     uint32_t GetMaxConcurrency() const override
     {
         return maxConcurrency_;
@@ -93,11 +98,9 @@ public:
         return sameTypeCount < GetMaxConcurrency();
     }
 
-    bool ShouldCancelOnNewRequest(RequestType newRequestType, const std::optional<DeviceKey> &newPeerDevice,
-        uint32_t subsequentSameTypeCount) const override
+    bool ShouldCancelOnNewRequest(const IRequest &newRequest, uint32_t subsequentSameTypeCount) const override
     {
-        (void)newRequestType;
-        (void)newPeerDevice;
+        (void)newRequest;
         (void)subsequentSameTypeCount;
         return shouldCancel_;
     }

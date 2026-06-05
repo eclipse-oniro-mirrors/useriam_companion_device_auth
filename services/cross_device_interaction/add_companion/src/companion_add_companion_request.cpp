@@ -319,12 +319,11 @@ uint32_t CompanionAddCompanionRequest::GetMaxConcurrency() const
     return 1; // Spec: max 1 concurrent CompanionAddCompanionRequest
 }
 
-bool CompanionAddCompanionRequest::ShouldCancelOnNewRequest([[maybe_unused]] RequestType newRequestType,
-    [[maybe_unused]] const std::optional<DeviceKey> &newPeerDevice,
+bool CompanionAddCompanionRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
     [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new CompanionAddCompanionRequest preempts existing one
-    if (newRequestType == RequestType::COMPANION_ADD_COMPANION_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::COMPANION_ADD_COMPANION_REQUEST) {
         IAM_LOGI("%{public}s: preempted by new CompanionAddCompanion", GetDescription());
         return true;
     }

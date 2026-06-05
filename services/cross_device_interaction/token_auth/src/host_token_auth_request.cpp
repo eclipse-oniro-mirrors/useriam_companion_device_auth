@@ -39,11 +39,11 @@ HostTokenAuthRequest::HostTokenAuthRequest(const AuthRequestParams &params, cons
     : OutboundRequest(RequestType::HOST_TOKEN_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(params.fwkMsg),
       hostUserId_(params.hostUserId),
-      templateId_(params.templateId),
       requestCallback_(std::move(requestCallback))
 {
+    templateId_ = params.templateId;
     SetPeerDeviceKey(companionDeviceKey);
-    desc_.SetTemplateId(templateId_);
+    desc_.SetTemplateId(params.templateId);
     desc_.SetDeviceId(companionDeviceKey);
     eventCollector_.SetHostUserId(params.hostUserId);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
@@ -59,7 +59,8 @@ HostTokenAuthRequest::~HostTokenAuthRequest()
 bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
 {
     IAM_LOGI("%{public}s start", GetDescription());
-    auto companionStatus = GetCompanionManager().GetCompanionStatus(templateId_);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
+    auto companionStatus = GetCompanionManager().GetCompanionStatus(*templateId_);
     if (!companionStatus.has_value()) {
         return false;
     }
@@ -69,7 +70,7 @@ bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
 
-    if (!GetCompanionManager().IsCapabilitySupported(templateId_, Capability::TOKEN_AUTH)) {
+    if (!GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::TOKEN_AUTH)) {
         IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by companion device", GetDescription());
         return false;
     }
@@ -109,10 +110,11 @@ void HostTokenAuthRequest::HostBeginTokenAuth()
 {
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
     HostBeginTokenAuthInput input = {};
     input.requestId = GetRequestId();
     input.scheduleId = GetScheduleId();
-    input.templateId = templateId_;
+    input.templateId = *templateId_;
     input.secureProtocolId = secureProtocolId_;
     input.fwkMsg = fwkMsg_;
     HostBeginTokenAuthOutput output = {};
@@ -165,6 +167,7 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
     auto replyOpt = DecodeTokenAuthReply(reply);
     if (!replyOpt.has_value()) {
         IAM_LOGE("%{public}s decode reply failed", GetDescription());
@@ -176,7 +179,7 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
             static_cast<int32_t>(replyMsg.result));
         if (replyMsg.result == ResultCode::TOKEN_NOT_FOUND) {
             IAM_LOGI("%{public}s token not found, revoke token", GetDescription());
-            (void)GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, std::nullopt);
+            (void)GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, std::nullopt);
         }
         errorGuard.UpdateErrorCode(replyMsg.result);
         return;
@@ -190,7 +193,7 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
             static_cast<int32_t>(endTokenAuthRet));
         if (endTokenAuthRet == ResultCode::TOKEN_VERIFY_FAILED) {
             IAM_LOGI("%{public}s token verify failed, set companion atl null", GetDescription());
-            (void)GetCompanionManager().SetCompanionTokenAuthAtl(templateId_, std::nullopt);
+            (void)GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, std::nullopt);
         }
         errorGuard.UpdateErrorCode(endTokenAuthRet);
         return;
@@ -203,9 +206,10 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
 ResultCode HostTokenAuthRequest::SecureAgentEndTokenAuth(const std::vector<uint8_t> &tokenAuthReply,
     std::vector<uint8_t> &outFwkMsg)
 {
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), ResultCode::GENERAL_ERROR);
     HostEndTokenAuthInput input = {};
     input.requestId = GetRequestId();
-    input.templateId = templateId_;
+    input.templateId = *templateId_;
     input.secureProtocolId = secureProtocolId_;
     input.tokenAuthReply = tokenAuthReply;
 
@@ -280,13 +284,14 @@ bool HostTokenAuthRequest::CanStart(const std::vector<std::shared_ptr<IRequest>>
     return true;
 }
 
-bool HostTokenAuthRequest::ShouldCancelOnNewRequest(RequestType newRequestType,
-    const std::optional<DeviceKey> &newPeerDevice, [[maybe_unused]] uint32_t subsequentSameTypeCount) const
+bool HostTokenAuthRequest::ShouldCancelOnNewRequest(const IRequest &newRequest,
+    [[maybe_unused]] uint32_t subsequentSameTypeCount) const
 {
     // Spec: new HostTokenAuthRequest to same peer device preempts existing one
     // Only preempt when both peerDeviceKeys are valid and equal
-    if (newRequestType == RequestType::HOST_TOKEN_AUTH_REQUEST) {
+    if (newRequest.GetRequestType() == RequestType::HOST_TOKEN_AUTH_REQUEST) {
         auto currentPeerDevice = GetPeerDeviceKey();
+        auto newPeerDevice = newRequest.GetPeerDeviceKey();
         if (currentPeerDevice.has_value() && newPeerDevice.has_value() &&
             currentPeerDevice.value() == newPeerDevice.value()) {
             IAM_LOGI("%{public}s: preempted by new HostTokenAuth to same device", GetDescription());

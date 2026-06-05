@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
+#include "mock_request.h"
 
 #include "companion_obtain_token_request.h"
 #include "obtain_token_message.h"
@@ -752,7 +753,8 @@ HWTEST_F(CompanionObtainTokenRequestTest, ShouldCancelOnNewRequest_001, TestSize
     auto request =
         std::make_shared<CompanionObtainTokenRequest>(HOST_DEVICE_KEY, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG);
 
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_ADD_COMPANION_REQUEST, std::nullopt, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_ADD_COMPANION_REQUEST);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
 
     EXPECT_FALSE(result);
 }
@@ -784,7 +786,9 @@ HWTEST_F(CompanionObtainTokenRequestTest, ShouldCancelOnNewRequest_002, TestSize
         std::make_shared<CompanionObtainTokenRequest>(HOST_DEVICE_KEY, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG);
 
     auto peerDeviceKey = request->peerDeviceKey_;
-    bool result = request->ShouldCancelOnNewRequest(RequestType::COMPANION_OBTAIN_TOKEN_REQUEST, peerDeviceKey, 0);
+    auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_OBTAIN_TOKEN_REQUEST);
+    newRequest->SetPeerDeviceKey(peerDeviceKey);
+    bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
 
     EXPECT_TRUE(result);
 }
