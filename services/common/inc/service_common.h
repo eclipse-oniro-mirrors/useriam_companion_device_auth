@@ -303,6 +303,7 @@ struct SyncDeviceStatus {
     std::vector<Capability> capabilityList;
     SecureProtocolId secureProtocolId;
     std::string deviceUserName {};
+    int32_t deviceUserId { INVALID_USER_ID };
 };
 
 constexpr uint32_t DEFAULT_REQUEST_TIMEOUT_MS = 60 * 1000;           // 60 seconds

@@ -36,13 +36,13 @@ public:
     DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus, std::function<void()> &&retrySync);
     DeviceStatusEntry(DeviceStatusEntry &&other) noexcept;
 
-    void OnUserIdChange();
     void OnSyncSuccess();
     void OnSyncFailure();
-    DeviceKey BuildDeviceKey(UserId userId) const;
-    DeviceStatus BuildDeviceStatus(UserId userId) const;
+    DeviceKey BuildDeviceKey() const;
+    DeviceStatus BuildDeviceStatus() const;
     PhysicalDeviceKey physicalDeviceKey;
     ChannelId channelId { ChannelId::INVALID };
+    int32_t deviceUserId { INVALID_USER_ID };
     std::string deviceModelInfo {};
     std::string deviceUserName {};
     std::string deviceName {};

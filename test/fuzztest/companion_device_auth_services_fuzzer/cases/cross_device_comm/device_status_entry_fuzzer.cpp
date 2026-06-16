@@ -28,7 +28,6 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-constexpr int32_t INT32_10 = 10;
 constexpr int32_t INT32_50 = 50;
 constexpr int32_t INT32_100 = 100;
 constexpr int32_t INT32_1000 = 1000;
@@ -37,19 +36,12 @@ constexpr int32_t INT32_99999 = 99999;
 
 using DeviceStatusEntryFuzzFunction = void (*)(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData);
 
-static void FuzzOnUserIdChange(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    if (entry) {
-        entry->OnUserIdChange();
-    }
-}
-
 static void FuzzBuildDeviceKey(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
     if (entry) {
-        auto key = entry->BuildDeviceKey(userId);
+        entry->deviceUserId = userId;
+        auto key = entry->BuildDeviceKey();
         (void)key;
     }
 }
@@ -58,7 +50,8 @@ static void FuzzBuildDeviceStatus(std::shared_ptr<DeviceStatusEntry> &entry, Fuz
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
     if (entry) {
-        auto status = entry->BuildDeviceStatus(userId);
+        entry->deviceUserId = userId;
+        auto status = entry->BuildDeviceStatus();
         (void)status;
     }
 }
@@ -68,7 +61,8 @@ static void FuzzBuildDeviceKeyBoundary(std::shared_ptr<DeviceStatusEntry> &entry
     if (entry) {
         std::vector<UserId> testUserIds = { 0, INT32_100, INT32_99999, INT32_MAX, fuzzData.ConsumeIntegral<UserId>() };
         for (auto userId : testUserIds) {
-            auto key = entry->BuildDeviceKey(userId);
+            entry->deviceUserId = userId;
+            auto key = entry->BuildDeviceKey();
             (void)key;
         }
     }
@@ -80,20 +74,9 @@ static void FuzzBuildDeviceStatusBoundary(std::shared_ptr<DeviceStatusEntry> &en
     if (entry) {
         std::vector<UserId> testUserIds = { 0, INT32_50, INT32_1000, INT32_MAX, fuzzData.ConsumeIntegral<UserId>() };
         for (auto userId : testUserIds) {
-            auto status = entry->BuildDeviceStatus(userId);
+            entry->deviceUserId = userId;
+            auto status = entry->BuildDeviceStatus();
             (void)status;
-        }
-    }
-}
-
-// Test OnUserIdChange multiple times
-static void FuzzOnUserIdChangeRepeated(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    int num = INT32_10;
-    if (entry) {
-        for (int i = 0; i < num; ++i) {
-            entry->OnUserIdChange();
         }
     }
 }
@@ -103,20 +86,19 @@ static void FuzzBuildKeyThenStatus(std::shared_ptr<DeviceStatusEntry> &entry, Fu
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
     if (entry) {
-        auto key = entry->BuildDeviceKey(userId);
-        auto status = entry->BuildDeviceStatus(userId);
+        entry->deviceUserId = userId;
+        auto key = entry->BuildDeviceKey();
+        auto status = entry->BuildDeviceStatus();
         (void)key;
         (void)status;
     }
 }
 
 static const DeviceStatusEntryFuzzFunction g_fuzzFuncs[] = {
-    FuzzOnUserIdChange,
     FuzzBuildDeviceKey,
     FuzzBuildDeviceStatus,
     FuzzBuildDeviceKeyBoundary,
     FuzzBuildDeviceStatusBoundary,
-    FuzzOnUserIdChangeRepeated,
     FuzzBuildKeyThenStatus,
 };
 

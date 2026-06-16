@@ -74,9 +74,6 @@ protected:
         ctx.channelMgr = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
             std::static_pointer_cast<ICrossDeviceChannel>(ctx.mockChannel) });
 
-        ON_CALL(ctx.guard->GetUserIdManager(), SubscribeActiveUserId).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
-            return MakeSubscription();
-        }));
         ON_CALL(ctx.guard->GetUserIdManager(), GetActiveUserId).WillByDefault(Return(activeUserId_));
 
         ctx.localStatusManager = LocalDeviceStatusManager::Create(ctx.channelMgr,
@@ -95,7 +92,6 @@ protected:
         if (ctx.manager == nullptr) {
             return ctx;
         }
-        ctx.manager->activeUserId_ = activeUserId_;
 
         return ctx;
     }
@@ -429,19 +425,20 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallba
     EXPECT_TRUE(notified);
 }
 
-HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_WrongUserId, TestSize.Level0)
+HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_IgnoresDeviceUserId, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    auto physicalStatus = MakePhysicalStatus("device-wrong-user", ChannelId::SOFTBUS, "Device");
+    auto physicalStatus = MakePhysicalStatus("device-ignore-user", ChannelId::SOFTBUS, "Device");
     DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = true;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
-    DeviceKey wrongUserKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
-    wrongUserKey.deviceUserId = activeUserId_ + 1;
+    // GetDeviceStatus locates a device by idType+deviceId only; deviceUserId is not a filter.
+    DeviceKey keyWithDifferentUser = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+    keyWithDifferentUser.deviceUserId = activeUserId_ + 1;
 
-    auto result = ctx.manager->GetDeviceStatus(wrongUserKey);
-    EXPECT_FALSE(result.has_value());
+    auto result = ctx.manager->GetDeviceStatus(keyWithDifferentUser);
+    EXPECT_TRUE(result.has_value());
 }
 
 HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_NotSynced, TestSize.Level0)
@@ -457,18 +454,19 @@ HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_NotSynced, TestSize.Level0)
     EXPECT_FALSE(result.has_value());
 }
 
-HWTEST_F(DeviceStatusManagerTest, GetChannelIdByDeviceKey_WrongUserId, TestSize.Level0)
+HWTEST_F(DeviceStatusManagerTest, GetChannelIdByDeviceKey_IgnoresDeviceUserId, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    auto physicalStatus = MakePhysicalStatus("device-channel-wrong-user", ChannelId::SOFTBUS, "Device");
+    auto physicalStatus = MakePhysicalStatus("device-channel-ignore-user", ChannelId::SOFTBUS, "Device");
     DeviceStatusEntry entry(physicalStatus, []() {});
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
-    DeviceKey wrongUserKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
-    wrongUserKey.deviceUserId = activeUserId_ + 1;
+    // GetChannelIdByDeviceKey locates a device by idType+deviceId only; deviceUserId is not a filter.
+    DeviceKey keyWithDifferentUser = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+    keyWithDifferentUser.deviceUserId = activeUserId_ + 1;
 
-    auto result = ctx.manager->GetChannelIdByDeviceKey(wrongUserKey);
-    EXPECT_FALSE(result.has_value());
+    auto result = ctx.manager->GetChannelIdByDeviceKey(keyWithDifferentUser);
+    EXPECT_TRUE(result.has_value());
 }
 
 HWTEST_F(DeviceStatusManagerTest, GetChannelIdByDeviceKey_DeviceNotFound, TestSize.Level0)
@@ -496,24 +494,32 @@ HWTEST_F(DeviceStatusManagerTest, GetChannelIdByDeviceKey_InvalidChannelId, Test
     EXPECT_FALSE(result.has_value());
 }
 
-HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_WrongUserId, TestSize.Level0)
+HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_IgnoresDeviceUserId, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    auto physicalStatus = MakePhysicalStatus("device-sync-wrong-user", ChannelId::SOFTBUS, "Device");
+    auto physicalStatus = MakePhysicalStatus("device-sync-ignore-user", ChannelId::SOFTBUS, "Device");
     DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSyncInProgress = true;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
-    DeviceKey wrongUserKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
-    wrongUserKey.deviceUserId = activeUserId_ + 1;
+    // HandleSyncResult no longer filters by deviceUserId. The device's userId comes from the
+    // sync response (syncDeviceStatus.deviceUserId), not from the active user.
+    DeviceKey keyWithDifferentUser = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+    keyWithDifferentUser.deviceUserId = activeUserId_ + 1;
 
+    int32_t reportedDeviceUserId = activeUserId_ + 1;
     SyncDeviceStatus syncStatus;
     syncStatus.protocolIdList = { ProtocolId::VERSION_1 };
     syncStatus.capabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
+    syncStatus.deviceUserId = reportedDeviceUserId;
 
-    ASSERT_NO_THROW(ctx.manager->HandleSyncResult(wrongUserKey, SUCCESS, syncStatus));
+    ASSERT_NO_THROW(ctx.manager->HandleSyncResult(keyWithDifferentUser, SUCCESS, syncStatus));
+
+    const auto &syncedEntry = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
+    EXPECT_TRUE(syncedEntry.isSynced);
+    EXPECT_EQ(reportedDeviceUserId, syncedEntry.deviceUserId);
 }
 
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_DeviceNotInCache, TestSize.Level0)
@@ -845,24 +851,6 @@ HWTEST_F(DeviceStatusManagerTest, SetSubscribeMode_FromManageToAuth, TestSize.Le
     EXPECT_FALSE(ctx.manager->GetManageSubscribeTime().has_value());
 }
 
-HWTEST_F(DeviceStatusManagerTest, HandleUserIdChange_SameUserId, TestSize.Level0)
-{
-    auto ctx = SetupTestContext();
-    int32_t originalUserId = ctx.manager->activeUserId_;
-    ctx.manager->HandleUserIdChange(originalUserId);
-    EXPECT_EQ(originalUserId, ctx.manager->activeUserId_);
-}
-
-HWTEST_F(DeviceStatusManagerTest, HandleUserIdChange_DifferentUserId, TestSize.Level0)
-{
-    auto ctx = SetupTestContext();
-    EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices()).WillOnce(Return(std::vector<PhysicalDeviceStatus> {}));
-
-    int32_t newUserId = activeUserId_ + INT32_100;
-    ctx.manager->HandleUserIdChange(newUserId);
-    EXPECT_EQ(newUserId, ctx.manager->activeUserId_);
-}
-
 HWTEST_F(DeviceStatusManagerTest, CollectFilteredDevices_NullChannel, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
@@ -872,7 +860,6 @@ HWTEST_F(DeviceStatusManagerTest, CollectFilteredDevices_NullChannel, TestSize.L
     auto mgr = DeviceStatusManager::Create({ BusinessId::DEFAULT }, ctx.connectionMgr, channelMgrWithNull,
         ctx.localStatusManager);
     ASSERT_NE(mgr, nullptr);
-    mgr->activeUserId_ = activeUserId_;
     mgr->SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
 
     auto filteredDevices = mgr->CollectFilteredDevices();

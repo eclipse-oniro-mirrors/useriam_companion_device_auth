@@ -53,6 +53,7 @@ DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus,
 DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
     : physicalDeviceKey(std::move(other.physicalDeviceKey)),
       channelId(other.channelId),
+      deviceUserId(other.deviceUserId),
       deviceModelInfo(std::move(other.deviceModelInfo)),
       deviceUserName(std::move(other.deviceUserName)),
       deviceName(std::move(other.deviceName)),
@@ -69,16 +70,6 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
 {
 }
 
-void DeviceStatusEntry::OnUserIdChange()
-{
-    isSynced = false;
-    isSyncInProgress = false;
-    deviceName.clear();
-    if (syncRetryTimer_ != nullptr) {
-        syncRetryTimer_->Reset();
-    }
-}
-
 void DeviceStatusEntry::OnSyncSuccess()
 {
     if (syncRetryTimer_ != nullptr) {
@@ -93,21 +84,21 @@ void DeviceStatusEntry::OnSyncFailure()
     }
 }
 
-DeviceKey DeviceStatusEntry::BuildDeviceKey(UserId userId) const
+DeviceKey DeviceStatusEntry::BuildDeviceKey() const
 {
     DeviceKey deviceKey {};
     deviceKey.idType = physicalDeviceKey.idType;
     deviceKey.deviceId = physicalDeviceKey.deviceId;
-    deviceKey.deviceUserId = userId;
+    deviceKey.deviceUserId = deviceUserId;
     return deviceKey;
 }
 
-DeviceStatus DeviceStatusEntry::BuildDeviceStatus(UserId userId) const
+DeviceStatus DeviceStatusEntry::BuildDeviceStatus() const
 {
     DeviceStatus status {};
     status.deviceKey.idType = physicalDeviceKey.idType;
     status.deviceKey.deviceId = physicalDeviceKey.deviceId;
-    status.deviceKey.deviceUserId = userId;
+    status.deviceKey.deviceUserId = deviceUserId;
     status.channelId = channelId;
     status.deviceName = deviceName;
     status.deviceUserName = deviceUserName;
