@@ -38,13 +38,12 @@ namespace CompanionDeviceAuth {
         }                                               \
     } while (0)
 
-#define ENSURE_OR_CONTINUE(cond)                          \
-    do {                                                  \
-        if (!(cond)) {                                    \
-            IAM_LOGE("(" #cond ") check fail, continue"); \
-            continue;                                     \
-        }                                                 \
-    } while (0)
+#define ENSURE_OR_CONTINUE(cond)                      \
+    if (!(cond)) {                                    \
+        IAM_LOGE("(" #cond ") check fail, continue"); \
+        continue;                                     \
+    } else                                            \
+        (void)0
 
 #define ENSURE_OR_RETURN_DESC(desc, cond)                                  \
     do {                                                                   \
@@ -62,13 +61,12 @@ namespace CompanionDeviceAuth {
         }                                                                  \
     } while (0)
 
-#define ENSURE_OR_CONTINUE_DESC(desc, cond)                                  \
-    do {                                                                     \
-        if (!(cond)) {                                                       \
-            IAM_LOGE("%{public}s (" #cond ") check fail, continue", (desc)); \
-            continue;                                                        \
-        }                                                                    \
-    } while (0)
+#define ENSURE_OR_CONTINUE_DESC(desc, cond)                              \
+    if (!(cond)) {                                                       \
+        IAM_LOGE("%{public}s (" #cond ") check fail, continue", (desc)); \
+        continue;                                                        \
+    } else                                                               \
+        (void)0
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

@@ -160,12 +160,6 @@ static void FuzzShouldMonitorDevice(std::shared_ptr<DeviceStatusManager> &mgr, F
     (void)shouldMonitor;
 }
 
-static void FuzzHandleUserIdChange(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
-{
-    UserId userId = fuzzData.ConsumeIntegral<UserId>();
-    mgr->HandleUserIdChange(userId);
-}
-
 static void FuzzHandleChannelDeviceStatusChange(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     ChannelId channelId = GenerateFuzzChannelId(fuzzData);
@@ -234,7 +228,6 @@ static const DeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzUnsubscribeDeviceStatus,
     FuzzNegotiateProtocol,
     FuzzShouldMonitorDevice,
-    FuzzHandleUserIdChange,
     FuzzHandleChannelDeviceStatusChange,
     FuzzRefreshDeviceList,
     FuzzCollectFilteredDevices,

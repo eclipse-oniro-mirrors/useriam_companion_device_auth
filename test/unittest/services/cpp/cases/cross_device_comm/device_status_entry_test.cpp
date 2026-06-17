@@ -61,26 +61,12 @@ HWTEST_F(DeviceStatusEntryTest, Constructor_001, TestSize.Level0)
     EXPECT_FALSE(entry.isSyncInProgress);
 }
 
-HWTEST_F(DeviceStatusEntryTest, OnUserIdChange_001, TestSize.Level0)
-{
-    DeviceStatusEntry entry(physicalStatus_, []() {});
-
-    entry.isSynced = true;
-    entry.isSyncInProgress = true;
-
-    entry.OnUserIdChange();
-
-    EXPECT_FALSE(entry.isSynced);
-    EXPECT_FALSE(entry.isSyncInProgress);
-    EXPECT_TRUE(entry.deviceName.empty());
-}
-
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceKey_001, TestSize.Level0)
 {
     DeviceStatusEntry entry(physicalStatus_, []() {});
 
-    UserId userId = INT32_100;
-    DeviceKey deviceKey = entry.BuildDeviceKey(userId);
+    entry.deviceUserId = INT32_100;
+    DeviceKey deviceKey = entry.BuildDeviceKey();
 
     EXPECT_EQ(deviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(deviceKey.deviceId, "test-device-id");
@@ -97,8 +83,8 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
     entry.supportedBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2), static_cast<BusinessId>(3) };
     entry.isSynced = true;
 
-    UserId userId = INT32_100;
-    DeviceStatus status = entry.BuildDeviceStatus(userId);
+    entry.deviceUserId = INT32_100;
+    DeviceStatus status = entry.BuildDeviceStatus();
 
     EXPECT_EQ(status.deviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(status.deviceKey.deviceId, "test-device-id");

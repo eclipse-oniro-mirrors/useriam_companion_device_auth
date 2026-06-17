@@ -32,6 +32,7 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 #include "time_keeper.h"
+#include "user_id_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_DEVICE_STATUS_MANAGER
@@ -89,29 +90,18 @@ bool DeviceStatusManager::Initialize()
         channelSubscriptions_[channelId] = std::move(subscription);
     }
 
-    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId userId) {
-        auto self = weakSelf.lock();
-        ENSURE_OR_RETURN(self != nullptr);
-        self->HandleUserIdChange(userId);
-    });
-    ENSURE_OR_RETURN_VAL(activeUserIdSubscription_ != nullptr, false);
-
-    activeUserId_ = GetUserIdManager().GetActiveUserId();
-
     return true;
 }
 
 std::optional<DeviceStatus> DeviceStatusManager::GetDeviceStatus(const DeviceKey &deviceKey)
 {
-    ENSURE_OR_RETURN_VAL(deviceKey.deviceUserId == activeUserId_, std::nullopt);
-
     PhysicalDeviceKey physicalKey {};
     physicalKey.idType = deviceKey.idType;
     physicalKey.deviceId = deviceKey.deviceId;
 
     auto it = deviceStatusMap_.find(physicalKey);
     if (it != deviceStatusMap_.end() && it->second.isSynced) {
-        return it->second.BuildDeviceStatus(activeUserId_);
+        return it->second.BuildDeviceStatus();
     }
 
     return std::nullopt;
@@ -119,8 +109,6 @@ std::optional<DeviceStatus> DeviceStatusManager::GetDeviceStatus(const DeviceKey
 
 std::optional<ChannelId> DeviceStatusManager::GetChannelIdByDeviceKey(const DeviceKey &deviceKey)
 {
-    ENSURE_OR_RETURN_VAL(deviceKey.deviceUserId == activeUserId_, std::nullopt);
-
     PhysicalDeviceKey physicalKey {};
     physicalKey.idType = deviceKey.idType;
     physicalKey.deviceId = deviceKey.deviceId;
@@ -137,7 +125,7 @@ std::vector<DeviceStatus> DeviceStatusManager::GetAllDeviceStatus()
 
     for (const auto &pair : deviceStatusMap_) {
         if (pair.second.isSynced) {
-            result.push_back(pair.second.BuildDeviceStatus(activeUserId_));
+            result.push_back(pair.second.BuildDeviceStatus());
         }
     }
 
@@ -166,11 +154,6 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     const SyncDeviceStatus &syncDeviceStatus)
 {
     IAM_LOGI("device sync result: device=%{public}s, result=%{public}d", deviceKey.GetDesc().c_str(), resultCode);
-
-    if (deviceKey.deviceUserId != activeUserId_) {
-        IAM_LOGI("device not belong to active user, skipping");
-        return;
-    }
 
     PhysicalDeviceKey physicalKey {};
     physicalKey.idType = deviceKey.idType;
@@ -205,6 +188,7 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     }
 
     deviceStatus.deviceUserName = syncDeviceStatus.deviceUserName;
+    deviceStatus.deviceUserId = syncDeviceStatus.deviceUserId;
     deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
     deviceStatus.capabilities = syncDeviceStatus.capabilityList;
     deviceStatus.supportedBusinessIds = defaultBusinessIds_;
@@ -304,7 +288,7 @@ void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey
     }
 
     DeviceStatusEntry &entry = it->second;
-    DeviceKey companionDeviceKey = entry.BuildDeviceKey(activeUserId_);
+    DeviceKey companionDeviceKey = entry.BuildDeviceKey();
 
     if (!NeedSyncDevice(physicalKey)) {
         IAM_LOGI("device does not need sync, skip and notify with empty sync result");
@@ -329,7 +313,8 @@ void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey
         self->HandleSyncResult(companionDeviceKey, result, syncDeviceStatus);
     };
 
-    auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(activeUserId_, companionDeviceKey,
+    UserId activeUserId = GetUserIdManager().GetActiveUserId();
+    auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(activeUserId, companionDeviceKey,
         entry.deviceName, std::move(callback));
     ENSURE_OR_RETURN(request != nullptr);
 
@@ -415,8 +400,7 @@ bool DeviceStatusManager::ShouldMonitorDevice(const PhysicalDeviceKey &physicalK
             continue;
         }
         const DeviceKey &subscribedDevice = sub.deviceKey.value();
-        if (subscribedDevice.deviceUserId == activeUserId_ && subscribedDevice.idType == physicalKey.idType &&
-            subscribedDevice.deviceId == physicalKey.deviceId) {
+        if (subscribedDevice.idType == physicalKey.idType && subscribedDevice.deviceId == physicalKey.deviceId) {
             return true;
         }
     }
@@ -435,25 +419,12 @@ bool DeviceStatusManager::NeedSyncDevice(const PhysicalDeviceKey &physicalKey)
             continue;
         }
         const DeviceKey &subscribedDevice = sub.deviceKey.value();
-        if (subscribedDevice.deviceUserId == activeUserId_ && subscribedDevice.idType == physicalKey.idType &&
-            subscribedDevice.deviceId == physicalKey.deviceId) {
+        if (subscribedDevice.idType == physicalKey.idType && subscribedDevice.deviceId == physicalKey.deviceId) {
             return true;
         }
     }
 
     return false;
-}
-
-void DeviceStatusManager::HandleUserIdChange(UserId userId)
-{
-    if (userId == activeUserId_) {
-        IAM_LOGI("active user id is the same, no change");
-        return;
-    }
-
-    IAM_LOGI("active user id changed from %{public}d to %{public}d", activeUserId_, userId);
-    activeUserId_ = userId;
-    RefreshDeviceList(false);
 }
 
 void DeviceStatusManager::RefreshDeviceList(bool resync)

@@ -37,7 +37,6 @@
 #include "request_manager.h"
 #include "service_common.h"
 #include "subscription.h"
-#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -96,7 +95,6 @@ private:
     bool ShouldMonitorDevice(const PhysicalDeviceKey &physicalKey);
     bool NeedSyncDevice(const PhysicalDeviceKey &physicalKey);
 
-    void HandleUserIdChange(UserId userId);
     void HandleChannelDeviceStatusChange(ChannelId channelId, const std::vector<PhysicalDeviceStatus> &statusList);
 
     void RefreshDeviceList(bool resync);
@@ -106,7 +104,6 @@ private:
     bool AddOrUpdateDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap, bool resync);
     void NotifySubscribers();
 
-    int32_t activeUserId_ { INVALID_USER_ID };
     std::map<PhysicalDeviceKey, DeviceStatusEntry> deviceStatusMap_;
     SubscribeMode currentMode_ { SUBSCRIBE_MODE_AUTH };
     std::optional<SteadyTimeMs> manageSubscribeTime_;
@@ -114,7 +111,6 @@ private:
     std::unique_ptr<Subscription> periodicSyncTimerSubscription_;
     std::vector<BusinessId> defaultBusinessIds_;
 
-    std::unique_ptr<Subscription> activeUserIdSubscription_;
     std::map<ChannelId, std::unique_ptr<Subscription>> channelSubscriptions_;
 
     std::shared_ptr<ConnectionManager> connectionMgr_;
