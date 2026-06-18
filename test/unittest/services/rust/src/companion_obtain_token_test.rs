@@ -30,6 +30,7 @@ use crate::traits::db_manager::HostBindingSk;
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
+use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
 use crate::utils::message_codec::{MessageCodec, MessageSignParam};
 use crate::utils::{Attribute, AttributeKey};
@@ -44,6 +45,8 @@ fn create_valid_fwk_obtain_token_request(property_mode: u32, auth_type: u32, atl
     attribute.set_u32(AttributeKey::AttrPropertyMode, property_mode);
     attribute.set_u32(AttributeKey::AttrType, auth_type);
     attribute.set_i32(AttributeKey::AttrAuthTrustLevel, atl);
+    attribute.set_u64_slice(AttributeKey::AttrTemplateIdList, &[123u64]);
+    attribute.set_u64(AttributeKey::AttrTimeStamp, 5000);
 
     let message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
     message_codec.serialize_attribute(&attribute).unwrap()
@@ -81,6 +84,10 @@ fn mock_set_misc_manager() {
     let mut mock_misc_manager = MockMiscManager::new();
     mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(create_mock_key_pair().pub_key.clone()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
+
+    let mut mock_time_keeper = MockTimeKeeper::new();
+    mock_time_keeper.expect_get_system_time().returning(|| Ok(5000));
+    TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 }
 
 #[test]

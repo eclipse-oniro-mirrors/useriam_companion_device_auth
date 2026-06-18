@@ -1330,7 +1330,7 @@ HWTEST_F(AuthModuleTest, HostDelegateAuthFailureE2E_001, TestSize.Level0)
 
     auto resultReplyOpt = DecodeSendDelegateAuthResultReply(resultReplyInfo->payload);
     ASSERT_TRUE(resultReplyOpt.has_value());
-    // ErrorGuard fires with GENERAL_ERROR when HandleSendDelegateAuthRequest returns false
+    // ErrorGuard fires with the peer's actual error code (GENERAL_ERROR) propagated via outResult
     EXPECT_EQ(resultReplyOpt->result, ResultCode::GENERAL_ERROR);
 }
 // ============================================================================

@@ -180,7 +180,7 @@ void HostSingleMixAuthRequest::HandleDelegateAuthResult(ResultCode result, const
     }
     delegateAuthRequestId_.reset();
     if (result != ResultCode::SUCCESS) {
-        CompleteWithError(ResultCode::GENERAL_ERROR);
+        CompleteWithError(result);
         return;
     }
     CompleteWithSuccess(extraInfo);

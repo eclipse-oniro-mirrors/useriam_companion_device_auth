@@ -732,6 +732,146 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_NotForEnrollment_NoNotWornTimer
     EXPECT_EQ(INT32_3, status.tokenAuthAtl.value());
 }
 
+// Core positive scenario: forEnrollment=true + device not worn -> timer starts
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_StartsNotWornTimer, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+
+    // Device is online but NOT worn at creation time
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+    EXPECT_FALSE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+
+    // Set ATL with forEnrollment=true + device not worn -> not-worn timer SHOULD be started
+    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+
+    auto status = companion->GetStatus();
+    ASSERT_TRUE(status.tokenAuthAtl.has_value());
+    EXPECT_EQ(INT32_3, status.tokenAuthAtl.value());
+
+    // ATL still present before timer fires
+    EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+// Timer fires -> token revoked + HostRevokeToken called
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_TimerFiresAndRevokesToken, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+
+    // Device is online but NOT worn
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    // Set ATL with forEnrollment=true + device not worn -> not-worn timer started
+    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // Timer fires -> HostRevokeToken called and token cleared
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
+    RelativeTimer::GetInstance().ExecuteAll();
+
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+// Device worn recovery cancels enrollment timer
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_TimerCancelledOnRecovery, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+
+    // Device is online but NOT worn
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    // Set ATL with forEnrollment=true + device not worn -> not-worn timer started
+    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // Device becomes worn -> authMaintainInactiveTimer_ cancelled
+    auto wornStatus = MakeDeviceStatus(deviceKey, true, true);
+    companion->HandleDeviceStatusUpdate(wornStatus);
+
+    // Token should still be present (enrollment timer was cancelled)
+    EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+// Active token revocation (nullopt) cleans enrollment timer
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_RevokedManually_CleansTimer, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+
+    // Device is online but NOT worn
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    // Set ATL with forEnrollment=true + device not worn -> not-worn timer started
+    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // Manually revoke token -> enrollment timer should be cleaned
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
+    companion->SetCompanionTokenAuthAtl(std::nullopt);
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // ExecuteAll should not trigger any stale timer
+    RelativeTimer::GetInstance().ExecuteAll();
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+// Repeated SetCompanionTokenAuthAtl refreshes token, old enrollment timer still runs
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_RefreshAtl_OldTimerStillRuns, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+
+    // Device is online but NOT worn
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    // Set ATL with forEnrollment=true + device not worn -> not-worn timer started
+    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // Token refreshed with forEnrollment=false (e.g. obtain_token path)
+    companion->SetCompanionTokenAuthAtl(INT32_1, false);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+    EXPECT_EQ(INT32_1, companion->GetStatus().tokenAuthAtl.value());
+
+    // Enrollment timer fires -> token revoked (old timer was NOT cancelled by refresh)
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
+    RelativeTimer::GetInstance().ExecuteAll();
+
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -101,13 +101,13 @@ public:
         (const HostBeginTokenAuthInput &input, HostBeginTokenAuthOutput &output), (override));
     MOCK_METHOD(ResultCode, HostEndTokenAuth, (const HostEndTokenAuthInput &input, HostEndTokenAuthOutput &output),
         (override));
-    MOCK_METHOD(ResultCode, HostUpdateToken, (const HostUpdateTokenInput &input, HostUpdateTokenOutput &output),
-        (override));
 
     MOCK_METHOD(ResultCode, CompanionProcessTokenAuth,
         (const CompanionProcessTokenAuthInput &input, CompanionProcessTokenAuthOutput &output), (override));
 
     MOCK_METHOD(ResultCode, HostRevokeToken, (const HostRevokeTokenInput &input), (override));
+    MOCK_METHOD(ResultCode, HostRefreshToken, (const HostRefreshTokenInput &input, HostRefreshTokenOutput &output),
+        (override));
     MOCK_METHOD(ResultCode, CompanionRevokeToken, (const CompanionRevokeTokenInput &input), (override));
 
     MOCK_METHOD(ResultCode, HostUpdateCompanionStatus, (const HostUpdateCompanionStatusInput &input), (override));

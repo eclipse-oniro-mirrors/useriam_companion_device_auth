@@ -52,7 +52,8 @@ fn create_mock_companion_device_token() -> CompanionDeviceToken {
         processor_type: ProcessorType::Default,
         token: [0u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl0,
-        added_time: 0,
+        expire_time: 0,
+        issue_time: 0,
     }
 }
 

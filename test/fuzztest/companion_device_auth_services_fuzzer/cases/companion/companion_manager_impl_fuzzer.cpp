@@ -203,17 +203,6 @@ static void FuzzUnsubscribeCompanionDeviceStatusChange(std::shared_ptr<Companion
     manager->UnsubscribeCompanionDeviceStatusChange(subscriptionId);
 }
 
-static void FuzzUpdateToken(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
-{
-    TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
-    uint32_t msgSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_FWK_MESSAGE_LENGTH);
-    std::vector<uint8_t> fwkMsg = fuzzData.ConsumeBytes<uint8_t>(msgSize);
-    bool needRedistribute = false;
-    ResultCode result = manager->UpdateToken(templateId, fwkMsg, needRedistribute);
-    (void)result;
-    (void)needRedistribute;
-}
-
 static void FuzzNotifyCompanionStatusChange(std::shared_ptr<CompanionManagerImpl> &manager,
     FuzzedDataProvider &fuzzData)
 {
@@ -292,7 +281,6 @@ static const CompanionManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzUnsubscribeCompanionDeviceStatusChange,
     FuzzUpdateCompanionEnabledBusinessIds,
     FuzzSetCompanionTokenAuthAtl,
-    FuzzUpdateToken,
     FuzzStartIssueTokenRequests,
     FuzzRevokeTokens,
     FuzzFindCompanionByTemplateId,

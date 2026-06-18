@@ -45,6 +45,7 @@ pub enum RustFileId {
     CompanionDeviceDbHelper = 0x0240,
     HostBindingDbHelper = 0x0241,
     MessageCrypto = 0x0242,
+    FwkMsgValidator = 0x0243,
     // request/enroll/
     CompanionEnroll = 0x0250,
     HostEnroll = 0x0251,
@@ -166,6 +167,7 @@ pub fn file_id_to_name(file_id: u16) -> &'static str {
         0x0240 => "companion_device_db_helper.rs",
         0x0241 => "host_binding_db_helper.rs",
         0x0242 => "message_crypto.rs",
+        0x0243 => "fwk_msg_validator.rs",
         // request/enroll/ — CompanionEnroll, HostEnroll, EnrollMessage
         0x0250 => "companion_enroll.rs",
         0x0251 => "host_enroll.rs",

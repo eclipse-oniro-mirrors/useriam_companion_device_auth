@@ -14,34 +14,10 @@
  */
 
 use crate::common::constants::{ErrorCode, ProcessorType, HKDF_SALT_SIZE};
-use crate::traits::misc_manager::MiscManagerRegistry;
-use crate::utils::message_codec::MessageCodec;
-use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, p, Box, Vec};
 use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::TokenIssueMessage as u16;
-#[derive(Debug, Clone, PartialEq)]
-pub struct FwkIssueTokenRequest {
-    pub property_mode: u32,
-    pub auth_type: u32,
-    pub atl: i32,
-    pub template_ids: Vec<u64>,
-}
-
-impl FwkIssueTokenRequest {
-    pub fn decode(fwk_message: &[u8]) -> Result<Box<Self>, ErrorCode> {
-        let pub_key = MiscManagerRegistry::get_mut().get_fwk_pub_key().map_err(|e| p!(e))?;
-        let message_codec = MessageCodec::new(MessageSignParam::Framework(pub_key));
-        let attribute = message_codec.deserialize_attribute(fwk_message).map_err(|e| p!(e))?;
-        let property_mode = attribute.get_u32(AttributeKey::AttrPropertyMode).map_err(|e| p!(e))?;
-        let auth_type = attribute.get_u32(AttributeKey::AttrType).map_err(|e| p!(e))?;
-        let atl = attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
-        let template_ids = attribute.get_u64_vec(AttributeKey::AttrTemplateIdList).map_err(|e| p!(e))?;
-
-        Ok(Box::new(FwkIssueTokenRequest { property_mode, auth_type, atl, template_ids }))
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SecPreIssueRequest {

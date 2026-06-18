@@ -422,15 +422,16 @@ bool DecodeHostProcessObtainTokenOutput(const HostProcessObtainTokenOutputFfi &f
     return DecodeMessageArray(ffi.secMessage, reply);
 }
 
-bool EncodeHostUpdateTokenInput(const HostUpdateTokenInput &input, HostUpdateTokenInputFfi &ffi)
+bool EncodeHostRefreshTokenInput(const HostRefreshTokenInput &input, HostRefreshTokenInputFfi &ffi)
 {
     ffi.templateId = input.templateId;
     return EncodeMessageArray(input.fwkMsg, ffi.fwkMessage);
 }
 
-bool DecodeHostUpdateTokenOutput(const HostUpdateTokenOutputFfi &ffi, HostUpdateTokenOutput &output)
+bool DecodeHostRefreshTokenOutput(const HostRefreshTokenOutputFfi &ffi, HostRefreshTokenOutput &output)
 {
-    output.needRedistribute = ffi.needRedistribute;
+    output.needReissue = ffi.needReissue;
+    output.cachedAtl = ffi.cachedAtl;
     return true;
 }
 

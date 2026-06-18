@@ -191,21 +191,22 @@ bool HostDelegateAuthRequest::CallSecurityAgentEndDelegateAuth(const std::vector
     return true;
 }
 
-bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &outFwkMsg)
+ResultCode HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &request,
+    std::vector<uint8_t> &outFwkMsg)
 {
     IAM_LOGI("%{public}s start", GetDescription());
 
     auto resultMsgOpt = DecodeSendDelegateAuthResultRequest(request);
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), resultMsgOpt.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), resultMsgOpt.has_value(), ResultCode::GENERAL_ERROR);
     const auto &resultMsg = *resultMsgOpt;
     HostEndDelegateAuthOutput output = {};
     if (!CallSecurityAgentEndDelegateAuth(resultMsg.extraInfo, output)) {
-        return false;
+        return ResultCode::GENERAL_ERROR;
     }
     if (resultMsg.result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s delegate auth failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(resultMsg.result));
-        return false;
+        return resultMsg.result;
     }
     IAM_LOGI("%{public}s delegate auth success authType=%{public}d atl=%{public}d", GetDescription(), output.authType,
         output.atl);
@@ -213,7 +214,7 @@ bool HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &re
     eventCollector_.SetAtl(output.atl);
     outFwkMsg = output.fwkMsg;
     needCancelDelegateAuth_ = false;
-    return true;
+    return ResultCode::SUCCESS;
 }
 
 void HostDelegateAuthRequest::HandleSendDelegateAuthRequestMsg(const Attributes &request,
@@ -230,8 +231,9 @@ void HostDelegateAuthRequest::HandleSendDelegateAuthRequestMsg(const Attributes 
     });
 
     std::vector<uint8_t> fwkMsg;
-    bool result = HandleSendDelegateAuthRequest(request, fwkMsg);
-    if (!result) {
+    ResultCode result = HandleSendDelegateAuthRequest(request, fwkMsg);
+    if (result != ResultCode::SUCCESS) {
+        errorGuard.UpdateErrorCode(result);
         return;
     }
 

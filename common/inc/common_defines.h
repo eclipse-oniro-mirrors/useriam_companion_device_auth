@@ -51,6 +51,8 @@ enum ResultCode : int32_t {
     USER_ID_NOT_FOUND = 20004,
     TOKEN_NOT_FOUND = 20005,
     TOKEN_VERIFY_FAILED = 20006,
+    REQUEST_TOO_FREQUENT = 20007,
+    TOKEN_REFRESH_SUCCESS = 20008,
 };
 
 enum class DeviceIdType : int32_t {

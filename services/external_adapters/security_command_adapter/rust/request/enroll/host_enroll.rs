@@ -15,7 +15,7 @@
 
 use crate::common::constants::{
     AlgoType, AuthCapabilityLevel, AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, SecureProtocolId,
-    TrackAbilityLevel, CHALLENGE_LEN, HKDF_SALT_SIZE,
+    TrackAbilityLevel, CHALLENGE_LEN, HKDF_SALT_SIZE, TOKEN_VALID_PERIOD,
 };
 use crate::entry::companion_device_auth_ffi::HostGetInitKeyNegotiationInputFfi;
 use crate::jobs::{companion_device_db_helper, message_crypto};
@@ -444,6 +444,7 @@ impl HostDeviceEnrollRequest {
 
     fn store_token(&self, template_id: u64) -> Result<(), ErrorCode> {
         for token_info in &self.token_infos {
+            let issue_time = TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?;
             let companion_token = CompanionDeviceToken {
                 template_id,
                 processor_type: token_info.processor_type,
@@ -452,7 +453,13 @@ impl HostDeviceEnrollRequest {
                     ErrorCode::GeneralError
                 })?,
                 atl: self.atl,
-                added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
+                expire_time: issue_time
+                    .checked_add(TOKEN_VALID_PERIOD)
+                    .ok_or_else(|| {
+                        log_e!("expire_time overflow");
+                        ErrorCode::GeneralError
+                    })?,
+                issue_time,
             };
             CompanionDeviceDbManagerRegistry::get_mut().add_token(&companion_token)?;
         }

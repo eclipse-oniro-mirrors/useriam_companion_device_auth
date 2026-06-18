@@ -30,7 +30,6 @@ use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
 use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::HostTokenAuth as u16;
-pub const TOKEN_VALID_PERIOD: u64 = 4 * 60 * 60 * 1000;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AuthParam {
@@ -109,14 +108,9 @@ impl HostTokenAuthRequest {
         let token_info =
             CompanionDeviceDbManagerRegistry::get().get_token(self.auth_param.template_id, self.processor_type)?;
         let current_time = TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?;
-        if let Some(time_period) = current_time.checked_sub(token_info.added_time) {
-            if time_period > TOKEN_VALID_PERIOD {
-                log_e!("token is expired, current_time:{}, added_time:{}", current_time, token_info.added_time);
-                return Err(ErrorCode::Timeout);
-            }
-        } else {
-            log_e!("bad time, current_time:{}, added_time:{}", current_time, token_info.added_time);
-            return Err(ErrorCode::GeneralError);
+        if current_time > token_info.expire_time {
+            log_e!("token is expired, current_time:{}, expire_time:{}", current_time, token_info.expire_time);
+            return Err(ErrorCode::Timeout);
         }
 
         let session_key = companion_device_db_helper::get_session_key(

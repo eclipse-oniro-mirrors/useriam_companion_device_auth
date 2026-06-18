@@ -56,7 +56,6 @@ public:
     ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
         const std::vector<BusinessId> &enabledBusinessIds) override;
     bool SetCompanionTokenAuthAtl(TemplateId templateId, std::optional<Atl> atl, bool forEnrollment) override;
-    ResultCode UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg, bool &needRedistribute) override;
 
     bool IsCapabilitySupported(TemplateId templateId, Capability capability) override;
 

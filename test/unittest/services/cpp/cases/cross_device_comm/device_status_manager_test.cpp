@@ -971,6 +971,76 @@ HWTEST_F(DeviceStatusManagerTest, NotifySubscribers_WithNullCallback, TestSize.L
     ASSERT_NO_THROW(ctx.manager->NotifySubscribers());
 }
 
+HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_DetectsRefreshTokenChange, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+
+    auto physicalStatus = MakePhysicalStatus("device-refresh-token", ChannelId::SOFTBUS, "Device");
+    physicalStatus.refreshToken = false;
+
+    // First add with refreshToken=false
+    EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
+        .WillOnce(Return(std::vector<PhysicalDeviceStatus> { physicalStatus }));
+
+    ctx.manager->RefreshDeviceList(false);
+    ASSERT_EQ(1u, ctx.manager->deviceStatusMap_.size());
+    EXPECT_FALSE(ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey).refreshToken);
+
+    // Now update with refreshToken=true
+    auto updatedStatus = physicalStatus;
+    updatedStatus.refreshToken = true;
+
+    EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
+        .WillOnce(Return(std::vector<PhysicalDeviceStatus> { updatedStatus }));
+
+    ctx.manager->RefreshDeviceList(false);
+    ASSERT_EQ(1u, ctx.manager->deviceStatusMap_.size());
+    EXPECT_TRUE(ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey).refreshToken);
+}
+
+HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_IncludesRefreshToken, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH };
+
+    auto physicalStatus = MakePhysicalStatus("device-get-refresh", ChannelId::SOFTBUS, "Device");
+    physicalStatus.refreshToken = true;
+    DeviceStatusEntry entry(physicalStatus, []() {});
+    entry.isSynced = true;
+    entry.protocolId = ProtocolId::VERSION_1;
+    entry.capabilities = { Capability::TOKEN_AUTH };
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+    auto result = ctx.manager->GetDeviceStatus(deviceKey);
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_TRUE(result->refreshToken);
+}
+
+HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_IncludesRefreshToken, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH };
+
+    auto physicalStatus = MakePhysicalStatus("device-all-refresh", ChannelId::SOFTBUS, "Device");
+    physicalStatus.refreshToken = true;
+    DeviceStatusEntry entry(physicalStatus, []() {});
+    entry.isSynced = true;
+    entry.protocolId = ProtocolId::VERSION_1;
+    entry.capabilities = { Capability::TOKEN_AUTH };
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    auto allDevices = ctx.manager->GetAllDeviceStatus();
+    ASSERT_EQ(1u, allDevices.size());
+    EXPECT_TRUE(allDevices[0].refreshToken);
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

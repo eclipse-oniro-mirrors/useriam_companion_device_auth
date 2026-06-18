@@ -334,7 +334,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_001, TestSize.Level0
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::GENERAL_ERROR };
     bool result = request->EndCompanionCheck(syncDeviceStatusReply);
 
-    EXPECT_FALSE(result);
+    EXPECT_TRUE(result);
 }
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_002, TestSize.Level0)

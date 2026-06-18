@@ -251,26 +251,6 @@ void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl, bool f
     }
 }
 
-void Companion::RefreshTokenTimer()
-{
-    if (!status_.tokenAuthAtl.has_value()) {
-        IAM_LOGI("%{public}s no token auth atl, skip refresh timer", GetDescription());
-        return;
-    }
-
-    tokenTimeoutSubscription_.reset();
-    tokenTimeoutSubscription_ = RelativeTimer::GetInstance().Register(
-        [weakSelf = weak_from_this()]() {
-            auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            IAM_LOGI("%{public}s token timeout, revoking token", self->GetDescription());
-            self->SetCompanionTokenAuthAtl(std::nullopt);
-        },
-        TOKEN_TIMEOUT_MS);
-    ENSURE_OR_RETURN_DESC(GetDescription(), tokenTimeoutSubscription_ != nullptr);
-    IAM_LOGI("%{public}s refreshed token timeout timer", GetDescription());
-}
-
 void Companion::HandleCompanionStatusChange(const DeviceStatus &deviceStatus)
 {
     const auto &oldStatus = status_.companionDeviceStatus;

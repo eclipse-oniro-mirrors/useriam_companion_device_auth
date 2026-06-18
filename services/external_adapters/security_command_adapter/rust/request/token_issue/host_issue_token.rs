@@ -13,16 +13,14 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{AuthTrustLevel, AuthType, Capability, ErrorCode, ProcessorType, HKDF_SALT_SIZE};
+use crate::common::constants::{AuthTrustLevel, Capability, ErrorCode, ProcessorType, HKDF_SALT_SIZE};
 use crate::entry::companion_device_auth_ffi::HostPreIssueTokenInputFfi;
-use crate::entry::companion_device_auth_ffi::PROPERTY_MODE_UNFREEZE;
 use crate::jobs::companion_device_db_helper;
 use crate::request::jobs::common_message::SecIssueToken;
+use crate::request::jobs::fwk_msg_validator::decode_and_validate_fwk_msg;
 use crate::request::jobs::token_helper;
 use crate::request::jobs::token_helper::DeviceTokenInfo;
-use crate::request::token_issue::token_issue_message::{
-    FwkIssueTokenRequest, SecIssueTokenReply, SecPreIssueReply, SecPreIssueRequest,
-};
+use crate::request::token_issue::token_issue_message::{SecIssueTokenReply, SecPreIssueReply, SecPreIssueRequest};
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::request_manager::{Request, RequestParam};
@@ -64,26 +62,9 @@ impl HostDeviceIssueTokenRequest {
     }
 
     fn decode_fwk_token_issue_request(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
-        let output = FwkIssueTokenRequest::decode(fwk_message)?;
-        if output.property_mode != PROPERTY_MODE_UNFREEZE {
-            log_e!("property_mode is not unfreeze: {}", output.property_mode);
-            return Err(ErrorCode::GeneralError);
-        }
-
-        if output.auth_type != AuthType::CompanionDevice as u32 {
-            log_e!("auth_type is not companionDevice: {}", output.auth_type);
-            return Err(ErrorCode::GeneralError);
-        }
-
-        if !output.template_ids.contains(&self.token_issue_param.template_id) {
-            log_e!("template_id check fail");
-            return Err(ErrorCode::GeneralError);
-        }
-
-        self.atl = AuthTrustLevel::try_from(output.atl).map_err(|_| {
-            log_e!("Invalid ATL value: {}", output.atl);
-            ErrorCode::GeneralError
-        })?;
+        let fwk_msg_info =
+            decode_and_validate_fwk_msg(fwk_message, Some(self.token_issue_param.template_id))?;
+        self.atl = fwk_msg_info.atl;
         Ok(())
     }
 

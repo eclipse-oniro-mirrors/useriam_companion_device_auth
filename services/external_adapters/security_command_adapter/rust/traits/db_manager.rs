@@ -109,5 +109,6 @@ pub struct CompanionDeviceToken {
     pub processor_type: ProcessorType,
     pub token: [u8; TOKEN_KEY_LEN],
     pub atl: AuthTrustLevel,
-    pub added_time: u64,
+    pub expire_time: u64,
+    pub issue_time: u64,
 }

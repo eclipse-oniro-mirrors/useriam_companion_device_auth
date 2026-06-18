@@ -298,14 +298,15 @@ typedef struct HostCancelObtainTokenInputFfi {
 
 typedef struct PlaceHolderFfi HostCancelObtainTokenOutputFfi;
 
-typedef struct HostUpdateTokenInputFfi {
+typedef struct HostRefreshTokenInputFfi {
     uint64_t templateId;
     struct DataArray1024Ffi fwkMessage;
-} HostUpdateTokenInputFfi;
+} HostRefreshTokenInputFfi;
 
-typedef struct HostUpdateTokenOutputFfi {
-    bool needRedistribute;
-} HostUpdateTokenOutputFfi;
+typedef struct HostRefreshTokenOutputFfi {
+    bool needReissue;
+    int32_t cachedAtl;
+} HostRefreshTokenOutputFfi;
 
 typedef struct CompanionGetPersistedStatusInputFfi {
     int32_t userId;

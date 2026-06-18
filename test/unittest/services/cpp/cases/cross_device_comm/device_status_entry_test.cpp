@@ -100,6 +100,64 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
     EXPECT_TRUE(status.isAuthMaintainActive);
 }
 
+HWTEST_F(DeviceStatusEntryTest, Constructor_PropagatesRefreshToken_True, TestSize.Level0)
+{
+    physicalStatus_.refreshToken = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    EXPECT_TRUE(entry.refreshToken);
+}
+
+HWTEST_F(DeviceStatusEntryTest, Constructor_PropagatesRefreshToken_False, TestSize.Level0)
+{
+    physicalStatus_.refreshToken = false;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    EXPECT_FALSE(entry.refreshToken);
+}
+
+HWTEST_F(DeviceStatusEntryTest, MoveConstructor_PreservesRefreshToken_True, TestSize.Level0)
+{
+    physicalStatus_.refreshToken = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    DeviceStatusEntry movedEntry(std::move(entry));
+
+    EXPECT_TRUE(movedEntry.refreshToken);
+}
+
+HWTEST_F(DeviceStatusEntryTest, MoveConstructor_PreservesRefreshToken_False, TestSize.Level0)
+{
+    physicalStatus_.refreshToken = false;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    DeviceStatusEntry movedEntry(std::move(entry));
+
+    EXPECT_FALSE(movedEntry.refreshToken);
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_IncludesRefreshToken, TestSize.Level0)
+{
+    physicalStatus_.refreshToken = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.isSynced = true;
+
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    EXPECT_TRUE(status.refreshToken);
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_RefreshTokenFalse, TestSize.Level0)
+{
+    physicalStatus_.refreshToken = false;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.isSynced = true;
+
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    EXPECT_FALSE(status.refreshToken);
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

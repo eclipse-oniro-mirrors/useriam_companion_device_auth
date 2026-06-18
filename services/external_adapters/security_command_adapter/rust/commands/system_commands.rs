@@ -16,7 +16,10 @@
 extern crate alloc;
 
 use crate::commands::common_command::{companion_status_vec_to_ffi, host_binding_status_vec_to_ffi};
-use crate::common::constants::{AuthCapabilityLevel, Capability, ErrorCode, ExecutorSecurityLevel};
+use crate::common::constants::{
+    AuthCapabilityLevel, AuthTrustLevel, Capability, ErrorCode, ExecutorSecurityLevel, TOKEN_REFRESH_THRESHOLD,
+    TOKEN_VALID_PERIOD,
+};
 use crate::entry::companion_device_auth_ffi::{
     CompanionBeginAddHostBindingInputFfi, CompanionBeginAddHostBindingOutputFfi, CompanionBeginDelegateAuthInputFfi,
     CompanionBeginDelegateAuthOutputFfi, CompanionBeginObtainTokenInputFfi, CompanionBeginObtainTokenOutputFfi,
@@ -45,13 +48,16 @@ use crate::entry::companion_device_auth_ffi::{
     HostProcessObtainTokenOutputFfi, HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
     HostRegisterFinishInputFfi, HostRegisterFinishOutputFfi, HostRemoveCompanionInputFfi, HostRemoveCompanionOutputFfi,
     HostRevokeTokenInputFfi, HostRevokeTokenOutputFfi, HostSetCompanionInvalidInputFfi,
-    HostSetCompanionInvalidOutputFfi, HostUpdateCompanionEnabledBusinessIdsInputFfi,
+    HostSetCompanionInvalidOutputFfi,
+    HostUpdateCompanionEnabledBusinessIdsInputFfi,
     HostUpdateCompanionEnabledBusinessIdsOutputFfi, HostUpdateCompanionStatusInputFfi,
-    HostUpdateCompanionStatusOutputFfi, HostUpdateTokenInputFfi, HostUpdateTokenOutputFfi, InitInputFfi, InitOutputFfi,
+    HostUpdateCompanionStatusOutputFfi, HostRefreshTokenInputFfi, HostRefreshTokenOutputFfi, InitInputFfi,
+    InitOutputFfi,
     Int32Array64Ffi, PersistedCompanionStatusFfi, PersistedHostBindingStatusFfi, SetActiveUserInputFfi,
     SetActiveUserOutputFfi,
 };
 use crate::jobs::companion_device_db_helper;
+use crate::request::jobs::fwk_msg_validator;
 use crate::request::delegate_auth::companion_delegate_auth::CompanionDelegateAuthRequest;
 use crate::request::delegate_auth::host_delegate_auth::HostDelegateAuthRequest;
 use crate::request::enroll::companion_enroll::CompanionDeviceEnrollRequest;
@@ -67,11 +73,9 @@ use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenReques
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
+use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::request_manager::{Request, RequestManagerRegistry, RequestParam};
-use crate::utils::message_codec::MessageCodec;
-use crate::utils::message_codec::MessageSignParam;
-use crate::utils::AttributeKey;
 use crate::{log_e, log_i, p, Box, Vec};
 use core::convert::TryFrom;
 use crate::traits::log_trace::RustFileId;
@@ -432,34 +436,83 @@ pub fn host_check_template_enrolled(
     }
 }
 
-pub fn host_update_token(
-    input: &HostUpdateTokenInputFfi,
-    output: &mut HostUpdateTokenOutputFfi,
+// HostRefreshToken
+pub fn host_refresh_token(
+    input: &HostRefreshTokenInputFfi,
+    output: &mut HostRefreshTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
-    crate::jobs::companion_device_db_helper::check_device_capability(input.template_id, Capability::TokenAuth)?;
+    companion_device_db_helper::check_device_capability(input.template_id, Capability::TokenAuth)?;
 
-    let pub_key = MiscManagerRegistry::get_mut().get_fwk_pub_key().map_err(|e| p!(e))?;
-    let message_codec = MessageCodec::new(MessageSignParam::Framework(pub_key));
-    let attribute = message_codec.deserialize_attribute(input.fwk_message.as_slice()?).map_err(|e| p!(e))?;
-    let atl = attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
+    let fwk_msg_info = fwk_msg_validator::decode_and_validate_fwk_msg(
+        input.fwk_message.as_slice()?,
+        Some(input.template_id),
+    )?;
+    let atl = fwk_msg_info.atl as i32;
+
     let device_capabilities =
         CompanionDeviceDbManagerRegistry::get_mut().read_device_capability_info(input.template_id)?;
+    let mut max_cached_atl = AuthTrustLevel::Atl0 as i32;
+    let mut token_infos = Vec::new();
     for device_capability in &device_capabilities {
-        match CompanionDeviceDbManagerRegistry::get_mut().get_token(input.template_id, device_capability.processor_type)
+        let token_info = match CompanionDeviceDbManagerRegistry::get_mut()
+            .get_token(input.template_id, device_capability.processor_type)
         {
-            Ok(token_info) => {
-                if token_info.atl as i32 != atl {
-                    output.need_redistribute = true;
-                    return Ok(());
-                }
-            },
+            Ok(token_info) => token_info,
             Err(_) => {
-                output.need_redistribute = true;
+                output.need_reissue = true;
                 return Ok(());
             },
+        };
+        if token_info.atl as i32 > max_cached_atl {
+            max_cached_atl = token_info.atl as i32;
         }
+        let current_time = TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?;
+        if current_time > token_info.expire_time {
+            log_e!(
+                "token is expired, current_time:{}, expire_time:{}",
+                current_time,
+                token_info.expire_time
+            );
+            output.need_reissue = true;
+            return Ok(());
+        }
+        if current_time.saturating_sub(token_info.issue_time) > TOKEN_REFRESH_THRESHOLD {
+            log_e!(
+                "token issue time too old, current_time:{}, issue_time:{}",
+                current_time,
+                token_info.issue_time
+            );
+            output.need_reissue = true;
+            return Ok(());
+        }
+        if atl > token_info.atl as i32 {
+            output.need_reissue = true;
+            return Ok(());
+        }
+        token_infos.push(token_info);
     }
 
+    let new_expire_time = TimeKeeperRegistry::get()
+        .get_rtc_time()
+        .map_err(|e| p!(e))?
+        .checked_add(TOKEN_VALID_PERIOD)
+        .ok_or_else(|| {
+            log_e!("expire_time overflow");
+            ErrorCode::GeneralError
+        })?;
+    for mut token_info in token_infos {
+        token_info.expire_time = new_expire_time;
+        CompanionDeviceDbManagerRegistry::get_mut().update_token(&token_info)?;
+    }
+
+    log_i!(
+        "refresh token success, template_id:{:04x}, new_expire_time:{}",
+        input.template_id as u16,
+        new_expire_time
+    );
+
+    output.need_reissue = false;
+    output.cached_atl = max_cached_atl;
     Ok(())
 }
 

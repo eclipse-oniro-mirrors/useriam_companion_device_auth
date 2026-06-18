@@ -173,6 +173,163 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_005, TestSize.Level0)
     EXPECT_FALSE(result);
 }
 
+HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_Disabled_FallsThrough, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
+        FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
+
+    CompanionStatus companionStatus;
+    companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.companionDeviceStatus.refreshToken = false;
+    companionStatus.tokenAuthAtl = 30000;
+    ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
+        .WillByDefault(Return(std::make_optional(companionStatus)));
+
+    // HostRefreshToken should NOT be called when refreshToken is disabled
+    EXPECT_CALL(guard.GetSecurityAgent(), HostRefreshToken(_, _)).Times(0);
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
+        .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+    EXPECT_TRUE(result);
+}
+
+HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_NoCachedAtl_FallsThrough, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
+        FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
+
+    CompanionStatus companionStatus;
+    companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.companionDeviceStatus.refreshToken = true;
+    // tokenAuthAtl remains nullopt
+    ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
+        .WillByDefault(Return(std::make_optional(companionStatus)));
+
+    // HostRefreshToken should NOT be called when no cached ATL
+    EXPECT_CALL(guard.GetSecurityAgent(), HostRefreshToken(_, _)).Times(0);
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
+        .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+    EXPECT_TRUE(result);
+}
+
+HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_HostRefreshTokenFails_FallsThrough, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
+        FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
+
+    CompanionStatus companionStatus;
+    companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.companionDeviceStatus.refreshToken = true;
+    companionStatus.tokenAuthAtl = 30000;
+    ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
+        .WillByDefault(Return(std::make_optional(companionStatus)));
+
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetSecurityAgent(), HostRefreshToken(_, _)).WillOnce(Return(GENERAL_ERROR));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
+        .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+    EXPECT_TRUE(result);
+}
+
+HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_NeedReissue_FallsThrough, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
+        FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
+
+    CompanionStatus companionStatus;
+    companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.companionDeviceStatus.refreshToken = true;
+    companionStatus.tokenAuthAtl = 30000;
+    ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
+        .WillByDefault(Return(std::make_optional(companionStatus)));
+
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetSecurityAgent(), HostRefreshToken(_, _))
+        .WillOnce(DoAll(SetArgReferee<1>(HostRefreshTokenOutput { true, 10000 }), Return(SUCCESS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
+        .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+    EXPECT_TRUE(result);
+}
+
+HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_Success_CompletesWithRefresh, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
+        FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
+
+    CompanionStatus companionStatus;
+    companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.companionDeviceStatus.refreshToken = true;
+    companionStatus.tokenAuthAtl = 30000;
+    ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
+        .WillByDefault(Return(std::make_optional(companionStatus)));
+
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetSecurityAgent(), HostRefreshToken(_, _))
+        .WillOnce(DoAll(SetArgReferee<1>(HostRefreshTokenOutput { false, 30000 }), Return(SUCCESS)));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _, _)).WillOnce(Return(true));
+    // Should NOT open connection when token is refreshed
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).Times(0);
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+    EXPECT_TRUE(result);
+}
+
 HWTEST_F(HostIssueTokenRequestTest, OnConnected_001, TestSize.Level0)
 {
     MockGuard guard;

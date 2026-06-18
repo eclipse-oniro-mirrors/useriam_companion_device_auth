@@ -66,13 +66,15 @@ public:
     bool isAuthMaintainActive { false };
     DeviceType deviceType { DeviceType::INVALID };
     std::optional<uint32_t> atlRevokeDelayMs;
+    bool refreshToken { false };
 
     bool operator==(const PhysicalDeviceStatus &other) const
     {
         return physicalDeviceKey == other.physicalDeviceKey && channelId == other.channelId &&
             deviceName == other.deviceName && deviceModelInfo == other.deviceModelInfo &&
             networkId == other.networkId && isAuthMaintainActive == other.isAuthMaintainActive &&
-            deviceType == other.deviceType && atlRevokeDelayMs == other.atlRevokeDelayMs;
+            deviceType == other.deviceType && atlRevokeDelayMs == other.atlRevokeDelayMs &&
+            refreshToken == other.refreshToken;
     }
 };
 

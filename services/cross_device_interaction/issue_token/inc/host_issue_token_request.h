@@ -51,9 +51,10 @@ private:
     void HandlePreIssueTokenReply(const Attributes &message);
     void HandleIssueTokenReply(const Attributes &message);
     ResultCode CallSecurityAgentEndIssueToken(const std::vector<uint8_t> &issueTokenReply, Atl &atl);
+    bool TryRefreshToken(const CompanionStatus &companionStatus, ErrorGuard &errorGuard);
     bool EnsureCompanionAuthMaintainActive(const DeviceKey &deviceKey, ErrorGuard &errorGuard);
     void HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
-    void CompleteWithSuccess();
+    void CompleteWithSuccess(ResultCode result = ResultCode::SUCCESS);
 
     UserId hostUserId_ = INVALID_USER_ID;
     UserId companionUserId_ = INVALID_USER_ID;

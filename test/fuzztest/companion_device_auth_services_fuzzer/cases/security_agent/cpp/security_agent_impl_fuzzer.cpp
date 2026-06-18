@@ -462,21 +462,21 @@ static void FuzzHostUpdateCompanionEnabledBusinessIds(std::shared_ptr<ISecurityA
     agent->HostUpdateCompanionEnabledBusinessIds(input);
 }
 
-static void FuzzHostUpdateToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
-{
-    HostUpdateTokenInput input;
-    input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
-    HostUpdateTokenOutput output;
-    agent->HostUpdateToken(input, output);
-}
-
 static void FuzzHostCheckTemplateEnrolled(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostCheckTemplateEnrolledInput input;
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     HostCheckTemplateEnrolledOutput output;
     agent->HostCheckTemplateEnrolled(input, output);
+}
+
+static void FuzzHostRefreshToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
+{
+    HostRefreshTokenInput input;
+    input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
+    input.fwkMsg = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
+    HostRefreshTokenOutput output;
+    agent->HostRefreshToken(input, output);
 }
 
 static const SecurityAgentFuzzFunction g_fuzzFuncs[] = {
@@ -523,8 +523,8 @@ static const SecurityAgentFuzzFunction g_fuzzFuncs[] = {
     FuzzCompanionRevokeToken,
     FuzzHostUpdateCompanionStatus,
     FuzzHostUpdateCompanionEnabledBusinessIds,
-    FuzzHostUpdateToken,
     FuzzHostCheckTemplateEnrolled,
+    FuzzHostRefreshToken,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);
