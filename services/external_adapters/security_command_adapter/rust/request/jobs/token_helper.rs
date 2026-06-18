@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{AuthTrustLevel, ErrorCode, ProcessorType, TOKEN_KEY_LEN};
+use crate::common::constants::{AuthTrustLevel, ErrorCode, ProcessorType, TOKEN_KEY_LEN, TOKEN_VALID_PERIOD};
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::CompanionDeviceToken;
@@ -47,6 +47,7 @@ pub fn generate_token(
 
 pub fn add_companion_device_token(template_id: u64, token_infos: &Vec<DeviceTokenInfo>) -> Result<(), ErrorCode> {
     for token_info in token_infos {
+        let issue_time = TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?;
         let companion_token = CompanionDeviceToken {
             template_id,
             processor_type: token_info.processor_type,
@@ -55,7 +56,13 @@ pub fn add_companion_device_token(template_id: u64, token_infos: &Vec<DeviceToke
                 ErrorCode::GeneralError
             })?,
             atl: token_info.atl,
-            added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
+            expire_time: issue_time
+                .checked_add(TOKEN_VALID_PERIOD)
+                .ok_or_else(|| {
+                    log_e!("expire_time overflow");
+                    ErrorCode::GeneralError
+                })?,
+            issue_time,
         };
         CompanionDeviceDbManagerRegistry::get_mut().add_token(&companion_token)?;
     }

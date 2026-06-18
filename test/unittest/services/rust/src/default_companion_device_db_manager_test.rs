@@ -71,7 +71,8 @@ fn create_test_token_info(template_id: u64) -> CompanionDeviceToken {
         processor_type: ProcessorType::Default,
         token: [0u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,
-        added_time: 1000,
+        expire_time: 1000,
+        issue_time: 0,
     }
 }
 
@@ -895,9 +896,9 @@ fn default_companion_device_db_manager_read_device_db_test_deserialize_user_info
 }
 
 #[test]
-fn default_companion_device_db_manager_read_device_db_test_deserialize_added_time_fail() {
+fn default_companion_device_db_manager_read_device_db_test_deserialize_expire_time_fail() {
     let _guard = ut_registry_guard!();
-    log_i!("default_companion_device_db_manager_read_device_db_test_deserialize_added_time_fail start");
+    log_i!("default_companion_device_db_manager_read_device_db_test_deserialize_expire_time_fail start");
 
     let mut parcel = Parcel::new();
     parcel.write_i32(0);

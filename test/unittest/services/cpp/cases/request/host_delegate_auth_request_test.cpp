@@ -438,9 +438,9 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_001, TestSiz
         .WillOnce(DoAll(SetArgReferee<1>(output), Return(ResultCode::SUCCESS)));
 
     std::vector<uint8_t> fwkMsg;
-    bool result = request->HandleSendDelegateAuthRequest(req, fwkMsg);
+    ResultCode result = request->HandleSendDelegateAuthRequest(req, fwkMsg);
 
-    EXPECT_TRUE(result);
+    EXPECT_EQ(result, ResultCode::SUCCESS);
 }
 
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_002, TestSize.Level0)
@@ -468,9 +468,9 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_002, TestSiz
     Attributes badRequest;
 
     std::vector<uint8_t> fwkMsg;
-    bool result = request->HandleSendDelegateAuthRequest(badRequest, fwkMsg);
+    ResultCode result = request->HandleSendDelegateAuthRequest(badRequest, fwkMsg);
 
-    EXPECT_FALSE(result);
+    EXPECT_NE(result, ResultCode::SUCCESS);
 }
 
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_003, TestSize.Level0)
@@ -504,9 +504,9 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_003, TestSiz
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndDelegateAuth(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     std::vector<uint8_t> fwkMsg;
-    bool result = request->HandleSendDelegateAuthRequest(req, fwkMsg);
+    ResultCode result = request->HandleSendDelegateAuthRequest(req, fwkMsg);
 
-    EXPECT_FALSE(result);
+    EXPECT_EQ(result, ResultCode::GENERAL_ERROR);
 }
 
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_004, TestSize.Level0)
@@ -542,9 +542,9 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_004, TestSiz
         .WillOnce(DoAll(SetArgReferee<1>(output), Return(ResultCode::SUCCESS)));
 
     std::vector<uint8_t> fwkMsg;
-    bool result = request->HandleSendDelegateAuthRequest(req, fwkMsg);
+    ResultCode result = request->HandleSendDelegateAuthRequest(req, fwkMsg);
 
-    EXPECT_FALSE(result);
+    EXPECT_EQ(result, ResultCode::GENERAL_ERROR);
 }
 
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequestMsg_001, TestSize.Level0)

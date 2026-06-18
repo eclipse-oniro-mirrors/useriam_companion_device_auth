@@ -113,7 +113,7 @@ public:
     // Token auth
     ResultCode HostBeginTokenAuth(const HostBeginTokenAuthInput &input, HostBeginTokenAuthOutput &output) override;
     ResultCode HostEndTokenAuth(const HostEndTokenAuthInput &input, HostEndTokenAuthOutput &output) override;
-    ResultCode HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output) override;
+    ResultCode HostRefreshToken(const HostRefreshTokenInput &input, HostRefreshTokenOutput &output) override;
 
     ResultCode CompanionProcessTokenAuth(const CompanionProcessTokenAuthInput &input,
         CompanionProcessTokenAuthOutput &output) override;

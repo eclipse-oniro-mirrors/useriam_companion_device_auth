@@ -22,7 +22,8 @@ use crate::entry::companion_device_auth_ffi::{
     HostEndTokenAuthOutputFfi,
 };
 use crate::log_i;
-use crate::request::token_auth::host_token_auth::{HostTokenAuthRequest, TOKEN_VALID_PERIOD};
+use crate::common::constants::TOKEN_VALID_PERIOD;
+use crate::request::token_auth::host_token_auth::HostTokenAuthRequest;
 use crate::request::token_auth::token_auth_message::SecAuthReply;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
@@ -65,13 +66,14 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
     }
 }
 
-fn create_mock_companion_device_token(added_time: u64) -> CompanionDeviceToken {
+fn create_mock_companion_device_token(expire_time: u64) -> CompanionDeviceToken {
     CompanionDeviceToken {
         template_id: 123,
         processor_type: ProcessorType::Default,
         token: [1u8; TOKEN_KEY_LEN],
         atl: AuthTrustLevel::Atl3,
-        added_time,
+        expire_time,
+        issue_time: 0,
     }
 }
 

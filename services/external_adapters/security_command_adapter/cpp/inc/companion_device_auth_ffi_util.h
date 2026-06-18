@@ -98,8 +98,8 @@ bool EncodeHostProcessObtainTokenInput(const HostProcessObtainTokenInput &input,
 bool DecodeHostProcessObtainTokenOutput(const HostProcessObtainTokenOutputFfi &ffi, std::vector<uint8_t> &reply,
     Atl &atl);
 
-bool EncodeHostUpdateTokenInput(const HostUpdateTokenInput &input, HostUpdateTokenInputFfi &ffi);
-bool DecodeHostUpdateTokenOutput(const HostUpdateTokenOutputFfi &ffi, HostUpdateTokenOutput &output);
+bool EncodeHostRefreshTokenInput(const HostRefreshTokenInput &input, HostRefreshTokenInputFfi &ffi);
+bool DecodeHostRefreshTokenOutput(const HostRefreshTokenOutputFfi &ffi, HostRefreshTokenOutput &output);
 
 // Companion operations
 bool EncodeCompanionProcessCheckInput(const CompanionProcessCheckInput &input, CompanionProcessCheckInputFfi &ffi);

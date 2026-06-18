@@ -459,32 +459,6 @@ bool CompanionManagerImpl::SetCompanionTokenAuthAtl(TemplateId templateId, std::
     return true;
 }
 
-ResultCode CompanionManagerImpl::UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg,
-    bool &needRedistribute)
-{
-    needRedistribute = false;
-
-    auto companion = FindCompanionByTemplateId(templateId);
-    if (companion == nullptr) {
-        IAM_LOGE("companion template id %{public}s not found", GET_MASKED_NUM_CSTR(templateId));
-        return ResultCode::GENERAL_ERROR;
-    }
-
-    HostUpdateTokenInput input = { .templateId = templateId, .fwkMsg = fwkMsg };
-    HostUpdateTokenOutput output = {};
-    ResultCode ret = GetSecurityAgent().HostUpdateToken(input, output);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("HostUpdateToken failed ret=%{public}d", ret);
-        return ret;
-    }
-
-    if (!output.needRedistribute) {
-        companion->RefreshTokenTimer();
-    }
-
-    return ResultCode::SUCCESS;
-}
-
 bool CompanionManagerImpl::IsCapabilitySupported(TemplateId templateId, Capability capability)
 {
     auto companionStatus = GetCompanionStatus(templateId);
@@ -677,6 +651,11 @@ void CompanionManagerImpl::StartIssueTokenRequests(const std::vector<uint64_t> &
             companionStatus.companionDeviceStatus.capabilities.end(), Capability::TOKEN_AUTH);
         if (it2 == companionStatus.companionDeviceStatus.capabilities.end()) {
             IAM_LOGI("companion %{public}s does not support TOKEN_AUTH, skip", companion->GetDescription());
+            continue;
+        }
+
+        if (!companionStatus.companionDeviceStatus.isAuthMaintainActive) {
+            IAM_LOGI("companion %{public}s is not auth maintain active, skip", companion->GetDescription());
             continue;
         }
 

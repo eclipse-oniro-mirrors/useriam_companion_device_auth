@@ -53,6 +53,7 @@ public:
     std::vector<BusinessId> supportedBusinessIds {};
     bool isAuthMaintainActive { false };
     std::optional<uint32_t> atlRevokeDelayMs;
+    bool refreshToken { false };
     bool isSynced { false };
     bool isSyncInProgress { false };
 

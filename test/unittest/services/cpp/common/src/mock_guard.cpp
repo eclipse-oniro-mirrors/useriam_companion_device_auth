@@ -49,7 +49,6 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-
 using namespace testing;
 
 constexpr int32_t INT32_1 = 1;
@@ -209,7 +208,6 @@ void MockGuard::SetupCompanionManagerDefaults()
     ON_CALL(*companionManager_, UpdateCompanionEnabledBusinessIds(_, _))
         .WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
-    ON_CALL(*companionManager_, UpdateToken(_, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, StartIssueTokenRequests(_, _, _)).WillByDefault(Return());
     ON_CALL(*companionManager_, NotifyCompanionStatusChange()).WillByDefault(Return());
     ON_CALL(*companionManager_, HandleRemoveHostBindingComplete(_)).WillByDefault(Return());

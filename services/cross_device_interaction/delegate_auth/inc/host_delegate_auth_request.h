@@ -53,7 +53,7 @@ private:
     void HandleStartDelegateAuthReply(const Attributes &message);
     bool CallSecurityAgentEndDelegateAuth(const std::vector<uint8_t> &delegateAuthResult,
         HostEndDelegateAuthOutput &output);
-    bool HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &outFwkMsg);
+    ResultCode HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &outFwkMsg);
     void HandleSendDelegateAuthRequestMsg(const Attributes &request, OnMessageReply &onMessageReply);
     void CompleteWithSuccess(const std::vector<uint8_t> &fwkMsg);
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &fwkMsg);

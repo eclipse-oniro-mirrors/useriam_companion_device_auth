@@ -109,24 +109,9 @@ fn create_mock_companion_device_token(atl: AuthTrustLevel) -> CompanionDeviceTok
         processor_type: ProcessorType::Default,
         token: [0u8; TOKEN_KEY_LEN],
         atl,
-        added_time: 1000,
+        expire_time: 9999999999,
+        issue_time: 5000,
     }
-}
-
-fn mock_set_companion_device_db_manager_for_host_update_token() {
-    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
-    mock_companion_device_db_manager
-        .expect_read_device_capability_info()
-        .returning(|| Ok(vec![create_mock_companion_device_capability()]));
-    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
-    mock_companion_device_db_manager
-        .expect_get_token()
-        .returning(|| Ok(create_mock_companion_device_token(AuthTrustLevel::Atl3)));
-    mock_companion_device_db_manager
-        .expect_get_token()
-        .returning(|| Ok(create_mock_companion_device_token(AuthTrustLevel::Atl2)));
-    mock_companion_device_db_manager.expect_get_token().returning(|| Err(ErrorCode::GeneralError));
-    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 }
 
 #[test]
@@ -1002,6 +987,11 @@ fn host_pre_issue_token_test_success() {
     attr.set_u32(AttributeKey::AttrType, 64);
     attr.set_i32(AttributeKey::AttrAuthTrustLevel, 30000);
     attr.set_u64_slice(AttributeKey::AttrTemplateIdList, &[123u64; 1]);
+    attr.set_u64(AttributeKey::AttrTimeStamp, 5000);
+
+    let mut mock_time_keeper = MockTimeKeeper::new();
+    mock_time_keeper.expect_get_system_time().returning(|| Ok(5000));
+    TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
     let fwk_message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
     let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();
@@ -1089,6 +1079,11 @@ fn host_pre_issue_token_test_add_request_fail() {
     attr.set_u32(AttributeKey::AttrType, 64);
     attr.set_i32(AttributeKey::AttrAuthTrustLevel, 30000);
     attr.set_u64_slice(AttributeKey::AttrTemplateIdList, &[123u64; 1]);
+    attr.set_u64(AttributeKey::AttrTimeStamp, 5000);
+
+    let mut mock_time_keeper = MockTimeKeeper::new();
+    mock_time_keeper.expect_get_system_time().returning(|| Ok(5000));
+    TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
     let fwk_message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
     let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();
@@ -2223,11 +2218,41 @@ fn host_cancel_obtain_token_test_fail() {
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 
-#[test]
-fn host_update_token_test_success() {
-    let _guard = ut_registry_guard!();
-    log_i!("host_update_token_test_success start");
+fn create_valid_fwk_refresh_token_request(
+    property_mode: u32,
+    auth_type: u32,
+    atl: i32,
+    template_ids: &[u64],
+) -> Vec<u8> {
+    let mut attribute = Attribute::new();
+    attribute.set_u32(AttributeKey::AttrPropertyMode, property_mode);
+    attribute.set_u32(AttributeKey::AttrType, auth_type);
+    attribute.set_i32(AttributeKey::AttrAuthTrustLevel, atl);
+    attribute.set_u64_slice(AttributeKey::AttrTemplateIdList, template_ids);
+    attribute.set_u64(AttributeKey::AttrTimeStamp, 5000);
 
+    let message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
+    message_codec.serialize_attribute(&attribute).unwrap()
+}
+
+fn mock_set_companion_device_db_manager_for_host_refresh_token() {
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Ok(vec![create_mock_companion_device_capability()]));
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    mock_companion_device_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_device_token(AuthTrustLevel::Atl3)));
+    mock_companion_device_db_manager
+        .expect_get_token()
+        .returning(|| Ok(create_mock_companion_device_token(AuthTrustLevel::Atl2)));
+    mock_companion_device_db_manager.expect_get_token().returning(|| Err(ErrorCode::GeneralError));
+    mock_companion_device_db_manager.expect_update_token().returning(|| Ok(()));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+}
+
+fn mock_set_misc_and_crypto_for_refresh_token() {
     let mut mock_misc_manager = MockMiscManager::new();
     mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(vec![1u8, 2, 3]));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
@@ -2237,38 +2262,155 @@ fn host_update_token_test_success() {
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    mock_set_companion_device_db_manager_for_host_update_token();
-
-    let mut attr = Attribute::new();
-    attr.set_i32(AttributeKey::AttrAuthTrustLevel, 30000);
-
-    let fwk_message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
-    let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();
-
-    let input =
-        HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
-    let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
-    let result = host_update_token(&input, &mut output);
-    assert!(result.is_ok());
-    assert_eq!(output.need_redistribute, false);
-
-    let result = host_update_token(&input, &mut output);
-    assert!(result.is_ok());
-    assert_eq!(output.need_redistribute, true);
-
-    let result = host_update_token(&input, &mut output);
-    assert!(result.is_ok());
-    assert_eq!(output.need_redistribute, true);
-
-    let result = host_update_token(&input, &mut output);
-    assert!(result.is_ok());
-    assert_eq!(output.need_redistribute, true);
+    let mut mock_time_keeper = MockTimeKeeper::new();
+    mock_time_keeper.expect_get_system_time().returning(|| Ok(5000));
+    TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 }
 
 #[test]
-fn host_update_token_test_get_fwk_pub_key_fail() {
+fn host_refresh_token_test_success() {
     let _guard = ut_registry_guard!();
-    log_i!("host_update_token_test_get_fwk_pub_key_fail start");
+    log_i!("host_refresh_token_test_success start");
+
+    mock_set_misc_and_crypto_for_refresh_token();
+    mock_set_companion_device_db_manager_for_host_refresh_token();
+
+    let mut mock_time_keeper = MockTimeKeeper::new();
+    mock_time_keeper.expect_get_rtc_time().returning(|| Ok(5000));
+    mock_time_keeper.expect_get_system_time().returning(|| Ok(5000));
+    TimeKeeperRegistry::set(Box::new(mock_time_keeper));
+
+    let fwk_message = create_valid_fwk_refresh_token_request(
+        PROPERTY_MODE_UNFREEZE,
+        AuthType::CompanionDevice as u32,
+        AuthTrustLevel::Atl3 as i32,
+        &[123u64],
+    );
+
+    let input =
+        HostRefreshTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
+    let mut output = HostRefreshTokenOutputFfi { need_reissue: false, cached_atl: 0 };
+    let result = host_refresh_token(&input, &mut output);
+    assert!(result.is_ok());
+    assert_eq!(output.need_reissue, false);
+    assert_eq!(output.cached_atl, AuthTrustLevel::Atl3 as i32);
+
+    // ATL mismatch → need_reissue
+    let result = host_refresh_token(&input, &mut output);
+    assert!(result.is_ok());
+    assert_eq!(output.need_reissue, true);
+
+    // ATL mismatch again
+    let result = host_refresh_token(&input, &mut output);
+    assert!(result.is_ok());
+    assert_eq!(output.need_reissue, true);
+
+    // get_token fail → need_reissue
+    let result = host_refresh_token(&input, &mut output);
+    assert!(result.is_ok());
+    assert_eq!(output.need_reissue, true);
+}
+
+#[test]
+fn host_refresh_token_test_property_mode_not_unfreeze() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_refresh_token_test_property_mode_not_unfreeze start");
+
+    mock_set_misc_and_crypto_for_refresh_token();
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let fwk_message = create_valid_fwk_refresh_token_request(
+        999,
+        AuthType::CompanionDevice as u32,
+        AuthTrustLevel::Atl3 as i32,
+        &[123u64],
+    );
+
+    let input =
+        HostRefreshTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
+    let mut output = HostRefreshTokenOutputFfi { need_reissue: false, cached_atl: 0 };
+    let result = host_refresh_token(&input, &mut output);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn host_refresh_token_test_auth_type_not_companion_device() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_refresh_token_test_auth_type_not_companion_device start");
+
+    mock_set_misc_and_crypto_for_refresh_token();
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let fwk_message =
+        create_valid_fwk_refresh_token_request(PROPERTY_MODE_UNFREEZE, 999, AuthTrustLevel::Atl3 as i32, &[123u64]);
+
+    let input =
+        HostRefreshTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
+    let mut output = HostRefreshTokenOutputFfi { need_reissue: false, cached_atl: 0 };
+    let result = host_refresh_token(&input, &mut output);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn host_refresh_token_test_template_id_not_found() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_refresh_token_test_template_id_not_found start");
+
+    mock_set_misc_and_crypto_for_refresh_token();
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let fwk_message = create_valid_fwk_refresh_token_request(
+        PROPERTY_MODE_UNFREEZE,
+        AuthType::CompanionDevice as u32,
+        AuthTrustLevel::Atl3 as i32,
+        &[456u64],
+    );
+
+    let input =
+        HostRefreshTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
+    let mut output = HostRefreshTokenOutputFfi { need_reissue: false, cached_atl: 0 };
+    let result = host_refresh_token(&input, &mut output);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn host_refresh_token_test_atl_try_from_fail() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_refresh_token_test_atl_try_from_fail start");
+
+    mock_set_misc_and_crypto_for_refresh_token();
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let fwk_message = create_valid_fwk_refresh_token_request(
+        PROPERTY_MODE_UNFREEZE,
+        AuthType::CompanionDevice as u32,
+        99999,
+        &[123u64],
+    );
+
+    let input =
+        HostRefreshTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
+    let mut output = HostRefreshTokenOutputFfi { need_reissue: false, cached_atl: 0 };
+    let result = host_refresh_token(&input, &mut output);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn host_refresh_token_test_get_fwk_pub_key_fail() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_refresh_token_test_get_fwk_pub_key_fail start");
 
     let mut mock_misc_manager = MockMiscManager::new();
     mock_misc_manager.expect_get_fwk_pub_key().returning(|| Err(ErrorCode::GeneralError));
@@ -2278,16 +2420,16 @@ fn host_update_token_test_get_fwk_pub_key_fail() {
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::default() };
-    let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
-    let result = host_update_token(&input, &mut output);
+    let input = HostRefreshTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::default() };
+    let mut output = HostRefreshTokenOutputFfi { need_reissue: false, cached_atl: 0 };
+    let result = host_refresh_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
 #[test]
-fn host_update_token_test_deserialize_attribute_fail() {
+fn host_refresh_token_test_deserialize_attribute_fail() {
     let _guard = ut_registry_guard!();
-    log_i!("host_update_token_test_deserialize_attribute_fail start");
+    log_i!("host_refresh_token_test_deserialize_attribute_fail start");
 
     let mut mock_misc_manager = MockMiscManager::new();
     mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(vec![1u8, 2, 3]));
@@ -2297,16 +2439,42 @@ fn host_update_token_test_deserialize_attribute_fail() {
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::default() };
-    let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
-    let result = host_update_token(&input, &mut output);
+    let input = HostRefreshTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::default() };
+    let mut output = HostRefreshTokenOutputFfi { need_reissue: false, cached_atl: 0 };
+    let result = host_refresh_token(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
 #[test]
-fn host_update_token_test_read_device_capability_info_fail() {
+fn host_refresh_token_test_read_device_capability_info_fail() {
     let _guard = ut_registry_guard!();
-    log_i!("host_update_token_test_read_device_capability_info_fail start");
+    log_i!("host_refresh_token_test_read_device_capability_info_fail start");
+
+    mock_set_misc_and_crypto_for_refresh_token();
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Err(ErrorCode::NotFound));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let fwk_message = create_valid_fwk_refresh_token_request(
+        PROPERTY_MODE_UNFREEZE,
+        AuthType::CompanionDevice as u32,
+        AuthTrustLevel::Atl3 as i32,
+        &[123u64],
+    );
+
+    let input =
+        HostRefreshTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
+    let mut output = HostRefreshTokenOutputFfi { need_reissue: false, cached_atl: 0 };
+    let result = host_refresh_token(&input, &mut output);
+    assert_eq!(result, Err(ErrorCode::NotFound));
+}
+
+#[test]
+fn host_refresh_token_test_fwk_msg_expired() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_refresh_token_test_fwk_msg_expired start");
 
     let mut mock_misc_manager = MockMiscManager::new();
     mock_misc_manager.expect_get_fwk_pub_key().returning(|| Ok(vec![1u8, 2, 3]));
@@ -2317,22 +2485,26 @@ fn host_update_token_test_read_device_capability_info_fail() {
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
+    let mut mock_time_keeper = MockTimeKeeper::new();
+    mock_time_keeper.expect_get_system_time().returning(|| Ok(20000));
+    TimeKeeperRegistry::set(Box::new(mock_time_keeper));
+
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
-    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Err(ErrorCode::NotFound));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let mut attr = Attribute::new();
-    attr.set_i32(AttributeKey::AttrAuthTrustLevel, 30000);
-
-    let fwk_message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
-    let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();
+    let fwk_message = create_valid_fwk_refresh_token_request(
+        PROPERTY_MODE_UNFREEZE,
+        AuthType::CompanionDevice as u32,
+        AuthTrustLevel::Atl3 as i32,
+        &[123u64],
+    );
 
     let input =
-        HostUpdateTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
-    let mut output = HostUpdateTokenOutputFfi { need_redistribute: false };
-    let result = host_update_token(&input, &mut output);
-    assert_eq!(result, Err(ErrorCode::NotFound));
+        HostRefreshTokenInputFfi { template_id: 123, fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap() };
+    let mut output = HostRefreshTokenOutputFfi { need_reissue: false, cached_atl: 0 };
+    let result = host_refresh_token(&input, &mut output);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
 #[test]
@@ -3343,6 +3515,12 @@ fn companion_begin_obtain_token_test_success() {
     attr.set_u32(AttributeKey::AttrPropertyMode, 6);
     attr.set_u32(AttributeKey::AttrType, 64);
     attr.set_i32(AttributeKey::AttrAuthTrustLevel, 30000);
+    attr.set_u64_slice(AttributeKey::AttrTemplateIdList, &[123u64]);
+    attr.set_u64(AttributeKey::AttrTimeStamp, 5000);
+
+    let mut mock_time_keeper = MockTimeKeeper::new();
+    mock_time_keeper.expect_get_system_time().returning(|| Ok(5000));
+    TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
     let fwk_message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
     let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();
@@ -3418,6 +3596,12 @@ fn companion_begin_obtain_token_test_add_request_fail() {
     attr.set_u32(AttributeKey::AttrPropertyMode, 6);
     attr.set_u32(AttributeKey::AttrType, 64);
     attr.set_i32(AttributeKey::AttrAuthTrustLevel, 30000);
+    attr.set_u64_slice(AttributeKey::AttrTemplateIdList, &[123u64]);
+    attr.set_u64(AttributeKey::AttrTimeStamp, 5000);
+
+    let mut mock_time_keeper = MockTimeKeeper::new();
+    mock_time_keeper.expect_get_system_time().returning(|| Ok(5000));
+    TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
     let fwk_message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
     let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();

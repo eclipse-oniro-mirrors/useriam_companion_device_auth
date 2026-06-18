@@ -26,7 +26,7 @@ use crate::commands::system_commands::{
     host_get_init_key_negotiation, host_get_persisted_status, host_on_register_finish, host_pre_issue_token,
     host_process_obtain_token, host_process_pre_obtain_token, host_remove_companion, host_revoke_token,
     host_set_companion_invalid, host_update_companion_enabled_business_ids, host_update_companion_status,
-    host_update_token, init,
+    host_refresh_token, init,
     set_active_user_id,
 };
 use crate::common::constants::ErrorCode;
@@ -41,7 +41,7 @@ use crate::entry::companion_device_auth_ffi::CommandId::{
     HostCancelObtainToken, HostCheckTemplateEnrolled, HostEndAddCompanion, HostEndCompanionCheck, HostEndDelegateAuth,
     HostEndIssueToken, HostEndTokenAuth, HostGetInitKeyNegotiation, HostGetPersistedStatus, HostPreIssueToken,
     HostProcessObtainToken, HostProcessPreObtainToken, HostRegisterFinish, HostRemoveCompanion, HostRevokeToken,
-    HostSetCompanionInvalid, HostUpdateCompanionEnabledBusinessIds, HostUpdateCompanionStatus, HostUpdateToken, Init,
+    HostSetCompanionInvalid, HostUpdateCompanionEnabledBusinessIds, HostUpdateCompanionStatus, HostRefreshToken, Init,
     SetActiveUserId,
 };
 use crate::entry::companion_device_auth_ffi::{CommandId, CommonInputFfi, CommonOutputFfi};
@@ -167,7 +167,7 @@ fn handle_rust_command_inner(command_id: i32, input: &[u8], output: &mut [u8]) -
         [HostProcessObtainToken, host_process_obtain_token],
         [HostCancelObtainToken, host_cancel_obtain_token],
         [HostCheckTemplateEnrolled, host_check_template_enrolled],
-        [HostUpdateToken, host_update_token],
+        [HostRefreshToken, host_refresh_token],
         [CompanionGetPersistedStatus, companion_get_persisted_status],
         [CompanionProcessCheck, companion_process_check],
         [CompanionInitKeyNegotiation, companion_init_key_negotiation],

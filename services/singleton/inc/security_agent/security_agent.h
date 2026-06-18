@@ -401,14 +401,15 @@ struct CompanionProcessTokenAuthOutput {
     std::vector<uint8_t> tokenAuthReply;
 };
 
-// Update token input/output structs
-struct HostUpdateTokenInput {
+// Refresh token input/output structs
+struct HostRefreshTokenInput {
     TemplateId templateId;
     std::vector<uint8_t> fwkMsg;
 };
 
-struct HostUpdateTokenOutput {
-    bool needRedistribute;
+struct HostRefreshTokenOutput {
+    bool needReissue;
+    Atl cachedAtl;
 };
 
 // Update companion status input/output structs
@@ -511,6 +512,7 @@ public:
     // Token auth
     virtual ResultCode HostBeginTokenAuth(const HostBeginTokenAuthInput &input, HostBeginTokenAuthOutput &output) = 0;
     virtual ResultCode HostEndTokenAuth(const HostEndTokenAuthInput &input, HostEndTokenAuthOutput &output) = 0;
+    virtual ResultCode HostRefreshToken(const HostRefreshTokenInput &input, HostRefreshTokenOutput &output) = 0;
 
     virtual ResultCode CompanionProcessTokenAuth(const CompanionProcessTokenAuthInput &input,
         CompanionProcessTokenAuthOutput &output) = 0;
@@ -532,7 +534,6 @@ public:
     virtual ResultCode HostUpdateCompanionEnabledBusinessIds(
         const HostUpdateCompanionEnabledBusinessIdsInput &input) = 0;
     virtual ResultCode HostSetCompanionInvalid(const HostSetCompanionInvalidInput &input) = 0;
-    virtual ResultCode HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output) = 0;
     virtual ResultCode HostRevokeToken(const HostRevokeTokenInput &input) = 0;
 
     // Companion — Host binding data management

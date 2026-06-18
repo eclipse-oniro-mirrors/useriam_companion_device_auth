@@ -496,23 +496,24 @@ static void FuzzEncodeHostCheckTemplateEnrolledInput(FuzzedDataProvider &fuzzDat
     (void)EncodeHostCheckTemplateEnrolledInput(input, ffi);
 }
 
-static void FuzzDecodeHostUpdateTokenOutput(FuzzedDataProvider &fuzzData)
+static void FuzzDecodeHostRefreshTokenOutput(FuzzedDataProvider &fuzzData)
 {
-    HostUpdateTokenOutputFfi ffi;
-    ffi.needRedistribute = fuzzData.ConsumeBool();
+    HostRefreshTokenOutputFfi ffi;
+    ffi.needReissue = fuzzData.ConsumeBool();
+    ffi.cachedAtl = fuzzData.ConsumeIntegral<int32_t>();
 
-    HostUpdateTokenOutput output;
-    (void)DecodeHostUpdateTokenOutput(ffi, output);
+    HostRefreshTokenOutput output;
+    (void)DecodeHostRefreshTokenOutput(ffi, output);
 }
 
-static void FuzzEncodeHostUpdateTokenInput(FuzzedDataProvider &fuzzData)
+static void FuzzEncodeHostRefreshTokenInput(FuzzedDataProvider &fuzzData)
 {
-    HostUpdateTokenInput input;
+    HostRefreshTokenInput input;
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     input.fwkMsg = GenerateFuzzVector<uint8_t>(fuzzData, TEST_VAL1024);
 
-    HostUpdateTokenInputFfi ffi;
-    (void)EncodeHostUpdateTokenInput(input, ffi);
+    HostRefreshTokenInputFfi ffi;
+    (void)EncodeHostRefreshTokenInput(input, ffi);
 }
 
 static const CompanionDeviceAuthFfiUtilFuzzFunction g_fuzzFuncs[] = {
@@ -550,8 +551,8 @@ static const CompanionDeviceAuthFfiUtilFuzzFunction g_fuzzFuncs[] = {
     // Newly added uncovered methods
     FuzzDecodeHostCheckTemplateEnrolledOutput,
     FuzzEncodeHostCheckTemplateEnrolledInput,
-    FuzzDecodeHostUpdateTokenOutput,
-    FuzzEncodeHostUpdateTokenInput,
+    FuzzDecodeHostRefreshTokenOutput,
+    FuzzEncodeHostRefreshTokenInput,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionDeviceAuthFfiUtilFuzzFunction);

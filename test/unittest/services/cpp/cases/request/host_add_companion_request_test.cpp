@@ -542,7 +542,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleEndAddHostBindingReply_001, TestSize
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->templateId_ = TEMPLATE_ID;
 
-    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _, true)).WillOnce(Return(true));
 
     Attributes reply;
     EndAddHostBindingReply replyMsg = { .result = ResultCode::SUCCESS };

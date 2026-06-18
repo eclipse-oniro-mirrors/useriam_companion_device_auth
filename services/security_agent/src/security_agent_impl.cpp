@@ -868,24 +868,24 @@ ResultCode SecurityAgentImpl::HostEndTokenAuth(const HostEndTokenAuthInput &inpu
     return SUCCESS;
 }
 
-ResultCode SecurityAgentImpl::HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output)
+ResultCode SecurityAgentImpl::HostRefreshToken(const HostRefreshTokenInput &input, HostRefreshTokenOutput &output)
 {
-    auto ffiInput = std::make_unique<HostUpdateTokenInputFfi>();
+    auto ffiInput = std::make_unique<HostRefreshTokenInputFfi>();
     ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
-    bool encodeRet = EncodeHostUpdateTokenInput(input, *ffiInput);
+    bool encodeRet = EncodeHostRefreshTokenInput(input, *ffiInput);
     ENSURE_OR_RETURN_VAL(encodeRet, INVALID_PARAMETERS);
 
-    auto ffiOutput = std::make_unique<HostUpdateTokenOutputFfi>();
+    auto ffiOutput = std::make_unique<HostRefreshTokenOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
 
-    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_UPDATE_TOKEN,
-        reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostUpdateTokenInputFfi),
-        reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostUpdateTokenOutputFfi));
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_REFRESH_TOKEN,
+        reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostRefreshTokenInputFfi),
+        reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostRefreshTokenOutputFfi));
     ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
 
-    bool decodeRet = DecodeHostUpdateTokenOutput(*ffiOutput, output);
+    bool decodeRet = DecodeHostRefreshTokenOutput(*ffiOutput, output);
     ENSURE_OR_RETURN_VAL(decodeRet, INVALID_PARAMETERS);
-    IAM_LOGI("success");
+    IAM_LOGI("success, needReissue=%{public}d, cachedAtl=%{public}d", output.needReissue, output.cachedAtl);
     return SUCCESS;
 }
 

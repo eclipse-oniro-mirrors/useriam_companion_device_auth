@@ -13,15 +13,13 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{AuthTrustLevel, AuthType, ErrorCode, ProcessorType, CHALLENGE_LEN, HKDF_SALT_SIZE};
-use crate::entry::companion_device_auth_ffi::PROPERTY_MODE_UNFREEZE;
+use crate::common::constants::{AuthTrustLevel, ErrorCode, ProcessorType, CHALLENGE_LEN, HKDF_SALT_SIZE};
 use crate::entry::companion_device_auth_ffi::{CompanionBeginObtainTokenInputFfi, CompanionEndObtainTokenOutputFfi};
 use crate::jobs::host_binding_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecIssueToken;
-use crate::request::token_obtain::token_obtain_message::{
-    FwkObtainTokenRequest, SecPreObtainTokenReply, SecPreObtainTokenRequest,
-};
+use crate::request::jobs::fwk_msg_validator::decode_and_validate_fwk_msg;
+use crate::request::token_obtain::token_obtain_message::{SecPreObtainTokenReply, SecPreObtainTokenRequest};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostBindingToken;
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
@@ -73,22 +71,8 @@ impl CompanionDeviceObtainTokenRequest {
     }
 
     fn decode_fwk_token_obtain_request(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
-        let output = FwkObtainTokenRequest::decode(fwk_message)?;
-
-        if output.property_mode != PROPERTY_MODE_UNFREEZE {
-            log_e!("property_mode is not unfreeze: {}", output.property_mode);
-            return Err(ErrorCode::GeneralError);
-        }
-
-        if output.auth_type != AuthType::CompanionDevice as u32 {
-            log_e!("auth_type is not companionDevice: {}", output.auth_type);
-            return Err(ErrorCode::GeneralError);
-        }
-
-        self.atl = AuthTrustLevel::try_from(output.atl).map_err(|_| {
-            log_e!("Invalid ATL value: {}", output.atl);
-            ErrorCode::GeneralError
-        })?;
+        let fwk_msg_info = decode_and_validate_fwk_msg(fwk_message, None)?;
+        self.atl = fwk_msg_info.atl;
         Ok(())
     }
 

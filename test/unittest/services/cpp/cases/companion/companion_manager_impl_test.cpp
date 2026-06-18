@@ -972,6 +972,253 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_006, TestSize.Level0)
     manager->StartIssueTokenRequests(templateIds, lockStateAuthTypeValue, fwkMsg);
 }
 
+HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_CreatesRequest, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    deviceStatus.refreshToken = true;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(nullptr, companion);
+    companion->SetCompanionTokenAuthAtl(30000);
+
+    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
+    uint32_t lockStateAuthTypeValue = 1;
+    std::vector<uint8_t> fwkMsg;
+
+    // Token refresh now handled inside HostIssueTokenRequest, always create request
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
+        .WillOnce(Invoke([this](UserId hostUserId, TemplateId templateId, uint32_t lockStateAuthTypeValue,
+                             const std::vector<uint8_t> &fwkUnlockMsg) {
+            return std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, lockStateAuthTypeValue, fwkUnlockMsg,
+                MOCK_COMPANION_DEVICE_KEY);
+        }));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    manager->StartIssueTokenRequests(templateIds, lockStateAuthTypeValue, fwkMsg);
+}
+
+HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Disabled_Issues, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(nullptr, companion);
+    companion->SetCompanionTokenAuthAtl(30000);
+
+    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
+    uint32_t lockStateAuthTypeValue = 1;
+    std::vector<uint8_t> fwkMsg;
+
+    // Should still create issue token request — refreshToken is false
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
+        .WillOnce(Invoke([this](UserId hostUserId, TemplateId templateId, uint32_t lockStateAuthTypeValue,
+                             const std::vector<uint8_t> &fwkUnlockMsg) {
+            return std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, lockStateAuthTypeValue, fwkUnlockMsg,
+                MOCK_COMPANION_DEVICE_KEY);
+        }));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    manager->StartIssueTokenRequests(templateIds, lockStateAuthTypeValue, fwkMsg);
+}
+
+HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_NoCachedAtl_Issues, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    deviceStatus.refreshToken = true;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    // Do NOT set tokenAuthAtl — it remains std::nullopt
+
+    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
+    uint32_t lockStateAuthTypeValue = 1;
+    std::vector<uint8_t> fwkMsg;
+
+    // Should create issue token request — no cached ATL even though refreshToken is true
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
+        .WillOnce(Invoke([this](UserId hostUserId, TemplateId templateId, uint32_t lockStateAuthTypeValue,
+                             const std::vector<uint8_t> &fwkUnlockMsg) {
+            return std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, lockStateAuthTypeValue, fwkUnlockMsg,
+                MOCK_COMPANION_DEVICE_KEY);
+        }));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    manager->StartIssueTokenRequests(templateIds, lockStateAuthTypeValue, fwkMsg);
+}
+
+HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_AtlMismatch_Issues, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    deviceStatus.refreshToken = true;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(nullptr, companion);
+    companion->SetCompanionTokenAuthAtl(10000);
+
+    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
+    uint32_t lockStateAuthTypeValue = 1;
+    std::vector<uint8_t> fwkMsg;
+
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
+        .WillOnce(Invoke([this](UserId hostUserId, TemplateId templateId, uint32_t lockStateAuthTypeValue,
+                             const std::vector<uint8_t> &fwkUnlockMsg) {
+            return std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, lockStateAuthTypeValue, fwkUnlockMsg,
+                MOCK_COMPANION_DEVICE_KEY);
+        }));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    manager->StartIssueTokenRequests(templateIds, lockStateAuthTypeValue, fwkMsg);
+}
+
+HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_AtlZero_CreatesRequest, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    deviceStatus.refreshToken = true;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(nullptr, companion);
+    companion->SetCompanionTokenAuthAtl(0);
+
+    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
+    uint32_t lockStateAuthTypeValue = 1;
+    std::vector<uint8_t> fwkMsg;
+
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
+        .WillOnce(Invoke([this](UserId hostUserId, TemplateId templateId, uint32_t lockStateAuthTypeValue,
+                             const std::vector<uint8_t> &fwkUnlockMsg) {
+            return std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, lockStateAuthTypeValue, fwkUnlockMsg,
+                MOCK_COMPANION_DEVICE_KEY);
+        }));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    manager->StartIssueTokenRequests(templateIds, lockStateAuthTypeValue, fwkMsg);
+}
+
+HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_AtlHigher_CreatesRequest,
+    TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    deviceStatus.refreshToken = true;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(nullptr, companion);
+    companion->SetCompanionTokenAuthAtl(30000);
+
+    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
+    uint32_t lockStateAuthTypeValue = 1;
+    std::vector<uint8_t> fwkMsg;
+
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
+        .WillOnce(Invoke([this](UserId hostUserId, TemplateId templateId, uint32_t lockStateAuthTypeValue,
+                             const std::vector<uint8_t> &fwkUnlockMsg) {
+            return std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, lockStateAuthTypeValue, fwkUnlockMsg,
+                MOCK_COMPANION_DEVICE_KEY);
+        }));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    manager->StartIssueTokenRequests(templateIds, lockStateAuthTypeValue, fwkMsg);
+}
+
 HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_001, TestSize.Level0)
 {
     MockGuard guard;

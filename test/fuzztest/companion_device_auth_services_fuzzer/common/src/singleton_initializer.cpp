@@ -155,14 +155,6 @@ public:
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0;
     }
 
-    ResultCode UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg, bool &needRedistribute) override
-    {
-        (void)templateId;
-        (void)fwkMsg;
-        needRedistribute = fuzzData_.ConsumeBool();
-        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
-    }
-
     bool IsCapabilitySupported(TemplateId templateId, Capability capability) override
     {
         (void)templateId;
@@ -753,13 +745,6 @@ public:
         return result;
     }
 
-    ResultCode HostUpdateToken(const HostUpdateTokenInput &input, HostUpdateTokenOutput &output) override
-    {
-        (void)input;
-        (void)output;
-        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
-    }
-
     ResultCode CompanionProcessTokenAuth(const CompanionProcessTokenAuthInput &input,
         CompanionProcessTokenAuthOutput &output) override
     {
@@ -807,6 +792,14 @@ public:
     ResultCode CompanionRevokeToken(const CompanionRevokeTokenInput &input) override
     {
         (void)input;
+        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
+    }
+
+    ResultCode HostRefreshToken(const HostRefreshTokenInput &input, HostRefreshTokenOutput &output) override
+    {
+        (void)input;
+        output.needReissue = fuzzData_.ConsumeBool();
+        output.cachedAtl = fuzzData_.ConsumeIntegral<int32_t>();
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 

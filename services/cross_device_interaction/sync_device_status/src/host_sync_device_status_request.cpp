@@ -193,6 +193,13 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     ENSURE_OR_RETURN_DESC(GetDescription(), replyDataOpt.has_value());
     const auto &replyData = *replyDataOpt;
 
+    if (replyData.result != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s peer result not success, result=%{public}d", GetDescription(),
+            static_cast<int32_t>(replyData.result));
+        errorGuard.UpdateErrorCode(replyData.result);
+        return;
+    }
+
     bool handleRet = EndCompanionCheck(replyData);
     ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
 
@@ -213,7 +220,6 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
 
 bool HostSyncDeviceStatusRequest::EndCompanionCheck(const SyncDeviceStatusReply &reply)
 {
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), reply.result == ResultCode::SUCCESS, false);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
 
     auto companionStatus = QueryCompanionStatus();

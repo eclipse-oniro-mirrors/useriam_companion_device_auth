@@ -783,23 +783,24 @@ assert_max_size!(HostCancelObtainTokenInputFfi);
 
 pub type HostCancelObtainTokenOutputFfi = PlaceHolderFfi;
 
-// HostUpdateToken
+// HostRefreshToken
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
-pub struct HostUpdateTokenInputFfi {
+pub struct HostRefreshTokenInputFfi {
     pub template_id: u64,
     pub fwk_message: DataArray1024Ffi,
 }
-assert_max_size!(HostUpdateTokenInputFfi);
+assert_max_size!(HostRefreshTokenInputFfi);
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
-pub struct HostUpdateTokenOutputFfi {
-    pub need_redistribute: bool,
+pub struct HostRefreshTokenOutputFfi {
+    pub need_reissue: bool,
+    pub cached_atl: i32,
 }
-assert_max_size!(HostUpdateTokenOutputFfi);
+assert_max_size!(HostRefreshTokenOutputFfi);
 
 // companion
 // CompanionGetPersistedStatus
@@ -1121,7 +1122,7 @@ pub enum CommandId {
     HostProcessObtainToken = 1024,
     HostCancelObtainToken = 1025,
     HostCheckTemplateEnrolled = 1027,
-    HostUpdateToken = 1028,
+    HostRefreshToken = 1028,
     HostSetCompanionInvalid = 1029,
 
     // companion
@@ -1176,7 +1177,7 @@ impl TryFrom<i32> for CommandId {
             1024 => Ok(CommandId::HostProcessObtainToken),
             1025 => Ok(CommandId::HostCancelObtainToken),
             1027 => Ok(CommandId::HostCheckTemplateEnrolled),
-            1028 => Ok(CommandId::HostUpdateToken),
+            1028 => Ok(CommandId::HostRefreshToken),
             1029 => Ok(CommandId::HostSetCompanionInvalid),
             2000 => Ok(CommandId::CompanionGetPersistedStatus),
             2001 => Ok(CommandId::CompanionProcessCheck),

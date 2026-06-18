@@ -67,6 +67,10 @@ bool HostIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
 
+    if (TryRefreshToken(*companionStatus, errorGuard)) {
+        return true;
+    }
+
     companionUserId_ = companionStatus->companionDeviceStatus.deviceKey.deviceUserId;
     auto secureProtocolOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(companionDeviceKey);
     if (!secureProtocolOpt.has_value()) {
@@ -258,6 +262,38 @@ std::weak_ptr<OutboundRequest> HostIssueTokenRequest::GetWeakPtr()
     return weak_from_this();
 }
 
+bool HostIssueTokenRequest::TryRefreshToken(const CompanionStatus &companionStatus, ErrorGuard &errorGuard)
+{
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
+    if (!companionStatus.companionDeviceStatus.refreshToken || !companionStatus.tokenAuthAtl.has_value()) {
+        IAM_LOGI("%{public}s skip token refresh: refreshToken=%{public}d, hasTokenAuthAtl=%{public}d", GetDescription(),
+            companionStatus.companionDeviceStatus.refreshToken, companionStatus.tokenAuthAtl.has_value());
+        return false;
+    }
+
+    HostRefreshTokenInput input = {};
+    input.templateId = *templateId_;
+    input.fwkMsg = fwkUnlockMsg_;
+    HostRefreshTokenOutput output = {};
+    ResultCode ret = GetSecurityAgent().HostRefreshToken(input, output);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGI("%{public}s HostRefreshToken failed ret=%{public}d", GetDescription(), ret);
+        return false;
+    }
+    if (output.needReissue) {
+        IAM_LOGI("%{public}s needs reissue", GetDescription());
+        return false;
+    }
+
+    IAM_LOGI("%{public}s token still valid (atl=%{public}d), refresh", GetDescription(), output.cachedAtl);
+    eventCollector_.SetAtl(output.cachedAtl);
+    bool setTokenAtlRet = GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, output.cachedAtl);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), setTokenAtlRet, false);
+    errorGuard.Cancel();
+    CompleteWithSuccess(TOKEN_REFRESH_SUCCESS);
+    return true;
+}
+
 bool HostIssueTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &deviceKey, ErrorGuard &errorGuard)
 {
     auto deviceStatus = GetCrossDeviceCommManager().GetDeviceStatus(deviceKey);
@@ -314,10 +350,10 @@ void HostIssueTokenRequest::CompleteWithError(ResultCode result)
     Destroy();
 }
 
-void HostIssueTokenRequest::CompleteWithSuccess()
+void HostIssueTokenRequest::CompleteWithSuccess(ResultCode result)
 {
-    IAM_LOGI("%{public}s complete with success", GetDescription());
-    eventCollector_.Report(ResultCode::SUCCESS);
+    IAM_LOGI("%{public}s complete with success, result=%{public}d", GetDescription(), result);
+    eventCollector_.Report(result);
     Destroy();
 }
 

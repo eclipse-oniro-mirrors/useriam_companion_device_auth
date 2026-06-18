@@ -83,8 +83,6 @@ public:
     virtual bool SetCompanionTokenAuthAtl(TemplateId templateId, std::optional<Atl> atl,
         bool forEnrollment = false) = 0;
 
-    virtual ResultCode UpdateToken(TemplateId templateId, const std::vector<uint8_t> &fwkMsg,
-        bool &needRedistribute) = 0;
     virtual void StartIssueTokenRequests(const std::vector<TemplateId> &templateIds, uint32_t lockStateAuthTypeValue,
         const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual bool IsCapabilitySupported(TemplateId templateId, Capability capability) = 0;

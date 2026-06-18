@@ -14,4 +14,5 @@
  */
 
 pub mod common_message;
+pub mod fwk_msg_validator;
 pub mod token_helper;
