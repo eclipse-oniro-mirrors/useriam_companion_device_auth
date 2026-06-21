@@ -75,8 +75,9 @@ namespace {
         auto ptr = sptr<CompanionDeviceAuthService>::MakeSptr(
             []() -> std::shared_ptr<BaseServiceInitializer> { return BaseServiceInitializer::Create(); },
             [](const std::shared_ptr<SubscriptionManager> &subscriptionManager,
-                const std::vector<BusinessId> &supportedBusinessIds) -> std::shared_ptr<BaseServiceCore> {
-                return BaseServiceCore::Create(subscriptionManager, supportedBusinessIds);
+                const std::vector<BusinessId> &hostBusinessId,
+                const std::vector<BusinessId> &companionBusinessId) -> std::shared_ptr<BaseServiceCore> {
+                return BaseServiceCore::Create(subscriptionManager, hostBusinessId, companionBusinessId);
             });
         ptr->SetWeakPtr(ptr);
         return ptr;
@@ -136,7 +137,8 @@ void CompanionDeviceAuthService::OnStart()
             ENSURE_OR_RETURN_VAL(baseServiceInitializer != nullptr, std::make_pair(nullptr, nullptr));
 
             auto core = coreCreator(baseServiceInitializer->GetSubscriptionManager(),
-                baseServiceInitializer->GetSupportedBusinessIds());
+                baseServiceInitializer->GetHostSupportedBusinessIds(),
+                baseServiceInitializer->GetCompanionSupportedBusinessIds());
             ENSURE_OR_RETURN_VAL(core != nullptr, std::make_pair(nullptr, nullptr));
             IAM_LOGI("created inner service");
 

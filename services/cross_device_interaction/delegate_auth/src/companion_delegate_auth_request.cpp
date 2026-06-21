@@ -37,10 +37,12 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 CompanionDelegateAuthRequest::CompanionDelegateAuthRequest(const std::string &connectionName, int32_t companionUserId,
-    const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest)
+    const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
+    const ComapionDelegateAuthParam &delegateAuthParam)
     : InboundRequest(RequestType::COMPANION_DELEGATE_AUTH_REQUEST, connectionName, hostDeviceKey),
       companionUserId_(companionUserId),
-      startDelegateAuthRequest_(startDelegateAuthRequest)
+      startDelegateAuthRequest_(startDelegateAuthRequest),
+      delegateAuthParam_(delegateAuthParam)
 {
     eventCollector_.SetHostDeviceKey(PeerDeviceKey());
     eventCollector_.SetCompanionUserId(companionUserId_);
@@ -93,9 +95,17 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
         self->HandleDelegateAuthResult(resultCode, token);
     };
 
-    std::vector<AuthType> authTypes = { AuthType::PIN, AuthType::FACE, AuthType::FINGERPRINT };
-    uint64_t contextId = GetUserAuthAdapter().BeginDelegateAuth(localDeviceKey->deviceUserId,
-        ConvertUint64ToUint8Vec(challenge), static_cast<uint32_t>(atl), authTypes, callback);
+    BeginDelegateAuthParam param = {};
+    param.userId = localDeviceKey->deviceUserId;
+    param.challenge = ConvertUint64ToUint8Vec(challenge);
+    param.authTrustLevel = static_cast<uint32_t>(atl);
+    for (auto type : delegateAuthParam_.widgetAuthParam.authTypes) {
+        param.authTypes.push_back(static_cast<AuthType>(type));
+    }
+    param.navigationButtonText = delegateAuthParam_.widgetAuthParam.navigationButtonText;
+    param.remoteTokenId = delegateAuthParam_.remoteTokenId;
+    param.callback = callback;
+    uint64_t contextId = GetUserAuthAdapter().BeginDelegateAuth(param);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), contextId != 0, false);
     contextId_ = contextId;
     desc_.SetContextId(contextId);

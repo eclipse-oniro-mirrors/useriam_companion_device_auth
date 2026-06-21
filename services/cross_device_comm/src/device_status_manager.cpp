@@ -29,6 +29,7 @@
 #include "connection_manager.h"
 #include "host_sync_device_status_request.h"
 #include "service_common.h"
+#include "service_converter.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 #include "time_keeper.h"
@@ -41,12 +42,12 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-std::shared_ptr<DeviceStatusManager> DeviceStatusManager::Create(const std::vector<BusinessId> &defaultBusinessIds,
+std::shared_ptr<DeviceStatusManager> DeviceStatusManager::Create(const std::vector<BusinessId> &hostSupportBusinessIds,
     std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
     std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr)
 {
-    auto manager = std::shared_ptr<DeviceStatusManager>(
-        new (std::nothrow) DeviceStatusManager(defaultBusinessIds, connectionMgr, channelMgr, localDeviceStatusMgr));
+    auto manager = std::shared_ptr<DeviceStatusManager>(new (std::nothrow)
+        DeviceStatusManager(hostSupportBusinessIds, connectionMgr, channelMgr, localDeviceStatusMgr));
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
 
     if (!manager->Initialize()) {
@@ -57,10 +58,10 @@ std::shared_ptr<DeviceStatusManager> DeviceStatusManager::Create(const std::vect
     return manager;
 }
 
-DeviceStatusManager::DeviceStatusManager(const std::vector<BusinessId> &defaultBusinessIds,
+DeviceStatusManager::DeviceStatusManager(const std::vector<BusinessId> &hostSupportBusinessIds,
     std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
     std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr)
-    : defaultBusinessIds_(defaultBusinessIds),
+    : hostSupportBusinessIds_(hostSupportBusinessIds),
       connectionMgr_(connectionMgr),
       channelMgr_(channelMgr),
       localDeviceStatusMgr_(localDeviceStatusMgr)
@@ -191,13 +192,32 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     deviceStatus.deviceUserId = syncDeviceStatus.deviceUserId;
     deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
     deviceStatus.capabilities = syncDeviceStatus.capabilityList;
-    deviceStatus.supportedBusinessIds = defaultBusinessIds_;
+    if (!syncDeviceStatus.businessIdList.empty()) {
+        deviceStatus.supportedBusinessIds = ComputeEffectiveBusinessIds(syncDeviceStatus.businessIdList);
+    }
 
     guard.Cancel();
     deviceStatus.isSynced = true;
     deviceStatus.isSyncInProgress = false;
     NotifySubscribers();
     IAM_LOGI("device synced successfully: %{public}s", deviceKey.GetDesc().c_str());
+}
+
+std::vector<BusinessId> DeviceStatusManager::ComputeEffectiveBusinessIds(
+    const std::vector<BusinessId> &deviceSupportedBusinessIds)
+{
+    std::vector<BusinessId> effectiveBusinessIds;
+    for (const auto &id : hostSupportBusinessIds_) {
+        if (std::find(deviceSupportedBusinessIds.begin(), deviceSupportedBusinessIds.end(), id)
+            != deviceSupportedBusinessIds.end()) {
+            effectiveBusinessIds.push_back(id);
+        }
+    }
+    IAM_LOGI("compute effective business ids: host=%{public}s, device=%{public}s, effective=%{public}s",
+        GetMaskedVectorString(hostSupportBusinessIds_).c_str(),
+        GetMaskedVectorString(deviceSupportedBusinessIds).c_str(),
+        GetMaskedVectorString(effectiveBusinessIds).c_str());
+    return effectiveBusinessIds;
 }
 
 void DeviceStatusManager::SetSubscribeMode(SubscribeMode mode)
@@ -513,6 +533,7 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 ENSURE_OR_RETURN(self != nullptr);
                 self->TriggerDeviceSync(key);
             });
+            entry.supportedBusinessIds = ComputeEffectiveBusinessIds(status.supportedBusinessIds);
             deviceStatusMap_.emplace(key, std::move(entry));
             deviceChanged = true;
             IAM_LOGI("device added: %{public}s, channel=%{public}d", GET_MASKED_STR_CSTR(key.deviceId),
@@ -520,13 +541,14 @@ bool DeviceStatusManager::AddOrUpdateDevices(
             TriggerDeviceSync(key);
         } else {
             DeviceStatusEntry &deviceStatus = it->second;
+            auto newEffectiveIds = ComputeEffectiveBusinessIds(status.supportedBusinessIds);
             bool hasChange = deviceStatus.channelId != status.channelId ||
                 deviceStatus.deviceName != status.deviceName ||
                 deviceStatus.deviceModelInfo != status.deviceModelInfo ||
                 deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive ||
                 deviceStatus.deviceType != status.deviceType ||
                 deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs ||
-                deviceStatus.refreshToken != status.refreshToken;
+                deviceStatus.supportedBusinessIds != newEffectiveIds;
             if (hasChange) {
                 deviceStatus.channelId = status.channelId;
                 deviceStatus.deviceName = status.deviceName;
@@ -534,7 +556,7 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
                 deviceStatus.deviceType = status.deviceType;
                 deviceStatus.atlRevokeDelayMs = status.atlRevokeDelayMs;
-                deviceStatus.refreshToken = status.refreshToken;
+                deviceStatus.supportedBusinessIds = std::move(newEffectiveIds);
                 deviceChanged = true;
             }
             if (resync) {

@@ -54,10 +54,16 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
         return std::nullopt;
     }
 
+    if (profile.companionCapabilities.empty()) {
+        IAM_LOGE("%{public}s not support to be added", desc.GetCStr());
+        return std::nullopt;
+    }
+
     SyncDeviceStatusReply syncReply = {};
     syncReply.result = ResultCode::SUCCESS;
     syncReply.protocolIdList = profile.protocols;
-    syncReply.capabilityList = profile.capabilities;
+    syncReply.capabilityList = profile.companionCapabilities;
+    syncReply.businessIdList = profile.companionSupportedBusinessIds;
     syncReply.secureProtocolId = profile.companionSecureProtocolId;
     SetCompanionDeviceKeyUserId(syncReply, companionUserId);
     syncReply.deviceUserName = userNameOpt.value();

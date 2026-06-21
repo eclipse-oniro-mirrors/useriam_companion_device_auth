@@ -58,14 +58,18 @@ std::shared_ptr<BaseServiceInitializer> BaseServiceInitializer::Create()
 {
     IAM_LOGI("Start");
 
-    std::vector<BusinessId> supportedBusinessIds = { BusinessId::DEFAULT };
-    std::vector<Capability> localCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH,
+    DeviceCapabilityInfo deviceCapabilityInfo;
+    deviceCapabilityInfo.hostSupportedBusinessIds = { BusinessId::DEFAULT };
+    deviceCapabilityInfo.hostLocalCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH,
+        Capability::OBTAIN_TOKEN };
+    deviceCapabilityInfo.companionSupportedBusinessIds = { BusinessId::DEFAULT };
+    deviceCapabilityInfo.companionLocalCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH,
         Capability::OBTAIN_TOKEN };
 
     auto subscriptionManager = std::make_shared<SubscriptionManager>();
     ENSURE_OR_RETURN_VAL(subscriptionManager != nullptr, nullptr);
-    auto initializer = std::shared_ptr<BaseServiceInitializer>(
-        new (std::nothrow) BaseServiceInitializer(subscriptionManager, supportedBusinessIds, localCapabilities, true));
+    auto initializer = std::shared_ptr<BaseServiceInitializer>(new (std::nothrow) BaseServiceInitializer(
+        subscriptionManager, deviceCapabilityInfo, true));
     ENSURE_OR_RETURN_VAL(initializer != nullptr, nullptr);
 
     if (!initializer->Initialize()) {
@@ -286,8 +290,14 @@ bool BaseServiceInitializer::InitializeChannels()
 
 bool BaseServiceInitializer::InitializeCrossDeviceCommManager()
 {
-    auto crossDeviceCommManager = CrossDeviceCommManagerImpl::Create(supportedBusinessIds_, localCapabilities_,
-        channelsHolder_, hostBindingRevokeTokenOnInactive_);
+    DeviceCapabilityInfo deviceCapabilityInfo = {
+        .hostSupportedBusinessIds = hostSupportedBusinessIds_,
+        .hostLocalCapabilities = hostLocalCapabilities_,
+        .companionSupportedBusinessIds = companionSupportedBusinessIds_,
+        .companionLocalCapabilities = companionLocalCapabilities_
+    };
+    auto crossDeviceCommManager = CrossDeviceCommManagerImpl::Create(deviceCapabilityInfo, channelsHolder_,
+        hostBindingRevokeTokenOnInactive_);
     ENSURE_OR_RETURN_VAL(crossDeviceCommManager != nullptr, false);
     SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommManager);
     return true;
@@ -359,11 +369,12 @@ const BaseServiceInitializer::BasicInitStep BaseServiceInitializer::BASIC_INIT_T
 const size_t BaseServiceInitializer::BASIC_INIT_TABLE_SIZE = sizeof(BASIC_INIT_TABLE) / sizeof(BASIC_INIT_TABLE[0]);
 
 BaseServiceInitializer::BaseServiceInitializer(std::shared_ptr<SubscriptionManager> subscriptionManager,
-    const std::vector<BusinessId> &supportedBusinessIds, const std::vector<Capability> &localCapabilities,
-    bool hostBindingRevokeTokenOnInactive)
+    const DeviceCapabilityInfo &deviceCapabilityInfo, bool hostBindingRevokeTokenOnInactive)
     : subscriptionManagerHolder_(std::move(subscriptionManager)),
-      supportedBusinessIds_(supportedBusinessIds),
-      localCapabilities_(localCapabilities),
+      hostSupportedBusinessIds_(deviceCapabilityInfo.hostSupportedBusinessIds),
+      hostLocalCapabilities_(deviceCapabilityInfo.hostLocalCapabilities),
+      companionSupportedBusinessIds_(deviceCapabilityInfo.companionSupportedBusinessIds),
+      companionLocalCapabilities_(deviceCapabilityInfo.companionLocalCapabilities),
       hostBindingRevokeTokenOnInactive_(hostBindingRevokeTokenOnInactive)
 {
 }
@@ -373,9 +384,24 @@ std::shared_ptr<SubscriptionManager> BaseServiceInitializer::GetSubscriptionMana
     return subscriptionManagerHolder_;
 }
 
-const std::vector<BusinessId> &BaseServiceInitializer::GetSupportedBusinessIds() const
+const std::vector<BusinessId> &BaseServiceInitializer::GetHostSupportedBusinessIds() const
 {
-    return supportedBusinessIds_;
+    return hostSupportedBusinessIds_;
+}
+
+const std::vector<Capability> &BaseServiceInitializer::GetHostLocalCapabilities() const
+{
+    return hostLocalCapabilities_;
+}
+
+const std::vector<BusinessId> &BaseServiceInitializer::GetCompanionSupportedBusinessIds() const
+{
+    return companionSupportedBusinessIds_;
+}
+
+const std::vector<Capability> &BaseServiceInitializer::GetCompanionLocalCapabilities() const
+{
+    return companionLocalCapabilities_;
 }
 
 } // namespace CompanionDeviceAuth

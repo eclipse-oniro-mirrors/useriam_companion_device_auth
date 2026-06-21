@@ -186,8 +186,9 @@ static void FuzzCreateCompanionDelegateAuthRequest(std::shared_ptr<RequestFactor
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     std::vector<uint8_t> startDelegateAuthRequest =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
+    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = fuzzData.ConsumeIntegral<uint32_t>() };
     auto request = factory->CreateCompanionDelegateAuthRequest(connectionName, companionUserId, hostDeviceKey,
-        startDelegateAuthRequest);
+        startDelegateAuthRequest, delegateAuthParam);
     (void)request;
 }
 

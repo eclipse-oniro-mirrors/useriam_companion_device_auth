@@ -88,39 +88,39 @@ private:
 };
 } // namespace
 
-uint64_t UserAuthAdapterImpl::BeginDelegateAuth(int32_t userId, const std::vector<uint8_t> &challenge,
-    uint32_t authTrustLevel, const std::vector<AuthType> &authTypes, AuthResultCallback callback)
+uint64_t UserAuthAdapterImpl::BeginDelegateAuth(const BeginDelegateAuthParam &param)
 {
-    if (!callback) {
+    if (!param.callback) {
         IAM_LOGE("Callback is null");
         return 0;
     }
 
-    if (authTypes.empty()) {
+    if (param.authTypes.empty()) {
         IAM_LOGE("AuthTypes is empty");
         return 0;
     }
 
-    if (challenge.empty()) {
+    if (param.challenge.empty()) {
         IAM_LOGE("Challenge is empty");
         return 0;
     }
 
     UserAuth::WidgetAuthParam authParam;
-    authParam.userId = userId;
-    authParam.challenge = challenge;
-    authParam.authTrustLevel = static_cast<UserAuth::AuthTrustLevel>(authTrustLevel);
-    for (auto type : authTypes) {
+    authParam.userId = param.userId;
+    authParam.challenge = param.challenge;
+    authParam.authTrustLevel = static_cast<UserAuth::AuthTrustLevel>(param.authTrustLevel);
+    for (auto type : param.authTypes) {
         authParam.authTypes.push_back(static_cast<UserAuth::AuthType>(type));
     }
+    authParam.remoteTokenId = param.remoteTokenId;
 
     UserAuth::WidgetParam widgetParam = {};
     widgetParam.title = "Delegate Authentication";
-    widgetParam.navigationButtonText = "";
+    widgetParam.navigationButtonText = param.navigationButtonText;
     widgetParam.windowMode = UserAuth::WindowModeType::UNKNOWN_WINDOW_MODE;
 
     // Create bridge callback
-    auto authCallback = std::make_shared<AuthCallbackBridge>(std::move(callback));
+    auto authCallback = std::make_shared<AuthCallbackBridge>(std::move(param.callback));
     ENSURE_OR_RETURN_VAL(authCallback != nullptr, 0);
     XCollieHelper xcollie("UserAuthAdapterImpl-BeginDelegateAuth", API_CALL_TIMEOUT);
 

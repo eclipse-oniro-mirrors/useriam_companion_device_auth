@@ -310,8 +310,10 @@ public:
         channel_ = std::make_shared<FakeCrossDeviceChannel>(ChannelId::SOFTBUS);
         channelManager_ =
             std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> { channel_ });
-        localDeviceStatusManager_ = LocalDeviceStatusManager::Create(channelManager_,
-            { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, false);
+        DeviceCapabilityInfo deviceCapabilityInfo = {
+            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
+            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+        localDeviceStatusManager_ = LocalDeviceStatusManager::Create(channelManager_, deviceCapabilityInfo, false);
         ASSERT_NE(localDeviceStatusManager_, nullptr);
 
         connectionManager_ = ConnectionManager::Create(channelManager_, localDeviceStatusManager_);

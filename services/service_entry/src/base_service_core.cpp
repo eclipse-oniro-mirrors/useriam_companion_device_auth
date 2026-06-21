@@ -40,29 +40,30 @@ namespace CompanionDeviceAuth {
 
 std::shared_ptr<BaseServiceCore> BaseServiceCore::Create(
     const std::shared_ptr<SubscriptionManager> &subscriptionManager,
-    const std::vector<BusinessId> &supportedBusinessIds)
+    const std::vector<BusinessId> &hostBusinessId, const std::vector<BusinessId> &companionBusinessId)
 {
     IAM_LOGI("Start");
     ENSURE_OR_RETURN_VAL(subscriptionManager != nullptr, nullptr);
 
-    auto core =
-        std::shared_ptr<BaseServiceCore>(new (std::nothrow) BaseServiceCore(subscriptionManager, supportedBusinessIds));
+    auto core = std::shared_ptr<BaseServiceCore>(
+        new (std::nothrow) BaseServiceCore(subscriptionManager, hostBusinessId, companionBusinessId));
     ENSURE_OR_RETURN_VAL(core != nullptr, nullptr);
     IAM_LOGI("End");
     return core;
 }
 
 BaseServiceCore::BaseServiceCore(std::shared_ptr<SubscriptionManager> subscriptionManager,
-    const std::vector<BusinessId> &supportedBusinessIds)
+    const std::vector<BusinessId> &hostBusinessId, const std::vector<BusinessId> &companionBusinessId)
     : subscriptionManager_(std::move(subscriptionManager)),
-      supportedBusinessIds_(supportedBusinessIds)
+      hostBusinessIds_(hostBusinessId),
+      companionBusinessIds_(companionBusinessId)
 {
 }
 
 bool BaseServiceCore::IsValidBusinessId(BusinessId businessId) const
 {
-    return std::find(supportedBusinessIds_.begin(), supportedBusinessIds_.end(), businessId) !=
-        supportedBusinessIds_.end();
+    return std::find(hostBusinessIds_.begin(), hostBusinessIds_.end(), businessId) !=
+        hostBusinessIds_.end();
 }
 
 ResultCode BaseServiceCore::SubscribeAvailableDeviceStatus(int32_t localUserId,

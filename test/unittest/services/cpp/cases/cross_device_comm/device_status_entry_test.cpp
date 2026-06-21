@@ -158,6 +158,23 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_RefreshTokenFalse, TestSize.Le
     EXPECT_FALSE(status.refreshToken);
 }
 
+HWTEST_F(DeviceStatusEntryTest, Constructor_SupportedBusinessIds_001, TestSize.Level0)
+{
+    physicalStatus_.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
+
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    ASSERT_EQ(entry.supportedBusinessIds.size(), 2u);
+    EXPECT_EQ(entry.supportedBusinessIds[0], static_cast<BusinessId>(10001));
+    EXPECT_EQ(entry.supportedBusinessIds[1], static_cast<BusinessId>(10002));
+}
+
+HWTEST_F(DeviceStatusEntryTest, Constructor_SupportedBusinessIds_Empty_001, TestSize.Level0)
+{
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    EXPECT_TRUE(entry.supportedBusinessIds.empty());
+}
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

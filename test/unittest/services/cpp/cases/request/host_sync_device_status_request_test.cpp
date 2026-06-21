@@ -50,7 +50,7 @@ const DeviceKey HOST_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
     .deviceUserId = 100 };
 const std::string COMPANION_DEVICE_NAME = "test_companion_name";
 const LocalDeviceProfile PROFILE = { .protocols = { ProtocolId::VERSION_1 },
-    .capabilities = { Capability::TOKEN_AUTH } };
+    .companionCapabilities = { Capability::TOKEN_AUTH } };
 
 SyncDeviceStatusReply MakeDefaultSyncDeviceStatusReply()
 {

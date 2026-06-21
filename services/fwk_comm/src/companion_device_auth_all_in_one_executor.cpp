@@ -63,6 +63,7 @@ constexpr int32_t COMMAND_ID_SET_COMPANION_INVALID = 10001;
 struct CdaAuthenticateParam {
     std::optional<uint32_t> tokenId;
     std::optional<BusinessId> businessId;
+    WidgetAuthParam delegateAuthParam;
 };
 
 class CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner : public NoCopyable {
@@ -219,7 +220,8 @@ FwkResultCode Inner::Authenticate(uint64_t scheduleId, const FwkAuthenticatePara
     };
 
     HostMixAuthParams params = { scheduleId, fwkParam.extraInfo, fwkParam.userId, fwkParam.templateIdList,
-        cdaParam.tokenId, cdaParam.businessId, fwkParam.authIntent, fwkParam.authScene, fwkParam.title };
+        cdaParam.tokenId, cdaParam.businessId, fwkParam.authIntent, fwkParam.authScene, fwkParam.title,
+        cdaParam.delegateAuthParam };
     auto request = GetRequestFactory().CreateHostMixAuthRequest(params, std::move(requestCallback));
     if (request == nullptr) {
         IAM_LOGE("CreateHostMixAuthRequest failed");
@@ -511,6 +513,7 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::Authenticate(uint64_t schedul
         cdaParam.tokenId = param.tokenId;
     }
     cdaParam.businessId = GetAuthBusinessId(param.authIntent);
+    cdaParam.delegateAuthParam = GetWidgetAuthParam(param.authIntent);
 
     return RunOnResidentSync([inner, scheduleId, fwkParam = param, cdaParam, callbackObj]() {
         return inner->Authenticate(scheduleId, fwkParam, cdaParam, callbackObj);
@@ -579,6 +582,14 @@ std::optional<BusinessId> CompanionDeviceAuthAllInOneExecutor::GetAuthBusinessId
     static_cast<void>(authIntent);
     IAM_LOGI("get device business id is not supported");
     return std::nullopt;
+}
+
+WidgetAuthParam CompanionDeviceAuthAllInOneExecutor::GetWidgetAuthParam(int32_t authIntent) const
+{
+    static_cast<void>(authIntent);
+    IAM_LOGI("get delegate auth param is not supported");
+    WidgetAuthParam authParam = {};
+    return authParam;
 }
 
 FwkResultCode CompanionDeviceAuthAllInOneExecutor::RunOnResidentSync(std::function<FwkResultCode()> func,

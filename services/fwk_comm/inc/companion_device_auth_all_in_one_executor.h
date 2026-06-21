@@ -62,6 +62,7 @@ protected:
     CompanionDeviceAuthAllInOneExecutor();
     virtual bool SupportDeviceSelect(int32_t authIntent) const;
     virtual std::optional<BusinessId> GetAuthBusinessId(int32_t authIntent) const;
+    virtual WidgetAuthParam GetWidgetAuthParam(int32_t authIntent) const;
 
 private:
     FwkResultCode RunOnResidentSync(std::function<FwkResultCode()> func, uint32_t timeoutSec = MAX_SYNC_WAIT_TIME_SEC);

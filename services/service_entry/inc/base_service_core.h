@@ -34,7 +34,7 @@ class SubscriptionManager;
 class BaseServiceCore : public NoCopyable {
 public:
     static std::shared_ptr<BaseServiceCore> Create(const std::shared_ptr<SubscriptionManager> &subscriptionManager,
-        const std::vector<BusinessId> &supportedBusinessIds);
+        const std::vector<BusinessId> &hostBusinessId, const std::vector<BusinessId> &companionBusinessId);
 
     ResultCode SubscribeAvailableDeviceStatus(int32_t localUserId,
         const sptr<IIpcAvailableDeviceStatusCallback> &deviceStatusCallback);
@@ -59,12 +59,13 @@ public:
 
 private:
     explicit BaseServiceCore(std::shared_ptr<SubscriptionManager> subscriptionManager,
-        const std::vector<BusinessId> &supportedBusinessIds);
+        const std::vector<BusinessId> &hostBusinessId, const std::vector<BusinessId> &companionBusinessId);
 
     bool IsValidBusinessId(BusinessId businessId) const;
 
     std::shared_ptr<SubscriptionManager> subscriptionManager_;
-    std::vector<BusinessId> supportedBusinessIds_;
+    std::vector<BusinessId> hostBusinessIds_;
+    std::vector<BusinessId> companionBusinessIds_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

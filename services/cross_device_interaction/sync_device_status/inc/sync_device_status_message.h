@@ -43,6 +43,7 @@ struct SyncDeviceStatusReply {
     ResultCode result { ResultCode::GENERAL_ERROR };
     std::vector<ProtocolId> protocolIdList;
     std::vector<Capability> capabilityList;
+    std::vector<BusinessId> businessIdList;
     SecureProtocolId secureProtocolId;
     DeviceKey companionDeviceKey {};
     std::string deviceUserName;

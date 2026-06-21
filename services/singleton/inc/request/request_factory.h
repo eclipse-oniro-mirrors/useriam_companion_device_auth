@@ -37,6 +37,11 @@ namespace CompanionDeviceAuth {
 
 using SyncDeviceStatusCallback = std::function<void(ResultCode result, const SyncDeviceStatus &syncDeviceStatus)>;
 
+struct WidgetAuthParam {
+    std::vector<UserAuth::AuthType> authTypes;
+    std::string navigationButtonText;
+};
+
 struct AuthRequestParams {
     ScheduleId scheduleId;
     std::vector<uint8_t> fwkMsg;
@@ -44,6 +49,8 @@ struct AuthRequestParams {
     TemplateId templateId;
     int32_t authIntent;
     UserAuth::AuthScene authScene;
+    std::optional<std::vector<uint8_t>> selectContext;
+    WidgetAuthParam widgetAuthParam;
 };
 
 struct HostMixAuthParams {
@@ -56,6 +63,12 @@ struct HostMixAuthParams {
     int32_t authIntent;
     UserAuth::AuthScene authScene { UserAuth::AUTH_SCENE_DEFAULT };
     std::string title;
+    WidgetAuthParam widgetAuthParam;
+};
+
+struct ComapionDelegateAuthParam {
+    std::optional<uint32_t> remoteTokenId;
+    WidgetAuthParam widgetAuthParam;
 };
 
 class IRequestFactory : public NoCopyable {
@@ -86,7 +99,8 @@ public:
         uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
         UserId companionUserId, const DeviceKey &hostDeviceKey,
-        const std::vector<uint8_t> &startDelegateAuthRequest) = 0;
+        const std::vector<uint8_t> &startDelegateAuthRequest,
+        const ComapionDelegateAuthParam &delegateAuthParam) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId,
         const DeviceKey &hostDeviceKey, const std::string &triggerReason) = 0;
     virtual std::shared_ptr<IRequest> CreateHostMixAuthRequest(const HostMixAuthParams &params,

@@ -66,7 +66,7 @@ public:
     bool isAuthMaintainActive { false };
     DeviceType deviceType { DeviceType::INVALID };
     std::optional<uint32_t> atlRevokeDelayMs;
-    bool refreshToken { false };
+    std::vector<BusinessId> supportedBusinessIds {};
 
     bool operator==(const PhysicalDeviceStatus &other) const
     {
@@ -74,7 +74,7 @@ public:
             deviceName == other.deviceName && deviceModelInfo == other.deviceModelInfo &&
             networkId == other.networkId && isAuthMaintainActive == other.isAuthMaintainActive &&
             deviceType == other.deviceType && atlRevokeDelayMs == other.atlRevokeDelayMs &&
-            refreshToken == other.refreshToken;
+            supportedBusinessIds == other.supportedBusinessIds;
     }
 };
 

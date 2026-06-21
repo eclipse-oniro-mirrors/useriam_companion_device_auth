@@ -45,8 +45,7 @@ namespace CompanionDeviceAuth {
 
 class CrossDeviceCommManagerImpl : public ICrossDeviceCommManager {
 public:
-    static std::shared_ptr<CrossDeviceCommManagerImpl> Create(const std::vector<BusinessId> &defaultBusinessIds,
-        const std::vector<Capability> &localCapabilities,
+    static std::shared_ptr<CrossDeviceCommManagerImpl> Create(const DeviceCapabilityInfo &deviceCapabilityInfo,
         const std::vector<std::shared_ptr<ICrossDeviceChannel>> &channels, bool hostBindingRevokeTokenOnInactive);
 
     ~CrossDeviceCommManagerImpl() override = default;

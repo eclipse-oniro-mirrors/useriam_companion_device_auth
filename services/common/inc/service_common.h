@@ -203,7 +203,10 @@ struct LocalDeviceProfile {
     std::vector<ProtocolId> protocols;
     std::vector<SecureProtocolId> hostSecureProtocols;
     SecureProtocolId companionSecureProtocolId { SecureProtocolId::INVALID };
-    std::vector<Capability> capabilities;
+    std::vector<Capability> hostCapabilities;
+    std::vector<Capability> companionCapabilities;
+    std::vector<BusinessId> hostSupportedBusinessIds;
+    std::vector<BusinessId> companionSupportedBusinessIds;
     std::vector<ProtocolId> protocolPriorityList;
     bool hostBindingRevokeTokenOnInactive { false };
 };
@@ -302,9 +305,17 @@ struct SyncDeviceStatus {
     bool needSync { false };
     std::vector<ProtocolId> protocolIdList;
     std::vector<Capability> capabilityList;
+    std::vector<BusinessId> businessIdList;
     SecureProtocolId secureProtocolId;
     std::string deviceUserName {};
     int32_t deviceUserId { INVALID_USER_ID };
+};
+
+struct DeviceCapabilityInfo {
+    std::vector<BusinessId> hostSupportedBusinessIds;
+    std::vector<Capability> hostLocalCapabilities;
+    std::vector<BusinessId> companionSupportedBusinessIds;
+    std::vector<Capability> companionLocalCapabilities;
 };
 
 constexpr uint32_t DEFAULT_REQUEST_TIMEOUT_MS = 60 * 1000;           // 60 seconds

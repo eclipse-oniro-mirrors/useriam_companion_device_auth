@@ -29,12 +29,21 @@ namespace CompanionDeviceAuth {
 
 using AuthResultCallback = std::function<void(int32_t result, const std::vector<uint8_t> &token)>;
 
+struct BeginDelegateAuthParam {
+    int32_t userId;
+    std::vector<uint8_t> challenge;
+    uint32_t authTrustLevel;
+    std::vector<AuthType> authTypes;
+    std::optional<uint32_t> remoteTokenId;
+    std::string navigationButtonText;
+    AuthResultCallback callback;
+};
+
 class IUserAuthAdapter : public NoCopyable {
 public:
     virtual ~IUserAuthAdapter() = default;
 
-    virtual uint64_t BeginDelegateAuth(int32_t userId, const std::vector<uint8_t> &challenge, uint32_t authTrustLevel,
-        const std::vector<AuthType> &authTypes, AuthResultCallback callback) = 0;
+    virtual uint64_t BeginDelegateAuth(const BeginDelegateAuthParam &param) = 0;
     virtual int32_t CancelAuthentication(uint64_t contextId) = 0;
 
 protected:

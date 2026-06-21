@@ -32,6 +32,7 @@
 #include "singleton_manager.h"
 #include "subscription_manager.h"
 #include "system_param_manager.h"
+#include "service_common.h"
 
 // For RegisterCompanionViaMessageFlow E2E message flow
 #include "add_companion_message.h"
@@ -52,8 +53,11 @@ using namespace testing;
 // ============================================================================
 
 TestServiceInitializer::TestServiceInitializer(std::shared_ptr<SubscriptionManager> subscriptionManager)
-    : BaseServiceInitializer(subscriptionManager, { BusinessId::DEFAULT },
-          { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
+    : BaseServiceInitializer(subscriptionManager,
+          DeviceCapabilityInfo { { BusinessId::DEFAULT },
+              { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
+              { BusinessId::DEFAULT },
+              { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } },
           true) // hostBindingRevokeTokenOnInactive
 {
 }
@@ -264,7 +268,8 @@ ModuleTestGuard::ModuleTestGuard()
     // is incompatible with test-constructed CompanionDeviceAuthService (multiple inheritance
     // with SystemAbility + CompanionDeviceAuthStub). Module tests don't use any service IPC
     // APIs, so we skip the full service creation and only create the core.
-    core_ = BaseServiceCore::Create(initializer_->GetSubscriptionManager(), initializer_->GetSupportedBusinessIds());
+    core_ = BaseServiceCore::Create(initializer_->GetSubscriptionManager(),
+        initializer_->GetHostSupportedBusinessIds(), initializer_->GetCompanionSupportedBusinessIds());
 
     // 3. Set function-ready param (mimics OnStart's delayed PostTask)
     RelativeTimer::GetInstance().PostTask(
@@ -317,7 +322,7 @@ void ModuleTestGuard::SetupDefaultValues()
     initializer_->GetTimeKeeper().AdvanceSteadyTime(DEFAULT_TIME_ADVANCE_MS);
 
     // MockUserAuthAdapter: reasonable ON_CALL defaults
-    ON_CALL(initializer_->GetUserAuthAdapter(), BeginDelegateAuth(_, _, _, _, _))
+    ON_CALL(initializer_->GetUserAuthAdapter(), BeginDelegateAuth(_))
         .WillByDefault(Return(1)); // non-zero contextId = success
     ON_CALL(initializer_->GetUserAuthAdapter(), CancelAuthentication(_)).WillByDefault(Return(0)); // SUCCESS
 }

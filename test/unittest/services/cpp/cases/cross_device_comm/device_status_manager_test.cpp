@@ -76,8 +76,10 @@ protected:
 
         ON_CALL(ctx.guard->GetUserIdManager(), GetActiveUserId).WillByDefault(Return(activeUserId_));
 
-        ctx.localStatusManager = LocalDeviceStatusManager::Create(ctx.channelMgr,
-            { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, false);
+        DeviceCapabilityInfo deviceCapabilityInfo = {
+            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
+            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+        ctx.localStatusManager = LocalDeviceStatusManager::Create(ctx.channelMgr, deviceCapabilityInfo, false);
         EXPECT_NE(ctx.localStatusManager, nullptr);
 
         ctx.connectionMgr = ConnectionManager::Create(ctx.channelMgr, ctx.localStatusManager);
@@ -88,6 +90,41 @@ protected:
         });
 
         ctx.manager = DeviceStatusManager::Create({ BusinessId::DEFAULT }, ctx.connectionMgr, ctx.channelMgr,
+            ctx.localStatusManager);
+        if (ctx.manager == nullptr) {
+            return ctx;
+        }
+
+        return ctx;
+    }
+
+    TestContext SetupTestContextWithBusinessIds(const std::vector<BusinessId> &hostBusinessIds)
+    {
+        TestContext ctx;
+        ctx.guard = std::make_unique<MockGuard>();
+        ctx.mockChannel = InitMockChannel();
+        ctx.channelMgr = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
+            std::static_pointer_cast<ICrossDeviceChannel>(ctx.mockChannel) });
+
+        ON_CALL(ctx.guard->GetUserIdManager(), SubscribeActiveUserId).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+            return MakeSubscription();
+        }));
+        ON_CALL(ctx.guard->GetUserIdManager(), GetActiveUserId).WillByDefault(Return(activeUserId_));
+
+        DeviceCapabilityInfo deviceCapabilityInfo = {
+            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
+            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+        ctx.localStatusManager = LocalDeviceStatusManager::Create(ctx.channelMgr, deviceCapabilityInfo, false);
+        EXPECT_NE(ctx.localStatusManager, nullptr);
+
+        ctx.connectionMgr = ConnectionManager::Create(ctx.channelMgr, ctx.localStatusManager);
+        EXPECT_NE(ctx.connectionMgr, nullptr);
+
+        ON_CALL(ctx.guard->GetMiscManager(), GetNextGlobalId).WillByDefault([&ctx]() mutable {
+            return ctx.nextSubscriptionId++;
+        });
+
+        ctx.manager = DeviceStatusManager::Create(hostBusinessIds, ctx.connectionMgr, ctx.channelMgr,
             ctx.localStatusManager);
         if (ctx.manager == nullptr) {
             return ctx;
@@ -139,7 +176,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedSta
     auto ctx = SetupTestContext();
     ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
-    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
+    ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
 
     auto callbackInvoked = std::make_shared<bool>(false);
     size_t callbackCount = 0;
@@ -368,7 +405,7 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallba
     auto ctx = SetupTestContext();
     ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
-    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH };
+    ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-sync", ChannelId::SOFTBUS, "DeviceSync");
     DeviceStatusEntry entry(physicalStatus, []() {});
@@ -584,7 +621,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocol, TestSize.Le
     auto ctx = SetupTestContext();
     ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
-    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH };
+    ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-no-protocol", ChannelId::SOFTBUS, "Device");
     DeviceStatusEntry entry(physicalStatus, []() {});
@@ -612,7 +649,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonCapabilities, TestSiz
     auto ctx = SetupTestContext();
     ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
-    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH };
+    ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-no-cap", ChannelId::SOFTBUS, "Device");
     DeviceStatusEntry entry(physicalStatus, []() {});
@@ -916,7 +953,7 @@ HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_MultipleSynced, TestSize.Le
     auto ctx = SetupTestContext();
     ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
-    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH };
+    ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
     auto status1 = MakePhysicalStatus("device-all-1", ChannelId::SOFTBUS, "Device1");
     DeviceStatusEntry entry1(status1, []() {});
@@ -1004,7 +1041,7 @@ HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_IncludesRefreshToken, TestSize
     auto ctx = SetupTestContext();
     ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
-    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH };
+    ctx.localStatusManager->profile_.hostCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-get-refresh", ChannelId::SOFTBUS, "Device");
     physicalStatus.refreshToken = true;
@@ -1026,7 +1063,7 @@ HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_IncludesRefreshToken, TestS
     auto ctx = SetupTestContext();
     ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
-    ctx.localStatusManager->profile_.capabilities = { Capability::TOKEN_AUTH };
+    ctx.localStatusManager->profile_.hostCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-all-refresh", ChannelId::SOFTBUS, "Device");
     physicalStatus.refreshToken = true;
@@ -1041,6 +1078,114 @@ HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_IncludesRefreshToken, TestS
     EXPECT_TRUE(allDevices[0].refreshToken);
 }
 
+HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_ComputesEffectiveBusinessIds, TestSize.Level0)
+{
+    auto ctx = SetupTestContextWithBusinessIds(
+        { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) });
+    ASSERT_NE(ctx.manager, nullptr);
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+
+    auto physicalStatus = MakePhysicalStatus("device-new", ChannelId::SOFTBUS, "Device");
+    physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10002), static_cast<BusinessId>(10003) };
+
+    EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
+        .WillOnce(Return(std::vector<PhysicalDeviceStatus> { physicalStatus }));
+    EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
+        .WillOnce(Invoke([&](UserId hostUserId, const DeviceKey &key, const std::string &deviceName,
+                             SyncDeviceStatusCallback &&callback) {
+            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, key, deviceName,
+                SyncDeviceStatusCallback {});
+        }));
+    EXPECT_CALL(ctx.guard->GetRequestManager(), Start).WillOnce(Return(true));
+
+    ctx.manager->RefreshDeviceList(false);
+
+    auto it = ctx.manager->deviceStatusMap_.find(physicalStatus.physicalDeviceKey);
+    ASSERT_NE(it, ctx.manager->deviceStatusMap_.end());
+    ASSERT_EQ(it->second.supportedBusinessIds.size(), 1u);
+    EXPECT_EQ(it->second.supportedBusinessIds[0], static_cast<BusinessId>(10002));
+}
+
+HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_EmptyDeviceIds, TestSize.Level0)
+{
+    auto ctx = SetupTestContextWithBusinessIds({ static_cast<BusinessId>(10001) });
+    ASSERT_NE(ctx.manager, nullptr);
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+
+    auto physicalStatus = MakePhysicalStatus("device-empty", ChannelId::SOFTBUS, "Device");
+
+    EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
+        .WillOnce(Return(std::vector<PhysicalDeviceStatus> { physicalStatus }));
+    EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
+        .WillOnce(Invoke([&](UserId hostUserId, const DeviceKey &key, const std::string &deviceName,
+                             SyncDeviceStatusCallback &&callback) {
+            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, key, deviceName,
+                SyncDeviceStatusCallback {});
+        }));
+    EXPECT_CALL(ctx.guard->GetRequestManager(), Start).WillOnce(Return(true));
+
+    ctx.manager->RefreshDeviceList(false);
+
+    auto it = ctx.manager->deviceStatusMap_.find(physicalStatus.physicalDeviceKey);
+    ASSERT_NE(it, ctx.manager->deviceStatusMap_.end());
+    EXPECT_TRUE(it->second.supportedBusinessIds.empty());
+}
+
+HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsChanged, TestSize.Level0)
+{
+    auto ctx = SetupTestContextWithBusinessIds(
+        { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002), static_cast<BusinessId>(10003) });
+    ASSERT_NE(ctx.manager, nullptr);
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+
+    auto physicalStatus = MakePhysicalStatus("device-biz-change", ChannelId::SOFTBUS, "Device");
+    physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
+
+    DeviceStatusEntry entry(physicalStatus, []() {});
+    entry.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
+    entry.isSynced = true;
+    entry.protocolId = ProtocolId::VERSION_1;
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    auto updatedStatus = MakePhysicalStatus("device-biz-change", ChannelId::SOFTBUS, "Device");
+    updatedStatus.supportedBusinessIds = { static_cast<BusinessId>(10003) };
+
+    EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
+        .WillOnce(Return(std::vector<PhysicalDeviceStatus> { updatedStatus }));
+
+    ctx.manager->RefreshDeviceList(false);
+
+    auto it = ctx.manager->deviceStatusMap_.find(physicalStatus.physicalDeviceKey);
+    ASSERT_NE(it, ctx.manager->deviceStatusMap_.end());
+    ASSERT_EQ(it->second.supportedBusinessIds.size(), 1u);
+    EXPECT_EQ(it->second.supportedBusinessIds[0], static_cast<BusinessId>(10003));
+}
+
+HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchanged, TestSize.Level0)
+{
+    auto ctx = SetupTestContextWithBusinessIds({ static_cast<BusinessId>(10001) });
+    ASSERT_NE(ctx.manager, nullptr);
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+
+    auto physicalStatus = MakePhysicalStatus("device-biz-same", ChannelId::SOFTBUS, "Device");
+    physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001) };
+
+    DeviceStatusEntry entry(physicalStatus, []() {});
+    entry.supportedBusinessIds = { static_cast<BusinessId>(10001) };
+    entry.isSynced = true;
+    entry.protocolId = ProtocolId::VERSION_1;
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
+        .WillOnce(Return(std::vector<PhysicalDeviceStatus> { physicalStatus }));
+
+    ctx.manager->RefreshDeviceList(false);
+
+    auto it = ctx.manager->deviceStatusMap_.find(physicalStatus.physicalDeviceKey);
+    ASSERT_NE(it, ctx.manager->deviceStatusMap_.end());
+    ASSERT_EQ(it->second.supportedBusinessIds.size(), 1u);
+    EXPECT_EQ(it->second.supportedBusinessIds[0], static_cast<BusinessId>(10001));
+}
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

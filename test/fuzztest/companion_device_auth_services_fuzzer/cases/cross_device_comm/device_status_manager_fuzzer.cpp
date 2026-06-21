@@ -172,6 +172,7 @@ static void FuzzHandleChannelDeviceStatusChange(std::shared_ptr<DeviceStatusMana
         status.channelId = GenerateFuzzChannelId(fuzzData);
         status.deviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
         status.deviceModelInfo = GenerateFuzzString(fuzzData, TEST_VAL64);
+        GenerateFuzzBusinessIds(fuzzData, status.supportedBusinessIds);
         statusList.push_back(status);
     }
     mgr->HandleChannelDeviceStatusChange(channelId, statusList);
@@ -249,8 +250,10 @@ void FuzzDeviceStatusManager(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr,
-        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, false);
+    DeviceCapabilityInfo deviceCapabilityInfo = {
+        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
+        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     if (!localDeviceStatusMgr) {
         return;
     }

@@ -129,7 +129,7 @@ void HostSyncDeviceStatusRequest::BeginCompanionCheck()
 void HostSyncDeviceStatusRequest::CollectSyncDeviceStatusEventInfo(const LocalDeviceProfile &profile)
 {
     eventCollector_.SetProtocolIdList(ProtocolIdConverter::ToUnderlyingVec(profile.protocols));
-    eventCollector_.SetCapabilityList(CapabilityConverter::ToUnderlyingVec(profile.capabilities));
+    eventCollector_.SetCapabilityList(CapabilityConverter::ToUnderlyingVec(profile.hostCapabilities));
 }
 
 SyncDeviceStatusRequest HostSyncDeviceStatusRequest::BuildSyncDeviceStatusRequest(const LocalDeviceProfile &profile,
@@ -137,7 +137,7 @@ SyncDeviceStatusRequest HostSyncDeviceStatusRequest::BuildSyncDeviceStatusReques
 {
     SyncDeviceStatusRequest request = {};
     request.protocolIdList = profile.protocols;
-    request.capabilityList = profile.capabilities;
+    request.capabilityList = profile.hostCapabilities;
     request.hostDeviceKey.deviceUserId = hostUserId_;
     request.salt = salt;
     request.challenge = challenge;
@@ -200,6 +200,8 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
         return;
     }
 
+    UpdatePeerDeviceKey(replyData.companionDeviceKey.deviceUserId);
+
     bool handleRet = EndCompanionCheck(replyData);
     ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
 
@@ -207,6 +209,7 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     syncDeviceStatus.needSync = true;
     syncDeviceStatus.protocolIdList = replyData.protocolIdList;
     syncDeviceStatus.capabilityList = replyData.capabilityList;
+    syncDeviceStatus.businessIdList = replyData.businessIdList;
     syncDeviceStatus.secureProtocolId = replyData.secureProtocolId;
     syncDeviceStatus.deviceUserName = replyData.deviceUserName;
     syncDeviceStatus.deviceUserId = replyData.companionDeviceKey.deviceUserId;
@@ -287,6 +290,14 @@ bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest([[maybe_unused]] cons
 {
     // Spec: not preempted by any request type
     return false;
+}
+
+void HostSyncDeviceStatusRequest::UpdatePeerDeviceKey(int32_t companionUserId)
+{
+    IAM_LOGI("companionUserId: %{public}d", companionUserId);
+    companionDeviceKey_.deviceUserId = companionUserId;
+    SetPeerDeviceKey(companionDeviceKey_);
+    desc_.SetDeviceId(companionDeviceKey_);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

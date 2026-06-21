@@ -45,7 +45,7 @@ namespace CompanionDeviceAuth {
 // Remote device status management and subscription mode control
 class DeviceStatusManager : public std::enable_shared_from_this<DeviceStatusManager>, public NoCopyable {
 public:
-    static std::shared_ptr<DeviceStatusManager> Create(const std::vector<BusinessId> &defaultBusinessIds,
+    static std::shared_ptr<DeviceStatusManager> Create(const std::vector<BusinessId> &hostSupportBusinessIds,
         std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
         std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr);
 
@@ -73,7 +73,7 @@ private:
         bool needSync { false };
     };
 
-    DeviceStatusManager(const std::vector<BusinessId> &defaultBusinessIds,
+    DeviceStatusManager(const std::vector<BusinessId> &hostSupportBusinessIds,
         std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
         std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr);
 
@@ -103,13 +103,14 @@ private:
     bool RemoveObsoleteDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap);
     bool AddOrUpdateDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap, bool resync);
     void NotifySubscribers();
+    std::vector<BusinessId> ComputeEffectiveBusinessIds(const std::vector<BusinessId> &deviceSupportedBusinessIds);
 
     std::map<PhysicalDeviceKey, DeviceStatusEntry> deviceStatusMap_;
     SubscribeMode currentMode_ { SUBSCRIBE_MODE_AUTH };
     std::optional<SteadyTimeMs> manageSubscribeTime_;
     std::vector<DeviceStatusSubscriptionInfo> subscriptions_;
     std::unique_ptr<Subscription> periodicSyncTimerSubscription_;
-    std::vector<BusinessId> defaultBusinessIds_;
+    std::vector<BusinessId> hostSupportBusinessIds_;
 
     std::map<ChannelId, std::unique_ptr<Subscription>> channelSubscriptions_;
 

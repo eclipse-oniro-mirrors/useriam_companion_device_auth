@@ -44,6 +44,7 @@ HostMixAuthRequest::HostMixAuthRequest(const HostMixAuthParams &params, FwkResul
       authIntent_(params.authIntent),
       authScene_(params.authScene),
       title_(params.title),
+      widgetAuthParam_(params.widgetAuthParam),
       requestCallback_(std::move(requestCallback))
 {
     desc_.SetTemplateIdList(templateIdList_);
@@ -93,6 +94,7 @@ void HostMixAuthRequest::HandleDeviceSelectResult(const std::vector<DeviceKey> &
     desc_.SetTemplateIdList(filteredList);
     desc_.SetDeviceIdList(selectedDevices);
     eventCollector_.SetTemplateIdList(filteredList);
+    selectedDevices_ = selectedDevices;
     selectContext_ = selectContext;
     StartAuthWithTemplateList(filteredList);
 }
@@ -108,7 +110,7 @@ std::vector<TemplateId> HostMixAuthRequest::GetFilteredTemplateList(const std::v
             continue;
         }
 
-        if (!companionStatus->isValid) {
+        if (!companionStatus->isValid || !companionStatus->companionDeviceStatus.isOnline) {
             IAM_LOGE("%{public}s companion is invalid, skip", GetDescription());
             continue;
         }
@@ -151,7 +153,9 @@ void HostMixAuthRequest::StartAuthWithTemplateList(const std::vector<TemplateId>
             .hostUserId = hostUserId_,
             .templateId = templateId,
             .authIntent = authIntent_,
-            .authScene = authScene_ };
+            .authScene = authScene_,
+            .selectContext = selectContext_,
+            .widgetAuthParam = widgetAuthParam_};
         auto hostSingleMixAuthRequest =
             GetRequestFactory().CreateHostSingleMixAuthRequest(authParams, companionDeviceKey,
                 [weakSelf = weak_from_this(), templateId](ResultCode result, const std::vector<uint8_t> &extraInfo) {

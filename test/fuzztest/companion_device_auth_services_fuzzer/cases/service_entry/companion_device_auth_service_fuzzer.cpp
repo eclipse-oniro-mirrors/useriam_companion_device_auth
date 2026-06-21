@@ -161,7 +161,7 @@ void FuzzCompanionDeviceAuthService(FuzzedDataProvider &fuzzData)
 {
     static const std::vector<BusinessId> supportedBusinessIds = { BusinessId::DEFAULT };
     static std::shared_ptr<BaseServiceCore> core =
-        BaseServiceCore::Create(std::make_shared<SubscriptionManager>(), supportedBusinessIds);
+        BaseServiceCore::Create(std::make_shared<SubscriptionManager>(), supportedBusinessIds, supportedBusinessIds);
     if (core == nullptr) {
         return;
     }

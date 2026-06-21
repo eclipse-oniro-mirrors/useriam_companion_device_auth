@@ -22,6 +22,7 @@
 #include "host_binding_manager.h"
 #include "inbound_request.h"
 #include "request_callback.h"
+#include "request_factory.h"
 #include "security_agent.h"
 
 namespace OHOS {
@@ -31,7 +32,8 @@ class CompanionDelegateAuthRequest : public std::enable_shared_from_this<Compani
                                      public InboundRequest {
 public:
     CompanionDelegateAuthRequest(const std::string &connectionName, int32_t companionUserId,
-        const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest);
+        const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
+        const ComapionDelegateAuthParam &delegateAuthParam);
     ~CompanionDelegateAuthRequest() override;
 
     bool CompanionBeginDelegateAuth();
@@ -60,6 +62,7 @@ private:
 
     int32_t companionUserId_ = 0;
     std::vector<uint8_t> startDelegateAuthRequest_;
+    ComapionDelegateAuthParam delegateAuthParam_;
     std::optional<uint64_t> contextId_ = std::nullopt;
     bool needEndDelegateAuth_ = false;
     SecureProtocolId secureProtocolId_ { SecureProtocolId::INVALID };

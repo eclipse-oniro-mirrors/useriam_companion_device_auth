@@ -41,7 +41,9 @@ HostSingleMixAuthRequest::HostSingleMixAuthRequest(const AuthRequestParams &para
       authIntent_(params.authIntent),
       authScene_(params.authScene),
       requestCallback_(std::move(requestCallback)),
-      peerDeviceKey_(companionDeviceKey)
+      peerDeviceKey_(companionDeviceKey),
+      selectContext_(params.selectContext),
+      widgetAuthParam_(params.widgetAuthParam)
 {
     templateId_ = params.templateId;
     desc_.SetTemplateId(params.templateId);
@@ -136,6 +138,11 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
         CompleteWithError(ResultCode::GENERAL_ERROR);
         return;
     }
+    StartDelegateAuth();
+}
+
+void HostSingleMixAuthRequest::StartDelegateAuth()
+{
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
     if (!GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::DELEGATE_AUTH)) {
         IAM_LOGE("%{public}s DELEGATE_AUTH capability not supported by companion device", GetDescription());
@@ -147,7 +154,9 @@ void HostSingleMixAuthRequest::HandleTokenAuthResult(ResultCode result, const st
         .hostUserId = hostUserId_,
         .templateId = *templateId_,
         .authIntent = authIntent_,
-        .authScene = authScene_ };
+        .authScene = authScene_,
+        .selectContext = selectContext_,
+        .widgetAuthParam = widgetAuthParam_ };
     auto delegateAuthRequest = GetRequestFactory().CreateHostDelegateAuthRequest(delegateAuthParams,
         [weakSelf = weak_from_this()](ResultCode result, const std::vector<uint8_t> &extraInfo) {
             auto self = weakSelf.lock();
