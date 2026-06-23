@@ -1269,8 +1269,8 @@ public:
     }
 
     std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
-        UserId companionUserId, const DeviceKey &hostDeviceKey,
-        const std::vector<uint8_t> &startDelegateAuthRequest, const ComapionDelegateAuthParam &delegateAuthParam) override
+        UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
+        const ComapionDelegateAuthParam &delegateAuthParam) override
     {
         (void)connectionName;
         (void)companionUserId;

@@ -290,6 +290,7 @@ std::optional<uint32_t> HostDelegateAuthRequest::GetRemoteTokenId(const DeviceKe
             if (idType == static_cast<int32_t>(deviceKey.idType) &&
                 deviceId == deviceKey.deviceId &&
                 deviceUserId == deviceKey.deviceUserId) {
+                IAM_LOGI("GetRemoteTokenId success");
                 return deviceEntry.at("remoteTokenId").get<uint32_t>();
             }
         }
