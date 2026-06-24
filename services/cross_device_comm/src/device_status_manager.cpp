@@ -197,7 +197,8 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     deviceStatus.isSynced = true;
     deviceStatus.isSyncInProgress = false;
     NotifySubscribers();
-    IAM_LOGI("device synced successfully: %{public}s", deviceKey.GetDesc().c_str());
+    auto newDeviceKey = deviceStatus.BuildDeviceKey();
+    IAM_LOGI("device synced successfully: %{public}s", newDeviceKey.GetDesc().c_str());
 }
 
 void DeviceStatusManager::SetSubscribeMode(SubscribeMode mode)

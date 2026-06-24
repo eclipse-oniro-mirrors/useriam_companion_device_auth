@@ -15,9 +15,11 @@
 
 #include "ani_passcode_prompt_callback.h"
 
+#include "taihe/invoke.hpp"
+#include "taihe/runtime.hpp"
+
 #include "iam_check.h"
 #include "iam_logger.h"
-#include "taihe/invoke.hpp"
 
 #include "companion_device_auth_ani_helper.h"
 
@@ -63,6 +65,10 @@ void AniPasscodePromptCallback::OnPasscodePrompt(const std::shared_ptr<PasscodeS
         IAM_LOGE("passcodePromptCallback is null");
         return;
     }
+
+    // Invoked from a binder thread; attach to the ArkTS VM before calling into ArkTS.
+    ::taihe::env_guard guard;
+    ENSURE_OR_RETURN(guard.get_env() != nullptr);
 
     auto submitCb =
         taihe::make_holder<PasscodeSubmitter, ::taihe::callback<void(::taihe::array_view<uint8_t>)>>(submit);

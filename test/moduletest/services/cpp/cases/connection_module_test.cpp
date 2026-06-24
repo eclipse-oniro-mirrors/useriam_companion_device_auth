@@ -249,7 +249,7 @@ HWTEST_F(ConnectionModuleTest, KeepAliveAfterIdleE2E_001, TestSize.Level0)
     ASSERT_TRUE(msgInfo.has_value());
 
     // Run: advance steady time past CONNECTION_IDLE_TIMEOUT_MS(10000) to trigger KeepAlive.
-    // Step A: advance 4999ms — just under MESSAGE_TIMEOUT_MS(5000), idle timer not yet due
+    // Step A: advance 4999ms — well under MESSAGE_TIMEOUT_MS(10000), idle timer not yet due
     guard.GetChannel().ClearSentMessages();
     guard.GetTimeKeeper().AdvanceSteadyTime(4999);
     DrainAllTasks();

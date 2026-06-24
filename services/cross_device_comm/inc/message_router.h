@@ -57,7 +57,7 @@ public:
     void HandleConnectionDown(const std::string &connectionName);
 
 private:
-    static constexpr int32_t MESSAGE_TIMEOUT_MS = 5000;
+    static constexpr int32_t MESSAGE_TIMEOUT_MS = 10000;
     static constexpr int32_t TIMEOUT_CHECK_INTERVAL_MS = 1000;
     static constexpr size_t MAX_PENDING_MESSAGES = 100;
 

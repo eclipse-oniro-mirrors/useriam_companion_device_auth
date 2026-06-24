@@ -17,8 +17,11 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "cda_attributes.h"
 #include "cda_scope_guard.h"
+#include "iam_safe_arithmetic.h"
+#include "relative_timer.h"
 #include "sa_status_listener.h"
 #include "service_common.h"
 #include "singleton_manager.h"
@@ -28,6 +31,7 @@
 #include "softbus_error_code.h"
 #include "subscription.h"
 #include "task_runner_manager.h"
+#include "time_keeper.h"
 
 #include "iam_para2str.h"
 
@@ -42,6 +46,13 @@ namespace {
 constexpr const char *SOFTBUS_SA_NAME = "SoftBusServer";
 constexpr size_t MAX_SOFTBUS_CONNECTIONS = 200;
 constexpr size_t MAX_CONNECTION_NAME_LEN = 256;
+// Grace period for an inbound connection to deliver its first message carrying
+// the connection name; sockets still unnamed afterwards are force-closed so a
+// misbehaving peer cannot exhaust the connection quota.
+constexpr uint32_t INBOUND_NAMING_TIMEOUT_MS = 10000;
+// Periodic sweep cadence for the naming monitor. With interval = timeout / 2,
+// an unnamed socket is reclaimed within [timeout, timeout + interval) of accept.
+constexpr uint32_t INBOUND_NAMING_MONITOR_INTERVAL_MS = 5000;
 
 bool IsValidInboundConnectionName(const std::string &connectionName, const PhysicalDeviceKey &peerKey)
 {
@@ -231,6 +242,8 @@ void SoftBusConnectionManager::HandleBind(int32_t socketId, const std::string &p
     connections_.push_back(connection);
     guard.Cancel();
 
+    CheckNamingMonitor();
+
     IAM_LOGI("Inbound connection accepted: socketId=%{public}d", socketId);
 }
 
@@ -301,6 +314,7 @@ void SoftBusConnectionManager::HandleBytes(int32_t socketId, const void *data, u
             }
             IAM_LOGI("Updated connectionName from message: %{public}s", connectionName.c_str());
             connection->HandleInboundConnected(connectionName);
+            CheckNamingMonitor();
         }
     }
 
@@ -435,6 +449,73 @@ void SoftBusConnectionManager::RemoveSocket(int32_t socketId, const std::string 
         }
         connections_.erase(it);
     }
+
+    CheckNamingMonitor();
+}
+
+void SoftBusConnectionManager::CheckNamingMonitor()
+{
+    bool hasUnnamed = false;
+    for (const auto &connection : connections_) {
+        if (connection != nullptr && connection->IsInbound() && connection->GetConnectionName().empty()) {
+            hasUnnamed = true;
+            break;
+        }
+    }
+    bool hasTimer = namingMonitorTimerSubscription_ != nullptr;
+
+    if (hasUnnamed && !hasTimer) {
+        namingMonitorTimerSubscription_ = RelativeTimer::GetInstance().RegisterPeriodic(
+            [weakSelf = weak_from_this()]() {
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->HandleNamingMonitorTimer();
+            },
+            INBOUND_NAMING_MONITOR_INTERVAL_MS);
+        ENSURE_OR_RETURN(namingMonitorTimerSubscription_ != nullptr);
+        IAM_LOGI("Inbound naming monitor started");
+    } else if (!hasUnnamed && hasTimer) {
+        StopNamingMonitor();
+    }
+}
+
+void SoftBusConnectionManager::StopNamingMonitor()
+{
+    if (namingMonitorTimerSubscription_ != nullptr) {
+        namingMonitorTimerSubscription_.reset();
+        IAM_LOGI("Inbound naming monitor stopped");
+    }
+}
+
+void SoftBusConnectionManager::HandleNamingMonitorTimer()
+{
+    auto now = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN(now.has_value());
+
+    // Collect first, then remove: RemoveSocket mutates connections_ (and may stop
+    // this very periodic timer, which is safe for Utils::Timer but must not happen
+    // while we are iterating connections_).
+    std::vector<int32_t> expired;
+    for (const auto &connection : connections_) {
+        if (connection == nullptr || !connection->IsInbound() || !connection->GetConnectionName().empty()) {
+            continue;
+        }
+        auto ageMsOpt = SafeSub(now.value(), connection->GetAcceptTimeMs());
+        if (!ageMsOpt.has_value()) {
+            IAM_LOGE("Clock anomaly on inbound naming check: socketId=%{public}d", connection->GetSocketId());
+            continue;
+        }
+        if (ageMsOpt.value() >= INBOUND_NAMING_TIMEOUT_MS) {
+            IAM_LOGE(
+                "Inbound connection never named within timeout, closing: socketId=%{public}d, age=%{public}" PRIu64,
+                connection->GetSocketId(), ageMsOpt.value());
+            expired.push_back(connection->GetSocketId());
+        }
+    }
+
+    for (int32_t socketId : expired) {
+        RemoveSocket(socketId, "inbound_naming_timeout");
+    }
 }
 
 void SoftBusConnectionManager::HandleSoftBusServiceReady()
@@ -458,6 +539,7 @@ void SoftBusConnectionManager::CloseAllSockets(const std::string &reason)
         GetSoftBusAdapter().ShutdownSocket(serverSocketId_.value());
         serverSocketId_.reset();
     }
+    StopNamingMonitor();
     connections_.clear();
 }
 

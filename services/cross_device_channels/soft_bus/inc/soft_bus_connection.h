@@ -7,6 +7,7 @@
 #ifndef SOFT_BUS_CONNECTION_H
 #define SOFT_BUS_CONNECTION_H
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -49,6 +50,12 @@ public:
     {
         return isInbound_;
     }
+    // Steady-clock timestamp (ms) at which the inbound socket was accepted; used
+    // to reap sockets that never deliver their first naming message.
+    uint64_t GetAcceptTimeMs() const
+    {
+        return acceptTimeMs_;
+    }
 
     void SetCloseReason(const std::string &reason);
     void SetConnectionName(const std::string &connectionName);
@@ -69,6 +76,7 @@ private:
     bool isConnected_;
     bool isInbound_;
     bool isShutdownByPeer_;
+    uint64_t acceptTimeMs_ { 0 };
     std::string closeReason_;
     std::weak_ptr<SoftBusConnectionManager> manager_;
 };

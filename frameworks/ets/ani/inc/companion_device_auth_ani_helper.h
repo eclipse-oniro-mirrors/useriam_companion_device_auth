@@ -17,6 +17,7 @@
 #define COMPANION_DEVICE_AUTH_ANI_HELPER_H
 
 #include <iostream>
+#include <optional>
 #include <vector>
 
 #include "nocopyable.h"
@@ -41,7 +42,7 @@ public:
     static companionDeviceAuth::DeviceKey ConvertDeviceKey(ClientDeviceKey clientDeviceKey);
     static bool WrapDate(int64_t time, ani_object &outObj, ani_env *env);
     static taihe::array<int32_t> ConvertInt32VectorToArray(const std::vector<int32_t> &input);
-    static uint64_t ConvertAniTemplateId(taihe::array<uint8_t> templateId);
+    static std::optional<uint64_t> ConvertAniTemplateId(taihe::array<uint8_t> templateId);
     static std::vector<int32_t> ConvertArrayToInt32Vector(const taihe::array<int32_t> &input);
     static ClientDeviceKey ConvertAniDeviceKey(companionDeviceAuth::DeviceKey deviceKey);
     static ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel ConvertAuthTrustLevel(int32_t authTrustLevel);

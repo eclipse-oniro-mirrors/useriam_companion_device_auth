@@ -49,7 +49,7 @@ constexpr uint64_t UINT64_INITIAL_GLOBAL_ID = 1;
 constexpr int32_t INT32_TEST_ACTIVE_USER_ID = 100;
 constexpr uint32_t UINT32_TEST_INVALID_MESSAGE_SEQ = 99999;
 constexpr uint32_t UINT32_TEST_INVALID_MESSAGE_SEQ_ALT = 999;
-constexpr int32_t INT32_TEST_TIMEOUT_OFFSET_MS = 6000;
+constexpr int32_t INT32_TEST_TIMEOUT_OFFSET_MS = 11000;
 
 inline std::vector<uint8_t> GetTestInvalidMessageBytes()
 {

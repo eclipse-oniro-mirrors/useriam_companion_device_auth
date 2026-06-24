@@ -60,6 +60,9 @@ private:
     std::shared_ptr<SoftbusConnection> FindSocketBySocketId(int32_t socketId);
     void RemoveSocket(int32_t socketId, const std::string &closeReason = "");
     void CloseAllSockets(const std::string &reason = "");
+    void CheckNamingMonitor();
+    void StopNamingMonitor();
+    void HandleNamingMonitorTimer();
     void HandleSoftBusServiceReady();
     void HandleSoftBusServiceUnavailable();
     void UnsubscribeRawMessage(SubscribeId subscriptionId);
@@ -73,6 +76,11 @@ private:
 
     std::optional<int32_t> serverSocketId_;
     std::vector<std::shared_ptr<SoftbusConnection>> connections_;
+    // Single periodic monitor that force-closes inbound sockets which never
+    // receive their first naming message, so they cannot occupy a slot in
+    // connections_ indefinitely (prevents MAX_SOFTBUS_CONNECTIONS DoS). Only
+    // runs while at least one unnamed inbound connection exists.
+    std::unique_ptr<Subscription> namingMonitorTimerSubscription_;
 
     std::vector<RawMessageSubscription> rawMessageSubscribers_;
     std::map<int32_t, OnConnectionStatusChange> connectionStatusSubscribers_;

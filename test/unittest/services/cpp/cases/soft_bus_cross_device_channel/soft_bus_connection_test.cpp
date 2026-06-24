@@ -410,6 +410,49 @@ HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_002, TestSize.Level0)
     connection->NotifyIncomingConnection();
 }
 
+HWTEST_F(SoftbusConnectionTest, GetAcceptTimeMs_RecordsSteadyTime_OnInboundCtor, TestSize.Level0)
+{
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    // Inbound (two-arg) ctor records the current steady time as accept time.
+    guard.GetTimeKeeper().SetSteadyTime(5000);
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = TEST_DEVICE_ID;
+
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    ASSERT_NE(connection, nullptr);
+
+    EXPECT_EQ(connection->GetAcceptTimeMs(), 5000);
+}
+
+HWTEST_F(SoftbusConnectionTest, GetAcceptTimeMs_DefaultZero_OnOutboundCtor, TestSize.Level0)
+{
+    MockGuard guard;
+    ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
+
+    // Outbound (three-arg) ctor does not record an accept time (defaults to 0).
+    guard.GetTimeKeeper().SetSteadyTime(7777);
+
+    manager_ = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager_, nullptr);
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = TEST_DEVICE_ID;
+
+    auto connection =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
+    ASSERT_NE(connection, nullptr);
+
+    EXPECT_EQ(connection->GetAcceptTimeMs(), 0);
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
