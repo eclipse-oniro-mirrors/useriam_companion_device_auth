@@ -20,6 +20,7 @@
 #include "mock_guard.h"
 #include "mock_soft_bus_adapter.h"
 
+#include "relative_timer.h"
 #include "soft_bus_adapter.h"
 #include "soft_bus_adapter_manager.h"
 #include "soft_bus_connection.h"
@@ -40,6 +41,21 @@ constexpr int32_t DEFAULT_TEST_SOCKET_ID = 100;
 constexpr const char *DEFAULT_TEST_CONNECTION_NAME = "test-connection";
 constexpr const char *NON_EXISTENT_CONNECTION_NAME = "non-existent-connection";
 constexpr size_t MAX_SOFTBUS_CONNECTIONS = 200;
+constexpr uint32_t INBOUND_NAMING_TIMEOUT_MS = 10000;
+
+// Drive the fake RelativeTimer off the MockTimeKeeper and advance both together,
+// mirroring cases/fwk_comm/pending_issue_token_manager_test.cpp.
+void LinkTimerToTimeKeeper(MockTimeKeeper &timeKeeper)
+{
+    RelativeTimer::GetInstance().SetTimeProvider(
+        [&timeKeeper]() -> uint64_t { return timeKeeper.GetSteadyTimeMs().value_or(0); });
+}
+
+void AdvanceAndDrain(MockTimeKeeper &timeKeeper, uint32_t ms)
+{
+    timeKeeper.AdvanceSteadyTime(ms);
+    RelativeTimer::GetInstance().DrainExpiredTasks();
+}
 
 class SoftBusConnectionManagerTest : public Test {
 protected:
@@ -768,6 +784,201 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleBind_RejectsWhenMaxConnectionsReach
 
     // No new connection should be added.
     EXPECT_EQ(manager->connections_.size(), MAX_SOFTBUS_CONNECTIONS);
+}
+
+// An unnamed inbound connection causes the periodic naming monitor to start.
+HWTEST_F(SoftBusConnectionManagerTest, CheckNamingMonitor_StartsTimer_WhenUnnamedInboundExists, TestSize.Level0)
+{
+    MockGuard guard;
+    LinkTimerToTimeKeeper(guard.GetTimeKeeper());
+
+    auto manager = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "test-device";
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    manager->connections_.push_back(connection);
+
+    manager->CheckNamingMonitor();
+
+    EXPECT_NE(manager->namingMonitorTimerSubscription_, nullptr);
+}
+
+// No unnamed inbound -> the monitor must not be (re)started.
+HWTEST_F(SoftBusConnectionManagerTest, CheckNamingMonitor_NoTimer_WhenNoUnnamedInbound, TestSize.Level0)
+{
+    MockGuard guard;
+    LinkTimerToTimeKeeper(guard.GetTimeKeeper());
+
+    auto manager = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "test-device";
+
+    // Empty connections_.
+    manager->CheckNamingMonitor();
+    EXPECT_EQ(manager->namingMonitorTimerSubscription_, nullptr);
+
+    // Only a named outbound connection.
+    auto outbound =
+        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager);
+    manager->connections_.push_back(outbound);
+    manager->CheckNamingMonitor();
+    EXPECT_EQ(manager->namingMonitorTimerSubscription_, nullptr);
+
+    // Only an inbound connection that already received its name.
+    auto inbound = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID + 1, key, manager);
+    inbound->SetConnectionName("named-inbound");
+    manager->connections_.push_back(inbound);
+    manager->CheckNamingMonitor();
+    EXPECT_EQ(manager->namingMonitorTimerSubscription_, nullptr);
+}
+
+// Once the only unnamed inbound gets its name, the monitor stops.
+HWTEST_F(SoftBusConnectionManagerTest, CheckNamingMonitor_StopsTimer_WhenUnnamedGetsName, TestSize.Level0)
+{
+    MockGuard guard;
+    LinkTimerToTimeKeeper(guard.GetTimeKeeper());
+
+    auto manager = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "test-device";
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    manager->connections_.push_back(connection);
+
+    manager->CheckNamingMonitor();
+    ASSERT_NE(manager->namingMonitorTimerSubscription_, nullptr);
+
+    connection->HandleInboundConnected("named-now");
+    manager->CheckNamingMonitor();
+
+    EXPECT_EQ(manager->namingMonitorTimerSubscription_, nullptr);
+}
+
+// Removing the last unnamed inbound stops the monitor.
+HWTEST_F(SoftBusConnectionManagerTest, CheckNamingMonitor_StopsTimer_OnRemoveLastUnnamed, TestSize.Level0)
+{
+    MockGuard guard;
+    LinkTimerToTimeKeeper(guard.GetTimeKeeper());
+
+    auto manager = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "test-device";
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    manager->connections_.push_back(connection);
+
+    manager->CheckNamingMonitor();
+    ASSERT_NE(manager->namingMonitorTimerSubscription_, nullptr);
+
+    manager->RemoveSocket(DEFAULT_TEST_SOCKET_ID, "test");
+
+    EXPECT_TRUE(manager->connections_.empty());
+    EXPECT_EQ(manager->namingMonitorTimerSubscription_, nullptr);
+}
+
+// An unnamed inbound whose age exceeds the timeout is force-closed by the monitor tick.
+HWTEST_F(SoftBusConnectionManagerTest, HandleNamingMonitorTimer_ClosesExpired_AfterTimeout, TestSize.Level0)
+{
+    MockGuard guard;
+    LinkTimerToTimeKeeper(guard.GetTimeKeeper());
+
+    auto manager = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    // Accepted at steady time 0 -> acceptTimeMs = 0.
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "test-device";
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    manager->connections_.push_back(connection);
+
+    manager->CheckNamingMonitor();
+    ASSERT_NE(manager->namingMonitorTimerSubscription_, nullptr);
+
+    // Advance past the timeout; the single periodic tick fires the monitor.
+    AdvanceAndDrain(guard.GetTimeKeeper(), INBOUND_NAMING_TIMEOUT_MS);
+
+    EXPECT_TRUE(manager->connections_.empty());
+    EXPECT_EQ(manager->namingMonitorTimerSubscription_, nullptr);
+}
+
+// An unnamed inbound below the timeout age survives the monitor tick.
+HWTEST_F(SoftBusConnectionManagerTest, HandleNamingMonitorTimer_KeepsConnection_BeforeTimeout, TestSize.Level0)
+{
+    MockGuard guard;
+    LinkTimerToTimeKeeper(guard.GetTimeKeeper());
+
+    auto manager = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "test-device";
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    manager->connections_.push_back(connection);
+
+    manager->CheckNamingMonitor();
+    ASSERT_NE(manager->namingMonitorTimerSubscription_, nullptr);
+
+    // Age (9999 - 0) is below the 10000ms threshold -> not closed.
+    guard.GetTimeKeeper().SetSteadyTime(9999);
+    manager->HandleNamingMonitorTimer();
+
+    EXPECT_EQ(manager->connections_.size(), 1);
+    EXPECT_NE(manager->namingMonitorTimerSubscription_, nullptr);
+}
+
+// A clock rollback (accept time ahead of now) is guarded by SafeSub and skips closing.
+HWTEST_F(SoftBusConnectionManagerTest, HandleNamingMonitorTimer_SkipsClose_OnClockRollback, TestSize.Level0)
+{
+    MockGuard guard;
+    LinkTimerToTimeKeeper(guard.GetTimeKeeper());
+
+    auto manager = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "test-device";
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager);
+    manager->connections_.push_back(connection);
+
+    manager->CheckNamingMonitor();
+    ASSERT_NE(manager->namingMonitorTimerSubscription_, nullptr);
+
+    // Simulate a clock rollback: accept time ahead of now -> SafeSub underflows to nullopt.
+    connection->acceptTimeMs_ = 5000;
+    guard.GetTimeKeeper().SetSteadyTime(1000);
+    manager->HandleNamingMonitorTimer();
+
+    EXPECT_EQ(manager->connections_.size(), 1);
+    EXPECT_NE(manager->namingMonitorTimerSubscription_, nullptr);
+}
+
+// HandleBind accepts an inbound and starts the naming monitor end-to-end.
+HWTEST_F(SoftBusConnectionManagerTest, HandleBind_StartsNamingMonitor, TestSize.Level0)
+{
+    MockGuard guard;
+    LinkTimerToTimeKeeper(guard.GetTimeKeeper());
+
+    // MockGuard defaults: GetUdidByNetworkId -> "test-udid", so HandleBind accepts the inbound.
+    auto manager = SoftBusConnectionManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    manager->HandleBind(200, "peer-network-id");
+
+    EXPECT_EQ(manager->connections_.size(), 1);
+    EXPECT_NE(manager->namingMonitorTimerSubscription_, nullptr);
 }
 
 } // namespace

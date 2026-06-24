@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#include "taihe/runtime.hpp"
+
+#include "iam_check.h"
 #include "iam_logger.h"
 
 #include "companion_device_auth_ani_helper.h"
@@ -30,6 +33,11 @@ template <>
 void AniContinuousAuthStatusCallbackWrapper::OnContinuousAuthStatusChange(const bool isAuthPassed,
     const std::optional<int32_t> authTrustLevel)
 {
+    IAM_LOGI("start");
+    // Invoked from a binder thread; attach to the ArkTS VM before calling into ArkTS.
+    ::taihe::env_guard guard;
+    ENSURE_OR_RETURN(guard.get_env() != nullptr);
+
     ::taihe::optional<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> optAuthTrustLevel = std::nullopt;
     if (authTrustLevel) {
         IAM_LOGI("authTrustLevel:%{public}d", *authTrustLevel);

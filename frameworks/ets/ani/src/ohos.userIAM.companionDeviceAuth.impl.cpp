@@ -221,14 +221,12 @@ public:
 
         std::optional<uint64_t> templateId = std::nullopt;
         if (param.templateId.has_value()) {
-            if (param.templateId->size() != sizeof(uint64_t)) {
-                IAM_LOGE("templateId size invalid: %{public}zu != %{public}zu", param.templateId->size(),
-                    sizeof(uint64_t));
+            templateId = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(*param.templateId);
+            if (!templateId.has_value()) {
                 CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
                     CompanionDeviceAuth::ResultCode::INVALID_PARAMETERS);
                 return;
             }
-            templateId = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(*param.templateId);
         }
         int32_t ret = statusMonitor_.OnContinuousAuthChange(templateId,
             std::make_shared<AniContinuousAuthStatusCallback>(callback));
@@ -304,7 +302,13 @@ void updateEnabledBusinessIdsSync(::taihe::array_view<uint8_t> templateId,
         return;
     }
 
-    uint64_t clientTemplateId = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(templateId);
+    auto templateIdOpt = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(templateId);
+    if (!templateIdOpt.has_value()) {
+        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
+            CompanionDeviceAuth::ResultCode::INVALID_PARAMETERS);
+        return;
+    }
+    uint64_t clientTemplateId = *templateIdOpt;
     std::vector<int32_t> clientEnabledBusinessIds =
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertArrayToInt32Vector(enabledBusinessIds);
     int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().UpdateTemplateEnabledBusinessIds(

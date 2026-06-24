@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#include "taihe/runtime.hpp"
+
+#include "iam_check.h"
 #include "iam_logger.h"
 
 #include "available_device_status_callback_wrapper.h"
@@ -31,6 +34,10 @@ void AniAvailableDeviceStatusCallbackWrapper::OnAvailableDeviceStatusChange(
     const std::vector<ClientDeviceStatus> deviceStatusList)
 {
     IAM_LOGI("start");
+    // Invoked from a binder thread; attach to the ArkTS VM before calling into ArkTS.
+    ::taihe::env_guard guard;
+    ENSURE_OR_RETURN(guard.get_env() != nullptr);
+
     std::vector<companionDeviceAuth::DeviceStatus> temp;
     for (size_t i = 0; i < deviceStatusList.size(); ++i) {
         companionDeviceAuth::DeviceStatus deviceStatus =

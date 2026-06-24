@@ -9,9 +9,11 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "soft_bus_adapter_manager.h"
 #include "soft_bus_connection_manager.h"
 #include "task_runner_manager.h"
+#include "time_keeper.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_SOFT_BUS_CONNECTION
@@ -48,6 +50,7 @@ SoftbusConnection::SoftbusConnection(int32_t socketId, const PhysicalDeviceKey &
       closeReason_(""),
       manager_(std::move(manager))
 {
+    acceptTimeMs_ = GetTimeKeeper().GetSteadyTimeMs().value_or(0);
 }
 
 SoftbusConnection::~SoftbusConnection()

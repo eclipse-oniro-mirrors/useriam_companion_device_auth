@@ -15,6 +15,8 @@
 
 #include "ani_device_select_callback.h"
 
+#include "taihe/runtime.hpp"
+
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
@@ -46,17 +48,23 @@ void AniDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
         IAM_LOGE("deviceSelectCallback is null");
         return;
     }
-    companionDeviceAuth::DeviceSelectResult deviceSelectResult = (**deviceSelectCallback)(selectPurpose);
-    taihe::array<companionDeviceAuth::DeviceKey> deviceKeys = deviceSelectResult.deviceKeys;
-    result.deviceKeys = {};
-    for (auto &deviceKey : deviceKeys) {
-        ClientDeviceKey clientDeviceKey = CompanionDeviceAuthAniHelper::ConvertAniDeviceKey(deviceKey);
-        result.deviceKeys.push_back(clientDeviceKey);
-    }
+    {
+        // Invoked from a binder thread; attach to the ArkTS VM before calling into ArkTS.
+        ::taihe::env_guard guard;
+        ENSURE_OR_RETURN(guard.get_env() != nullptr);
 
-    if (deviceSelectResult.selectionContext.has_value()) {
-        result.selectionContext =
-            CompanionDeviceAuthAniHelper::ConvertArrayToUint8Vector(deviceSelectResult.selectionContext.value());
+        companionDeviceAuth::DeviceSelectResult deviceSelectResult = (**deviceSelectCallback)(selectPurpose);
+        taihe::array<companionDeviceAuth::DeviceKey> deviceKeys = deviceSelectResult.deviceKeys;
+        result.deviceKeys = {};
+        for (auto &deviceKey : deviceKeys) {
+            ClientDeviceKey clientDeviceKey = CompanionDeviceAuthAniHelper::ConvertAniDeviceKey(deviceKey);
+            result.deviceKeys.push_back(clientDeviceKey);
+        }
+
+        if (deviceSelectResult.selectionContext.has_value()) {
+            result.selectionContext =
+                CompanionDeviceAuthAniHelper::ConvertArrayToUint8Vector(deviceSelectResult.selectionContext.value());
+        }
     }
 
     callback->OnSetDeviceSelectResult(result);

@@ -93,6 +93,10 @@ static void FuzzHandleDeviceSelectResult(std::shared_ptr<HostAddCompanionRequest
     for (uint8_t i = 0; i < deviceCount; ++i) {
         selectedDevices.push_back(GenerateFuzzDeviceKey(fuzzData));
     }
+    // Exercise the invalid-userId abort path: inject INVALID_USER_ID with some probability
+    if (!selectedDevices.empty() && fuzzData.ConsumeBool()) {
+        selectedDevices[0].deviceUserId = INVALID_USER_ID;
+    }
     request->HandleDeviceSelectResult(selectedDevices);
 }
 

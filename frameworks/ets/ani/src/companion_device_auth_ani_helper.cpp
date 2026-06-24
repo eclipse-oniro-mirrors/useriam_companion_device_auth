@@ -60,18 +60,17 @@ taihe::array<uint8_t> CompanionDeviceAuthAniHelper::ConvertTemplateId(uint64_t t
     return result;
 }
 
-uint64_t CompanionDeviceAuthAniHelper::ConvertAniTemplateId(taihe::array<uint8_t> templateId)
+std::optional<uint64_t> CompanionDeviceAuthAniHelper::ConvertAniTemplateId(taihe::array<uint8_t> templateId)
 {
-    uint64_t result = 0;
     if (templateId.size() != UINT64_BYTE_SIZE) {
         IAM_LOGE("templateId size is invalid: %{public}zu != %{public}zu", templateId.size(), UINT64_BYTE_SIZE);
-        return 0;
+        return std::nullopt;
     }
 
+    uint64_t result = 0;
     for (size_t i = 0; i < UINT64_BYTE_SIZE; ++i) {
         result |= static_cast<uint64_t>(templateId[i]) << (i * UINT64_BYTE_SIZE);
     }
-
     return result;
 }
 

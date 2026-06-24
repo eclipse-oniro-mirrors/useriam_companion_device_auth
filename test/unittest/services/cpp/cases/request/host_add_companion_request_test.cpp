@@ -153,6 +153,30 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_003, TestSize.Lev
     EXPECT_TRUE(*errorCalled);
 }
 
+HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_004, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto errorCalled = std::make_shared<bool>(false);
+    auto callback = [errorCalled](ResultCode result, const std::vector<uint8_t> &) {
+        if (result == ResultCode::GENERAL_ERROR) {
+            *errorCalled = true;
+        }
+    };
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+
+    // deviceUserId == INVALID_USER_ID must abort before a connection is opened
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).Times(0);
+
+    DeviceKey invalidKey = { .deviceId = "invalid_user_device", .deviceUserId = INVALID_USER_ID };
+    std::vector<DeviceKey> selectedDevices = { invalidKey };
+    request->HandleDeviceSelectResult(selectedDevices);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*errorCalled);
+}
+
 HWTEST_F(HostAddCompanionRequestTest, OnConnected_001, TestSize.Level0)
 {
     MockGuard guard;
