@@ -37,13 +37,15 @@ public:
     static std::shared_ptr<BaseServiceInitializer> Create();
 
     std::shared_ptr<SubscriptionManager> GetSubscriptionManager() const;
-    const std::vector<BusinessId> &GetSupportedBusinessIds() const;
+    const std::vector<BusinessId> &GetHostSupportedBusinessIds() const;
+    const std::vector<Capability> &GetHostLocalCapabilities() const;
+    const std::vector<BusinessId> &GetCompanionSupportedBusinessIds() const;
+    const std::vector<Capability> &GetCompanionLocalCapabilities() const;
 
 protected:
     // Protected constructor for derived classes
     explicit BaseServiceInitializer(std::shared_ptr<SubscriptionManager> subscriptionManager,
-        const std::vector<BusinessId> &supportedBusinessIds, const std::vector<Capability> &localCapabilities,
-        bool hostBindingRevokeTokenOnInactive);
+        const DeviceCapabilityInfo &deviceCapabilityInfo, bool hostBindingRevokeTokenOnInactive);
 
     // Virtual initialization methods - can be overridden by derived classes
     virtual bool Initialize();
@@ -86,8 +88,10 @@ private:
     bool InitializeDependentSteps();
 
     std::shared_ptr<SubscriptionManager> subscriptionManagerHolder_;
-    std::vector<BusinessId> supportedBusinessIds_;
-    std::vector<Capability> localCapabilities_;
+    std::vector<BusinessId> hostSupportedBusinessIds_;
+    std::vector<Capability> hostLocalCapabilities_;
+    std::vector<BusinessId> companionSupportedBusinessIds_;
+    std::vector<Capability> companionLocalCapabilities_;
     bool hostBindingRevokeTokenOnInactive_ { false };
 };
 

@@ -70,6 +70,7 @@ public:
 using ProtocolIdConverter = EnumConverter<ProtocolId, uint16_t>;
 using CapabilityConverter = EnumConverter<Capability, uint16_t>;
 using SecureProtocolIdConverter = EnumConverter<SecureProtocolId, uint16_t>;
+using BusinessIdConverter = EnumConverter<BusinessId, int32_t>;
 
 inline std::vector<uint8_t> ConvertUint64ToUint8Vec(uint64_t value)
 {

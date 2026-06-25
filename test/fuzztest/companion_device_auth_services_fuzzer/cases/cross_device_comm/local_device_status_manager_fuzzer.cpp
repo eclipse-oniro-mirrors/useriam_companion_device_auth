@@ -118,8 +118,10 @@ void FuzzLocalDeviceStatusManager(FuzzedDataProvider &fuzzData)
         return;
     }
 
-    auto mgr = LocalDeviceStatusManager::Create(channelMgr,
-        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, false);
+    DeviceCapabilityInfo deviceCapabilityInfo = {
+        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
+        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    auto mgr = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     if (!mgr) {
         return;
     }

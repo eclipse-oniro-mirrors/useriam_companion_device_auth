@@ -15,6 +15,10 @@
 
 #include "host_delegate_auth_request.h"
 
+#include <cinttypes>
+
+#include <nlohmann/json.hpp>
+
 #include "iam_check.h"
 #include "iam_log_tracer.h"
 #include "iam_logger.h"
@@ -39,7 +43,9 @@ HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params
     : OutboundRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(params.fwkMsg),
       hostUserId_(params.hostUserId),
-      requestCallback_(std::move(requestCallback))
+      requestCallback_(std::move(requestCallback)),
+      selectContext_(params.selectContext),
+      widgetAuthParam_(params.widgetAuthParam)
 {
     templateId_ = params.templateId;
     SetPeerDeviceKey(companionDeviceKey);
@@ -118,11 +124,7 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
     }
 
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
-    HostBeginDelegateAuthInput input = {};
-    input.requestId = GetRequestId();
-    input.scheduleId = GetScheduleId();
-    input.templateId = *templateId_;
-    input.fwkMsg = fwkMsg_;
+    HostBeginDelegateAuthInput input = { GetRequestId(), GetScheduleId(), *templateId_, fwkMsg_ };
     HostBeginDelegateAuthOutput output = {};
     ResultCode ret = GetSecurityAgent().HostBeginDelegateAuth(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -139,9 +141,17 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
     ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKey.has_value());
     hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
+    std::vector<int32_t> authTypes;
+    for (auto type : widgetAuthParam_.authTypes) {
+        authTypes.push_back(static_cast<int32_t>(type));
+    }
     StartDelegateAuthRequest startRequest = { .hostDeviceKey = hostDeviceKey,
         .companionUserId = peerDeviceKey->deviceUserId,
-        .extraInfo = output.startDelegateAuthRequest };
+        .extraInfo = output.startDelegateAuthRequest,
+        .selectContext = selectContext_,
+        .remoteTokenId = GetRemoteTokenId(*peerDeviceKey),
+        .authTypes = authTypes,
+        .navigationButtonText =  widgetAuthParam_.navigationButtonText };
     Attributes request = {};
     EncodeStartDelegateAuthRequest(startRequest, request);
 
@@ -248,6 +258,48 @@ void HostDelegateAuthRequest::HandleSendDelegateAuthRequestMsg(const Attributes 
 std::weak_ptr<OutboundRequest> HostDelegateAuthRequest::GetWeakPtr()
 {
     return weak_from_this();
+}
+
+std::optional<uint32_t> HostDelegateAuthRequest::GetRemoteTokenId(const DeviceKey &deviceKey)
+{
+    if (!selectContext_.has_value() || selectContext_->empty()) {
+        IAM_LOGE("%{public}s selectContext_ is empty", GetDescription());
+        return std::nullopt;
+    }
+
+    std::string jsonStr(selectContext_->begin(), selectContext_->end());
+    try {
+        auto json = nlohmann::json::parse(jsonStr);
+        auto it = json.find("deviceSelectContext");
+        if (it == json.end()) {
+            IAM_LOGE("%{public}s deviceSelectContext not found in json", GetDescription());
+            return std::nullopt;
+        }
+        if (!it->is_array()) {
+            IAM_LOGE("%{public}s deviceSelectContext is not array", GetDescription());
+            return std::nullopt;
+        }
+        for (const auto &deviceEntry : *it) {
+            if (!deviceEntry.contains("deviceIdType") || !deviceEntry.contains("deviceId") ||
+                !deviceEntry.contains("deviceUserId") || !deviceEntry.contains("remoteTokenId")) {
+                continue;
+            }
+            auto idType = deviceEntry.at("deviceIdType").get<int32_t>();
+            auto deviceId = deviceEntry.at("deviceId").get<std::string>();
+            auto deviceUserId = deviceEntry.at("deviceUserId").get<int32_t>();
+            if (idType == static_cast<int32_t>(deviceKey.idType) &&
+                deviceId == deviceKey.deviceId &&
+                deviceUserId == deviceKey.deviceUserId) {
+                IAM_LOGI("GetRemoteTokenId success");
+                return deviceEntry.at("remoteTokenId").get<uint32_t>();
+            }
+        }
+        IAM_LOGE("%{public}s device not found in selectContext", GetDescription());
+        return std::nullopt;
+    } catch (const nlohmann::json::exception &e) {
+        IAM_LOGE("%{public}s json parse error: %{public}s", GetDescription(), e.what());
+        return std::nullopt;
+    }
 }
 
 void HostDelegateAuthRequest::InvokeCallback(ResultCode result, const std::vector<uint8_t> &fwkMsg)

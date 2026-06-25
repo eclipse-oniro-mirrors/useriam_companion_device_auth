@@ -20,6 +20,7 @@
 
 #include "cda_attributes.h"
 #include "common_defines.h"
+#include "iam_common_defines.h"
 #include "service_common.h"
 
 namespace OHOS {
@@ -30,6 +31,10 @@ struct StartDelegateAuthRequest {
     DeviceKey hostDeviceKey {};
     int32_t companionUserId { INVALID_USER_ID };
     std::vector<uint8_t> extraInfo;
+    std::optional<std::vector<uint8_t>> selectContext;
+    std::optional<uint32_t> remoteTokenId;
+    std::vector<int32_t> authTypes;
+    std::string navigationButtonText;
 };
 
 // Companion -> Host

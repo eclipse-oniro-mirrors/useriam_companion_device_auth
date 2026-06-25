@@ -61,6 +61,8 @@ private:
     int32_t authIntent_ = 0;
     UserAuth::AuthScene authScene_ { UserAuth::AUTH_SCENE_DEFAULT };
     std::string title_;
+    WidgetAuthParam widgetAuthParam_;
+    std::vector<DeviceKey> selectedDevices_;
     FwkResultCallback requestCallback_;
     std::unordered_map<TemplateId, RequestId> requestMap_;
 };

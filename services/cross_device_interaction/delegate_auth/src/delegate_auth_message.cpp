@@ -31,6 +31,13 @@ void EncodeStartDelegateAuthRequest(const StartDelegateAuthRequest &request, Att
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
+    if (request.remoteTokenId.has_value()) {
+        attributes.SetUint32Value(Attributes::ATTR_CDA_SA_REMOTE_TOKEN_ID, request.remoteTokenId.value());
+    }
+    attributes.SetInt32ArrayValue(Attributes::ATTR_CDA_SA_AUTH_TYPE, request.authTypes);
+    if (!request.navigationButtonText.empty()) {
+        attributes.SetStringValue(Attributes::ATTR_CDA_SA_NAVIGATION_BUTTON_TEXT, request.navigationButtonText);
+    }
 }
 
 std::optional<StartDelegateAuthRequest> DecodeStartDelegateAuthRequest(const Attributes &attributes)
@@ -44,6 +51,17 @@ std::optional<StartDelegateAuthRequest> DecodeStartDelegateAuthRequest(const Att
     ENSURE_OR_RETURN_VAL(getCompanionUserIdRet, std::nullopt);
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
+    uint32_t remoteTokenId = 0;
+    if (attributes.GetUint32Value(Attributes::ATTR_CDA_SA_REMOTE_TOKEN_ID, remoteTokenId)) {
+        request.remoteTokenId = remoteTokenId;
+    }
+    bool getAuthTypesRet = attributes.GetInt32ArrayValue(Attributes::ATTR_CDA_SA_AUTH_TYPE, request.authTypes);
+    ENSURE_OR_RETURN_VAL(getAuthTypesRet, std::nullopt);
+    std::string navigationButtonText = "";
+    if (attributes.GetStringValue(Attributes::ATTR_CDA_SA_NAVIGATION_BUTTON_TEXT, navigationButtonText)) {
+        request.navigationButtonText = navigationButtonText;
+    }
+
     return request;
 }
 

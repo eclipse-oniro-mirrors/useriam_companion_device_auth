@@ -114,6 +114,7 @@ void FuzzDeviceStatusEntry(FuzzedDataProvider &fuzzData)
     physicalStatus.deviceModelInfo = GenerateFuzzString(fuzzData, TEST_VAL64);
     physicalStatus.deviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
     physicalStatus.isAuthMaintainActive = fuzzData.ConsumeBool();
+    GenerateFuzzBusinessIds(fuzzData, physicalStatus.supportedBusinessIds);
 
     auto entry = std::make_shared<DeviceStatusEntry>(physicalStatus, []() {});
     if (!entry) {

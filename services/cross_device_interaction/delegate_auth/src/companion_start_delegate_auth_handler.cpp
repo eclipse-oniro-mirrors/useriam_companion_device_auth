@@ -54,8 +54,18 @@ void CompanionStartDelegateAuthHandler::HandleRequest(const Attributes &request,
     auto startRequestOpt = DecodeStartDelegateAuthRequest(request);
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), startRequestOpt.has_value());
 
+    WidgetAuthParam widgetAuthParam;
+    for (auto authType : startRequestOpt->authTypes) {
+        widgetAuthParam.authTypes.push_back(static_cast<UserAuth::AuthType>(authType));
+    }
+    widgetAuthParam.navigationButtonText = startRequestOpt->navigationButtonText;
+    ComapionDelegateAuthParam delegateAuthParam = {
+        .remoteTokenId = startRequestOpt->remoteTokenId,
+        .widgetAuthParam = widgetAuthParam,
+    };
     auto delegateAuthRequest = GetRequestFactory().CreateCompanionDelegateAuthRequest(connectionName,
-        startRequestOpt->companionUserId, startRequestOpt->hostDeviceKey, startRequestOpt->extraInfo);
+        startRequestOpt->companionUserId, startRequestOpt->hostDeviceKey, startRequestOpt->extraInfo,
+        delegateAuthParam);
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), delegateAuthRequest != nullptr);
 
     bool startRet = GetRequestManager().Start(delegateAuthRequest);

@@ -49,7 +49,7 @@ pub enum ErrorCode {
     WriteParcelError = 1004,
     NotFound = 10006,
     IdExists = 10015,
-    ExceedLimit = 10017,
+    ExceedLimit = 10018,
     TokenNotFound = 20005,
     TokenVerifyFailed = 20006,
 }
@@ -67,7 +67,7 @@ impl TryFrom<i32> for ErrorCode {
             1004 => Ok(ErrorCode::WriteParcelError),
             10006 => Ok(ErrorCode::NotFound),
             10015 => Ok(ErrorCode::IdExists),
-            10017 => Ok(ErrorCode::ExceedLimit),
+            10018 => Ok(ErrorCode::ExceedLimit),
             20005 => Ok(ErrorCode::TokenNotFound),
             20006 => Ok(ErrorCode::TokenVerifyFailed),
             _ => {

@@ -1269,13 +1269,14 @@ public:
     }
 
     std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
-        UserId companionUserId, const DeviceKey &hostDeviceKey,
-        const std::vector<uint8_t> &startDelegateAuthRequest) override
+        UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
+        const ComapionDelegateAuthParam &delegateAuthParam) override
     {
         (void)connectionName;
         (void)companionUserId;
         (void)hostDeviceKey;
         (void)startDelegateAuthRequest;
+        (void)delegateAuthParam;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0
             ? std::make_shared<MockFuzzIRequest>(fuzzData_, requestCounter_++, 0)
             : nullptr;

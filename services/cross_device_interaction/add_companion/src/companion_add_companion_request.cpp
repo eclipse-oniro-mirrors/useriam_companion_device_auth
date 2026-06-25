@@ -109,7 +109,7 @@ CompanionInitKeyNegotiationInput CompanionAddCompanionRequest::BuildCompanionIni
     input.requestId = GetRequestId();
     input.secureProtocolId = secureProtocolId_;
     input.protocolList = ProtocolIdConverter::ToUnderlyingVec(profile.protocols);
-    input.capabilityList = CapabilityConverter::ToUnderlyingVec(profile.capabilities);
+    input.capabilityList = CapabilityConverter::ToUnderlyingVec(profile.companionCapabilities);
     input.companionDeviceKey = companionDeviceKey_;
     input.hostDeviceKey = PeerDeviceKey();
     input.initKeyNegotiationRequest = initKeyNegotiationRequest;

@@ -50,7 +50,7 @@ const DeviceKey HOST_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
     .deviceUserId = 100 };
 const std::string COMPANION_DEVICE_NAME = "test_companion_name";
 const LocalDeviceProfile PROFILE = { .protocols = { ProtocolId::VERSION_1 },
-    .capabilities = { Capability::TOKEN_AUTH } };
+    .companionCapabilities = { Capability::TOKEN_AUTH } };
 
 SyncDeviceStatusReply MakeDefaultSyncDeviceStatusReply()
 {
@@ -58,6 +58,7 @@ SyncDeviceStatusReply MakeDefaultSyncDeviceStatusReply()
         .result = ResultCode::SUCCESS,
         .protocolIdList = { ProtocolId::VERSION_1 },
         .capabilityList = { Capability::TOKEN_AUTH },
+        .businessIdList = { BusinessId::DEFAULT },
         .secureProtocolId = SecureProtocolId::DEFAULT,
         .companionDeviceKey = COMPANION_DEVICE_KEY,
         .deviceUserName = "test_user_name",
@@ -279,10 +280,11 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_003, TestS
     };
     auto request = std::make_shared<HostSyncDeviceStatusRequest>(HOST_USER_ID, COMPANION_DEVICE_KEY,
         COMPANION_DEVICE_NAME, std::move(callback));
-    request->peerDeviceKey_ = std::nullopt;
+    request->cancelCompanionCheckGuard_ = std::make_unique<ScopeGuard>([]() {});
 
     Attributes reply;
     auto syncDeviceStatusReply = MakeDefaultSyncDeviceStatusReply();
+    syncDeviceStatusReply.result = ResultCode::GENERAL_ERROR;
     EncodeSyncDeviceStatusReply(syncDeviceStatusReply, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(syncDeviceStatusReply.companionDeviceKey.idType));
@@ -331,7 +333,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_001, TestSize.Level0
     auto request = std::make_shared<HostSyncDeviceStatusRequest>(HOST_USER_ID, COMPANION_DEVICE_KEY,
         COMPANION_DEVICE_NAME, std::move(callback));
 
-    SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::GENERAL_ERROR };
+    SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::GENERAL_ERROR,
+        .businessIdList = { BusinessId::DEFAULT } };
     bool result = request->EndCompanionCheck(syncDeviceStatusReply);
 
     EXPECT_TRUE(result);
@@ -343,7 +346,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_002, TestSize.Level0
     auto request = std::make_shared<HostSyncDeviceStatusRequest>(HOST_USER_ID, COMPANION_DEVICE_KEY,
         COMPANION_DEVICE_NAME, std::move(callback));
 
-    SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS };
+    SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
+        .businessIdList = { BusinessId::DEFAULT } };
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
     bool result = request->EndCompanionCheck(syncDeviceStatusReply);
 
@@ -357,6 +361,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_003, TestSize.Level0
         COMPANION_DEVICE_NAME, std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
+        .businessIdList = { BusinessId::DEFAULT },
         .companionCheckResponse = { 1, 2, 3 } };
 
     CompanionStatus companionStatus;

@@ -67,6 +67,8 @@ void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
         ProtocolIdConverter::ToUnderlyingVec(reply.protocolIdList));
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
         CapabilityConverter::ToUnderlyingVec(reply.capabilityList));
+    attributes.SetInt32ArrayValue(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST,
+        BusinessIdConverter::ToUnderlyingVec(reply.businessIdList));
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, reply.companionDeviceKey.deviceUserId);
     attributes.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID,
         SecureProtocolIdConverter::ToUnderlying(reply.secureProtocolId));
@@ -90,8 +92,15 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
     bool getProtocolListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocolList);
     ENSURE_OR_RETURN_VAL(getProtocolListRet, std::nullopt);
     std::vector<uint16_t> capabilityList;
-    bool getCapabilityListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
+    bool getCapabilityListRet =
+        attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
     ENSURE_OR_RETURN_VAL(getCapabilityListRet, std::nullopt);
+    std::vector<int32_t> businessIdList;
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST)) {
+        bool getBusinessIdListRet =
+            attributes.GetInt32ArrayValue(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST, businessIdList);
+        ENSURE_OR_RETURN_VAL(getBusinessIdListRet, std::nullopt);
+    }
     auto companionDeviceKey = DecodeCompanionDeviceKey(attributes);
     ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), std::nullopt);
     reply.companionDeviceKey = *companionDeviceKey;
@@ -106,6 +115,7 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
     reply.protocolIdList = ProtocolIdConverter::FromUnderlyingVec(protocolList);
     reply.capabilityList = CapabilityConverter::FromUnderlyingVec(capabilityList);
+    reply.businessIdList = BusinessIdConverter::FromUnderlyingVec(businessIdList);
     reply.secureProtocolId = SecureProtocolIdConverter::FromUnderlying(secureProtocolId);
     return reply;
 }

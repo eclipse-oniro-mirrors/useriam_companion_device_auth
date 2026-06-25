@@ -57,6 +57,7 @@ private:
     void HandleSendDelegateAuthRequestMsg(const Attributes &request, OnMessageReply &onMessageReply);
     void CompleteWithSuccess(const std::vector<uint8_t> &fwkMsg);
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &fwkMsg);
+    std::optional<uint32_t> GetRemoteTokenId(const DeviceKey &deviceKey);
 
     std::vector<uint8_t> fwkMsg_;
     UserId hostUserId_ = INVALID_USER_ID;
@@ -64,6 +65,8 @@ private:
     SecureProtocolId secureProtocolId_ = SecureProtocolId::DEFAULT;
     std::unique_ptr<Subscription> delegateResultSubscription_;
     bool needCancelDelegateAuth_ = false;
+    std::optional<std::vector<uint8_t>> selectContext_;
+    WidgetAuthParam widgetAuthParam_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -41,7 +41,7 @@ protected:
         .deviceUserId = INT32_100 };
     LocalDeviceProfile profile_ = { .protocols = { ProtocolId::VERSION_1 },
         .companionSecureProtocolId = SecureProtocolId::DEFAULT,
-        .capabilities = { Capability::TOKEN_AUTH } };
+        .companionCapabilities = { Capability::TOKEN_AUTH } };
     DeviceStatus hostDeviceStatus_ = { .deviceKey = hostDeviceKey_,
         .channelId = ChannelId::SOFTBUS,
         .deviceModelInfo = "TestModel",

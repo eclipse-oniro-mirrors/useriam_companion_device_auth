@@ -55,7 +55,7 @@ public:
 
     void RefreshPhysicalDeviceStatus() override;
 
-private:
+protected:
     SoftBusChannel();
     bool Initialize();
 

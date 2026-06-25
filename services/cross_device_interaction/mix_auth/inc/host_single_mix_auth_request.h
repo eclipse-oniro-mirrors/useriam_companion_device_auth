@@ -45,6 +45,7 @@ private:
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo);
 
     void HandleTokenAuthResult(ResultCode result, const std::vector<uint8_t> &extraInfo);
+    void StartDelegateAuth();
     void HandleDelegateAuthResult(ResultCode result, const std::vector<uint8_t> &extraInfo);
 
     std::vector<uint8_t> fwkMsg_;
@@ -56,6 +57,8 @@ private:
     std::optional<RequestId> delegateAuthRequestId_;
     DeviceKey peerDeviceKey_ {};
     std::vector<RequestId> subRequestIds_;
+    std::optional<std::vector<uint8_t>> selectContext_;
+    WidgetAuthParam widgetAuthParam_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
