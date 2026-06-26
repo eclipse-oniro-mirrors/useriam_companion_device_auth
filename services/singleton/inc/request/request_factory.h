@@ -66,7 +66,7 @@ struct HostMixAuthParams {
     WidgetAuthParam widgetAuthParam;
 };
 
-struct ComapionDelegateAuthParam {
+struct CompanionDelegateAuthParam {
     std::optional<uint32_t> remoteTokenId;
     WidgetAuthParam widgetAuthParam;
 };
@@ -100,7 +100,7 @@ public:
     virtual std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
         UserId companionUserId, const DeviceKey &hostDeviceKey,
         const std::vector<uint8_t> &startDelegateAuthRequest,
-        const ComapionDelegateAuthParam &delegateAuthParam) = 0;
+        const CompanionDelegateAuthParam &delegateAuthParam) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId,
         const DeviceKey &hostDeviceKey, const std::string &triggerReason) = 0;
     virtual std::shared_ptr<IRequest> CreateHostMixAuthRequest(const HostMixAuthParams &params,

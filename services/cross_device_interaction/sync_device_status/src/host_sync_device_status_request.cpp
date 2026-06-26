@@ -200,7 +200,7 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
         return;
     }
 
-    UpdatePeerDeviceKey(replyData.companionDeviceKey.deviceUserId);
+    UpdateCompanionUserId(replyData.companionDeviceKey.deviceUserId);
 
     bool handleRet = EndCompanionCheck(replyData);
     ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
@@ -292,7 +292,7 @@ bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest([[maybe_unused]] cons
     return false;
 }
 
-void HostSyncDeviceStatusRequest::UpdatePeerDeviceKey(int32_t companionUserId)
+void HostSyncDeviceStatusRequest::UpdateCompanionUserId(int32_t companionUserId)
 {
     IAM_LOGI("companionUserId: %{public}d", companionUserId);
     companionDeviceKey_.deviceUserId = companionUserId;

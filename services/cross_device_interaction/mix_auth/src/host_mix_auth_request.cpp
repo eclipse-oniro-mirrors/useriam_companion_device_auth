@@ -111,7 +111,7 @@ std::vector<TemplateId> HostMixAuthRequest::GetFilteredTemplateList(const std::v
         }
 
         if (!companionStatus->isValid || !companionStatus->companionDeviceStatus.isOnline) {
-            IAM_LOGE("%{public}s companion is invalid, skip", GetDescription());
+            IAM_LOGE("%{public}s companion is invalid or offline, skip", GetDescription());
             continue;
         }
 

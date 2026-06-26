@@ -51,7 +51,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -74,7 +74,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -91,7 +91,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -110,7 +110,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -130,7 +130,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompanionBeginDelegateAuth_001, TestS
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -148,7 +148,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, SecureAgentBeginDelegateAuth_001, Tes
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -167,7 +167,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_001, TestSiz
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -193,7 +193,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_002, TestSiz
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -206,7 +206,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_003, TestSiz
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -224,7 +224,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_004, TestSiz
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -243,7 +243,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleSendDelegateAuthResultReply_001
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -258,7 +258,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleSendDelegateAuthResultReply_002
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -273,7 +273,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleSendDelegateAuthResultReply_003
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -286,7 +286,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_001, TestSize.Level
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
     request->contextId_ = 12345;
@@ -298,7 +298,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_002, TestSize.Level
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
     request->contextId_ = std::nullopt;
@@ -312,7 +312,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_003, TestSize.Level
     // Should call SecurityAgentEndDelegateAuth for cleanup
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
     request->needEndDelegateAuth_ = true;
@@ -328,7 +328,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_004, TestSize.Level
     // Should cancel auth context AND call SecurityAgentEndDelegateAuth for cleanup
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
     request->contextId_ = 12345;
@@ -346,7 +346,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_005, TestSize.Level
     // Should still complete without crash
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
     request->needEndDelegateAuth_ = true;
@@ -360,7 +360,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithSuccess_001, TestSize.Lev
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -371,7 +371,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, GetWeakPtr_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -383,7 +383,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, GetMaxConcurrency_001, TestSize.Level
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -394,7 +394,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, ShouldCancelOnNewRequest_001, TestSiz
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -414,7 +414,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, ShouldCancelOnNewRequest_002, TestSiz
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
@@ -427,7 +427,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_005, TestSize.Level0)
 {
     MockGuard guard;
 
-    ComapionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
