@@ -59,7 +59,7 @@ void CompanionStartDelegateAuthHandler::HandleRequest(const Attributes &request,
         widgetAuthParam.authTypes.push_back(static_cast<UserAuth::AuthType>(authType));
     }
     widgetAuthParam.navigationButtonText = startRequestOpt->navigationButtonText;
-    ComapionDelegateAuthParam delegateAuthParam = {
+    CompanionDelegateAuthParam delegateAuthParam = {
         .remoteTokenId = startRequestOpt->remoteTokenId,
         .widgetAuthParam = widgetAuthParam,
     };

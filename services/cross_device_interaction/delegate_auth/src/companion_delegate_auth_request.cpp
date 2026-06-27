@@ -38,7 +38,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 CompanionDelegateAuthRequest::CompanionDelegateAuthRequest(const std::string &connectionName, int32_t companionUserId,
     const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
-    const ComapionDelegateAuthParam &delegateAuthParam)
+    const CompanionDelegateAuthParam &delegateAuthParam)
     : InboundRequest(RequestType::COMPANION_DELEGATE_AUTH_REQUEST, connectionName, hostDeviceKey),
       companionUserId_(companionUserId),
       startDelegateAuthRequest_(startDelegateAuthRequest),

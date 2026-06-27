@@ -162,7 +162,7 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionObtainTokenRequest(
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionDelegateAuthRequest(const std::string &connectionName,
     UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
-    const ComapionDelegateAuthParam &delegateAuthParam)
+    const CompanionDelegateAuthParam &delegateAuthParam)
 {
     auto request = std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserId, hostDeviceKey,
         startDelegateAuthRequest, delegateAuthParam);

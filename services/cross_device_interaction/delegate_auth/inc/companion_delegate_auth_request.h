@@ -33,7 +33,7 @@ class CompanionDelegateAuthRequest : public std::enable_shared_from_this<Compani
 public:
     CompanionDelegateAuthRequest(const std::string &connectionName, int32_t companionUserId,
         const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
-        const ComapionDelegateAuthParam &delegateAuthParam);
+        const CompanionDelegateAuthParam &delegateAuthParam);
     ~CompanionDelegateAuthRequest() override;
 
     bool CompanionBeginDelegateAuth();
@@ -62,7 +62,7 @@ private:
 
     int32_t companionUserId_ = 0;
     std::vector<uint8_t> startDelegateAuthRequest_;
-    ComapionDelegateAuthParam delegateAuthParam_;
+    CompanionDelegateAuthParam delegateAuthParam_;
     std::optional<uint64_t> contextId_ = std::nullopt;
     bool needEndDelegateAuth_ = false;
     SecureProtocolId secureProtocolId_ { SecureProtocolId::INVALID };
