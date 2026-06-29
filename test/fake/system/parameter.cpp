@@ -26,10 +26,13 @@
 #include "securec.h"
 
 extern "C" {
-extern "C" int AclGetDevUdid(char *udid, int size)
+int GetDevUdid(char *udid, int size)
 {
-    (void)udid;
-    (void)size;
+    // 64-char placeholder UDID mimicking const.product.udid for unit tests
+    static const char *fakeUdid = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    if (udid == nullptr || size < 1 || strcpy_s(udid, size, fakeUdid) != EOK) {
+        return -1;
+    }
     return 0;
 }
 

@@ -69,6 +69,7 @@ private:
     std::map<uint32_t, CallbackInfo> callbacks_;
     bool companionAuthBlocked_ { true };
     std::map<uint32_t, PasscodePromptCallbackInfo> passcodePromptCallbacks_;
+    std::optional<std::string> cachedUdid_;
 };
 
 } // namespace CompanionDeviceAuth
