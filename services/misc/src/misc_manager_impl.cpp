@@ -310,13 +310,24 @@ bool MiscManagerImpl::PromptPasscode(uint32_t tokenId, const std::vector<uint8_t
 
 std::optional<std::string> MiscManagerImpl::GetLocalUdid()
 {
+    if (cachedUdid_.has_value()) {
+        return cachedUdid_;
+    }
     constexpr uint32_t UDID_LENGTH = 65;
     char udidBuffer[UDID_LENGTH] = { 0 };
-    int udidRet = AclGetDevUdid(udidBuffer, UDID_LENGTH);
-    if (udidRet == 0 && udidBuffer[UDID_LENGTH - 1] == '\0') {
-        return std::string(udidBuffer, strnlen(udidBuffer, UDID_LENGTH));
+    int udidRet = GetDevUdid(udidBuffer, UDID_LENGTH);
+    if (udidRet != 0) {
+        IAM_LOGE("GetLocalUdid failed, udidRet:%{public}d", udidRet);
+        return std::nullopt;
     }
-    return std::nullopt;
+    std::string udid(udidBuffer, strnlen(udidBuffer, UDID_LENGTH - 1));
+    if (udid.empty()) {
+        IAM_LOGE("GetLocalUdid failed, empty udid");
+        return std::nullopt;
+    }
+    cachedUdid_ = std::move(udid);
+    IAM_LOGI("GetLocalUdid success");
+    return cachedUdid_;
 }
 
 void MiscManagerImpl::SetCompanionAuthBlocked(bool blocked)
