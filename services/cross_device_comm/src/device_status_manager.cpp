@@ -549,6 +549,7 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive ||
                 deviceStatus.deviceType != status.deviceType ||
                 deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs ||
+                deviceStatus.refreshToken != status.refreshToken ||
                 deviceStatus.supportedBusinessIds != newEffectiveIds;
             if (hasChange) {
                 deviceStatus.channelId = status.channelId;
@@ -557,6 +558,7 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
                 deviceStatus.deviceType = status.deviceType;
                 deviceStatus.atlRevokeDelayMs = status.atlRevokeDelayMs;
+                deviceStatus.refreshToken = status.refreshToken;
                 deviceStatus.supportedBusinessIds = std::move(newEffectiveIds);
                 deviceChanged = true;
             }
