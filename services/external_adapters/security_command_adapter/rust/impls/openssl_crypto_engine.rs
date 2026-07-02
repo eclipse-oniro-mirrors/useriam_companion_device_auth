@@ -21,6 +21,7 @@ use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngine, KeyP
 use crate::vec;
 use crate::Vec;
 
+use crate::traits::log_trace::RustFileId;
 use openssl::bn::BigNumContext;
 use openssl::derive::Deriver;
 use openssl::ec::{EcGroup, EcKey, EcPoint};
@@ -33,7 +34,6 @@ use openssl::pkey_ctx::PkeyCtx;
 use openssl::rand::rand_bytes;
 use openssl::sign::{Signer, Verifier};
 use openssl::symm::{Cipher, Crypter, Mode};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::OpensslCryptoEngine as u16;
 pub struct OpenSSLCryptoEngine;
 

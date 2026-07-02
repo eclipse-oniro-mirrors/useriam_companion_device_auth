@@ -17,8 +17,8 @@ use crate::common::constants::{Capability, ErrorCode, ProcessorType};
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::CompanionDevice;
-use crate::{log_e, log_i, p, Box, String, Vec};
 use crate::traits::log_trace::RustFileId;
+use crate::{log_e, log_i, p, Box, String, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::CompanionDeviceDbHelper as u16;
 pub fn check_device_capability(template_id: u64, required_capability: Capability) -> Result<(), ErrorCode> {
     let device_info = CompanionDeviceDbManagerRegistry::get().get_device(template_id).map_err(|e| {

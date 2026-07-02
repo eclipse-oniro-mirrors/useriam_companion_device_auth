@@ -1,6 +1,3 @@
-
-use crate::traits::log_trace::TestFileId;
-const FILE_ID: u16 = TestFileId::HostTokenAuthTest as u16;
 /*
  * Copyright (C) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,13 +13,16 @@ const FILE_ID: u16 = TestFileId::HostTokenAuthTest as u16;
  * limitations under the License.
  */
 
+use crate::traits::log_trace::TestFileId;
+const FILE_ID: u16 = TestFileId::HostTokenAuthTest as u16;
+
+use crate::common::constants::TOKEN_VALID_PERIOD;
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     DataArray1024Ffi, HostBeginTokenAuthInputFfi, HostBeginTokenAuthOutputFfi, HostEndTokenAuthInputFfi,
     HostEndTokenAuthOutputFfi,
 };
 use crate::log_i;
-use crate::common::constants::TOKEN_VALID_PERIOD;
 use crate::request::token_auth::host_token_auth::HostTokenAuthRequest;
 use crate::request::token_auth::token_auth_message::SecAuthReply;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};

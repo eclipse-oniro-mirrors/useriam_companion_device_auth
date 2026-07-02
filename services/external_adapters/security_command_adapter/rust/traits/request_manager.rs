@@ -32,8 +32,8 @@ use crate::entry::companion_device_auth_ffi::{
     HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi, HostProcessObtainTokenInputFfi,
     HostProcessObtainTokenOutputFfi, HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
 };
-use crate::{log_e, singleton_registry, Box};
 use crate::traits::log_trace::RustFileId;
+use crate::{log_e, singleton_registry, Box};
 pub(crate) const FILE_ID: u16 = RustFileId::RequestManager as u16;
 
 pub enum RequestParam<'a> {

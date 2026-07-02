@@ -44,9 +44,11 @@ class SubscriptionManager;
 
 // Function pointer types for Creator methods
 using BaseServiceInitializerCreator = std::function<std::shared_ptr<BaseServiceInitializer>()>;
+// clang-format off
 using BaseServiceCoreCreator = std::function<std::shared_ptr<BaseServiceCore>(
     const std::shared_ptr<SubscriptionManager> &, const std::vector<BusinessId> &hostBusinessId,
     const std::vector<BusinessId> &companionBusinessId)>;
+// clang-format on
 
 class CompanionDeviceAuthService : public SystemAbility, public CompanionDeviceAuthStub, public NoCopyable {
     DECLARE_SYSTEM_ABILITY(CompanionDeviceAuthService);

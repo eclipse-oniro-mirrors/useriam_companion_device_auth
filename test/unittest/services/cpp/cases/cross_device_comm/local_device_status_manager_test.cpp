@@ -59,9 +59,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, Create_001, TestSize.Level0)
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     EXPECT_NE(manager, nullptr);
 }
@@ -70,9 +70,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, Create_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(nullptr, deviceCapabilityInfo, false);
     EXPECT_EQ(manager, nullptr);
 }
@@ -84,9 +84,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, Create_003, TestSize.Level0)
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = {};
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     EXPECT_EQ(manager, nullptr);
 }
@@ -98,9 +98,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, Create_004, TestSize.Level0)
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     EXPECT_EQ(manager, nullptr);
 }
@@ -112,9 +112,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, Create_005, TestSize.Level0)
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     EXPECT_EQ(manager, nullptr);
 }
@@ -133,9 +133,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, SubscribeIsAuthMaintainActive_001, TestSi
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     ASSERT_NE(manager, nullptr);
 
@@ -165,9 +165,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, SubscribeIsAuthMaintainActive_002, TestSi
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     ASSERT_NE(manager, nullptr);
 
@@ -199,9 +199,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_001, TestSize.Level
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     ASSERT_NE(manager, nullptr);
 
@@ -222,9 +222,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_002, TestSize.Level
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     ASSERT_NE(manager, nullptr);
 
@@ -250,9 +250,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, AuthMaintainCallback_001, TestSize.Level0
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     ASSERT_NE(manager, nullptr);
 
@@ -295,9 +295,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_001, TestSize.Level0)
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     ASSERT_NE(manager, nullptr);
 
@@ -324,9 +324,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_002, TestSize.Level0)
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     ASSERT_NE(manager, nullptr);
 
@@ -348,9 +348,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_003, TestSize.Level0)
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto channelMgr = std::make_shared<ChannelManager>(channels);
 
-    DeviceCapabilityInfo deviceCapabilityInfo = {
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-        {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
     auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
     ASSERT_NE(manager, nullptr);
 

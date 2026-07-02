@@ -14,12 +14,12 @@
  */
 
 use crate::common::constants::ErrorCode;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, p, Box, Vec};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::DelegateAuthMessage as u16;
 
 #[derive(Debug, Clone, PartialEq)]

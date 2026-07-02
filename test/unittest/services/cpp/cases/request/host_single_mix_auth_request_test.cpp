@@ -33,7 +33,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-// 测试数据常量
 constexpr ScheduleId SCHEDULE_ID = 1;
 const std::vector<uint8_t> FWK_MSG = { 1, 2, 3, 4 };
 constexpr UserId HOST_USER_ID = 100;

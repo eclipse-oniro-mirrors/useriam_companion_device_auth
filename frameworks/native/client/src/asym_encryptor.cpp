@@ -20,6 +20,7 @@
 #include "rsa_oaep_encryptor.h"
 
 #define LOG_TAG "CDA_SDK"
+#define LOG_FILE_ID LOG_FILE_ASYM_ENCRYPTOR
 
 namespace OHOS {
 namespace UserIam {

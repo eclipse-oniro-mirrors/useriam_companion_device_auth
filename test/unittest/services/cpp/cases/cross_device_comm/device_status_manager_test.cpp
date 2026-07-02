@@ -76,9 +76,9 @@ protected:
 
         ON_CALL(ctx.guard->GetUserIdManager(), GetActiveUserId).WillByDefault(Return(activeUserId_));
 
-        DeviceCapabilityInfo deviceCapabilityInfo = {
-            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+        DeviceCapabilityInfo deviceCapabilityInfo = { {},
+            { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+            { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
         ctx.localStatusManager = LocalDeviceStatusManager::Create(ctx.channelMgr, deviceCapabilityInfo, false);
         EXPECT_NE(ctx.localStatusManager, nullptr);
 
@@ -111,9 +111,9 @@ protected:
         }));
         ON_CALL(ctx.guard->GetUserIdManager(), GetActiveUserId).WillByDefault(Return(activeUserId_));
 
-        DeviceCapabilityInfo deviceCapabilityInfo = {
-            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN },
-            {}, { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+        DeviceCapabilityInfo deviceCapabilityInfo = { {},
+            { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+            { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
         ctx.localStatusManager = LocalDeviceStatusManager::Create(ctx.channelMgr, deviceCapabilityInfo, false);
         EXPECT_NE(ctx.localStatusManager, nullptr);
 
@@ -124,8 +124,8 @@ protected:
             return ctx.nextSubscriptionId++;
         });
 
-        ctx.manager = DeviceStatusManager::Create(hostBusinessIds, ctx.connectionMgr, ctx.channelMgr,
-            ctx.localStatusManager);
+        ctx.manager =
+            DeviceStatusManager::Create(hostBusinessIds, ctx.connectionMgr, ctx.channelMgr, ctx.localStatusManager);
         if (ctx.manager == nullptr) {
             return ctx;
         }
@@ -1080,8 +1080,7 @@ HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_IncludesRefreshToken, TestS
 
 HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_ComputesEffectiveBusinessIds, TestSize.Level0)
 {
-    auto ctx = SetupTestContextWithBusinessIds(
-        { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) });
+    auto ctx = SetupTestContextWithBusinessIds({ static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) });
     ASSERT_NE(ctx.manager, nullptr);
     ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
 

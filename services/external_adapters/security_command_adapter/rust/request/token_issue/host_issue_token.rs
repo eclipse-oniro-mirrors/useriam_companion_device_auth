@@ -23,9 +23,9 @@ use crate::request::jobs::token_helper::DeviceTokenInfo;
 use crate::request::token_issue::token_issue_message::{SecIssueTokenReply, SecPreIssueReply, SecPreIssueRequest};
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::{log_e, log_i, Box, Vec};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::HostIssueToken as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct TokenIssueParam {
@@ -62,8 +62,7 @@ impl HostDeviceIssueTokenRequest {
     }
 
     fn decode_fwk_token_issue_request(&mut self, fwk_message: &[u8]) -> Result<(), ErrorCode> {
-        let fwk_msg_info =
-            decode_and_validate_fwk_msg(fwk_message, Some(self.token_issue_param.template_id))?;
+        let fwk_msg_info = decode_and_validate_fwk_msg(fwk_message, Some(self.token_issue_param.template_id))?;
         self.atl = fwk_msg_info.atl;
         Ok(())
     }

@@ -36,8 +36,10 @@ namespace CompanionDeviceAuth {
 std::shared_ptr<LocalDeviceStatusManager> LocalDeviceStatusManager::Create(std::shared_ptr<ChannelManager> channelMgr,
     const DeviceCapabilityInfo &deviceCapabilityInfo, bool hostBindingRevokeTokenOnInactive)
 {
-    auto manager = std::shared_ptr<LocalDeviceStatusManager>(new (std::nothrow) LocalDeviceStatusManager(channelMgr,
-        deviceCapabilityInfo, hostBindingRevokeTokenOnInactive));
+    // clang-format off
+    auto manager = std::shared_ptr<LocalDeviceStatusManager>(new (std::nothrow)
+        LocalDeviceStatusManager(channelMgr, deviceCapabilityInfo, hostBindingRevokeTokenOnInactive));
+    // clang-format on
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
 
     if (!manager->Initialize()) {

@@ -1,6 +1,3 @@
-
-use crate::traits::log_trace::TestFileId;
-const FILE_ID: u16 = TestFileId::CompanionDeviceAuthEntryTest as u16;
 /*
  * Copyright (C) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +12,9 @@ const FILE_ID: u16 = TestFileId::CompanionDeviceAuthEntryTest as u16;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+use crate::traits::log_trace::TestFileId;
+const FILE_ID: u16 = TestFileId::CompanionDeviceAuthEntryTest as u16;
 
 use crate::common::constants::ErrorCode;
 use crate::entry::companion_device_auth_entry::{handle_rust_command, handle_rust_env_uninit};
@@ -72,41 +72,14 @@ fn handle_rust_command_test() {
     let mut common_output = [0u8; size_of::<CommonOutputFfi>() + 1];
 
     assert_eq!(
-        handle_rust_command(
-            CommandId::Init as i32,
-            &input,
-            &mut output,
-            &common_input,
-            &mut common_output
-        ),
+        handle_rust_command(CommandId::Init as i32, &input, &mut output, &common_input, &mut common_output),
         Err(ErrorCode::BadParam)
     );
 
     let mut common_output = [0u8; size_of::<CommonOutputFfi>()];
-    assert!(handle_rust_command(
-        CommandId::Init as i32,
-        &input,
-        &mut output,
-        &common_input,
-        &mut common_output
-    )
-    .is_ok());
+    assert!(handle_rust_command(CommandId::Init as i32, &input, &mut output, &common_input, &mut common_output).is_ok());
 
     mock_set_init_command_env();
-    assert!(handle_rust_command(
-        CommandId::Init as i32,
-        &input,
-        &mut output,
-        &common_input,
-        &mut common_output
-    )
-    .is_ok());
-    assert!(handle_rust_command(
-        99999,
-        &input,
-        &mut output,
-        &common_input,
-        &mut common_output
-    )
-    .is_ok());
+    assert!(handle_rust_command(CommandId::Init as i32, &input, &mut output, &common_input, &mut common_output).is_ok());
+    assert!(handle_rust_command(99999, &input, &mut output, &common_input, &mut common_output).is_ok());
 }

@@ -27,6 +27,7 @@
 #include "cda_scope_guard.h"
 
 #define LOG_TAG "CDA_SDK"
+#define LOG_FILE_ID LOG_FILE_CDA_CLIENT_IMPL
 
 namespace OHOS {
 namespace UserIam {

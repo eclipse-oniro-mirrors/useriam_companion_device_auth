@@ -28,6 +28,7 @@
 #include "iam_logger.h"
 
 #define LOG_TAG "CDA_SDK"
+#define LOG_FILE_ID LOG_FILE_RSA_OAEP_ENCRYPTOR
 
 namespace OHOS {
 namespace UserIam {

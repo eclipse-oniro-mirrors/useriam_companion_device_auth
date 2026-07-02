@@ -41,7 +41,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-// 测试数据常量
 const TemplateId TEST_TEMPLATE_ID = 1;
 const std::string CONNECTION_NAME = "test_connection";
 const DeviceKey COMPANION_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,

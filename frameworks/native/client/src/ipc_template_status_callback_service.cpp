@@ -26,6 +26,7 @@
 #include "companion_device_auth_common_defines.h"
 
 #define LOG_TAG "CDA_SDK"
+#define LOG_FILE_ID LOG_FILE_IPC_TEMPLATE_STATUS_CB_SERVICE
 
 namespace OHOS {
 namespace UserIam {

@@ -21,9 +21,9 @@ use crate::request::token_issue::token_issue_message::{SecIssueTokenReply, SecPr
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::HostBindingToken;
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::{log_e, log_i, Box, Vec};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::CompanionIssueToken as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct PreIssueParam {

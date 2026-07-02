@@ -247,8 +247,9 @@ void FuzzCrossDeviceCommManagerImpl(FuzzedDataProvider &fuzzData)
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels;
     channels.push_back(fuzzChannel);
 
-    auto manager = CrossDeviceCommManagerImpl::Create({ .hostSupportedBusinessIds = { BusinessId::DEFAULT },
-        .hostLocalCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } },
+    auto manager = CrossDeviceCommManagerImpl::Create(
+        { .hostSupportedBusinessIds = { BusinessId::DEFAULT },
+            .hostLocalCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } },
         channels, false);
     if (!manager) {
         return;

@@ -18,6 +18,7 @@ import("../../../companion_device_auth.gni")
 
 copy_taihe_idl("companion_device_auth_copy_taihe_idl") {
   sources = [ "idl/ohos.userIAM.companionDeviceAuth.taihe" ]
+  external_deps = [ "user_auth_framework:user_auth_copy_taihe_idl" ]
 }
 
 taihe_generated_file_path = "$taihe_file_path/out/${companion_device_auth_subsystem_name}/${companion_device_auth_part_name}"

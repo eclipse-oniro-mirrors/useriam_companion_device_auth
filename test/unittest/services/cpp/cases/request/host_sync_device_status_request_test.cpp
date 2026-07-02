@@ -40,7 +40,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-// 测试数据常量
 constexpr int32_t HOST_USER_ID = 100;
 const DeviceKey COMPANION_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
     .deviceId = "companion_device_id",

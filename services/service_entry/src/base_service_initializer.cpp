@@ -68,8 +68,8 @@ std::shared_ptr<BaseServiceInitializer> BaseServiceInitializer::Create()
 
     auto subscriptionManager = std::make_shared<SubscriptionManager>();
     ENSURE_OR_RETURN_VAL(subscriptionManager != nullptr, nullptr);
-    auto initializer = std::shared_ptr<BaseServiceInitializer>(new (std::nothrow) BaseServiceInitializer(
-        subscriptionManager, deviceCapabilityInfo, true));
+    auto initializer = std::shared_ptr<BaseServiceInitializer>(
+        new (std::nothrow) BaseServiceInitializer(subscriptionManager, deviceCapabilityInfo, true));
     ENSURE_OR_RETURN_VAL(initializer != nullptr, nullptr);
 
     if (!initializer->Initialize()) {
@@ -290,14 +290,16 @@ bool BaseServiceInitializer::InitializeChannels()
 
 bool BaseServiceInitializer::InitializeCrossDeviceCommManager()
 {
+    // clang-format off
     DeviceCapabilityInfo deviceCapabilityInfo = {
         .hostSupportedBusinessIds = hostSupportedBusinessIds_,
         .hostLocalCapabilities = hostLocalCapabilities_,
         .companionSupportedBusinessIds = companionSupportedBusinessIds_,
         .companionLocalCapabilities = companionLocalCapabilities_
     };
-    auto crossDeviceCommManager = CrossDeviceCommManagerImpl::Create(deviceCapabilityInfo, channelsHolder_,
-        hostBindingRevokeTokenOnInactive_);
+    // clang-format on
+    auto crossDeviceCommManager =
+        CrossDeviceCommManagerImpl::Create(deviceCapabilityInfo, channelsHolder_, hostBindingRevokeTokenOnInactive_);
     ENSURE_OR_RETURN_VAL(crossDeviceCommManager != nullptr, false);
     SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommManager);
     return true;

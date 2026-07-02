@@ -29,6 +29,7 @@
 #include "common_defines.h"
 
 #define LOG_TAG "CDA_NAPI"
+#define LOG_FILE_ID LOG_FILE_CDA_NAPI_HELPER
 
 namespace OHOS {
 namespace UserIam {

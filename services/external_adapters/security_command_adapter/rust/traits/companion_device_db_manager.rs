@@ -17,8 +17,8 @@ use crate::common::constants::{ErrorCode, ProcessorType};
 use crate::traits::db_manager::{
     CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
 };
-use crate::{log_e, singleton_registry, Box, Vec};
 use crate::traits::log_trace::RustFileId;
+use crate::{log_e, singleton_registry, Box, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::CompanionDeviceDbManager as u16;
 
 pub type CompanionDeviceFilter = Box<dyn Fn(&CompanionDevice) -> bool>;

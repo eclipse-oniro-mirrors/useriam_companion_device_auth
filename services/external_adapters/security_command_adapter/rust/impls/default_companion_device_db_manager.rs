@@ -22,6 +22,7 @@ use crate::traits::db_manager::{
     CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
     DeviceKey, UserInfo,
 };
+use crate::traits::log_trace::RustFileId;
 use crate::traits::storage_io::StorageIoRegistry;
 use crate::utils::parcel::Parcel;
 use crate::{log_e, log_i, p, Vec};
@@ -30,7 +31,6 @@ use alloc::{format, vec};
 use core::mem;
 #[cfg(any(test, feature = "test-utils"))]
 use std::format;
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::DefaultCompanionDeviceDbManager as u16;
 pub const CURRENT_VERSION: i32 = 0;
 pub const COMPANION_DEVICE_DB: &str = "companion_device_db";

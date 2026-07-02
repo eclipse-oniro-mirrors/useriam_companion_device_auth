@@ -18,11 +18,11 @@ use crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthInputFfi;
 use crate::jobs::host_binding_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest};
+use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::utils::auth_token::UserAuthToken;
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::CompanionDelegateAuth as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDelegateAuthRequest {

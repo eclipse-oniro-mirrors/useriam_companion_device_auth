@@ -46,22 +46,19 @@ use crate::entry::companion_device_auth_ffi::{
     HostGetInitKeyNegotiationOutputFfi, HostGetPersistedStatusInputFfi, HostGetPersistedStatusOutputFfi,
     HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi, HostProcessObtainTokenInputFfi,
     HostProcessObtainTokenOutputFfi, HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
-    HostRegisterFinishInputFfi, HostRegisterFinishOutputFfi, HostRemoveCompanionInputFfi, HostRemoveCompanionOutputFfi,
-    HostRevokeTokenInputFfi, HostRevokeTokenOutputFfi, HostSetCompanionInvalidInputFfi,
-    HostSetCompanionInvalidOutputFfi,
-    HostUpdateCompanionEnabledBusinessIdsInputFfi,
+    HostRefreshTokenInputFfi, HostRefreshTokenOutputFfi, HostRegisterFinishInputFfi, HostRegisterFinishOutputFfi,
+    HostRemoveCompanionInputFfi, HostRemoveCompanionOutputFfi, HostRevokeTokenInputFfi, HostRevokeTokenOutputFfi,
+    HostSetCompanionInvalidInputFfi, HostSetCompanionInvalidOutputFfi, HostUpdateCompanionEnabledBusinessIdsInputFfi,
     HostUpdateCompanionEnabledBusinessIdsOutputFfi, HostUpdateCompanionStatusInputFfi,
-    HostUpdateCompanionStatusOutputFfi, HostRefreshTokenInputFfi, HostRefreshTokenOutputFfi, InitInputFfi,
-    InitOutputFfi,
-    Int32Array64Ffi, PersistedCompanionStatusFfi, PersistedHostBindingStatusFfi, SetActiveUserInputFfi,
-    SetActiveUserOutputFfi,
+    HostUpdateCompanionStatusOutputFfi, InitInputFfi, InitOutputFfi, Int32Array64Ffi, PersistedCompanionStatusFfi,
+    PersistedHostBindingStatusFfi, SetActiveUserInputFfi, SetActiveUserOutputFfi,
 };
 use crate::jobs::companion_device_db_helper;
-use crate::request::jobs::fwk_msg_validator;
 use crate::request::delegate_auth::companion_delegate_auth::CompanionDelegateAuthRequest;
 use crate::request::delegate_auth::host_delegate_auth::HostDelegateAuthRequest;
 use crate::request::enroll::companion_enroll::CompanionDeviceEnrollRequest;
 use crate::request::enroll::host_enroll::HostDeviceEnrollRequest;
+use crate::request::jobs::fwk_msg_validator;
 use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;
 use crate::request::status_sync::host_sync_status::HostDeviceSyncStatusRequest;
 use crate::request::token_auth::companion_token_auth::CompanionTokenAuthRequest;
@@ -73,12 +70,12 @@ use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenReques
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
-use crate::traits::time_keeper::TimeKeeperRegistry;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::request_manager::{Request, RequestManagerRegistry, RequestParam};
+use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::{log_e, log_i, p, Box, Vec};
 use core::convert::TryFrom;
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::SystemCommands as u16;
 
 // Init
@@ -443,10 +440,8 @@ pub fn host_refresh_token(
 ) -> Result<(), ErrorCode> {
     companion_device_db_helper::check_device_capability(input.template_id, Capability::TokenAuth)?;
 
-    let fwk_msg_info = fwk_msg_validator::decode_and_validate_fwk_msg(
-        input.fwk_message.as_slice()?,
-        Some(input.template_id),
-    )?;
+    let fwk_msg_info =
+        fwk_msg_validator::decode_and_validate_fwk_msg(input.fwk_message.as_slice()?, Some(input.template_id))?;
     let atl = fwk_msg_info.atl as i32;
 
     let device_capabilities =
@@ -468,20 +463,12 @@ pub fn host_refresh_token(
         }
         let current_time = TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?;
         if current_time > token_info.expire_time {
-            log_e!(
-                "token is expired, current_time:{}, expire_time:{}",
-                current_time,
-                token_info.expire_time
-            );
+            log_e!("token is expired, current_time:{}, expire_time:{}", current_time, token_info.expire_time);
             output.need_reissue = true;
             return Ok(());
         }
         if current_time.saturating_sub(token_info.issue_time) > TOKEN_REFRESH_THRESHOLD {
-            log_e!(
-                "token issue time too old, current_time:{}, issue_time:{}",
-                current_time,
-                token_info.issue_time
-            );
+            log_e!("token issue time too old, current_time:{}, issue_time:{}", current_time, token_info.issue_time);
             output.need_reissue = true;
             return Ok(());
         }
@@ -492,24 +479,19 @@ pub fn host_refresh_token(
         token_infos.push(token_info);
     }
 
-    let new_expire_time = TimeKeeperRegistry::get()
-        .get_rtc_time()
-        .map_err(|e| p!(e))?
-        .checked_add(TOKEN_VALID_PERIOD)
-        .ok_or_else(|| {
-            log_e!("expire_time overflow");
-            ErrorCode::GeneralError
-        })?;
+    let new_expire_time =
+        TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?.checked_add(TOKEN_VALID_PERIOD).ok_or_else(
+            || {
+                log_e!("expire_time overflow");
+                ErrorCode::GeneralError
+            },
+        )?;
     for mut token_info in token_infos {
         token_info.expire_time = new_expire_time;
         CompanionDeviceDbManagerRegistry::get_mut().update_token(&token_info)?;
     }
 
-    log_i!(
-        "refresh token success, template_id:{:04x}, new_expire_time:{}",
-        input.template_id as u16,
-        new_expire_time
-    );
+    log_i!("refresh token success, template_id:{:04x}, new_expire_time:{}", input.template_id as u16, new_expire_time);
 
     output.need_reissue = false;
     output.cached_atl = max_cached_atl;

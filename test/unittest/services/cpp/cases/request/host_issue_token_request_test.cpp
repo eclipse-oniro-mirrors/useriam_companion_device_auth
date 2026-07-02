@@ -30,7 +30,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-// 测试数据常量
 constexpr int32_t HOST_USER_ID = 100;
 constexpr uint64_t TEMPLATE_ID = 12345;
 const std::vector<uint8_t> FWK_UNLOCK_MSG = { 1, 2, 3, 4, 5 };
@@ -53,7 +52,6 @@ std::unique_ptr<Subscription> MakeSubscription()
 
 class HostIssueTokenRequestTest : public Test {
 protected:
-    // 无成员变量，每个测试用例创建局部 request
 };
 
 HWTEST_F(HostIssueTokenRequestTest, OnStart_001, TestSize.Level0)

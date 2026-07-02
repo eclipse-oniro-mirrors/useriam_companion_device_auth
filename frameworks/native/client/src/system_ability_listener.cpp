@@ -22,6 +22,7 @@
 #include "if_system_ability_manager.h"
 
 #define LOG_TAG "CDA_SDK"
+#define LOG_FILE_ID LOG_FILE_SYSTEM_ABILITY_LISTENER
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {

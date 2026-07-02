@@ -14,13 +14,13 @@
  */
 
 use crate::common::constants::{ErrorCode, ProcessorType, AES_GCM_IV_SIZE, AES_GCM_TAG_SIZE, HKDF_SALT_SIZE};
+use crate::traits::log_trace::RustFileId;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
 use crate::String;
 use crate::{log_e, p, Box, Vec};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::EnrollMessage as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkEnrollRequest {

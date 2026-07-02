@@ -17,9 +17,9 @@ use crate::common::constants::{AuthTrustLevel, ErrorCode, ProcessorType, TOKEN_K
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::CompanionDeviceToken;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::{log_e, p, Vec};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::TokenHelper as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeviceTokenInfo {
@@ -56,12 +56,10 @@ pub fn add_companion_device_token(template_id: u64, token_infos: &Vec<DeviceToke
                 ErrorCode::GeneralError
             })?,
             atl: token_info.atl,
-            expire_time: issue_time
-                .checked_add(TOKEN_VALID_PERIOD)
-                .ok_or_else(|| {
-                    log_e!("expire_time overflow");
-                    ErrorCode::GeneralError
-                })?,
+            expire_time: issue_time.checked_add(TOKEN_VALID_PERIOD).ok_or_else(|| {
+                log_e!("expire_time overflow");
+                ErrorCode::GeneralError
+            })?,
             issue_time,
         };
         CompanionDeviceDbManagerRegistry::get_mut().add_token(&companion_token)?;

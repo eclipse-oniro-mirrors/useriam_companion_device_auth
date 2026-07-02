@@ -92,8 +92,7 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
     bool getProtocolListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocolList);
     ENSURE_OR_RETURN_VAL(getProtocolListRet, std::nullopt);
     std::vector<uint16_t> capabilityList;
-    bool getCapabilityListRet =
-        attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
+    bool getCapabilityListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
     ENSURE_OR_RETURN_VAL(getCapabilityListRet, std::nullopt);
     std::vector<int32_t> businessIdList;
     if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST)) {

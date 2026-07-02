@@ -19,6 +19,7 @@
 #include "iam_logger.h"
 
 #define LOG_TAG "CDA_SDK"
+#define LOG_FILE_ID LOG_FILE_PASSCODE_SUBMIT_CALLBACK_IMPL
 
 namespace OHOS {
 namespace UserIam {

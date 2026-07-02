@@ -21,10 +21,10 @@ use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::token_auth_message::SecAuthReply;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::CompanionTokenAuth as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionTokenAuthRequest {

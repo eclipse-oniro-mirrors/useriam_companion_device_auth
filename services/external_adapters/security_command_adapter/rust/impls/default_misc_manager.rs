@@ -17,10 +17,10 @@ use crate::common::constants::ErrorCode;
 use crate::common::types::Udid;
 use crate::log_e;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
+use crate::traits::log_trace::RustFileId;
 use crate::traits::misc_manager::MiscManager;
 use crate::Vec;
 use core::mem::size_of;
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::DefaultMiscManager as u16;
 pub struct DefaultMiscManager {
     key_pair: Option<KeyPair>,
