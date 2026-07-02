@@ -32,7 +32,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-// 测试数据常量
 constexpr ScheduleId SCHEDULE_ID = 1;
 const std::vector<uint8_t> FWK_MSG = { 1, 2, 3, 4 };
 constexpr UserId HOST_USER_ID = 100;
@@ -52,7 +51,6 @@ std::unique_ptr<Subscription> MakeSubscription()
 
 class HostDelegateAuthRequestTest : public Test {
 protected:
-    // 无成员变量，每个测试用例创建局部 request
 };
 
 HWTEST_F(HostDelegateAuthRequestTest, OnStart_001, TestSize.Level0)

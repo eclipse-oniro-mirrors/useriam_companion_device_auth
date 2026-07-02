@@ -17,9 +17,9 @@ use crate::common::constants::ErrorCode;
 use crate::ensure_or_return_val;
 use crate::entry::companion_device_auth_entry::{handle_rust_command, handle_rust_env_init, handle_rust_env_uninit};
 use crate::log_e;
+use crate::traits::log_trace::RustFileId;
 use core::mem;
 use core::slice;
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::Ffi as u16;
 
 pub const SALT_LEN_FFI: usize = 32;

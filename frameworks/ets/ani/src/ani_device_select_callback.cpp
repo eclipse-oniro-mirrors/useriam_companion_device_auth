@@ -25,6 +25,7 @@
 #include "companion_device_auth_ani_helper.h"
 
 #define LOG_TAG "CDA_ANI"
+#define LOG_FILE_ID LOG_FILE_ANI_DEVICE_SELECT_CALLBACK
 
 namespace OHOS {
 namespace UserIam {

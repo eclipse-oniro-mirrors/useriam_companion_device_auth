@@ -57,7 +57,6 @@ std::unique_ptr<Subscription> MakeSubscription()
 
 class HostAddCompanionRequestTest : public Test {
 protected:
-    // 无成员变量，每个测试用例创建局部 request
 };
 
 HWTEST_F(HostAddCompanionRequestTest, OnStart_001, TestSize.Level0)

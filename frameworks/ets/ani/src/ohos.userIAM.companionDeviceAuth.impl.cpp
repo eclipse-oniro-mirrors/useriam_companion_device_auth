@@ -28,6 +28,7 @@
 #include "status_monitor.h"
 
 #define LOG_TAG "CDA_ANI"
+#define LOG_FILE_ID LOG_FILE_CDA_ANI_IMPL
 
 namespace CompanionDeviceAuth = OHOS::UserIam::CompanionDeviceAuth;
 namespace TaiheCompanionDeviceAuth = ::ohos::userIAM::companionDeviceAuth;

@@ -34,7 +34,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-// 测试数据常量
 constexpr UserId HOST_USER_ID = 100;
 constexpr TemplateId TEMPLATE_ID = 1;
 const DeviceKey COMPANION_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
@@ -51,7 +50,6 @@ std::unique_ptr<Subscription> MakeSubscription()
 
 class HostRemoveHostBindingRequestTest : public Test {
 protected:
-    // 无成员变量，每个测试用例创建局部 request
 };
 
 HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_001, TestSize.Level0)

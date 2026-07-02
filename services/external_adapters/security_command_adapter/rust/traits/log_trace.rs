@@ -220,11 +220,11 @@ fn test_file_id_to_name(_: u16) -> &'static str {
 #[cfg(any(test, feature = "test-utils"))]
 fn test_file_id_to_name(file_id: u16) -> &'static str {
     match file_id {
-        0x0300 => "types_test.rs",           // TypesTest
-        0x0301 => "constants_test.rs",       // ConstantsTest
-        0x0303 => "message_codec_test.rs",   // MessageCodecTest
-        0x0304 => "attribute_test.rs",       // AttributeTest
-        0x0305 => "parcel_test.rs",          // ParcelTest
+        0x0300 => "types_test.rs",         // TypesTest
+        0x0301 => "constants_test.rs",     // ConstantsTest
+        0x0303 => "message_codec_test.rs", // MessageCodecTest
+        0x0304 => "attribute_test.rs",     // AttributeTest
+        0x0305 => "parcel_test.rs",        // ParcelTest
         0x0306 => "companion_device_auth_entry_test.rs",
         0x0307 => "companion_device_auth_ffi_test.rs",
         0x0308 => "common_command_test.rs",
@@ -271,7 +271,6 @@ fn test_file_id_to_name(file_id: u16) -> &'static str {
     }
 }
 
-
 /// Must match MAX_LOG_TRACE_NUM_FFI in companion_device_auth_ffi.rs.
 const MAX_ENTRIES: usize = crate::entry::companion_device_auth_ffi::MAX_LOG_TRACE_NUM_FFI;
 
@@ -285,11 +284,7 @@ pub struct LogTraceEntry {
 
 impl Default for LogTraceEntry {
     fn default() -> Self {
-        Self {
-            code: 0,
-            file_id: 0,
-            line_num: 0,
-        }
+        Self { code: 0, file_id: 0, line_num: 0 }
     }
 }
 
@@ -300,18 +295,10 @@ struct LogTraceState {
     write_index: u32,
 }
 
-const INIT_ENTRY: LogTraceEntry = LogTraceEntry {
-    code: 0,
-    file_id: 0,
-    line_num: 0,
-};
+const INIT_ENTRY: LogTraceEntry = LogTraceEntry { code: 0, file_id: 0, line_num: 0 };
 
-static mut STATE: LogTraceState = LogTraceState {
-    enabled: false,
-    entries: [INIT_ENTRY; MAX_ENTRIES],
-    record_count: 0,
-    write_index: 0,
-};
+static mut STATE: LogTraceState =
+    LogTraceState { enabled: false, entries: [INIT_ENTRY; MAX_ENTRIES], record_count: 0, write_index: 0 };
 
 /// Enable trace recording and clear previous entries.
 pub fn enable() {
@@ -338,11 +325,7 @@ pub fn record(file_id: u16, line_num: u32) {
             return;
         }
         let idx = STATE.write_index as usize;
-        STATE.entries[idx] = LogTraceEntry {
-            code: 0,
-            file_id,
-            line_num: line_num as u16,
-        };
+        STATE.entries[idx] = LogTraceEntry { code: 0, file_id, line_num: line_num as u16 };
         STATE.write_index = (STATE.write_index + 1) % MAX_ENTRIES as u32;
         if STATE.record_count < MAX_ENTRIES as u32 {
             STATE.record_count += 1;
@@ -351,19 +334,13 @@ pub fn record(file_id: u16, line_num: u32) {
 }
 
 /// Export recorded entries to FFI array. Returns the number of entries exported.
-pub fn export(
-    entries: &mut [crate::entry::companion_device_auth_ffi::LogTraceEntryFfi],
-) -> u32 {
+pub fn export(entries: &mut [crate::entry::companion_device_auth_ffi::LogTraceEntryFfi]) -> u32 {
     let (count, write_index) = unsafe { (STATE.record_count, STATE.write_index) };
     if entries.len() < MAX_ENTRIES || count as usize > entries.len() {
         return 0;
     }
     for i in 0..count as usize {
-        let src_idx = if count < MAX_ENTRIES as u32 {
-            i
-        } else {
-            (write_index as usize + i) % MAX_ENTRIES
-        };
+        let src_idx = if count < MAX_ENTRIES as u32 { i } else { (write_index as usize + i) % MAX_ENTRIES };
         let src = unsafe { STATE.entries[src_idx] };
         entries[i] = crate::entry::companion_device_auth_ffi::LogTraceEntryFfi {
             code: src.code,

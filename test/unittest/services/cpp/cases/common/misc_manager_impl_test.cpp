@@ -48,7 +48,7 @@ public:
 };
 
 class MiscManagerImplTest : public Test {
-    // 不需要SetUp/TearDown，MockGuard自动处理
+    // No SetUp/TearDown — MockGuard handles it.
 };
 
 HWTEST_F(MiscManagerImplTest, Create_001, TestSize.Level0)

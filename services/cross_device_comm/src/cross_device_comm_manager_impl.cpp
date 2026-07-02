@@ -34,16 +34,16 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 std::shared_ptr<CrossDeviceCommManagerImpl> CrossDeviceCommManagerImpl::Create(
-    const DeviceCapabilityInfo &deviceCapabilityInfo,
-    const std::vector<std::shared_ptr<ICrossDeviceChannel>> &channels, bool hostBindingRevokeTokenOnInactive)
+    const DeviceCapabilityInfo &deviceCapabilityInfo, const std::vector<std::shared_ptr<ICrossDeviceChannel>> &channels,
+    bool hostBindingRevokeTokenOnInactive)
 {
     ENSURE_OR_RETURN_VAL(channels.size() > 0, nullptr);
 
     auto channelMgr = std::make_shared<ChannelManager>(channels);
     ENSURE_OR_RETURN_VAL(channelMgr != nullptr, nullptr);
 
-    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr,
-        deviceCapabilityInfo, hostBindingRevokeTokenOnInactive);
+    auto localDeviceStatusMgr =
+        LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, hostBindingRevokeTokenOnInactive);
     ENSURE_OR_RETURN_VAL(localDeviceStatusMgr != nullptr, nullptr);
 
     auto connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
@@ -53,12 +53,12 @@ std::shared_ptr<CrossDeviceCommManagerImpl> CrossDeviceCommManagerImpl::Create(
     ENSURE_OR_RETURN_VAL(messageRouter != nullptr, nullptr);
     connectionMgr->SetMessageRouter(messageRouter);
 
-    auto deviceStatusMgr = DeviceStatusManager::Create(deviceCapabilityInfo.hostSupportedBusinessIds,
-        connectionMgr, channelMgr, localDeviceStatusMgr);
+    auto deviceStatusMgr = DeviceStatusManager::Create(deviceCapabilityInfo.hostSupportedBusinessIds, connectionMgr,
+        channelMgr, localDeviceStatusMgr);
     ENSURE_OR_RETURN_VAL(deviceStatusMgr != nullptr, nullptr);
 
-    auto manager = std::shared_ptr<CrossDeviceCommManagerImpl>(new (std::nothrow) CrossDeviceCommManagerImpl(
-        channelMgr, localDeviceStatusMgr, connectionMgr, messageRouter, deviceStatusMgr));
+    auto manager = std::shared_ptr<CrossDeviceCommManagerImpl>(new (std::nothrow) CrossDeviceCommManagerImpl(channelMgr,
+        localDeviceStatusMgr, connectionMgr, messageRouter, deviceStatusMgr));
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
 
     IAM_LOGI("create success");

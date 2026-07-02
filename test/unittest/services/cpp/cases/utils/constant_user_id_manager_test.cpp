@@ -33,7 +33,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 class ConstantUserIdManagerTest : public Test {
-    // 不需要SetUp/TearDown，MockGuard自动处理
+    // No SetUp/TearDown — MockGuard handles it.
 };
 
 HWTEST_F(ConstantUserIdManagerTest, CreateUserIdManager_001, TestSize.Level0)

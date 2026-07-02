@@ -25,6 +25,7 @@
 #include "set_device_select_result_callback.h"
 
 #define LOG_TAG "CDA_SDK"
+#define LOG_FILE_ID LOG_FILE_IPC_DEVICE_SELECT_CALLBACK_SERVICE
 
 namespace OHOS {
 namespace UserIam {

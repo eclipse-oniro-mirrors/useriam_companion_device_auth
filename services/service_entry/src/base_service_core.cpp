@@ -39,8 +39,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 std::shared_ptr<BaseServiceCore> BaseServiceCore::Create(
-    const std::shared_ptr<SubscriptionManager> &subscriptionManager,
-    const std::vector<BusinessId> &hostBusinessId, const std::vector<BusinessId> &companionBusinessId)
+    const std::shared_ptr<SubscriptionManager> &subscriptionManager, const std::vector<BusinessId> &hostBusinessId,
+    const std::vector<BusinessId> &companionBusinessId)
 {
     IAM_LOGI("Start");
     ENSURE_OR_RETURN_VAL(subscriptionManager != nullptr, nullptr);
@@ -62,8 +62,7 @@ BaseServiceCore::BaseServiceCore(std::shared_ptr<SubscriptionManager> subscripti
 
 bool BaseServiceCore::IsValidBusinessId(BusinessId businessId) const
 {
-    return std::find(hostBusinessIds_.begin(), hostBusinessIds_.end(), businessId) !=
-        hostBusinessIds_.end();
+    return std::find(hostBusinessIds_.begin(), hostBusinessIds_.end(), businessId) != hostBusinessIds_.end();
 }
 
 ResultCode BaseServiceCore::SubscribeAvailableDeviceStatus(int32_t localUserId,

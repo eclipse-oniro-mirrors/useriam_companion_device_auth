@@ -22,6 +22,7 @@
 #include "continuous_auth_status_callback_wrapper.h"
 
 #define LOG_TAG "CDA_NAPI"
+#define LOG_FILE_ID LOG_FILE_NAPI_CONTINUOUS_AUTH_STATUS_CB_WRAPPER
 
 namespace OHOS {
 namespace UserIam {

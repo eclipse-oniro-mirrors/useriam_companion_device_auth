@@ -24,11 +24,11 @@ use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::token_auth_message::{FwkAuthReply, FwkAuthRequest, SecAuthReply};
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::{Attribute, AttributeKey};
 use crate::{log_e, log_i, p, Box, Vec};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::HostTokenAuth as u16;
 
 #[derive(Debug, Clone, PartialEq)]

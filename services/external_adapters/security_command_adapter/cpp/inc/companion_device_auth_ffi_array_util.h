@@ -27,15 +27,16 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "iam_safe_arithmetic.h"
+
+#include "companion_device_auth_ffi_types.h"
+
 #ifndef LOG_TAG
 #define LOG_TAG "CDA_SA"
 #endif
 #ifndef LOG_FILE_ID
-#define LOG_FILE_ID LOG_FILE_SECURITY_COMMAND_ADAPTER_IMPL
+#define LOG_FILE_ID LOG_FILE_CDA_FFI_ARRAY_UTIL
 #endif
-#include "iam_safe_arithmetic.h"
-
-#include "companion_device_auth_ffi_types.h"
 
 namespace OHOS {
 namespace UserIam {

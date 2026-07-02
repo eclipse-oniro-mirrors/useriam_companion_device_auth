@@ -21,6 +21,7 @@
 #include "common_defines.h"
 
 #define LOG_TAG "CDA_SDK"
+#define LOG_FILE_ID LOG_FILE_SET_DEVICE_SELECT_RESULT_CALLBACK
 
 namespace OHOS {
 namespace UserIam {

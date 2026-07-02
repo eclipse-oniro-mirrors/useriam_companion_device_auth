@@ -31,7 +31,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-// 测试数据常量
 const std::string CONNECTION_NAME = "test_connection";
 constexpr int32_t COMPANION_USER_ID = 200;
 const DeviceKey HOST_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
@@ -60,7 +59,6 @@ Attributes MakePreIssueTokenRequest()
 
 class CompanionIssueTokenRequestTest : public Test {
 protected:
-    // 无成员变量，每个测试用例创建局部 request
 };
 
 HWTEST_F(CompanionIssueTokenRequestTest, OnStart_001, TestSize.Level0)

@@ -15,9 +15,9 @@
 
 use crate::common::constants::{ErrorCode, UDID_LEN};
 use crate::log_e;
+use crate::traits::log_trace::RustFileId;
 use crate::String;
 use crate::Vec;
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::Types as u16;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub struct Udid(pub [u8; UDID_LEN]);

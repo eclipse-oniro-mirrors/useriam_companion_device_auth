@@ -14,11 +14,11 @@
  */
 
 use crate::common::constants::ErrorCode;
+use crate::traits::log_trace::RustFileId;
 use crate::String;
 use crate::Vec;
 use crate::{log_e, p};
 use core::mem::size_of;
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::Parcel as u16;
 const DEFAULT_PARCEL_CAPACITY: usize = 4096;
 

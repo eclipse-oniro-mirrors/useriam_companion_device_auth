@@ -24,10 +24,9 @@ use crate::commands::system_commands::{
     host_cancel_issue_token, host_cancel_obtain_token, host_check_template_enrolled, host_end_add_companion,
     host_end_companion_check, host_end_delegate_auth, host_end_issue_token, host_end_token_auth,
     host_get_init_key_negotiation, host_get_persisted_status, host_on_register_finish, host_pre_issue_token,
-    host_process_obtain_token, host_process_pre_obtain_token, host_remove_companion, host_revoke_token,
-    host_set_companion_invalid, host_update_companion_enabled_business_ids, host_update_companion_status,
-    host_refresh_token, init,
-    set_active_user_id,
+    host_process_obtain_token, host_process_pre_obtain_token, host_refresh_token, host_remove_companion,
+    host_revoke_token, host_set_companion_invalid, host_update_companion_enabled_business_ids,
+    host_update_companion_status, init, set_active_user_id,
 };
 use crate::common::constants::ErrorCode;
 use crate::ensure_or_return_val;
@@ -40,8 +39,8 @@ use crate::entry::companion_device_auth_ffi::CommandId::{
     HostBeginTokenAuth, HostCancelAddCompanion, HostCancelCompanionCheck, HostCancelDelegateAuth, HostCancelIssueToken,
     HostCancelObtainToken, HostCheckTemplateEnrolled, HostEndAddCompanion, HostEndCompanionCheck, HostEndDelegateAuth,
     HostEndIssueToken, HostEndTokenAuth, HostGetInitKeyNegotiation, HostGetPersistedStatus, HostPreIssueToken,
-    HostProcessObtainToken, HostProcessPreObtainToken, HostRegisterFinish, HostRemoveCompanion, HostRevokeToken,
-    HostSetCompanionInvalid, HostUpdateCompanionEnabledBusinessIds, HostUpdateCompanionStatus, HostRefreshToken, Init,
+    HostProcessObtainToken, HostProcessPreObtainToken, HostRefreshToken, HostRegisterFinish, HostRemoveCompanion,
+    HostRevokeToken, HostSetCompanionInvalid, HostUpdateCompanionEnabledBusinessIds, HostUpdateCompanionStatus, Init,
     SetActiveUserId,
 };
 use crate::entry::companion_device_auth_ffi::{CommandId, CommonInputFfi, CommonOutputFfi};
@@ -50,6 +49,7 @@ use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::event_manager::EventManagerRegistry;
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
 use crate::traits::log_trace;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::logger::LoggerRegistry;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::traits::request_manager::RequestManagerRegistry;
@@ -58,7 +58,6 @@ use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::Box;
 use crate::{log_e, log_i};
 use core::mem::size_of;
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::Entry as u16;
 struct CmdInfo {
     command_id: CommandId,
@@ -237,11 +236,7 @@ pub fn handle_rust_command(
     }
     log_trace::disable();
 
-    let common_output_ffi = CommonOutputFfi {
-        result: result as i32,
-        log_trace: log_trace_ffi,
-        ..Default::default()
-    };
+    let common_output_ffi = CommonOutputFfi { result: result as i32, log_trace: log_trace_ffi, ..Default::default() };
 
     unsafe {
         core::ptr::write_unaligned(common_output.as_mut_ptr() as *mut CommonOutputFfi, common_output_ffi);

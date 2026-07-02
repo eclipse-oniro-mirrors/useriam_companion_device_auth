@@ -31,6 +31,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 #define LOG_TAG "CDA_COMM"
+#define LOG_FILE_ID LOG_FILE_IAM_PARA2STR
 
 std::string GetMaskedString(uint16_t val)
 {

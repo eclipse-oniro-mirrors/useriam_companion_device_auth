@@ -36,6 +36,7 @@
 #include "status_monitor.h"
 
 #define LOG_TAG "CDA_NAPI"
+#define LOG_FILE_ID LOG_FILE_CDA_NAPI_ENTRY
 
 namespace OHOS {
 namespace UserIam {

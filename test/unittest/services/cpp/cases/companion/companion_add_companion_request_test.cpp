@@ -31,7 +31,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-// 测试数据常量
 const std::string CONNECTION_NAME = "test_connection";
 const DeviceKey HOST_DEVICE_KEY = { .deviceId = "host_device_id", .deviceUserId = 100 };
 const DeviceKey COMPANION_DEVICE_KEY = { .deviceId = "companion_device_id", .deviceUserId = 200 };
@@ -43,7 +42,6 @@ std::unique_ptr<Subscription> MakeSubscription()
 
 class CompanionAddCompanionRequestTest : public Test {
 protected:
-    // 无成员变量，每个测试用例创建局部 request
 };
 
 HWTEST_F(CompanionAddCompanionRequestTest, OnStart_001, TestSize.Level0)

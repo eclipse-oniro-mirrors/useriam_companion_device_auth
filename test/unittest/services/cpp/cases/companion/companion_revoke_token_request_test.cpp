@@ -30,14 +30,12 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-// 测试数据常量
 constexpr int32_t COMPANION_USER_ID = 200;
 const DeviceKey HOST_DEVICE_KEY = { .deviceId = "host_device_id", .deviceUserId = 100 };
 const std::string REASON = "unknown";
 
 class CompanionRevokeTokenRequestTest : public Test {
 protected:
-    // 无成员变量，每个测试用例创建局部 request
 };
 
 HWTEST_F(CompanionRevokeTokenRequestTest, OnConnected_001, TestSize.Level0)

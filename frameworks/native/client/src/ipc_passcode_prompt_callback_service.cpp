@@ -24,6 +24,7 @@
 #include "passcode_submit_callback_impl.h"
 
 #define LOG_TAG "CDA_SDK"
+#define LOG_FILE_ID LOG_FILE_IPC_PASSCODE_PROMPT_CALLBACK_SERVICE
 
 namespace OHOS {
 namespace UserIam {

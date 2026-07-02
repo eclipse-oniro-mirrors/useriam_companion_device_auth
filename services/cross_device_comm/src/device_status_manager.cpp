@@ -46,8 +46,10 @@ std::shared_ptr<DeviceStatusManager> DeviceStatusManager::Create(const std::vect
     std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
     std::shared_ptr<LocalDeviceStatusManager> localDeviceStatusMgr)
 {
+    // clang-format off
     auto manager = std::shared_ptr<DeviceStatusManager>(new (std::nothrow)
         DeviceStatusManager(hostSupportBusinessIds, connectionMgr, channelMgr, localDeviceStatusMgr));
+    // clang-format on
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
 
     if (!manager->Initialize()) {
@@ -209,15 +211,14 @@ std::vector<BusinessId> DeviceStatusManager::ComputeEffectiveBusinessIds(
 {
     std::vector<BusinessId> effectiveBusinessIds;
     for (const auto &id : hostSupportBusinessIds_) {
-        if (std::find(deviceSupportedBusinessIds.begin(), deviceSupportedBusinessIds.end(), id)
-            != deviceSupportedBusinessIds.end()) {
+        if (std::find(deviceSupportedBusinessIds.begin(), deviceSupportedBusinessIds.end(), id) !=
+            deviceSupportedBusinessIds.end()) {
             effectiveBusinessIds.push_back(id);
         }
     }
     IAM_LOGI("compute effective business ids: host=%{public}s, device=%{public}s, effective=%{public}s",
         GetMaskedVectorString(hostSupportBusinessIds_).c_str(),
-        GetMaskedVectorString(deviceSupportedBusinessIds).c_str(),
-        GetMaskedVectorString(effectiveBusinessIds).c_str());
+        GetMaskedVectorString(deviceSupportedBusinessIds).c_str(), GetMaskedVectorString(effectiveBusinessIds).c_str());
     return effectiveBusinessIds;
 }
 

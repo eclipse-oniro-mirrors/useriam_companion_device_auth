@@ -14,9 +14,9 @@
  */
 
 use crate::common::constants::ErrorCode;
+use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{DynRequest, RequestManager};
 use crate::{log_e, log_i, Box, Vec};
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::DefaultRequestManager as u16;
 const MAX_REQUEST_NUM: usize = 50;
 

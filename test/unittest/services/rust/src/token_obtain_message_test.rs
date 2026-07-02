@@ -1,6 +1,3 @@
-
-use crate::traits::log_trace::TestFileId;
-const FILE_ID: u16 = TestFileId::TokenObtainMessageTest as u16;
 /*
  * Copyright (C) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +12,9 @@ const FILE_ID: u16 = TestFileId::TokenObtainMessageTest as u16;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+use crate::traits::log_trace::TestFileId;
+const FILE_ID: u16 = TestFileId::TokenObtainMessageTest as u16;
 
 use crate::common::constants::*;
 use crate::log_i;

@@ -31,13 +31,13 @@ use crate::traits::db_manager::{
     CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
     DeviceKey, UserInfo,
 };
+use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::TimeKeeperRegistry;
 use crate::utils::{Attribute, AttributeKey};
 use crate::String;
 use crate::{log_e, log_i, p, Box, Vec};
 use token_helper::DeviceTokenInfo;
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::HostEnroll as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct KeyNegotialParam {
@@ -453,12 +453,10 @@ impl HostDeviceEnrollRequest {
                     ErrorCode::GeneralError
                 })?,
                 atl: self.atl,
-                expire_time: issue_time
-                    .checked_add(TOKEN_VALID_PERIOD)
-                    .ok_or_else(|| {
-                        log_e!("expire_time overflow");
-                        ErrorCode::GeneralError
-                    })?,
+                expire_time: issue_time.checked_add(TOKEN_VALID_PERIOD).ok_or_else(|| {
+                    log_e!("expire_time overflow");
+                    ErrorCode::GeneralError
+                })?,
                 issue_time,
             };
             CompanionDeviceDbManagerRegistry::get_mut().add_token(&companion_token)?;

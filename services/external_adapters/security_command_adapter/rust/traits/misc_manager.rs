@@ -18,8 +18,8 @@ use crate::common::types::Udid;
 use crate::log_e;
 use crate::singleton_registry;
 use crate::traits::crypto_engine::KeyPair;
-use crate::Vec;
 use crate::traits::log_trace::RustFileId;
+use crate::Vec;
 pub(crate) const FILE_ID: u16 = RustFileId::MiscManager as u16;
 
 pub trait MiscManager {

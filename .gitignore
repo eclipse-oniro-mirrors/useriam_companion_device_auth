@@ -8,3 +8,6 @@ tmp
 .codemate
 gtest_build
 build
+*.profraw
+fuzz/corpus/
+.claude

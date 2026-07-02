@@ -151,7 +151,7 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
         .selectContext = selectContext_,
         .remoteTokenId = GetRemoteTokenId(*peerDeviceKey),
         .authTypes = authTypes,
-        .navigationButtonText =  widgetAuthParam_.navigationButtonText };
+        .navigationButtonText = widgetAuthParam_.navigationButtonText };
     Attributes request = {};
     EncodeStartDelegateAuthRequest(startRequest, request);
 
@@ -287,8 +287,7 @@ std::optional<uint32_t> HostDelegateAuthRequest::GetRemoteTokenId(const DeviceKe
             auto idType = deviceEntry.at("deviceIdType").get<int32_t>();
             auto deviceId = deviceEntry.at("deviceId").get<std::string>();
             auto deviceUserId = deviceEntry.at("deviceUserId").get<int32_t>();
-            if (idType == static_cast<int32_t>(deviceKey.idType) &&
-                deviceId == deviceKey.deviceId &&
+            if (idType == static_cast<int32_t>(deviceKey.idType) && deviceId == deviceKey.deviceId &&
                 deviceUserId == deviceKey.deviceUserId) {
                 IAM_LOGI("GetRemoteTokenId success");
                 return deviceEntry.at("remoteTokenId").get<uint32_t>();

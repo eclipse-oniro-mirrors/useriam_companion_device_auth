@@ -25,13 +25,13 @@ use crate::entry::companion_device_auth_ffi::{
 };
 use crate::traits::db_manager::DeviceKey;
 use crate::traits::event_manager::Event;
+use crate::traits::log_trace::RustFileId;
 use crate::CString;
 use crate::String;
 use crate::Vec;
 use crate::{log_e, p};
 use core::convert::TryFrom;
 use core::ptr;
-use crate::traits::log_trace::RustFileId;
 pub(crate) const FILE_ID: u16 = RustFileId::CommonCommand as u16;
 // Common
 pub fn try_vec_from_array_with_len<T: Clone>(array: &[T], len: u32) -> Result<Vec<T>, ErrorCode> {

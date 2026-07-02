@@ -22,6 +22,7 @@
 #include "template_status_callback_wrapper.h"
 
 #define LOG_TAG "CDA_ANI"
+#define LOG_FILE_ID LOG_FILE_ANI_TEMPLATE_STATUS_CB_WRAPPER
 
 namespace OHOS {
 namespace UserIam {

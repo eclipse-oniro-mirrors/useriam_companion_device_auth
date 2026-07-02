@@ -98,8 +98,7 @@ public:
     virtual std::shared_ptr<IRequest> CreateCompanionObtainTokenRequest(const DeviceKey &hostDeviceKey,
         uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
-        UserId companionUserId, const DeviceKey &hostDeviceKey,
-        const std::vector<uint8_t> &startDelegateAuthRequest,
+        UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
         const CompanionDelegateAuthParam &delegateAuthParam) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId,
         const DeviceKey &hostDeviceKey, const std::string &triggerReason) = 0;

@@ -155,7 +155,7 @@ void HostMixAuthRequest::StartAuthWithTemplateList(const std::vector<TemplateId>
             .authIntent = authIntent_,
             .authScene = authScene_,
             .selectContext = selectContext_,
-            .widgetAuthParam = widgetAuthParam_};
+            .widgetAuthParam = widgetAuthParam_ };
         auto hostSingleMixAuthRequest =
             GetRequestFactory().CreateHostSingleMixAuthRequest(authParams, companionDeviceKey,
                 [weakSelf = weak_from_this(), templateId](ResultCode result, const std::vector<uint8_t> &extraInfo) {

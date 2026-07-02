@@ -22,6 +22,7 @@
 #include "companion_device_auth_napi_helper.h"
 
 #define LOG_TAG "CDA_NAPI"
+#define LOG_FILE_ID LOG_FILE_NAPI_AVAILABLE_DEVICE_STATUS_CB_WRAPPER
 
 namespace OHOS {
 namespace UserIam {

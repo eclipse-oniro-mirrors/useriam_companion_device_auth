@@ -14,8 +14,8 @@
  */
 
 use crate::log_e;
-use crate::utils::AttributeKey;
 use crate::traits::log_trace::RustFileId;
+use crate::utils::AttributeKey;
 pub(crate) const FILE_ID: u16 = RustFileId::Constants as u16;
 pub const CHALLENGE_LEN: usize = 8;
 pub const AUTH_TOKEN_CHALLENGE_LEN: usize = 32;
