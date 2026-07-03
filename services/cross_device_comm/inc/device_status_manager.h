@@ -103,7 +103,6 @@ private:
     bool RemoveObsoleteDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap);
     bool AddOrUpdateDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap, bool resync);
     void NotifySubscribers();
-    std::vector<BusinessId> ComputeEffectiveBusinessIds(const std::vector<BusinessId> &deviceSupportedBusinessIds);
 
     std::map<PhysicalDeviceKey, DeviceStatusEntry> deviceStatusMap_;
     SubscribeMode currentMode_ { SUBSCRIBE_MODE_AUTH };

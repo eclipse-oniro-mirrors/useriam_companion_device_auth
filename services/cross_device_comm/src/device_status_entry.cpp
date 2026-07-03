@@ -15,10 +15,12 @@
 
 #include "device_status_entry.h"
 
+#include <algorithm>
 #include <cstdint>
 
 #include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_para2str.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_DEVICE_STATUS_ENTRY
@@ -27,7 +29,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus, std::function<void()> &&retrySync)
+DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus, std::function<void()> &&retrySync,
+    std::vector<BusinessId> hostSupportBusinessIds)
     : physicalDeviceKey(physicalStatus.physicalDeviceKey),
       channelId(physicalStatus.channelId),
       deviceModelInfo(physicalStatus.deviceModelInfo),
@@ -37,13 +40,17 @@ DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus,
       secureProtocolId(SecureProtocolId::INVALID),
       deviceType(physicalStatus.deviceType),
       capabilities(),
-      supportedBusinessIds(physicalStatus.supportedBusinessIds),
       isAuthMaintainActive(physicalStatus.isAuthMaintainActive),
       atlRevokeDelayMs(physicalStatus.atlRevokeDelayMs),
       refreshToken(physicalStatus.refreshToken),
       isSynced(false),
-      isSyncInProgress(false)
+      isSyncInProgress(false),
+      hostSupportBusinessIds_(std::move(hostSupportBusinessIds)),
+      physicalCompanionBusinessIds_(physicalStatus.supportedBusinessIds),
+      syncCompanionBusinessIds_()
 {
+    RecomputeEffectiveBusinessIds();
+
     constexpr uint32_t syncRetryBaseDelayMs = 1000;          // 1 second
     constexpr uint32_t syncRetryMaxDelayMs = 30 * 60 * 1000; // 30 minutes
     BackoffRetryTimer::Config config { .baseDelayMs = syncRetryBaseDelayMs, .maxDelayMs = syncRetryMaxDelayMs };
@@ -62,12 +69,15 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       secureProtocolId(other.secureProtocolId),
       deviceType(other.deviceType),
       capabilities(std::move(other.capabilities)),
-      supportedBusinessIds(std::move(other.supportedBusinessIds)),
       isAuthMaintainActive(other.isAuthMaintainActive),
       atlRevokeDelayMs(other.atlRevokeDelayMs),
       refreshToken(other.refreshToken),
       isSynced(other.isSynced),
       isSyncInProgress(other.isSyncInProgress),
+      hostSupportBusinessIds_(std::move(other.hostSupportBusinessIds_)),
+      physicalCompanionBusinessIds_(std::move(other.physicalCompanionBusinessIds_)),
+      syncCompanionBusinessIds_(std::move(other.syncCompanionBusinessIds_)),
+      effectiveBusinessIds_(std::move(other.effectiveBusinessIds_)),
       syncRetryTimer_(std::move(other.syncRetryTimer_))
 {
 }
@@ -108,13 +118,59 @@ DeviceStatus DeviceStatusEntry::BuildDeviceStatus() const
     status.protocolId = protocolId;
     status.secureProtocolId = secureProtocolId;
     status.capabilities = capabilities;
-    status.supportedBusinessIds = supportedBusinessIds;
+    status.supportedBusinessIds = effectiveBusinessIds_;
     status.isOnline = isSynced;
     status.isAuthMaintainActive = isAuthMaintainActive;
     status.deviceType = deviceType;
     status.atlRevokeDelayMs = atlRevokeDelayMs;
     status.refreshToken = refreshToken;
     return status;
+}
+
+bool DeviceStatusEntry::SetPhysicalCompanionBusinessIds(std::vector<BusinessId> physicalCompanionBusinessIds)
+{
+    physicalCompanionBusinessIds_ = std::move(physicalCompanionBusinessIds);
+    auto previousEffective = effectiveBusinessIds_;
+    RecomputeEffectiveBusinessIds();
+    return previousEffective != effectiveBusinessIds_;
+}
+
+bool DeviceStatusEntry::SetSyncCompanionBusinessIds(std::vector<BusinessId> syncCompanionBusinessIds)
+{
+    syncCompanionBusinessIds_ = std::move(syncCompanionBusinessIds);
+    auto previousEffective = effectiveBusinessIds_;
+    RecomputeEffectiveBusinessIds();
+    return previousEffective != effectiveBusinessIds_;
+}
+
+const std::vector<BusinessId> &DeviceStatusEntry::GetSupportedBusinessIds() const
+{
+    return effectiveBusinessIds_;
+}
+
+void DeviceStatusEntry::RecomputeEffectiveBusinessIds()
+{
+    // Sync-sourced ids are authoritative when present; otherwise degrade to the physical-layer ids.
+    const std::vector<BusinessId> &deviceSupportedBusinessIds =
+        syncCompanionBusinessIds_.empty() ? physicalCompanionBusinessIds_ : syncCompanionBusinessIds_;
+    effectiveBusinessIds_ = IntersectBusinessIds(hostSupportBusinessIds_, deviceSupportedBusinessIds);
+    IAM_LOGI("recompute effective business ids: host=%{public}s, device=%{public}s, effective=%{public}s",
+        GetMaskedVectorString(hostSupportBusinessIds_).c_str(),
+        GetMaskedVectorString(deviceSupportedBusinessIds).c_str(),
+        GetMaskedVectorString(effectiveBusinessIds_).c_str());
+}
+
+std::vector<BusinessId> DeviceStatusEntry::IntersectBusinessIds(const std::vector<BusinessId> &hostSupportBusinessIds,
+    const std::vector<BusinessId> &deviceSupportedBusinessIds)
+{
+    std::vector<BusinessId> effectiveBusinessIds;
+    for (const auto &id : hostSupportBusinessIds) {
+        if (std::find(deviceSupportedBusinessIds.begin(), deviceSupportedBusinessIds.end(), id) !=
+            deviceSupportedBusinessIds.end()) {
+            effectiveBusinessIds.push_back(id);
+        }
+    }
+    return effectiveBusinessIds;
 }
 
 } // namespace CompanionDeviceAuth

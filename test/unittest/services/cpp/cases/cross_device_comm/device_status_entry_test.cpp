@@ -75,12 +75,14 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceKey_001, TestSize.Level0)
 
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
 {
-    DeviceStatusEntry entry(physicalStatus_, []() {});
+    std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2),
+        static_cast<BusinessId>(3) };
+    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
 
     entry.protocolId = ProtocolId::VERSION_1;
     entry.secureProtocolId = SecureProtocolId::DEFAULT;
     entry.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
-    entry.supportedBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2), static_cast<BusinessId>(3) };
+    entry.SetSyncCompanionBusinessIds(hostBusinessIds);
     entry.isSynced = true;
 
     entry.deviceUserId = INT32_100;
@@ -160,20 +162,55 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_RefreshTokenFalse, TestSize.Le
 
 HWTEST_F(DeviceStatusEntryTest, Constructor_SupportedBusinessIds_001, TestSize.Level0)
 {
-    physicalStatus_.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
+    std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
+    physicalStatus_.supportedBusinessIds = hostBusinessIds;
 
-    DeviceStatusEntry entry(physicalStatus_, []() {});
+    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
 
-    ASSERT_EQ(entry.supportedBusinessIds.size(), 2u);
-    EXPECT_EQ(entry.supportedBusinessIds[0], static_cast<BusinessId>(10001));
-    EXPECT_EQ(entry.supportedBusinessIds[1], static_cast<BusinessId>(10002));
+    // sync empty -> effective degrades to hostSupportBusinessIds_ ∩ physicalCompanionBusinessIds_
+    const auto &effective = entry.GetSupportedBusinessIds();
+    ASSERT_EQ(effective.size(), 2u);
+    EXPECT_EQ(effective[0], static_cast<BusinessId>(10001));
+    EXPECT_EQ(effective[1], static_cast<BusinessId>(10002));
 }
 
 HWTEST_F(DeviceStatusEntryTest, Constructor_SupportedBusinessIds_Empty_001, TestSize.Level0)
 {
     DeviceStatusEntry entry(physicalStatus_, []() {});
 
-    EXPECT_TRUE(entry.supportedBusinessIds.empty());
+    EXPECT_TRUE(entry.GetSupportedBusinessIds().empty());
+}
+
+HWTEST_F(DeviceStatusEntryTest, SyncCompanionBusinessIds_TakesPriority_OverPhysical, TestSize.Level0)
+{
+    // host supports 10001/10002/10003; physical advertises 10001; sync advertises 10003.
+    std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002),
+        static_cast<BusinessId>(10003) };
+    physicalStatus_.supportedBusinessIds = { static_cast<BusinessId>(10001) };
+
+    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
+    // before sync: effective degrades to hostSupport ∩ physical = {10001}
+    EXPECT_EQ(entry.GetSupportedBusinessIds(), std::vector<BusinessId>({ static_cast<BusinessId>(10001) }));
+
+    entry.SetSyncCompanionBusinessIds({ static_cast<BusinessId>(10003) });
+    // after sync: sync takes priority over physical -> hostSupport ∩ {10003} = {10003}
+    EXPECT_EQ(entry.GetSupportedBusinessIds(), std::vector<BusinessId>({ static_cast<BusinessId>(10003) }));
+}
+
+HWTEST_F(DeviceStatusEntryTest, SetSyncCompanionBusinessIds_Empty_DegradesToPhysical, TestSize.Level0)
+{
+    std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
+    physicalStatus_.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
+
+    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
+    entry.SetSyncCompanionBusinessIds({ static_cast<BusinessId>(10001) });
+    EXPECT_EQ(entry.GetSupportedBusinessIds(), std::vector<BusinessId>({ static_cast<BusinessId>(10001) }));
+
+    // sync becomes empty -> effective degrades back to physical
+    bool changed = entry.SetSyncCompanionBusinessIds({});
+    EXPECT_TRUE(changed);
+    EXPECT_EQ(entry.GetSupportedBusinessIds(),
+        std::vector<BusinessId>({ static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) }));
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -33,13 +33,18 @@ namespace CompanionDeviceAuth {
 
 class DeviceStatusEntry : public NoCopyable {
 public:
-    DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus, std::function<void()> &&retrySync);
+    DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus, std::function<void()> &&retrySync,
+        std::vector<BusinessId> hostSupportBusinessIds = {});
     DeviceStatusEntry(DeviceStatusEntry &&other) noexcept;
 
     void OnSyncSuccess();
     void OnSyncFailure();
     DeviceKey BuildDeviceKey() const;
     DeviceStatus BuildDeviceStatus() const;
+    bool SetPhysicalCompanionBusinessIds(std::vector<BusinessId> physicalCompanionBusinessIds);
+    bool SetSyncCompanionBusinessIds(std::vector<BusinessId> syncCompanionBusinessIds);
+    const std::vector<BusinessId> &GetSupportedBusinessIds() const;
+
     PhysicalDeviceKey physicalDeviceKey;
     ChannelId channelId { ChannelId::INVALID };
     int32_t deviceUserId { INVALID_USER_ID };
@@ -50,7 +55,6 @@ public:
     SecureProtocolId secureProtocolId { SecureProtocolId::INVALID };
     DeviceType deviceType { DeviceType::INVALID };
     std::vector<Capability> capabilities {};
-    std::vector<BusinessId> supportedBusinessIds {};
     bool isAuthMaintainActive { false };
     std::optional<uint32_t> atlRevokeDelayMs;
     bool refreshToken { false };
@@ -58,6 +62,14 @@ public:
     bool isSyncInProgress { false };
 
 private:
+    void RecomputeEffectiveBusinessIds();
+    static std::vector<BusinessId> IntersectBusinessIds(const std::vector<BusinessId> &hostSupportBusinessIds,
+        const std::vector<BusinessId> &deviceSupportedBusinessIds);
+
+    std::vector<BusinessId> hostSupportBusinessIds_;
+    std::vector<BusinessId> physicalCompanionBusinessIds_;
+    std::vector<BusinessId> syncCompanionBusinessIds_;
+    std::vector<BusinessId> effectiveBusinessIds_;
     std::unique_ptr<BackoffRetryTimer> syncRetryTimer_;
 };
 
