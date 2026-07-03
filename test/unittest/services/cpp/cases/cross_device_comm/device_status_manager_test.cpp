@@ -1101,8 +1101,8 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_ComputesEffective
 
     auto it = ctx.manager->deviceStatusMap_.find(physicalStatus.physicalDeviceKey);
     ASSERT_NE(it, ctx.manager->deviceStatusMap_.end());
-    ASSERT_EQ(it->second.supportedBusinessIds.size(), 1u);
-    EXPECT_EQ(it->second.supportedBusinessIds[0], static_cast<BusinessId>(10002));
+    ASSERT_EQ(it->second.GetSupportedBusinessIds().size(), 1u);
+    EXPECT_EQ(it->second.GetSupportedBusinessIds()[0], static_cast<BusinessId>(10002));
 }
 
 HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_EmptyDeviceIds, TestSize.Level0)
@@ -1127,7 +1127,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_EmptyDeviceIds, T
 
     auto it = ctx.manager->deviceStatusMap_.find(physicalStatus.physicalDeviceKey);
     ASSERT_NE(it, ctx.manager->deviceStatusMap_.end());
-    EXPECT_TRUE(it->second.supportedBusinessIds.empty());
+    EXPECT_TRUE(it->second.GetSupportedBusinessIds().empty());
 }
 
 HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsChanged, TestSize.Level0)
@@ -1140,8 +1140,8 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsChanged
     auto physicalStatus = MakePhysicalStatus("device-biz-change", ChannelId::SOFTBUS, "Device");
     physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
 
-    DeviceStatusEntry entry(physicalStatus, []() {});
-    entry.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
+    // Pre-existing entry, not yet synced (sync empty): effective is driven by the physical ids.
+    DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
     entry.protocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
@@ -1156,8 +1156,9 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsChanged
 
     auto it = ctx.manager->deviceStatusMap_.find(physicalStatus.physicalDeviceKey);
     ASSERT_NE(it, ctx.manager->deviceStatusMap_.end());
-    ASSERT_EQ(it->second.supportedBusinessIds.size(), 1u);
-    EXPECT_EQ(it->second.supportedBusinessIds[0], static_cast<BusinessId>(10003));
+    // physical ids changed -> effective = hostSupport ∩ {10003} = {10003}
+    ASSERT_EQ(it->second.GetSupportedBusinessIds().size(), 1u);
+    EXPECT_EQ(it->second.GetSupportedBusinessIds()[0], static_cast<BusinessId>(10003));
 }
 
 HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchanged, TestSize.Level0)
@@ -1169,8 +1170,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchang
     auto physicalStatus = MakePhysicalStatus("device-biz-same", ChannelId::SOFTBUS, "Device");
     physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001) };
 
-    DeviceStatusEntry entry(physicalStatus, []() {});
-    entry.supportedBusinessIds = { static_cast<BusinessId>(10001) };
+    DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
     entry.protocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
@@ -1182,8 +1182,8 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchang
 
     auto it = ctx.manager->deviceStatusMap_.find(physicalStatus.physicalDeviceKey);
     ASSERT_NE(it, ctx.manager->deviceStatusMap_.end());
-    ASSERT_EQ(it->second.supportedBusinessIds.size(), 1u);
-    EXPECT_EQ(it->second.supportedBusinessIds[0], static_cast<BusinessId>(10001));
+    ASSERT_EQ(it->second.GetSupportedBusinessIds().size(), 1u);
+    EXPECT_EQ(it->second.GetSupportedBusinessIds()[0], static_cast<BusinessId>(10001));
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

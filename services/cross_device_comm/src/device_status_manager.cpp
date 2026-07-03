@@ -194,9 +194,7 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     deviceStatus.deviceUserId = syncDeviceStatus.deviceUserId;
     deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
     deviceStatus.capabilities = syncDeviceStatus.capabilityList;
-    if (!syncDeviceStatus.businessIdList.empty()) {
-        deviceStatus.supportedBusinessIds = ComputeEffectiveBusinessIds(syncDeviceStatus.businessIdList);
-    }
+    deviceStatus.SetSyncCompanionBusinessIds(syncDeviceStatus.businessIdList);
 
     guard.Cancel();
     deviceStatus.isSynced = true;
@@ -204,22 +202,6 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     NotifySubscribers();
     auto newDeviceKey = deviceStatus.BuildDeviceKey();
     IAM_LOGI("device synced successfully: %{public}s", newDeviceKey.GetDesc().c_str());
-}
-
-std::vector<BusinessId> DeviceStatusManager::ComputeEffectiveBusinessIds(
-    const std::vector<BusinessId> &deviceSupportedBusinessIds)
-{
-    std::vector<BusinessId> effectiveBusinessIds;
-    for (const auto &id : hostSupportBusinessIds_) {
-        if (std::find(deviceSupportedBusinessIds.begin(), deviceSupportedBusinessIds.end(), id) !=
-            deviceSupportedBusinessIds.end()) {
-            effectiveBusinessIds.push_back(id);
-        }
-    }
-    IAM_LOGI("compute effective business ids: host=%{public}s, device=%{public}s, effective=%{public}s",
-        GetMaskedVectorString(hostSupportBusinessIds_).c_str(),
-        GetMaskedVectorString(deviceSupportedBusinessIds).c_str(), GetMaskedVectorString(effectiveBusinessIds).c_str());
-    return effectiveBusinessIds;
 }
 
 void DeviceStatusManager::SetSubscribeMode(SubscribeMode mode)
@@ -530,12 +512,14 @@ bool DeviceStatusManager::AddOrUpdateDevices(
 
         auto it = deviceStatusMap_.find(key);
         if (it == deviceStatusMap_.end()) {
-            DeviceStatusEntry entry(status, [weakSelf = weak_from_this(), key]() {
-                auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
-                self->TriggerDeviceSync(key);
-            });
-            entry.supportedBusinessIds = ComputeEffectiveBusinessIds(status.supportedBusinessIds);
+            DeviceStatusEntry entry(
+                status,
+                [weakSelf = weak_from_this(), key]() {
+                    auto self = weakSelf.lock();
+                    ENSURE_OR_RETURN(self != nullptr);
+                    self->TriggerDeviceSync(key);
+                },
+                hostSupportBusinessIds_);
             deviceStatusMap_.emplace(key, std::move(entry));
             deviceChanged = true;
             IAM_LOGI("device added: %{public}s, channel=%{public}d", GET_MASKED_STR_CSTR(key.deviceId),
@@ -543,15 +527,14 @@ bool DeviceStatusManager::AddOrUpdateDevices(
             TriggerDeviceSync(key);
         } else {
             DeviceStatusEntry &deviceStatus = it->second;
-            auto newEffectiveIds = ComputeEffectiveBusinessIds(status.supportedBusinessIds);
+            bool effectiveChanged = deviceStatus.SetPhysicalCompanionBusinessIds(status.supportedBusinessIds);
             bool hasChange = deviceStatus.channelId != status.channelId ||
                 deviceStatus.deviceName != status.deviceName ||
                 deviceStatus.deviceModelInfo != status.deviceModelInfo ||
                 deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive ||
                 deviceStatus.deviceType != status.deviceType ||
                 deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs ||
-                deviceStatus.refreshToken != status.refreshToken ||
-                deviceStatus.supportedBusinessIds != newEffectiveIds;
+                deviceStatus.refreshToken != status.refreshToken || effectiveChanged;
             if (hasChange) {
                 deviceStatus.channelId = status.channelId;
                 deviceStatus.deviceName = status.deviceName;
@@ -560,7 +543,6 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 deviceStatus.deviceType = status.deviceType;
                 deviceStatus.atlRevokeDelayMs = status.atlRevokeDelayMs;
                 deviceStatus.refreshToken = status.refreshToken;
-                deviceStatus.supportedBusinessIds = std::move(newEffectiveIds);
                 deviceChanged = true;
             }
             if (resync) {
