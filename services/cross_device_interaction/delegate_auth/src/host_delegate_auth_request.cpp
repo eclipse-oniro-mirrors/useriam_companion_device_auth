@@ -284,6 +284,13 @@ std::optional<uint32_t> HostDelegateAuthRequest::GetRemoteTokenId(const DeviceKe
                 !deviceEntry.contains("deviceUserId") || !deviceEntry.contains("remoteTokenId")) {
                 continue;
             }
+            if (!deviceEntry.at("deviceIdType").is_number_integer() ||
+                !deviceEntry.at("deviceId").is_string() ||
+                !deviceEntry.at("deviceUserId").is_number_integer() ||
+                !deviceEntry.at("remoteTokenId").is_number_unsigned()) {
+                IAM_LOGE("%{public}s invalid json data type in deviceSelectContext", GetDescription());
+                continue;
+            }
             auto idType = deviceEntry.at("deviceIdType").get<int32_t>();
             auto deviceId = deviceEntry.at("deviceId").get<std::string>();
             auto deviceUserId = deviceEntry.at("deviceUserId").get<int32_t>();
