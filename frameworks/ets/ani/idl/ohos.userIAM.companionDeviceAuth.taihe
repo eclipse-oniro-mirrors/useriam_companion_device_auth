@@ -72,8 +72,8 @@ struct DeviceSelectResult {
 }
  
 interface StatusMonitor {
-    @gen_promise("getTemplateStatus")
     getTemplateStatusSync(): Array<TemplateStatus>;
+    @promise getTemplateStatus(): Array<TemplateStatus>;
     
     onTemplateChange(callback: (templateStatusList: Array<TemplateStatus>) => void): void;
 
@@ -90,8 +90,8 @@ interface StatusMonitor {
 
 function getStatusMonitor(localUserId: i32): StatusMonitor;
 
-@gen_promise("updateEnabledBusinessIds")
 function updateEnabledBusinessIdsSync(templateId: @typedarray Array<u8>, enabledBusinessIds: Array<i32>): void;
+@promise function updateEnabledBusinessIds(templateId: @typedarray Array<u8>, enabledBusinessIds: Array<i32>): void;
 
 function registerDeviceSelectCallback(callback: (selectPurpose: i32) => DeviceSelectResult): void;
 
