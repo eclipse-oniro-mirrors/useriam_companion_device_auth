@@ -112,6 +112,11 @@ public:
         return result;
     }
 
+    ::taihe::array<TaiheCompanionDeviceAuth::TemplateStatus> getTemplateStatus()
+    {
+        return getTemplateStatusSync();
+    }
+
     void onTemplateChange(
         ::taihe::callback_view<void(::taihe::array_view<TaiheCompanionDeviceAuth::TemplateStatus> templateStatusList)>
             callback)
@@ -426,6 +431,7 @@ void unregisterPasscodePromptCallback()
 
 TH_EXPORT_CPP_API_getStatusMonitor(getStatusMonitor);
 TH_EXPORT_CPP_API_updateEnabledBusinessIdsSync(updateEnabledBusinessIdsSync);
+TH_EXPORT_CPP_API_updateEnabledBusinessIds(updateEnabledBusinessIdsSync);
 TH_EXPORT_CPP_API_registerDeviceSelectCallback(registerDeviceSelectCallback);
 TH_EXPORT_CPP_API_unregisterDeviceSelectCallback(unregisterDeviceSelectCallback);
 TH_EXPORT_CPP_API_registerPasscodePromptCallback(registerPasscodePromptCallback);
