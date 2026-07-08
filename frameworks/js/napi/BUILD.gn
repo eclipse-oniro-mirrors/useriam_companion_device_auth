@@ -58,6 +58,7 @@ ohos_shared_library("companiondeviceauth") {
     "ipc:ipc_single",
     "jsoncpp:jsoncpp",
     "napi:ace_napi",
+    "node:node_header_notice",
     "samgr:samgr_proxy",
   ]
 
