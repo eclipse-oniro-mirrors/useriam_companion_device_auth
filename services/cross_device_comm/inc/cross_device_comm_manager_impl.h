@@ -63,6 +63,7 @@ public:
         OnDeviceStatusChange &&onDeviceStatusChange) override;
     void SetSubscribeMode(SubscribeMode subscribeMode) override;
     void RefreshDeviceStatus() override;
+    void TriggerDeviceSync(const DeviceKey &deviceKey) override;
     std::optional<SteadyTimeMs> GetManageSubscribeTime() const override;
 
     bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) override;

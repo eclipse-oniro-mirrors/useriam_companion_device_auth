@@ -340,7 +340,12 @@ void HostObtainTokenRequest::HandlePeerDeviceStatusChanged(const std::vector<Dev
         }
         if (!status.isAuthMaintainActive) {
             IAM_LOGE("%{public}s companion device left auth maintain state", GetDescription());
-            CompleteWithError(ResultCode::GENERAL_ERROR);
+            // companion may already hold PreObtainTokenReply(SUCCESS) and be waiting for OBTAIN_TOKEN; a bare
+            // CompleteWithError sends nothing to the companion (InboundRequest does not own the connection), so it
+            // would hang until the 60s timeout. Cancel() emits REQUEST_ABORTED (the companion's OutboundRequest
+            // subscribes to it during OpenConnection) so the companion can abort promptly. Symmetric to the
+            // CompanionIssueTokenRequest::HandleAuthMaintainActiveChanged fix.
+            Cancel(ResultCode::GENERAL_ERROR);
         }
         return;
     }

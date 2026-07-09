@@ -197,8 +197,20 @@ static void FuzzCreateCompanionRevokeTokenRequest(std::shared_ptr<RequestFactory
 {
     UserId companionUserId = fuzzData.ConsumeIntegral<UserId>();
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    std::string triggerReason = GenerateFuzzString(fuzzData, 64);
+    std::string triggerReason = GenerateFuzzString(fuzzData, SIZE_64);
     auto request = factory->CreateCompanionRevokeTokenRequest(companionUserId, hostDeviceKey, triggerReason);
+    (void)request;
+}
+
+static void FuzzCreateCompanionRequestResyncRequest(std::shared_ptr<RequestFactoryImpl> &factory,
+    FuzzedDataProvider &fuzzData)
+{
+    DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
+    PhysicalDeviceKey hostPhysicalDeviceKey;
+    hostPhysicalDeviceKey.idType = hostDeviceKey.idType;
+    hostPhysicalDeviceKey.deviceId = hostDeviceKey.deviceId;
+    std::string triggerReason = GenerateFuzzString(fuzzData, SIZE_64);
+    auto request = factory->CreateCompanionRequestResyncRequest(hostPhysicalDeviceKey, triggerReason);
     (void)request;
 }
 
@@ -274,6 +286,7 @@ static const RequestFactoryImplFuzzFunction g_fuzzFuncs[] = {
     FuzzCreateCompanionObtainTokenRequest,
     FuzzCreateCompanionDelegateAuthRequest,
     FuzzCreateCompanionRevokeTokenRequest,
+    FuzzCreateCompanionRequestResyncRequest,
     FuzzCreateHostMixAuthRequest,
     FuzzCreateHostSingleMixAuthRequest,
     FuzzCreate,

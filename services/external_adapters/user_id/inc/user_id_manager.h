@@ -41,6 +41,7 @@ public:
 
     virtual UserId GetActiveUserId() const = 0;
     virtual std::optional<std::string> GetActiveUserName() const = 0;
+    virtual std::string GetActiveUserTypeName() const = 0;
     virtual std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) = 0;
     virtual bool IsUserIdValid(int32_t userId) = 0;
 

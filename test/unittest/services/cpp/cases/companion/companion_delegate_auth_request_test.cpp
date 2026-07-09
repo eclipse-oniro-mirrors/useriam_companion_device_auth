@@ -232,7 +232,13 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_004, TestSiz
     std::vector<uint8_t> extraInfo = extraInfoAttrs.Serialize();
 
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionEndDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillOnce(Return(false));
+    // On the failure path the request first tries SendDelegateAuthResult (SendMessage) and, since that
+    // fails (resultSent_ stays false), CompleteWithError then sends REQUEST_ABORTED via SendRequestAborted
+    // (a second SendMessage). Expect both calls to fail; otherwise the over-cardinality 2nd call traps.
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _))
+        .Times(2)
+        .WillOnce(Return(false))
+        .WillOnce(Return(false));
 
     ASSERT_NO_THROW(request->HandleDelegateAuthResult(ResultCode::SUCCESS, extraInfo));
 }
@@ -352,6 +358,78 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_005, TestSize.Level
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionEndDelegateAuth(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     ASSERT_NO_THROW(request->CompleteWithError(ResultCode::GENERAL_ERROR));
+}
+
+HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_AbortsHostWhenResultNotSent, TestSize.Level0)
+{
+    // OnStart/mid-flow failure: the host is still waiting for SEND_DELEGATE_AUTH_RESULT while the START_DELEGATE_AUTH
+    // reply was already answered SUCCESS by the handler (RequestManager::Start returns before OnStart runs).
+    // CompleteWithError must emit REQUEST_ABORTED so the host aborts promptly instead of hanging until the 60s
+    // timeout.
+    MockGuard guard;
+
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
+        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+
+    bool abortedSent = false;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::REQUEST_ABORTED, _, _))
+        .WillOnce(Invoke([&abortedSent](const std::string &, MessageType, const Attributes &, OnMessageReply) {
+            abortedSent = true;
+            return true;
+        }));
+
+    ASSERT_NO_THROW(request->CompleteWithError(ResultCode::GENERAL_ERROR));
+    EXPECT_TRUE(abortedSent);
+}
+
+HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_DoesNotAbortAfterResultSent, TestSize.Level0)
+{
+    // Once SEND_DELEGATE_AUTH_RESULT was delivered the host already knows the outcome; CompleteWithError must not
+    // emit a second REQUEST_ABORTED (resultSent_ guard).
+    MockGuard guard;
+
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
+        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+
+    int abortCount = 0;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _))
+        .WillRepeatedly(
+            Invoke([&abortCount](const std::string &, MessageType type, const Attributes &, OnMessageReply) {
+                if (type == MessageType::REQUEST_ABORTED) {
+                    abortCount++;
+                }
+                return true;
+            }));
+
+    // Deliver the result first -> resultSent_ becomes true.
+    ASSERT_TRUE(request->SendDelegateAuthResult(ResultCode::SUCCESS, {}));
+    // Subsequent error completion must not notify the host again.
+    ASSERT_NO_THROW(request->CompleteWithError(ResultCode::GENERAL_ERROR));
+
+    EXPECT_EQ(abortCount, 0);
+}
+
+HWTEST_F(CompanionDelegateAuthRequestTest, Cancel_AbortsHostExactlyOnce, TestSize.Level0)
+{
+    // Cancel() (60s timeout / same-device preemption) already emits REQUEST_ABORTED via InboundRequest::Cancel.
+    // CompleteWithError must not emit a second one (no double-abort regression).
+    MockGuard guard;
+
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
+        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+
+    int abortCount = 0;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::REQUEST_ABORTED, _, _))
+        .WillRepeatedly(Invoke([&abortCount](const std::string &, MessageType, const Attributes &, OnMessageReply) {
+            abortCount++;
+            return true;
+        }));
+
+    ASSERT_TRUE(request->Cancel(ResultCode::GENERAL_ERROR));
+    EXPECT_EQ(abortCount, 1);
 }
 
 HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithSuccess_001, TestSize.Level0)

@@ -27,11 +27,19 @@ companion_device_auth_fake_sources = [
 
 companion_device_auth_fake_include_dirs = [
   "${companion_device_auth_fake_dir}",
+  "${companion_device_auth_fake_dir}/common_event",
+  "${companion_device_auth_fake_dir}/datashare",
   "${companion_device_auth_fake_dir}/self",
   "${companion_device_auth_fake_dir}/softbus",
   "${companion_device_auth_fake_dir}/system",
   "${companion_device_auth_fake_dir}/userauth",
 ]
+
+# Services-only fakes: depend on services-side SDK headers (e.g. data_ability_observer_interface.h
+# from ability_runtime:dataobs_manager) that client-side test targets do not pull in. They cannot
+# live in companion_device_auth_fake_sources, which both client and services targets compile.
+companion_device_auth_fake_service_sources =
+    [ "${companion_device_auth_fake_dir}/datashare/datashare_helper.cpp" ]
 
 # Test-only deps without Rust library - uses rust_ffi_stub.cpp instead
 companion_device_auth_service_deps_for_test = [

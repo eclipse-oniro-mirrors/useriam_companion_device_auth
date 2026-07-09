@@ -54,6 +54,11 @@ public:
         return std::nullopt;
     }
 
+    std::string GetActiveUserTypeName() const override
+    {
+        return "";
+    }
+
     std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override
     {
         ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);

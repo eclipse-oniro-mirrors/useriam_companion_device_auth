@@ -74,6 +74,7 @@ enum class MessageType : uint16_t {
     INVALID = 0x0000,
     // Device status sync (0x01xx)
     SYNC_DEVICE_STATUS = 0x0101,
+    REQUEST_DEVICE_RESYNC = 0x0102,
 
     // Bind companion device (0x03xx)
     INIT_KEY_NEGOTIATION = 0x0301,
@@ -309,6 +310,7 @@ struct SyncDeviceStatus {
     SecureProtocolId secureProtocolId;
     std::string deviceUserName {};
     int32_t deviceUserId { INVALID_USER_ID };
+    std::string deviceName {};
 };
 
 struct DeviceCapabilityInfo {

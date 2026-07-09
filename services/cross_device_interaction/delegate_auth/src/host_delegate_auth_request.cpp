@@ -105,7 +105,7 @@ bool HostDelegateAuthRequest::InitDelegateResultSubscription()
             [weakSelf = weak_from_this()](const Attributes &request, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
-                self->HandleSendDelegateAuthRequestMsg(request, onMessageReply);
+                self->HandleSendDelegateAuthResultMessage(request, onMessageReply);
             });
     if (delegateResultSubscription_ == nullptr) {
         IAM_LOGE("%{public}s subscribe delegate result failed", GetDescription());
@@ -201,7 +201,7 @@ bool HostDelegateAuthRequest::CallSecurityAgentEndDelegateAuth(const std::vector
     return true;
 }
 
-ResultCode HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attributes &request,
+ResultCode HostDelegateAuthRequest::HandleSendDelegateAuthResult(const Attributes &request,
     std::vector<uint8_t> &outFwkMsg)
 {
     IAM_LOGI("%{public}s start", GetDescription());
@@ -227,11 +227,11 @@ ResultCode HostDelegateAuthRequest::HandleSendDelegateAuthRequest(const Attribut
     return ResultCode::SUCCESS;
 }
 
-void HostDelegateAuthRequest::HandleSendDelegateAuthRequestMsg(const Attributes &request,
+void HostDelegateAuthRequest::HandleSendDelegateAuthResultMessage(const Attributes &request,
     OnMessageReply &onMessageReply)
 {
     LogTraceGuard guard;
-    IAM_LOGI("%{public}s HandleSendDelegateAuthRequestMsg", GetDescription());
+    IAM_LOGI("%{public}s HandleSendDelegateAuthResultMessage", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
         Attributes reply;
@@ -241,7 +241,7 @@ void HostDelegateAuthRequest::HandleSendDelegateAuthRequestMsg(const Attributes 
     });
 
     std::vector<uint8_t> fwkMsg;
-    ResultCode result = HandleSendDelegateAuthRequest(request, fwkMsg);
+    ResultCode result = HandleSendDelegateAuthResult(request, fwkMsg);
     if (result != ResultCode::SUCCESS) {
         errorGuard.UpdateErrorCode(result);
         return;
@@ -284,8 +284,7 @@ std::optional<uint32_t> HostDelegateAuthRequest::GetRemoteTokenId(const DeviceKe
                 !deviceEntry.contains("deviceUserId") || !deviceEntry.contains("remoteTokenId")) {
                 continue;
             }
-            if (!deviceEntry.at("deviceIdType").is_number_integer() ||
-                !deviceEntry.at("deviceId").is_string() ||
+            if (!deviceEntry.at("deviceIdType").is_number_integer() || !deviceEntry.at("deviceId").is_string() ||
                 !deviceEntry.at("deviceUserId").is_number_integer() ||
                 !deviceEntry.at("remoteTokenId").is_number_unsigned()) {
                 IAM_LOGE("%{public}s invalid json data type in deviceSelectContext", GetDescription());

@@ -147,6 +147,15 @@ void CrossDeviceCommManagerImpl::RefreshDeviceStatus()
     deviceStatusMgr_->RefreshDeviceStatus();
 }
 
+void CrossDeviceCommManagerImpl::TriggerDeviceSync(const DeviceKey &deviceKey)
+{
+    ENSURE_OR_RETURN(deviceStatusMgr_ != nullptr);
+    PhysicalDeviceKey physicalKey {};
+    physicalKey.idType = deviceKey.idType;
+    physicalKey.deviceId = deviceKey.deviceId;
+    deviceStatusMgr_->TriggerDeviceSync(physicalKey);
+}
+
 std::optional<SteadyTimeMs> CrossDeviceCommManagerImpl::GetManageSubscribeTime() const
 {
     ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, std::nullopt);

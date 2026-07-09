@@ -73,6 +73,7 @@ void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
     attributes.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID,
         SecureProtocolIdConverter::ToUnderlying(reply.secureProtocolId));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, reply.deviceUserName);
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_DEVICE_NAME, reply.deviceName);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
 }
 
@@ -109,6 +110,9 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
     ENSURE_OR_RETURN_VAL(getSecureProtocolIdRet, std::nullopt);
     bool getUserNameRet = attributes.GetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, reply.deviceUserName);
     ENSURE_OR_RETURN_VAL(getUserNameRet, std::nullopt);
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_DEVICE_NAME)) {
+        attributes.GetStringValue(Attributes::ATTR_CDA_SA_DEVICE_NAME, reply.deviceName);
+    }
     bool getExtraInfoRet =
         attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);

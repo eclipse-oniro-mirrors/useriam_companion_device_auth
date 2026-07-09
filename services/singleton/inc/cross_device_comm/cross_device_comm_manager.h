@@ -51,6 +51,7 @@ public:
         OnDeviceStatusChange &&onDeviceStatusChange) = 0;
     virtual void SetSubscribeMode(SubscribeMode subscribeMode) = 0;
     virtual void RefreshDeviceStatus() = 0;
+    virtual void TriggerDeviceSync(const DeviceKey &deviceKey) = 0;
     virtual std::optional<SteadyTimeMs> GetManageSubscribeTime() const = 0;
 
     virtual bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) = 0;

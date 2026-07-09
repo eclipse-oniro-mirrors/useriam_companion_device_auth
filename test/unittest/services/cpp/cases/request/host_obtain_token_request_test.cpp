@@ -762,6 +762,35 @@ HWTEST_F(HostObtainTokenRequestTest, HandlePeerDeviceStatusChanged_003, TestSize
     ASSERT_NO_THROW(request->HandlePeerDeviceStatusChanged(deviceStatusList));
 }
 
+HWTEST_F(HostObtainTokenRequestTest, HandlePeerDeviceStatusChanged_AbortsCompanionOnInactive, TestSize.Level0)
+{
+    // After OnStart replies PreObtainTokenReply(SUCCESS), the companion waits for OBTAIN_TOKEN. If the companion
+    // device drops out of auth-maintain, the request must Cancel() so REQUEST_ABORTED reaches the companion (its
+    // OutboundRequest subscribes to it during OpenConnection); a bare CompleteWithError would leave the companion
+    // hanging until the 60s timeout.
+    auto preObtainTokenRequest = MakePreObtainTokenRequest();
+    auto onMessageReply = [](const Attributes &) {};
+    auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
+        OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    EXPECT_TRUE(request->OnStart(errorGuard));
+
+    bool abortedSent = false;
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, MessageType::REQUEST_ABORTED, _, _))
+        .WillOnce(Invoke([&abortedSent](const std::string &, MessageType, const Attributes &, OnMessageReply) {
+            abortedSent = true;
+            return true;
+        }));
+    EXPECT_CALL(mockSecurityAgent_, HostCancelObtainToken(_)).WillOnce(Return(ResultCode::SUCCESS));
+
+    DeviceStatus status = { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = false };
+    std::vector<DeviceStatus> deviceStatusList = { status };
+
+    ASSERT_NO_THROW(request->HandlePeerDeviceStatusChanged(deviceStatusList));
+    EXPECT_TRUE(abortedSent);
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

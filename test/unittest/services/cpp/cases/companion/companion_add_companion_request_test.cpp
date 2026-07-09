@@ -300,7 +300,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_008, TestSize.Level0)
     EXPECT_FALSE(*replyCalled);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_001, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddHostBinding_001, TestSize.Level0)
 {
     MockGuard guard;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -337,14 +337,14 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_001, TestSize
             return ResultCode::SUCCESS;
         }));
 
-    request->HandleBeginAddCompanion(attrInput, messageReply);
+    request->HandleBeginAddHostBinding(attrInput, messageReply);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, ResultCode::SUCCESS);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_002, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddHostBinding_002, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -364,10 +364,10 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_002, TestSize
 
     OnMessageReply messageReply = nullptr;
 
-    ASSERT_NO_THROW(request->HandleBeginAddCompanion(attrInput, messageReply));
+    ASSERT_NO_THROW(request->HandleBeginAddHostBinding(attrInput, messageReply));
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_003, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddHostBinding_003, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -390,13 +390,13 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_003, TestSize
         *receivedResult = static_cast<ResultCode>(result);
     };
 
-    request->HandleBeginAddCompanion(attrInput, messageReply);
+    request->HandleBeginAddHostBinding(attrInput, messageReply);
 
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, ResultCode::GENERAL_ERROR);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_004, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddHostBinding_004, TestSize.Level0)
 {
     MockGuard guard;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -427,13 +427,13 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_004, TestSize
 
     EXPECT_CALL(guard.GetHostBindingManager(), BeginAddHostBinding(_, _)).WillOnce(Return(ResultCode::FAIL));
 
-    request->HandleBeginAddCompanion(attrInput, messageReply);
+    request->HandleBeginAddHostBinding(attrInput, messageReply);
 
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, ResultCode::FAIL);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_001, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_001, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -467,13 +467,13 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_001, TestSize.L
 
     EXPECT_CALL(guard.GetHostBindingManager(), EndAddHostBinding(_, _)).WillOnce(Return(ResultCode::SUCCESS));
 
-    request->HandleEndAddCompanion(attrInput, messageReply);
+    request->HandleEndAddHostBinding(attrInput, messageReply);
 
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, ResultCode::SUCCESS);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_002, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_002, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -497,10 +497,10 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_002, TestSize.L
 
     OnMessageReply messageReply = nullptr;
 
-    ASSERT_NO_THROW(request->HandleEndAddCompanion(attrInput, messageReply));
+    ASSERT_NO_THROW(request->HandleEndAddHostBinding(attrInput, messageReply));
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_003, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_003, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -523,13 +523,13 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_003, TestSize.L
         *receivedResult = static_cast<ResultCode>(result);
     };
 
-    request->HandleEndAddCompanion(attrInput, messageReply);
+    request->HandleEndAddHostBinding(attrInput, messageReply);
 
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, ResultCode::GENERAL_ERROR);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_004, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_004, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -562,7 +562,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_004, TestSize.L
 
     EXPECT_CALL(guard.GetHostBindingManager(), EndAddHostBinding(_, _)).WillOnce(Return(ResultCode::FAIL));
 
-    request->HandleEndAddCompanion(attrInput, messageReply);
+    request->HandleEndAddHostBinding(attrInput, messageReply);
 
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, ResultCode::FAIL);
@@ -657,7 +657,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, ShouldCancelOnNewRequest_002, TestSiz
     EXPECT_FALSE(result);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_005, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddHostBinding_005, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -688,13 +688,13 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddCompanion_005, TestSize
         *receivedResult = static_cast<ResultCode>(result);
     };
 
-    request->HandleBeginAddCompanion(attrInput, messageReply);
+    request->HandleBeginAddHostBinding(attrInput, messageReply);
 
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, ResultCode::GENERAL_ERROR);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_005, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_005, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -722,7 +722,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddCompanion_005, TestSize.L
         *receivedResult = static_cast<ResultCode>(result);
     };
 
-    request->HandleEndAddCompanion(attrInput, messageReply);
+    request->HandleEndAddHostBinding(attrInput, messageReply);
 
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, ResultCode::GENERAL_ERROR);

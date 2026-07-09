@@ -135,20 +135,20 @@ static void FuzzSendInitKeyNegotiationReply(std::shared_ptr<CompanionAddCompanio
     (void)request->SendInitKeyNegotiationReply(result, initKeyNegotiationReply);
 }
 
-static void FuzzHandleBeginAddCompanion(std::shared_ptr<CompanionAddCompanionRequest> &request,
+static void FuzzHandleBeginAddHostBinding(std::shared_ptr<CompanionAddCompanionRequest> &request,
     FuzzedDataProvider &fuzzData)
 {
     Attributes attrInput = GenerateFuzzAttributes(fuzzData);
     OnMessageReply onMessageReply = [](const Attributes &reply) { (void)reply; };
-    request->HandleBeginAddCompanion(attrInput, onMessageReply);
+    request->HandleBeginAddHostBinding(attrInput, onMessageReply);
 }
 
-static void FuzzHandleEndAddCompanion(std::shared_ptr<CompanionAddCompanionRequest> &request,
+static void FuzzHandleEndAddHostBinding(std::shared_ptr<CompanionAddCompanionRequest> &request,
     FuzzedDataProvider &fuzzData)
 {
     Attributes attrInput = GenerateFuzzAttributes(fuzzData);
     OnMessageReply onMessageReply = [](const Attributes &reply) { (void)reply; };
-    request->HandleEndAddCompanion(attrInput, onMessageReply);
+    request->HandleEndAddHostBinding(attrInput, onMessageReply);
 }
 
 static const CompanionAddCompanionRequestFuzzFunction g_fuzzFuncs[] = {
@@ -166,8 +166,8 @@ static const CompanionAddCompanionRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzOnStart,
     FuzzCompanionInitKeyNegotiation,
     FuzzSendInitKeyNegotiationReply,
-    FuzzHandleBeginAddCompanion,
-    FuzzHandleEndAddCompanion,
+    FuzzHandleBeginAddHostBinding,
+    FuzzHandleEndAddHostBinding,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionAddCompanionRequestFuzzFunction);

@@ -73,6 +73,9 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_001, TestSize.Level
 
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::optional<std::string>("TestUser")));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserTypeName()).WillOnce(Return("normal"));
+    EXPECT_CALL(guard.GetSystemSettingsManager(), GetSettingsValue(SettingKey::DisplayDeviceName))
+        .WillOnce(Return("TestDevice"));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile())
         .WillOnce(Return(profile_))
         .WillOnce(Return(profile_));
@@ -156,6 +159,9 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_004, TestSize.Level
 
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::optional<std::string>("TestUser")));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserTypeName()).WillOnce(Return("normal"));
+    EXPECT_CALL(guard.GetSystemSettingsManager(), GetSettingsValue(SettingKey::DisplayDeviceName))
+        .WillOnce(Return("TestDevice"));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(profile_));
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
 
@@ -187,6 +193,9 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_005, TestSize.Level
 
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::optional<std::string>("TestUser")));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserTypeName()).WillOnce(Return("normal"));
+    EXPECT_CALL(guard.GetSystemSettingsManager(), GetSettingsValue(SettingKey::DisplayDeviceName))
+        .WillOnce(Return("TestDevice"));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile())
         .WillOnce(Return(profile_))
         .WillOnce(Return(profile_));
@@ -262,6 +271,40 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_007, TestSize.Level
 
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
     EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
+}
+
+HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_EncodesUserTypePrefix, TestSize.Level0)
+{
+    MockGuard guard;
+
+    handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
+
+    Attributes request;
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
+        .capabilityList = { Capability::TOKEN_AUTH },
+        .hostDeviceKey = hostDeviceKey_,
+        .salt = { 1, 2, 3 },
+        .challenge = 0 };
+    EncodeSyncDeviceStatusRequest(syncDeviceStatusRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
+
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::optional<std::string>("TestUser")));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserTypeName()).WillOnce(Return("private"));
+    EXPECT_CALL(guard.GetSystemSettingsManager(), GetSettingsValue(SettingKey::DisplayDeviceName))
+        .WillOnce(Return("TestDevice"));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(profile_));
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
+
+    Attributes reply;
+    ErrorGuard errorGuard([](ResultCode) {});
+    handler_->HandleRequest(request, reply);
+
+    std::string deviceUserName;
+    EXPECT_TRUE(reply.GetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, deviceUserName));
+    EXPECT_EQ(deviceUserName, "private:TestUser");
 }
 
 } // namespace

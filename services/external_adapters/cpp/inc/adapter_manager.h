@@ -29,6 +29,7 @@
 #include "user_auth_adapter.h"
 
 #include "system_param_manager.h"
+#include "system_settings_manager.h"
 #include "time_keeper.h"
 #include "user_id_manager.h"
 
@@ -67,6 +68,9 @@ public:
     IUserIdManager &GetUserIdManager();
     void SetUserIdManager(std::shared_ptr<IUserIdManager> adapter);
 
+    ISystemSettingsManager &GetSystemSettingsManager();
+    void SetSystemSettingsManager(std::shared_ptr<ISystemSettingsManager> adapter);
+
 #ifdef ENABLE_TEST
     void Reset();
 #endif // ENABLE_TEST
@@ -86,6 +90,7 @@ private:
     std::shared_ptr<ITimeKeeper> timeKeeperAdapter_;
     std::shared_ptr<ISystemParamManager> systemParamManager_;
     std::shared_ptr<IUserIdManager> userIdManager_;
+    std::shared_ptr<ISystemSettingsManager> systemSettingsManager_;
 };
 
 inline IUserAuthAdapter &GetUserAuthAdapter()
@@ -131,6 +136,11 @@ inline ISystemParamManager &GetSystemParamManager()
 inline IUserIdManager &GetUserIdManager()
 {
     return AdapterManager::GetInstance().GetUserIdManager();
+}
+
+inline ISystemSettingsManager &GetSystemSettingsManager()
+{
+    return AdapterManager::GetInstance().GetSystemSettingsManager();
 }
 
 } // namespace CompanionDeviceAuth

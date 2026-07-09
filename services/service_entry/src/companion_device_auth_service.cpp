@@ -73,7 +73,9 @@ namespace {
 {
     static sptr<CompanionDeviceAuthService> instance = []() {
         auto ptr = sptr<CompanionDeviceAuthService>::MakeSptr(
-            []() -> std::shared_ptr<BaseServiceInitializer> { return BaseServiceInitializer::Create(); },
+            [](const wptr<IRemoteObject> &cdaService) -> std::shared_ptr<BaseServiceInitializer> {
+                return BaseServiceInitializer::Create(cdaService);
+            },
             [](const std::shared_ptr<SubscriptionManager> &subscriptionManager,
                 const std::vector<BusinessId> &hostBusinessId,
                 const std::vector<BusinessId> &companionBusinessId) -> std::shared_ptr<BaseServiceCore> {
@@ -131,9 +133,9 @@ void CompanionDeviceAuthService::OnStart()
     }
 
     auto resultOpt = RunOnResidentSync(
-        [initializerCreator = initializerCreator_, coreCreator = coreCreator_]()
+        [initializerCreator = initializerCreator_, coreCreator = coreCreator_, cdaService = weakSelf_]()
             -> std::pair<std::shared_ptr<BaseServiceInitializer>, std::shared_ptr<BaseServiceCore>> {
-            auto baseServiceInitializer = initializerCreator();
+            auto baseServiceInitializer = initializerCreator(cdaService);
             ENSURE_OR_RETURN_VAL(baseServiceInitializer != nullptr, std::make_pair(nullptr, nullptr));
 
             auto core = coreCreator(baseServiceInitializer->GetSubscriptionManager(),
@@ -573,6 +575,9 @@ std::optional<typename std::invoke_result<Func>::type> CompanionDeviceAuthServic
             }
         });
 
+#ifdef ENABLE_TEST
+    timeoutSec = 0;
+#endif
     auto status = future.wait_for(std::chrono::seconds(timeoutSec));
     if (status != std::future_status::ready) {
         IAM_LOGE("RunOnResidentSync timeout - task not completed in %{public}u second, status: %{public}d", timeoutSec,

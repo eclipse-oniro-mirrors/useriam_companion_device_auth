@@ -36,6 +36,8 @@ _companion_device_auth_service_unittest_common_sources =
 _companion_device_auth_service_unittest_common_sources +=
     companion_device_auth_fake_sources
 _companion_device_auth_service_unittest_common_sources +=
+    companion_device_auth_fake_service_sources
+_companion_device_auth_service_unittest_common_sources +=
     [ "src/mock_guard.cpp" ]
 
 # Common public configs shared by both libraries

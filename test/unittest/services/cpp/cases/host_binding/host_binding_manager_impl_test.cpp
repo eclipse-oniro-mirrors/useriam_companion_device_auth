@@ -19,6 +19,7 @@
 #include "mock_guard.h"
 
 #include "companion_obtain_token_request.h"
+#include "companion_request_resync_request.h"
 #include "companion_revoke_token_request.h"
 #include "host_binding.h"
 #include "host_binding_manager_impl.h"

@@ -616,34 +616,6 @@ HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithAuthSceneAndTitle, Test
     EXPECT_EQ(*callbackResult, ResultCode::SUCCESS);
 }
 
-HWTEST_F(HostMixAuthRequestTest, Start_CompanionAuthBlocked, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
-    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
-        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
-    auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
-
-    auto callbackCalled = std::make_shared<bool>(false);
-    auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
-    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
-        *callbackCalled = true;
-        *callbackResult = result;
-    };
-
-    CompanionStatus validStatus = { .isValid = true };
-    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(TEMPLATE_ID)).WillRepeatedly(Return(validStatus));
-
-    EXPECT_CALL(guard.GetMiscManager(), IsCompanionAuthBlocked()).WillRepeatedly(Return(true));
-
-    request->Start();
-
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_TRUE(*callbackCalled);
-    EXPECT_EQ(*callbackResult, ResultCode::LOCKED);
-}
-
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -90,6 +90,9 @@ void MockGuard::CreateMocks()
     eventManagerAdapter_ = std::make_shared<MockEventManagerAdapter>();
     AdapterManager::GetInstance().SetEventManagerAdapter(eventManagerAdapter_);
 
+    systemSettingsManager_ = std::make_shared<MockSystemSettingsManager>();
+    AdapterManager::GetInstance().SetSystemSettingsManager(systemSettingsManager_);
+
     // SingletonManager mocks
     crossDeviceCommManager_ = std::make_shared<MockCrossDeviceCommManager>();
     SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommManager_);
@@ -140,11 +143,19 @@ void MockGuard::SetupDefaultBehaviors()
     SetupEventManagerAdapterDefaults();
     SetupEventBusDefaults();
     SetupSoftBusAdapterDefaults();
+    SetupSystemSettingsManagerDefaults();
 }
 
 void MockGuard::SetupMiscManagerDefaults()
 {
-    ON_CALL(*miscManager_, GetNextGlobalId()).WillByDefault(Return(1));
+    // Fresh counter per MockGuard so the first GetNextGlobalId in each test
+    // returns 1 (several Unsubscribe* tests hardcode id 1). The counter is
+    // captured by value and dies with the mock, so ids stay unique within a
+    // single test and never leak across tests.
+    auto globalIdCounter = std::make_shared<uint64_t>(0);
+    ON_CALL(*miscManager_, GetNextGlobalId()).WillByDefault(InvokeWithoutArgs([globalIdCounter]() -> uint64_t {
+        return ++(*globalIdCounter);
+    }));
     ON_CALL(*miscManager_, GetDeviceDeviceSelectResult(_, _, _)).WillByDefault(Return(false));
     ON_CALL(*miscManager_, IsCompanionAuthBlocked()).WillByDefault(Return(false));
 }
@@ -155,6 +166,15 @@ void MockGuard::SetupUserIdManagerDefaults()
     ON_CALL(*userIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return std::make_unique<Subscription>([]() {});
     }));
+}
+
+void MockGuard::SetupSystemSettingsManagerDefaults()
+{
+    // SoftBusChannel::Start (and any other init path) subscribes to display-device-name changes;
+    // provide a valid default so those calls do not hit an uninteresting mock call.
+    ON_CALL(*systemSettingsManager_, SubscribeSettingsChange(_, _))
+        .WillByDefault(
+            Invoke([](SettingKey, SettingsChangeCallback &&) { return std::make_unique<Subscription>([]() {}); }));
 }
 
 void MockGuard::SetupCrossDeviceCommManagerDefaults()
@@ -324,6 +344,7 @@ MockGuard::~MockGuard()
     Mock::VerifyAndClearExpectations(systemParamManager_.get());
     Mock::VerifyAndClearExpectations(userIdManager_.get());
     Mock::VerifyAndClearExpectations(eventManagerAdapter_.get());
+    Mock::VerifyAndClearExpectations(systemSettingsManager_.get());
 
     // Now it's safe to clear AdapterManager mocks (these don't have nullptr checks)
     AdapterManager::GetInstance().SetTimeKeeper(nullptr);
@@ -334,8 +355,7 @@ MockGuard::~MockGuard()
     AdapterManager::GetInstance().SetSystemParamManager(nullptr);
     AdapterManager::GetInstance().SetUserIdManager(nullptr);
     AdapterManager::GetInstance().SetEventManagerAdapter(nullptr);
-
-    // SingletonManager mocks are already reset, so no need to set to nullptr
+    AdapterManager::GetInstance().SetSystemSettingsManager(nullptr);
     // The Reset() call above already cleared all shared_ptr references
 }
 
@@ -379,6 +399,11 @@ MockUserIdManager &MockGuard::GetUserIdManager()
 MockEventManagerAdapter &MockGuard::GetEventManagerAdapter()
 {
     return *eventManagerAdapter_;
+}
+
+MockSystemSettingsManager &MockGuard::GetSystemSettingsManager()
+{
+    return *systemSettingsManager_;
 }
 
 // SingletonManager mock access methods

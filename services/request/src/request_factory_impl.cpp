@@ -27,6 +27,7 @@
 #include "companion_issue_token_request.h"
 #include "companion_manager.h"
 #include "companion_obtain_token_request.h"
+#include "companion_request_resync_request.h"
 #include "companion_revoke_token_request.h"
 #include "host_add_companion_request.h"
 #include "host_delegate_auth_request.h"
@@ -174,6 +175,18 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRevokeTokenRequest(
     const DeviceKey &hostDeviceKey, const std::string &triggerReason)
 {
     auto request = std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey, triggerReason);
+    ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
+    return request;
+}
+
+std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRequestResyncRequest(
+    const PhysicalDeviceKey &hostPhysicalDeviceKey, const std::string &triggerReason)
+{
+    DeviceKey hostDeviceKey {};
+    hostDeviceKey.idType = hostPhysicalDeviceKey.idType;
+    hostDeviceKey.deviceId = hostPhysicalDeviceKey.deviceId;
+    hostDeviceKey.deviceUserId = INVALID_USER_ID;
+    auto request = std::make_shared<CompanionRequestResyncRequest>(hostDeviceKey, triggerReason);
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }

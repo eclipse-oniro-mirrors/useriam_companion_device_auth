@@ -62,6 +62,7 @@ public:
 
     void SetSubscribeMode(SubscribeMode mode);
     void RefreshDeviceStatus();
+    void TriggerDeviceSync(const PhysicalDeviceKey &physicalKey);
 
 private:
     static constexpr int32_t PERIODIC_SYNC_INTERVAL_MS = 60 * 1000; // 60 seconds
@@ -80,8 +81,6 @@ private:
     bool Initialize();
 
     void HandleSyncResult(const DeviceKey &deviceKey, int32_t resultCode, const SyncDeviceStatus &syncDeviceStatus);
-
-    void TriggerDeviceSync(const PhysicalDeviceKey &physicalKey);
 
     void StartPeriodicSync();
     void StopPeriodicSync();

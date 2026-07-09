@@ -52,6 +52,8 @@ protected:
     void SendRequestAborted(ResultCode result, const std::string &reason);
     void CompleteWithError(ResultCode result) override;
 
+    bool resultSent_ { false };
+
 private:
     void HandleConnectionStatus(const std::string &connName, ConnectionStatus status, const std::string &reason);
 

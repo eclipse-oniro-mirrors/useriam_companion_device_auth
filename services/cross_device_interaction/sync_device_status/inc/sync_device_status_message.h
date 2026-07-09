@@ -47,6 +47,7 @@ struct SyncDeviceStatusReply {
     SecureProtocolId secureProtocolId;
     DeviceKey companionDeviceKey {};
     std::string deviceUserName;
+    std::string deviceName;
     std::vector<uint8_t> companionCheckResponse;
 };
 

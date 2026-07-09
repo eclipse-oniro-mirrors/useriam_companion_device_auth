@@ -37,6 +37,7 @@
 #include "soft_bus_adapter_manager.h"
 #include "subscription.h"
 #include "system_param_manager.h"
+#include "system_settings_manager.h"
 #include "time_keeper.h"
 #include "user_auth_adapter.h"
 #include "user_id_manager.h"
@@ -314,6 +315,11 @@ public:
         return std::nullopt;
     }
 
+    std::string GetActiveUserTypeName() const override
+    {
+        return "";
+    }
+
     std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override
     {
         (void)callback;
@@ -324,6 +330,30 @@ public:
     {
         (void)userId;
         return fuzzData_.ConsumeBool();
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+class MockSystemSettingsManager : public ISystemSettingsManager {
+public:
+    explicit MockSystemSettingsManager(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    std::string GetSettingsValue(SettingKey settingKey) override
+    {
+        (void)settingKey;
+        return "";
+    }
+
+    std::unique_ptr<Subscription> SubscribeSettingsChange(SettingKey settingKey,
+        SettingsChangeCallback &&callback) override
+    {
+        (void)settingKey;
+        (void)callback;
+        return std::make_unique<Subscription>([] {});
     }
 
 private:
@@ -409,6 +439,9 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 
     auto userIdMgr = std::make_shared<MockUserIdManager>(fuzzData);
     adapterMgr.SetUserIdManager(userIdMgr);
+
+    auto systemSettingsMgr = std::make_shared<MockSystemSettingsManager>(fuzzData);
+    adapterMgr.SetSystemSettingsManager(systemSettingsMgr);
 
     return true;
 }

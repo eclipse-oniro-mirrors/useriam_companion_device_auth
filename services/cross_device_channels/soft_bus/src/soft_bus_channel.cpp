@@ -13,12 +13,14 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "common_defines.h"
 #include "companion_device_auth_types.h"
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "soft_bus_adapter_manager.h"
 #include "soft_bus_channel_common.h"
+#include "subscription.h"
 #include "task_runner_manager.h"
 
 #define LOG_TAG "CDA_SA"
@@ -82,9 +84,51 @@ bool SoftBusChannel::Start()
         return false;
     }
 
+    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId userId) {
+        auto self = weakSelf.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        self->OnActiveUserIdChanged(userId);
+    });
+    ENSURE_OR_RETURN_VAL(activeUserIdSubscription_ != nullptr, false);
+
+    deviceNameSubscription_ = GetSystemSettingsManager().SubscribeSettingsChange(SettingKey::DisplayDeviceName,
+        [weakSelf = weak_from_this()]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->OnLocalDeviceNameChanged();
+        });
+    ENSURE_OR_RETURN_VAL(deviceNameSubscription_ != nullptr, false);
     started_ = true;
     IAM_LOGI("SoftBusChannel started");
     return true;
+}
+
+void SoftBusChannel::OnActiveUserIdChanged(UserId userId)
+{
+    IAM_LOGI("active user id changed to %{public}d, resync physical devices", userId);
+    ResyncAllPhysicalDevices("active_user_changed");
+}
+
+void SoftBusChannel::OnLocalDeviceNameChanged()
+{
+    IAM_LOGI("local display device name changed, resync physical devices");
+    ResyncAllPhysicalDevices("device_name_changed");
+}
+
+void SoftBusChannel::ResyncAllPhysicalDevices(const std::string &reason)
+{
+    auto devices = GetAllPhysicalDevices();
+    TaskRunnerManager::GetInstance().PostTaskOnResident([reason, devices = std::move(devices)]() {
+        IAM_LOGI("resync %{public}zu physical devices, reason %{public}s", devices.size(), reason.c_str());
+        for (const auto &device : devices) {
+            auto request = GetRequestFactory().CreateCompanionRequestResyncRequest(device.physicalDeviceKey, reason);
+            if (request == nullptr) {
+                IAM_LOGE("failed to create resync request for device %{public}s", device.deviceName.c_str());
+                continue;
+            }
+            GetRequestManager().Start(request);
+        }
+    });
 }
 
 ChannelId SoftBusChannel::GetChannelId() const

@@ -43,6 +43,7 @@
 #include "soft_bus_channel.h"
 #include "subscription_manager.h"
 #include "system_param_manager_impl.h"
+#include "system_settings_manager_impl.h"
 #include "time_keeper_impl.h"
 #include "user_auth_adapter_impl.h"
 #include "user_id_manager.h"
@@ -54,7 +55,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-std::shared_ptr<BaseServiceInitializer> BaseServiceInitializer::Create()
+std::shared_ptr<BaseServiceInitializer> BaseServiceInitializer::Create(const wptr<IRemoteObject> &cdaService)
 {
     IAM_LOGI("Start");
 
@@ -69,7 +70,7 @@ std::shared_ptr<BaseServiceInitializer> BaseServiceInitializer::Create()
     auto subscriptionManager = std::make_shared<SubscriptionManager>();
     ENSURE_OR_RETURN_VAL(subscriptionManager != nullptr, nullptr);
     auto initializer = std::shared_ptr<BaseServiceInitializer>(
-        new (std::nothrow) BaseServiceInitializer(subscriptionManager, deviceCapabilityInfo, true));
+        new (std::nothrow) BaseServiceInitializer(subscriptionManager, deviceCapabilityInfo, true, cdaService));
     ENSURE_OR_RETURN_VAL(initializer != nullptr, nullptr);
 
     if (!initializer->Initialize()) {
@@ -206,6 +207,15 @@ bool BaseServiceInitializer::InitializeUserIdManager()
     auto userIdManager = IUserIdManager::Create();
     ENSURE_OR_RETURN_VAL(userIdManager != nullptr, false);
     adapterManager.SetUserIdManager(userIdManager);
+    return true;
+}
+
+bool BaseServiceInitializer::InitializeSystemSettingsManager()
+{
+    auto &adapterManager = AdapterManager::GetInstance();
+    auto settingsManager = SystemSettingsManagerImpl::Create(cdaService_);
+    ENSURE_OR_RETURN_VAL(settingsManager != nullptr, false);
+    adapterManager.SetSystemSettingsManager(settingsManager);
     return true;
 }
 
@@ -360,6 +370,7 @@ const BaseServiceInitializer::BasicInitStep BaseServiceInitializer::BASIC_INIT_T
     { &BaseServiceInitializer::InitializeSecurityCommandAdapter, "InitializeSecurityCommandAdapter" },
     { &BaseServiceInitializer::InitializeSystemParamManager, "InitializeSystemParamManager" },
     { &BaseServiceInitializer::InitializeUserIdManager, "InitializeUserIdManager" },
+    { &BaseServiceInitializer::InitializeSystemSettingsManager, "InitializeSystemSettingsManager" },
     { &BaseServiceInitializer::InitializeUserAuthFramework, "InitializeUserAuthFramework" },
     { &BaseServiceInitializer::InitializeRequestManager, "InitializeRequestManager" },
     { &BaseServiceInitializer::InitializeRequestFactory, "InitializeRequestFactory" },
@@ -371,13 +382,15 @@ const BaseServiceInitializer::BasicInitStep BaseServiceInitializer::BASIC_INIT_T
 const size_t BaseServiceInitializer::BASIC_INIT_TABLE_SIZE = sizeof(BASIC_INIT_TABLE) / sizeof(BASIC_INIT_TABLE[0]);
 
 BaseServiceInitializer::BaseServiceInitializer(std::shared_ptr<SubscriptionManager> subscriptionManager,
-    const DeviceCapabilityInfo &deviceCapabilityInfo, bool hostBindingRevokeTokenOnInactive)
+    const DeviceCapabilityInfo &deviceCapabilityInfo, bool hostBindingRevokeTokenOnInactive,
+    const wptr<IRemoteObject> &cdaService)
     : subscriptionManagerHolder_(std::move(subscriptionManager)),
       hostSupportedBusinessIds_(deviceCapabilityInfo.hostSupportedBusinessIds),
       hostLocalCapabilities_(deviceCapabilityInfo.hostLocalCapabilities),
       companionSupportedBusinessIds_(deviceCapabilityInfo.companionSupportedBusinessIds),
       companionLocalCapabilities_(deviceCapabilityInfo.companionLocalCapabilities),
-      hostBindingRevokeTokenOnInactive_(hostBindingRevokeTokenOnInactive)
+      hostBindingRevokeTokenOnInactive_(hostBindingRevokeTokenOnInactive),
+      cdaService_(cdaService)
 {
 }
 

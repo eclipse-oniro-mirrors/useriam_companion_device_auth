@@ -49,12 +49,11 @@ private:
     void HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices);
     bool InitDelegateResultSubscription();
     void HostBeginDelegateAuth();
-    void SendDelegateAuthRequest(const std::vector<uint8_t> &startDelegateAuthRequest);
     void HandleStartDelegateAuthReply(const Attributes &message);
     bool CallSecurityAgentEndDelegateAuth(const std::vector<uint8_t> &delegateAuthResult,
         HostEndDelegateAuthOutput &output);
-    ResultCode HandleSendDelegateAuthRequest(const Attributes &request, std::vector<uint8_t> &outFwkMsg);
-    void HandleSendDelegateAuthRequestMsg(const Attributes &request, OnMessageReply &onMessageReply);
+    ResultCode HandleSendDelegateAuthResult(const Attributes &request, std::vector<uint8_t> &outFwkMsg);
+    void HandleSendDelegateAuthResultMessage(const Attributes &request, OnMessageReply &onMessageReply);
     void CompleteWithSuccess(const std::vector<uint8_t> &fwkMsg);
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &fwkMsg);
     std::optional<uint32_t> GetRemoteTokenId(const DeviceKey &deviceKey);

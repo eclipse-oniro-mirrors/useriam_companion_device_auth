@@ -191,6 +191,7 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     }
 
     deviceStatus.deviceUserName = syncDeviceStatus.deviceUserName;
+    deviceStatus.syncDeviceName = syncDeviceStatus.deviceName;
     deviceStatus.deviceUserId = syncDeviceStatus.deviceUserId;
     deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
     deviceStatus.capabilities = syncDeviceStatus.capabilityList;
@@ -319,7 +320,7 @@ void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey
 
     UserId activeUserId = GetUserIdManager().GetActiveUserId();
     auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(activeUserId, companionDeviceKey,
-        entry.deviceName, std::move(callback));
+        entry.GetDeviceName(), std::move(callback));
     ENSURE_OR_RETURN(request != nullptr);
 
     bool startRequestRet = GetRequestManager().Start(request);
@@ -334,6 +335,7 @@ void DeviceStatusManager::StartPeriodicSync()
     StopPeriodicSync();
     periodicSyncTimerSubscription_ = RelativeTimer::GetInstance().RegisterPeriodic(
         [weakSelf = weak_from_this()]() {
+            IAM_LOGI("trigger periodic sync");
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->RefreshDeviceList(true);
@@ -529,7 +531,7 @@ bool DeviceStatusManager::AddOrUpdateDevices(
             DeviceStatusEntry &deviceStatus = it->second;
             bool effectiveChanged = deviceStatus.SetPhysicalCompanionBusinessIds(status.supportedBusinessIds);
             bool hasChange = deviceStatus.channelId != status.channelId ||
-                deviceStatus.deviceName != status.deviceName ||
+                deviceStatus.physicalDeviceName != status.deviceName ||
                 deviceStatus.deviceModelInfo != status.deviceModelInfo ||
                 deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive ||
                 deviceStatus.deviceType != status.deviceType ||
@@ -537,7 +539,7 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 deviceStatus.refreshToken != status.refreshToken || effectiveChanged;
             if (hasChange) {
                 deviceStatus.channelId = status.channelId;
-                deviceStatus.deviceName = status.deviceName;
+                deviceStatus.physicalDeviceName = status.deviceName;
                 deviceStatus.deviceModelInfo = status.deviceModelInfo;
                 deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
                 deviceStatus.deviceType = status.deviceType;

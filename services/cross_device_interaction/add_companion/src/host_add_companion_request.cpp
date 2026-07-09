@@ -347,9 +347,9 @@ void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &r
     bool handleRet = EndAddCompanion(*beginReplyOpt, addCompanionFwkMsg_);
     ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
 
-    bool sendRet = SendEndAddHostBindingMsg(ResultCode::SUCCESS);
+    bool sendRet = SendEndAddHostBindingRequest(ResultCode::SUCCESS);
     if (!sendRet) {
-        IAM_LOGE("%{public}s SendEndAddHostBindingMsg failed", GetDescription());
+        IAM_LOGE("%{public}s SendEndAddHostBindingRequest failed", GetDescription());
         return;
     }
 
@@ -444,7 +444,7 @@ bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &re
     return true;
 }
 
-bool HostAddCompanionRequest::SendEndAddHostBindingMsg(ResultCode result)
+bool HostAddCompanionRequest::SendEndAddHostBindingRequest(ResultCode result)
 {
     auto companionDeviceKey = GetPeerDeviceKey();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionDeviceKey.has_value(), false);

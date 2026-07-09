@@ -69,15 +69,11 @@ std::optional<DeviceKey> DecodeCompanionDeviceKey(const Attributes &attributes)
 
 void EncodeHostDeviceKey(const DeviceKey &deviceKey, Attributes &attributes)
 {
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(deviceKey.idType));
-    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, deviceKey.deviceId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, deviceKey.deviceUserId);
 }
 
 void EncodeCompanionDeviceKey(const DeviceKey &deviceKey, Attributes &attributes)
 {
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(deviceKey.idType));
-    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, deviceKey.deviceId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, deviceKey.deviceUserId);
 }
 } // namespace CompanionDeviceAuth

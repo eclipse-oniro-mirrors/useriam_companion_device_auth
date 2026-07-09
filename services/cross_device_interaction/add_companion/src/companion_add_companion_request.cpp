@@ -64,7 +64,7 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
             [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
-                self->HandleBeginAddCompanion(msg, onMessageReply);
+                self->HandleBeginAddHostBinding(msg, onMessageReply);
             });
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), beginAddHostBindingSubscription_ != nullptr, false);
 
@@ -73,7 +73,7 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
             [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
-                self->HandleEndAddCompanion(msg, onMessageReply);
+                self->HandleEndAddHostBinding(msg, onMessageReply);
             });
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), endAddHostBindingSubscription_ != nullptr, false);
 
@@ -178,7 +178,8 @@ ResultCode CompanionAddCompanionRequest::CallBeginAddHostBinding(int32_t compani
     return GetHostBindingManager().BeginAddHostBinding(beginInput, beginOutput);
 }
 
-void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply)
+void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &attrInput,
+    OnMessageReply &onMessageReply)
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
@@ -212,7 +213,7 @@ void CompanionAddCompanionRequest::HandleBeginAddCompanion(const Attributes &att
     errorGuard.Cancel();
 }
 
-void CompanionAddCompanionRequest::HandleEndAddCompanion(const Attributes &attrInput, OnMessageReply &onMessageReply)
+void CompanionAddCompanionRequest::HandleEndAddHostBinding(const Attributes &attrInput, OnMessageReply &onMessageReply)
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());

@@ -41,6 +41,7 @@ public:
     void OnSyncFailure();
     DeviceKey BuildDeviceKey() const;
     DeviceStatus BuildDeviceStatus() const;
+    std::string GetDeviceName() const;
     bool SetPhysicalCompanionBusinessIds(std::vector<BusinessId> physicalCompanionBusinessIds);
     bool SetSyncCompanionBusinessIds(std::vector<BusinessId> syncCompanionBusinessIds);
     const std::vector<BusinessId> &GetSupportedBusinessIds() const;
@@ -50,7 +51,9 @@ public:
     int32_t deviceUserId { INVALID_USER_ID };
     std::string deviceModelInfo {};
     std::string deviceUserName {};
-    std::string deviceName {};
+    std::string physicalDeviceName {};
+    std::string syncDeviceName {};
+    bool useSyncDeviceName { false };
     ProtocolId protocolId { ProtocolId::INVALID };
     SecureProtocolId secureProtocolId { SecureProtocolId::INVALID };
     DeviceType deviceType { DeviceType::INVALID };

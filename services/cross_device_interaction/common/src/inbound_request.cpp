@@ -126,6 +126,8 @@ void InboundRequest::SendRequestAborted(ResultCode result, const std::string &re
     IAM_LOGI("%{public}s sending RequestAborted: result=%{public}d, reason=%{public}s", GetDescription(), result,
         reason.c_str());
 
+    resultSent_ = true;
+
     RequestAbortedRequest abortReq {};
     abortReq.result = result;
     abortReq.reason = reason;

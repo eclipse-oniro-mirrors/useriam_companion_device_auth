@@ -23,7 +23,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class SoftBusChannel : public ICrossDeviceChannel, public NoCopyable {
+class SoftBusChannel : public ICrossDeviceChannel,
+                       public std::enable_shared_from_this<SoftBusChannel>,
+                       public NoCopyable {
 public:
     static std::shared_ptr<SoftBusChannel> Create();
 
@@ -62,6 +64,14 @@ protected:
     std::shared_ptr<SoftBusConnectionManager> connectionManager_;
     std::shared_ptr<SoftBusDeviceStatusManager> deviceStatusManager_;
     bool started_ { false };
+
+private:
+    void OnActiveUserIdChanged(UserId userId);
+    void OnLocalDeviceNameChanged();
+    void ResyncAllPhysicalDevices(const std::string &reason);
+
+    std::unique_ptr<Subscription> activeUserIdSubscription_;
+    std::unique_ptr<Subscription> deviceNameSubscription_;
 };
 
 } // namespace CompanionDeviceAuth

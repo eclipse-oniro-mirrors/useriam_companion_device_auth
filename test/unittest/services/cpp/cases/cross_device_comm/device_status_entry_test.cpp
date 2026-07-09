@@ -37,6 +37,7 @@ public:
         physicalStatus_.deviceModelInfo = "TestModel";
         physicalStatus_.deviceName = "TestDevice";
         physicalStatus_.isAuthMaintainActive = true;
+        physicalStatus_.useSyncDeviceName = true;
     }
 
     void TearDown() override
@@ -55,10 +56,12 @@ HWTEST_F(DeviceStatusEntryTest, Constructor_001, TestSize.Level0)
     EXPECT_EQ(entry.physicalDeviceKey.deviceId, "test-device-id");
     EXPECT_EQ(entry.channelId, ChannelId::SOFTBUS);
     EXPECT_EQ(entry.deviceModelInfo, "TestModel");
-    EXPECT_EQ(entry.deviceName, "TestDevice");
+    EXPECT_EQ(entry.physicalDeviceName, "TestDevice");
+    EXPECT_TRUE(entry.syncDeviceName.empty());
     EXPECT_TRUE(entry.isAuthMaintainActive);
     EXPECT_FALSE(entry.isSynced);
     EXPECT_FALSE(entry.isSyncInProgress);
+    EXPECT_TRUE(entry.useSyncDeviceName);
 }
 
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceKey_001, TestSize.Level0)
@@ -100,6 +103,43 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
     EXPECT_EQ(status.supportedBusinessIds.size(), 3u);
     EXPECT_TRUE(status.isOnline);
     EXPECT_TRUE(status.isAuthMaintainActive);
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_PrefersSyncDeviceName, TestSize.Level0)
+{
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.isSynced = true;
+    entry.syncDeviceName = "SyncedName";
+
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    // Non-empty sync name wins over the physical name.
+    EXPECT_EQ(status.deviceName, "SyncedName");
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_FallsBackToPhysicalWhenSyncEmpty, TestSize.Level0)
+{
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.isSynced = true;
+    // syncDeviceName left empty, emulating an old peer that does not send deviceName.
+
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    // Empty sync name falls back to the physical name.
+    EXPECT_EQ(status.deviceName, "TestDevice");
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_PrefersPhysicalWhenSyncNameDisabled, TestSize.Level0)
+{
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.isSynced = true;
+    entry.syncDeviceName = "SyncedName";
+    entry.useSyncDeviceName = false;
+
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    // When the sync-name gate is off, the physical name wins even with a non-empty sync name.
+    EXPECT_EQ(status.deviceName, "TestDevice");
 }
 
 HWTEST_F(DeviceStatusEntryTest, Constructor_PropagatesRefreshToken_True, TestSize.Level0)

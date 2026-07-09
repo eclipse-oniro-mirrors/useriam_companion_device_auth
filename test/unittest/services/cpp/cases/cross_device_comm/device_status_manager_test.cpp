@@ -376,7 +376,7 @@ HWTEST_F(DeviceStatusManagerTest, RefreshDeviceListAddsAndRemovesDevices, TestSi
     EXPECT_EQ(2u, ctx.manager->deviceStatusMap_.size());
     EXPECT_TRUE(ctx.manager->deviceStatusMap_.count(statusA.physicalDeviceKey));
     EXPECT_TRUE(ctx.manager->deviceStatusMap_.count(statusB.physicalDeviceKey));
-    EXPECT_EQ("DeviceA", ctx.manager->deviceStatusMap_.at(statusA.physicalDeviceKey).deviceName);
+    EXPECT_EQ("DeviceA", ctx.manager->deviceStatusMap_.at(statusA.physicalDeviceKey).physicalDeviceName);
 
     ctx.manager->RefreshDeviceList(false);
     EXPECT_EQ(1u, ctx.manager->deviceStatusMap_.size());

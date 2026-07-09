@@ -43,6 +43,10 @@ public:
     {
         return userName_;
     }
+    std::string GetActiveUserTypeName() const override
+    {
+        return userTypeName_;
+    }
 
     std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override
     {
@@ -56,10 +60,11 @@ public:
     }
 
     // Test backdoor: set user and auto-notify all subscribers
-    void TestSetActiveUser(UserId userId, const std::string &userName = "")
+    void TestSetActiveUser(UserId userId, const std::string &userName = "", const std::string &userTypeName = "normal")
     {
         userId_ = userId;
         userName_ = userName;
+        userTypeName_ = userTypeName;
         for (auto &cb : callbacks_) {
             cb(userId);
         }
@@ -68,6 +73,7 @@ public:
 private:
     UserId userId_ = 0;
     std::string userName_;
+    std::string userTypeName_ { "normal" };
     std::vector<ActiveUserIdCallback> callbacks_;
 };
 

@@ -39,6 +39,7 @@
 // Mocks (gmock for return value control)
 #include "mock_event_manager_adapter.h"
 #include "mock_security_agent.h"
+#include "mock_system_settings_manager.h"
 #include "mock_time_keeper.h"
 #include "mock_user_auth_adapter.h"
 
@@ -77,6 +78,7 @@ public:
     MockUserAuthAdapter &GetUserAuthAdapter();
     MockEventManagerAdapter &GetEventManagerAdapter();
     MockSecurityAgent &GetSecurityAgent();
+    MockSystemSettingsManager &GetSystemSettingsManager();
 
     // Internal pointer accessors for VerifyAndClear
     std::shared_ptr<MockSecurityAgent> GetSecurityAgentPtr() const;
@@ -91,6 +93,7 @@ protected:
     bool InitializeSecurityCommandAdapter() override;
     bool InitializeSystemParamManager() override;
     bool InitializeUserIdManager() override;
+    bool InitializeSystemSettingsManager() override;
     bool InitializeUserAuthFramework() override;
 
     // ---- SingletonManager injections (override base) ----
@@ -112,6 +115,7 @@ private:
     std::shared_ptr<FakeSaManagerAdapter> saManagerAdapter_;
     std::shared_ptr<FakeSystemParamManager> systemParamManager_;
     std::shared_ptr<FakeUserIdManager> userIdManager_;
+    std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
 
     // Singletons
@@ -150,6 +154,7 @@ public:
     MockUserAuthAdapter &GetUserAuthAdapter();
     MockEventManagerAdapter &GetEventManagerAdapter();
     MockSecurityAgent &GetSecurityAgent();
+    MockSystemSettingsManager &GetSystemSettingsManager();
 
     // Core accessor (for E2E tests that need service-level APIs without IPC)
     BaseServiceCore &GetCore()

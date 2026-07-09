@@ -18,6 +18,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "host_binding.h"
@@ -25,6 +26,7 @@
 #include "security_agent.h"
 #include "service_common.h"
 #include "singleton.h"
+#include "subscription.h"
 #include "user_id_manager.h"
 
 namespace OHOS {
