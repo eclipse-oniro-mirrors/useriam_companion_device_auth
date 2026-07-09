@@ -35,6 +35,7 @@
 #include "mock_security_agent.h"
 #include "mock_soft_bus_adapter.h"
 #include "mock_system_param_manager.h"
+#include "mock_system_settings_manager.h"
 #include "mock_time_keeper.h"
 #include "mock_user_auth_adapter.h"
 #include "mock_user_id_manager.h"
@@ -63,6 +64,7 @@ public:
     MockSystemParamManager &GetSystemParamManager();
     MockUserIdManager &GetUserIdManager();
     MockEventManagerAdapter &GetEventManagerAdapter();
+    MockSystemSettingsManager &GetSystemSettingsManager();
 
     // SingletonManager mock access methods
 
@@ -96,6 +98,7 @@ private:
     void SetupEventManagerAdapterDefaults();
     void SetupEventBusDefaults();
     void SetupSoftBusAdapterDefaults();
+    void SetupSystemSettingsManagerDefaults();
 
     // AdapterManager mock instances
     std::shared_ptr<MockTimeKeeper> timeKeeper_;
@@ -106,6 +109,7 @@ private:
     std::shared_ptr<MockSystemParamManager> systemParamManager_;
     std::shared_ptr<MockUserIdManager> userIdManager_;
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
+    std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
 
     // SingletonManager mock instances
     std::shared_ptr<MockCrossDeviceCommManager> crossDeviceCommManager_;

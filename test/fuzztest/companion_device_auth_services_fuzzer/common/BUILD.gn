@@ -37,6 +37,7 @@ ohos_static_library("companion_device_auth_service_fuzzer_common") {
 
   sources = companion_device_auth_service_sources_for_test
   sources += companion_device_auth_fake_sources
+  sources += companion_device_auth_fake_service_sources
   sources += [
     "src/adapter_initializer.cpp",
     "src/channel_adapter_initializer.cpp",

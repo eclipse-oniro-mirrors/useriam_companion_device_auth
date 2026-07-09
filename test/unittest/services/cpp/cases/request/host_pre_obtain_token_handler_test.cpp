@@ -44,6 +44,9 @@ HWTEST_F(HostPreObtainTokenHandlerTest, HandleRequest_001, TestSize.Level0)
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
     EncodeCompanionDeviceKey(companionDeviceKey_, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(companionDeviceKey_.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey_.deviceId);
 
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &) { replyCalled = true; };
@@ -86,6 +89,9 @@ HWTEST_F(HostPreObtainTokenHandlerTest, HandleRequest_003, TestSize.Level0)
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
     EncodeCompanionDeviceKey(companionDeviceKey_, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(companionDeviceKey_.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey_.deviceId);
 
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &reply) {
@@ -109,6 +115,9 @@ HWTEST_F(HostPreObtainTokenHandlerTest, HandleRequest_004, TestSize.Level0)
     Attributes request;
     request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "test_connection");
     EncodeCompanionDeviceKey(companionDeviceKey_, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(companionDeviceKey_.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey_.deviceId);
 
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &reply) {

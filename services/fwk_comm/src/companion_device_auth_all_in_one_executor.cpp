@@ -628,6 +628,9 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::RunOnResidentSync(std::functi
             }
         });
 
+#ifdef ENABLE_TEST
+    timeoutSec = 0;
+#endif
     std::future_status status = future.wait_for(std::chrono::seconds(timeoutSec));
     if (status != std::future_status::ready) {
         IAM_LOGE("RunOnResidentSync timeout - task not completed in %{public}u second, status: %{public}d", timeoutSec,

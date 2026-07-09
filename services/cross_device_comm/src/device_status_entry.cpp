@@ -35,7 +35,9 @@ DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus,
       channelId(physicalStatus.channelId),
       deviceModelInfo(physicalStatus.deviceModelInfo),
       deviceUserName(),
-      deviceName(physicalStatus.deviceName),
+      physicalDeviceName(physicalStatus.deviceName),
+      syncDeviceName(),
+      useSyncDeviceName(physicalStatus.useSyncDeviceName),
       protocolId(ProtocolId::INVALID),
       secureProtocolId(SecureProtocolId::INVALID),
       deviceType(physicalStatus.deviceType),
@@ -64,7 +66,9 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       deviceUserId(other.deviceUserId),
       deviceModelInfo(std::move(other.deviceModelInfo)),
       deviceUserName(std::move(other.deviceUserName)),
-      deviceName(std::move(other.deviceName)),
+      physicalDeviceName(std::move(other.physicalDeviceName)),
+      syncDeviceName(std::move(other.syncDeviceName)),
+      useSyncDeviceName(other.useSyncDeviceName),
       protocolId(other.protocolId),
       secureProtocolId(other.secureProtocolId),
       deviceType(other.deviceType),
@@ -96,6 +100,14 @@ void DeviceStatusEntry::OnSyncFailure()
     }
 }
 
+std::string DeviceStatusEntry::GetDeviceName() const
+{
+    if (useSyncDeviceName && !syncDeviceName.empty()) {
+        return syncDeviceName;
+    }
+    return physicalDeviceName;
+}
+
 DeviceKey DeviceStatusEntry::BuildDeviceKey() const
 {
     DeviceKey deviceKey {};
@@ -112,7 +124,7 @@ DeviceStatus DeviceStatusEntry::BuildDeviceStatus() const
     status.deviceKey.deviceId = physicalDeviceKey.deviceId;
     status.deviceKey.deviceUserId = deviceUserId;
     status.channelId = channelId;
-    status.deviceName = deviceName;
+    status.deviceName = GetDeviceName();
     status.deviceUserName = deviceUserName;
     status.deviceModelInfo = deviceModelInfo;
     status.protocolId = protocolId;

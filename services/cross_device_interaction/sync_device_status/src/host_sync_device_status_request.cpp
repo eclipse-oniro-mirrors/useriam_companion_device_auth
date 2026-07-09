@@ -212,6 +212,7 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     syncDeviceStatus.businessIdList = replyData.businessIdList;
     syncDeviceStatus.secureProtocolId = replyData.secureProtocolId;
     syncDeviceStatus.deviceUserName = replyData.deviceUserName;
+    syncDeviceStatus.deviceName = replyData.deviceName;
     syncDeviceStatus.deviceUserId = replyData.companionDeviceKey.deviceUserId;
 
     eventCollector_.SetSelectedProtocolIdList(ProtocolIdConverter::ToUnderlyingVec(syncDeviceStatus.protocolIdList));

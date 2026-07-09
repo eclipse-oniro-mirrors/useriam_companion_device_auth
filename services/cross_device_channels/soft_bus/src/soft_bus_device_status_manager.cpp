@@ -316,9 +316,19 @@ bool SoftBusDeviceStatusManager::ConvertToPhysicalDevices(const std::vector<DmDe
 #else
         bool isAuthMaintainActive = false;
 #endif
-        retPhysicalDeviceStatuses.emplace_back(
-            PhysicalDeviceStatus { PhysicalDeviceKey { DeviceIdType::UNIFIED_DEVICE_ID, deviceIdResult.value() },
-                ChannelId::SOFTBUS, device.deviceName, deviceModelInfo, networkId, isAuthMaintainActive, deviceType });
+        PhysicalDeviceStatus status {
+            .physicalDeviceKey = { DeviceIdType::UNIFIED_DEVICE_ID, deviceIdResult.value() },
+            .channelId = ChannelId::SOFTBUS,
+            // The synced device name is the single source of truth; the SoftBus dm physical
+            // name is intentionally not used as a fallback.
+            .deviceName = "",
+            .deviceModelInfo = deviceModelInfo,
+            .networkId = networkId,
+            .isAuthMaintainActive = isAuthMaintainActive,
+            .deviceType = deviceType,
+            .useSyncDeviceName = true,
+        };
+        retPhysicalDeviceStatuses.emplace_back(std::move(status));
     }
 
     return true;

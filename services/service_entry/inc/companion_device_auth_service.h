@@ -43,7 +43,8 @@ namespace CompanionDeviceAuth {
 class SubscriptionManager;
 
 // Function pointer types for Creator methods
-using BaseServiceInitializerCreator = std::function<std::shared_ptr<BaseServiceInitializer>()>;
+using BaseServiceInitializerCreator =
+    std::function<std::shared_ptr<BaseServiceInitializer>(const wptr<IRemoteObject> &cdaService)>;
 // clang-format off
 using BaseServiceCoreCreator = std::function<std::shared_ptr<BaseServiceCore>(
     const std::shared_ptr<SubscriptionManager> &, const std::vector<BusinessId> &hostBusinessId,

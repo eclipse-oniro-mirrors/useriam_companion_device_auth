@@ -40,6 +40,7 @@ public:
 
     MOCK_METHOD(void, SetSubscribeMode, (SubscribeMode subscribeMode), (override));
     MOCK_METHOD(void, RefreshDeviceStatus, (), (override));
+    MOCK_METHOD(void, TriggerDeviceSync, (const DeviceKey &deviceKey), (override));
     MOCK_METHOD(std::optional<SteadyTimeMs>, GetManageSubscribeTime, (), (const, override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeDeviceStatus,
         (const DeviceKey &deviceKey, bool needSync, OnDeviceStatusChange &&onDeviceStatusChange), (override));

@@ -195,6 +195,22 @@ void AdapterManager::SetUserIdManager(std::shared_ptr<IUserIdManager> adapter)
     userIdManager_ = adapter;
 }
 
+ISystemSettingsManager &AdapterManager::GetSystemSettingsManager()
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    if (systemSettingsManager_ == nullptr) {
+        IAM_LOGE("SystemSettingsManager is not initialized");
+        AbortIfAdapterUninitialized("SystemSettingsManager");
+    }
+    return *systemSettingsManager_;
+}
+
+void AdapterManager::SetSystemSettingsManager(std::shared_ptr<ISystemSettingsManager> adapter)
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    systemSettingsManager_ = adapter;
+}
+
 void AdapterManager::AbortIfAdapterUninitialized(const char *adapterName)
 {
     IAM_LOGE("%{public}s adapter is not initialized, abort", adapterName);
@@ -213,6 +229,7 @@ void AdapterManager::Reset()
     timeKeeperAdapter_ = nullptr;
     systemParamManager_ = nullptr;
     userIdManager_ = nullptr;
+    systemSettingsManager_ = nullptr;
 }
 #endif // ENABLE_TEST
 

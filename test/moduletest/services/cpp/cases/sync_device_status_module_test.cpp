@@ -266,7 +266,10 @@ HWTEST_F(SyncDeviceStatusModuleTest, CompanionResponseNoBindingE2E_001, TestSize
 
     std::string userName;
     EXPECT_TRUE(replyInfo->payload.GetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, userName));
-    EXPECT_EQ(userName, "TestUser") << "Companion should return active user name";
+    // The companion prefixes the account type, e.g. "normal:TestUser".
+    auto sep = userName.find(':');
+    ASSERT_NE(sep, std::string::npos) << "user name should carry a type prefix";
+    EXPECT_EQ(userName.substr(sep + 1), "TestUser") << "Companion should return active user name";
 
     std::vector<uint8_t> checkResponse;
     EXPECT_TRUE(replyInfo->payload.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, checkResponse));

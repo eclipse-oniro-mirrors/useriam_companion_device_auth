@@ -25,6 +25,7 @@
 #include "companion_sync_device_status_handler.h"
 #include "companion_token_auth_handler.h"
 #include "host_pre_obtain_token_handler.h"
+#include "host_request_resync_handler.h"
 #include "host_revoke_token_handler.h"
 #include "incoming_message_handler.h"
 #include "keep_alive_handler.h"
@@ -90,6 +91,10 @@ bool IncomingMessageHandlerRegistry::RegisterHandlers()
     handlers_.push_back(handler);
 
     handler = std::make_shared<HostRevokeTokenHandler>();
+    ENSURE_OR_RETURN_VAL(handler != nullptr, false);
+    handlers_.push_back(handler);
+
+    handler = std::make_shared<HostRequestResyncHandler>();
     ENSURE_OR_RETURN_VAL(handler != nullptr, false);
     handlers_.push_back(handler);
 

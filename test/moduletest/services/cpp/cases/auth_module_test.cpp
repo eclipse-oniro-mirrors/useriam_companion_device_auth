@@ -1276,9 +1276,12 @@ HWTEST_F(AuthModuleTest, HostDelegateAuthFailureE2E_001, TestSize.Level0)
     EXPECT_CALL(guard.GetSecurityAgent(), HostBeginDelegateAuth(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(beginOutput), Return(ResultCode::SUCCESS)));
 
-    // HostEndDelegateAuth is NOT called when delegate auth result is failure.
-    // HandleSendDelegateAuthRequest returns false immediately when resultMsg.result != SUCCESS,
-    // without calling HostEndDelegateAuth.
+    // On the failure path, HandleSendDelegateAuthResult still calls HostEndDelegateAuth first
+    // (via CallSecurityAgentEndDelegateAuth) to finalize the session, then returns the peer's
+    // error code (resultMsg.result) when it is not SUCCESS. This test sets no explicit
+    // expectation on HostEndDelegateAuth; it relies on the default mock action and focuses on
+    // verifying that the error (GENERAL_ERROR) propagates to both the framework callback and
+    // the cross-device reply.
 
     // 3. Create callback
     bool callbackInvoked = false;

@@ -31,8 +31,10 @@
 #include "request_manager.h"
 #include "service_common.h"
 #include "singleton_manager.h"
+#include "subscription.h"
 #include "subscription_manager.h"
 #include "system_param_manager.h"
+#include "system_settings_manager.h"
 
 // For RegisterCompanionViaMessageFlow E2E message flow
 #include "add_companion_message.h"
@@ -57,7 +59,8 @@ TestServiceInitializer::TestServiceInitializer(std::shared_ptr<SubscriptionManag
           DeviceCapabilityInfo { { BusinessId::DEFAULT },
               { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, { BusinessId::DEFAULT },
               { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } },
-          true) // hostBindingRevokeTokenOnInactive
+          true,                   // hostBindingRevokeTokenOnInactive
+          wptr<IRemoteObject> {}) // cdaService — unused: InitializeSystemSettingsManager is overridden with a mock
 {
 }
 
@@ -115,6 +118,18 @@ bool TestServiceInitializer::InitializeUserIdManager()
 {
     userIdManager_ = std::make_shared<FakeUserIdManager>();
     AdapterManager::GetInstance().SetUserIdManager(userIdManager_);
+    return true;
+}
+
+bool TestServiceInitializer::InitializeSystemSettingsManager()
+{
+    systemSettingsManager_ = std::make_shared<MockSystemSettingsManager>();
+    AdapterManager::GetInstance().SetSystemSettingsManager(systemSettingsManager_);
+    // Service init subscribes to display-device-name changes (after this basic-init step). Give the
+    // mock a valid default so that call does not nag.
+    ON_CALL(*systemSettingsManager_, SubscribeSettingsChange(_, _))
+        .WillByDefault(
+            Invoke([](SettingKey, SettingsChangeCallback &&) { return std::make_unique<Subscription>([]() {}); }));
     return true;
 }
 
@@ -228,6 +243,10 @@ MockEventManagerAdapter &TestServiceInitializer::GetEventManagerAdapter()
 MockSecurityAgent &TestServiceInitializer::GetSecurityAgent()
 {
     return *securityAgent_;
+}
+MockSystemSettingsManager &TestServiceInitializer::GetSystemSettingsManager()
+{
+    return *systemSettingsManager_;
 }
 
 std::shared_ptr<MockSecurityAgent> TestServiceInitializer::GetSecurityAgentPtr() const
@@ -393,6 +412,10 @@ MockEventManagerAdapter &ModuleTestGuard::GetEventManagerAdapter()
 MockSecurityAgent &ModuleTestGuard::GetSecurityAgent()
 {
     return initializer_->GetSecurityAgent();
+}
+MockSystemSettingsManager &ModuleTestGuard::GetSystemSettingsManager()
+{
+    return initializer_->GetSystemSettingsManager();
 }
 
 std::shared_ptr<FwkIAuthExecutorHdi> ModuleTestGuard::GetExecutor()

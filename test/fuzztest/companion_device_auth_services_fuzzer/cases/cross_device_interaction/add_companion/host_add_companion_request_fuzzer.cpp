@@ -121,11 +121,11 @@ static void FuzzHandleEndAddHostBindingReply(std::shared_ptr<HostAddCompanionReq
     request->HandleEndAddHostBindingReply(reply);
 }
 
-static void FuzzSendEndAddHostBindingMsg(std::shared_ptr<HostAddCompanionRequest> &request,
+static void FuzzSendEndAddHostBindingRequest(std::shared_ptr<HostAddCompanionRequest> &request,
     FuzzedDataProvider &fuzzData)
 {
     ResultCode result = GenerateFuzzResultCode(fuzzData);
-    (void)request->SendEndAddHostBindingMsg(result);
+    (void)request->SendEndAddHostBindingRequest(result);
 }
 
 static void FuzzCancel(std::shared_ptr<HostAddCompanionRequest> &request, FuzzedDataProvider &fuzzData)
@@ -169,7 +169,7 @@ static const HostAddCompanionRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzHandleInitKeyNegotiationReply,
     FuzzHandleBeginAddHostBindingReply,
     FuzzHandleEndAddHostBindingReply,
-    FuzzSendEndAddHostBindingMsg,
+    FuzzSendEndAddHostBindingRequest,
     FuzzCancel,
     FuzzBeginAddCompanion,
     FuzzEndAddCompanion,

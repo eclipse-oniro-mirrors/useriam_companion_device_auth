@@ -55,6 +55,8 @@ static const char *GetRequestTypeAbbr(RequestType requestType)
             return "RHObT";
         case RequestType::COMPANION_REVOKE_TOKEN_REQUEST:
             return "RCRvT";
+        case RequestType::COMPANION_REQUEST_RESYNC_REQUEST:
+            return "RCResync";
         case RequestType::HOST_TOKEN_AUTH_REQUEST:
             return "RHTkA";
         case RequestType::HOST_DELEGATE_AUTH_REQUEST:

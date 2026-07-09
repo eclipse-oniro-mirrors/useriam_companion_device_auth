@@ -50,6 +50,11 @@ Attributes MakePreIssueTokenRequest()
 {
     Attributes attrs;
     EncodeHostDeviceKey(HOST_DEVICE_KEY, attrs);
+    // SRC_IDENTIFIER / SRC_IDENTIFIER_TYPE are decode-only: the message router fills them on
+    // receive from the authenticated connection, so EncodeHostDeviceKey no longer sets them.
+    // Emulate the router here so the round-trip decode in OnStart recovers the host device key.
+    attrs.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(HOST_DEVICE_KEY.idType));
+    attrs.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, HOST_DEVICE_KEY.deviceId);
     PreIssueTokenRequest preIssueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
         .companionUserId = COMPANION_USER_ID,
         .extraInfo = { 1, 2, 3 } };
@@ -190,7 +195,10 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_004, TestSize.Level0)
     bool result = request->OnStart(errorGuard);
 
     EXPECT_FALSE(result);
-    EXPECT_FALSE(*replyCalled);
+    // Subscribe failure must still notify the host via PreIssueTokenReply, otherwise the host waits for the
+    // PRE_ISSUE_TOKEN reply until the 60s timeout.
+    EXPECT_TRUE(*replyCalled);
+    EXPECT_EQ(*receivedResult, static_cast<int32_t>(ResultCode::COMMUNICATION_ERROR));
 }
 
 HWTEST_F(CompanionIssueTokenRequestTest, OnStart_005, TestSize.Level0)
@@ -344,6 +352,44 @@ HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_005, TestSize.Le
     EXPECT_FALSE(result);
 }
 
+HWTEST_F(CompanionIssueTokenRequestTest, HandleAuthMaintainActiveChanged_AbortsHostOnInactive, TestSize.Level0)
+{
+    // After OnStart replies PreIssueTokenReply(SUCCESS), the host waits for ISSUE_TOKEN. If local auth-maintain
+    // drops, the request must Cancel() so REQUEST_ABORTED reaches the host (the host's OutboundRequest subscribes
+    // to it during OpenConnection); a bare CompleteWithError would leave the host hanging until the 60s timeout.
+    MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
+    OnMessageReply replyCallback = [](const Attributes &) {};
+    auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, MakePreIssueTokenRequest(),
+        std::move(replyCallback), HOST_DEVICE_KEY);
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeIsAuthMaintainActive(_))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
+        .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
+        .WillOnce(Return(SecureProtocolId::DEFAULT));
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionPreIssueToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    EXPECT_TRUE(request->OnStart(errorGuard));
+
+    bool abortedSent = false;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::REQUEST_ABORTED, _, _))
+        .WillOnce(Invoke([&abortedSent](const std::string &, MessageType, const Attributes &, OnMessageReply) {
+            abortedSent = true;
+            return true;
+        }));
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionCancelIssueToken(_)).WillOnce(Return(ResultCode::SUCCESS));
+
+    ASSERT_NO_THROW(request->HandleAuthMaintainActiveChanged(false));
+    EXPECT_TRUE(abortedSent);
+}
+
 HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -468,10 +514,12 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_003, TestSize.L
         static_cast<int32_t>(issueRequest.hostDeviceKey.idType));
     attrs.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, issueRequest.hostDeviceKey.deviceId);
 
-    auto replyCalled = std::make_shared<bool>(false);
+    // Count replies: the failure path must invoke onMessageReply exactly once. Regression guard against the old
+    // double-send where a manual onMessageReply plus the errorGuard destructor emitted two failure replies.
+    auto replyCount = std::make_shared<int>(0);
     auto receivedResult = std::make_shared<int32_t>(-1);
-    OnMessageReply onMessageReply = [replyCalled, receivedResult](const Attributes &reply) {
-        *replyCalled = true;
+    OnMessageReply onMessageReply = [replyCount, receivedResult](const Attributes &reply) {
+        (*replyCount)++;
         auto result = DecodeIssueTokenReply(reply);
         EXPECT_TRUE(result.has_value());
         *receivedResult = static_cast<int32_t>(result.value().result);
@@ -481,7 +529,7 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_003, TestSize.L
 
     request->HandleIssueTokenMessage(attrs, onMessageReply);
 
-    EXPECT_TRUE(*replyCalled);
+    EXPECT_EQ(*replyCount, 1);
     EXPECT_EQ(*receivedResult, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
 }
 

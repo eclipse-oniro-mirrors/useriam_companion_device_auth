@@ -58,6 +58,8 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_001, TestSize.Level0)
         .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceUserId = 100 };
     EncodeHostDeviceKey(hostDeviceKey, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey.deviceId);
 
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &) { replyCalled = true; };
@@ -160,6 +162,8 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_004, TestSize.Level0)
         .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceUserId = 100 };
     EncodeHostDeviceKey(hostDeviceKey, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey.deviceId);
 
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &reply) {
@@ -198,6 +202,8 @@ HWTEST_F(CompanionPreIssueTokenHandlerTest, HandleRequest_005, TestSize.Level0)
         .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceUserId = 100 };
     EncodeHostDeviceKey(hostDeviceKey, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey.deviceId);
 
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &reply) {

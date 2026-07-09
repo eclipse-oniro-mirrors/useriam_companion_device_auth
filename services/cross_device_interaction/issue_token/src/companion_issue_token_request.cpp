@@ -82,6 +82,7 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
             });
     if (issueTokenSubscription_ == nullptr) {
         IAM_LOGE("%{public}s subscribe issue token failed", GetDescription());
+        SendPreIssueTokenReply(ResultCode::COMMUNICATION_ERROR, {});
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
         return false;
     }
@@ -196,15 +197,15 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
 
     std::vector<uint8_t> issueTokenReply;
     bool success = SecureAgentCompanionIssueToken(issueRequest.extraInfo, issueTokenReply);
-    IssueTokenReply replyMsg = { .result = success ? ResultCode::SUCCESS : ResultCode::GENERAL_ERROR,
-        .extraInfo = issueTokenReply };
-    Attributes reply;
-    EncodeIssueTokenReply(replyMsg, reply);
-    onMessageReply(reply);
     if (!success) {
         IAM_LOGE("%{public}s SecureAgentCompanionIssueToken failed", GetDescription());
         return;
     }
+
+    IssueTokenReply replyMsg = { .result = ResultCode::SUCCESS, .extraInfo = issueTokenReply };
+    Attributes reply;
+    EncodeIssueTokenReply(replyMsg, reply);
+    onMessageReply(reply);
     errorGuard.Cancel();
     CompleteWithSuccess();
 }
@@ -285,7 +286,10 @@ void CompanionIssueTokenRequest::HandleAuthMaintainActiveChanged(bool isActive)
         return;
     }
     IAM_LOGE("%{public}s local auth maintain inactive, cancel request", GetDescription());
-    CompleteWithError(ResultCode::GENERAL_ERROR);
+    // host may already hold PreIssueTokenReply(SUCCESS) and be waiting for ISSUE_TOKEN; CompleteWithError alone
+    // sends nothing to the host, so it would hang until timeout. Cancel() emits REQUEST_ABORTED (the host's
+    // OutboundRequest subscribes to it during OpenConnection) so the host can abort promptly.
+    Cancel(ResultCode::GENERAL_ERROR);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

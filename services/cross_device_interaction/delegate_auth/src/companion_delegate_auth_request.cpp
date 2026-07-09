@@ -199,6 +199,7 @@ bool CompanionDelegateAuthRequest::SendDelegateAuthResult(ResultCode resultCode,
         IAM_LOGE("%{public}s SendMessage failed", GetDescription());
         return false;
     }
+    resultSent_ = true;
     return true;
 }
 
@@ -248,6 +249,9 @@ void CompanionDelegateAuthRequest::HandleSendDelegateAuthResultReply(const Attri
 void CompanionDelegateAuthRequest::CompleteWithError(ResultCode result)
 {
     IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
+    if (!resultSent_) {
+        SendRequestAborted(ResultCode::GENERAL_ERROR, "delegate auth failed before completion");
+    }
     eventCollector_.Report(result);
     if (contextId_.has_value()) {
         IAM_LOGI("%{public}s delegate auth not completed, cancelling", GetDescription());

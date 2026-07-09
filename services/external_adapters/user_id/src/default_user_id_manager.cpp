@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "os_account_info.h"
 #include "os_account_manager.h"
 #include "os_account_subscribe_info.h"
 #include "os_account_subscriber.h"
@@ -50,6 +51,7 @@ public:
 
     UserId GetActiveUserId() const override;
     std::optional<std::string> GetActiveUserName() const override;
+    std::string GetActiveUserTypeName() const override;
     std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override;
     bool IsUserIdValid(int32_t userId) override;
 
@@ -79,11 +81,13 @@ private:
     void NotifySubscribers(UserId userId);
     int32_t QueryActiveUserIdFromSystem() const;
     void UnsubscribeActiveUserId(const SubscribeId &subscribeId);
+    static std::string QueryUserTypeNameById(UserId userId);
 
     bool initialized_ = false;
     std::unique_ptr<SaStatusListener> saStatusListener_;
 
     UserId activeUserId_ { INVALID_USER_ID };
+    std::string activeUserTypeName_ { "normal" };
     std::map<SubscribeId, ActiveUserIdCallback> subscribers_;
     std::shared_ptr<ActiveUserOsAccountSubscriber> osAccountSubscriber_;
 };
@@ -154,6 +158,11 @@ std::optional<std::string> DefaultUserIdManager::GetActiveUserName() const
         return std::nullopt;
     }
     return userName;
+}
+
+std::string DefaultUserIdManager::GetActiveUserTypeName() const
+{
+    return activeUserTypeName_;
 }
 
 std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeActiveUserId(ActiveUserIdCallback &&callback)
@@ -256,7 +265,9 @@ void DefaultUserIdManager::SyncActiveUserId()
 void DefaultUserIdManager::UpdateActiveUserId(UserId userId)
 {
     if (activeUserId_ != userId) {
+        IAM_LOGI("active user id %{public}d -> %{public}d", activeUserId_, userId);
         activeUserId_ = userId;
+        activeUserTypeName_ = QueryUserTypeNameById(userId);
         NotifySubscribers(userId);
     }
 }
@@ -304,6 +315,35 @@ int32_t DefaultUserIdManager::QueryActiveUserIdFromSystem() const
     IAM_LOGI("active user id: %{public}d", candidate);
 
     return candidate;
+}
+
+std::string DefaultUserIdManager::QueryUserTypeNameById(UserId userId)
+{
+    if (userId == INVALID_USER_ID) {
+        return "unknown";
+    }
+
+    AccountSA::OsAccountInfo info;
+    ErrCode errCode = AccountSA::OsAccountManager::QueryOsAccountById(userId, info);
+    if (errCode != ERR_OK) {
+        IAM_LOGE("QueryOsAccountById failed %{public}d for %{public}d", errCode, userId);
+        return "unknown";
+    }
+
+    switch (info.GetType()) {
+        case AccountSA::ADMIN:
+            return "admin";
+        case AccountSA::NORMAL:
+            return "normal";
+        case AccountSA::GUEST:
+            return "guest";
+        case AccountSA::MAINTENANCE:
+            return "maintenance";
+        case AccountSA::PRIVATE:
+            return "private";
+        default:
+            return "unknown";
+    }
 }
 
 DefaultUserIdManager::ActiveUserOsAccountSubscriber::ActiveUserOsAccountSubscriber(

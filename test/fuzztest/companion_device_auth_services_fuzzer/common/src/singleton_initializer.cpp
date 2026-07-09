@@ -874,6 +874,11 @@ public:
     {
     }
 
+    void TriggerDeviceSync(const DeviceKey &deviceKey) override
+    {
+        (void)deviceKey;
+    }
+
     std::optional<SteadyTimeMs> GetManageSubscribeTime() const override
     {
         return std::optional<SteadyTimeMs>();
@@ -1287,6 +1292,16 @@ public:
     {
         (void)companionUserId;
         (void)hostDeviceKey;
+        (void)triggerReason;
+        return fuzzData_.ConsumeIntegral<uint32_t>() > 0
+            ? std::make_shared<MockFuzzIRequest>(fuzzData_, requestCounter_++, 0)
+            : nullptr;
+    }
+
+    std::shared_ptr<IRequest> CreateCompanionRequestResyncRequest(const PhysicalDeviceKey &hostPhysicalDeviceKey,
+        const std::string &triggerReason) override
+    {
+        (void)hostPhysicalDeviceKey;
         (void)triggerReason;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0
             ? std::make_shared<MockFuzzIRequest>(fuzzData_, requestCounter_++, 0)

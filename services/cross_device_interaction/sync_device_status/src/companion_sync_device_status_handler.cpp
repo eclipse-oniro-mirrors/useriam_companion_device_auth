@@ -61,7 +61,13 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
     syncReply.businessIdList = profile.companionSupportedBusinessIds;
     syncReply.secureProtocolId = profile.companionSecureProtocolId;
     SetCompanionDeviceKeyUserId(syncReply, companionUserId);
-    syncReply.deviceUserName = userNameOpt.value();
+    syncReply.deviceUserName = GetUserIdManager().GetActiveUserTypeName() + ":" + userNameOpt.value();
+    syncReply.deviceName = GetSystemSettingsManager().GetSettingsValue(SettingKey::DisplayDeviceName);
+    // The per-user display name may be unset before first configuration; fall back to the device model
+    // sysparam so the name is never empty on the wire.
+    if (syncReply.deviceName.empty()) {
+        syncReply.deviceName = GetSystemParamManager().GetParam("const.product.name", "");
+    }
     return syncReply;
 }
 

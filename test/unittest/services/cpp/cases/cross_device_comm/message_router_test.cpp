@@ -133,6 +133,11 @@ public:
         return "tester";
     }
 
+    std::string GetActiveUserTypeName() const override
+    {
+        return "normal";
+    }
+
     std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override
     {
         activeUserIdCallback_ = std::move(callback);

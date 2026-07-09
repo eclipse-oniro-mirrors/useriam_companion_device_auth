@@ -22,6 +22,7 @@
 #include "nocopyable.h"
 
 #include "common_defines.h"
+#include "iremote_object.h"
 #include "service_common.h"
 
 namespace OHOS {
@@ -34,7 +35,7 @@ class ICrossDeviceChannel;
 
 class BaseServiceInitializer : public NoCopyable {
 public:
-    static std::shared_ptr<BaseServiceInitializer> Create();
+    static std::shared_ptr<BaseServiceInitializer> Create(const wptr<IRemoteObject> &cdaService);
 
     std::shared_ptr<SubscriptionManager> GetSubscriptionManager() const;
     const std::vector<BusinessId> &GetHostSupportedBusinessIds() const;
@@ -45,7 +46,8 @@ public:
 protected:
     // Protected constructor for derived classes
     explicit BaseServiceInitializer(std::shared_ptr<SubscriptionManager> subscriptionManager,
-        const DeviceCapabilityInfo &deviceCapabilityInfo, bool hostBindingRevokeTokenOnInactive);
+        const DeviceCapabilityInfo &deviceCapabilityInfo, bool hostBindingRevokeTokenOnInactive,
+        const wptr<IRemoteObject> &cdaService);
 
     // Virtual initialization methods - can be overridden by derived classes
     virtual bool Initialize();
@@ -55,6 +57,7 @@ protected:
     virtual bool InitializeSecurityCommandAdapter();
     virtual bool InitializeSystemParamManager();
     virtual bool InitializeUserIdManager();
+    virtual bool InitializeSystemSettingsManager();
     virtual bool InitializeUserAuthFramework();
     virtual bool InitializeRequestManager();
     virtual bool InitializeRequestFactory();
@@ -93,6 +96,7 @@ private:
     std::vector<BusinessId> companionSupportedBusinessIds_;
     std::vector<Capability> companionLocalCapabilities_;
     bool hostBindingRevokeTokenOnInactive_ { false };
+    wptr<IRemoteObject> cdaService_;
 };
 
 } // namespace CompanionDeviceAuth

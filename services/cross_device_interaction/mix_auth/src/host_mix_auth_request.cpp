@@ -197,12 +197,6 @@ void HostMixAuthRequest::Start()
         return;
     }
 
-    if (GetMiscManager().IsCompanionAuthBlocked()) {
-        IAM_LOGE("%{public}s companion auth blocked", GetDescription());
-        CompleteWithError(ResultCode::LOCKED);
-        return;
-    }
-
     if (!tokenId_.has_value()) {
         IAM_LOGI("%{public}s no tokenId, skip device selection, use all templates", GetDescription());
         StartAuthWithTemplateList(templateIdList_);

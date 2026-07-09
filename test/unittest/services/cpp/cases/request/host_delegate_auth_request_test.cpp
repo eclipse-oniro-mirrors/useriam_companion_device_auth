@@ -404,7 +404,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_003, TestSize
     EXPECT_EQ(*callbackResult, ResultCode::GENERAL_ERROR);
 }
 
-HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_001, TestSize.Level0)
+HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_001, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -436,12 +436,12 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_001, TestSiz
         .WillOnce(DoAll(SetArgReferee<1>(output), Return(ResultCode::SUCCESS)));
 
     std::vector<uint8_t> fwkMsg;
-    ResultCode result = request->HandleSendDelegateAuthRequest(req, fwkMsg);
+    ResultCode result = request->HandleSendDelegateAuthResult(req, fwkMsg);
 
     EXPECT_EQ(result, ResultCode::SUCCESS);
 }
 
-HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_002, TestSize.Level0)
+HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_002, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -466,12 +466,12 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_002, TestSiz
     Attributes badRequest;
 
     std::vector<uint8_t> fwkMsg;
-    ResultCode result = request->HandleSendDelegateAuthRequest(badRequest, fwkMsg);
+    ResultCode result = request->HandleSendDelegateAuthResult(badRequest, fwkMsg);
 
     EXPECT_NE(result, ResultCode::SUCCESS);
 }
 
-HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_003, TestSize.Level0)
+HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_003, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -502,12 +502,12 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_003, TestSiz
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndDelegateAuth(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     std::vector<uint8_t> fwkMsg;
-    ResultCode result = request->HandleSendDelegateAuthRequest(req, fwkMsg);
+    ResultCode result = request->HandleSendDelegateAuthResult(req, fwkMsg);
 
     EXPECT_EQ(result, ResultCode::GENERAL_ERROR);
 }
 
-HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_004, TestSize.Level0)
+HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_004, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -540,12 +540,12 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequest_004, TestSiz
         .WillOnce(DoAll(SetArgReferee<1>(output), Return(ResultCode::SUCCESS)));
 
     std::vector<uint8_t> fwkMsg;
-    ResultCode result = request->HandleSendDelegateAuthRequest(req, fwkMsg);
+    ResultCode result = request->HandleSendDelegateAuthResult(req, fwkMsg);
 
     EXPECT_EQ(result, ResultCode::GENERAL_ERROR);
 }
 
-HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequestMsg_001, TestSize.Level0)
+HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResultMessage_001, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -583,12 +583,12 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequestMsg_001, Test
         EXPECT_EQ(result, static_cast<int32_t>(ResultCode::SUCCESS));
     };
 
-    request->HandleSendDelegateAuthRequestMsg(req, onMessageReply);
+    request->HandleSendDelegateAuthResultMessage(req, onMessageReply);
 
     EXPECT_TRUE(*replyCalled);
 }
 
-HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequestMsg_002, TestSize.Level0)
+HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResultMessage_002, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -622,7 +622,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthRequestMsg_002, Test
         EXPECT_NE(result, static_cast<int32_t>(ResultCode::SUCCESS));
     };
 
-    request->HandleSendDelegateAuthRequestMsg(badRequest, onMessageReply);
+    request->HandleSendDelegateAuthResultMessage(badRequest, onMessageReply);
 
     EXPECT_TRUE(*replyCalled);
 }
