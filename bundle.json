@@ -61,7 +61,8 @@
         "rust_rust-openssl",
         "safwk",
         "samgr",
-        "user_auth_framework"
+        "user_auth_framework",
+        "taihe_ffi_gen"
       ]
     },
     "build":{
