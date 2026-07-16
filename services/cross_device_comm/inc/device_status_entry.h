@@ -39,6 +39,10 @@ public:
 
     void OnSyncSuccess();
     void OnSyncFailure();
+    // External sync trigger entry point: reset the backoff delay while preserving the failure
+    // budget. Distinct from OnSyncSuccess (which fully resets) so callers do not piggyback on the
+    // "sync succeeded" semantics.
+    void ResetRetry();
     DeviceKey BuildDeviceKey() const;
     DeviceStatus BuildDeviceStatus() const;
     std::string GetDeviceName() const;
@@ -63,6 +67,7 @@ public:
     bool refreshToken { false };
     bool isSynced { false };
     bool isSyncInProgress { false };
+    uint64_t inProgressAttemptId { 0 };
 
 private:
     void RecomputeEffectiveBusinessIds();

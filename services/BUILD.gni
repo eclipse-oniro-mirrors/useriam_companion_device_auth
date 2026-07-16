@@ -196,6 +196,7 @@ if (companion_device_auth_has_soft_bus_channel) {
       [ "cross_device_channels/soft_bus/inc" ]
   companion_device_auth_service_static_sources += [
     "cross_device_channels/soft_bus/src/device_manager_adapter_impl.cpp",
+    "cross_device_channels/soft_bus/src/device_resync_scheduler.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_adapter_impl.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_adapter_manager.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_channel.cpp",

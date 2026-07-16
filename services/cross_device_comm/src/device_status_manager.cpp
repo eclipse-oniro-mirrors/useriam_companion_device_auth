@@ -153,7 +153,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(OnDevic
     });
 }
 
-void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t resultCode,
+void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, uint64_t attemptId, int32_t resultCode,
     const SyncDeviceStatus &syncDeviceStatus)
 {
     IAM_LOGI("device sync result: device=%{public}s, result=%{public}d", deviceKey.GetDesc().c_str(), resultCode);
@@ -165,6 +165,11 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, int32_t r
     auto it = deviceStatusMap_.find(physicalKey);
     if (it == deviceStatusMap_.end()) {
         IAM_LOGE("device not found in cache");
+        return;
+    }
+
+    if (it->second.inProgressAttemptId != attemptId) {
+        IAM_LOGI("drop stale sync completion for device %{public}s", deviceKey.GetDesc().c_str());
         return;
     }
 
@@ -286,6 +291,14 @@ void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey
 {
     auto it = deviceStatusMap_.find(physicalKey);
     ENSURE_OR_RETURN(it != deviceStatusMap_.end());
+    it->second.ResetRetry();
+    DoTriggerDeviceSync(physicalKey);
+}
+
+void DeviceStatusManager::DoTriggerDeviceSync(const PhysicalDeviceKey &physicalKey)
+{
+    auto it = deviceStatusMap_.find(physicalKey);
+    ENSURE_OR_RETURN(it != deviceStatusMap_.end());
 
     if (it->second.isSyncInProgress) {
         IAM_LOGI("device already syncing");
@@ -295,11 +308,14 @@ void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey
     DeviceStatusEntry &entry = it->second;
     DeviceKey companionDeviceKey = entry.BuildDeviceKey();
 
+    uint64_t attemptId = GetMiscManager().GetNextGlobalId();
+    entry.inProgressAttemptId = attemptId;
+
     if (!NeedSyncDevice(physicalKey)) {
         IAM_LOGI("device does not need sync, skip and notify with empty sync result");
         SyncDeviceStatus emptySyncStatus {};
         emptySyncStatus.needSync = false;
-        HandleSyncResult(companionDeviceKey, SUCCESS, emptySyncStatus);
+        HandleSyncResult(companionDeviceKey, attemptId, SUCCESS, emptySyncStatus);
         return;
     }
 
@@ -311,11 +327,11 @@ void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey
         entry.OnSyncFailure();
     });
 
-    SyncDeviceStatusCallback callback = [weakSelf = weak_from_this(), companionDeviceKey](ResultCode result,
+    SyncDeviceStatusCallback callback = [weakSelf = weak_from_this(), companionDeviceKey, attemptId](ResultCode result,
                                             const SyncDeviceStatus &syncDeviceStatus) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
-        self->HandleSyncResult(companionDeviceKey, result, syncDeviceStatus);
+        self->HandleSyncResult(companionDeviceKey, attemptId, result, syncDeviceStatus);
     };
 
     UserId activeUserId = GetUserIdManager().GetActiveUserId();
@@ -519,7 +535,8 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 [weakSelf = weak_from_this(), key]() {
                     auto self = weakSelf.lock();
                     ENSURE_OR_RETURN(self != nullptr);
-                    self->TriggerDeviceSync(key);
+                    // Retry-fire re-entry: launch only — do NOT reset backoff, or the delay never grows.
+                    self->DoTriggerDeviceSync(key);
                 },
                 hostSupportBusinessIds_);
             deviceStatusMap_.emplace(key, std::move(entry));

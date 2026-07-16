@@ -13,12 +13,10 @@
  * limitations under the License.
  */
 
-#include <chrono>
-#include <thread>
-
 #include <gtest/gtest.h>
 
 #include "backoff_retry_timer.h"
+#include "relative_timer.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -39,7 +37,6 @@ constexpr uint32_t NUM_7 = 7;
 constexpr uint32_t NUM_10 = 10;
 constexpr uint32_t NUM_11 = 11;
 constexpr uint32_t NUM_100 = 100;
-constexpr uint32_t NUM_200 = 200;
 constexpr uint32_t NUM_1000 = 1000;
 constexpr uint32_t NUM_1234 = 1234;
 constexpr uint32_t NUM_1024 = 1024;
@@ -89,7 +86,7 @@ HWTEST_F(BackoffRetryTimerTest, Destructor_CancelsTimer, TestSize.Level0)
         timer.OnFailure();
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(NUM_200));
+    RelativeTimer::GetInstance().ExecuteAll();
     EXPECT_EQ(*callbackCount, 0);
 }
 
@@ -100,12 +97,76 @@ HWTEST_F(BackoffRetryTimerTest, Reset_CancelsPendingTimer, TestSize.Level0)
         [callbackCount]() { (*callbackCount)++; });
 
     timer.OnFailure();
+    EXPECT_EQ(timer.failureCount_, NUM_1);
+    EXPECT_EQ(timer.backoffStep_, NUM_1);
 
     // Reset immediately
     timer.Reset();
 
     // Wait for the original timer to expire (should not execute)
-    std::this_thread::sleep_for(std::chrono::milliseconds(NUM_200));
+    RelativeTimer::GetInstance().ExecuteAll();
+    EXPECT_EQ(*callbackCount, 0);
+    EXPECT_EQ(timer.failureCount_, NUM_0);
+    EXPECT_EQ(timer.backoffStep_, NUM_0);
+}
+
+// External-trigger reset: the backoff delay (backoffStep_) is cleared and the pending timer
+// cancelled, but the failure budget (failureCount_) is preserved so finite retry capping still
+// holds under a sustained trigger source.
+HWTEST_F(BackoffRetryTimerTest, ResetBackoff_ClearsDelayKeepsBudget, TestSize.Level0)
+{
+    auto callbackCount = std::make_shared<int>(0);
+    BackoffRetryTimer timer({ .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000 },
+        [callbackCount]() { (*callbackCount)++; });
+
+    timer.OnFailure(); // failureCount=1, backoffStep=1
+    timer.OnFailure(); // failureCount=2, backoffStep=2
+    EXPECT_EQ(timer.failureCount_, NUM_2);
+    EXPECT_EQ(timer.backoffStep_, NUM_2);
+
+    timer.ResetBackoff();
+
+    // Delay reset to base, pending timer cancelled; failure budget preserved.
+    EXPECT_EQ(timer.backoffStep_, NUM_0);
+    EXPECT_EQ(timer.failureCount_, NUM_2);
+
+    RelativeTimer::GetInstance().ExecuteAll();
+    EXPECT_EQ(*callbackCount, 0);
+
+    // The two counters now diverge as designed: the next failure advances the budget to 3, but
+    // the delay recomputes from backoffStep 1 (base), not 3.
+    EXPECT_TRUE(timer.OnFailure());
+    EXPECT_EQ(timer.failureCount_, NUM_3);
+    EXPECT_EQ(timer.backoffStep_, NUM_1);
+}
+
+HWTEST_F(BackoffRetryTimerTest, OnFailure_Exhausted_DoesNotSchedule, TestSize.Level0)
+{
+    auto callbackCount = std::make_shared<int>(0);
+    BackoffRetryTimer::Config config { .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000, .maxRetryCount = NUM_2 };
+    BackoffRetryTimer timer(config, [callbackCount]() { (*callbackCount)++; });
+
+    timer.OnFailure(); // failureCount = 1, within limit
+    timer.OnFailure(); // failureCount = 2, within limit
+    timer.OnFailure(); // failureCount = 3 > 2, exhausted — no timer scheduled
+
+    // No pending timer, so nothing should fire
+    RelativeTimer::GetInstance().ExecuteAll();
+    EXPECT_EQ(*callbackCount, 0);
+}
+
+HWTEST_F(BackoffRetryTimerTest, OnFailure_Exhausted_SubsequentCallsStayInert, TestSize.Level0)
+{
+    auto callbackCount = std::make_shared<int>(0);
+    BackoffRetryTimer::Config config { .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000, .maxRetryCount = NUM_1 };
+    BackoffRetryTimer timer(config, [callbackCount]() { (*callbackCount)++; });
+
+    timer.OnFailure(); // failureCount = 1, within limit
+    timer.OnFailure(); // failureCount = 2 > 1, exhausted
+    timer.OnFailure(); // inert — no crash, no scheduling
+    timer.OnFailure(); // inert — no crash, no scheduling
+
+    RelativeTimer::GetInstance().ExecuteAll();
     EXPECT_EQ(*callbackCount, 0);
 }
 

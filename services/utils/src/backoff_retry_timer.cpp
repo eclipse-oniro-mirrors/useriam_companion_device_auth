@@ -45,15 +45,19 @@ BackoffRetryTimer::BackoffRetryTimer(const Config &config, RetryCallback &&callb
     }
 }
 
-void BackoffRetryTimer::OnFailure()
+bool BackoffRetryTimer::OnFailure()
 {
-    if (timerSubscription_ != nullptr) {
-        timerSubscription_.reset();
-    }
+    timerSubscription_.reset();
 
     failureCount_ = (failureCount_ < UINT32_MAX) ? (failureCount_ + 1) : UINT32_MAX;
+    backoffStep_ = (backoffStep_ < UINT32_MAX) ? (backoffStep_ + 1) : UINT32_MAX;
 
-    uint32_t delayMs = CalculateNextDelayMs(failureCount_, config_);
+    if (failureCount_ > config_.maxRetryCount) {
+        IAM_LOGE("retry exhausted after %{public}u attempts", failureCount_);
+        return false;
+    }
+
+    uint32_t delayMs = CalculateNextDelayMs(backoffStep_, config_);
     IAM_LOGI("failure recorded %{public}u times, scheduling retry in %{public}u ms", failureCount_, delayMs);
 
     timerSubscription_ = RelativeTimer::GetInstance().Register(
@@ -63,14 +67,21 @@ void BackoffRetryTimer::OnFailure()
             callback();
         },
         delayMs);
+    return true;
+}
+
+void BackoffRetryTimer::ResetBackoff()
+{
+    timerSubscription_.reset();
+    backoffStep_ = 0;
+    IAM_LOGI("retry backoff reset, keep failure budget %{public}u", failureCount_);
 }
 
 void BackoffRetryTimer::Reset()
 {
-    if (timerSubscription_ != nullptr) {
-        timerSubscription_.reset();
-    }
+    timerSubscription_.reset();
     failureCount_ = 0;
+    backoffStep_ = 0;
     IAM_LOGI("retry timer reset");
 }
 

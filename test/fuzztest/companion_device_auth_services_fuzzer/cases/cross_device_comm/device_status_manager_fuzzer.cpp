@@ -99,6 +99,7 @@ static void FuzzInitialize(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedData
 static void FuzzHandleSyncResult(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
+    uint64_t requestId = fuzzData.ConsumeIntegral<uint64_t>();
     int32_t resultCode = fuzzData.ConsumeIntegral<int32_t>();
     SyncDeviceStatus syncStatus;
     syncStatus.needSync = fuzzData.ConsumeBool();
@@ -110,7 +111,7 @@ static void FuzzHandleSyncResult(std::shared_ptr<DeviceStatusManager> &mgr, Fuzz
         syncStatus.deviceUserName = GenerateFuzzString(fuzzData, TEST_VAL64);
     }
     // else: empty syncStatus to test needSync=false scenario
-    mgr->HandleSyncResult(deviceKey, resultCode, syncStatus);
+    mgr->HandleSyncResult(deviceKey, requestId, resultCode, syncStatus);
 }
 
 static void FuzzTriggerDeviceSync(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)

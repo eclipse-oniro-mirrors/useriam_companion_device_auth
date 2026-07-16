@@ -36,12 +36,21 @@ public:
         static constexpr uint32_t DEFAULT_BASE_DELAY_MS = 1;
         uint32_t baseDelayMs;
         uint32_t maxDelayMs;
+        uint32_t maxRetryCount { UINT32_MAX };
     };
 
     BackoffRetryTimer(const Config &config, RetryCallback &&callback);
     ~BackoffRetryTimer() = default;
 
-    void OnFailure();
+    // Returns true if a retry was scheduled (timer still active);
+    // false if retry count is exhausted and the timer can be discarded.
+    bool OnFailure();
+    // External trigger entry point: clear the backoff delay (so the next attempt starts from the
+    // base interval) and cancel any pending retry, while preserving the failure budget. The budget
+    // only bounds retries within one entry's lifetime; once exhausted the entry is dropped, so the
+    // next external trigger starts a fresh budget and total retries are unbounded under sustained
+    // triggers.
+    void ResetBackoff();
     void Reset();
 
     static uint32_t CalculateNextDelayMs(uint32_t failureCount, const Config &config);
@@ -49,7 +58,8 @@ public:
 private:
     RetryCallback callback_;
     Config config_;
-    uint32_t failureCount_ { 0 };
+    uint32_t failureCount_ { 0 }; // failure budget / statistics; gates exhaustion (> maxRetryCount)
+    uint32_t backoffStep_ { 0 };  // delay step; feeds CalculateNextDelayMs, reset by external trigger
     std::unique_ptr<Subscription> timerSubscription_;
 };
 
