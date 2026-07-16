@@ -44,8 +44,8 @@ protected:
 HWTEST_F(CompanionRequestResyncRequestTest, ShouldCancelOnNewRequest_SamePhysicalDevice, TestSize.Level0)
 {
     MockGuard guard;
-    CompanionRequestResyncRequest mine(MakeHostKey("host_A", INT32_100), "active_user_changed");
-    CompanionRequestResyncRequest next(MakeHostKey("host_A", INT32_200), "device_name_changed");
+    CompanionRequestResyncRequest mine(MakeHostKey("host_A", INT32_100), nullptr);
+    CompanionRequestResyncRequest next(MakeHostKey("host_A", INT32_200), nullptr);
 
     EXPECT_TRUE(mine.ShouldCancelOnNewRequest(next, 0));
 }
@@ -53,8 +53,8 @@ HWTEST_F(CompanionRequestResyncRequestTest, ShouldCancelOnNewRequest_SamePhysica
 HWTEST_F(CompanionRequestResyncRequestTest, ShouldCancelOnNewRequest_DifferentPhysicalDevice, TestSize.Level0)
 {
     MockGuard guard;
-    CompanionRequestResyncRequest mine(MakeHostKey("host_A", INT32_100), "active_user_changed");
-    CompanionRequestResyncRequest next(MakeHostKey("host_B", INT32_100), "device_name_changed");
+    CompanionRequestResyncRequest mine(MakeHostKey("host_A", INT32_100), nullptr);
+    CompanionRequestResyncRequest next(MakeHostKey("host_B", INT32_100), nullptr);
 
     EXPECT_FALSE(mine.ShouldCancelOnNewRequest(next, 0));
 }
@@ -62,7 +62,7 @@ HWTEST_F(CompanionRequestResyncRequestTest, ShouldCancelOnNewRequest_DifferentPh
 HWTEST_F(CompanionRequestResyncRequestTest, GetMaxConcurrency_AllowsMultipleHosts, TestSize.Level0)
 {
     MockGuard guard;
-    CompanionRequestResyncRequest request(MakeHostKey("host_A", INT32_100), "active_user_changed");
+    CompanionRequestResyncRequest request(MakeHostKey("host_A", INT32_100), nullptr);
 
     EXPECT_GT(request.GetMaxConcurrency(), 1u);
 }

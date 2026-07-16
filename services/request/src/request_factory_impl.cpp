@@ -180,13 +180,13 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRevokeTokenRequest(
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRequestResyncRequest(
-    const PhysicalDeviceKey &hostPhysicalDeviceKey, const std::string &triggerReason)
+    const PhysicalDeviceKey &hostPhysicalDeviceKey, ResultCodeCallback onComplete)
 {
     DeviceKey hostDeviceKey {};
     hostDeviceKey.idType = hostPhysicalDeviceKey.idType;
     hostDeviceKey.deviceId = hostPhysicalDeviceKey.deviceId;
     hostDeviceKey.deviceUserId = INVALID_USER_ID;
-    auto request = std::make_shared<CompanionRequestResyncRequest>(hostDeviceKey, triggerReason);
+    auto request = std::make_shared<CompanionRequestResyncRequest>(hostDeviceKey, std::move(onComplete));
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }

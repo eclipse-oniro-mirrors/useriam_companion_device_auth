@@ -35,12 +35,12 @@ constexpr uint32_t MAX_RESYNC_CONCURRENCY = 10;
 }
 
 CompanionRequestResyncRequest::CompanionRequestResyncRequest(const DeviceKey &hostDeviceKey,
-    const std::string &triggerReason)
-    : OutboundRequest(RequestType::COMPANION_REQUEST_RESYNC_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS)
+    ResultCodeCallback onComplete)
+    : OutboundRequest(RequestType::COMPANION_REQUEST_RESYNC_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
+      onComplete_(std::move(onComplete))
 {
     SetPeerDeviceKey(hostDeviceKey);
-    eventCollector_.SetHostDeviceKey(hostDeviceKey);
-    eventCollector_.SetTriggerReason(triggerReason);
+    desc_.SetDeviceId(hostDeviceKey);
 }
 
 void CompanionRequestResyncRequest::OnConnected()
@@ -65,7 +65,6 @@ void CompanionRequestResyncRequest::SendRequestDeviceResyncRequest()
     ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKey.has_value());
 
     DeviceKey companionDeviceKey = localDeviceKey.value();
-    eventCollector_.SetCompanionUserId(companionDeviceKey.deviceUserId);
     RequestDeviceResyncRequest requestMsg = { .companionDeviceKey = companionDeviceKey };
     Attributes request = {};
     EncodeRequestDeviceResyncRequest(requestMsg, request);
@@ -105,14 +104,20 @@ void CompanionRequestResyncRequest::HandleRequestDeviceResyncReply(const Attribu
 void CompanionRequestResyncRequest::CompleteWithError(ResultCode result)
 {
     IAM_LOGI("%{public}s: request resync failed, result=%{public}d", GetDescription(), result);
-    eventCollector_.Report(result);
+    if (onComplete_) {
+        onComplete_(result);
+        onComplete_ = nullptr;
+    }
     Destroy();
 }
 
 void CompanionRequestResyncRequest::CompleteWithSuccess()
 {
     IAM_LOGI("%{public}s complete with success", GetDescription());
-    eventCollector_.Report(ResultCode::SUCCESS);
+    if (onComplete_) {
+        onComplete_(ResultCode::SUCCESS);
+        onComplete_ = nullptr;
+    }
     Destroy();
 }
 

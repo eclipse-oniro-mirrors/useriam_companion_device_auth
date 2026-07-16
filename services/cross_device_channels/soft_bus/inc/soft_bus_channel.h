@@ -13,6 +13,7 @@
 #include "nocopyable.h"
 
 #include "cross_device_common.h"
+#include "device_resync_scheduler.h"
 #include "icross_device_channel.h"
 #include "misc_manager.h"
 #include "soft_bus_channel_common.h"
@@ -66,12 +67,7 @@ protected:
     bool started_ { false };
 
 private:
-    void OnActiveUserIdChanged(UserId userId);
-    void OnLocalDeviceNameChanged();
-    void ResyncAllPhysicalDevices(const std::string &reason);
-
-    std::unique_ptr<Subscription> activeUserIdSubscription_;
-    std::unique_ptr<Subscription> deviceNameSubscription_;
+    std::shared_ptr<DeviceResyncScheduler> deviceResyncScheduler_;
 };
 
 } // namespace CompanionDeviceAuth

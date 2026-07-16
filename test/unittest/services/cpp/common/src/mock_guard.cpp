@@ -243,6 +243,7 @@ void MockGuard::SetupRequestFactoryDefaults()
 {
     ON_CALL(*requestFactory_, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
     ON_CALL(*requestFactory_, CreateHostSyncDeviceStatusRequest(_, _, _, _)).WillByDefault(Return(nullptr));
+    ON_CALL(*requestFactory_, CreateCompanionRequestResyncRequest(_, _)).WillByDefault(Return(nullptr));
 }
 
 void MockGuard::SetupExecutorFactoryDefaults()

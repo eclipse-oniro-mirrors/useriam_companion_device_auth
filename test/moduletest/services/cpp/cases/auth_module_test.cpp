@@ -1644,7 +1644,7 @@ HWTEST_F(AuthModuleTest, UserSwitchCancelsRequestE2E_001, TestSize.Level0)
     // 7. Verify: callback was NOT invoked
     //    The user switch triggers OnActiveUserIdChanged which clears the companion list
     //    and DeviceStatusManager::HandleUserIdChange which updates activeUserId_ to 999.
-    //    However, neither path explicitly cancels in-flight requests or closes connections.
+    //    However, neither path explicitly cancels in-progress requests or closes connections.
     //    The OutboundRequest remains alive, waiting for a reply on its connection.
     //    The request will eventually time out via MessageRouter's message timeout mechanism,
     //    but not synchronously during the user switch.

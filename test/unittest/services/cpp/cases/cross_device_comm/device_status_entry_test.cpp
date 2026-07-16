@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include "device_status_entry.h"
+#include "relative_timer.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -251,6 +252,41 @@ HWTEST_F(DeviceStatusEntryTest, SetSyncCompanionBusinessIds_Empty_DegradesToPhys
     EXPECT_TRUE(changed);
     EXPECT_EQ(entry.GetSupportedBusinessIds(),
         std::vector<BusinessId>({ static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) }));
+}
+
+// OnSyncFailure arms the backoff timer; firing it invokes the retry callback passed at
+// construction (the sync retry-fire re-entry point).
+HWTEST_F(DeviceStatusEntryTest, OnSyncFailure_ArmsRetryThatFiresCallback, TestSize.Level0)
+{
+    auto retryCallCount = std::make_shared<int>(0);
+    DeviceStatusEntry entry(physicalStatus_, [retryCallCount]() { (*retryCallCount)++; });
+
+    entry.OnSyncFailure(); // arms the retry timer
+
+    RelativeTimer::GetInstance().ExecuteAll();
+    EXPECT_EQ(*retryCallCount, 1);
+}
+
+// External sync trigger (ResetRetry) clears the backoff delay while preserving the failure
+// budget — the dual-counter contract mirrored from BackoffRetryTimer::ResetBackoff.
+HWTEST_F(DeviceStatusEntryTest, ResetRetry_ClearsBackoffKeepsBudget, TestSize.Level0)
+{
+    auto retryCallCount = std::make_shared<int>(0);
+    DeviceStatusEntry entry(physicalStatus_, [retryCallCount]() { (*retryCallCount)++; });
+
+    entry.OnSyncFailure(); // backoffStep=1, failureCount=1
+    entry.OnSyncFailure(); // backoffStep=2, failureCount=2
+    ASSERT_NE(entry.syncRetryTimer_, nullptr);
+    EXPECT_EQ(entry.syncRetryTimer_->backoffStep_, 2u);
+    EXPECT_EQ(entry.syncRetryTimer_->failureCount_, 2u);
+
+    entry.ResetRetry(); // external trigger: clear delay, cancel pending, keep budget
+
+    EXPECT_EQ(entry.syncRetryTimer_->backoffStep_, 0u);
+    EXPECT_EQ(entry.syncRetryTimer_->failureCount_, 2u);
+
+    RelativeTimer::GetInstance().ExecuteAll();
+    EXPECT_EQ(*retryCallCount, 0); // pending timer cancelled
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

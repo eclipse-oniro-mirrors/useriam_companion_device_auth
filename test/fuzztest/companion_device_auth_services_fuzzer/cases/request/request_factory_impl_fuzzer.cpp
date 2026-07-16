@@ -209,8 +209,8 @@ static void FuzzCreateCompanionRequestResyncRequest(std::shared_ptr<RequestFacto
     PhysicalDeviceKey hostPhysicalDeviceKey;
     hostPhysicalDeviceKey.idType = hostDeviceKey.idType;
     hostPhysicalDeviceKey.deviceId = hostDeviceKey.deviceId;
-    std::string triggerReason = GenerateFuzzString(fuzzData, SIZE_64);
-    auto request = factory->CreateCompanionRequestResyncRequest(hostPhysicalDeviceKey, triggerReason);
+    auto onComplete = [](ResultCode result) { (void)result; };
+    auto request = factory->CreateCompanionRequestResyncRequest(hostPhysicalDeviceKey, std::move(onComplete));
     (void)request;
 }
 

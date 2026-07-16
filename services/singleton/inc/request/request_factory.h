@@ -103,7 +103,7 @@ public:
     virtual std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId,
         const DeviceKey &hostDeviceKey, const std::string &triggerReason) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRequestResyncRequest(
-        const PhysicalDeviceKey &hostPhysicalDeviceKey, const std::string &triggerReason) = 0;
+        const PhysicalDeviceKey &hostPhysicalDeviceKey, ResultCodeCallback onComplete) = 0;
     virtual std::shared_ptr<IRequest> CreateHostMixAuthRequest(const HostMixAuthParams &params,
         FwkResultCallback &&requestCallback) = 0;
     virtual std::shared_ptr<IRequest> CreateHostSingleMixAuthRequest(const AuthRequestParams &params,

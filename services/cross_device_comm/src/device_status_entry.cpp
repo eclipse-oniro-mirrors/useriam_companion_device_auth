@@ -78,6 +78,7 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       refreshToken(other.refreshToken),
       isSynced(other.isSynced),
       isSyncInProgress(other.isSyncInProgress),
+      inProgressAttemptId(other.inProgressAttemptId),
       hostSupportBusinessIds_(std::move(other.hostSupportBusinessIds_)),
       physicalCompanionBusinessIds_(std::move(other.physicalCompanionBusinessIds_)),
       syncCompanionBusinessIds_(std::move(other.syncCompanionBusinessIds_)),
@@ -97,6 +98,13 @@ void DeviceStatusEntry::OnSyncFailure()
 {
     if (syncRetryTimer_ != nullptr) {
         syncRetryTimer_->OnFailure();
+    }
+}
+
+void DeviceStatusEntry::ResetRetry()
+{
+    if (syncRetryTimer_ != nullptr) {
+        syncRetryTimer_->ResetBackoff();
     }
 }
 

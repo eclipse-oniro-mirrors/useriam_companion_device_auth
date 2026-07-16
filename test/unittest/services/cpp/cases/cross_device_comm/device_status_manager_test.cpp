@@ -206,7 +206,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedSta
     syncStatus.deviceUserName = "tester";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
-    ctx.manager->HandleSyncResult(deviceKey, SUCCESS, syncStatus);
+    ctx.manager->HandleSyncResult(deviceKey, 0, SUCCESS, syncStatus);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
 
@@ -328,7 +328,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultFailureMarksEntryAndSkipsNotif
     syncStatus.capabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "tester";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
-    ctx.manager->HandleSyncResult(deviceKey, GENERAL_ERROR, syncStatus);
+    ctx.manager->HandleSyncResult(deviceKey, 0, GENERAL_ERROR, syncStatus);
 
     EXPECT_FALSE(*callbackInvoked);
     const auto &failedEntry3 = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
@@ -446,12 +446,13 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallba
             Return(true)));
 
     ctx.manager->TriggerDeviceSync(physicalStatus.physicalDeviceKey);
+    uint64_t attemptId = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey).inProgressAttemptId;
     SyncDeviceStatus syncStatus;
     syncStatus.protocolIdList = { ProtocolId::VERSION_1 };
     syncStatus.capabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "remote-user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
-    ctx.manager->HandleSyncResult(deviceKey, SUCCESS, syncStatus);
+    ctx.manager->HandleSyncResult(deviceKey, attemptId, SUCCESS, syncStatus);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
 
@@ -552,7 +553,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_IgnoresDeviceUserId, TestSize
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
     syncStatus.deviceUserId = reportedDeviceUserId;
 
-    ASSERT_NO_THROW(ctx.manager->HandleSyncResult(keyWithDifferentUser, SUCCESS, syncStatus));
+    ASSERT_NO_THROW(ctx.manager->HandleSyncResult(keyWithDifferentUser, 0, SUCCESS, syncStatus));
 
     const auto &syncedEntry = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
     EXPECT_TRUE(syncedEntry.isSynced);
@@ -573,7 +574,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_DeviceNotInCache, TestSize.Le
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
-    ASSERT_NO_THROW(ctx.manager->HandleSyncResult(nonExistentKey, SUCCESS, syncStatus));
+    ASSERT_NO_THROW(ctx.manager->HandleSyncResult(nonExistentKey, 0, SUCCESS, syncStatus));
 }
 
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_EmptySyncStatus, TestSize.Level0)
@@ -601,7 +602,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_EmptySyncStatus, TestSize.Lev
     // Empty SyncDeviceStatus (needSync=false scenario)
     SyncDeviceStatus emptySyncStatus;
     emptySyncStatus.needSync = false; // Explicitly set to skip protocol negotiation
-    ctx.manager->HandleSyncResult(deviceKey, SUCCESS, emptySyncStatus);
+    ctx.manager->HandleSyncResult(deviceKey, 0, SUCCESS, emptySyncStatus);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
 
@@ -637,7 +638,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocol, TestSize.Le
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
-    ctx.manager->HandleSyncResult(deviceKey, SUCCESS, syncStatus);
+    ctx.manager->HandleSyncResult(deviceKey, 0, SUCCESS, syncStatus);
 
     const auto &entry2 = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
     EXPECT_FALSE(entry2.isSynced);
@@ -666,7 +667,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonCapabilities, TestSiz
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
-    ctx.manager->HandleSyncResult(deviceKey, SUCCESS, syncStatus);
+    ctx.manager->HandleSyncResult(deviceKey, 0, SUCCESS, syncStatus);
 
     const auto &entry2 = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
     EXPECT_FALSE(entry2.isSynced);
@@ -1184,6 +1185,38 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchang
     ASSERT_NE(it, ctx.manager->deviceStatusMap_.end());
     ASSERT_EQ(it->second.GetSupportedBusinessIds().size(), 1u);
     EXPECT_EQ(it->second.GetSupportedBusinessIds()[0], static_cast<BusinessId>(10001));
+}
+
+// Stale sync completion guard: a completion whose request id does not match the entry's current
+// in-progress id (entry rebuilt after the original sync launched, e.g. device went offline then came
+// back) must be dropped — a late SUCCESS must not stamp the rebuilt entry with outdated data.
+HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_DropsStaleCompletion, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+    ASSERT_NE(ctx.manager, nullptr);
+
+    auto physicalStatus = MakePhysicalStatus("device-stale-sync", ChannelId::SOFTBUS, "Device");
+    DeviceStatusEntry entry(physicalStatus, []() {});
+    entry.inProgressAttemptId = 5; // rebuilt entry's current in-progress id
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+
+    SyncDeviceStatus syncStatus;
+    syncStatus.needSync = false;
+    syncStatus.deviceUserName = "stale-user";
+
+    // Stale completion (id 3 != 5): dropped, entry untouched.
+    ctx.manager->HandleSyncResult(deviceKey, 3, SUCCESS, syncStatus);
+    const auto &stored = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
+    EXPECT_FALSE(stored.isSynced);
+    EXPECT_TRUE(stored.deviceUserName.empty());
+
+    // Matching completion (id 5): processed normally.
+    ctx.manager->HandleSyncResult(deviceKey, 5, SUCCESS, syncStatus);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(stored.isSynced);
+    EXPECT_EQ(stored.deviceUserName, "stale-user");
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -34,6 +34,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 using FwkResultCallback = std::function<void(ResultCode result, const std::vector<uint8_t> &extraInfo)>;
+using ResultCodeCallback = std::function<void(ResultCode result)>;
 
 using RequestId = uint32_t;
 using TemplateId = uint64_t;

@@ -1299,10 +1299,10 @@ public:
     }
 
     std::shared_ptr<IRequest> CreateCompanionRequestResyncRequest(const PhysicalDeviceKey &hostPhysicalDeviceKey,
-        const std::string &triggerReason) override
+        ResultCodeCallback onComplete) override
     {
         (void)hostPhysicalDeviceKey;
-        (void)triggerReason;
+        (void)onComplete;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0
             ? std::make_shared<MockFuzzIRequest>(fuzzData_, requestCounter_++, 0)
             : nullptr;

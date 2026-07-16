@@ -53,7 +53,7 @@ public:
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionRevokeTokenRequest,
         (int32_t, const DeviceKey &, const std::string &), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionRequestResyncRequest,
-        (const PhysicalDeviceKey &, const std::string &), (override));
+        (const PhysicalDeviceKey &, ResultCodeCallback), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateHostMixAuthRequest, (const HostMixAuthParams &, FwkResultCallback &&),
         (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateHostSingleMixAuthRequest,

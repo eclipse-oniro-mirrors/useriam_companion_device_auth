@@ -16,10 +16,12 @@
 #ifndef COMPANION_DEVICE_AUTH_COMPANION_REQUEST_RESYNC_REQUEST_H
 #define COMPANION_DEVICE_AUTH_COMPANION_REQUEST_RESYNC_REQUEST_H
 
+#include <functional>
 #include <memory>
 #include <string>
 
 #include "outbound_request.h"
+#include "service_common.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -28,7 +30,7 @@ namespace CompanionDeviceAuth {
 class CompanionRequestResyncRequest : public std::enable_shared_from_this<CompanionRequestResyncRequest>,
                                       public OutboundRequest {
 public:
-    CompanionRequestResyncRequest(const DeviceKey &hostDeviceKey, const std::string &triggerReason);
+    CompanionRequestResyncRequest(const DeviceKey &hostDeviceKey, ResultCodeCallback onComplete);
     ~CompanionRequestResyncRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
@@ -44,6 +46,8 @@ private:
     void HandleRequestDeviceResyncReply(const Attributes &message);
 
     void CompleteWithSuccess();
+
+    ResultCodeCallback onComplete_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

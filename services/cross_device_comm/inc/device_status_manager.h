@@ -80,7 +80,10 @@ private:
 
     bool Initialize();
 
-    void HandleSyncResult(const DeviceKey &deviceKey, int32_t resultCode, const SyncDeviceStatus &syncDeviceStatus);
+    void HandleSyncResult(const DeviceKey &deviceKey, uint64_t requestId, int32_t resultCode,
+        const SyncDeviceStatus &syncDeviceStatus);
+
+    void DoTriggerDeviceSync(const PhysicalDeviceKey &physicalKey);
 
     void StartPeriodicSync();
     void StopPeriodicSync();

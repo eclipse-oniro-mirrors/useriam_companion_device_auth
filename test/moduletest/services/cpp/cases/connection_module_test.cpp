@@ -50,7 +50,7 @@ constexpr UserId HOST_USER_ID = 100;
 // ============================================================================
 //
 // What this tests:
-//   OutboundRequest (HostTokenAuthRequest) in flight -> remote disconnect
+//   OutboundRequest (HostTokenAuthRequest) in progress -> remote disconnect
 //   -> ConnectionManager.HandleChannelConnectionClosed -> NotifyConnectionStatus(DISCONNECTED)
 //   -> MessageRouter.HandleConnectionDown -> pending reply erased -> connection removed
 //   -> OutboundRequest CompleteWithError via timeout or explicit cancel
