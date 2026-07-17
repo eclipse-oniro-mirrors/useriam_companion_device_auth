@@ -22,6 +22,8 @@
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "adapter_manager.h"
+
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_DEVICE_STATUS_ENTRY
 
@@ -78,6 +80,7 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       refreshToken(other.refreshToken),
       isSynced(other.isSynced),
       isSyncInProgress(other.isSyncInProgress),
+      lastSyncTimeMs(other.lastSyncTimeMs),
       inProgressAttemptId(other.inProgressAttemptId),
       hostSupportBusinessIds_(std::move(other.hostSupportBusinessIds_)),
       physicalCompanionBusinessIds_(std::move(other.physicalCompanionBusinessIds_)),
@@ -91,6 +94,10 @@ void DeviceStatusEntry::OnSyncSuccess()
 {
     if (syncRetryTimer_ != nullptr) {
         syncRetryTimer_->Reset();
+    }
+    auto syncTime = GetTimeKeeper().GetSteadyTimeMs();
+    if (syncTime.has_value()) {
+        lastSyncTimeMs = syncTime.value();
     }
 }
 
@@ -144,6 +151,7 @@ DeviceStatus DeviceStatusEntry::BuildDeviceStatus() const
     status.deviceType = deviceType;
     status.atlRevokeDelayMs = atlRevokeDelayMs;
     status.refreshToken = refreshToken;
+    status.lastSyncTimeMs = lastSyncTimeMs;
     return status;
 }
 

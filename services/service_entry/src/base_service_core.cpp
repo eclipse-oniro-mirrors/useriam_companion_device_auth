@@ -235,8 +235,8 @@ ResultCode BaseServiceCore::GetTemplateStatus(int32_t localUserId, std::vector<I
 
         IpcTemplateStatus ipcStatus {};
         ipcStatus.templateId = status.templateId;
-        ipcStatus.isConfirmed =
-            manageSubscribeTime.has_value() && (status.lastCheckTime >= manageSubscribeTime.value());
+        ipcStatus.isConfirmed = manageSubscribeTime.has_value() &&
+            (status.companionDeviceStatus.lastSyncTimeMs >= manageSubscribeTime.value());
         ipcStatus.isValid = status.isValid;
         ipcStatus.localUserId = status.hostUserId;
         ipcStatus.addedTime = status.addedTime;

@@ -201,6 +201,17 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_RefreshTokenFalse, TestSize.Le
     EXPECT_FALSE(status.refreshToken);
 }
 
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_IncludesLastSyncTimeMs, TestSize.Level0)
+{
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.isSynced = true;
+    entry.lastSyncTimeMs = 12345;
+
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    EXPECT_EQ(status.lastSyncTimeMs, 12345u);
+}
+
 HWTEST_F(DeviceStatusEntryTest, Constructor_SupportedBusinessIds_001, TestSize.Level0)
 {
     std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };

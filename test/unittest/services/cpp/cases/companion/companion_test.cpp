@@ -240,6 +240,26 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_002, TestSize.Level0)
     companion->HandleDeviceStatusUpdate(deviceStatus);
 }
 
+HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_003, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    // Business fields are unchanged, but a fresher sync time still counts as a status change.
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    companion->status_.companionDeviceStatus = deviceStatus;
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.lastSyncTimeMs, 0u);
+
+    deviceStatus.lastSyncTimeMs = 100;
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    companion->HandleDeviceStatusUpdate(deviceStatus);
+
+    // The adopted sync time is what lets isConfirmed go true downstream.
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.lastSyncTimeMs, 100u);
+}
+
 HWTEST_F(CompanionTest, HandleDeviceOffline_001, TestSize.Level0)
 {
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
