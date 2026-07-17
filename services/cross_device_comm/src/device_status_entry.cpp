@@ -22,6 +22,8 @@
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "adapter_manager.h"
+
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_DEVICE_STATUS_ENTRY
 
@@ -92,6 +94,10 @@ void DeviceStatusEntry::OnSyncSuccess()
 {
     if (syncRetryTimer_ != nullptr) {
         syncRetryTimer_->Reset();
+    }
+    auto syncTime = GetTimeKeeper().GetSteadyTimeMs();
+    if (syncTime.has_value()) {
+        lastSyncTimeMs = syncTime.value();
     }
 }
 

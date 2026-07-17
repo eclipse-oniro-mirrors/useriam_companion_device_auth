@@ -182,7 +182,8 @@ public:
             secureProtocolId == other.secureProtocolId && capabilities == other.capabilities &&
             supportedBusinessIds == other.supportedBusinessIds && isOnline == other.isOnline &&
             isAuthMaintainActive == other.isAuthMaintainActive && deviceType == other.deviceType &&
-            atlRevokeDelayMs == other.atlRevokeDelayMs && refreshToken == other.refreshToken;
+            atlRevokeDelayMs == other.atlRevokeDelayMs && refreshToken == other.refreshToken &&
+            lastSyncTimeMs == other.lastSyncTimeMs;
     }
 
     DeviceKey deviceKey {};
@@ -280,7 +281,6 @@ struct CompanionStatus {
     std::optional<Atl> tokenAuthAtl { std::nullopt };
     std::vector<BusinessId> enabledBusinessIds {};
     int64_t addedTime { 0 };
-    uint64_t lastCheckTime { 0 };
 };
 
 struct HostBindingStatus {

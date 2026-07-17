@@ -189,11 +189,6 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, uint64_t 
 
     deviceStatus.OnSyncSuccess();
 
-    auto syncTime = GetTimeKeeper().GetSteadyTimeMs();
-    if (syncTime.has_value()) {
-        deviceStatus.lastSyncTimeMs = syncTime.value();
-    }
-
     if (syncDeviceStatus.needSync) {
         auto negotiatedProtocol = NegotiateProtocol(syncDeviceStatus.protocolIdList);
         ENSURE_OR_RETURN(negotiatedProtocol.has_value());
