@@ -199,6 +199,7 @@ public:
     DeviceType deviceType { DeviceType::INVALID };
     std::optional<uint32_t> atlRevokeDelayMs;
     bool refreshToken { false };
+    SteadyTimeMs lastSyncTimeMs { 0 };
 };
 
 struct LocalDeviceProfile {

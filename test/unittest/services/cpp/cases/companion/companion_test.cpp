@@ -240,6 +240,45 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_002, TestSize.Level0)
     companion->HandleDeviceStatusUpdate(deviceStatus);
 }
 
+HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_003, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    // Device status is unchanged, but the device reports a fresher sync time.
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    companion->status_.companionDeviceStatus = deviceStatus;
+    EXPECT_EQ(companion->GetStatus().lastCheckTime, 0u);
+
+    deviceStatus.lastSyncTimeMs = 100;
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+    companion->HandleDeviceStatusUpdate(deviceStatus);
+
+    // The sync time is adopted as lastCheckTime, which is what lets isConfirmed go true downstream.
+    EXPECT_EQ(companion->GetStatus().lastCheckTime, 100u);
+}
+
+HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_004, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey deviceKey = persistedStatus.companionDeviceKey;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    // Status unchanged and the incoming sync time is not fresher than the last check time.
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    companion->status_.companionDeviceStatus = deviceStatus;
+    companion->status_.lastCheckTime = 100;
+
+    deviceStatus.lastSyncTimeMs = 50;
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).Times(0);
+    companion->HandleDeviceStatusUpdate(deviceStatus);
+
+    EXPECT_EQ(companion->GetStatus().lastCheckTime, 100u);
+}
+
 HWTEST_F(CompanionTest, HandleDeviceOffline_001, TestSize.Level0)
 {
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);

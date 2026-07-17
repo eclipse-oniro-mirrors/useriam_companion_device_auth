@@ -78,6 +78,7 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       refreshToken(other.refreshToken),
       isSynced(other.isSynced),
       isSyncInProgress(other.isSyncInProgress),
+      lastSyncTimeMs(other.lastSyncTimeMs),
       inProgressAttemptId(other.inProgressAttemptId),
       hostSupportBusinessIds_(std::move(other.hostSupportBusinessIds_)),
       physicalCompanionBusinessIds_(std::move(other.physicalCompanionBusinessIds_)),
@@ -144,6 +145,7 @@ DeviceStatus DeviceStatusEntry::BuildDeviceStatus() const
     status.deviceType = deviceType;
     status.atlRevokeDelayMs = atlRevokeDelayMs;
     status.refreshToken = refreshToken;
+    status.lastSyncTimeMs = lastSyncTimeMs;
     return status;
 }
 

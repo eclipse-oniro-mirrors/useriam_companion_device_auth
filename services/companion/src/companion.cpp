@@ -120,14 +120,22 @@ void Companion::HandleDeviceStatusChanged(const std::vector<DeviceStatus> &devic
 
 void Companion::HandleDeviceStatusUpdate(const DeviceStatus &deviceStatus)
 {
-    if (status_.companionDeviceStatus == deviceStatus) {
+    bool statusChanged = !(status_.companionDeviceStatus == deviceStatus);
+    bool checkTimeAdvanced = (deviceStatus.lastSyncTimeMs > status_.lastCheckTime);
+    if (!statusChanged && !checkTimeAdvanced) {
         return;
     }
 
-    HandleAuthMaintainActiveChanged(deviceStatus);
-    HandleCompanionStatusChange(deviceStatus);
-    status_.companionDeviceStatus = deviceStatus;
-    IAM_LOGI("%{public}s device status updated", GetDescription());
+    if (statusChanged) {
+        HandleAuthMaintainActiveChanged(deviceStatus);
+        HandleCompanionStatusChange(deviceStatus);
+        status_.companionDeviceStatus = deviceStatus;
+        IAM_LOGI("%{public}s device status updated", GetDescription());
+    }
+    if (checkTimeAdvanced) {
+        status_.lastCheckTime = deviceStatus.lastSyncTimeMs;
+    }
+
     NotifySubscribers();
 }
 

@@ -225,6 +225,55 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedSta
     EXPECT_EQ(ChannelId::SOFTBUS, channelId.value());
 }
 
+HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessRecordsSyncTime, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+
+    constexpr uint64_t syncSteadyTimeMs = 98765;
+    ctx.guard->GetTimeKeeper().SetSteadyTime(syncSteadyTimeMs);
+
+    auto physicalStatus = MakePhysicalStatus("device-1", ChannelId::SOFTBUS, "deviceName");
+    DeviceStatusEntry entry(physicalStatus, []() {});
+    entry.isSyncInProgress = true;
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+
+    SyncDeviceStatus syncStatus;
+    ctx.manager->HandleSyncResult(deviceKey, 0, SUCCESS, syncStatus);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    // A successful sync stamps the steady-clock time so isConfirmed can reflect it downstream.
+    auto result = ctx.manager->GetDeviceStatus(deviceKey);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result->lastSyncTimeMs, syncSteadyTimeMs);
+}
+
+HWTEST_F(DeviceStatusManagerTest, HandleSyncResultFailureDoesNotRecordSyncTime, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+
+    constexpr uint64_t syncSteadyTimeMs = 98765;
+    ctx.guard->GetTimeKeeper().SetSteadyTime(syncSteadyTimeMs);
+
+    auto physicalStatus = MakePhysicalStatus("device-1", ChannelId::SOFTBUS, "deviceName");
+    DeviceStatusEntry entry(physicalStatus, []() {});
+    entry.isSyncInProgress = true;
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+
+    SyncDeviceStatus syncStatus;
+    ctx.manager->HandleSyncResult(deviceKey, 0, GENERAL_ERROR, syncStatus);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    // A failed sync must not count as a real-time confirmation.
+    const auto &storedEntry = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
+    EXPECT_EQ(storedEntry.lastSyncTimeMs, 0u);
+}
+
 HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncFailsWhenRequestCreationFails, TestSize.Level0)
 {
     auto ctx = SetupTestContext();

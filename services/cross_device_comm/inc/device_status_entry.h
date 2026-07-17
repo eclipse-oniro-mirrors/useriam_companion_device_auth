@@ -67,6 +67,7 @@ public:
     bool refreshToken { false };
     bool isSynced { false };
     bool isSyncInProgress { false };
+    SteadyTimeMs lastSyncTimeMs { 0 };
     uint64_t inProgressAttemptId { 0 };
 
 private:
