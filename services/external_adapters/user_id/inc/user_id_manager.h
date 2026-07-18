@@ -39,10 +39,12 @@ public:
 
     static std::shared_ptr<IUserIdManager> Create();
 
-    virtual UserId GetActiveUserId() const = 0;
     virtual std::optional<std::string> GetActiveUserName() const = 0;
     virtual std::string GetActiveUserTypeName() const = 0;
+    virtual UserId GetActiveUserId() const = 0;
     virtual std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) = 0;
+    virtual UserId GetUnlockedActiveUserId() const = 0;
+    virtual std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) = 0;
     virtual bool IsUserIdValid(int32_t userId) = 0;
 
 protected:

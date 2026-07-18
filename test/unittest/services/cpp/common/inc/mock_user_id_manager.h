@@ -31,6 +31,9 @@ public:
     MOCK_METHOD(std::optional<std::string>, GetActiveUserName, (), (const, override));
     MOCK_METHOD(std::string, GetActiveUserTypeName, (), (const, override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeActiveUserId, (ActiveUserIdCallback && callback), (override));
+    MOCK_METHOD(int32_t, GetUnlockedActiveUserId, (), (const, override));
+    MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeUnlockedActiveUserId, (ActiveUserIdCallback && callback),
+        (override));
     MOCK_METHOD(bool, IsUserIdValid, (int32_t userId), (override));
 };
 

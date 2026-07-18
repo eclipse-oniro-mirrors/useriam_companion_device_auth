@@ -166,6 +166,10 @@ void MockGuard::SetupUserIdManagerDefaults()
     ON_CALL(*userIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return std::make_unique<Subscription>([]() {});
     }));
+    ON_CALL(*userIdManager_, GetUnlockedActiveUserId()).WillByDefault(Return(0));
+    ON_CALL(*userIdManager_, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+        return std::make_unique<Subscription>([]() {});
+    }));
 }
 
 void MockGuard::SetupSystemSettingsManagerDefaults()

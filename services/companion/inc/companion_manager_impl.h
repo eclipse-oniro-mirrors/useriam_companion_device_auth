@@ -94,7 +94,7 @@ private:
     UserId hostUserId_ { INVALID_USER_ID };
     std::vector<std::shared_ptr<Companion>> companions_;
     std::map<SubscribeId, OnCompanionDeviceStatusChange> statusSubscribers_;
-    std::unique_ptr<Subscription> activeUserIdSubscription_;
+    std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
     std::unique_ptr<Subscription> templateChangeSubscription_;
 };
 

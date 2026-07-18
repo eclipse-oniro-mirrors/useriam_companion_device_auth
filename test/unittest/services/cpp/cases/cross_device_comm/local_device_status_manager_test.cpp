@@ -276,7 +276,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, AuthMaintainCallback_001, TestSize.Level0
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_001, TestSize.Level0)
 {
     MockGuard guard;
-    ON_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(INT32_100));
+    ON_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillByDefault(Return(INT32_100));
 
     auto mockChannel = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
 

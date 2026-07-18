@@ -98,7 +98,7 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
 
     auto companionUserId = QueryActiveUserId();
     if (companionUserId == INVALID_USER_ID) {
-        IAM_LOGE("%{public}s GetActiveUserId failed", desc.GetCStr());
+        IAM_LOGE("%{public}s GetUnlockedActiveUserId failed", desc.GetCStr());
         return;
     }
 
@@ -156,7 +156,7 @@ bool CompanionSyncDeviceStatusHandler::CompanionProcessCheck(const HostBindingSt
 }
 UserId CompanionSyncDeviceStatusHandler::QueryActiveUserId()
 {
-    return GetUserIdManager().GetActiveUserId();
+    return GetUserIdManager().GetUnlockedActiveUserId();
 }
 
 std::optional<HostBindingStatus> CompanionSyncDeviceStatusHandler::QueryHostBindingStatus(UserId companionUserId,

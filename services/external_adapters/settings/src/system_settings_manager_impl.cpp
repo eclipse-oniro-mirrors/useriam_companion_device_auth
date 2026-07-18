@@ -144,15 +144,15 @@ bool SystemSettingsManagerImpl::Initialize()
         ENSURE_OR_RETURN_VAL(s.observer != nullptr, false);
         states_.push_back(std::move(s));
     }
-    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf](UserId userId) {
+    unlockedActiveUserIdSubscription_ = GetUserIdManager().SubscribeUnlockedActiveUserId([weakSelf](UserId userId) {
         TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf, userId]() {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->OnActiveUserChanged(userId >= 0 ? std::optional<int32_t>(userId) : std::nullopt);
         });
     });
-    ENSURE_OR_RETURN_VAL(activeUserIdSubscription_ != nullptr, false);
-    UserId activeUserId = GetUserIdManager().GetActiveUserId();
+    ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
+    UserId activeUserId = GetUserIdManager().GetUnlockedActiveUserId();
     OnActiveUserChanged(activeUserId >= 0 ? std::optional<int32_t>(activeUserId) : std::nullopt);
 
     cesStatusListener_ = SaStatusListener::Create(

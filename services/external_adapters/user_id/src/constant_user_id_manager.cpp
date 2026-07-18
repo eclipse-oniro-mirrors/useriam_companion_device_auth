@@ -72,6 +72,16 @@ public:
         return std::make_unique<Subscription>(nullptr);
     }
 
+    int32_t GetUnlockedActiveUserId() const override
+    {
+        return DEFAULT_USER_ID;
+    }
+
+    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override
+    {
+        return SubscribeActiveUserId(std::move(callback));
+    }
+
     bool IsUserIdValid(int32_t userId) override
     {
         return userId == DEFAULT_USER_ID;

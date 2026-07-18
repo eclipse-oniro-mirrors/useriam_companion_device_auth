@@ -49,7 +49,7 @@ sptr<IRemoteObject> MakeServiceToken()
 // default so Init() succeeds.
 void CaptureActiveUserCallback(MockUserIdManager &mock, ActiveUserIdCallback &out)
 {
-    EXPECT_CALL(mock, SubscribeActiveUserId(_))
+    EXPECT_CALL(mock, SubscribeUnlockedActiveUserId(_))
         .WillRepeatedly(DoAll(SaveArg<0>(&out),
             Invoke([](ActiveUserIdCallback &&) { return std::make_unique<Subscription>([]() {}); })));
 }
@@ -89,7 +89,7 @@ HWTEST_F(SystemSettingsManagerImplTest, Create_ReturnsNonNull, TestSize.Level0)
 HWTEST_F(SystemSettingsManagerImplTest, GetSettingsValue_InvalidUserId_ReturnsEmpty, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(INVALID_USER_ID));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(INVALID_USER_ID));
 
     auto manager = SystemSettingsManagerImpl::Create(MakeServiceToken());
     ASSERT_NE(manager, nullptr);
@@ -101,7 +101,7 @@ HWTEST_F(SystemSettingsManagerImplTest, GetSettingsValue_InvalidUserId_ReturnsEm
 HWTEST_F(SystemSettingsManagerImplTest, GetSettingsValue_EmptySettings_ReturnsEmpty, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
 
     auto token = MakeServiceToken();
     auto manager = SystemSettingsManagerImpl::Create(token);
@@ -115,7 +115,7 @@ HWTEST_F(SystemSettingsManagerImplTest, GetSettingsValue_EmptySettings_ReturnsEm
 HWTEST_F(SystemSettingsManagerImplTest, GetSettingsValue_ReturnsCachedValue, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
     OHOS::DataShare::SetSettingsValue(VALID_USER_ID, "settings.general.display_device_name", "MyPhone");
 
     // Keep the service token alive: Create() only stores a weak reference, and Init() promotes it
@@ -131,7 +131,7 @@ HWTEST_F(SystemSettingsManagerImplTest, GetSettingsValue_ReturnsCachedValue, Tes
 HWTEST_F(SystemSettingsManagerImplTest, SubscribeSettingsChange_FiresOnDataChange, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
     // Keep the service token alive: Create() stores only a weak reference, and Init() promotes it
     // again when it opens the DataShareHelper to register the observer.
     auto token = MakeServiceToken();
@@ -163,7 +163,7 @@ HWTEST_F(SystemSettingsManagerImplTest, SubscribeSettingsChange_FiresOnDataChang
 HWTEST_F(SystemSettingsManagerImplTest, Subscribe_MultipleSubscribers_AllFire, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
     auto token = MakeServiceToken();
     auto manager = SystemSettingsManagerImpl::Create(token);
     ASSERT_NE(manager, nullptr);
@@ -194,7 +194,7 @@ HWTEST_F(SystemSettingsManagerImplTest, Subscribe_MultipleSubscribers_AllFire, T
 HWTEST_F(SystemSettingsManagerImplTest, Subscribe_RePointsObserverOnActiveUserSwitch, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(VALID_USER_ID));
     ActiveUserIdCallback activeUserCb;
     CaptureActiveUserCallback(guard.GetUserIdManager(), activeUserCb);
     auto token = MakeServiceToken();
@@ -220,7 +220,7 @@ HWTEST_F(SystemSettingsManagerImplTest, Subscribe_DefersObserverUntilActiveUserA
 {
     MockGuard guard;
     // Boot race: the SA starts before any user is active, so the observer cannot register.
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(INVALID_USER_ID));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(INVALID_USER_ID));
     ActiveUserIdCallback activeUserCb;
     CaptureActiveUserCallback(guard.GetUserIdManager(), activeUserCb);
     auto token = MakeServiceToken();

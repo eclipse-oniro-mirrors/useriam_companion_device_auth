@@ -71,7 +71,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_001, TestSize.Level
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::optional<std::string>("TestUser")));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserTypeName()).WillOnce(Return("normal"));
     EXPECT_CALL(guard.GetSystemSettingsManager(), GetSettingsValue(SettingKey::DisplayDeviceName))
@@ -127,7 +127,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_003, TestSize.Level
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_MINUS_1));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_MINUS_1));
 
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {
@@ -157,7 +157,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_004, TestSize.Level
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::optional<std::string>("TestUser")));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserTypeName()).WillOnce(Return("normal"));
     EXPECT_CALL(guard.GetSystemSettingsManager(), GetSettingsValue(SettingKey::DisplayDeviceName))
@@ -191,7 +191,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_005, TestSize.Level
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::optional<std::string>("TestUser")));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserTypeName()).WillOnce(Return("normal"));
     EXPECT_CALL(guard.GetSystemSettingsManager(), GetSettingsValue(SettingKey::DisplayDeviceName))
@@ -231,7 +231,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_006, TestSize.Level
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::nullopt));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(profile_));
 
@@ -290,7 +290,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_EncodesUserTypePref
         static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::optional<std::string>("TestUser")));
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserTypeName()).WillOnce(Return("private"));
     EXPECT_CALL(guard.GetSystemSettingsManager(), GetSettingsValue(SettingKey::DisplayDeviceName))

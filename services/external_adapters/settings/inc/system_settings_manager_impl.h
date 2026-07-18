@@ -126,7 +126,7 @@ private:
     wptr<IRemoteObject> cdaService_;
     std::optional<int32_t> currentActiveUser_;
     std::vector<SettingState> states_;
-    std::unique_ptr<Subscription> activeUserIdSubscription_;
+    std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
     std::unique_ptr<SaStatusListener> cesStatusListener_;
     std::shared_ptr<DataShareReadySubscriber> dataShareReadySubscriber_;
 };

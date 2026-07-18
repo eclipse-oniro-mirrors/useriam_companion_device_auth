@@ -192,7 +192,7 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncNoTemplateE2E_001, TestSize.Level0)
 // What this tests:
 //   Incoming SYNC_DEVICE_STATUS request → MessageRouter → CompanionSyncDeviceStatusHandler
 //     → DecodeSyncDeviceStatusRequest
-//     → GetActiveUserId/Name → BuildSyncDeviceStatusReply
+//     → GetUnlockedActiveUserId/Name → BuildSyncDeviceStatusReply
 //     → GetHostBindingStatus = nullopt → skip CompanionProcessCheck
 //     → EncodeSyncDeviceStatusReply → SendReply → FakeChannel
 //
