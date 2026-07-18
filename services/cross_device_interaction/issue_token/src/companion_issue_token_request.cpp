@@ -26,6 +26,7 @@
 #include "host_binding_manager.h"
 #include "iam_log_tracer.h"
 #include "issue_token_message.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 
@@ -88,6 +89,7 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
     }
 
     SendPreIssueTokenReply(ResultCode::SUCCESS, preIssueTokenReply);
+    eventCollector_.EnterWait(CompanionIssueTokenStages::WAIT_ISSUE_TOKEN);
     errorGuard.Cancel();
     return true;
 }
@@ -180,6 +182,7 @@ void CompanionIssueTokenRequest::SendPreIssueTokenReply(ResultCode result,
 
 void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
 {
+    eventCollector_.ExitWait(CompanionIssueTokenStages::DONE_ISSUE_TOKEN);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);

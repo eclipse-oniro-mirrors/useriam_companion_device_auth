@@ -29,6 +29,10 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr StageId STAGE_A = 1;
+constexpr StageId STAGE_B = 2;
+constexpr StageId STAGE_C = 3;
+
 class InteractionEventCollectorTest : public testing::Test {
 public:
 };
@@ -301,23 +305,25 @@ HWTEST_F(InteractionEventCollectorTest, Report_EmptyCollector, TestSize.Level0)
     EXPECT_FALSE(collector.GetScheduleId().has_value());
 }
 
-HWTEST_F(InteractionEventCollectorTest, Report_ConsecutiveCallsUpdateResult, TestSize.Level0)
+HWTEST_F(InteractionEventCollectorTest, Report_SecondCallDoesNotOverwriteResult, TestSize.Level0)
 {
     MockGuard mockGuard;
     auto &mockAdapter = mockGuard.GetEventManagerAdapter();
 
     InteractionEventCollector collector("test_request");
 
-    EXPECT_CALL(mockAdapter, ReportInteractionEvent(::testing::_)).Times(2);
+    // Idempotent: exactly one terminal event is emitted; the second Report is a no-op.
+    EXPECT_CALL(mockAdapter, ReportInteractionEvent(::testing::_)).Times(1);
 
     collector.Report(ResultCode::SUCCESS);
     EXPECT_EQ(collector.GetResult(), ResultCode::SUCCESS);
 
     collector.Report(ResultCode::FAIL);
-    EXPECT_EQ(collector.GetResult(), ResultCode::FAIL);
+    // First terminal result wins; the later Report does not overwrite it.
+    EXPECT_EQ(collector.GetResult(), ResultCode::SUCCESS);
 }
 
-HWTEST_F(InteractionEventCollectorTest, Report_ConsecutiveCallsOverwriteResult, TestSize.Level0)
+HWTEST_F(InteractionEventCollectorTest, Report_FirstTerminalReportWins_SubsequentCallsAreNoOp, TestSize.Level0)
 {
     MockGuard mockGuard;
     auto &mockAdapter = mockGuard.GetEventManagerAdapter();
@@ -326,18 +332,22 @@ HWTEST_F(InteractionEventCollectorTest, Report_ConsecutiveCallsOverwriteResult, 
     collector.SetHostUserId(100);
     collector.SetScheduleId(0xABCD);
 
-    EXPECT_CALL(mockAdapter, ReportInteractionEvent(::testing::_)).Times(3);
+    // Idempotent Report: the FIRST terminal Report wins. The two later calls must neither
+    // emit another HiSysEvent (adapter called exactly once) nor overwrite the result.
+    // (Timing audit finding S1: suppresses the disconnect-vs-timeout / surviving-subscription
+    // double-report that previously produced a duplicate event + inflated timing.)
+    EXPECT_CALL(mockAdapter, ReportInteractionEvent(::testing::_)).Times(1);
 
     collector.Report(ResultCode::SUCCESS);
     EXPECT_EQ(collector.GetResult(), ResultCode::SUCCESS);
 
-    collector.Report(ResultCode::GENERAL_ERROR);
-    EXPECT_EQ(collector.GetResult(), ResultCode::GENERAL_ERROR);
+    collector.Report(ResultCode::GENERAL_ERROR);           // no-op
+    EXPECT_EQ(collector.GetResult(), ResultCode::SUCCESS); // first result preserved
 
-    collector.Report(ResultCode::TIMEOUT);
-    EXPECT_EQ(collector.GetResult(), ResultCode::TIMEOUT);
+    collector.Report(ResultCode::TIMEOUT);                 // no-op
+    EXPECT_EQ(collector.GetResult(), ResultCode::SUCCESS); // first result preserved
 
-    // Previously set fields remain intact after multiple Report calls
+    // Previously set fields remain intact after the suppressed Reports.
     EXPECT_TRUE(collector.GetHostUserId().has_value());
     EXPECT_EQ(collector.GetHostUserId().value(), 100);
     EXPECT_TRUE(collector.GetScheduleId().has_value());
@@ -383,6 +393,83 @@ HWTEST_F(InteractionEventCollectorTest, Report_WithAllFieldsSet, TestSize.Level0
     EXPECT_TRUE(collector.GetConnectionName().has_value());
     EXPECT_EQ(collector.GetConnectionName().value(), "conn_full");
     EXPECT_FALSE(collector.GetExtraInfo().empty());
+}
+
+// Regression guard for the double-report timing-inflation bug: a delayed second Report
+// (e.g. a surviving subscription firing after completion) must NOT re-stamp endMs_ via a
+// second Finish() nor emit a duplicate event. TOTAL_TIME/LOCAL_TIME and the timeTrace
+// segment stay frozen at their first-Report values. (Timing audit finding S1.)
+HWTEST_F(InteractionEventCollectorTest, Report_SecondCallDoesNotInflateTiming, TestSize.Level0)
+{
+    MockGuard mockGuard;
+    auto &mockAdapter = mockGuard.GetEventManagerAdapter();
+    auto &timeKeeper = mockGuard.GetTimeKeeper();
+    timeKeeper.SetSteadyTime(0);
+
+    InteractionEventCollector collector("test_request");
+    collector.Start(); // startMs_ = 0
+    timeKeeper.AdvanceSteadyTime(10);
+    collector.Mark(STAGE_A); // @10
+    timeKeeper.AdvanceSteadyTime(20);
+    collector.EnterWait(STAGE_B); // wait begins @30
+    timeKeeper.AdvanceSteadyTime(40);
+    collector.ExitWait(STAGE_B); // wait ends @70, waitMs = 40
+
+    EXPECT_CALL(mockAdapter, ReportInteractionEvent(::testing::_)).Times(1);
+    collector.Report(ResultCode::SUCCESS); // Finish @70 -> TOTAL=70, LOCAL=30
+
+    const auto totalAfterFirst = collector.GetTotalTime();
+    const auto localAfterFirst = collector.GetLocalTime();
+    const auto extraAfterFirst = collector.GetExtraInfo();
+    ASSERT_TRUE(totalAfterFirst.has_value());
+    ASSERT_TRUE(localAfterFirst.has_value());
+    EXPECT_EQ(*totalAfterFirst, 70u);
+    EXPECT_EQ(*localAfterFirst, 30u);
+
+    // Advance the clock well past the first Report; the second Report is suppressed.
+    constexpr uint64_t INFLATION_DELTA_MS = 500;
+    timeKeeper.AdvanceSteadyTime(INFLATION_DELTA_MS);
+    collector.Report(ResultCode::GENERAL_ERROR); // no-op (reported_ already true)
+
+    // Timing must NOT be inflated by INFLATION_DELTA_MS (would be 570/530 if re-stamped).
+    ASSERT_TRUE(collector.GetTotalTime().has_value());
+    ASSERT_TRUE(collector.GetLocalTime().has_value());
+    EXPECT_EQ(*collector.GetTotalTime(), *totalAfterFirst);
+    EXPECT_EQ(*collector.GetLocalTime(), *localAfterFirst);
+    // timeTrace segment (and the whole extraInfo) is unchanged by the second call.
+    EXPECT_EQ(collector.GetExtraInfo(), extraAfterFirst);
+}
+
+HWTEST_F(InteractionEventCollectorTest, CollectorTiming_PopulatesTotalLocalAndTrace, TestSize.Level0)
+{
+    MockGuard mockGuard;
+    auto &mockAdapter = mockGuard.GetEventManagerAdapter();
+    auto &timeKeeper = mockGuard.GetTimeKeeper();
+    timeKeeper.SetSteadyTime(0);
+
+    InteractionEventCollector collector("test_request");
+    collector.Start();                // startMs_ = 0
+    collector.EnterWait(STAGE_A);     // wait begins @0
+    timeKeeper.AdvanceSteadyTime(30); // +30 wait
+    collector.ExitWait(STAGE_B);      // wait ends @30, waitMs = 30
+    timeKeeper.AdvanceSteadyTime(20); // +20 local
+    collector.Mark(STAGE_C);          // @50
+
+    EXPECT_CALL(mockAdapter, ReportInteractionEvent(::testing::_)).Times(1);
+    collector.Report(ResultCode::SUCCESS); // Finish @50 -> TOTAL=50, LOCAL=20
+
+    const auto totalOpt = collector.GetTotalTime();
+    const auto localOpt = collector.GetLocalTime();
+    ASSERT_TRUE(totalOpt.has_value());
+    ASSERT_TRUE(localOpt.has_value());
+    EXPECT_EQ(*totalOpt, 50u);
+    EXPECT_EQ(*localOpt, 20u);
+    // TOTAL == LOCAL + the wait interval (30ms).
+    EXPECT_EQ(*totalOpt, *localOpt + 30u);
+
+    // timeTrace segment is the id:delta sequence relative to START.
+    const auto extra = collector.GetExtraInfo();
+    EXPECT_NE(extra.find("timeTrace:1:0,2:30,3:50"), std::string::npos);
 }
 
 } // namespace

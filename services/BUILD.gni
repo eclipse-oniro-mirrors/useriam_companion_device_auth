@@ -129,6 +129,7 @@ companion_device_auth_service_static_sources = [
   "external_adapters/user_auth/src/driver_manager_adapter_impl.cpp",
   "external_adapters/user_auth/src/idm_adapter_impl.cpp",
   "external_adapters/user_auth/src/user_auth_adapter_impl.cpp",
+  "external_adapters/util/src/timing_tracer.cpp",
   "external_adapters/util/src/xcollie_helper.cpp",
   "fwk_comm/src/companion_device_auth_all_in_one_executor.cpp",
   "fwk_comm/src/companion_device_auth_driver.cpp",

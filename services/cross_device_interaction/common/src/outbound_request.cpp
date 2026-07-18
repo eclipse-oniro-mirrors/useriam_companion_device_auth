@@ -21,6 +21,7 @@
 
 #include "relative_timer.h"
 #include "request_aborted_message.h"
+#include "request_stages.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -40,6 +41,7 @@ void OutboundRequest::Start()
     IAM_LOGI("%{public}s start", GetDescription());
     LogTraceGuard guard;
 
+    eventCollector_.Start();
     StartTimeout(GetWeakPtr());
 
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
@@ -134,6 +136,7 @@ bool OutboundRequest::OpenConnection()
 
     connectionStatusSubscription_ = std::move(connectionStatusSubscription);
     requestAbortedSubscription_ = std::move(requestAbortedSubscription);
+    eventCollector_.EnterWait(CommonStages::WAIT_CONNECTION_OPEN);
     return true;
 }
 
@@ -160,6 +163,7 @@ void OutboundRequest::HandleConnectionStatus(const std::string &connName, Connec
         case ConnectionStatus::ESTABLISHING:
             break;
         case ConnectionStatus::CONNECTED:
+            eventCollector_.ExitWait(CommonStages::DONE_CONNECTION_OPEN);
             OnConnected();
             break;
         case ConnectionStatus::DISCONNECTED:

@@ -25,6 +25,7 @@
 #include "common_defines.h"
 #include "iam_log_tracer.h"
 #include "service_common.h"
+#include "timing_tracer.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -59,6 +60,11 @@ public:
     void SetSecureProtocolId(uint16_t secureProtocolId);
     void AddTemplateAuthResult(TemplateId templateId, ResultCode result);
     void SetSuccessTemplateId(TemplateId templateId);
+
+    void Start();
+    void Mark(StageId id);
+    void EnterWait(StageId id);
+    void ExitWait(StageId id);
 
     void Report(ResultCode result);
 
@@ -103,6 +109,8 @@ public:
         return templateIdList_;
     }
     std::string GetExtraInfo() const;
+    std::optional<uint64_t> GetTotalTime() const;
+    std::optional<uint64_t> GetLocalTime() const;
 
 private:
     void BuildExtraInfoStep1(std::ostringstream &oss) const;
@@ -110,6 +118,7 @@ private:
 
     std::string requestType_;
     ResultCode result_ = ResultCode::SUCCESS;
+    bool reported_ = false;
     std::optional<UserId> hostUserId_;
     std::optional<DeviceKey> hostDeviceKey_;
     std::optional<UserId> companionUserId_;
@@ -132,6 +141,7 @@ private:
     std::string templateAuthResult_;
     std::optional<TemplateId> successTemplateId_;
     std::string logTrace_;
+    TimingTracer tracer_;
 };
 
 } // namespace CompanionDeviceAuth

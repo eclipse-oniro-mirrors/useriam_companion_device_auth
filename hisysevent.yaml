@@ -25,6 +25,8 @@ INTERACTION_EVENT:
   SCHEDULE_ID: {type: UINT64, desc: schedule ID of this request}
   TRIGGER_REASON: {type: STRING, desc: trigger reason}
   TEMPLATE_ID_LIST: {type: STRING, desc: template ID list}
+  TOTAL_TIME: {type: UINT64, desc: total wall-clock duration ms (steady)}
+  LOCAL_TIME: {type: UINT64, desc: local processing duration ms (total minus softbus waits)}
   EXTRA_INFO: {type: STRING, desc: extra info}
 
 SYSTEM_FAULT:

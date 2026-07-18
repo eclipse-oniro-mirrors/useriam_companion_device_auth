@@ -58,6 +58,7 @@ void HostSingleMixAuthRequest::Start()
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    eventCollector_.Start();
     StartTimeout(weak_from_this());
 
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());

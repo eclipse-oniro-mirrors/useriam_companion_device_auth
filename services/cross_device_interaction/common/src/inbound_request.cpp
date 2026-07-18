@@ -43,6 +43,7 @@ void InboundRequest::Start()
     IAM_LOGI("%{public}s start", GetDescription());
     LogTraceGuard guard;
 
+    eventCollector_.Start();
     StartTimeout(GetWeakPtr());
 
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
