@@ -256,6 +256,9 @@ bool HostObtainTokenRequest::HandleHostProcessObtainToken(const ObtainTokenReque
 
 void HostObtainTokenRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s: obtain token request failed, result=%{public}d", GetDescription(), result);
     if (needCancelObtainToken_) {
         HostCancelObtainTokenInput input = { GetRequestId() };
@@ -271,6 +274,9 @@ void HostObtainTokenRequest::CompleteWithError(ResultCode result)
 
 void HostObtainTokenRequest::CompleteWithSuccess()
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     needCancelObtainToken_ = false;
     eventCollector_.Report(ResultCode::SUCCESS);

@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <new>
 #include <optional>
 #include <vector>
 
@@ -25,6 +26,7 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
+#include "iam_check.h"
 #include "iam_logger.h"
 
 #define LOG_TAG "CDA_SDK"
@@ -75,7 +77,10 @@ std::unique_ptr<RsaOaepEncryptor> RsaOaepEncryptor::Create(std::vector<uint8_t> 
         return nullptr;
     }
 
-    return std::unique_ptr<RsaOaepEncryptor>(new RsaOaepEncryptor(std::unique_ptr<EVP_PKEY, EvpPkeyDeleter>(raw)));
+    std::unique_ptr<RsaOaepEncryptor> encryptor(
+        new (std::nothrow) RsaOaepEncryptor(std::unique_ptr<EVP_PKEY, EvpPkeyDeleter>(raw)));
+    ENSURE_OR_RETURN_VAL(encryptor != nullptr, nullptr);
+    return encryptor;
 }
 
 RsaOaepEncryptor::RsaOaepEncryptor(std::unique_ptr<EVP_PKEY, EvpPkeyDeleter> pkey) : pkey_(std::move(pkey))

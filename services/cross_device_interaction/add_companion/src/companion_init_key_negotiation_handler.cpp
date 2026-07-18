@@ -57,7 +57,7 @@ void CompanionInitKeyNegotiationHandler::HandleRequest(const Attributes &request
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), hostDeviceKeyOpt.has_value());
 
     auto addCompanionRequest = GetRequestFactory().CreateCompanionAddCompanionRequest(connectionName, request,
-        std::move(onMessageReply), hostDeviceKeyOpt.value());
+        OnMessageReply(onMessageReply), hostDeviceKeyOpt.value());
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), addCompanionRequest != nullptr);
 
     bool startRet = GetRequestManager().Start(addCompanionRequest);

@@ -183,10 +183,11 @@ void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &a
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+
+    ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
 
     currentReply_ = std::move(onMessageReply);
-    ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto requestOpt = DecodeBeginAddHostBindingRequest(attrInput);
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt.has_value());
@@ -217,10 +218,11 @@ void CompanionAddCompanionRequest::HandleEndAddHostBinding(const Attributes &att
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+
+    ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
 
     currentReply_ = std::move(onMessageReply);
-    ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto requestOpt = DecodeEndAddHostBindingRequest(attrInput);
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt.has_value());
@@ -291,6 +293,9 @@ void CompanionAddCompanionRequest::SendErrorReply(ResultCode result)
 
 void CompanionAddCompanionRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGE("%{public}s complete with error: %{public}d", GetDescription(), result);
     SendErrorReply(result);
     if (needCancelAddCompanion_) {
@@ -310,6 +315,9 @@ void CompanionAddCompanionRequest::CompleteWithError(ResultCode result)
 
 void CompanionAddCompanionRequest::CompleteWithSuccess()
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     eventCollector_.Report(ResultCode::SUCCESS);
     Destroy();

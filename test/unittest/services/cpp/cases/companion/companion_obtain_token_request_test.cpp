@@ -661,6 +661,45 @@ HWTEST_F(CompanionObtainTokenRequestTest, CompleteWithError_002, TestSize.Level0
     ASSERT_NO_THROW(request->CompleteWithError(ResultCode::GENERAL_ERROR));
 }
 
+HWTEST_F(CompanionObtainTokenRequestTest, CompleteWithError_003, TestSize.Level0)
+{
+    MockGuard guard;
+    ON_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
+        .WillByDefault(Return(std::make_optional(HOST_BINDING_STATUS)));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillByDefault(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeIsAuthMaintainActive(_))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetSecurityAgent(), CompanionBeginObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSecurityAgent(), CompanionEndObtainToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+
+    auto request =
+        std::make_shared<CompanionObtainTokenRequest>(HOST_DEVICE_KEY, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG);
+    request->needCancelObtainToken_ = true;
+
+    int cancelCallCount = 0;
+    ON_CALL(guard.GetSecurityAgent(), CompanionCancelObtainToken(_))
+        .WillByDefault(Invoke([&cancelCallCount](const CompanionCancelObtainTokenInput &) {
+            cancelCallCount++;
+            return ResultCode::SUCCESS;
+        }));
+
+    // Re-entrant terminal call must be suppressed by AcquireCompletion: the cancel SA op runs exactly once.
+    ASSERT_NO_THROW(request->CompleteWithError(ResultCode::GENERAL_ERROR));
+    ASSERT_NO_THROW(request->CompleteWithError(ResultCode::GENERAL_ERROR));
+    EXPECT_EQ(cancelCallCount, 1);
+}
+
 HWTEST_F(CompanionObtainTokenRequestTest, CompanionEndObtainToken_001, TestSize.Level0)
 {
     MockGuard guard;

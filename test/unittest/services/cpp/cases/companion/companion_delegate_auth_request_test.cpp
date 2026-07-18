@@ -432,6 +432,36 @@ HWTEST_F(CompanionDelegateAuthRequestTest, Cancel_AbortsHostExactlyOnce, TestSiz
     EXPECT_EQ(abortCount, 1);
 }
 
+HWTEST_F(CompanionDelegateAuthRequestTest, Cancel_DoesNotAbortAfterCompletion, TestSize.Level0)
+{
+    // A late Cancel (e.g. the 60s timeout firing after the request already delivered its result and succeeded) must
+    // not emit a second REQUEST_ABORTED. Symmetric to CompleteWithError_DoesNotAbortAfterResultSent; exercises the
+    // InboundRequest::Cancel guard on both completed_ and resultSent_.
+    MockGuard guard;
+
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
+        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+
+    int abortCount = 0;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _))
+        .WillRepeatedly(
+            Invoke([&abortCount](const std::string &, MessageType type, const Attributes &, OnMessageReply) {
+                if (type == MessageType::REQUEST_ABORTED) {
+                    abortCount++;
+                }
+                return true;
+            }));
+
+    // Deliver the result first -> resultSent_ becomes true; then succeed -> completed_ becomes true.
+    ASSERT_TRUE(request->SendDelegateAuthResult(ResultCode::SUCCESS, {}));
+    request->CompleteWithSuccess();
+    // A subsequent late Cancel must not notify the host again.
+    ASSERT_TRUE(request->Cancel(ResultCode::TIMEOUT));
+
+    EXPECT_EQ(abortCount, 0);
+}
+
 HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithSuccess_001, TestSize.Level0)
 {
     MockGuard guard;

@@ -791,6 +791,30 @@ HWTEST_F(HostObtainTokenRequestTest, HandlePeerDeviceStatusChanged_AbortsCompani
     EXPECT_TRUE(abortedSent);
 }
 
+HWTEST_F(HostObtainTokenRequestTest, Cancel_DoesNotAbortAfterCompletion, TestSize.Level0)
+{
+    // HostObtainTokenRequest never sets resultSent_ (it replies via onMessageReply, not SendRequestAborted), so the
+    // InboundRequest::Cancel guard reduces to !completed_. After the obtain-token reply is delivered and the request
+    // completes, a late Cancel (e.g. a delayed timeout) must not emit REQUEST_ABORTED to the companion.
+    auto preObtainTokenRequest = MakePreObtainTokenRequest();
+    auto onMessageReply = [](const Attributes &) {};
+    auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
+        OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
+
+    // Reach the completed state (completed_ = true) without sending REQUEST_ABORTED.
+    request->CompleteWithSuccess();
+
+    int abortCount = 0;
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, MessageType::REQUEST_ABORTED, _, _))
+        .WillRepeatedly(Invoke([&abortCount](const std::string &, MessageType, const Attributes &, OnMessageReply) {
+            abortCount++;
+            return true;
+        }));
+
+    ASSERT_TRUE(request->Cancel(ResultCode::TIMEOUT));
+    EXPECT_EQ(abortCount, 0);
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

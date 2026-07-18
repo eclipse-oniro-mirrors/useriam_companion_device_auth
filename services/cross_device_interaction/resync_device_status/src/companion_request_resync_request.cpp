@@ -103,6 +103,9 @@ void CompanionRequestResyncRequest::HandleRequestDeviceResyncReply(const Attribu
 
 void CompanionRequestResyncRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s: request resync failed, result=%{public}d", GetDescription(), result);
     if (onComplete_) {
         onComplete_(result);
@@ -113,6 +116,9 @@ void CompanionRequestResyncRequest::CompleteWithError(ResultCode result)
 
 void CompanionRequestResyncRequest::CompleteWithSuccess()
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     if (onComplete_) {
         onComplete_(ResultCode::SUCCESS);

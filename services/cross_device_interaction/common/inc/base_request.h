@@ -50,6 +50,7 @@ protected:
     void StopTimeout();
     void Destroy();
     virtual void CompleteWithError(ResultCode result) = 0;
+    bool AcquireCompletion();
 
     InteractionDesc desc_;
     InteractionEventCollector eventCollector_;
@@ -60,6 +61,7 @@ protected:
     std::optional<TemplateId> templateId_;
     const uint32_t timeoutMs_ = 0;
     std::unique_ptr<Subscription> timeoutSubscription_;
+    bool completed_ = false;
     bool cancelled_ = false;
 };
 } // namespace CompanionDeviceAuth

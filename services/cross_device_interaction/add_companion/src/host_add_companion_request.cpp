@@ -514,12 +514,18 @@ void HostAddCompanionRequest::InvokeCallback(ResultCode result, const std::vecto
 
 void HostAddCompanionRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGE("%{public}s complete with error: %{public}d", GetDescription(), result);
 
     // After enrollment succeeded, token distribution failure is non-critical per spec
     if (enrollmentSucceeded_) {
         IAM_LOGI("%{public}s enrollment succeeded, complete with success", GetDescription());
-        CompleteWithSuccess();
+        InvokeCallback(ResultCode::SUCCESS, addCompanionFwkMsg_);
+        needCancelCompanionAdd_ = false;
+        eventCollector_.Report(ResultCode::SUCCESS);
+        Destroy();
         return;
     }
 
@@ -538,6 +544,9 @@ void HostAddCompanionRequest::CompleteWithError(ResultCode result)
 
 void HostAddCompanionRequest::CompleteWithSuccess()
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     InvokeCallback(ResultCode::SUCCESS, addCompanionFwkMsg_);
     needCancelCompanionAdd_ = false;

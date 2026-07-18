@@ -266,6 +266,9 @@ bool CompanionObtainTokenRequest::CompanionEndObtainToken(const ObtainTokenReply
 
 void CompanionObtainTokenRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s: obtain token request failed, result=%{public}d", GetDescription(), result);
     localDeviceStatusSubscription_.reset();
     if (needCancelObtainToken_) {
@@ -282,6 +285,9 @@ void CompanionObtainTokenRequest::CompleteWithError(ResultCode result)
 
 void CompanionObtainTokenRequest::CompleteWithSuccess()
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     localDeviceStatusSubscription_.reset();
     eventCollector_.Report(ResultCode::SUCCESS);

@@ -45,6 +45,7 @@ public:
     void SetScheduleId(ScheduleId scheduleId);
     void SetTriggerReason(const std::string &triggerReason);
     void SetTemplateIdList(const std::vector<TemplateId> &templateIdList);
+    void SetCallerUserId(UserId callerUserId);
 
     void SetAtl(Atl atl);
     void SetBindingId(BindingId bindingId);
@@ -118,6 +119,7 @@ private:
     std::optional<ScheduleId> scheduleId_;
     std::optional<std::string> triggerReason_;
     std::optional<std::vector<TemplateId>> templateIdList_;
+    std::optional<UserId> callerUserId_;
     std::optional<Atl> atl_;
     std::optional<BindingId> bindingId_;
     std::optional<uint64_t> contextId_;

@@ -112,7 +112,7 @@ void HostIssueTokenRequest::HostPreIssueToken()
     bool sendRet = SendPreIssueTokenRequest(output.preIssueTokenRequest);
     if (!sendRet) {
         IAM_LOGE("%{public}s SendPreIssueTokenRequest failed", GetDescription());
-        CompleteWithError(ResultCode::GENERAL_ERROR);
+        CompleteWithError(ResultCode::COMMUNICATION_ERROR);
         return;
     }
 }
@@ -337,6 +337,9 @@ void HostIssueTokenRequest::HandlePeerDeviceStatusChanged(const std::vector<Devi
 
 void HostIssueTokenRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s: issue token request failed, result=%{public}d", GetDescription(), result);
     if (needCancelIssueToken_) {
         HostCancelIssueTokenInput input = { GetRequestId() };
@@ -352,6 +355,9 @@ void HostIssueTokenRequest::CompleteWithError(ResultCode result)
 
 void HostIssueTokenRequest::CompleteWithSuccess(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success, result=%{public}d", GetDescription(), result);
     eventCollector_.Report(result);
     Destroy();

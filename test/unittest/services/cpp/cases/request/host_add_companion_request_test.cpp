@@ -660,6 +660,29 @@ HWTEST_F(HostAddCompanionRequestTest, CompleteWithError_002, TestSize.Level0)
     EXPECT_TRUE(*callbackCalled);
 }
 
+HWTEST_F(HostAddCompanionRequestTest, CompleteWithError_003, TestSize.Level0)
+{
+    MockGuard guard;
+
+    int callbackCount = 0;
+    auto callback = [&callbackCount](ResultCode result, const std::vector<uint8_t> &) {
+        callbackCount++;
+        // After enrollment succeeded, a later token-distribution failure must still complete with success.
+        EXPECT_EQ(result, ResultCode::SUCCESS);
+    };
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+    request->enrollmentSucceeded_ = true;
+
+    // Routes through the enrollmentSucceeded_ success path, then a re-entrant
+    // terminal call must be suppressed by AcquireCompletion: the framework callback fires exactly once.
+    request->CompleteWithError(ResultCode::GENERAL_ERROR);
+    request->CompleteWithSuccess();
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_EQ(callbackCount, 1);
+}
+
 HWTEST_F(HostAddCompanionRequestTest, CompleteWithSuccess_001, TestSize.Level0)
 {
     MockGuard guard;

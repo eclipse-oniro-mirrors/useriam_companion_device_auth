@@ -48,13 +48,13 @@ HostSyncDeviceStatusRequest::HostSyncDeviceStatusRequest(int32_t hostUserId, con
     desc_.SetDeviceId(companionDeviceKey_);
     eventCollector_.SetHostUserId(hostUserId);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
-    eventCollector_.SetConnectionName(GetConnectionName());
 }
 
 void HostSyncDeviceStatusRequest::OnConnected()
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    eventCollector_.SetConnectionName(GetConnectionName());
     BeginCompanionCheck();
 }
 
@@ -80,6 +80,9 @@ void HostSyncDeviceStatusRequest::InvokeCallback(ResultCode result, const SyncDe
 
 void HostSyncDeviceStatusRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     ENSURE_OR_RETURN_DESC(GetDescription(), result != SUCCESS);
     InvokeCallback(result, {});
 
@@ -90,6 +93,9 @@ void HostSyncDeviceStatusRequest::CompleteWithError(ResultCode result)
 
 void HostSyncDeviceStatusRequest::CompleteWithSuccess(const SyncDeviceStatus &syncDeviceStatus)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     InvokeCallback(ResultCode::SUCCESS, syncDeviceStatus);
     IAM_LOGI("%{public}s complete with success", GetDescription());
     eventCollector_.Report(ResultCode::SUCCESS);

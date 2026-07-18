@@ -18,6 +18,7 @@
 #include <atomic>
 #include <cstdint>
 #include <future>
+#include <new>
 #include <optional>
 #include <utility>
 
@@ -446,11 +447,9 @@ CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutor()
 std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> CompanionDeviceAuthAllInOneExecutor::Create()
 {
     IAM_LOGI("start");
-    auto executor = std::shared_ptr<CompanionDeviceAuthAllInOneExecutor>(new CompanionDeviceAuthAllInOneExecutor());
-    if (executor == nullptr) {
-        IAM_LOGE("Failed to create CompanionDeviceAuthAllInOneExecutor");
-        return nullptr;
-    }
+    auto executor =
+        std::shared_ptr<CompanionDeviceAuthAllInOneExecutor>(new (std::nothrow) CompanionDeviceAuthAllInOneExecutor());
+    ENSURE_OR_RETURN_VAL(executor != nullptr, nullptr);
     return executor;
 }
 

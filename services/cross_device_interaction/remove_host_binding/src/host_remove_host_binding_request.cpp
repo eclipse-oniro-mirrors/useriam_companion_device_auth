@@ -124,18 +124,26 @@ std::weak_ptr<OutboundRequest> HostRemoveHostBindingRequest::GetWeakPtr()
 
 void HostRemoveHostBindingRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
-    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
-    GetCompanionManager().HandleRemoveHostBindingComplete(*templateId_);
+    if (templateId_.has_value()) {
+        GetCompanionManager().HandleRemoveHostBindingComplete(*templateId_);
+    }
     eventCollector_.Report(result);
     Destroy();
 }
 
 void HostRemoveHostBindingRequest::CompleteWithSuccess()
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
-    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
-    GetCompanionManager().HandleRemoveHostBindingComplete(*templateId_);
+    if (templateId_.has_value()) {
+        GetCompanionManager().HandleRemoveHostBindingComplete(*templateId_);
+    }
     eventCollector_.Report(ResultCode::SUCCESS);
     Destroy();
 }

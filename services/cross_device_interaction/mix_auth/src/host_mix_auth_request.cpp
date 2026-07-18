@@ -301,6 +301,9 @@ void HostMixAuthRequest::InvokeCallback(ResultCode result, const std::vector<uin
 
 void HostMixAuthRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
     InvokeCallback(result, {});
     eventCollector_.Report(result);
@@ -309,6 +312,9 @@ void HostMixAuthRequest::CompleteWithError(ResultCode result)
 
 void HostMixAuthRequest::CompleteWithSuccess(TemplateId templateId, const std::vector<uint8_t> &extraInfo)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_AUTH_INTENT, authIntent_);

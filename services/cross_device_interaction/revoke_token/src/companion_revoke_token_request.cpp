@@ -106,6 +106,9 @@ void CompanionRevokeTokenRequest::HandleRevokeTokenReply(const Attributes &messa
 
 void CompanionRevokeTokenRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s: revoke token request failed, result=%{public}d", GetDescription(), result);
     eventCollector_.Report(result);
     Destroy();
@@ -113,6 +116,9 @@ void CompanionRevokeTokenRequest::CompleteWithError(ResultCode result)
 
 void CompanionRevokeTokenRequest::CompleteWithSuccess()
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     eventCollector_.Report(ResultCode::SUCCESS);
     Destroy();

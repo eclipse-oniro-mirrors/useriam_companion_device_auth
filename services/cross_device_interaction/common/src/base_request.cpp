@@ -166,6 +166,16 @@ void BaseRequest::StopTimeout()
     }
 }
 
+bool BaseRequest::AcquireCompletion()
+{
+    if (completed_) {
+        IAM_LOGI("%{public}s already completed", GetDescription());
+        return false;
+    }
+    completed_ = true;
+    return true;
+}
+
 void BaseRequest::Destroy()
 {
     IAM_LOGI("%{public}s destroy", GetDescription());

@@ -162,6 +162,10 @@ bool CompanionDelegateAuthRequest::CallSecurityAgentBeginDelegateAuth(uint64_t &
 void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCode, const std::vector<uint8_t> &token)
 {
     LogTraceGuard guard;
+    if (cancelled_) {
+        IAM_LOGI("%{public}s already cancelled, skip late user-auth callback", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     IAM_LOGI("%{public}s start", GetDescription());
@@ -177,6 +181,7 @@ void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCod
     bool sendResult = SendDelegateAuthResult(resultCode, delegateAuthResult);
     if (!sendResult) {
         IAM_LOGE("%{public}s SendDelegateAuthResult failed", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
         return;
     }
     errorGuard.Cancel();
@@ -235,19 +240,24 @@ void CompanionDelegateAuthRequest::HandleSendDelegateAuthResultReply(const Attri
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    ErrorGuard errorGuard([this](ResultCode code) { CompleteWithError(code); });
     auto replyOpt = DecodeSendDelegateAuthResultReply(message);
     ENSURE_OR_RETURN_DESC(GetDescription(), replyOpt.has_value());
     if (replyOpt->result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s delegate auth failed result=%{public}d", GetDescription(),
             static_cast<int32_t>(replyOpt->result));
-        CompleteWithError(replyOpt->result);
+        errorGuard.UpdateErrorCode(replyOpt->result);
         return;
     }
+    errorGuard.Cancel();
     CompleteWithSuccess();
 }
 
 void CompanionDelegateAuthRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
     if (!resultSent_) {
         SendRequestAborted(ResultCode::GENERAL_ERROR, "delegate auth failed before completion");
@@ -272,6 +282,9 @@ void CompanionDelegateAuthRequest::CompleteWithError(ResultCode result)
 
 void CompanionDelegateAuthRequest::CompleteWithSuccess()
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     eventCollector_.Report(ResultCode::SUCCESS);
     Destroy();
