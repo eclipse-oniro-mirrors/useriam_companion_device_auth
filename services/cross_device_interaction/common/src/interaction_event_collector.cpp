@@ -66,7 +66,13 @@ void InteractionEventCollector::SetTemplateIdList(const std::vector<TemplateId> 
     templateIdList_ = templateIdList;
 }
 
+void InteractionEventCollector::SetCallerUserId(UserId callerUserId)
+{
+    callerUserId_ = callerUserId;
+}
+
 namespace {
+constexpr const char *KEY_CALLER_USER_ID = "callerUserId";
 constexpr const char *KEY_ATL = "ATL";
 constexpr const char *KEY_BINDING_ID = "bindingId";
 constexpr const char *KEY_CONTEXT_ID = "contextId";
@@ -194,6 +200,9 @@ void InteractionEventCollector::BuildExtraInfoStep1(std::ostringstream &oss) con
     }
     if (selectedAlgorithm_.has_value()) {
         oss << ";" << KEY_SELECTED_ALGORITHM << ":" << *selectedAlgorithm_;
+    }
+    if (callerUserId_.has_value()) {
+        oss << ";" << KEY_CALLER_USER_ID << ":" << *callerUserId_;
     }
 }
 

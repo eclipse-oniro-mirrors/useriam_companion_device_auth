@@ -81,7 +81,9 @@ bool InboundRequest::Cancel(ResultCode resultCode)
     }
     cancelled_ = true;
     IAM_LOGI("%{public}s cancel", GetDescription());
-    SendRequestAborted(resultCode, "request cancelled");
+    if (!completed_ && !resultSent_) {
+        SendRequestAborted(resultCode, "request cancelled");
+    }
     CompleteWithError(resultCode);
     return true;
 }
@@ -145,7 +147,11 @@ void InboundRequest::SendRequestAborted(ResultCode result, const std::string &re
 
 void InboundRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGE("%{public}s completing with error result=%{public}d", GetDescription(), result);
+    eventCollector_.Report(result);
     Destroy();
 }
 } // namespace CompanionDeviceAuth

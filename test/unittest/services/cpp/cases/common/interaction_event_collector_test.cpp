@@ -79,6 +79,44 @@ HWTEST_F(InteractionEventCollectorTest, SetSelectedAlgorithm_001, TestSize.Level
     EXPECT_NE(collector.GetExtraInfo().find("selectedAlgorithm:5"), std::string::npos);
 }
 
+HWTEST_F(InteractionEventCollectorTest, SetCallerUserId_001, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    collector.SetCallerUserId(100);
+    EXPECT_NE(collector.GetExtraInfo().find("callerUserId:100"), std::string::npos);
+}
+
+HWTEST_F(InteractionEventCollectorTest, SetCallerUserId_NotInExtraInfoWhenUnset, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    collector.SetAtl(UserAuth::ATL1);
+    // callerUserId must not leak into extraInfo when never set
+    EXPECT_EQ(collector.GetExtraInfo().find("callerUserId:"), std::string::npos);
+}
+
+HWTEST_F(InteractionEventCollectorTest, SetCallerUserId_UpdateOverwrites, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    collector.SetCallerUserId(100);
+    collector.SetCallerUserId(200);
+    EXPECT_NE(collector.GetExtraInfo().find("callerUserId:200"), std::string::npos);
+    EXPECT_EQ(collector.GetExtraInfo().find("callerUserId:100"), std::string::npos);
+}
+
+HWTEST_F(InteractionEventCollectorTest, SetCallerUserId_EncodedInFixedOrder, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    // Set in reverse order to verify encoding is independent of call order
+    collector.SetEsl(1);
+    collector.SetCallerUserId(50);
+    collector.SetSelectedAlgorithm(5);
+
+    const auto extra = collector.GetExtraInfo();
+    // callerUserId is encoded right after selectedAlgorithm and before ESL
+    EXPECT_LT(extra.find("selectedAlgorithm:5"), extra.find("callerUserId:50"));
+    EXPECT_LT(extra.find("callerUserId:50"), extra.find("ESL:1"));
+}
+
 HWTEST_F(InteractionEventCollectorTest, SetEsl_001, TestSize.Level0)
 {
     InteractionEventCollector collector("test");

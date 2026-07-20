@@ -189,7 +189,8 @@ void InteractionDesc::Rebuild()
         oss << ",U:" << *userId_;
     }
     if (!pkgName_.empty()) {
-        oss << ",P:" << pkgName_;
+        auto dotPos = pkgName_.rfind('.');
+        oss << ",P:" << (dotPos == std::string::npos ? pkgName_ : pkgName_.substr(dotPos + 1));
     }
     oss << ")";
     description_ = oss.str();

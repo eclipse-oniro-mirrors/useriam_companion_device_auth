@@ -165,6 +165,7 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
         });
     if (!sendRet) {
         IAM_LOGE("%{public}s SendMessage failed", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
         return;
     }
     errorGuard.Cancel();
@@ -238,6 +239,10 @@ void HostDelegateAuthRequest::HandleSendDelegateAuthResultMessage(const Attribut
     LogTraceGuard guard;
     IAM_LOGI("%{public}s HandleSendDelegateAuthResultMessage", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
+    if (cancelled_ || completed_) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late delegate result", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
         Attributes reply;
         reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(code));
@@ -329,6 +334,9 @@ void HostDelegateAuthRequest::InvokeCallback(ResultCode result, const std::vecto
 
 void HostDelegateAuthRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s: delegate auth request failed, result=%{public}d", GetDescription(), result);
     InvokeCallback(result, {});
     if (needCancelDelegateAuth_) {
@@ -345,6 +353,9 @@ void HostDelegateAuthRequest::CompleteWithError(ResultCode result)
 
 void HostDelegateAuthRequest::CompleteWithSuccess(const std::vector<uint8_t> &fwkMsg)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     needCancelDelegateAuth_ = false;
     InvokeCallback(ResultCode::SUCCESS, fwkMsg);

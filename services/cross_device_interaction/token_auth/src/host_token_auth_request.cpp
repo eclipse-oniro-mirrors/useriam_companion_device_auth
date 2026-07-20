@@ -243,6 +243,9 @@ void HostTokenAuthRequest::InvokeCallback(ResultCode result, const std::vector<u
 
 void HostTokenAuthRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s: token auth request failed, result=%{public}d", GetDescription(), result);
     if (needEndTokenAuth_) {
         std::vector<uint8_t> fwkMsg = {};
@@ -256,6 +259,9 @@ void HostTokenAuthRequest::CompleteWithError(ResultCode result)
 
 void HostTokenAuthRequest::CompleteWithSuccess(const std::vector<uint8_t> &extraInfo)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     InvokeCallback(ResultCode::SUCCESS, extraInfo);
     eventCollector_.Report(ResultCode::SUCCESS);

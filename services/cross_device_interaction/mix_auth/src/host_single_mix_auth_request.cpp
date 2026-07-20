@@ -233,6 +233,9 @@ void HostSingleMixAuthRequest::InvokeCallback(ResultCode result, const std::vect
 
 void HostSingleMixAuthRequest::CompleteWithError(ResultCode result)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
     InvokeCallback(result, {});
     eventCollector_.Report(result);
@@ -241,6 +244,9 @@ void HostSingleMixAuthRequest::CompleteWithError(ResultCode result)
 
 void HostSingleMixAuthRequest::CompleteWithSuccess(const std::vector<uint8_t> &extraInfo)
 {
+    if (!AcquireCompletion()) {
+        return;
+    }
     IAM_LOGI("%{public}s complete with success", GetDescription());
     InvokeCallback(ResultCode::SUCCESS, extraInfo);
     eventCollector_.Report(ResultCode::SUCCESS);

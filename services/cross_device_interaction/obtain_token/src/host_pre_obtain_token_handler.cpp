@@ -55,7 +55,7 @@ void HostPreObtainTokenHandler::HandleRequest(const Attributes &request, OnMessa
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), companionDeviceKeyOpt.has_value());
 
     auto obtainTokenRequest = GetRequestFactory().CreateHostObtainTokenRequest(connectionName, request,
-        std::move(onMessageReply), *companionDeviceKeyOpt);
+        OnMessageReply(onMessageReply), *companionDeviceKeyOpt);
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), obtainTokenRequest != nullptr);
 
     bool startRet = GetRequestManager().Start(obtainTokenRequest);

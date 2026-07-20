@@ -105,11 +105,10 @@ std::unique_ptr<Subscription> LocalDeviceStatusManager::SubscribeIsAuthMaintainA
     OnAuthMaintainActiveChange &&callback)
 {
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
-    statusSubscribers_[subscriptionId] = std::move(callback);
+    statusSubscribers_[subscriptionId] = callback;
 
     IAM_LOGD("auth maintain active subscription added: 0x%{public}016" PRIX64 "", subscriptionId);
 
-    // Notify current status immediately
     bool isActive = authState_.isAuthMaintainActive;
     TaskRunnerManager::GetInstance().PostTaskOnResident([callback, isActive]() {
         if (callback) {
