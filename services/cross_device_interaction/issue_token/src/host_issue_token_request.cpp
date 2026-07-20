@@ -24,6 +24,7 @@
 #include "error_guard.h"
 #include "iam_log_tracer.h"
 #include "issue_token_message.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 
@@ -129,6 +130,7 @@ bool HostIssueTokenRequest::SendPreIssueTokenRequest(const std::vector<uint8_t> 
         .extraInfo = preIssueTokenRequest };
     Attributes request = {};
     EncodePreIssueTokenRequest(requestMsg, request);
+    eventCollector_.EnterWait(HostIssueTokenStages::WAIT_PRE_ISSUE_TOKEN_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::PRE_ISSUE_TOKEN, request,
         [weakSelf = weak_from_this()](const Attributes &message) {
@@ -145,6 +147,7 @@ bool HostIssueTokenRequest::SendPreIssueTokenRequest(const std::vector<uint8_t> 
 
 void HostIssueTokenRequest::HandlePreIssueTokenReply(const Attributes &message)
 {
+    eventCollector_.ExitWait(HostIssueTokenStages::DONE_PRE_ISSUE_TOKEN_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
@@ -193,6 +196,7 @@ bool HostIssueTokenRequest::SendIssueTokenRequest(const std::vector<uint8_t> &is
         .extraInfo = issueTokenRequest };
     Attributes request = {};
     EncodeIssueTokenRequest(requestMsg, request);
+    eventCollector_.EnterWait(HostIssueTokenStages::WAIT_ISSUE_TOKEN_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::ISSUE_TOKEN, request,
         [weakSelf = weak_from_this()](const Attributes &message) {
@@ -226,6 +230,7 @@ ResultCode HostIssueTokenRequest::CallSecurityAgentEndIssueToken(const std::vect
 
 void HostIssueTokenRequest::HandleIssueTokenReply(const Attributes &message)
 {
+    eventCollector_.ExitWait(HostIssueTokenStages::DONE_ISSUE_TOKEN_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });

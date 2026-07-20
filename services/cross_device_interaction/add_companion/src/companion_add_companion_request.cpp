@@ -25,6 +25,7 @@
 #include "add_companion_message.h"
 #include "common_message.h"
 #include "error_guard.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "service_common.h"
 #include "singleton_manager.h"
@@ -97,6 +98,7 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
         return false;
     }
+    eventCollector_.EnterWait(CompanionAddCompanionStages::WAIT_BEGIN_BINDING);
 
     errorGuard.Cancel();
     return true;
@@ -181,6 +183,7 @@ ResultCode CompanionAddCompanionRequest::CallBeginAddHostBinding(int32_t compani
 void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &attrInput,
     OnMessageReply &onMessageReply)
 {
+    eventCollector_.ExitWait(CompanionAddCompanionStages::DONE_BEGIN_BINDING);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
@@ -209,12 +212,14 @@ void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &a
 
     currentReply_(reply);
     currentReply_ = nullptr;
+    eventCollector_.EnterWait(CompanionAddCompanionStages::WAIT_END_BINDING);
 
     errorGuard.Cancel();
 }
 
 void CompanionAddCompanionRequest::HandleEndAddHostBinding(const Attributes &attrInput, OnMessageReply &onMessageReply)
 {
+    eventCollector_.ExitWait(CompanionAddCompanionStages::DONE_END_BINDING);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);

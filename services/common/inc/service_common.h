@@ -45,6 +45,7 @@ using SubscribeId = uint64_t;
 using Atl = int32_t;
 using SystemTimeMs = uint64_t;
 using SteadyTimeMs = uint64_t;
+using StageId = uint32_t;
 
 enum class ChannelId : int32_t {
     INVALID = 0,

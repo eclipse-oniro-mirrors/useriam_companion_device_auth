@@ -31,6 +31,7 @@
 #include "error_guard.h"
 #include "fwk_common.h"
 #include "misc_manager.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "service_converter.h"
 #include "singleton_manager.h"
@@ -136,11 +137,13 @@ bool HostAddCompanionRequest::OnStart([[maybe_unused]] ErrorGuard &errorGuard)
             self->HandleDeviceSelectResult(selectedDevices);
         });
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), selectorSet, false);
+    eventCollector_.EnterWait(HostAddCompanionStages::WAIT_DEVICE_SELECT);
     return true;
 }
 
 void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices)
 {
+    eventCollector_.ExitWait(HostAddCompanionStages::DONE_DEVICE_SELECT);
     IAM_LOGI("%{public}s HandleDeviceSelectResult", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
@@ -236,6 +239,7 @@ ResultCode HostAddCompanionRequest::SendInitKeyNegotiationRequest(const std::vec
     InitKeyNegotiationRequest initRequest { .hostDeviceKey = hostDeviceKey_, .extraInfo = initKeyNegotiationRequest };
     Attributes request = {};
     EncodeInitKeyNegotiationRequest(initRequest, request);
+    eventCollector_.EnterWait(HostAddCompanionStages::WAIT_INIT_KEY_NEG_REPLY);
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::INIT_KEY_NEGOTIATION,
         request, [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
@@ -256,6 +260,7 @@ std::weak_ptr<OutboundRequest> HostAddCompanionRequest::GetWeakPtr()
 
 void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &reply)
 {
+    eventCollector_.ExitWait(HostAddCompanionStages::DONE_INIT_KEY_NEG_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
@@ -282,6 +287,7 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
         .extraInfo = std::move(addHostBindingRequest) };
     Attributes request = {};
     EncodeBeginAddHostBindingRequest(beginRequest, request);
+    eventCollector_.EnterWait(HostAddCompanionStages::WAIT_BEGIN_ADD_BINDING_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::BEGIN_ADD_HOST_BINDING,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
@@ -330,6 +336,7 @@ bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &r
 
 void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &reply)
 {
+    eventCollector_.ExitWait(HostAddCompanionStages::DONE_BEGIN_ADD_BINDING_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
@@ -456,6 +463,7 @@ bool HostAddCompanionRequest::SendEndAddHostBindingRequest(ResultCode result)
     pendingTokenData_.clear();
     Attributes request = {};
     EncodeEndAddHostBindingRequest(requestMsg, request);
+    eventCollector_.EnterWait(HostAddCompanionStages::WAIT_END_ADD_BINDING_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::END_ADD_HOST_BINDING,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
@@ -472,6 +480,7 @@ bool HostAddCompanionRequest::SendEndAddHostBindingRequest(ResultCode result)
 
 void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &reply)
 {
+    eventCollector_.ExitWait(HostAddCompanionStages::DONE_END_ADD_BINDING_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });

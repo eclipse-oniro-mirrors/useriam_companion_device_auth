@@ -44,6 +44,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
     "cases/cross_device_interaction/add_companion/host_add_companion_request_fuzzer.cpp",
     "cases/cross_device_interaction/common/common_message_fuzzer.cpp",
     "cases/cross_device_interaction/common/interaction_desc_fuzzer.cpp",
+    "cases/cross_device_interaction/common/interaction_event_collector_fuzzer.cpp",
     "cases/cross_device_interaction/delegate_auth/companion_delegate_auth_request_fuzzer.cpp",
     "cases/cross_device_interaction/delegate_auth/companion_start_delegate_auth_handler_fuzzer.cpp",
     "cases/cross_device_interaction/delegate_auth/delegate_auth_message_fuzzer.cpp",

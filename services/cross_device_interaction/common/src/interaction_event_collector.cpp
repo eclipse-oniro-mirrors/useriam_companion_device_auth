@@ -81,6 +81,7 @@ constexpr const char *KEY_SECURE_PROTOCOL_ID = "secureProtocolId";
 constexpr const char *KEY_TEMPLATE_AUTH_RESULT = "templateAuthResult";
 constexpr const char *KEY_SUCCESS_TEMPLATE_ID = "successTemplateId";
 constexpr const char *KEY_LOG_TRACE = "logTrace";
+constexpr const char *KEY_TIME_TRACE = "timeTrace";
 
 } // namespace
 
@@ -154,6 +155,26 @@ void InteractionEventCollector::SetSuccessTemplateId(TemplateId templateId)
     successTemplateId_ = templateId;
 }
 
+void InteractionEventCollector::Start()
+{
+    tracer_.Start();
+}
+
+void InteractionEventCollector::Mark(StageId id)
+{
+    tracer_.Mark(id);
+}
+
+void InteractionEventCollector::EnterWait(StageId id)
+{
+    tracer_.EnterWait(id);
+}
+
+void InteractionEventCollector::ExitWait(StageId id)
+{
+    tracer_.ExitWait(id);
+}
+
 void InteractionEventCollector::BuildExtraInfoStep1(std::ostringstream &oss) const
 {
     if (atl_.has_value()) {
@@ -202,6 +223,10 @@ void InteractionEventCollector::BuildExtraInfoStep2(std::ostringstream &oss) con
     if (!logTrace_.empty()) {
         oss << ";" << KEY_LOG_TRACE << ":" << logTrace_;
     }
+    std::string timeTrace = tracer_.ExportTrace();
+    if (!timeTrace.empty()) {
+        oss << ";" << KEY_TIME_TRACE << ":" << timeTrace;
+    }
 }
 
 std::string InteractionEventCollector::GetExtraInfo() const
@@ -219,10 +244,31 @@ std::string InteractionEventCollector::GetExtraInfo() const
 
 void InteractionEventCollector::Report(ResultCode result)
 {
+    if (reported_) {
+        return;
+    }
+    reported_ = true;
     result_ = result;
+    tracer_.Finish();
     logTrace_ = LogTracer::GetInstance().ExportAsString();
     IAM_LOGI("requestType: %{public}s, logTrace: %{public}s", requestType_.c_str(), logTrace_.c_str());
     ReportInteractionEvent(*this);
+}
+
+std::optional<uint64_t> InteractionEventCollector::GetTotalTime() const
+{
+    if (!tracer_.Started()) {
+        return std::nullopt;
+    }
+    return tracer_.TotalMs();
+}
+
+std::optional<uint64_t> InteractionEventCollector::GetLocalTime() const
+{
+    if (!tracer_.Started()) {
+        return std::nullopt;
+    }
+    return tracer_.LocalMs();
 }
 
 } // namespace CompanionDeviceAuth

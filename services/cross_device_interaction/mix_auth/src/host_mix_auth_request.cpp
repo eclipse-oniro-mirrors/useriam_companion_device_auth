@@ -189,6 +189,7 @@ void HostMixAuthRequest::StartAuthWithTemplateList(const std::vector<TemplateId>
 void HostMixAuthRequest::Start()
 {
     LogTraceGuard guard;
+    eventCollector_.Start();
     StartTimeout(weak_from_this());
 
     if (!AnyTemplateValid()) {

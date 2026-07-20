@@ -23,6 +23,7 @@
 #include "companion_token_auth_handler.h"
 #include "error_guard.h"
 #include "iam_log_tracer.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
@@ -147,6 +148,7 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
         .extraInfo = tokenAuthRequest };
     Attributes request = {};
     EncodeTokenAuthRequest(requestMsg, request);
+    eventCollector_.EnterWait(HostTokenAuthStages::WAIT_TOKEN_AUTH_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::TOKEN_AUTH, request,
         [weakSelf = weak_from_this()](const Attributes &reply) {
@@ -163,6 +165,7 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
 
 void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
 {
+    eventCollector_.ExitWait(HostTokenAuthStages::DONE_TOKEN_AUTH_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });

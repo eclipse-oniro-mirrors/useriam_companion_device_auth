@@ -22,6 +22,7 @@
 #include "error_guard.h"
 #include "host_revoke_token_handler.h"
 #include "iam_log_tracer.h"
+#include "request_stages.h"
 #include "revoke_token_message.h"
 #include "singleton_manager.h"
 
@@ -70,6 +71,7 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
         .companionDeviceKey = companionDeviceKey };
     Attributes request = {};
     EncodeRevokeTokenRequest(requestMsg, request);
+    eventCollector_.EnterWait(CompanionRevokeTokenStages::WAIT_REVOKE_TOKEN_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::COMPANION_REVOKE_TOKEN,
         request, [weakSelf = weak_from_this()](const Attributes &reply) {
@@ -87,6 +89,7 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
 
 void CompanionRevokeTokenRequest::HandleRevokeTokenReply(const Attributes &message)
 {
+    eventCollector_.ExitWait(CompanionRevokeTokenStages::DONE_REVOKE_TOKEN_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });

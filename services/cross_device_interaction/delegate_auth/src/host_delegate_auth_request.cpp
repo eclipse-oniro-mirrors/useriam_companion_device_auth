@@ -28,6 +28,7 @@
 #include "companion_manager.h"
 #include "delegate_auth_message.h"
 #include "error_guard.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
@@ -154,6 +155,7 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
         .navigationButtonText = widgetAuthParam_.navigationButtonText };
     Attributes request = {};
     EncodeStartDelegateAuthRequest(startRequest, request);
+    eventCollector_.EnterWait(HostDelegateAuthStages::WAIT_DELEGATE_AUTH_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::START_DELEGATE_AUTH,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
@@ -170,6 +172,7 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
 
 void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &message)
 {
+    eventCollector_.ExitWait(HostDelegateAuthStages::DONE_DELEGATE_AUTH_REPLY);
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
@@ -183,6 +186,7 @@ void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &mes
     }
 
     IAM_LOGI("%{public}s start delegate auth success", GetDescription());
+    eventCollector_.EnterWait(HostDelegateAuthStages::WAIT_DELEGATE_RESULT);
     errorGuard.Cancel();
 }
 
@@ -230,6 +234,7 @@ ResultCode HostDelegateAuthRequest::HandleSendDelegateAuthResult(const Attribute
 void HostDelegateAuthRequest::HandleSendDelegateAuthResultMessage(const Attributes &request,
     OnMessageReply &onMessageReply)
 {
+    eventCollector_.ExitWait(HostDelegateAuthStages::DONE_DELEGATE_RESULT);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s HandleSendDelegateAuthResultMessage", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);

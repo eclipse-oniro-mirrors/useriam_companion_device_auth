@@ -24,6 +24,7 @@
 #include "error_guard.h"
 #include "iam_log_tracer.h"
 #include "remove_host_binding_message.h"
+#include "request_stages.h"
 #include "singleton_manager.h"
 
 #define LOG_TAG "CDA_SA"
@@ -84,6 +85,7 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
     };
     Attributes request = {};
     EncodeRemoveHostBindingRequest(requestMsg, request);
+    eventCollector_.EnterWait(HostRemoveHostBindingStages::WAIT_REMOVE_HOST_BINDING_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::REMOVE_HOST_BINDING,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
@@ -101,6 +103,7 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
 
 void HostRemoveHostBindingRequest::HandleRemoveHostBindingReply(const Attributes &message)
 {
+    eventCollector_.ExitWait(HostRemoveHostBindingStages::DONE_REMOVE_HOST_BINDING_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });

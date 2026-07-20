@@ -25,6 +25,7 @@
 #include "host_binding_manager.h"
 #include "iam_log_tracer.h"
 #include "obtain_token_message.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 
@@ -102,6 +103,7 @@ bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
         .extraInfo = {},
     };
     EncodePreObtainTokenRequest(preObtainTokenRequest, request);
+    eventCollector_.EnterWait(CompanionObtainTokenStages::WAIT_PRE_OBTAIN_TOKEN_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::PRE_OBTAIN_TOKEN, request,
         [weakSelf = weak_from_this()](const Attributes &reply) {
@@ -118,6 +120,7 @@ bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
 
 void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &reply)
 {
+    eventCollector_.ExitWait(CompanionObtainTokenStages::DONE_PRE_OBTAIN_TOKEN_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
@@ -205,6 +208,7 @@ bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8
         .companionDeviceKey = companionDeviceKey_,
     };
     EncodeObtainTokenRequest(obtainRequest, request);
+    eventCollector_.EnterWait(CompanionObtainTokenStages::WAIT_OBTAIN_TOKEN_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::OBTAIN_TOKEN, request,
         [weakSelf = weak_from_this()](const Attributes &reply) {
@@ -221,6 +225,7 @@ bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8
 
 void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply)
 {
+    eventCollector_.ExitWait(CompanionObtainTokenStages::DONE_OBTAIN_TOKEN_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });

@@ -25,6 +25,7 @@
 #include "companion_sync_device_status_handler.h"
 #include "error_guard.h"
 #include "iam_log_tracer.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 #include "sync_device_status_message.h"
@@ -169,6 +170,7 @@ bool HostSyncDeviceStatusRequest::SendSyncDeviceStatusRequest(const std::vector<
 
     Attributes attrRequest = {};
     EncodeSyncDeviceStatusRequest(request, attrRequest);
+    eventCollector_.EnterWait(HostSyncDeviceStatusStages::WAIT_SYNC_DEVICE_STATUS_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::SYNC_DEVICE_STATUS,
         attrRequest, [weakSelf = weak_from_this()](const Attributes &message) {
@@ -185,6 +187,7 @@ bool HostSyncDeviceStatusRequest::SendSyncDeviceStatusRequest(const std::vector<
 
 void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &reply)
 {
+    eventCollector_.ExitWait(HostSyncDeviceStatusStages::DONE_SYNC_DEVICE_STATUS_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });

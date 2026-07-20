@@ -24,6 +24,7 @@
 #include "delegate_auth_message.h"
 #include "error_guard.h"
 #include "host_binding_manager.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "service_common.h"
 #include "service_converter.h"
@@ -111,6 +112,7 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
     desc_.SetContextId(contextId);
 
     eventCollector_.SetContextId(contextId);
+    eventCollector_.EnterWait(CompanionDelegateAuthStages::WAIT_USER_AUTH);
     return true;
 }
 
@@ -161,6 +163,7 @@ bool CompanionDelegateAuthRequest::CallSecurityAgentBeginDelegateAuth(uint64_t &
 
 void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCode, const std::vector<uint8_t> &token)
 {
+    eventCollector_.ExitWait(CompanionDelegateAuthStages::DONE_USER_AUTH);
     LogTraceGuard guard;
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
@@ -188,6 +191,7 @@ bool CompanionDelegateAuthRequest::SendDelegateAuthResult(ResultCode resultCode,
     SendDelegateAuthResultRequest requestMsg = { .result = resultCode, .extraInfo = delegateAuthResult };
     Attributes request = {};
     EncodeSendDelegateAuthResultRequest(requestMsg, request);
+    eventCollector_.EnterWait(CompanionDelegateAuthStages::WAIT_SEND_RESULT_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::SEND_DELEGATE_AUTH_RESULT,
         request, [weakSelf = weak_from_this()](const Attributes &message) {
@@ -233,6 +237,7 @@ bool CompanionDelegateAuthRequest::SecurityAgentEndDelegateAuth(ResultCode resul
 
 void CompanionDelegateAuthRequest::HandleSendDelegateAuthResultReply(const Attributes &message)
 {
+    eventCollector_.ExitWait(CompanionDelegateAuthStages::DONE_SEND_RESULT_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     auto replyOpt = DecodeSendDelegateAuthResultReply(message);

@@ -25,6 +25,7 @@
 #include "companion_manager.h"
 #include "error_guard.h"
 #include "misc_manager.h"
+#include "request_stages.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
 
@@ -125,6 +126,7 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
     }
 
     SendPreObtainTokenReply(ResultCode::SUCCESS, preObtainTokenReply);
+    eventCollector_.EnterWait(HostObtainTokenStages::WAIT_OBTAIN_TOKEN);
     return true;
 }
 
@@ -161,6 +163,7 @@ void HostObtainTokenRequest::SendPreObtainTokenReply(ResultCode result, const st
 
 void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
 {
+    eventCollector_.ExitWait(HostObtainTokenStages::DONE_OBTAIN_TOKEN);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
