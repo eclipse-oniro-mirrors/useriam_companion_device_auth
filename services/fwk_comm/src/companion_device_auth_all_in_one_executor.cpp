@@ -422,7 +422,7 @@ void Inner::HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vec
         GetHostBindingManager().RevokeTokens(freezeCommand.userId);
     } else if (commandId == FwkPropertyMode::PROPERTY_MODE_UNFREEZE) {
         GetMiscManager().SetCompanionAuthBlocked(false);
-        if (GetUserIdManager().GetActiveUserId() == freezeCommand.userId) {
+        if (GetUserIdManager().GetUnlockedActiveUserId() == freezeCommand.userId) {
             pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
             GetCompanionManager().StartIssueTokenRequests(freezeCommand.templateIdList,
                 freezeCommand.lockStateAuthTypeValue, extraInfo);
@@ -430,7 +430,7 @@ void Inner::HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vec
                 extraInfo);
         } else {
             IAM_LOGI("userId %{public}d mismatch active=%{public}d, deferring", freezeCommand.userId,
-                GetUserIdManager().GetActiveUserId());
+                GetUserIdManager().GetUnlockedActiveUserId());
             pendingIssueTokenManager_->Defer(freezeCommand, extraInfo);
         }
     }

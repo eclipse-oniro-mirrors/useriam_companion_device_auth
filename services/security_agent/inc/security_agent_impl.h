@@ -132,7 +132,7 @@ public:
 private:
     SecurityAgentImpl();
     bool Initialize();
-    std::unique_ptr<Subscription> activeUserSubscription_;
+    std::unique_ptr<Subscription> unlockedActiveUserSubscription_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

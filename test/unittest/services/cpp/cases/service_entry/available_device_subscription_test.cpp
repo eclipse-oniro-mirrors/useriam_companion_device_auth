@@ -60,7 +60,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, Create_001, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&callback) { return MakeSubscription(); }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus()).WillOnce(Return(std::vector<DeviceStatus> {}));
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(0));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(0));
 
     auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
 

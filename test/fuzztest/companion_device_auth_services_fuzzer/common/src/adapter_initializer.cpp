@@ -326,6 +326,16 @@ public:
         return std::make_unique<Subscription>([] {});
     }
 
+    UserId GetUnlockedActiveUserId() const override
+    {
+        return GetActiveUserId();
+    }
+
+    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override
+    {
+        return SubscribeActiveUserId(std::move(callback));
+    }
+
     bool IsUserIdValid(int32_t userId) override
     {
         (void)userId;

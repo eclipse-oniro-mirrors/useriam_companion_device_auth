@@ -72,9 +72,9 @@ ResultCode BaseServiceCore::SubscribeAvailableDeviceStatus(int32_t localUserId,
     ENSURE_OR_RETURN_VAL(deviceStatusCallback != nullptr, ResultCode::INVALID_PARAMETERS);
     ENSURE_OR_RETURN_VAL(subscriptionManager_ != nullptr, ResultCode::GENERAL_ERROR);
 
-    if (localUserId != GetUserIdManager().GetActiveUserId()) {
+    if (localUserId != GetUserIdManager().GetUnlockedActiveUserId()) {
         IAM_LOGE("userId %{public}d is not the active user id %{public}d", localUserId,
-            GetUserIdManager().GetActiveUserId());
+            GetUserIdManager().GetUnlockedActiveUserId());
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -103,9 +103,9 @@ ResultCode BaseServiceCore::SubscribeTemplateStatusChange(int32_t localUserId,
     ENSURE_OR_RETURN_VAL(templateStatusCallback != nullptr, ResultCode::INVALID_PARAMETERS);
     ENSURE_OR_RETURN_VAL(subscriptionManager_ != nullptr, ResultCode::GENERAL_ERROR);
 
-    if (localUserId != GetUserIdManager().GetActiveUserId()) {
+    if (localUserId != GetUserIdManager().GetUnlockedActiveUserId()) {
         IAM_LOGE("userId %{public}d is not the active user id %{public}d", localUserId,
-            GetUserIdManager().GetActiveUserId());
+            GetUserIdManager().GetUnlockedActiveUserId());
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -135,9 +135,9 @@ ResultCode BaseServiceCore::SubscribeContinuousAuthStatusChange(
     ENSURE_OR_RETURN_VAL(continuousAuthStatusCallback != nullptr, ResultCode::INVALID_PARAMETERS);
     ENSURE_OR_RETURN_VAL(subscriptionManager_ != nullptr, ResultCode::GENERAL_ERROR);
 
-    if (subscribeContinuousAuthStatusParam.localUserId != GetUserIdManager().GetActiveUserId()) {
+    if (subscribeContinuousAuthStatusParam.localUserId != GetUserIdManager().GetUnlockedActiveUserId()) {
         IAM_LOGE("userId %{public}d is not the active user id %{public}d",
-            subscribeContinuousAuthStatusParam.localUserId, GetUserIdManager().GetActiveUserId());
+            subscribeContinuousAuthStatusParam.localUserId, GetUserIdManager().GetUnlockedActiveUserId());
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -218,9 +218,9 @@ ResultCode BaseServiceCore::GetTemplateStatus(int32_t localUserId, std::vector<I
 {
     IAM_LOGI("Start");
 
-    if (localUserId != GetUserIdManager().GetActiveUserId()) {
+    if (localUserId != GetUserIdManager().GetUnlockedActiveUserId()) {
         IAM_LOGE("userId %{public}d is not the active user id %{public}d", localUserId,
-            GetUserIdManager().GetActiveUserId());
+            GetUserIdManager().GetUnlockedActiveUserId());
         return ResultCode::GENERAL_ERROR;
     }
 

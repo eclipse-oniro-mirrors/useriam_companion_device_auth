@@ -55,7 +55,7 @@ PersistedHostBindingStatus MakePersistedStatus(BindingId bindingId, UserId compa
 void SetupManagerCreationMocks(MockGuard &guard)
 {
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
 
@@ -113,7 +113,7 @@ HWTEST_F(HostBindingManagerImplTest, Create_001, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -144,7 +144,7 @@ HWTEST_F(HostBindingManagerImplTest, Create_001, TestSize.Level0)
             }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
-    EXPECT_CALL(userIdMgr, SubscribeActiveUserId(_)).WillOnce(Invoke([](ActiveUserIdCallback &&) {
+    EXPECT_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillOnce(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
 
@@ -158,7 +158,7 @@ HWTEST_F(HostBindingManagerImplTest, Initialize_001, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -201,7 +201,7 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusById_001, TestSize.Leve
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -255,7 +255,7 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusById_002, TestSize.Leve
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -324,7 +324,7 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusByDeviceUser_002, TestS
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -373,7 +373,7 @@ HWTEST_F(HostBindingManagerImplTest, GetAllHostBindingStatus_001, TestSize.Level
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -425,7 +425,7 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_001, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -474,7 +474,7 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_002, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -525,7 +525,7 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_003, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -655,7 +655,7 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_001, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -701,7 +701,7 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_004_CleanupOnFailureWithB
 {
     MockGuard guard;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -761,7 +761,7 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_002, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -809,7 +809,7 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_003, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -850,7 +850,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_001, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -899,7 +899,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_002, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -937,7 +937,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_003, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -976,7 +976,7 @@ HWTEST_F(HostBindingManagerImplTest, SetHostBindingTokenValid_001, TestSize.Leve
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1020,7 +1020,7 @@ HWTEST_F(HostBindingManagerImplTest, SetHostBindingTokenValid_002, TestSize.Leve
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1075,7 +1075,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_001, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1128,7 +1128,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_002, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1183,7 +1183,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_003, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1236,7 +1236,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_004, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1286,7 +1286,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_005, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1324,7 +1324,7 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_001, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1368,7 +1368,7 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_002, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1418,7 +1418,7 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_003, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1495,7 +1495,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveBindingInternal_001, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1539,7 +1539,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveBindingInternal_002, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1591,7 +1591,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_001, TestSize.Leve
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1638,7 +1638,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_002, TestSize.Leve
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1685,7 +1685,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_003, TestSize.Leve
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1739,7 +1739,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_004, TestSize.Leve
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1785,7 +1785,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_005, TestSize.Leve
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1831,7 +1831,7 @@ HWTEST_F(HostBindingManagerImplTest, RevokeTokens_001, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1876,7 +1876,7 @@ HWTEST_F(HostBindingManagerImplTest, RevokeTokens_002, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1921,7 +1921,7 @@ HWTEST_F(HostBindingManagerImplTest, RevokeTokens_003, TestSize.Level0)
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
     auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();

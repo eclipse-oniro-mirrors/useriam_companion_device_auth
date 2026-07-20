@@ -54,17 +54,17 @@ std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 bool SecurityAgentImpl::Initialize()
 {
     auto &userIdManager = GetUserIdManager();
-    activeUserSubscription_ = userIdManager.SubscribeActiveUserId([this](UserId userId) {
+    unlockedActiveUserSubscription_ = userIdManager.SubscribeUnlockedActiveUserId([this](UserId userId) {
         auto result = SetActiveUser(SetActiveUserInput { userId });
         if (result != SUCCESS) {
             IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
         }
     });
-    if (activeUserSubscription_ == nullptr) {
+    if (unlockedActiveUserSubscription_ == nullptr) {
         return false;
     }
 
-    auto result = SetActiveUser(SetActiveUserInput { userIdManager.GetActiveUserId() });
+    auto result = SetActiveUser(SetActiveUserInput { userIdManager.GetUnlockedActiveUserId() });
     if (result != SUCCESS) {
         return false;
     }

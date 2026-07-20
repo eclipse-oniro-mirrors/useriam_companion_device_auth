@@ -102,7 +102,7 @@
 | 组件 | 策略 | 理由 |
 |------|------|------|
 | ITimeKeeper | **Fake** | `GetSystemTimeMs()` / `GetSteadyTimeMs()` 需可控时间。提供 `TestAdvanceSystemTime(ms)` |
-| IUserIdManager | **Fake** | `GetActiveUserId()` + `SubscribeActiveUserId(callback)`。Fake 提供 `TestSetActiveUser()` 自动更新状态并通告订阅者 |
+| IUserIdManager | **Fake** | `GetUnlockedActiveUserId()` + `SubscribeUnlockedActiveUserId(callback)`。Fake 提供 `TestSetActiveUser()` 自动更新状态并通告订阅者 |
 | ISystemParamManager | **Fake** | `Get/Set/WatchParam` 有状态联动。Set 自动触发 Watcher |
 | IIdmAdapter | **Fake** | `GetUserTemplates()` 有状态查询 + `SubscribeUserTemplateChange()` 回调订阅。Fake 提供 `TestSimulateTemplateChange()` |
 | ISaManagerAdapter | **Fake** | `SubscribeSystemAbility()` 捕获 listener stub。Fake 提供 `TestSimulateSaOnline/Offline()` |
@@ -420,7 +420,7 @@ guard.InjectRawMessage(connName, sent)
   → FakeChannel.TestSimulateIncomingMessage()
   → 消息路由::HandleRawMessage()
     → 伴随同步处理器::HandleIncomingMessage
-      → FakeUserIdManager::GetActiveUserId() 返回预设值
+      → FakeUserIdManager::GetUnlockedActiveUserId() 返回预设值
       → EncodeSyncDeviceStatusReply
     → onReply → 消息路由::SendReply
       → FakeChannel::SendMessage() → 捕获伴随的回复

@@ -77,7 +77,7 @@ private:
     UserId activeUserId_ { INVALID_USER_ID };
     std::vector<std::shared_ptr<HostBinding>> bindings_;
 
-    std::unique_ptr<Subscription> activeUserIdSubscription_;
+    std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
 };
 
 } // namespace CompanionDeviceAuth

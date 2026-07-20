@@ -526,7 +526,7 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
 
     // Capture the subscription callback; the default mock discards it.
     ActiveUserIdCallback capturedCb;
-    ON_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_))
+    ON_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserId(_))
         .WillByDefault(Invoke([&capturedCb](ActiveUserIdCallback &&cb) {
             capturedCb = std::move(cb);
             return std::make_unique<Subscription>([]() {});

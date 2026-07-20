@@ -53,6 +53,8 @@ public:
     std::optional<std::string> GetActiveUserName() const override;
     std::string GetActiveUserTypeName() const override;
     std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override;
+    UserId GetUnlockedActiveUserId() const override;
+    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override;
     bool IsUserIdValid(int32_t userId) override;
 
 private:
@@ -76,19 +78,24 @@ private:
     void SubscribeOsAccount();
     void UnsubscribeOsAccount();
     void OnOsAccountStateChange(const AccountSA::OsAccountStateData &data);
-    void SyncActiveUserId();
+    void SyncUserIds();
     void UpdateActiveUserId(UserId userId);
-    void NotifySubscribers(UserId userId);
-    int32_t QueryActiveUserIdFromSystem() const;
+    void UpdateUnlockedUserId(UserId userId);
+    void NotifyActiveUserIdSubscribers(UserId userId);
+    void NotifyUnlockedUserIdSubscribers(UserId userId);
+    void QueryActiveAndUnlockedFromSystem(UserId &active, UserId &unlocked) const;
     void UnsubscribeActiveUserId(const SubscribeId &subscribeId);
+    void UnsubscribeUnlockedActiveUserId(const SubscribeId &subscribeId);
     static std::string QueryUserTypeNameById(UserId userId);
 
     bool initialized_ = false;
     std::unique_ptr<SaStatusListener> saStatusListener_;
 
     UserId activeUserId_ { INVALID_USER_ID };
+    UserId unlockedUserId_ { INVALID_USER_ID };
     std::string activeUserTypeName_ { "normal" };
-    std::map<SubscribeId, ActiveUserIdCallback> subscribers_;
+    std::map<SubscribeId, ActiveUserIdCallback> activeSubscribers_;
+    std::map<SubscribeId, ActiveUserIdCallback> unlockedSubscribers_;
     std::shared_ptr<ActiveUserOsAccountSubscriber> osAccountSubscriber_;
 };
 
@@ -169,7 +176,7 @@ std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeActiveUserId(Active
 {
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
     SubscribeId subscribeId = GetMiscManager().GetNextGlobalId();
-    subscribers_[subscribeId] = std::move(callback);
+    activeSubscribers_[subscribeId] = std::move(callback);
 
     return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscribeId]() {
         auto self = weakSelf.lock();
@@ -178,9 +185,32 @@ std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeActiveUserId(Active
     });
 }
 
+UserId DefaultUserIdManager::GetUnlockedActiveUserId() const
+{
+    return unlockedUserId_;
+}
+
+std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback)
+{
+    ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
+    SubscribeId subscribeId = GetMiscManager().GetNextGlobalId();
+    unlockedSubscribers_[subscribeId] = std::move(callback);
+
+    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscribeId]() {
+        auto self = weakSelf.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        self->UnsubscribeUnlockedActiveUserId(subscribeId);
+    });
+}
+
 void DefaultUserIdManager::UnsubscribeActiveUserId(const SubscribeId &subscribeId)
 {
-    subscribers_.erase(subscribeId);
+    activeSubscribers_.erase(subscribeId);
+}
+
+void DefaultUserIdManager::UnsubscribeUnlockedActiveUserId(const SubscribeId &subscribeId)
+{
+    unlockedSubscribers_.erase(subscribeId);
 }
 
 bool DefaultUserIdManager::IsUserIdValid(int32_t userId)
@@ -201,12 +231,13 @@ bool DefaultUserIdManager::IsUserIdValid(int32_t userId)
 void DefaultUserIdManager::HandleOsAccountServiceReady()
 {
     SubscribeOsAccount();
-    SyncActiveUserId();
+    SyncUserIds();
 }
 
 void DefaultUserIdManager::HandleOsAccountServiceUnavailable()
 {
     UpdateActiveUserId(INVALID_USER_ID);
+    UpdateUnlockedUserId(INVALID_USER_ID);
     UnsubscribeOsAccount();
 }
 
@@ -214,7 +245,7 @@ void DefaultUserIdManager::OnOsAccountStateChange(const AccountSA::OsAccountStat
 {
     IAM_LOGI("os account state %{public}d from %{public}d to %{public}d", data.state, data.fromId, data.toId);
 
-    SyncActiveUserId();
+    SyncUserIds();
 }
 
 void DefaultUserIdManager::SubscribeOsAccount()
@@ -256,10 +287,13 @@ void DefaultUserIdManager::UnsubscribeOsAccount()
     }
 }
 
-void DefaultUserIdManager::SyncActiveUserId()
+void DefaultUserIdManager::SyncUserIds()
 {
-    auto userIdOpt = QueryActiveUserIdFromSystem();
-    UpdateActiveUserId(static_cast<UserId>(userIdOpt));
+    UserId active = INVALID_USER_ID;
+    UserId unlocked = INVALID_USER_ID;
+    QueryActiveAndUnlockedFromSystem(active, unlocked);
+    UpdateActiveUserId(active);
+    UpdateUnlockedUserId(unlocked);
 }
 
 void DefaultUserIdManager::UpdateActiveUserId(UserId userId)
@@ -268,14 +302,23 @@ void DefaultUserIdManager::UpdateActiveUserId(UserId userId)
         IAM_LOGI("active user id %{public}d -> %{public}d", activeUserId_, userId);
         activeUserId_ = userId;
         activeUserTypeName_ = QueryUserTypeNameById(userId);
-        NotifySubscribers(userId);
+        NotifyActiveUserIdSubscribers(userId);
     }
 }
 
-void DefaultUserIdManager::NotifySubscribers(UserId userId)
+void DefaultUserIdManager::UpdateUnlockedUserId(UserId userId)
+{
+    if (unlockedUserId_ != userId) {
+        IAM_LOGI("unlocked user id %{public}d -> %{public}d", unlockedUserId_, userId);
+        unlockedUserId_ = userId;
+        NotifyUnlockedUserIdSubscribers(userId);
+    }
+}
+
+void DefaultUserIdManager::NotifyActiveUserIdSubscribers(UserId userId)
 {
     std::vector<ActiveUserIdCallback> callbacks;
-    for (const auto &entry : subscribers_) {
+    for (const auto &entry : activeSubscribers_) {
         callbacks.emplace_back(entry.second);
     }
 
@@ -288,33 +331,52 @@ void DefaultUserIdManager::NotifySubscribers(UserId userId)
     });
 }
 
-int32_t DefaultUserIdManager::QueryActiveUserIdFromSystem() const
+void DefaultUserIdManager::NotifyUnlockedUserIdSubscribers(UserId userId)
 {
+    std::vector<ActiveUserIdCallback> callbacks;
+    for (const auto &entry : unlockedSubscribers_) {
+        callbacks.emplace_back(entry.second);
+    }
+
+    TaskRunnerManager::GetInstance().PostTaskOnResident([callbacks = std::move(callbacks), userId]() {
+        for (const auto &callback : callbacks) {
+            if (callback != nullptr) {
+                callback(userId);
+            }
+        }
+    });
+}
+
+void DefaultUserIdManager::QueryActiveAndUnlockedFromSystem(UserId &active, UserId &unlocked) const
+{
+    active = INVALID_USER_ID;
+    unlocked = INVALID_USER_ID;
+
     std::vector<int32_t> ids;
     ErrCode errCode = AccountSA::OsAccountManager::QueryActiveOsAccountIds(ids);
     if (errCode != ERR_OK) {
         IAM_LOGE("QueryActiveOsAccountIds failed %{public}d", errCode);
-        return INVALID_USER_ID;
+        return;
     }
     if (ids.empty()) {
         IAM_LOGE("no active os account id");
-        return INVALID_USER_ID;
+        return;
     }
 
-    int32_t candidate = ids.front();
+    active = ids.front();
+
     bool isVerified = false;
-    errCode = AccountSA::OsAccountManager::IsOsAccountVerified(candidate, isVerified);
+    errCode = AccountSA::OsAccountManager::IsOsAccountVerified(active, isVerified);
     if (errCode != ERR_OK) {
-        IAM_LOGE("IsOsAccountVerified failed %{public}d for %{public}d", errCode, candidate);
-        return INVALID_USER_ID;
+        IAM_LOGE("IsOsAccountVerified failed %{public}d for %{public}d", errCode, active);
+        return;
     }
     if (!isVerified) {
-        IAM_LOGI("active os account %{public}d not verified", candidate);
-        return INVALID_USER_ID;
+        IAM_LOGI("active os account %{public}d not verified", active);
+        return;
     }
-    IAM_LOGI("active user id: %{public}d", candidate);
-
-    return candidate;
+    unlocked = active;
+    IAM_LOGI("active user id: %{public}d (verified)", active);
 }
 
 std::string DefaultUserIdManager::QueryUserTypeNameById(UserId userId)

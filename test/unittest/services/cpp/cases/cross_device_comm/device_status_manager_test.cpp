@@ -74,7 +74,7 @@ protected:
         ctx.channelMgr = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
             std::static_pointer_cast<ICrossDeviceChannel>(ctx.mockChannel) });
 
-        ON_CALL(ctx.guard->GetUserIdManager(), GetActiveUserId).WillByDefault(Return(activeUserId_));
+        ON_CALL(ctx.guard->GetUserIdManager(), GetUnlockedActiveUserId).WillByDefault(Return(activeUserId_));
 
         DeviceCapabilityInfo deviceCapabilityInfo = { {},
             { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
@@ -106,10 +106,9 @@ protected:
         ctx.channelMgr = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
             std::static_pointer_cast<ICrossDeviceChannel>(ctx.mockChannel) });
 
-        ON_CALL(ctx.guard->GetUserIdManager(), SubscribeActiveUserId).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
-            return MakeSubscription();
-        }));
-        ON_CALL(ctx.guard->GetUserIdManager(), GetActiveUserId).WillByDefault(Return(activeUserId_));
+        ON_CALL(ctx.guard->GetUserIdManager(), SubscribeUnlockedActiveUserId)
+            .WillByDefault(Invoke([](ActiveUserIdCallback &&) { return MakeSubscription(); }));
+        ON_CALL(ctx.guard->GetUserIdManager(), GetUnlockedActiveUserId).WillByDefault(Return(activeUserId_));
 
         DeviceCapabilityInfo deviceCapabilityInfo = { {},
             { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},

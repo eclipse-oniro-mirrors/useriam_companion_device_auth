@@ -119,7 +119,7 @@ void AvailableDeviceSubscription::HandleDeviceStatusChange()
     auto deviceStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus();
     IAM_LOGI("HandleDeviceStatusChange start, total device count:%{public}zu, userId:%{public}d",
         deviceStatusList.size(), userId_);
-    int32_t activeUserId = GetUserIdManager().GetActiveUserId();
+    int32_t activeUserId = GetUserIdManager().GetUnlockedActiveUserId();
     if (activeUserId != userId_) {
         IAM_LOGE("userId not match, activeUserId = %{public}d, userId_ = %{public}d", activeUserId, userId_);
         return;

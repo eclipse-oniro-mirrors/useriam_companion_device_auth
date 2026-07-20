@@ -77,6 +77,16 @@ public:
         return std::make_unique<Subscription>([]() {});
     }
 
+    int32_t GetUnlockedActiveUserId() const override
+    {
+        return GetActiveUserId();
+    }
+
+    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override
+    {
+        return SubscribeActiveUserId(std::move(callback));
+    }
+
     bool IsUserIdValid(int32_t userId) override
     {
         return userId == activeUserId_;
@@ -966,7 +976,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_007
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
     EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(false)).Times(1);
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _, _)).Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), StartObtainTokenRequests(_, _, _)).Times(1);
 
@@ -1040,7 +1050,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_009
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
     EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(false)).Times(1);
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _, _)).Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), StartObtainTokenRequests(_, _, _)).Times(1);
 

@@ -334,7 +334,7 @@ void DeviceStatusManager::DoTriggerDeviceSync(const PhysicalDeviceKey &physicalK
         self->HandleSyncResult(companionDeviceKey, attemptId, result, syncDeviceStatus);
     };
 
-    UserId activeUserId = GetUserIdManager().GetActiveUserId();
+    UserId activeUserId = GetUserIdManager().GetUnlockedActiveUserId();
     auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(activeUserId, companionDeviceKey,
         entry.GetDeviceName(), std::move(callback));
     ENSURE_OR_RETURN(request != nullptr);

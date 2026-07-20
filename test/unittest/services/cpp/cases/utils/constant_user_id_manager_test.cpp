@@ -44,6 +44,17 @@ HWTEST_F(ConstantUserIdManagerTest, CreateUserIdManager_001, TestSize.Level0)
     EXPECT_NE(nullptr, manager);
 }
 
+HWTEST_F(ConstantUserIdManagerTest, GetUnlockedActiveUserId_001, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = IUserIdManager::Create();
+    ASSERT_NE(nullptr, manager);
+
+    int32_t userId = manager->GetUnlockedActiveUserId();
+    EXPECT_EQ(100, userId);
+}
+
 HWTEST_F(ConstantUserIdManagerTest, GetActiveUserId_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -51,8 +62,8 @@ HWTEST_F(ConstantUserIdManagerTest, GetActiveUserId_001, TestSize.Level0)
     auto manager = IUserIdManager::Create();
     ASSERT_NE(nullptr, manager);
 
-    int32_t userId = manager->GetActiveUserId();
-    EXPECT_EQ(100, userId);
+    int32_t activeUserId = manager->GetActiveUserId();
+    EXPECT_EQ(100, activeUserId);
 }
 
 HWTEST_F(ConstantUserIdManagerTest, GetActiveUserName_001, TestSize.Level0)
@@ -64,6 +75,41 @@ HWTEST_F(ConstantUserIdManagerTest, GetActiveUserName_001, TestSize.Level0)
 
     auto userNameOpt = manager->GetActiveUserName();
     EXPECT_EQ(std::nullopt, userNameOpt);
+}
+
+HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserId_001, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = IUserIdManager::Create();
+    ASSERT_NE(nullptr, manager);
+
+    bool callbackCalled = false;
+    int32_t receivedUserId = 0;
+
+    auto subscription = manager->SubscribeUnlockedActiveUserId([&callbackCalled, &receivedUserId](UserId userId) {
+        callbackCalled = true;
+        receivedUserId = userId;
+    });
+
+    EXPECT_NE(nullptr, subscription);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(100, receivedUserId);
+}
+
+HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserId_002, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = IUserIdManager::Create();
+    ASSERT_NE(nullptr, manager);
+
+    auto subscription = manager->SubscribeUnlockedActiveUserId(nullptr);
+
+    EXPECT_EQ(nullptr, subscription);
 }
 
 HWTEST_F(ConstantUserIdManagerTest, SubscribeActiveUserId_001, TestSize.Level0)

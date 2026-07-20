@@ -48,12 +48,13 @@ bool HostBindingManagerImpl::Initialize()
 {
     IAM_LOGI("begin");
 
-    activeUserIdSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId userId) {
-        auto self = weakSelf.lock();
-        ENSURE_OR_RETURN(self != nullptr);
-        self->OnActiveUserIdChanged(userId);
-    });
-    ENSURE_OR_RETURN_VAL(activeUserIdSubscription_ != nullptr, false);
+    unlockedActiveUserIdSubscription_ =
+        GetUserIdManager().SubscribeUnlockedActiveUserId([weakSelf = weak_from_this()](UserId userId) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->OnActiveUserIdChanged(userId);
+        });
+    ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
 
     IAM_LOGI("success");
     return true;

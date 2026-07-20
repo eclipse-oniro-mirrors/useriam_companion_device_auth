@@ -114,7 +114,7 @@ HWTEST_F(CrossDeviceCommManagerImplTest, Create_004, TestSize.Level0)
     MockGuard guard;
 
     auto mockChannel = SetupMockChannel();
-    EXPECT_CALL(guard.GetUserIdManager(), SubscribeActiveUserId(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserId(_)).WillOnce(Return(nullptr));
 
     std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
     auto manager = CrossDeviceCommManagerImpl::Create(

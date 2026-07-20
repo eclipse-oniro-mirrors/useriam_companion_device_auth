@@ -57,7 +57,7 @@ private:
     std::shared_ptr<SoftBusDeviceStatusManager> deviceStatusManager_;
     std::map<PhysicalDeviceKey, ResyncEntry> scheduledResyncs_;
     std::set<PhysicalDeviceKey> prevOnlineDevices_;
-    std::unique_ptr<Subscription> activeUserIdSubscription_;
+    std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
     std::unique_ptr<Subscription> deviceNameSubscription_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
 };
