@@ -59,4 +59,12 @@ int WatchParameter(const char *keyprefix, ParameterChgPtr callback, void *contex
     (void)context;
     return 0;
 }
+
+int RemoveParameterWatcher(const char *key, ParameterChgPtr callback, void *context)
+{
+    (void)key;
+    (void)callback;
+    (void)context;
+    return 0;
+}
 } // extern "C"
