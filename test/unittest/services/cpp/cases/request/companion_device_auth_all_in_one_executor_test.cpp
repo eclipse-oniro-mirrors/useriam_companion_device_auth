@@ -939,7 +939,50 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_006
     EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(UINT64_456, testing::Eq(std::optional<Atl>()), _))
         .Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), RevokeTokens(_, _)).Times(1);
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(true)).Times(1);
+
+    FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
+
+    EXPECT_EQ(FwkResultCode::SUCCESS, ret);
+}
+
+HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_011, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto executor = CompanionDeviceAuthAllInOneExecutor::Create();
+    ASSERT_NE(nullptr, executor);
+
+    FwkPropertyMode commandId = FwkPropertyMode::PROPERTY_MODE_FREEZE;
+    auto callback = std::make_shared<NiceMock<MockFwkExecuteCallback>>();
+
+    Attributes dataTlvAttrs;
+    dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_AUTH_TYPE),
+        static_cast<uint32_t>(AuthType::COMPANION_DEVICE));
+    dataTlvAttrs.SetUint32Value(static_cast<Attributes::AttributeKey>(ATTR_LOCK_STATE_AUTH_TYPE),
+        static_cast<uint32_t>(AuthType::PIN));
+    dataTlvAttrs.SetInt32Value(static_cast<Attributes::AttributeKey>(ATTR_USER_ID), INT32_100);
+    std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
+    dataTlvAttrs.SetUint64ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_TEMPLATE_ID_LIST), templateIdList);
+    std::vector<uint8_t> dataTlv = dataTlvAttrs.Serialize();
+
+    Attributes rootTlvAttrs;
+    rootTlvAttrs.SetUint8ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_DATA), dataTlv);
+    std::vector<uint8_t> rootTlv = rootTlvAttrs.Serialize();
+
+    Attributes info;
+    info.SetUint8ArrayValue(static_cast<Attributes::AttributeKey>(ATTR_ROOT), rootTlv);
+    std::vector<uint8_t> extraInfo = info.Serialize();
+
+    EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100 + 1));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(UINT64_123, testing::Eq(std::optional<Atl>()), _))
+        .Times(1);
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(UINT64_456, testing::Eq(std::optional<Atl>()), _))
+        .Times(1);
+    EXPECT_CALL(guard.GetHostBindingManager(), RevokeTokens(_, _)).Times(1);
+    EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(true)).Times(0);
 
     FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
 

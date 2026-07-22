@@ -43,6 +43,7 @@ public:
     // budget. Distinct from OnSyncSuccess (which fully resets) so callers do not piggyback on the
     // "sync succeeded" semantics.
     void ResetRetry();
+    void OnSyncAbort();
     DeviceKey BuildDeviceKey() const;
     DeviceStatus BuildDeviceStatus() const;
     std::string GetDeviceName() const;

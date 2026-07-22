@@ -76,6 +76,12 @@ public:
         return blocked_;
     }
 
+    std::unique_ptr<Subscription> SubscribeCompanionAuthBlockedChange(CompanionAuthBlockedCallback callback) override
+    {
+        (void)callback;
+        return std::make_unique<Subscription>([]() {});
+    }
+
     bool SetPasscodePromptCallback(uint32_t, const sptr<IIpcPasscodePromptCallback> &) override
     {
         return true;

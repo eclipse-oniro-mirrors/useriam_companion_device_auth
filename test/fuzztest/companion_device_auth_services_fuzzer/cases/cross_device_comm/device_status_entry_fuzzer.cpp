@@ -94,12 +94,39 @@ static void FuzzBuildKeyThenStatus(std::shared_ptr<DeviceStatusEntry> &entry, Fu
     }
 }
 
+static void FuzzOnSyncSuccess(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
+{
+    (void)fuzzData;
+    if (entry) {
+        entry->OnSyncSuccess();
+    }
+}
+
+static void FuzzOnSyncFailure(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
+{
+    (void)fuzzData;
+    if (entry) {
+        entry->OnSyncFailure();
+    }
+}
+
+static void FuzzOnSyncAbort(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
+{
+    (void)fuzzData;
+    if (entry) {
+        entry->OnSyncAbort();
+    }
+}
+
 static const DeviceStatusEntryFuzzFunction g_fuzzFuncs[] = {
     FuzzBuildDeviceKey,
     FuzzBuildDeviceStatus,
     FuzzBuildDeviceKeyBoundary,
     FuzzBuildDeviceStatusBoundary,
     FuzzBuildKeyThenStatus,
+    FuzzOnSyncSuccess,
+    FuzzOnSyncFailure,
+    FuzzOnSyncAbort,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(DeviceStatusEntryFuzzFunction);

@@ -23,6 +23,7 @@
 
 #include "common_defines.h"
 #include "misc_manager_impl.h"
+#include "task_runner_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -332,6 +333,52 @@ HWTEST_F(MiscManagerImplTest, CompanionAuthBlocked_001, TestSize.Level0)
 
     manager->SetCompanionAuthBlocked(false);
     EXPECT_FALSE(manager->IsCompanionAuthBlocked());
+}
+
+// SetCompanionAuthBlocked notifies subscribers only on an actual state change,
+// delivering the new blocked value; same-value calls and post-unsubscribe do not fire.
+HWTEST_F(MiscManagerImplTest, CompanionAuthBlockedChange_001, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = MiscManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    int blockedCount = 0;
+    int unblockedCount = 0;
+    auto sub = manager->SubscribeCompanionAuthBlockedChange([&blockedCount, &unblockedCount](bool blocked) {
+        if (blocked) {
+            ++blockedCount;
+        } else {
+            ++unblockedCount;
+        }
+    });
+    ASSERT_NE(nullptr, sub);
+
+    // Initial state is blocked; setting blocked again must not fire.
+    manager->SetCompanionAuthBlocked(true);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_EQ(blockedCount, 0);
+    EXPECT_EQ(unblockedCount, 0);
+
+    // Transitioning to unblocked fires once with blocked=false.
+    manager->SetCompanionAuthBlocked(false);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_EQ(blockedCount, 0);
+    EXPECT_EQ(unblockedCount, 1);
+
+    // Transitioning back to blocked fires once with blocked=true.
+    manager->SetCompanionAuthBlocked(true);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_EQ(blockedCount, 1);
+    EXPECT_EQ(unblockedCount, 1);
+
+    // After unsubscribe, no further events are delivered.
+    sub.reset();
+    manager->SetCompanionAuthBlocked(false);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_EQ(blockedCount, 1);
+    EXPECT_EQ(unblockedCount, 1);
 }
 
 } // namespace

@@ -22,6 +22,7 @@
 #include "channel_manager.h"
 #include "connection_manager.h"
 #include "device_status_manager.h"
+#include "relative_timer.h"
 #include "service_common.h"
 
 using namespace testing;
@@ -1265,6 +1266,55 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_DropsStaleCompletion, TestSiz
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(stored.isSynced);
     EXPECT_EQ(stored.deviceUserName, "stale-user");
+}
+
+// PEER_SERVICE_NOT_AVAILABLE is terminal: the entry's retry callback must never
+// fire (OnSyncAbort cancels any pending backoff retry and clears its state).
+HWTEST_F(DeviceStatusManagerTest, HandleSyncResultPeerServiceNotAvailableAbortsRetry, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+    auto physicalStatus = MakePhysicalStatus("device-peer-na", ChannelId::SOFTBUS, "deviceName");
+
+    auto retryCount = std::make_shared<int>(0);
+    DeviceStatusEntry entry(physicalStatus, [retryCount]() { (*retryCount)++; });
+    entry.isSyncInProgress = true;
+    entry.inProgressAttemptId = 7;
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+    SyncDeviceStatus syncStatus {};
+    ctx.manager->HandleSyncResult(deviceKey, 7, PEER_SERVICE_NOT_AVAILABLE, syncStatus);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    RelativeTimer::GetInstance().EnsureAllTaskExecuted();
+
+    EXPECT_EQ(*retryCount, 0);
+    const auto &stored = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
+    EXPECT_FALSE(stored.isSynced);
+    EXPECT_FALSE(stored.isSyncInProgress);
+}
+
+// Regression guard: a generic communication failure still schedules a backoff
+// retry (OnSyncFailure), so the peer-no-service branch is the only one suppressed.
+HWTEST_F(DeviceStatusManagerTest, HandleSyncResultCommunicationErrorSchedulesRetry, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+    auto physicalStatus = MakePhysicalStatus("device-comm-err", ChannelId::SOFTBUS, "deviceName");
+
+    auto retryCount = std::make_shared<int>(0);
+    DeviceStatusEntry entry(physicalStatus, [retryCount]() { (*retryCount)++; });
+    entry.isSyncInProgress = true;
+    entry.inProgressAttemptId = 7;
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+    SyncDeviceStatus syncStatus {};
+    ctx.manager->HandleSyncResult(deviceKey, 7, COMMUNICATION_ERROR, syncStatus);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    RelativeTimer::GetInstance().EnsureAllTaskExecuted();
+
+    EXPECT_EQ(*retryCount, 1);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

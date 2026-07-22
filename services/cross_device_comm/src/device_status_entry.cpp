@@ -57,7 +57,9 @@ DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus,
 
     constexpr uint32_t syncRetryBaseDelayMs = 1000;          // 1 second
     constexpr uint32_t syncRetryMaxDelayMs = 30 * 60 * 1000; // 30 minutes
-    BackoffRetryTimer::Config config { .baseDelayMs = syncRetryBaseDelayMs, .maxDelayMs = syncRetryMaxDelayMs };
+    BackoffRetryTimer::Config config { .name = "Sync(" + GET_MASKED_STR_STRING(physicalDeviceKey.deviceId) + ")",
+        .baseDelayMs = syncRetryBaseDelayMs,
+        .maxDelayMs = syncRetryMaxDelayMs };
     syncRetryTimer_ = std::make_unique<BackoffRetryTimer>(config, std::move(retrySync));
     ENSURE_OR_RETURN(syncRetryTimer_ != nullptr);
 }
@@ -112,6 +114,13 @@ void DeviceStatusEntry::ResetRetry()
 {
     if (syncRetryTimer_ != nullptr) {
         syncRetryTimer_->ResetBackoff();
+    }
+}
+
+void DeviceStatusEntry::OnSyncAbort()
+{
+    if (syncRetryTimer_ != nullptr) {
+        syncRetryTimer_->Reset();
     }
 }
 

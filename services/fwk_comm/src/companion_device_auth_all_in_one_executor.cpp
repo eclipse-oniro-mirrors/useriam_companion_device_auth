@@ -28,6 +28,7 @@
 #include <nlohmann/json.hpp>
 
 #include "adapter_manager.h"
+#include "blocked_state_sync_scheduler.h"
 #include "cda_attributes.h"
 #include "common_defines.h"
 #include "companion_device_auth_executor_callback.h"
@@ -43,6 +44,7 @@
 #include "service_common.h"
 #include "task_runner.h"
 #include "task_runner_manager.h"
+#include "user_id_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_CDA_ALL_IN_ONE_EXECUTOR
@@ -67,7 +69,10 @@ struct CdaAuthenticateParam {
     WidgetAuthParam delegateAuthParam;
 };
 
-class CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner : public NoCopyable {
+class CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner
+    : public std::enable_shared_from_this<
+          CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner>,
+      public NoCopyable {
 public:
     CompanionDeviceAuthAllInOneExecutorInner()
     {
@@ -94,11 +99,13 @@ public:
         FwkProperty &property);
     void HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vector<uint8_t> &extraInfo);
     void HandleSetCompanionInvalid(const std::vector<uint8_t> &extraInfo);
+    bool Initialize();
 
 private:
     std::optional<FreezeCommand> DecodeFreezeCommand(const std::vector<uint8_t> &dataTlv);
 
     std::shared_ptr<PendingIssueTokenManager> pendingIssueTokenManager_;
+    std::shared_ptr<BlockedStateSyncScheduler> blockedSyncScheduler_;
 };
 
 using Inner = CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutorInner;
@@ -415,15 +422,17 @@ void Inner::HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vec
 
     ENSURE_OR_RETURN(pendingIssueTokenManager_ != nullptr);
     if (commandId == FwkPropertyMode::PROPERTY_MODE_FREEZE && lockStateAuthType == AuthType::PIN) {
-        GetMiscManager().SetCompanionAuthBlocked(true);
+        if (GetUserIdManager().GetActiveUserId() == freezeCommand.userId) {
+            GetMiscManager().SetCompanionAuthBlocked(true);
+        }
         pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
         for (const auto &templateId : freezeCommand.templateIdList) {
             GetCompanionManager().SetCompanionTokenAuthAtl(templateId, std::nullopt);
         }
         GetHostBindingManager().RevokeTokens(freezeCommand.userId);
     } else if (commandId == FwkPropertyMode::PROPERTY_MODE_UNFREEZE) {
-        GetMiscManager().SetCompanionAuthBlocked(false);
         if (GetUserIdManager().GetUnlockedActiveUserId() == freezeCommand.userId) {
+            GetMiscManager().SetCompanionAuthBlocked(false);
             pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
             GetCompanionManager().StartIssueTokenRequests(freezeCommand.templateIdList,
                 freezeCommand.lockStateAuthTypeValue, extraInfo);
@@ -437,11 +446,33 @@ void Inner::HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vec
     }
 }
 
+bool Inner::Initialize()
+{
+#ifndef ENABLE_TEST
+    blockedSyncScheduler_ = BlockedStateSyncScheduler::Create();
+    if (blockedSyncScheduler_ == nullptr) {
+        IAM_LOGE("BlockedStateSyncScheduler create failed");
+        return false;
+    }
+#endif
+    return true;
+}
+
 CompanionDeviceAuthAllInOneExecutor::CompanionDeviceAuthAllInOneExecutor()
 {
     IAM_LOGI("start");
     inner_ = std::make_shared<CompanionDeviceAuthAllInOneExecutorInner>();
     ENSURE_OR_RETURN(inner_ != nullptr);
+}
+
+bool CompanionDeviceAuthAllInOneExecutor::Init()
+{
+    IAM_LOGI("start");
+    if (inner_ == nullptr) {
+        IAM_LOGE("inner_ is null");
+        return false;
+    }
+    return inner_->Initialize();
 }
 
 std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> CompanionDeviceAuthAllInOneExecutor::Create()
@@ -450,6 +481,10 @@ std::shared_ptr<CompanionDeviceAuthAllInOneExecutor> CompanionDeviceAuthAllInOne
     auto executor =
         std::shared_ptr<CompanionDeviceAuthAllInOneExecutor>(new (std::nothrow) CompanionDeviceAuthAllInOneExecutor());
     ENSURE_OR_RETURN_VAL(executor != nullptr, nullptr);
+    if (!executor->Init()) {
+        IAM_LOGE("Init failed");
+        return nullptr;
+    }
     return executor;
 }
 

@@ -107,7 +107,8 @@ void DeviceResyncScheduler::EnsureRetryEntry(const PhysicalDeviceKey &deviceKey,
         it->second.reason = reason;
         return;
     }
-    BackoffRetryTimer::Config config { .baseDelayMs = RESYNC_RETRY_BASE_DELAY_MS,
+    BackoffRetryTimer::Config config { .name = "Resync(" + GET_MASKED_STR_STRING(deviceKey.deviceId) + ")",
+        .baseDelayMs = RESYNC_RETRY_BASE_DELAY_MS,
         .maxDelayMs = RESYNC_RETRY_MAX_DELAY_MS,
         .maxRetryCount = RESYNC_MAX_RETRY_COUNT };
     auto timer = std::make_unique<BackoffRetryTimer>(config, [weakSelf = weak_from_this(), deviceKey]() {
@@ -210,8 +211,14 @@ void DeviceResyncScheduler::HandleResyncComplete(const PhysicalDeviceKey &device
         scheduledResyncs_.erase(it);
         return;
     }
-    // Any non-success result (failure, preemption/cancel, timeout) is retried while the device stays
-    // online; an offline device is dropped instead of being hammered.
+    if (result == ResultCode::PEER_SERVICE_NOT_AVAILABLE) {
+        IAM_LOGW("terminal resync result %{public}d for device %{public}s, stop retry", static_cast<int32_t>(result),
+            GET_MASKED_STR_CSTR(deviceKey.deviceId));
+        scheduledResyncs_.erase(it);
+        return;
+    }
+    // Any other non-success result (failure, preemption/cancel, timeout) is retried while the device
+    // stays online; an offline device is dropped instead of being hammered.
     HandleResyncFailure(deviceKey);
 }
 

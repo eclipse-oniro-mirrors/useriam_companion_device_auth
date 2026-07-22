@@ -92,6 +92,12 @@ public:
         return false;
     }
 
+    std::unique_ptr<Subscription> SubscribeCompanionAuthBlockedChange(CompanionAuthBlockedCallback callback) override
+    {
+        (void)callback;
+        return nullptr;
+    }
+
     bool SetPasscodePromptCallback(uint32_t, const sptr<IIpcPasscodePromptCallback> &) override
     {
         return true;

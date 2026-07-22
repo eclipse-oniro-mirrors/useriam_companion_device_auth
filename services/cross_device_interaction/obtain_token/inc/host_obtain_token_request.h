@@ -46,7 +46,10 @@ protected:
 private:
     bool ParsePreObtainTokenRequest(ErrorGuard &errorGuard);
     bool ProcessPreObtainToken(std::vector<uint8_t> &preObtainTokenReply);
+    bool SubscribeObtainTokenMessage();
+    bool SubscribeCancellationEvents();
     void SendPreObtainTokenReply(ResultCode result, const std::vector<uint8_t> &preObtainTokenReply);
+    void SendErrorReply(ResultCode result);
     void HandleObtainTokenMessage(const Attributes &request, OnMessageReply &onMessageReply);
     bool HandleHostProcessObtainToken(const ObtainTokenRequest &request, std::vector<uint8_t> &obtainTokenReply);
     bool EnsureCompanionAuthMaintainActive(const DeviceKey &deviceKey, ErrorGuard &errorGuard);
@@ -56,9 +59,11 @@ private:
         std::vector<uint8_t> &obtainTokenReply);
 
     Attributes request_;
-    OnMessageReply preObtainTokenReplyCallback_;
+    OnMessageReply currentReply_;
     std::unique_ptr<Subscription> obtainTokenSubscription_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
+    std::unique_ptr<Subscription> lockEventSubscription_;
+    std::unique_ptr<Subscription> activeUserSubscription_;
 
     UserId hostUserId_ = INVALID_USER_ID;
     UserId companionUserId_ = INVALID_USER_ID;

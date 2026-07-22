@@ -104,6 +104,8 @@ inline ConnectionStatus ConvertToConnectionStatus(bool isConnected, [[maybe_unus
     return ConnectionStatus::DISCONNECTED;
 }
 
+inline constexpr const char *REASON_PEER_SERVICE_NOT_AVAILABLE = "peer_service_not_available";
+
 using OnConnectionStatusChange =
     std::function<void(const std::string &connectionName, ConnectionStatus status, const std::string &reason)>;
 

@@ -182,8 +182,14 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, uint64_t 
     });
 
     if (resultCode != SUCCESS) {
-        IAM_LOGE("sync failed: %{public}d", resultCode);
-        deviceStatus.OnSyncFailure();
+        if (resultCode == PEER_SERVICE_NOT_AVAILABLE) {
+            IAM_LOGW("peer service not available, abort retry and clear backoff state: device=%{public}s",
+                deviceKey.GetDesc().c_str());
+            deviceStatus.OnSyncAbort();
+        } else {
+            IAM_LOGE("sync failed: %{public}d", resultCode);
+            deviceStatus.OnSyncFailure();
+        }
         return;
     }
 

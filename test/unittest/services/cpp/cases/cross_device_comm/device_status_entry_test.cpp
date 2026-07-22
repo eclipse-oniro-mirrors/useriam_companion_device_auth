@@ -15,6 +15,8 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include "device_status_entry.h"
 #include "relative_timer.h"
 
@@ -298,6 +300,45 @@ HWTEST_F(DeviceStatusEntryTest, ResetRetry_ClearsBackoffKeepsBudget, TestSize.Le
 
     RelativeTimer::GetInstance().ExecuteAll();
     EXPECT_EQ(*retryCallCount, 0); // pending timer cancelled
+}
+
+// A sync failure schedules the retry callback through the (fake) RelativeTimer;
+// draining pending timers must fire it exactly once.
+HWTEST_F(DeviceStatusEntryTest, OnSyncFailure_SchedulesRetry, TestSize.Level0)
+{
+    auto retryCount = std::make_shared<int>(0);
+    DeviceStatusEntry entry(physicalStatus_, [retryCount]() { (*retryCount)++; });
+
+    entry.OnSyncFailure();
+    RelativeTimer::GetInstance().EnsureAllTaskExecuted();
+
+    EXPECT_EQ(*retryCount, 1);
+}
+
+// OnSyncAbort terminates the retry process and clears backoff state: a retry
+// that was already pending must not fire after the abort.
+HWTEST_F(DeviceStatusEntryTest, OnSyncAbort_CancelsPendingRetry, TestSize.Level0)
+{
+    auto retryCount = std::make_shared<int>(0);
+    DeviceStatusEntry entry(physicalStatus_, [retryCount]() { (*retryCount)++; });
+
+    entry.OnSyncFailure();
+    entry.OnSyncAbort();
+    RelativeTimer::GetInstance().EnsureAllTaskExecuted();
+
+    EXPECT_EQ(*retryCount, 0);
+}
+
+// OnSyncAbort is a safe no-op when no retry is pending.
+HWTEST_F(DeviceStatusEntryTest, OnSyncAbort_NoOpWhenIdle, TestSize.Level0)
+{
+    auto retryCount = std::make_shared<int>(0);
+    DeviceStatusEntry entry(physicalStatus_, [retryCount]() { (*retryCount)++; });
+
+    entry.OnSyncAbort();
+    RelativeTimer::GetInstance().EnsureAllTaskExecuted();
+
+    EXPECT_EQ(*retryCount, 0);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -127,8 +127,16 @@ public:
         return fuzzData_.ConsumeIntegral<int32_t>();
     }
 
+    void CheckIsBlocked(int32_t userId, CheckBlockedCallback &&callback) override
+    {
+        (void)userId;
+        if (callback) {
+            callback(fuzzData_.ConsumeBool(), fuzzData_.ConsumeBool());
+        }
+    }
+
 private:
-    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+    FuzzedDataProvider &fuzzData_;
 };
 
 class MockIdmAdapter : public IIdmAdapter {
@@ -294,6 +302,14 @@ private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };
 
+namespace {
+// Track the active user and the last SubscribeActiveUserId callback so a fuzzer can drive
+// OnActiveUserChanged-style events via FireFuzzActiveUserIdChange. The default of 0 preserves the
+// previous GetActiveUserId() behavior for fuzzers that never fire a change.
+int32_t g_fuzzActiveUserId = 0;
+ActiveUserIdCallback g_fuzzActiveUserCb;
+} // namespace
+
 class MockUserIdManager : public IUserIdManager {
 public:
     explicit MockUserIdManager(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
@@ -307,7 +323,7 @@ public:
 
     UserId GetActiveUserId() const override
     {
-        return 0;
+        return g_fuzzActiveUserId;
     }
 
     std::optional<std::string> GetActiveUserName() const override
@@ -322,7 +338,7 @@ public:
 
     std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) override
     {
-        (void)callback;
+        g_fuzzActiveUserCb = std::move(callback);
         return std::make_unique<Subscription>([] {});
     }
 
@@ -456,10 +472,20 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
     return true;
 }
 
+void FireFuzzActiveUserIdChange(int32_t userId)
+{
+    g_fuzzActiveUserId = userId;
+    if (g_fuzzActiveUserCb) {
+        g_fuzzActiveUserCb(userId);
+    }
+}
+
 void CleanupAdapterManager()
 {
     AdapterManager::GetInstance().Reset();
     SoftBusChannelAdapterManager::GetInstance().Reset();
+    g_fuzzActiveUserId = 0;
+    g_fuzzActiveUserCb = nullptr;
 }
 
 } // namespace CompanionDeviceAuth

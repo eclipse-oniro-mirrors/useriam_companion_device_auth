@@ -17,6 +17,8 @@
 
 #include <cstdint>
 #include <limits>
+#include <string>
+#include <utility>
 
 #include "iam_check.h"
 #include "iam_logger.h"
@@ -35,12 +37,13 @@ BackoffRetryTimer::BackoffRetryTimer(const Config &config, RetryCallback &&callb
       config_(config)
 {
     if (config_.baseDelayMs == 0) {
-        IAM_LOGE("baseDelayMs is invalid, fallback to default %{public}u", Config::DEFAULT_BASE_DELAY_MS);
+        IAM_LOGE("%{public}s baseDelayMs is invalid, fallback to default %{public}u", config_.name.c_str(),
+            Config::DEFAULT_BASE_DELAY_MS);
         config_.baseDelayMs = Config::DEFAULT_BASE_DELAY_MS;
     }
     if (config_.maxDelayMs < config_.baseDelayMs) {
-        IAM_LOGW("maxDelayMs %{public}u < baseDelayMs %{public}u, clamped to baseDelayMs", config_.maxDelayMs,
-            config_.baseDelayMs);
+        IAM_LOGW("%{public}s maxDelayMs %{public}u < baseDelayMs %{public}u, clamped to baseDelayMs",
+            config_.name.c_str(), config_.maxDelayMs, config_.baseDelayMs);
         config_.maxDelayMs = config_.baseDelayMs;
     }
 }
@@ -53,16 +56,17 @@ bool BackoffRetryTimer::OnFailure()
     backoffStep_ = (backoffStep_ < UINT32_MAX) ? (backoffStep_ + 1) : UINT32_MAX;
 
     if (failureCount_ > config_.maxRetryCount) {
-        IAM_LOGE("retry exhausted after %{public}u attempts", failureCount_);
+        IAM_LOGE("%{public}s retry exhausted after %{public}u attempts", config_.name.c_str(), failureCount_);
         return false;
     }
 
     uint32_t delayMs = CalculateNextDelayMs(backoffStep_, config_);
-    IAM_LOGI("failure recorded %{public}u times, scheduling retry in %{public}u ms", failureCount_, delayMs);
+    IAM_LOGI("%{public}s failure recorded %{public}u times, scheduling retry in %{public}u ms", config_.name.c_str(),
+        failureCount_, delayMs);
 
     timerSubscription_ = RelativeTimer::GetInstance().Register(
-        [callback = callback_]() {
-            IAM_LOGI("executing retry callback");
+        [callback = callback_, name = config_.name]() {
+            IAM_LOGI("%{public}s executing retry callback", name.c_str());
             ENSURE_OR_RETURN(callback != nullptr);
             callback();
         },
@@ -74,7 +78,7 @@ void BackoffRetryTimer::ResetBackoff()
 {
     timerSubscription_.reset();
     backoffStep_ = 0;
-    IAM_LOGI("retry backoff reset, keep failure budget %{public}u", failureCount_);
+    IAM_LOGI("%{public}s retry backoff reset, keep failure budget %{public}u", config_.name.c_str(), failureCount_);
 }
 
 void BackoffRetryTimer::Reset()
@@ -82,7 +86,7 @@ void BackoffRetryTimer::Reset()
     timerSubscription_.reset();
     failureCount_ = 0;
     backoffStep_ = 0;
-    IAM_LOGI("retry timer reset");
+    IAM_LOGI("%{public}s retry timer reset", config_.name.c_str());
 }
 
 uint32_t BackoffRetryTimer::CalculateNextDelayMs(uint32_t failureCount, const Config &config)

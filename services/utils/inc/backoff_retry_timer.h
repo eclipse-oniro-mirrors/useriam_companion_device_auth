@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 
 #include "nocopyable.h"
 
@@ -34,6 +35,7 @@ public:
 
     struct Config {
         static constexpr uint32_t DEFAULT_BASE_DELAY_MS = 1;
+        std::string name;
         uint32_t baseDelayMs;
         uint32_t maxDelayMs;
         uint32_t maxRetryCount { UINT32_MAX };

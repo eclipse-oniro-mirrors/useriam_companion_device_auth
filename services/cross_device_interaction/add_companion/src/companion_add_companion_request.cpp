@@ -211,6 +211,7 @@ void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &a
     Attributes reply;
     EncodeBeginAddHostBindingReply(replyMsg, reply);
 
+    ENSURE_OR_RETURN_DESC(GetDescription(), currentReply_ != nullptr);
     currentReply_(reply);
     currentReply_ = nullptr;
     eventCollector_.EnterWait(CompanionAddCompanionStages::WAIT_END_BINDING);
@@ -259,6 +260,7 @@ void CompanionAddCompanionRequest::HandleEndAddHostBinding(const Attributes &att
     Attributes reply;
     EncodeEndAddHostBindingReply(replyMsg, reply);
 
+    ENSURE_OR_RETURN_DESC(GetDescription(), currentReply_ != nullptr);
     currentReply_(reply);
     currentReply_ = nullptr;
 

@@ -81,7 +81,7 @@ HWTEST_F(BackoffRetryTimerTest, Destructor_CancelsTimer, TestSize.Level0)
     auto callbackCount = std::make_shared<int>(0);
 
     {
-        BackoffRetryTimer timer({ .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000 },
+        BackoffRetryTimer timer({ .name = "[ut]", .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000 },
             [callbackCount]() { (*callbackCount)++; });
         timer.OnFailure();
     }
@@ -93,7 +93,7 @@ HWTEST_F(BackoffRetryTimerTest, Destructor_CancelsTimer, TestSize.Level0)
 HWTEST_F(BackoffRetryTimerTest, Reset_CancelsPendingTimer, TestSize.Level0)
 {
     auto callbackCount = std::make_shared<int>(0);
-    BackoffRetryTimer timer({ .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000 },
+    BackoffRetryTimer timer({ .name = "[ut]", .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000 },
         [callbackCount]() { (*callbackCount)++; });
 
     timer.OnFailure();
@@ -116,7 +116,7 @@ HWTEST_F(BackoffRetryTimerTest, Reset_CancelsPendingTimer, TestSize.Level0)
 HWTEST_F(BackoffRetryTimerTest, ResetBackoff_ClearsDelayKeepsBudget, TestSize.Level0)
 {
     auto callbackCount = std::make_shared<int>(0);
-    BackoffRetryTimer timer({ .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000 },
+    BackoffRetryTimer timer({ .name = "[ut]", .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000 },
         [callbackCount]() { (*callbackCount)++; });
 
     timer.OnFailure(); // failureCount=1, backoffStep=1
@@ -143,7 +143,10 @@ HWTEST_F(BackoffRetryTimerTest, ResetBackoff_ClearsDelayKeepsBudget, TestSize.Le
 HWTEST_F(BackoffRetryTimerTest, OnFailure_Exhausted_DoesNotSchedule, TestSize.Level0)
 {
     auto callbackCount = std::make_shared<int>(0);
-    BackoffRetryTimer::Config config { .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000, .maxRetryCount = NUM_2 };
+    BackoffRetryTimer::Config config { .name = "[ut]",
+        .baseDelayMs = NUM_100,
+        .maxDelayMs = NUM_60000,
+        .maxRetryCount = NUM_2 };
     BackoffRetryTimer timer(config, [callbackCount]() { (*callbackCount)++; });
 
     timer.OnFailure(); // failureCount = 1, within limit
@@ -158,7 +161,10 @@ HWTEST_F(BackoffRetryTimerTest, OnFailure_Exhausted_DoesNotSchedule, TestSize.Le
 HWTEST_F(BackoffRetryTimerTest, OnFailure_Exhausted_SubsequentCallsStayInert, TestSize.Level0)
 {
     auto callbackCount = std::make_shared<int>(0);
-    BackoffRetryTimer::Config config { .baseDelayMs = NUM_100, .maxDelayMs = NUM_60000, .maxRetryCount = NUM_1 };
+    BackoffRetryTimer::Config config { .name = "[ut]",
+        .baseDelayMs = NUM_100,
+        .maxDelayMs = NUM_60000,
+        .maxRetryCount = NUM_1 };
     BackoffRetryTimer timer(config, [callbackCount]() { (*callbackCount)++; });
 
     timer.OnFailure(); // failureCount = 1, within limit

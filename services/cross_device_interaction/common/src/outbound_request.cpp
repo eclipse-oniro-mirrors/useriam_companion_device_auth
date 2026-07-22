@@ -168,7 +168,8 @@ void OutboundRequest::HandleConnectionStatus(const std::string &connName, Connec
             break;
         case ConnectionStatus::DISCONNECTED:
             IAM_LOGI("%{public}s disconnected", GetDescription());
-            CompleteWithError(ResultCode::COMMUNICATION_ERROR);
+            CompleteWithError(reason == REASON_PEER_SERVICE_NOT_AVAILABLE ? ResultCode::PEER_SERVICE_NOT_AVAILABLE
+                                                                          : ResultCode::COMMUNICATION_ERROR);
             break;
         default:
             IAM_LOGE("%{public}s unknown connection status: %{public}d", GetDescription(), status);

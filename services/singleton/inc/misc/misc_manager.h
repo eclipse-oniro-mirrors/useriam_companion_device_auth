@@ -30,6 +30,7 @@
 #include "iipc_device_select_callback.h"
 #include "iipc_passcode_prompt_callback.h"
 #include "service_common.h"
+#include "subscription.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -39,6 +40,7 @@ using DeviceSelectResultHandler =
     std::function<void(const std::vector<DeviceKey> &, const std::optional<std::vector<uint8_t>> &)>;
 
 using PasscodePromptCallback = std::function<void(const std::vector<uint8_t> &passcode)>;
+using CompanionAuthBlockedCallback = std::function<void(bool blocked)>;
 
 class IMiscManager : public NoCopyable {
 public:
@@ -59,6 +61,8 @@ public:
     virtual std::optional<std::string> GetLocalUdid() = 0;
     virtual void SetCompanionAuthBlocked(bool blocked) = 0;
     virtual bool IsCompanionAuthBlocked() const = 0;
+    virtual std::unique_ptr<Subscription> SubscribeCompanionAuthBlockedChange(
+        CompanionAuthBlockedCallback callback) = 0;
 
 protected:
     IMiscManager() = default;

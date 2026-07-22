@@ -101,6 +101,15 @@ public:
         ON_CALL(mockSecurityAgent_, HostProcessPreObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostProcessObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockEventManagerAdapter_, ReportInteractionEvent(_)).WillByDefault(Return());
+        // The active user is the request's host user (100) so OnStart's active-user guard passes.
+        ON_CALL(mockUserIdManager_, GetActiveUserId()).WillByDefault(Return(100));
+        // SubscribeCancellationEvents subscribes to companion-auth-blocked and active-user changes;
+        // provide valid defaults so OnStart reaches its success path instead of aborting on nullptr.
+        ON_CALL(mockMiscManager_, SubscribeCompanionAuthBlockedChange(_))
+            .WillByDefault(Invoke([](CompanionAuthBlockedCallback &&) { return MakeSubscription(); }));
+        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+            return MakeSubscription();
+        }));
     }
 
     void TearDown() override
@@ -160,8 +169,13 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_001, TestSize.Level0)
     EXPECT_CALL(mockSecurityAgent_, HostProcessPreObtainToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, _, _)).WillOnce(Return(ByMove(MakeSubscription())));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(result);
@@ -185,8 +199,13 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_002, TestSize.Level0)
     auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, emptyRequest,
         OnMessageReply(onMessageReply), emptyKey);
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_FALSE(result);
@@ -211,8 +230,13 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_003, TestSize.Level0)
 
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_FALSE(result);
@@ -240,8 +264,13 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_004, TestSize.Level0)
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_)).WillOnce(Return(std::nullopt));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_FALSE(result);
@@ -271,8 +300,13 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_005, TestSize.Level0)
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
     EXPECT_CALL(mockSecurityAgent_, HostProcessPreObtainToken(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_FALSE(result);
@@ -303,8 +337,13 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_006, TestSize.Level0)
     EXPECT_CALL(mockSecurityAgent_, HostProcessPreObtainToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, _, _)).WillOnce(Return(nullptr));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_FALSE(result);

@@ -45,8 +45,10 @@ private:
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo);
 
     void HandleAuthResult(TemplateId templateId, ResultCode result, const std::vector<uint8_t> &extraInfo);
+    void CancelInFlightSubRequests();
 
     bool AnyTemplateValid() const;
+    bool SubscribeCancellationEvents();
     void HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices,
         const std::optional<std::vector<uint8_t>> &selectContext);
     std::vector<TemplateId> GetFilteredTemplateList(const std::vector<DeviceKey> &selectedDevices);
@@ -65,6 +67,8 @@ private:
     std::vector<DeviceKey> selectedDevices_;
     FwkResultCallback requestCallback_;
     std::unordered_map<TemplateId, RequestId> requestMap_;
+    std::unique_ptr<Subscription> lockEventSubscription_;
+    std::unique_ptr<Subscription> activeUserSubscription_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
