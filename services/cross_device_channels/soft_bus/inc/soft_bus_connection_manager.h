@@ -81,7 +81,6 @@ private:
     // connections_ indefinitely (prevents MAX_SOFTBUS_CONNECTIONS DoS). Only
     // runs while at least one unnamed inbound connection exists.
     std::unique_ptr<Subscription> namingMonitorTimerSubscription_;
-
     std::vector<RawMessageSubscription> rawMessageSubscribers_;
     std::map<int32_t, OnConnectionStatusChange> connectionStatusSubscribers_;
     std::map<int32_t, OnIncomingConnection> incomingConnectionSubscribers_;

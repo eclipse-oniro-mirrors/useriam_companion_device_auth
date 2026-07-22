@@ -60,6 +60,7 @@ public:
 
 protected:
     CompanionDeviceAuthAllInOneExecutor();
+    bool Init();
     virtual bool SupportDeviceSelect(int32_t authIntent) const;
     virtual std::optional<BusinessId> GetAuthBusinessId(int32_t authIntent) const;
     virtual WidgetAuthParam GetWidgetAuthParam(int32_t authIntent) const;

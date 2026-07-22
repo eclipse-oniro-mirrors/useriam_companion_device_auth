@@ -65,7 +65,7 @@ private:
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     BindingId bindingId_ = 0;
     bool needCancelIssueToken_ = false;
-    OnMessageReply preIssueTokenReplyCallback_;
+    OnMessageReply currentReply_;
     std::unique_ptr<Subscription> issueTokenSubscription_;
     std::unique_ptr<Subscription> localDeviceStatusSubscription_;
     std::optional<MessageType> activeMsgType_;

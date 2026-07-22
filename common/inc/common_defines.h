@@ -53,6 +53,7 @@ enum ResultCode : int32_t {
     TOKEN_VERIFY_FAILED = 20006,
     REQUEST_TOO_FREQUENT = 20007,
     TOKEN_REFRESH_SUCCESS = 20008,
+    PEER_SERVICE_NOT_AVAILABLE = 20009,
 };
 
 enum class DeviceIdType : int32_t {

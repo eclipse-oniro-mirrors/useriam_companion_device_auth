@@ -35,6 +35,8 @@ public:
     MOCK_METHOD(std::optional<std::string>, GetLocalUdid, (), (override));
     MOCK_METHOD(void, SetCompanionAuthBlocked, (bool blocked), (override));
     MOCK_METHOD(bool, IsCompanionAuthBlocked, (), (const, override));
+    MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeCompanionAuthBlockedChange,
+        (CompanionAuthBlockedCallback callback), (override));
     MOCK_METHOD(bool, SetPasscodePromptCallback,
         (uint32_t tokenId, const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback), (override));
     MOCK_METHOD(void, ClearPasscodePromptCallback, (uint32_t tokenId), (override));

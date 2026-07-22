@@ -29,6 +29,7 @@ public:
 
     uint64_t BeginDelegateAuth(const BeginDelegateAuthParam &param) override;
     int32_t CancelAuthentication(uint64_t contextId) override;
+    void CheckIsBlocked(int32_t userId, CheckBlockedCallback &&callback) override;
 };
 
 } // namespace CompanionDeviceAuth

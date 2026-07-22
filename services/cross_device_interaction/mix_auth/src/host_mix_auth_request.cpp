@@ -24,6 +24,7 @@
 #include "adapter_manager.h"
 #include "common_defines.h"
 #include "companion_manager.h"
+#include "error_guard.h"
 #include "misc_manager.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
@@ -192,14 +193,28 @@ void HostMixAuthRequest::Start()
     eventCollector_.Start();
     StartTimeout(weak_from_this());
 
+    ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
+
     if (!AnyTemplateValid()) {
         IAM_LOGE("%{public}s no valid templateId found", GetDescription());
-        CompleteWithError(ResultCode::NO_VALID_CREDENTIAL);
+        errorGuard.UpdateErrorCode(ResultCode::NO_VALID_CREDENTIAL);
+        return;
+    }
+
+    if (GetMiscManager().IsCompanionAuthBlocked()) {
+        IAM_LOGE("%{public}s companion auth blocked", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::LOCKED);
+        return;
+    }
+
+    if (!SubscribeCancellationEvents()) {
+        IAM_LOGE("%{public}s subscribe cancellation events failed", GetDescription());
         return;
     }
 
     if (!tokenId_.has_value()) {
         IAM_LOGI("%{public}s no tokenId, skip device selection, use all templates", GetDescription());
+        errorGuard.Cancel();
         StartAuthWithTemplateList(templateIdList_);
         return;
     }
@@ -213,11 +228,38 @@ void HostMixAuthRequest::Start()
         });
     if (!selectorSet) {
         IAM_LOGE("%{public}s no device selector set", GetDescription());
-        CompleteWithError(ResultCode::GENERAL_ERROR);
         return;
     }
 
+    errorGuard.Cancel();
     IAM_LOGI("%{public}s waiting for device select result", GetDescription());
+}
+
+bool HostMixAuthRequest::SubscribeCancellationEvents()
+{
+    lockEventSubscription_ =
+        GetMiscManager().SubscribeCompanionAuthBlockedChange([weakSelf = weak_from_this()](bool blocked) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            if (!blocked) {
+                return;
+            }
+            IAM_LOGI("%{public}s locked in flight, cancel", self->GetDescription());
+            self->Cancel(ResultCode::LOCKED);
+        });
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), lockEventSubscription_ != nullptr, false);
+    activeUserSubscription_ =
+        GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId activeUserId) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            if (self->hostUserId_ != activeUserId) {
+                IAM_LOGI("%{public}s host user %{public}d no longer active (%{public}d), error", self->GetDescription(),
+                    self->hostUserId_, activeUserId);
+                self->Cancel(ResultCode::GENERAL_ERROR);
+            }
+        });
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), activeUserSubscription_ != nullptr, false);
+    return true;
 }
 
 bool HostMixAuthRequest::Cancel(ResultCode resultCode)
@@ -228,13 +270,6 @@ bool HostMixAuthRequest::Cancel(ResultCode resultCode)
         return true;
     }
     cancelled_ = true;
-    auto requestMap = std::move(requestMap_);
-    requestMap_.clear();
-    for (auto &entry : requestMap) {
-        if (entry.second != 0) {
-            GetRequestManager().Cancel(entry.second);
-        }
-    }
     CompleteWithError(resultCode);
     return true;
 }
@@ -253,6 +288,21 @@ void HostMixAuthRequest::HandleAuthResult(TemplateId templateId, ResultCode resu
         return;
     }
     requestMap_.erase(it);
+    // SUCCESS may race ahead of the lock/active-user fan-out; reject blocked/switched.
+    if (result == ResultCode::SUCCESS) {
+        ResultCode reject = ResultCode::SUCCESS;
+        if (GetMiscManager().IsCompanionAuthBlocked()) {
+            reject = ResultCode::LOCKED;
+        } else if (GetUserIdManager().GetActiveUserId() != hostUserId_) {
+            reject = ResultCode::GENERAL_ERROR;
+        }
+        if (reject != ResultCode::SUCCESS) {
+            IAM_LOGW("%{public}s reject success at aggregator, code=%{public}d", GetDescription(),
+                static_cast<int32_t>(reject));
+            CompleteWithError(reject);
+            return;
+        }
+    }
     if (result != ResultCode::SUCCESS) {
         if (requestMap_.empty()) {
             CompleteWithError(ResultCode::FAIL);
@@ -262,15 +312,19 @@ void HostMixAuthRequest::HandleAuthResult(TemplateId templateId, ResultCode resu
             requestMap_.size());
         return;
     }
-    auto requestMap = std::move(requestMap_);
+    eventCollector_.SetSuccessTemplateId(templateId);
+    CompleteWithSuccess(templateId, extraInfo);
+}
+
+void HostMixAuthRequest::CancelInFlightSubRequests()
+{
+    auto inFlight = std::move(requestMap_);
     requestMap_.clear();
-    for (auto &entry : requestMap) {
+    for (auto &entry : inFlight) {
         if (entry.second != 0) {
             GetRequestManager().Cancel(entry.second);
         }
     }
-    eventCollector_.SetSuccessTemplateId(templateId);
-    CompleteWithSuccess(templateId, extraInfo);
 }
 
 uint32_t HostMixAuthRequest::GetMaxConcurrency() const
@@ -305,6 +359,7 @@ void HostMixAuthRequest::CompleteWithError(ResultCode result)
     if (!AcquireCompletion()) {
         return;
     }
+    CancelInFlightSubRequests();
     IAM_LOGI("%{public}s complete with error: %{public}d", GetDescription(), result);
     InvokeCallback(result, {});
     eventCollector_.Report(result);
@@ -316,6 +371,7 @@ void HostMixAuthRequest::CompleteWithSuccess(TemplateId templateId, const std::v
     if (!AcquireCompletion()) {
         return;
     }
+    CancelInFlightSubRequests();
     IAM_LOGI("%{public}s complete with success", GetDescription());
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_AUTH_INTENT, authIntent_);

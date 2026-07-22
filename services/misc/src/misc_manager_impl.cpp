@@ -332,13 +332,48 @@ std::optional<std::string> MiscManagerImpl::GetLocalUdid()
 
 void MiscManagerImpl::SetCompanionAuthBlocked(bool blocked)
 {
+    if (blocked == companionAuthBlocked_) {
+        IAM_LOGI("companion auth blocked unchanged %{public}d, skip notify", blocked);
+        return;
+    }
     companionAuthBlocked_ = blocked;
     IAM_LOGI("set companion auth blocked %{public}d", blocked);
+    NotifyCompanionAuthBlockedChange(blocked);
 }
 
 bool MiscManagerImpl::IsCompanionAuthBlocked() const
 {
     return companionAuthBlocked_;
+}
+
+std::unique_ptr<Subscription> MiscManagerImpl::SubscribeCompanionAuthBlockedChange(
+    CompanionAuthBlockedCallback callback)
+{
+    ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
+    SubscribeId subscribeId = GetNextGlobalId();
+    blockedChangeSubscribers_[subscribeId] = std::move(callback);
+    std::weak_ptr<MiscManagerImpl> weakSelf = weak_from_this();
+    return std::make_unique<Subscription>([weakSelf, subscribeId]() {
+        auto self = weakSelf.lock();
+        if (self != nullptr) {
+            self->blockedChangeSubscribers_.erase(subscribeId);
+        }
+    });
+}
+
+void MiscManagerImpl::NotifyCompanionAuthBlockedChange(bool blocked)
+{
+    std::vector<CompanionAuthBlockedCallback> snapshot;
+    for (const auto &entry : blockedChangeSubscribers_) {
+        snapshot.push_back(entry.second);
+    }
+    TaskRunnerManager::GetInstance().PostTaskOnResident([snapshot = std::move(snapshot), blocked]() {
+        for (const auto &callback : snapshot) {
+            if (callback != nullptr) {
+                callback(blocked);
+            }
+        }
+    });
 }
 
 } // namespace CompanionDeviceAuth

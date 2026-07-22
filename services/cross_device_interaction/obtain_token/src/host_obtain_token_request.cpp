@@ -39,7 +39,7 @@ HostObtainTokenRequest::HostObtainTokenRequest(const std::string &connectionName
     OnMessageReply &&replyCallback, const DeviceKey &companionDeviceKey)
     : InboundRequest(RequestType::HOST_OBTAIN_TOKEN_REQUEST, connectionName, companionDeviceKey),
       request_(request),
-      preObtainTokenReplyCallback_(std::move(replyCallback))
+      currentReply_(std::move(replyCallback))
 {
     eventCollector_.SetConnectionName(connectionName);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
@@ -95,23 +95,44 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
     IAM_LOGI("%{public}s start", GetDescription());
     if (GetMiscManager().IsCompanionAuthBlocked()) {
         IAM_LOGE("%{public}s companion auth blocked", GetDescription());
-        SendPreObtainTokenReply(ResultCode::LOCKED, {});
+        errorGuard.UpdateErrorCode(ResultCode::LOCKED);
         return false;
     }
     if (!ParsePreObtainTokenRequest(errorGuard)) {
         IAM_LOGE("%{public}s ParsePreObtainTokenRequest failed", GetDescription());
-        SendPreObtainTokenReply(ResultCode::GENERAL_ERROR, {});
+        return false;
+    }
+
+    if (hostUserId_ != GetUserIdManager().GetActiveUserId()) {
+        IAM_LOGE("%{public}s hostUserId %{public}d mismatch active %{public}d", GetDescription(), hostUserId_,
+            GetUserIdManager().GetActiveUserId());
         return false;
     }
 
     std::vector<uint8_t> preObtainTokenReply;
-    bool ret = ProcessPreObtainToken(preObtainTokenReply);
-    if (!ret) {
+    if (!ProcessPreObtainToken(preObtainTokenReply)) {
         IAM_LOGE("%{public}s HostProcessPreObtainToken failed", GetDescription());
-        SendPreObtainTokenReply(ResultCode::GENERAL_ERROR, {});
         return false;
     }
 
+    if (!SubscribeObtainTokenMessage()) {
+        IAM_LOGE("%{public}s subscribe obtain token failed", GetDescription());
+        return false;
+    }
+
+    if (!SubscribeCancellationEvents()) {
+        IAM_LOGE("%{public}s subscribe cancellation events failed", GetDescription());
+        return false;
+    }
+
+    SendPreObtainTokenReply(ResultCode::SUCCESS, preObtainTokenReply);
+    eventCollector_.EnterWait(HostObtainTokenStages::WAIT_OBTAIN_TOKEN);
+    errorGuard.Cancel();
+    return true;
+}
+
+bool HostObtainTokenRequest::SubscribeObtainTokenMessage()
+{
     obtainTokenSubscription_ =
         GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::OBTAIN_TOKEN,
             [weakSelf = weak_from_this()](const Attributes &request, OnMessageReply &onMessageReply) {
@@ -119,14 +140,33 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
                 ENSURE_OR_RETURN(self != nullptr);
                 self->HandleObtainTokenMessage(request, onMessageReply);
             });
-    if (obtainTokenSubscription_ == nullptr) {
-        IAM_LOGE("%{public}s subscribe obtain token failed", GetDescription());
-        SendPreObtainTokenReply(ResultCode::GENERAL_ERROR, {});
-        return false;
-    }
+    return obtainTokenSubscription_ != nullptr;
+}
 
-    SendPreObtainTokenReply(ResultCode::SUCCESS, preObtainTokenReply);
-    eventCollector_.EnterWait(HostObtainTokenStages::WAIT_OBTAIN_TOKEN);
+bool HostObtainTokenRequest::SubscribeCancellationEvents()
+{
+    lockEventSubscription_ =
+        GetMiscManager().SubscribeCompanionAuthBlockedChange([weakSelf = weak_from_this()](bool blocked) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            if (!blocked) {
+                return;
+            }
+            IAM_LOGI("%{public}s locked in flight, cancel", self->GetDescription());
+            self->Cancel(ResultCode::LOCKED);
+        });
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), lockEventSubscription_ != nullptr, false);
+    activeUserSubscription_ =
+        GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId activeUserId) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            if (self->hostUserId_ != activeUserId) {
+                IAM_LOGI("%{public}s host user %{public}d no longer active (%{public}d), cancel",
+                    self->GetDescription(), self->hostUserId_, activeUserId);
+                self->Cancel(ResultCode::GENERAL_ERROR);
+            }
+        });
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), activeUserSubscription_ != nullptr, false);
     return true;
 }
 
@@ -151,14 +191,27 @@ bool HostObtainTokenRequest::ProcessPreObtainToken(std::vector<uint8_t> &preObta
 
 void HostObtainTokenRequest::SendPreObtainTokenReply(ResultCode result, const std::vector<uint8_t> &preObtainTokenReply)
 {
-    ENSURE_OR_RETURN_DESC(GetDescription(), preObtainTokenReplyCallback_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), currentReply_ != nullptr);
     Attributes reply = {};
     PreObtainTokenReply preReply = {};
     preReply.result = result;
     preReply.extraInfo = preObtainTokenReply;
     EncodePreObtainTokenReply(preReply, reply);
 
-    preObtainTokenReplyCallback_(reply);
+    currentReply_(reply);
+    currentReply_ = nullptr;
+}
+
+void HostObtainTokenRequest::SendErrorReply(ResultCode result)
+{
+    if (currentReply_ == nullptr) {
+        IAM_LOGI("%{public}s reply already sent", GetDescription());
+        return;
+    }
+    Attributes reply;
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
+    currentReply_(reply);
+    currentReply_ = nullptr;
 }
 
 void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
@@ -167,12 +220,8 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
-    ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
-        Attributes reply;
-        reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(code));
-        onMessageReply(reply);
-        CompleteWithError(code);
-    });
+    currentReply_ = std::move(onMessageReply);
+    ErrorGuard errorGuard([this](ResultCode code) { CompleteWithError(code); });
 
     auto obtainTokenRequestOpt = DecodeObtainTokenRequest(request);
     if (!obtainTokenRequestOpt.has_value()) {
@@ -209,7 +258,9 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
     Attributes reply = {};
     EncodeObtainTokenReply(replyBody, reply);
 
-    onMessageReply(reply);
+    ENSURE_OR_RETURN_DESC(GetDescription(), currentReply_ != nullptr);
+    currentReply_(reply);
+    currentReply_ = nullptr;
     errorGuard.Cancel();
     CompleteWithSuccess();
 }
@@ -263,6 +314,7 @@ void HostObtainTokenRequest::CompleteWithError(ResultCode result)
         return;
     }
     IAM_LOGI("%{public}s: obtain token request failed, result=%{public}d", GetDescription(), result);
+    SendErrorReply(result);
     if (needCancelObtainToken_) {
         HostCancelObtainTokenInput input = { GetRequestId() };
         ResultCode cancelRet = GetSecurityAgent().HostCancelObtainToken(input);

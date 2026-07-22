@@ -172,6 +172,28 @@ HWTEST_F(DeviceResyncSchedulerTest, HandleResyncComplete_SuccessErasesRetryEntry
     EXPECT_EQ(scheduler->scheduledResyncs_.count(key), 0u);
 }
 
+HWTEST_F(DeviceResyncSchedulerTest, HandleResyncComplete_PeerServiceNotAvailableIsTerminal, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = SoftBusDeviceStatusManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    auto scheduler = DeviceResyncScheduler::Create(manager);
+    ASSERT_NE(scheduler, nullptr);
+    EXPECT_TRUE(scheduler->Start());
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "dev_peer_na";
+    MarkDeviceOnline(*manager, key);
+
+    scheduler->EnsureRetryEntry(key, "test");
+    scheduler->HandleResyncComplete(key, 0, ResultCode::PEER_SERVICE_NOT_AVAILABLE);
+
+    EXPECT_EQ(scheduler->scheduledResyncs_.count(key), 0u);
+}
+
 HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_RemovesOfflineDevice, TestSize.Level0)
 {
     MockGuard guard;

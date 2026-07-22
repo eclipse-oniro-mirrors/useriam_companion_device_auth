@@ -32,6 +32,7 @@ class MockUserAuthAdapter : public IUserAuthAdapter {
 public:
     MOCK_METHOD(uint64_t, BeginDelegateAuth, (const BeginDelegateAuthParam &param), (override));
     MOCK_METHOD(int32_t, CancelAuthentication, (uint64_t contextId), (override));
+    MOCK_METHOD(void, CheckIsBlocked, (int32_t userId, CheckBlockedCallback &&callback), (override));
 };
 
 } // namespace CompanionDeviceAuth

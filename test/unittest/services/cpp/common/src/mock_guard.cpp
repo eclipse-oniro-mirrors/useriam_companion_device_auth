@@ -158,6 +158,8 @@ void MockGuard::SetupMiscManagerDefaults()
     }));
     ON_CALL(*miscManager_, GetDeviceDeviceSelectResult(_, _, _)).WillByDefault(Return(false));
     ON_CALL(*miscManager_, IsCompanionAuthBlocked()).WillByDefault(Return(false));
+    ON_CALL(*miscManager_, SubscribeCompanionAuthBlockedChange(_))
+        .WillByDefault(Invoke([](CompanionAuthBlockedCallback &&) { return std::make_unique<Subscription>([]() {}); }));
 }
 
 void MockGuard::SetupUserIdManagerDefaults()

@@ -261,6 +261,7 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_001, TestSize.Level0)
     EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
     request->Start();
     request->HandleAuthResult(TEMPLATE_ID, ResultCode::SUCCESS, EXTRA_INFO);
 
@@ -319,6 +320,7 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_ZeroRequestIdStillCallbacksSuc
     EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
     request->Start();
     // Set requestId to 0 in the map; HandleAuthResult still finds the key and processes SUCCESS
     request->requestMap_[TEMPLATE_ID] = 0;
@@ -419,6 +421,7 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_007, TestSize.Level0)
     EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
     request->Start();
     // Add a nullptr entry, then handle SUCCESS for TEMPLATE_ID
     // Should still succeed because the SUCCESS callback should complete the request
@@ -428,6 +431,80 @@ HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_007, TestSize.Level0)
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(*callbackCalled);
     EXPECT_EQ(*callbackResult, ResultCode::SUCCESS);
+}
+
+// A companion SUCCESS must be rejected at the aggregator when companion auth is
+// blocked (the lock fan-out may race ahead of the SUCCESS delivery).
+HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_RejectBlockedSuccess, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
+    auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
+
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
+    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(TEMPLATE_ID)).WillRepeatedly(Return(validStatus));
+
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, SCHEDULE_ID);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetRequestManager(), Cancel(_)).Times(AnyNumber());
+
+    // Not blocked during Start() so it creates the sub-request, then blocked so the SUCCESS is rejected.
+    EXPECT_CALL(guard.GetMiscManager(), IsCompanionAuthBlocked()).WillOnce(Return(false)).WillRepeatedly(Return(true));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+
+    request->Start();
+    request->HandleAuthResult(TEMPLATE_ID, ResultCode::SUCCESS, EXTRA_INFO);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::LOCKED);
+}
+
+// A companion SUCCESS must be rejected at the aggregator when the host user has
+// switched away (the active-user fan-out may race ahead of the SUCCESS delivery).
+HWTEST_F(HostMixAuthRequestTest, HandleAuthResult_RejectSwitchedSuccess, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID_LIST, std::nullopt, std::nullopt,
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
+    auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
+
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
+    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+
+    CompanionStatus validStatus = { .isValid = true };
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(TEMPLATE_ID)).WillRepeatedly(Return(validStatus));
+
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, SCHEDULE_ID);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetRequestManager(), Cancel(_)).Times(AnyNumber());
+
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID + 1));
+
+    request->Start();
+    request->HandleAuthResult(TEMPLATE_ID, ResultCode::SUCCESS, EXTRA_INFO);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::GENERAL_ERROR);
 }
 
 HWTEST_F(HostMixAuthRequestTest, GetMaxConcurrency_001, TestSize.Level0)
@@ -546,6 +623,7 @@ HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithAuthScene, TestSize.Lev
     EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
     request->Start();
     request->HandleAuthResult(TEMPLATE_ID, ResultCode::SUCCESS, EXTRA_INFO);
 
@@ -577,6 +655,7 @@ HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithTitle, TestSize.Level0)
     EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
     request->Start();
     request->HandleAuthResult(TEMPLATE_ID, ResultCode::SUCCESS, EXTRA_INFO);
 
@@ -608,6 +687,7 @@ HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithAuthSceneAndTitle, Test
     EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
     request->Start();
     request->HandleAuthResult(TEMPLATE_ID, ResultCode::SUCCESS, EXTRA_INFO);
 

@@ -258,9 +258,16 @@ void SoftBusConnectionManager::HandleError(int32_t socketId, int32_t errCode)
         return;
     }
 
-    std::stringstream ss;
-    ss << "softbus_error_0x" << std::hex << std::setfill('0') << std::setw(UINT32_8) << errCode;
-    RemoveSocket(socketId, ss.str());
+    std::string closeReason;
+    if (errCode == SOFTBUS_TRANS_PEER_SESSION_NOT_CREATED) {
+        IAM_LOGW("peer service not registered, socketId=%{public}d", socketId);
+        closeReason = REASON_PEER_SERVICE_NOT_AVAILABLE;
+    } else {
+        std::stringstream ss;
+        ss << "softbus_error_0x" << std::hex << std::setfill('0') << std::setw(UINT32_8) << errCode;
+        closeReason = ss.str();
+    }
+    RemoveSocket(socketId, closeReason);
 }
 
 void SoftBusConnectionManager::HandleShutdown(int32_t socketId, int32_t reason)

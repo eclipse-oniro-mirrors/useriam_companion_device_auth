@@ -95,8 +95,13 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_001, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     EXPECT_TRUE(result);
     EXPECT_TRUE(*replyCalled);
@@ -123,8 +128,13 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_002, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeIsAuthMaintainActive(_))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     EXPECT_FALSE(result);
     EXPECT_TRUE(*replyCalled);
@@ -155,8 +165,13 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_003, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::INVALID));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     EXPECT_FALSE(result);
     EXPECT_TRUE(*replyCalled);
@@ -190,9 +205,16 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_004, TestSize.Level0)
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionPreIssueToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _)).WillOnce(Return(nullptr));
+    // PreIssue succeeded before subscribe failed, so CompleteWithError will call CompanionCancelIssueToken.
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionCancelIssueToken(_)).WillOnce(Return(ResultCode::SUCCESS));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     EXPECT_FALSE(result);
     // Subscribe failure must still notify the host via PreIssueTokenReply, otherwise the host waits for the
@@ -219,8 +241,13 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_005, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillOnce(Return(false));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     EXPECT_FALSE(result);
     EXPECT_TRUE(*replyCalled);
@@ -246,8 +273,13 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_006, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeIsAuthMaintainActive(_)).WillOnce(Return(nullptr));
 
-    ErrorGuard errorGuard([](ResultCode) {});
-    bool result = request->OnStart(errorGuard);
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
 
     EXPECT_FALSE(result);
     EXPECT_TRUE(*replyCalled);

@@ -40,7 +40,7 @@ CompanionIssueTokenRequest::CompanionIssueTokenRequest(const std::string &connec
     OnMessageReply &&replyCallback, const DeviceKey &hostDeviceKey)
     : InboundRequest(RequestType::COMPANION_ISSUE_TOKEN_REQUEST, connectionName, hostDeviceKey),
       request_(request),
-      preIssueTokenReplyCallback_(std::move(replyCallback))
+      currentReply_(std::move(replyCallback))
 {
 }
 
@@ -48,10 +48,8 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
-
     if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
         IAM_LOGE("%{public}s local auth maintain inactive", GetDescription());
-        SendPreIssueTokenReply(ResultCode::GENERAL_ERROR, {});
         return false;
     }
     localDeviceStatusSubscription_ =
@@ -62,7 +60,6 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
         });
     if (localDeviceStatusSubscription_ == nullptr) {
         IAM_LOGE("%{public}s failed to subscribe auth maintain active", GetDescription());
-        SendPreIssueTokenReply(ResultCode::GENERAL_ERROR, {});
         return false;
     }
 
@@ -70,7 +67,6 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
     bool preIssueRet = CompanionPreIssueToken(preIssueTokenReply);
     if (!preIssueRet) {
         IAM_LOGE("%{public}s CompanionPreIssueToken failed", GetDescription());
-        SendPreIssueTokenReply(ResultCode::GENERAL_ERROR, {});
         return false;
     }
 
@@ -83,7 +79,6 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
             });
     if (issueTokenSubscription_ == nullptr) {
         IAM_LOGE("%{public}s subscribe issue token failed", GetDescription());
-        SendPreIssueTokenReply(ResultCode::COMMUNICATION_ERROR, {});
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
         return false;
     }
@@ -171,13 +166,26 @@ CompanionPreIssueTokenInput CompanionIssueTokenRequest::BuildCompanionPreIssueTo
 void CompanionIssueTokenRequest::SendPreIssueTokenReply(ResultCode result,
     const std::vector<uint8_t> &preIssueTokenReply)
 {
-    ENSURE_OR_RETURN_DESC(GetDescription(), preIssueTokenReplyCallback_ != nullptr);
+    ENSURE_OR_RETURN_DESC(GetDescription(), currentReply_ != nullptr);
 
     Attributes reply = {};
     PreIssueTokenReply replyMsg = { .result = result, .extraInfo = preIssueTokenReply };
     EncodePreIssueTokenReply(replyMsg, reply);
 
-    preIssueTokenReplyCallback_(reply);
+    currentReply_(reply);
+    currentReply_ = nullptr;
+}
+
+void CompanionIssueTokenRequest::SendErrorReply(ResultCode result)
+{
+    if (currentReply_ == nullptr) {
+        IAM_LOGI("%{public}s reply already sent", GetDescription());
+        return;
+    }
+    Attributes reply;
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
+    currentReply_(reply);
+    currentReply_ = nullptr;
 }
 
 void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &request, OnMessageReply &onMessageReply)
@@ -186,13 +194,8 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
-    ErrorGuard errorGuard([this, &onMessageReply](ResultCode code) {
-        Attributes reply;
-        IssueTokenReply replyMsg = { .result = code, .extraInfo = {} };
-        EncodeIssueTokenReply(replyMsg, reply);
-        onMessageReply(reply);
-        CompleteWithError(code);
-    });
+    currentReply_ = std::move(onMessageReply);
+    ErrorGuard errorGuard([this](ResultCode code) { CompleteWithError(code); });
 
     auto issueRequestOpt = DecodeIssueTokenRequest(request);
     ENSURE_OR_RETURN_DESC(GetDescription(), issueRequestOpt.has_value());
@@ -208,7 +211,9 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
     IssueTokenReply replyMsg = { .result = ResultCode::SUCCESS, .extraInfo = issueTokenReply };
     Attributes reply;
     EncodeIssueTokenReply(replyMsg, reply);
-    onMessageReply(reply);
+    ENSURE_OR_RETURN_DESC(GetDescription(), currentReply_ != nullptr);
+    currentReply_(reply);
+    currentReply_ = nullptr;
     errorGuard.Cancel();
     CompleteWithSuccess();
 }
@@ -249,6 +254,7 @@ void CompanionIssueTokenRequest::CompleteWithError(ResultCode result)
         return;
     }
     IAM_LOGI("%{public}s: issue token request failed, result=%{public}d", GetDescription(), result);
+    SendErrorReply(result);
     localDeviceStatusSubscription_.reset();
     if (needCancelIssueToken_) {
         CompanionCancelIssueTokenInput input = { GetRequestId() };

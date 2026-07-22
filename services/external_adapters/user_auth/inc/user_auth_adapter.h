@@ -28,6 +28,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 using AuthResultCallback = std::function<void(int32_t result, const std::vector<uint8_t> &token)>;
+using CheckBlockedCallback = std::function<void(bool blocked, bool needTry)>;
 
 struct BeginDelegateAuthParam {
     int32_t userId;
@@ -45,6 +46,7 @@ public:
 
     virtual uint64_t BeginDelegateAuth(const BeginDelegateAuthParam &param) = 0;
     virtual int32_t CancelAuthentication(uint64_t contextId) = 0;
+    virtual void CheckIsBlocked(int32_t userId, CheckBlockedCallback &&callback) = 0;
 
 protected:
     IUserAuthAdapter() = default;

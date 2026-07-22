@@ -125,6 +125,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
 
     # fwk_comm cases
     "cases/fwk_comm/all_in_one_executor_fuzzer.cpp",
+    "cases/fwk_comm/blocked_state_sync_scheduler_fuzzer.cpp",
     "cases/fwk_comm/companion_device_auth_all_in_one_executor_fuzzer.cpp",
     "cases/fwk_comm/companion_device_auth_driver_fuzzer.cpp",
     "cases/fwk_comm/companion_device_auth_executor_callback_fuzzer.cpp",

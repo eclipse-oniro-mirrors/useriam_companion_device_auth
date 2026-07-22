@@ -53,9 +53,11 @@ public:
 
     void SetCompanionAuthBlocked(bool blocked) override;
     bool IsCompanionAuthBlocked() const override;
+    std::unique_ptr<Subscription> SubscribeCompanionAuthBlockedChange(CompanionAuthBlockedCallback callback) override;
 
 private:
     MiscManagerImpl();
+    void NotifyCompanionAuthBlockedChange(bool blocked);
     struct CallbackInfo {
         sptr<IIpcDeviceSelectCallback> callback;
         sptr<IRemoteObject::DeathRecipient> deathRecipient;
@@ -70,6 +72,7 @@ private:
     bool companionAuthBlocked_ { true };
     std::map<uint32_t, PasscodePromptCallbackInfo> passcodePromptCallbacks_;
     std::optional<std::string> cachedUdid_;
+    std::map<SubscribeId, CompanionAuthBlockedCallback> blockedChangeSubscribers_;
 };
 
 } // namespace CompanionDeviceAuth

@@ -86,6 +86,38 @@ public:
 private:
     AuthResultCallback callback_;
 };
+
+class CheckBlockedCallbackBridge : public UserAuth::GetPropCallback {
+public:
+    explicit CheckBlockedCallbackBridge(CheckBlockedCallback callback) : callback_(std::move(callback))
+    {
+    }
+    virtual ~CheckBlockedCallbackBridge() = default;
+
+    void OnResult(int32_t result, const UserAuth::Attributes &extraInfo) override
+    {
+        bool blocked = true;
+        bool needTry = true;
+        if (result == UserAuth::ResultCode::SUCCESS) {
+            int32_t freezingTime = 0;
+            if (extraInfo.GetInt32Value(UserAuth::Attributes::AttributeKey::ATTR_FREEZING_TIME, freezingTime)) {
+                blocked = freezingTime > 0;
+            }
+            needTry = false;
+        } else if (result == UserAuth::ResultCode::NOT_ENROLLED) {
+            blocked = true;
+            needTry = false;
+        }
+        TaskRunnerManager::GetInstance().PostTaskOnResident([cb = callback_, blocked, needTry]() {
+            if (cb) {
+                cb(blocked, needTry);
+            }
+        });
+    }
+
+private:
+    CheckBlockedCallback callback_;
+};
 } // namespace
 
 uint64_t UserAuthAdapterImpl::BeginDelegateAuth(const BeginDelegateAuthParam &param)
@@ -157,6 +189,27 @@ int32_t UserAuthAdapterImpl::CancelAuthentication(uint64_t contextId)
 
     IAM_LOGI("CancelAuthentication success: contextId=%{public}s", GET_MASKED_NUM_CSTR(contextId));
     return 0;
+}
+
+void UserAuthAdapterImpl::CheckIsBlocked(int32_t userId, CheckBlockedCallback &&callback)
+{
+    if (!callback) {
+        IAM_LOGE("callback is null");
+        return;
+    }
+
+    UserAuth::GetPropertyRequest request;
+    request.authType = UserAuth::AuthType::PIN;
+    request.keys = { UserAuth::Attributes::AttributeKey::ATTR_FREEZING_TIME };
+
+    auto propCallback = std::make_shared<CheckBlockedCallbackBridge>(std::move(callback));
+    ENSURE_OR_RETURN(propCallback != nullptr);
+
+    XCollieHelper xcollie("UserAuthAdapterImpl-CheckIsBlocked", API_CALL_TIMEOUT);
+    SetFirstCallerTokenID(IPCSkeleton::GetCallingTokenID());
+    UserAuthClient::GetInstance().GetProperty(userId, request, propCallback);
+    SetFirstCallerTokenID(0);
+    IAM_LOGI("CheckIsBlocked queried, userId:%{public}d", userId);
 }
 
 } // namespace CompanionDeviceAuth

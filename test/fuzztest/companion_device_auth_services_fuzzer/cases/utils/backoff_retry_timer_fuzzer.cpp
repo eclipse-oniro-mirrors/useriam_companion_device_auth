@@ -99,6 +99,7 @@ static void FuzzCalculateNextDelayMsBoundary(std::shared_ptr<BackoffRetryTimer> 
     std::vector<uint32_t> failureCounts = { 0, 1, INT32_10, INT32_100, UINT32_MAX };
 
     BackoffRetryTimer::Config config;
+    config.name = "[fuzz]";
     config.baseDelayMs = fuzzData.ConsumeIntegralInRange<uint32_t>(1, INT32_10000);
     config.maxDelayMs = fuzzData.ConsumeIntegralInRange<uint32_t>(INT32_1000, INT32_60000);
 
@@ -122,6 +123,7 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(BackoffRetr
 void FuzzBackoffRetryTimer(FuzzedDataProvider &fuzzData)
 {
     BackoffRetryTimer::Config config;
+    config.name = "[fuzz]";
     config.baseDelayMs = fuzzData.ConsumeIntegralInRange<uint32_t>(1, INT32_10000);
     config.maxDelayMs = fuzzData.ConsumeIntegralInRange<uint32_t>(INT32_1000, INT32_60000);
 
