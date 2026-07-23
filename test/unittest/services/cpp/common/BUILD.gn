@@ -48,9 +48,8 @@ _companion_device_auth_service_unittest_common_public_configs = [
   "${companion_device_auth_path}/common:companion_device_auth_common_config",
 ]
 
-# Common deps shared by both libraries
 _companion_device_auth_service_unittest_common_deps =
-    companion_device_auth_service_deps
+    companion_device_auth_service_deps_for_test
 _companion_device_auth_service_unittest_common_deps +=
     [ "${companion_device_auth_path}/common:companion_device_auth_common" ]
 

@@ -35,6 +35,27 @@ public:
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeUnlockedActiveUserId, (ActiveUserIdCallback && callback),
         (override));
     MOCK_METHOD(bool, IsUserIdValid, (int32_t userId), (override));
+
+    // Helper method to trigger the unlocked active user ID change callback in tests
+    void NotifyUnlockedActiveUserIdChanged(UserId userId)
+    {
+        if (unlockedUserIdCallback_) {
+            unlockedUserIdCallback_(userId);
+        }
+    }
+
+    // Helper method to set up mock to store the callback for later invocation
+    void SetupStoreUnlockedUserIdCallback()
+    {
+        ON_CALL(*this, SubscribeUnlockedActiveUserId(testing::_))
+            .WillByDefault(testing::Invoke([this](ActiveUserIdCallback &&callback) {
+                unlockedUserIdCallback_ = std::move(callback);
+                return std::make_unique<Subscription>([]() {});
+            }));
+    }
+
+private:
+    ActiveUserIdCallback unlockedUserIdCallback_;
 };
 
 } // namespace CompanionDeviceAuth
