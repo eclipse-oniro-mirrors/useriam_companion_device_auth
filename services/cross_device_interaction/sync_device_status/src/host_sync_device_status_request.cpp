@@ -81,12 +81,11 @@ void HostSyncDeviceStatusRequest::InvokeCallback(ResultCode result, const SyncDe
 
 void HostSyncDeviceStatusRequest::CompleteWithError(ResultCode result)
 {
+    ENSURE_OR_RETURN_DESC(GetDescription(), result != SUCCESS);
     if (!AcquireCompletion()) {
         return;
     }
-    ENSURE_OR_RETURN_DESC(GetDescription(), result != SUCCESS);
     InvokeCallback(result, {});
-
     IAM_LOGE("%{public}s complete with error result=%{public}d", GetDescription(), result);
     eventCollector_.Report(result);
     Destroy();

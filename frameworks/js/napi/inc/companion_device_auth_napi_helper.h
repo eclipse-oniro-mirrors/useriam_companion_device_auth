@@ -68,6 +68,7 @@ public:
     static napi_value GenerateBusinessError(napi_env env, int32_t error);
     static napi_status GetFunctionRef(napi_env env, napi_value value, napi_ref &ref);
     static std::string GetStringFromValueUtf8(napi_env env, napi_value value);
+    static void DeleteReference(napi_env env, napi_ref ref);
 
 private:
     CompanionDeviceAuthNapiHelper() = default;

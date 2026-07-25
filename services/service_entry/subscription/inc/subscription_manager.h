@@ -41,13 +41,14 @@ public:
     SubscriptionManager();
     ~SubscriptionManager() = default;
 
-    void AddAvailableDeviceStatusCallback(int32_t userId,
+    ResultCode AddAvailableDeviceStatusCallback(int32_t userId,
         const sptr<IIpcAvailableDeviceStatusCallback> &availableDeviceStatusCallback);
     void RemoveAvailableDeviceStatusCallback(
         const sptr<IIpcAvailableDeviceStatusCallback> &availableDeviceStatusCallback);
-    void AddTemplateStatusCallback(int32_t userId, const sptr<IIpcTemplateStatusCallback> &templateStatusCallback);
+    ResultCode AddTemplateStatusCallback(int32_t userId,
+        const sptr<IIpcTemplateStatusCallback> &templateStatusCallback);
     void RemoveTemplateStatusCallback(const sptr<IIpcTemplateStatusCallback> &templateStatusCallback);
-    void AddContinuousAuthStatusCallback(int32_t userId, std::optional<uint64_t> templateId,
+    ResultCode AddContinuousAuthStatusCallback(int32_t userId, std::optional<uint64_t> templateId,
         const sptr<IIpcContinuousAuthStatusCallback> &continuousAuthStatusCallback);
     void RemoveContinuousAuthStatusCallback(const sptr<IIpcContinuousAuthStatusCallback> &continuousAuthStatusCallback);
 

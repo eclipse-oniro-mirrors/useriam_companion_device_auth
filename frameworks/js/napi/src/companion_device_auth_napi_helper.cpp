@@ -38,6 +38,7 @@ namespace {
 const size_t UINT64_BYTE_SIZE = 8;
 const uint8_t UINT8_BYTE_MASK = 0xFF;
 static constexpr const int MAX_STRING_LENGTH = 65536;
+static constexpr const int MAX_UNIT8_ARRAY_LENGTH = 20 * 1024;
 
 const std::map<int32_t, std::string> g_result2Str = {
     { static_cast<int32_t>(ResultCode::GENERAL_ERROR),
@@ -134,6 +135,10 @@ napi_status CompanionDeviceAuthNapiHelper::GetUint8ArrayValue(napi_env env, napi
         IAM_LOGE("value is not napi_uint8_array");
         return napi_invalid_arg;
     }
+    if (data == nullptr || length > MAX_UNIT8_ARRAY_LENGTH) {
+        IAM_LOGE("data is invalid");
+        return napi_invalid_arg;
+    }
 
     array.resize(length);
     if (memcpy_s(array.data(), length, data, length) != EOK) {
@@ -153,7 +158,11 @@ napi_status CompanionDeviceAuthNapiHelper::GetInt32Array(napi_env env, napi_valu
         return napi_array_expected;
     }
     uint32_t len {};
-    napi_get_array_length(env, obj, &len);
+    status = napi_get_array_length(env, obj, &len);
+    if (status != napi_ok) {
+        IAM_LOGE("get array length fail");
+        return napi_array_expected;
+    }
     IAM_LOGI("GetInt32Array length: %{public}d", len);
     for (uint32_t index = 0; index < len; index++) {
         napi_value value;
@@ -216,7 +225,7 @@ napi_status CompanionDeviceAuthNapiHelper::SetDateProperty(napi_env env, napi_va
         return ret;
     }
 
-    ret = napi_set_named_property(env, obj, "addedTime", addedTimeValue);
+    ret = napi_set_named_property(env, obj, name, addedTimeValue);
     if (ret != napi_ok) {
         IAM_LOGE("napi_set_named_property failed %{public}d", ret);
     }
@@ -288,7 +297,7 @@ napi_status CompanionDeviceAuthNapiHelper::SetDeviceKeyProperty(napi_env env, na
     const ClientDeviceKey &deviceKey)
 {
     napi_value deviceKeyValue = ConvertDeviceKeyToNapiValue(env, deviceKey);
-    napi_status status = napi_set_named_property(env, obj, "deviceKey", deviceKeyValue);
+    napi_status status = napi_set_named_property(env, obj, name, deviceKeyValue);
     if (status != napi_ok) {
         IAM_LOGE("napi_set_named_property fail ret:%{public}d", status);
     }
@@ -782,6 +791,17 @@ napi_status CompanionDeviceAuthNapiHelper::GetFunctionRef(napi_env env, napi_val
         IAM_LOGE("napi_create_reference fail");
     }
     return result;
+}
+
+void CompanionDeviceAuthNapiHelper::DeleteReference(napi_env env, napi_ref ref)
+{
+    if (ref == nullptr) {
+        return;
+    }
+    napi_status ret = napi_delete_reference(env, ref);
+    if (ret != napi_ok) {
+        IAM_LOGE("napi_delete_reference fail %{public}d", ret);
+    }
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

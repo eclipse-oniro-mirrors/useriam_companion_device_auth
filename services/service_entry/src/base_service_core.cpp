@@ -78,7 +78,11 @@ ResultCode BaseServiceCore::SubscribeAvailableDeviceStatus(int32_t localUserId,
         return ResultCode::GENERAL_ERROR;
     }
 
-    subscriptionManager_->AddAvailableDeviceStatusCallback(localUserId, deviceStatusCallback);
+    ResultCode ret = subscriptionManager_->AddAvailableDeviceStatusCallback(localUserId, deviceStatusCallback);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("AddAvailableDeviceStatusCallback failed ret=%{public}d", ret);
+        return ret;
+    }
     TaskRunnerManager::GetInstance().PostTaskOnResident([]() { GetCrossDeviceCommManager().RefreshDeviceStatus(); });
     IAM_LOGI("End");
     return ResultCode::SUCCESS;
@@ -109,7 +113,11 @@ ResultCode BaseServiceCore::SubscribeTemplateStatusChange(int32_t localUserId,
         return ResultCode::GENERAL_ERROR;
     }
 
-    subscriptionManager_->AddTemplateStatusCallback(localUserId, templateStatusCallback);
+    ResultCode ret = subscriptionManager_->AddTemplateStatusCallback(localUserId, templateStatusCallback);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("AddTemplateStatusCallback failed ret=%{public}d", ret);
+        return ret;
+    }
     TaskRunnerManager::GetInstance().PostTaskOnResident([]() { GetCrossDeviceCommManager().RefreshDeviceStatus(); });
     IAM_LOGI("End");
     return ResultCode::SUCCESS;
@@ -156,8 +164,12 @@ ResultCode BaseServiceCore::SubscribeContinuousAuthStatusChange(
     } else {
         subscriptionTemplateId = std::nullopt;
     }
-    subscriptionManager_->AddContinuousAuthStatusCallback(subscribeContinuousAuthStatusParam.localUserId,
-        subscriptionTemplateId, continuousAuthStatusCallback);
+    ResultCode addRet = subscriptionManager_->AddContinuousAuthStatusCallback(
+        subscribeContinuousAuthStatusParam.localUserId, subscriptionTemplateId, continuousAuthStatusCallback);
+    if (addRet != ResultCode::SUCCESS) {
+        IAM_LOGE("AddContinuousAuthStatusCallback failed ret=%{public}d", addRet);
+        return addRet;
+    }
 
     IAM_LOGI("End");
     return ResultCode::SUCCESS;

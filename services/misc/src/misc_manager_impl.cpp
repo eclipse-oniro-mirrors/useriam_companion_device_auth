@@ -115,6 +115,7 @@ public:
     ErrCode OnPasscodeSubmit(const std::vector<uint8_t> &passcode) override
     {
         IAM_LOGI("OnPasscodeSubmit invoked, encrypted data len:%{public}zu", passcode.size());
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
         if (!handler_) {
             IAM_LOGE("handler has already been consumed");
             return GENERAL_ERROR;
@@ -144,6 +145,7 @@ public:
 
 private:
     PasscodePromptCallback handler_ {};
+    std::recursive_mutex mutex_;
 };
 } // namespace
 

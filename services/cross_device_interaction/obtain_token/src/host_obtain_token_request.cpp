@@ -358,10 +358,14 @@ bool HostObtainTokenRequest::ShouldCancelOnNewRequest(const IRequest &newRequest
     }
 
     // Spec: new HostObtainTokenRequest to same device preempts existing one
-    if (newRequest.GetRequestType() == RequestType::HOST_OBTAIN_TOKEN_REQUEST &&
-        GetPeerDeviceKey() == newRequest.GetPeerDeviceKey()) {
-        IAM_LOGI("%{public}s: preempted by new HostObtainToken to same device", GetDescription());
-        return true;
+    if (newRequest.GetRequestType() == RequestType::HOST_OBTAIN_TOKEN_REQUEST) {
+        auto currentPeerDevice = GetPeerDeviceKey();
+        auto newPeerDevice = newRequest.GetPeerDeviceKey();
+        if (currentPeerDevice.has_value() && newPeerDevice.has_value() &&
+            currentPeerDevice.value() == newPeerDevice.value()) {
+            IAM_LOGI("%{public}s: preempted by new HostObtainToken to same device", GetDescription());
+            return true;
+        }
     }
 
     return false;

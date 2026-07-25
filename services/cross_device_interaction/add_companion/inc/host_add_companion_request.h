@@ -70,7 +70,7 @@ private:
     std::optional<SecureProtocolId> QuerySecureProtocolId(const DeviceKey &peerDeviceKey);
     ResultCode CallSecurityAgentGetInitKeyNegotiationRequest(std::vector<uint8_t> &initKeyNegotiationRequest);
     ResultCode SendInitKeyNegotiationRequest(const std::vector<uint8_t> &initKeyNegotiationRequest);
-    BeginAddCompanionParams BuildBeginAddCompanionParams(const InitKeyNegotiationReply &reply) const;
+    bool BuildBeginAddCompanionParams(const InitKeyNegotiationReply &reply, BeginAddCompanionParams &params) const;
 
     std::vector<uint8_t> fwkMsg_;
     uint32_t tokenId_ = 0;

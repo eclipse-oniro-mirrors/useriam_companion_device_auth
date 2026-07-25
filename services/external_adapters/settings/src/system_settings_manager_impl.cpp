@@ -169,6 +169,7 @@ bool SystemSettingsManagerImpl::Initialize()
         });
     if (cesStatusListener_ == nullptr) {
         IAM_LOGE("subscribe CommonEventService status failed");
+        return false;
     }
     return true;
 }

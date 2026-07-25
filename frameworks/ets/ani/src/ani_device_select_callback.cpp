@@ -45,8 +45,8 @@ void AniDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     ENSURE_OR_RETURN(callback != nullptr);
     ClientDeviceSelectResult result;
     auto deviceSelectCallback = GetCallback();
-    if (deviceSelectCallback == nullptr) {
-        IAM_LOGE("deviceSelectCallback is null");
+    if (deviceSelectCallback == nullptr || !deviceSelectCallback->has_value()) {
+        IAM_LOGE("deviceSelectCallback is null or not set");
         return;
     }
     {
