@@ -308,13 +308,13 @@ void CompanionAddCompanionRequest::CompleteWithError(ResultCode result)
     if (needCancelAddCompanion_) {
         EndAddHostBindingOutput endOutput = {};
         ResultCode ret = EndAddHostBinding(result, {}, endOutput);
+        needCancelAddCompanion_ = false;
         if (ret != ResultCode::SUCCESS) {
             IAM_LOGE("%{public}s EndAddHostBinding cancel failed ret=%{public}d", GetDescription(), ret);
+        } else {
+            eventCollector_.SetAtl(endOutput.atl);
+            eventCollector_.SetEsl(endOutput.esl);
         }
-        needCancelAddCompanion_ = false;
-
-        eventCollector_.SetAtl(endOutput.atl);
-        eventCollector_.SetEsl(endOutput.esl);
     }
     eventCollector_.Report(result);
     Destroy();

@@ -303,11 +303,11 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     errorGuard.Cancel();
 }
 
-BeginAddCompanionParams HostAddCompanionRequest::BuildBeginAddCompanionParams(
-    const InitKeyNegotiationReply &reply) const
+bool HostAddCompanionRequest::BuildBeginAddCompanionParams(
+    const InitKeyNegotiationReply &reply, BeginAddCompanionParams& params) const
 {
     auto companionDeviceKey = GetPeerDeviceKey();
-    BeginAddCompanionParams params = {};
+    ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), false);
     params.requestId = GetRequestId();
     params.scheduleId = GetScheduleId();
     params.hostDeviceKey = hostDeviceKey_;
@@ -315,14 +315,14 @@ BeginAddCompanionParams HostAddCompanionRequest::BuildBeginAddCompanionParams(
     params.fwkMsg = fwkMsg_;
     params.secureProtocolId = secureProtocolId_;
     params.initKeyNegotiationReply = reply.extraInfo;
-    return params;
+    return true;
 }
 
 bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &reply,
     std::vector<uint8_t> &addHostBindingRequest, ErrorGuard &errorGuard)
 {
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
-    auto params = BuildBeginAddCompanionParams(reply);
+    BeginAddCompanionParams params;
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), BuildBeginAddCompanionParams(reply, params), false);
     uint16_t selectedAlgorithm;
     ResultCode ret = GetCompanionManager().BeginAddCompanion(params, addHostBindingRequest, selectedAlgorithm);
     if (ret != ResultCode::SUCCESS) {

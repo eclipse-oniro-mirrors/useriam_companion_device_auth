@@ -411,6 +411,11 @@ bool GetOnContinuousAuthChangeParam(napi_env env, napi_callback_info info, std::
         return false;
     }
     callback = std::make_shared<NapiContinuousAuthStatusCallback>(JsRefHolder(env, ref));
+    if (callback == nullptr || !callback->GetCallback().IsValid()) {
+        IAM_LOGE("generate callback fail");
+        CompanionDeviceAuthNapiHelper::DeleteReference(env, ref);
+        return false;
+    }
     return true;
 }
 
@@ -611,9 +616,9 @@ napi_value RegisterDeviceSelectCallbackInner(napi_env env, napi_callback_info in
     }
 
     auto callbackRef = std::make_shared<JsRefHolder>(env, ref);
-    ENSURE_OR_RETURN_VAL(callbackRef != nullptr, nullptr);
-    if (!callbackRef->IsValid()) {
+    if (callbackRef == nullptr || !callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");
+        CompanionDeviceAuthNapiHelper::DeleteReference(env, ref);
         return nullptr;
     }
 

@@ -176,14 +176,10 @@ void NapiPasscodePromptCallback::OnPasscodePrompt(const std::shared_ptr<Passcode
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
-    if (callback_ == nullptr) {
-        IAM_LOGE("callback_ is null");
-        return;
-    }
-    if (submit == nullptr) {
-        IAM_LOGE("submit is null");
-        return;
-    }
+    ENSURE_OR_RETURN(callback_ != nullptr);
+    ENSURE_OR_RETURN(submit != nullptr);
+    ENSURE_OR_RETURN(env_ != nullptr);
+
     auto holder = std::make_shared<PasscodePromptHolder>();
     ENSURE_OR_RETURN(holder != nullptr);
     holder->callback = shared_from_this();

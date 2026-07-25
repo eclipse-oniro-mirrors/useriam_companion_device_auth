@@ -272,7 +272,9 @@ ResultCode HostBindingManagerImpl::RemoveHostBinding(UserId companionUserId, con
 std::shared_ptr<HostBinding> HostBindingManagerImpl::FindBindingById(BindingId bindingId)
 {
     auto it = std::find_if(bindings_.begin(), bindings_.end(),
-        [bindingId](const std::shared_ptr<HostBinding> &binding) { return binding->GetBindingId() == bindingId; });
+        [bindingId](const std::shared_ptr<HostBinding> &binding) {
+            return binding != nullptr && binding->GetBindingId() == bindingId;
+        });
 
     return (it != bindings_.end()) ? *it : nullptr;
 }
@@ -281,6 +283,7 @@ std::shared_ptr<HostBinding> HostBindingManagerImpl::FindBindingByDeviceUser(Use
 {
     auto it = std::find_if(bindings_.begin(), bindings_.end(),
         [userId, &deviceKey](const std::shared_ptr<HostBinding> &binding) {
+            ENSURE_OR_RETURN_VAL(binding != nullptr, false);
             const auto &key = binding->GetHostDeviceKey();
             return binding->GetCompanionUserId() == userId && key == deviceKey;
         });

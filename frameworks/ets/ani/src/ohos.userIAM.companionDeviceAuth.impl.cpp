@@ -23,6 +23,7 @@
 
 #include "ani_device_select_callback.h"
 #include "ani_passcode_prompt_callback.h"
+#include "cda_scope_guard.h"
 #include "companion_device_auth_ani_helper.h"
 #include "ohos.userIAM.companionDeviceAuth.impl.hpp"
 #include "status_monitor.h"
@@ -122,19 +123,27 @@ public:
             callback)
     {
         IAM_LOGI("start");
+        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
+        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
+        });
+
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
         if (checkPermission != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
+            errorCode = checkPermission;
             return;
         }
 
-        int32_t ret = statusMonitor_.OnTemplateChange(std::make_shared<AniTemplateStatusCallback>(callback));
+        auto aniCallback = std::make_shared<AniTemplateStatusCallback>(callback);
+        ENSURE_OR_RETURN(aniCallback != nullptr);
+        int32_t ret = statusMonitor_.OnTemplateChange(aniCallback);
         if (ret != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("OnTemplateChange fail");
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+            errorCode = ret;
             return;
         }
+        guard.Cancel();
         IAM_LOGI("end");
     }
 
@@ -143,24 +152,31 @@ public:
             callback)
     {
         IAM_LOGI("start");
+        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
+        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
+        });
+
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
         if (checkPermission != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
+            errorCode = checkPermission;
             return;
         }
 
         std::shared_ptr<AniTemplateStatusCallback> aniCallback = nullptr;
         if (callback.has_value()) {
             aniCallback = std::make_shared<AniTemplateStatusCallback>(*callback);
+            ENSURE_OR_RETURN(aniCallback != nullptr);
         }
 
         int32_t ret = statusMonitor_.OffTemplateChange(aniCallback);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("OffTemplateChange fail");
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+            errorCode = ret;
             return;
         }
+        guard.Cancel();
         IAM_LOGI("end");
     }
 
@@ -169,20 +185,27 @@ public:
             callback)
     {
         IAM_LOGI("start");
+        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
+        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
+        });
+
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
         if (checkPermission != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
+            errorCode = checkPermission;
             return;
         }
 
-        int32_t ret =
-            statusMonitor_.OnAvailableDeviceChange(std::make_shared<AniAvailableDeviceStatusCallback>(callback));
+        auto aniCallback = std::make_shared<AniAvailableDeviceStatusCallback>(callback);
+        ENSURE_OR_RETURN(aniCallback != nullptr);
+        int32_t ret = statusMonitor_.OnAvailableDeviceChange(aniCallback);
         if (ret != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("OnAvailableDeviceChange fail");
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+            errorCode = ret;
             return;
         }
+        guard.Cancel();
         IAM_LOGI("end");
     }
 
@@ -191,24 +214,31 @@ public:
             callback)
     {
         IAM_LOGI("start");
+        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
+        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
+        });
+
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
         if (checkPermission != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
+            errorCode = checkPermission;
             return;
         }
 
         std::shared_ptr<AniAvailableDeviceStatusCallback> aniCallback = nullptr;
         if (callback.has_value()) {
             aniCallback = std::make_shared<AniAvailableDeviceStatusCallback>(*callback);
+            ENSURE_OR_RETURN(aniCallback != nullptr);
         }
 
         int32_t ret = statusMonitor_.OffAvailableDeviceChange(aniCallback);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("OffAvailableDeviceChange fail");
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+            errorCode = ret;
             return;
         }
+        guard.Cancel();
         IAM_LOGI("end");
     }
 
@@ -218,10 +248,15 @@ public:
             callback)
     {
         IAM_LOGI("start");
+        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
+        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
+        });
+
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
         if (checkPermission != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
+            errorCode = checkPermission;
             return;
         }
 
@@ -229,18 +264,20 @@ public:
         if (param.templateId.has_value()) {
             templateId = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(*param.templateId);
             if (!templateId.has_value()) {
-                CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
-                    CompanionDeviceAuth::ResultCode::INVALID_PARAMETERS);
+                IAM_LOGE("ConvertAniTemplateId fail");
+                errorCode = CompanionDeviceAuth::ResultCode::INVALID_PARAMETERS;
                 return;
             }
         }
-        int32_t ret = statusMonitor_.OnContinuousAuthChange(templateId,
-            std::make_shared<AniContinuousAuthStatusCallback>(callback));
+        auto aniCallback = std::make_shared<AniContinuousAuthStatusCallback>(callback);
+        ENSURE_OR_RETURN(aniCallback != nullptr);
+        int32_t ret = statusMonitor_.OnContinuousAuthChange(templateId, aniCallback);
         if (ret != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("OnContinuousAuthChange fail");
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+            errorCode = ret;
             return;
         }
+        guard.Cancel();
         IAM_LOGI("end");
     }
 
@@ -249,24 +286,31 @@ public:
             callback)
     {
         IAM_LOGI("start");
+        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
+        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
+        });
+
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
         if (checkPermission != CompanionDeviceAuth::SUCCESS) {
             IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
+            errorCode = checkPermission;
             return;
         }
 
         std::shared_ptr<AniContinuousAuthStatusCallback> aniCallback = nullptr;
         if (callback.has_value()) {
             aniCallback = std::make_shared<AniContinuousAuthStatusCallback>(*callback);
+            ENSURE_OR_RETURN(aniCallback != nullptr);
         }
 
         int32_t ret = statusMonitor_.OffContinuousAuthChange(aniCallback);
         if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
             IAM_LOGE("OffContinuousAuthChange fail");
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+            errorCode = ret;
             return;
         }
+        guard.Cancel();
         IAM_LOGI("end");
     }
 

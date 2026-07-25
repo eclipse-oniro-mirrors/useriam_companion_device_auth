@@ -115,18 +115,19 @@ std::shared_ptr<ContinuousAuthSubscription> SubscriptionManager::GetOrCreateCont
     return subscription;
 }
 
-void SubscriptionManager::AddAvailableDeviceStatusCallback(int32_t userId,
+ResultCode SubscriptionManager::AddAvailableDeviceStatusCallback(int32_t userId,
     const sptr<IIpcAvailableDeviceStatusCallback> &availableDeviceStatusCallback)
 {
     if (availableDeviceStatusCallback == nullptr) {
         IAM_LOGE("availableDeviceStatusCallback is nullptr");
-        return;
+        return ResultCode::INVALID_PARAMETERS;
     }
 
     auto subscription = GetOrCreateAvailableDeviceSubscription(userId);
-    ENSURE_OR_RETURN(subscription != nullptr);
+    ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
     subscription->AddCallback(availableDeviceStatusCallback);
     UpdateSubscribeMode();
+    return ResultCode::SUCCESS;
 }
 
 void SubscriptionManager::RemoveAvailableDeviceStatusCallback(
@@ -150,18 +151,19 @@ void SubscriptionManager::RemoveAvailableDeviceStatusCallback(
     UpdateSubscribeMode();
 }
 
-void SubscriptionManager::AddTemplateStatusCallback(int32_t userId,
+ResultCode SubscriptionManager::AddTemplateStatusCallback(int32_t userId,
     const sptr<IIpcTemplateStatusCallback> &templateStatusCallback)
 {
     if (templateStatusCallback == nullptr) {
         IAM_LOGE("templateStatusCallback is nullptr");
-        return;
+        return ResultCode::INVALID_PARAMETERS;
     }
 
     auto subscription = GetOrCreateTemplateStatusSubscription(userId);
-    ENSURE_OR_RETURN(subscription != nullptr);
+    ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
     subscription->AddCallback(templateStatusCallback);
     UpdateSubscribeMode();
+    return ResultCode::SUCCESS;
 }
 
 void SubscriptionManager::RemoveTemplateStatusCallback(const sptr<IIpcTemplateStatusCallback> &templateStatusCallback)
@@ -184,17 +186,18 @@ void SubscriptionManager::RemoveTemplateStatusCallback(const sptr<IIpcTemplateSt
     UpdateSubscribeMode();
 }
 
-void SubscriptionManager::AddContinuousAuthStatusCallback(int32_t userId, std::optional<uint64_t> templateId,
+ResultCode SubscriptionManager::AddContinuousAuthStatusCallback(int32_t userId, std::optional<uint64_t> templateId,
     const sptr<IIpcContinuousAuthStatusCallback> &continuousAuthStatusCallback)
 {
     if (continuousAuthStatusCallback == nullptr) {
         IAM_LOGE("continuousAuthStatusCallback is nullptr");
-        return;
+        return ResultCode::INVALID_PARAMETERS;
     }
 
     auto subscription = GetOrCreateContinuousAuthSubscription(userId, templateId);
-    ENSURE_OR_RETURN(subscription != nullptr);
+    ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
     subscription->AddCallback(continuousAuthStatusCallback);
+    return ResultCode::SUCCESS;
 }
 
 void SubscriptionManager::RemoveContinuousAuthStatusCallback(

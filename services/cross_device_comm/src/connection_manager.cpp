@@ -450,6 +450,9 @@ void ConnectionManager::HandleIdleMonitorTimer()
     auto now = GetTimeKeeper().GetSteadyTimeMs();
     ENSURE_OR_RETURN(now.has_value());
 
+    auto messageRouter = weakMessageRouter_.lock();
+    ENSURE_OR_RETURN(messageRouter != nullptr);
+
     for (const auto &pair : connectionMap_) {
         const Connection &connection = pair.second;
         // Use safe subtraction to prevent underflow
@@ -463,8 +466,6 @@ void ConnectionManager::HandleIdleMonitorTimer()
         if (idleTimeMsOpt.value() >= CONNECTION_IDLE_TIMEOUT_MS) {
             IAM_LOGI("connection idle for %{public}" PRIu64 " ms: %{public}s, send keep alive", idleTimeMsOpt.value(),
                 connection.connectionName.c_str());
-            auto messageRouter = weakMessageRouter_.lock();
-            ENSURE_OR_RETURN(messageRouter != nullptr);
             Attributes request;
             bool sendMessageRet =
                 messageRouter->SendMessage(connection.connectionName, MessageType::KEEP_ALIVE, request,
@@ -473,7 +474,10 @@ void ConnectionManager::HandleIdleMonitorTimer()
                         ENSURE_OR_RETURN(self != nullptr);
                         self->HandleKeepAliveReply(connectionName, reply);
                     });
-            ENSURE_OR_RETURN(sendMessageRet);
+            if (!sendMessageRet) {
+                IAM_LOGE("failed to send keep alive for %{public}s, skipping", connection.connectionName.c_str());
+                continue;
+            }
         }
     }
 }
