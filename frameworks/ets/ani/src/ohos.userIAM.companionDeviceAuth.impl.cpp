@@ -23,7 +23,6 @@
 
 #include "ani_device_select_callback.h"
 #include "ani_passcode_prompt_callback.h"
-#include "cda_scope_guard.h"
 #include "companion_device_auth_ani_helper.h"
 #include "ohos.userIAM.companionDeviceAuth.impl.hpp"
 #include "status_monitor.h"
@@ -77,20 +76,23 @@ public:
     {
     }
 
+    int32_t getTemplateStatusInternal(std::vector<CompanionDeviceAuth::ClientTemplateStatus> &clientTemplateStatusList)
+    {
+        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
+        ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+        int32_t ret = statusMonitor_.GetTemplateStatus(clientTemplateStatusList);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            IAM_LOGE("getTemplateStatus fail, ret:%{public}d", ret);
+        }
+        return ret;
+    }
+
     ::taihe::array<TaiheCompanionDeviceAuth::TemplateStatus> getTemplateStatusSync()
     {
         IAM_LOGI("start");
-        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-        if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
-            return {};
-        }
-
         std::vector<CompanionDeviceAuth::ClientTemplateStatus> clientTemplateStatusList;
-        int32_t ret = statusMonitor_.GetTemplateStatus(clientTemplateStatusList);
-        if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
-            IAM_LOGE("getTemplateStatus fail");
+        int32_t ret = getTemplateStatusInternal(clientTemplateStatusList);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
             CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return {};
         }
@@ -109,7 +111,7 @@ public:
         }
         ::taihe::array<TaiheCompanionDeviceAuth::TemplateStatus> result =
             ::taihe::array<TaiheCompanionDeviceAuth::TemplateStatus>(taihe::copy_data_t {}, temp.data(), temp.size());
-        IAM_LOGI("end");
+        IAM_LOGI("success");
         return result;
     }
 
@@ -118,33 +120,52 @@ public:
         return getTemplateStatusSync();
     }
 
+    int32_t onTemplateChangeInternal(
+        ::taihe::callback_view<void(::taihe::array_view<TaiheCompanionDeviceAuth::TemplateStatus> templateStatusList)>
+            callback)
+    {
+        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
+        ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+        auto aniCallback = std::make_shared<AniTemplateStatusCallback>(callback);
+        ENSURE_OR_RETURN_VAL(aniCallback != nullptr, CompanionDeviceAuth::GENERAL_ERROR);
+        int32_t ret = statusMonitor_.OnTemplateChange(aniCallback);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            IAM_LOGE("OnTemplateChange fail, ret:%{public}d", ret);
+        }
+        return ret;
+    }
+
     void onTemplateChange(
         ::taihe::callback_view<void(::taihe::array_view<TaiheCompanionDeviceAuth::TemplateStatus> templateStatusList)>
             callback)
     {
         IAM_LOGI("start");
-        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
-        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
-        });
-
-        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-        if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            errorCode = checkPermission;
-            return;
-        }
-
-        auto aniCallback = std::make_shared<AniTemplateStatusCallback>(callback);
-        ENSURE_OR_RETURN(aniCallback != nullptr);
-        int32_t ret = statusMonitor_.OnTemplateChange(aniCallback);
+        int32_t ret = onTemplateChangeInternal(callback);
         if (ret != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("OnTemplateChange fail");
-            errorCode = ret;
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
-        guard.Cancel();
-        IAM_LOGI("end");
+        IAM_LOGI("success");
+    }
+
+    int32_t offTemplateChangeInternal(::taihe::optional_view<
+        ::taihe::callback<void(::taihe::array_view<TaiheCompanionDeviceAuth::TemplateStatus> templateStatusList)>>
+            callback)
+    {
+        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
+        ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+
+        std::shared_ptr<AniTemplateStatusCallback> aniCallback = nullptr;
+        if (callback.has_value()) {
+            aniCallback = std::make_shared<AniTemplateStatusCallback>(*callback);
+            ENSURE_OR_RETURN_VAL(aniCallback != nullptr, CompanionDeviceAuth::GENERAL_ERROR);
+        }
+
+        int32_t ret = statusMonitor_.OffTemplateChange(aniCallback);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            IAM_LOGE("OffTemplateChange fail, ret:%{public}d", ret);
+        }
+        return ret;
     }
 
     void offTemplateChange(::taihe::optional_view<
@@ -152,32 +173,27 @@ public:
             callback)
     {
         IAM_LOGI("start");
-        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
-        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
-        });
+        int32_t ret = offTemplateChangeInternal(callback);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+            return;
+        }
+        IAM_LOGI("success");
+    }
 
+    int32_t onAvailableDeviceChangeInternal(
+        ::taihe::callback_view<void(::taihe::array_view<TaiheCompanionDeviceAuth::DeviceStatus> deviceStatusList)>
+            callback)
+    {
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-        if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            errorCode = checkPermission;
-            return;
+        ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+        auto aniCallback = std::make_shared<AniAvailableDeviceStatusCallback>(callback);
+        ENSURE_OR_RETURN_VAL(aniCallback != nullptr, CompanionDeviceAuth::GENERAL_ERROR);
+        int32_t ret = statusMonitor_.OnAvailableDeviceChange(aniCallback);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            IAM_LOGE("OnAvailableDeviceChange fail, ret:%{public}d", ret);
         }
-
-        std::shared_ptr<AniTemplateStatusCallback> aniCallback = nullptr;
-        if (callback.has_value()) {
-            aniCallback = std::make_shared<AniTemplateStatusCallback>(*callback);
-            ENSURE_OR_RETURN(aniCallback != nullptr);
-        }
-
-        int32_t ret = statusMonitor_.OffTemplateChange(aniCallback);
-        if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
-            IAM_LOGE("OffTemplateChange fail");
-            errorCode = ret;
-            return;
-        }
-        guard.Cancel();
-        IAM_LOGI("end");
+        return ret;
     }
 
     void onAvailableDeviceChange(
@@ -185,28 +201,32 @@ public:
             callback)
     {
         IAM_LOGI("start");
-        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
-        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
-        });
-
-        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-        if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            errorCode = checkPermission;
-            return;
-        }
-
-        auto aniCallback = std::make_shared<AniAvailableDeviceStatusCallback>(callback);
-        ENSURE_OR_RETURN(aniCallback != nullptr);
-        int32_t ret = statusMonitor_.OnAvailableDeviceChange(aniCallback);
+        int32_t ret = onAvailableDeviceChangeInternal(callback);
         if (ret != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("OnAvailableDeviceChange fail");
-            errorCode = ret;
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
-        guard.Cancel();
-        IAM_LOGI("end");
+        IAM_LOGI("success");
+    }
+
+    int32_t offAvailableDeviceChangeInternal(::taihe::optional_view<
+        ::taihe::callback<void(::taihe::array_view<TaiheCompanionDeviceAuth::DeviceStatus> deviceStatusList)>>
+            callback)
+    {
+        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
+        ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+
+        std::shared_ptr<AniAvailableDeviceStatusCallback> aniCallback = nullptr;
+        if (callback.has_value()) {
+            aniCallback = std::make_shared<AniAvailableDeviceStatusCallback>(*callback);
+            ENSURE_OR_RETURN_VAL(aniCallback != nullptr, CompanionDeviceAuth::GENERAL_ERROR);
+        }
+
+        int32_t ret = statusMonitor_.OffAvailableDeviceChange(aniCallback);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            IAM_LOGE("OffAvailableDeviceChange fail, ret:%{public}d", ret);
+        }
+        return ret;
     }
 
     void offAvailableDeviceChange(::taihe::optional_view<
@@ -214,32 +234,37 @@ public:
             callback)
     {
         IAM_LOGI("start");
-        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
-        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
-        });
+        int32_t ret = offAvailableDeviceChangeInternal(callback);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
+            return;
+        }
+        IAM_LOGI("success");
+    }
 
+    int32_t onContinuousAuthChangeInternal(TaiheCompanionDeviceAuth::ContinuousAuthParam const &param,
+        ::taihe::callback_view<void(bool isAuthPassed,
+            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
+            callback)
+    {
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-        if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            errorCode = checkPermission;
-            return;
-        }
+        ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
 
-        std::shared_ptr<AniAvailableDeviceStatusCallback> aniCallback = nullptr;
-        if (callback.has_value()) {
-            aniCallback = std::make_shared<AniAvailableDeviceStatusCallback>(*callback);
-            ENSURE_OR_RETURN(aniCallback != nullptr);
+        std::optional<uint64_t> templateId = std::nullopt;
+        if (param.templateId.has_value()) {
+            templateId = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(*param.templateId);
+            if (!templateId.has_value()) {
+                IAM_LOGE("ConvertAniTemplateId fail");
+                return CompanionDeviceAuth::INVALID_PARAMETERS;
+            }
         }
-
-        int32_t ret = statusMonitor_.OffAvailableDeviceChange(aniCallback);
-        if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
-            IAM_LOGE("OffAvailableDeviceChange fail");
-            errorCode = ret;
-            return;
+        auto aniCallback = std::make_shared<AniContinuousAuthStatusCallback>(callback);
+        ENSURE_OR_RETURN_VAL(aniCallback != nullptr, CompanionDeviceAuth::GENERAL_ERROR);
+        int32_t ret = statusMonitor_.OnContinuousAuthChange(templateId, aniCallback);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            IAM_LOGE("OnContinuousAuthChange fail, ret:%{public}d", ret);
         }
-        guard.Cancel();
-        IAM_LOGI("end");
+        return ret;
     }
 
     void onContinuousAuthChange(TaiheCompanionDeviceAuth::ContinuousAuthParam const &param,
@@ -248,37 +273,32 @@ public:
             callback)
     {
         IAM_LOGI("start");
-        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
-        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
-        });
-
-        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-        if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            errorCode = checkPermission;
-            return;
-        }
-
-        std::optional<uint64_t> templateId = std::nullopt;
-        if (param.templateId.has_value()) {
-            templateId = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(*param.templateId);
-            if (!templateId.has_value()) {
-                IAM_LOGE("ConvertAniTemplateId fail");
-                errorCode = CompanionDeviceAuth::ResultCode::INVALID_PARAMETERS;
-                return;
-            }
-        }
-        auto aniCallback = std::make_shared<AniContinuousAuthStatusCallback>(callback);
-        ENSURE_OR_RETURN(aniCallback != nullptr);
-        int32_t ret = statusMonitor_.OnContinuousAuthChange(templateId, aniCallback);
+        int32_t ret = onContinuousAuthChangeInternal(param, callback);
         if (ret != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("OnContinuousAuthChange fail");
-            errorCode = ret;
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
-        guard.Cancel();
-        IAM_LOGI("end");
+        IAM_LOGI("success");
+    }
+
+    int32_t offContinuousAuthChangeInternal(::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
+            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
+            callback)
+    {
+        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
+        ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+
+        std::shared_ptr<AniContinuousAuthStatusCallback> aniCallback = nullptr;
+        if (callback.has_value()) {
+            aniCallback = std::make_shared<AniContinuousAuthStatusCallback>(*callback);
+            ENSURE_OR_RETURN_VAL(aniCallback != nullptr, CompanionDeviceAuth::GENERAL_ERROR);
+        }
+
+        int32_t ret = statusMonitor_.OffContinuousAuthChange(aniCallback);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            IAM_LOGE("OffContinuousAuthChange fail, ret:%{public}d", ret);
+        }
+        return ret;
     }
 
     void offContinuousAuthChange(::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
@@ -286,109 +306,87 @@ public:
             callback)
     {
         IAM_LOGI("start");
-        int32_t errorCode = CompanionDeviceAuth::ResultCode::GENERAL_ERROR;
-        CompanionDeviceAuth::ScopeGuard guard([&errorCode]() {
-            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(errorCode);
-        });
-
-        int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-        if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-            IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-            errorCode = checkPermission;
+        int32_t ret = offContinuousAuthChangeInternal(callback);
+        if (ret != CompanionDeviceAuth::SUCCESS) {
+            CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
             return;
         }
-
-        std::shared_ptr<AniContinuousAuthStatusCallback> aniCallback = nullptr;
-        if (callback.has_value()) {
-            aniCallback = std::make_shared<AniContinuousAuthStatusCallback>(*callback);
-            ENSURE_OR_RETURN(aniCallback != nullptr);
-        }
-
-        int32_t ret = statusMonitor_.OffContinuousAuthChange(aniCallback);
-        if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
-            IAM_LOGE("OffContinuousAuthChange fail");
-            errorCode = ret;
-            return;
-        }
-        guard.Cancel();
-        IAM_LOGI("end");
+        IAM_LOGI("success");
     }
 
 private:
     AniStatusMonitor statusMonitor_;
 };
 
+int32_t getStatusMonitorInternal(int32_t localUserId)
+{
+    int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
+    ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+
+    int32_t ret = AniStatusMonitor::CheckUserId(localUserId);
+    if (ret != CompanionDeviceAuth::SUCCESS) {
+        IAM_LOGE("CheckUserId fail, ret:%{public}d", ret);
+    }
+    return ret;
+}
+
 TaiheCompanionDeviceAuth::StatusMonitor getStatusMonitor(int32_t localUserId)
 {
     IAM_LOGI("start");
     const int32_t invalidUserId = -1;
 
-    int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-    if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
-        return taihe::make_holder<StatusMonitorImpl, TaiheCompanionDeviceAuth::StatusMonitor>(invalidUserId);
-    }
-
-    int32_t ret = AniStatusMonitor::CheckUserId(localUserId);
+    int32_t ret = getStatusMonitorInternal(localUserId);
     if (ret != CompanionDeviceAuth::SUCCESS) {
-        IAM_LOGE("CheckUserId fail, ret:%{public}d", ret);
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
         return taihe::make_holder<StatusMonitorImpl, TaiheCompanionDeviceAuth::StatusMonitor>(invalidUserId);
     }
 
-    IAM_LOGI("end");
+    IAM_LOGI("success");
     return taihe::make_holder<StatusMonitorImpl, TaiheCompanionDeviceAuth::StatusMonitor>(localUserId);
 }
 
-void updateEnabledBusinessIdsSync(::taihe::array_view<uint8_t> templateId,
+int32_t updateEnabledBusinessIdsSyncInternal(::taihe::array_view<uint8_t> templateId,
     ::taihe::array_view<int32_t> enabledBusinessIds)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-    if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
-        return;
-    }
+    ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
 
     auto templateIdOpt = CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertAniTemplateId(templateId);
     if (!templateIdOpt.has_value()) {
-        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
-            CompanionDeviceAuth::ResultCode::INVALID_PARAMETERS);
-        return;
+        IAM_LOGE("ConvertAniTemplateId fail");
+        return CompanionDeviceAuth::INVALID_PARAMETERS;
     }
     uint64_t clientTemplateId = *templateIdOpt;
     std::vector<int32_t> clientEnabledBusinessIds =
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ConvertArrayToInt32Vector(enabledBusinessIds);
     int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().UpdateTemplateEnabledBusinessIds(
         clientTemplateId, clientEnabledBusinessIds);
-    if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
-        IAM_LOGE("UpdateEnabledBusinessIds fail");
+    if (ret != CompanionDeviceAuth::SUCCESS) {
+        IAM_LOGE("UpdateEnabledBusinessIds fail, ret:%{public}d", ret);
+    }
+    return ret;
+}
+
+void updateEnabledBusinessIdsSync(::taihe::array_view<uint8_t> templateId,
+    ::taihe::array_view<int32_t> enabledBusinessIds)
+{
+    IAM_LOGI("start");
+    int32_t ret = updateEnabledBusinessIdsSyncInternal(templateId, enabledBusinessIds);
+    if (ret != CompanionDeviceAuth::SUCCESS) {
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
         return;
     }
-    IAM_LOGI("end");
+    IAM_LOGI("success");
 }
 
-void registerDeviceSelectCallback(
+int32_t registerDeviceSelectCallbackInternal(
     ::taihe::callback_view<TaiheCompanionDeviceAuth::DeviceSelectResult(int32_t selectPurpose)> callback)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-    if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
-        return;
-    }
+    ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
 
     auto deviceSelectCallback = std::make_shared<CompanionDeviceAuth::AniDeviceSelectCallback>();
-    if (deviceSelectCallback == nullptr) {
-        IAM_LOGE("deviceSelectCallback is null");
-        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(
-            CompanionDeviceAuth::ResultCode::GENERAL_ERROR);
-        return;
-    }
+    ENSURE_OR_RETURN_VAL(deviceSelectCallback != nullptr, CompanionDeviceAuth::GENERAL_ERROR);
 
     deviceSelectCallback->SetCallback(
         ::taihe::optional<::taihe::callback<TaiheCompanionDeviceAuth::DeviceSelectResult(int32_t selectPurpose)>> {
@@ -396,31 +394,68 @@ void registerDeviceSelectCallback(
 
     int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().RegisterDeviceSelectCallback(
         deviceSelectCallback);
-    if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
-        IAM_LOGE("RegisterDeviceSelectCallback fail");
+    if (ret != CompanionDeviceAuth::SUCCESS) {
+        IAM_LOGE("RegisterDeviceSelectCallback fail, ret:%{public}d", ret);
+    }
+    return ret;
+}
+
+void registerDeviceSelectCallback(
+    ::taihe::callback_view<TaiheCompanionDeviceAuth::DeviceSelectResult(int32_t selectPurpose)> callback)
+{
+    IAM_LOGI("start");
+    int32_t ret = registerDeviceSelectCallbackInternal(callback);
+    if (ret != CompanionDeviceAuth::SUCCESS) {
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
         return;
     }
-    IAM_LOGI("end");
+    IAM_LOGI("success");
+}
+
+int32_t unregisterDeviceSelectCallbackInternal()
+{
+    int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
+    ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+
+    int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().UnregisterDeviceSelectCallback();
+    if (ret != CompanionDeviceAuth::SUCCESS) {
+        IAM_LOGE("UnregisterDeviceSelectCallback fail, ret:%{public}d", ret);
+    }
+    return ret;
 }
 
 void unregisterDeviceSelectCallback()
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
-    if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
-        return;
-    }
-
-    int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().UnregisterDeviceSelectCallback();
-    if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
-        IAM_LOGE("UnregisterDeviceSelectCallback fail");
+    int32_t ret = unregisterDeviceSelectCallbackInternal();
+    if (ret != CompanionDeviceAuth::SUCCESS) {
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
         return;
     }
-    IAM_LOGI("end");
+    IAM_LOGI("success");
+}
+
+int32_t registerPasscodePromptCallbackInternal(
+    ::taihe::callback_view<void(::taihe::callback_view<void(::taihe::array_view<uint8_t>)>,
+        const TaiheCompanionDeviceAuth::PasscodePromptOptions &)>
+        callback)
+{
+    int32_t checkPermission = CheckPermission(CompanionDeviceAuth::ACCESS_USER_AUTH_INTERNAL_PERMISSION);
+    ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+
+    auto passcodePromptCallback = std::make_shared<CompanionDeviceAuth::AniPasscodePromptCallback>();
+    ENSURE_OR_RETURN_VAL(passcodePromptCallback != nullptr, CompanionDeviceAuth::GENERAL_ERROR);
+
+    passcodePromptCallback->SetCallback(
+        ::taihe::optional<::taihe::callback<void(::taihe::callback_view<void(::taihe::array_view<uint8_t>)>,
+            const TaiheCompanionDeviceAuth::PasscodePromptOptions &)>> { std::in_place_t {}, callback });
+
+    int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().RegisterPasscodePromptCallback(
+        passcodePromptCallback);
+    if (ret != CompanionDeviceAuth::SUCCESS) {
+        IAM_LOGE("RegisterPasscodePromptCallback fail, ret:%{public}d", ret);
+    }
+    return ret;
 }
 
 void registerPasscodePromptCallback(
@@ -429,47 +464,35 @@ void registerPasscodePromptCallback(
         callback)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission(CompanionDeviceAuth::ACCESS_USER_AUTH_INTERNAL_PERMISSION);
-    if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
-        return;
-    }
-
-    auto passcodePromptCallback = std::make_shared<CompanionDeviceAuth::AniPasscodePromptCallback>();
-    ENSURE_OR_RETURN(passcodePromptCallback != nullptr);
-
-    passcodePromptCallback->SetCallback(
-        ::taihe::optional<::taihe::callback<void(::taihe::callback_view<void(::taihe::array_view<uint8_t>)>,
-            const TaiheCompanionDeviceAuth::PasscodePromptOptions &)>> { std::in_place_t {}, callback });
-
-    int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().RegisterPasscodePromptCallback(
-        passcodePromptCallback);
-    if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
-        IAM_LOGE("RegisterPasscodePromptCallback fail");
+    int32_t ret = registerPasscodePromptCallbackInternal(callback);
+    if (ret != CompanionDeviceAuth::SUCCESS) {
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
         return;
     }
-    IAM_LOGI("end");
+    IAM_LOGI("success");
+}
+
+int32_t unregisterPasscodePromptCallbackInternal()
+{
+    int32_t checkPermission = CheckPermission(CompanionDeviceAuth::ACCESS_USER_AUTH_INTERNAL_PERMISSION);
+    ENSURE_OR_RETURN_VAL(checkPermission == CompanionDeviceAuth::SUCCESS, checkPermission);
+
+    int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().UnregisterPasscodePromptCallback();
+    if (ret != CompanionDeviceAuth::SUCCESS) {
+        IAM_LOGE("UnregisterPasscodePromptCallback fail, ret:%{public}d", ret);
+    }
+    return ret;
 }
 
 void unregisterPasscodePromptCallback()
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission(CompanionDeviceAuth::ACCESS_USER_AUTH_INTERNAL_PERMISSION);
-    if (checkPermission != CompanionDeviceAuth::SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(checkPermission);
-        return;
-    }
-
-    int32_t ret = CompanionDeviceAuth::CompanionDeviceAuthClient::GetInstance().UnregisterPasscodePromptCallback();
-    if (ret != CompanionDeviceAuth::ResultCode::SUCCESS) {
-        IAM_LOGE("UnregisterPasscodePromptCallback fail");
+    int32_t ret = unregisterPasscodePromptCallbackInternal();
+    if (ret != CompanionDeviceAuth::SUCCESS) {
         CompanionDeviceAuth::CompanionDeviceAuthAniHelper::ThrowBusinessError(ret);
         return;
     }
-    IAM_LOGI("end");
+    IAM_LOGI("success");
 }
 } // namespace
 

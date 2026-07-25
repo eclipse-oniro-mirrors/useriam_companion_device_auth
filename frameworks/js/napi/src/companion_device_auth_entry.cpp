@@ -17,7 +17,6 @@
 #include "napi/native_common.h"
 
 #include "accesstoken_kit.h"
-#include "cda_scope_guard.h"
 #include "ipc_skeleton.h"
 #include "securec.h"
 #include "tokenid_kit.h"
@@ -156,6 +155,29 @@ void DoPromise(napi_env env, napi_deferred promise, napi_value promiseValue, int
     }
 }
 
+int32_t GetTemplateStatusInternal(napi_env env, napi_callback_info info, napi_value *outTemplateStatusList)
+{
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
+
+    NapiStatusMonitor *statusMonitor = nullptr;
+    bool unwrapRet = UnwrapStatusMonitor(env, info, &statusMonitor);
+    ENSURE_OR_RETURN_VAL(unwrapRet, GENERAL_ERROR);
+
+    std::vector<ClientTemplateStatus> clientTemplateStatusList;
+    int32_t ret = statusMonitor->GetTemplateStatus(clientTemplateStatusList);
+    if (ret != SUCCESS) {
+        IAM_LOGE("GetTemplateStatus fail, ret:%{public}d", ret);
+        return ret;
+    }
+
+    napi_value templateStatusList =
+        CompanionDeviceAuthNapiHelper::ConvertTemplateStatusListToNapiValue(env, clientTemplateStatusList);
+    ENSURE_OR_RETURN_VAL(templateStatusList != nullptr, GENERAL_ERROR);
+    *outTemplateStatusList = templateStatusList;
+    return SUCCESS;
+}
+
 napi_value GetTemplateStatus(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
@@ -168,99 +190,60 @@ napi_value GetTemplateStatus(napi_env env, napi_callback_info info)
         return nullptr;
     }
 
-    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_reject_deferred(env, promiseDeferred,
-            CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return promiseValue;
-    }
-
-    NapiStatusMonitor *statusMonitor = nullptr;
-    if (!UnwrapStatusMonitor(env, info, &statusMonitor)) {
-        IAM_LOGE("UnwrapStatusMonitor fail");
-        napi_reject_deferred(env, promiseDeferred,
-            CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return promiseValue;
-    }
-
-    std::vector<ClientTemplateStatus> clientTemplateStatusList;
     napi_value templateStatusList = nullptr;
-    int32_t ret = statusMonitor->GetTemplateStatus(clientTemplateStatusList);
+    int32_t ret = GetTemplateStatusInternal(env, info, &templateStatusList);
     if (ret != SUCCESS) {
-        IAM_LOGE("GetTemplateStatus fail, ret:%{public}d", ret);
         napi_reject_deferred(env, promiseDeferred, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return promiseValue;
-    } else {
-        templateStatusList =
-            CompanionDeviceAuthNapiHelper::ConvertTemplateStatusListToNapiValue(env, clientTemplateStatusList);
-        if (templateStatusList == nullptr) {
-            IAM_LOGE("ConvertTemplateStatusListToNapiValue fail");
-            ret = GENERAL_ERROR;
-        }
     }
     DoPromise(env, promiseDeferred, templateStatusList, ret);
     IAM_LOGI("success");
     return promiseValue;
 }
 
-napi_value OnTemplateChange(napi_env env, napi_callback_info info)
+int32_t OnTemplateChangeInternal(napi_env env, napi_callback_info info)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     NapiStatusMonitor *statusMonitor = nullptr;
-    if (!UnwrapStatusMonitor(env, info, &statusMonitor)) {
-        IAM_LOGE("UnwrapStatusMonitor fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    bool unwrapRet = UnwrapStatusMonitor(env, info, &statusMonitor);
+    ENSURE_OR_RETURN_VAL(unwrapRet, GENERAL_ERROR);
 
     auto callback = GetCallbackRef(env, info);
-    if (!callback || *callback == nullptr) {
-        IAM_LOGE("GetCallbackRef fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(callback && *callback != nullptr, GENERAL_ERROR);
+
     int32_t ret =
         statusMonitor->OnTemplateChange(std::make_shared<NapiTemplateStatusCallback>(JsRefHolder(env, *callback)));
     if (ret != SUCCESS) {
         IAM_LOGE("OnTemplateChange fail, ret:%{public}d", ret);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+    }
+    return ret;
+}
+
+napi_value OnTemplateChange(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    int32_t ret = OnTemplateChangeInternal(env, info);
+    if (ret != SUCCESS) {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
     IAM_LOGI("success");
     return nullptr;
 }
 
-napi_value OffTemplateChange(napi_env env, napi_callback_info info)
+int32_t OffTemplateChangeInternal(napi_env env, napi_callback_info info)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     NapiStatusMonitor *statusMonitor = nullptr;
-    if (!UnwrapStatusMonitor(env, info, &statusMonitor)) {
-        IAM_LOGE("UnwrapStatusMonitor fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    bool unwrapRet = UnwrapStatusMonitor(env, info, &statusMonitor);
+    ENSURE_OR_RETURN_VAL(unwrapRet, GENERAL_ERROR);
 
     auto callback = GetCallbackRef(env, info);
-    if (!callback) {
-        IAM_LOGE("GetCallbackRef fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(callback, GENERAL_ERROR);
 
     std::shared_ptr<NapiTemplateStatusCallback> callbackWrapper = nullptr;
     if (*callback != nullptr) {
@@ -269,71 +252,65 @@ napi_value OffTemplateChange(napi_env env, napi_callback_info info)
     int32_t ret = statusMonitor->OffTemplateChange(callbackWrapper);
     if (ret != SUCCESS) {
         IAM_LOGE("OffTemplateChange fail, ret:%{public}d", ret);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+    }
+    return ret;
+}
+
+napi_value OffTemplateChange(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    int32_t ret = OffTemplateChangeInternal(env, info);
+    if (ret != SUCCESS) {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
     IAM_LOGI("success");
     return nullptr;
 }
 
-napi_value OnAvailableDeviceChange(napi_env env, napi_callback_info info)
+int32_t OnAvailableDeviceChangeInternal(napi_env env, napi_callback_info info)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     NapiStatusMonitor *statusMonitor = nullptr;
-    if (!UnwrapStatusMonitor(env, info, &statusMonitor)) {
-        IAM_LOGE("UnwrapStatusMonitor fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    bool unwrapRet = UnwrapStatusMonitor(env, info, &statusMonitor);
+    ENSURE_OR_RETURN_VAL(unwrapRet, GENERAL_ERROR);
 
     auto callback = GetCallbackRef(env, info);
-    if (!callback || *callback == nullptr) {
-        IAM_LOGE("GetCallbackRef fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(callback && *callback != nullptr, GENERAL_ERROR);
 
     int32_t ret = statusMonitor->OnAvailableDeviceChange(
         std::make_shared<NapiAvailableDeviceStatusCallback>(JsRefHolder(env, *callback)));
     if (ret != SUCCESS) {
         IAM_LOGE("OnAvailableDeviceChange fail, ret:%{public}d", ret);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+    }
+    return ret;
+}
+
+napi_value OnAvailableDeviceChange(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    int32_t ret = OnAvailableDeviceChangeInternal(env, info);
+    if (ret != SUCCESS) {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
     IAM_LOGI("success");
     return nullptr;
 }
 
-napi_value OffAvailableDeviceChange(napi_env env, napi_callback_info info)
+int32_t OffAvailableDeviceChangeInternal(napi_env env, napi_callback_info info)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     NapiStatusMonitor *statusMonitor = nullptr;
-    if (!UnwrapStatusMonitor(env, info, &statusMonitor)) {
-        IAM_LOGE("UnwrapStatusMonitor fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    bool unwrapRet = UnwrapStatusMonitor(env, info, &statusMonitor);
+    ENSURE_OR_RETURN_VAL(unwrapRet, GENERAL_ERROR);
 
     auto callback = GetCallbackRef(env, info);
-    if (!callback) {
-        IAM_LOGE("GetCallbackRef fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(callback, GENERAL_ERROR);
 
     std::shared_ptr<NapiAvailableDeviceStatusCallback> callbackWrapper = nullptr;
     if (*callback != nullptr) {
@@ -341,8 +318,17 @@ napi_value OffAvailableDeviceChange(napi_env env, napi_callback_info info)
     }
     int32_t ret = statusMonitor->OffAvailableDeviceChange(callbackWrapper);
     if (ret != SUCCESS) {
-        IAM_LOGE("OffAvailableDeviceChange fail:%{public}d", ret);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+        IAM_LOGE("OffAvailableDeviceChange fail, ret:%{public}d", ret);
+    }
+    return ret;
+}
+
+napi_value OffAvailableDeviceChange(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    int32_t ret = OffAvailableDeviceChangeInternal(env, info);
+    if (ret != SUCCESS) {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
     IAM_LOGI("success");
@@ -419,64 +405,51 @@ bool GetOnContinuousAuthChangeParam(napi_env env, napi_callback_info info, std::
     return true;
 }
 
-napi_value OnContinuousAuthChange(napi_env env, napi_callback_info info)
+int32_t OnContinuousAuthChangeInternal(napi_env env, napi_callback_info info)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     NapiStatusMonitor *statusMonitor = nullptr;
-    if (!UnwrapStatusMonitor(env, info, &statusMonitor)) {
-        IAM_LOGE("UnwrapStatusMonitor fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    bool unwrapRet = UnwrapStatusMonitor(env, info, &statusMonitor);
+    ENSURE_OR_RETURN_VAL(unwrapRet, GENERAL_ERROR);
 
     std::optional<uint64_t> templateIdOpt;
     std::shared_ptr<NapiContinuousAuthStatusCallback> callback;
-    if (!GetOnContinuousAuthChangeParam(env, info, templateIdOpt, callback)) {
-        IAM_LOGE("GetOnContinuousAuthChangeParam fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    bool getParamRet = GetOnContinuousAuthChangeParam(env, info, templateIdOpt, callback);
+    ENSURE_OR_RETURN_VAL(getParamRet, GENERAL_ERROR);
 
     int32_t ret = statusMonitor->OnContinuousAuthChange(templateIdOpt, callback);
     if (ret != SUCCESS) {
         IAM_LOGE("OnContinuousAuthChange fail, ret:%{public}d", ret);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+        return ret;
+    }
+    return SUCCESS;
+}
+
+napi_value OnContinuousAuthChange(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    int32_t ret = OnContinuousAuthChangeInternal(env, info);
+    if (ret != SUCCESS) {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
     IAM_LOGI("success");
     return nullptr;
 }
 
-napi_value OffContinuousAuthChange(napi_env env, napi_callback_info info)
+int32_t OffContinuousAuthChangeInternal(napi_env env, napi_callback_info info)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     NapiStatusMonitor *statusMonitor = nullptr;
-    if (!UnwrapStatusMonitor(env, info, &statusMonitor)) {
-        IAM_LOGE("UnwrapStatusMonitor fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    bool unwrapRet = UnwrapStatusMonitor(env, info, &statusMonitor);
+    ENSURE_OR_RETURN_VAL(unwrapRet, GENERAL_ERROR);
 
     auto callback = GetCallbackRef(env, info);
-    if (!callback) {
-        IAM_LOGE("GetCallbackRef fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(callback, GENERAL_ERROR);
 
     std::shared_ptr<NapiContinuousAuthStatusCallback> callbackWrapper = nullptr;
     if (*callback != nullptr) {
@@ -486,7 +459,17 @@ napi_value OffContinuousAuthChange(napi_env env, napi_callback_info info)
     int32_t ret = statusMonitor->OffContinuousAuthChange(callbackWrapper);
     if (ret != SUCCESS) {
         IAM_LOGE("OffContinuousAuthChange fail, ret:%{public}d", ret);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+        return ret;
+    }
+    return SUCCESS;
+}
+
+napi_value OffContinuousAuthChange(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    int32_t ret = OffContinuousAuthChangeInternal(env, info);
+    if (ret != SUCCESS) {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
     IAM_LOGI("success");
@@ -544,168 +527,134 @@ napi_value StatusMonitorClass(napi_env env)
     return result;
 }
 
-napi_value GetStatusMonitor(napi_env env, napi_callback_info info)
+int32_t GetStatusMonitorInternal(napi_env env, napi_callback_info info, napi_value &result)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     auto userId = GetUserId(env, info);
-    if (!userId) {
-        IAM_LOGE("GetUserId fail");
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(userId, GENERAL_ERROR);
     int32_t ret = NapiStatusMonitor::CheckUserId(*userId);
     if (ret != SUCCESS) {
         IAM_LOGE("CheckUserId fail, ret:%{public}d", ret);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
-        return nullptr;
+        return ret;
     }
 
     napi_value argv[ARGS_ONE];
     size_t argc = ARGS_ONE;
     napi_status status = napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (status != napi_ok || argc != ARGS_ONE) {
-        IAM_LOGE("napi_get_cb_info fail, ret:%{public}d argc:%{public}zu", status, argc);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(status == napi_ok && argc == ARGS_ONE, GENERAL_ERROR);
     napi_value napiStatusMonitor;
     status = napi_new_instance(env, StatusMonitorClass(env), argc, argv, &napiStatusMonitor);
-    if (status != napi_ok) {
-        IAM_LOGE("napi_new_instance fail, ret:%{public}d", status);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, GENERAL_ERROR));
+    ENSURE_OR_RETURN_VAL(status == napi_ok, GENERAL_ERROR);
+    result = napiStatusMonitor;
+    return SUCCESS;
+}
+
+napi_value GetStatusMonitor(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    napi_value result = nullptr;
+    int32_t ret = GetStatusMonitorInternal(env, info, result);
+    if (ret != SUCCESS) {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
     IAM_LOGI("success");
-    return napiStatusMonitor;
+    return result;
 }
 
-napi_value RegisterDeviceSelectCallbackInner(napi_env env, napi_callback_info info)
+int32_t RegisterDeviceSelectCallbackInternal(napi_env env, napi_callback_info info)
 {
-    int32_t errorCode = ResultCode::GENERAL_ERROR;
-    ScopeGuard guard([&env, &errorCode]() {
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, errorCode));
-    });
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     napi_value argv[ARGS_ONE];
     size_t argc = ARGS_ONE;
     napi_status status = napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (status != napi_ok) {
-        IAM_LOGE("napi_get_cb_info fail, ret:%{public}d", status);
-        return nullptr;
-    }
-    if (argc != ARGS_ONE) {
-        IAM_LOGE("invalid param, argc:%{public}zu", argc);
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(status == napi_ok && argc == ARGS_ONE, GENERAL_ERROR);
 
     auto deviceSelectCallback = std::make_shared<NapiDeviceSelectCallback>(env);
-    ENSURE_OR_RETURN_VAL(deviceSelectCallback != nullptr, nullptr);
+    ENSURE_OR_RETURN_VAL(deviceSelectCallback != nullptr, GENERAL_ERROR);
 
     napi_ref ref = nullptr;
     status = CompanionDeviceAuthNapiHelper::GetFunctionRef(env, argv[PARAM0], ref);
-    if (status != napi_ok || ref == nullptr) {
-        IAM_LOGE("GetFunctionRef fail %{public}d", status);
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(status == napi_ok && ref != nullptr, GENERAL_ERROR);
 
     auto callbackRef = std::make_shared<JsRefHolder>(env, ref);
     if (callbackRef == nullptr || !callbackRef->IsValid()) {
         IAM_LOGE("generate callbackRef fail");
         CompanionDeviceAuthNapiHelper::DeleteReference(env, ref);
-        return nullptr;
+        return GENERAL_ERROR;
     }
 
     deviceSelectCallback->SetCallback(callbackRef);
     int32_t ret = CompanionDeviceAuthClient::GetInstance().RegisterDeviceSelectCallback(deviceSelectCallback);
     if (ret != SUCCESS) {
         IAM_LOGE("RegisterDeviceSelectCallback fail, ret:%{public}d", ret);
-        errorCode = ret;
-        return nullptr;
     }
-
-    guard.Cancel();
-    IAM_LOGI("success");
-    return nullptr;
+    return ret;
 }
 
-napi_value RegisterPasscodePromptCallback(napi_env env, napi_callback_info info)
+int32_t RegisterPasscodePromptCallbackInternal(napi_env env, napi_callback_info info)
 {
-    IAM_LOGI("start");
     int32_t checkPermission = CheckPermission(ACCESS_USER_AUTH_INTERNAL_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
-
-    int32_t errorCode = ResultCode::GENERAL_ERROR;
-    ScopeGuard guard([&env, &errorCode]() {
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, errorCode));
-    });
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     napi_value argv[ARGS_ONE];
     size_t argc = ARGS_ONE;
     napi_status status = napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (status != napi_ok) {
-        IAM_LOGE("napi_get_cb_info fail, ret:%{public}d", status);
-        return nullptr;
-    }
-    if (argc != ARGS_ONE) {
-        IAM_LOGE("invalid param, argc:%{public}zu", argc);
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(status == napi_ok && argc == ARGS_ONE, GENERAL_ERROR);
 
     auto passcodePromptCallback = std::make_shared<NapiPasscodePromptCallback>(env);
-    ENSURE_OR_RETURN_VAL(passcodePromptCallback != nullptr, nullptr);
+    ENSURE_OR_RETURN_VAL(passcodePromptCallback != nullptr, GENERAL_ERROR);
 
     napi_ref ref = nullptr;
     status = CompanionDeviceAuthNapiHelper::GetFunctionRef(env, argv[PARAM0], ref);
-    if (status != napi_ok || ref == nullptr) {
-        IAM_LOGE("GetFunctionRef fail %{public}d", status);
-        return nullptr;
-    }
+    ENSURE_OR_RETURN_VAL(status == napi_ok && ref != nullptr, GENERAL_ERROR);
 
     auto callbackRef = std::make_shared<JsRefHolder>(env, ref);
-    ENSURE_OR_RETURN_VAL(callbackRef != nullptr, nullptr);
-    if (!callbackRef->IsValid()) {
-        IAM_LOGE("generate callbackRef fail");
-        return nullptr;
-    }
+    bool callbackRefValid = callbackRef != nullptr && callbackRef->IsValid();
+    ENSURE_OR_RETURN_VAL(callbackRefValid, GENERAL_ERROR);
 
     passcodePromptCallback->SetCallback(callbackRef);
     int32_t ret = CompanionDeviceAuthClient::GetInstance().RegisterPasscodePromptCallback(passcodePromptCallback);
     if (ret != SUCCESS) {
         IAM_LOGE("RegisterPasscodePromptCallback fail, ret:%{public}d", ret);
-        errorCode = ret;
+    }
+    return ret;
+}
+
+napi_value RegisterPasscodePromptCallback(napi_env env, napi_callback_info info)
+{
+    IAM_LOGI("start");
+    int32_t ret = RegisterPasscodePromptCallbackInternal(env, info);
+    if (ret != SUCCESS) {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
-
-    guard.Cancel();
     IAM_LOGI("success");
     return nullptr;
+}
+
+int32_t UnregisterPasscodePromptCallbackInternal()
+{
+    int32_t checkPermission = CheckPermission(ACCESS_USER_AUTH_INTERNAL_PERMISSION);
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
+
+    int32_t ret = CompanionDeviceAuthClient::GetInstance().UnregisterPasscodePromptCallback();
+    if (ret != SUCCESS) {
+        IAM_LOGE("UnregisterPasscodePromptCallback fail, ret:%{public}d", ret);
+    }
+    return ret;
 }
 
 napi_value UnregisterPasscodePromptCallback(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission(ACCESS_USER_AUTH_INTERNAL_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
-
-    int32_t ret = CompanionDeviceAuthClient::GetInstance().UnregisterPasscodePromptCallback();
+    int32_t ret = UnregisterPasscodePromptCallbackInternal();
     if (ret != SUCCESS) {
-        IAM_LOGE("UnregisterPasscodePromptCallback fail, ret:%{public}d", ret);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
     IAM_LOGI("success");
@@ -715,90 +664,68 @@ napi_value UnregisterPasscodePromptCallback(napi_env env, napi_callback_info inf
 napi_value RegisterDeviceSelectCallback(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
-        return nullptr;
-    }
-
-    return RegisterDeviceSelectCallbackInner(env, info);
-}
-
-napi_value UnregisterDeviceSelectCallbackInner(napi_env env, napi_callback_info info)
-{
-    int32_t ret = CompanionDeviceAuthClient::GetInstance().UnregisterDeviceSelectCallback();
+    int32_t ret = RegisterDeviceSelectCallbackInternal(env, info);
     if (ret != SUCCESS) {
-        IAM_LOGE("UnregisterDeviceSelectCallback fail, ret:%{public}d", ret);
-        napi_throw(env, CompanionDeviceAuth::CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
     IAM_LOGI("success");
     return nullptr;
 }
 
+int32_t UnregisterDeviceSelectCallbackInternal()
+{
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
+    int32_t ret = CompanionDeviceAuthClient::GetInstance().UnregisterDeviceSelectCallback();
+    if (ret != SUCCESS) {
+        IAM_LOGE("UnregisterDeviceSelectCallback fail, ret:%{public}d", ret);
+    }
+    return ret;
+}
+
 napi_value UnregisterDeviceSelectCallback(napi_env env, napi_callback_info info)
 {
     IAM_LOGI("start");
-    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
+    int32_t ret = UnregisterDeviceSelectCallbackInternal();
+    if (ret != SUCCESS) {
+        napi_throw(env, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return nullptr;
     }
-
-    return UnregisterDeviceSelectCallbackInner(env, info);
+    IAM_LOGI("success");
+    return nullptr;
 }
 
-napi_value UpdateEnabledBusinessIdsInner(napi_env env, napi_callback_info info, napi_value voidPromise,
-    napi_deferred promiseDeferred)
+int32_t UpdateEnabledBusinessIdsInternal(napi_env env, napi_callback_info info)
 {
-    int32_t errorCode = ResultCode::GENERAL_ERROR;
-    ScopeGuard guard([&env, &promiseDeferred, &errorCode]() {
-        napi_reject_deferred(env, promiseDeferred,
-            CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, errorCode));
-    });
+    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
+    ENSURE_OR_RETURN_VAL(checkPermission == SUCCESS, checkPermission);
 
     napi_value argv[ARGS_TWO];
     size_t argc = ARGS_TWO;
     napi_status status = napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    ENSURE_OR_RETURN_VAL(status == napi_ok, voidPromise);
-    ENSURE_OR_RETURN_VAL(argc == ARGS_TWO, voidPromise);
+    ENSURE_OR_RETURN_VAL(status == napi_ok && argc == ARGS_TWO, GENERAL_ERROR);
 
     std::vector<uint8_t> templateIdArray = {};
     status = CompanionDeviceAuthNapiHelper::GetUint8ArrayValue(env, argv[PARAM0], templateIdArray);
-    if (status != napi_ok) {
-        IAM_LOGE("GetUint8ArrayValue fail, ret:%{public}d", status);
-        return voidPromise;
-    }
-
-    ENSURE_OR_RETURN_VAL(templateIdArray.size() >= sizeof(uint64_t), voidPromise);
+    ENSURE_OR_RETURN_VAL(status == napi_ok, GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(templateIdArray.size() >= sizeof(uint64_t), GENERAL_ERROR);
     uint64_t templateId {};
     if (memcpy_s(&templateId, sizeof(templateId), templateIdArray.data(), sizeof(uint64_t)) != EOK) {
         IAM_LOGE("memcpy_s failed for templateId");
-        return voidPromise;
+        return GENERAL_ERROR;
     }
 
     std::vector<int32_t> enabledBusinessIds = {};
     status = CompanionDeviceAuthNapiHelper::GetInt32Array(env, argv[PARAM1], enabledBusinessIds);
-    if (status != napi_ok) {
-        IAM_LOGE("GetInt32Array fail, ret:%{public}d", status);
-        return voidPromise;
-    }
+    ENSURE_OR_RETURN_VAL(status == napi_ok, GENERAL_ERROR);
 
     int32_t ret =
         CompanionDeviceAuthClient::GetInstance().UpdateTemplateEnabledBusinessIds(templateId, enabledBusinessIds);
     if (ret != SUCCESS) {
         IAM_LOGE("UpdateTemplateEnabledBusinessIds fail, ret:%{public}d", ret);
-        errorCode = ret;
-        return voidPromise;
     }
-
-    guard.Cancel();
-    napi_value returnVoid = nullptr;
-    DoPromise(env, promiseDeferred, returnVoid, ret);
-    IAM_LOGI("success");
-    return voidPromise;
+    return ret;
 }
 
 napi_value UpdateEnabledBusinessIds(napi_env env, napi_callback_info info)
@@ -813,15 +740,16 @@ napi_value UpdateEnabledBusinessIds(napi_env env, napi_callback_info info)
         return nullptr;
     }
 
-    int32_t checkPermission = CheckPermission(USE_USER_IDM_PERMISSION);
-    if (checkPermission != SUCCESS) {
-        IAM_LOGE("CheckPermission fail, ret:%{public}d", checkPermission);
-        napi_reject_deferred(env, promiseDeferred,
-            CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, checkPermission));
+    int32_t ret = UpdateEnabledBusinessIdsInternal(env, info);
+    if (ret != SUCCESS) {
+        napi_reject_deferred(env, promiseDeferred, CompanionDeviceAuthNapiHelper::GenerateBusinessError(env, ret));
         return voidPromise;
     }
 
-    return UpdateEnabledBusinessIdsInner(env, info, voidPromise, promiseDeferred);
+    napi_value returnVoid = nullptr;
+    DoPromise(env, promiseDeferred, returnVoid, ret);
+    IAM_LOGI("success");
+    return voidPromise;
 }
 
 napi_value BusinessIdConstructor(napi_env env)
