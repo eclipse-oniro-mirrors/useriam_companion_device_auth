@@ -117,6 +117,37 @@ HWTEST_F(InteractionEventCollectorTest, SetCallerUserId_EncodedInFixedOrder, Tes
     EXPECT_LT(extra.find("callerUserId:50"), extra.find("ESL:1"));
 }
 
+HWTEST_F(InteractionEventCollectorTest, SetCallerUserType_001, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    collector.SetCallerUserType("admin");
+    EXPECT_NE(collector.GetExtraInfo().find("callerUserType:admin"), std::string::npos);
+}
+
+HWTEST_F(InteractionEventCollectorTest, SetCallerUserType_NotInExtraInfoWhenUnset, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    collector.SetAtl(UserAuth::ATL1);
+    // callerUserType must not leak into extraInfo when never set
+    EXPECT_EQ(collector.GetExtraInfo().find("callerUserType:"), std::string::npos);
+}
+
+HWTEST_F(InteractionEventCollectorTest, SetCallerUserType_EncodedRightAfterCallerUserId, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    // Set out of order to verify encoding is independent of call order
+    collector.SetEsl(1);
+    collector.SetCallerUserType("normal");
+    collector.SetCallerUserId(100);
+    collector.SetSelectedAlgorithm(5);
+
+    const auto extra = collector.GetExtraInfo();
+    // callerUserType is encoded immediately after callerUserId, and both stay before ESL.
+    EXPECT_LT(extra.find("selectedAlgorithm:5"), extra.find("callerUserId:100"));
+    EXPECT_LT(extra.find("callerUserId:100"), extra.find("callerUserType:normal"));
+    EXPECT_LT(extra.find("callerUserType:normal"), extra.find("ESL:1"));
+}
+
 HWTEST_F(InteractionEventCollectorTest, SetEsl_001, TestSize.Level0)
 {
     InteractionEventCollector collector("test");

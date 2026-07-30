@@ -16,6 +16,7 @@
 #ifndef COMPANION_DEVICE_AUTH_CALLBACK_DEATH_RECIPIENT_H
 #define COMPANION_DEVICE_AUTH_CALLBACK_DEATH_RECIPIENT_H
 
+#include <atomic>
 #include <functional>
 #include <memory>
 
@@ -39,6 +40,7 @@ private:
     explicit CallbackDeathRecipient(DeathCallback &&callback);
 
     const DeathCallback callback_;
+    std::atomic_flag isCallbackCalled_ = ATOMIC_FLAG_INIT;
 };
 
 } // namespace CompanionDeviceAuth

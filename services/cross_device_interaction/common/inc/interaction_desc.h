@@ -49,6 +49,7 @@ public:
     void SetDeviceIdList(const std::vector<DeviceKey> &deviceKeyList);
     void SetSubRequestIdList(const std::vector<RequestId> &subRequestIdList);
     void SetUserId(UserId userId);
+    void SetCallerUserId(UserId callerUserId);
     void SetPkgName(const std::string &pkgName);
 
     const char *GetCStr() const;
@@ -72,6 +73,7 @@ private:
     std::vector<std::string> deviceIdList_;
     std::vector<RequestId> subRequestIdList_;
     std::optional<UserId> userId_;
+    std::optional<UserId> callerUserId_;
     std::string pkgName_;
     std::string description_;
 };

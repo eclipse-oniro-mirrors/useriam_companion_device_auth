@@ -102,6 +102,12 @@ void InteractionDesc::SetUserId(UserId userId)
     Rebuild();
 }
 
+void InteractionDesc::SetCallerUserId(UserId callerUserId)
+{
+    callerUserId_ = callerUserId;
+    Rebuild();
+}
+
 void InteractionDesc::SetPkgName(const std::string &pkgName)
 {
     pkgName_ = pkgName;
@@ -187,6 +193,9 @@ void InteractionDesc::Rebuild()
     }
     if (userId_.has_value()) {
         oss << ",U:" << *userId_;
+    }
+    if (callerUserId_.has_value()) {
+        oss << ",CU:" << *callerUserId_;
     }
     if (!pkgName_.empty()) {
         auto dotPos = pkgName_.rfind('.');

@@ -56,6 +56,12 @@ CallbackDeathRecipient::CallbackDeathRecipient(DeathCallback &&callback) : callb
 void CallbackDeathRecipient::OnRemoteDied(const wptr<IRemoteObject> &remote)
 {
     (void)remote;
+
+    if (isCallbackCalled_.test_and_set()) {
+        IAM_LOGI("callback already triggered, skip");
+        return;
+    }
+
     IAM_LOGI("remote object died, executing cleanup callback");
 
     DeathCallback callback = callback_;

@@ -71,8 +71,14 @@ void InteractionEventCollector::SetCallerUserId(UserId callerUserId)
     callerUserId_ = callerUserId;
 }
 
+void InteractionEventCollector::SetCallerUserType(const std::string &callerUserType)
+{
+    callerUserType_ = callerUserType;
+}
+
 namespace {
 constexpr const char *KEY_CALLER_USER_ID = "callerUserId";
+constexpr const char *KEY_CALLER_USER_TYPE = "callerUserType";
 constexpr const char *KEY_ATL = "ATL";
 constexpr const char *KEY_BINDING_ID = "bindingId";
 constexpr const char *KEY_CONTEXT_ID = "contextId";
@@ -203,6 +209,9 @@ void InteractionEventCollector::BuildExtraInfoStep1(std::ostringstream &oss) con
     }
     if (callerUserId_.has_value()) {
         oss << ";" << KEY_CALLER_USER_ID << ":" << *callerUserId_;
+    }
+    if (callerUserType_.has_value()) {
+        oss << ";" << KEY_CALLER_USER_TYPE << ":" << *callerUserType_;
     }
 }
 
