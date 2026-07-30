@@ -300,14 +300,14 @@ namespace {
 class FakePasscodePromptCallback : public IPasscodePromptCallback {
 public:
     void OnPasscodePrompt(const std::shared_ptr<PasscodeSubmitCallback> &submit,
-        const ClientPasscodePromptParams &options) override
+        const ClientPasscodePromptParams &params) override
     {
-        receivedOptions_ = options;
+        receivedParams_ = params;
         receivedSubmit_ = submit;
         callCount_++;
     }
 
-    ClientPasscodePromptParams receivedOptions_;
+    ClientPasscodePromptParams receivedParams_;
     std::shared_ptr<PasscodeSubmitCallback> receivedSubmit_;
     size_t callCount_ = 0;
 };
@@ -327,12 +327,12 @@ HWTEST_F(IpcPasscodePromptCallbackServiceTest, NullImpl_ReturnsError, TestSize.L
 {
     auto service = std::make_shared<IpcPasscodePromptCallbackService>(nullptr);
     sptr<MockIpcPasscodeSubmitCallback> submitCallback = new MockIpcPasscodeSubmitCallback();
-    IpcPasscodePromptOptions options;
-    options.challenge = { 0x01, 0x02 };
-    options.publicKey = std::vector<unsigned char>(TEST_RSA_2048_PUB_KEY_DER,
+    IpcPasscodePromptParam param;
+    param.challenge = { 0x01, 0x02 };
+    param.publicKey = std::vector<unsigned char>(TEST_RSA_2048_PUB_KEY_DER,
         TEST_RSA_2048_PUB_KEY_DER + TEST_RSA_2048_PUB_KEY_DER_LEN);
 
-    int32_t ret = service->OnPasscodePrompt(submitCallback, options);
+    int32_t ret = service->OnPasscodePrompt(submitCallback, param);
     EXPECT_NE(ret, 0);
 }
 
@@ -341,10 +341,10 @@ HWTEST_F(IpcPasscodePromptCallbackServiceTest, NullSubmitCallback_ReturnsError, 
     auto fakeImpl = std::make_shared<FakePasscodePromptCallback>();
     auto service = std::make_shared<IpcPasscodePromptCallbackService>(fakeImpl);
 
-    IpcPasscodePromptOptions options;
-    options.challenge = { 0x01, 0x02 };
+    IpcPasscodePromptParam param;
+    param.challenge = { 0x01, 0x02 };
 
-    int32_t ret = service->OnPasscodePrompt(nullptr, options);
+    int32_t ret = service->OnPasscodePrompt(nullptr, param);
     EXPECT_NE(ret, 0);
     EXPECT_EQ(fakeImpl->callCount_, static_cast<size_t>(0));
 }
@@ -355,16 +355,16 @@ HWTEST_F(IpcPasscodePromptCallbackServiceTest, ValidInputs_CallsImplWithChalleng
     auto service = std::make_shared<IpcPasscodePromptCallbackService>(fakeImpl);
     sptr<MockIpcPasscodeSubmitCallback> submitCallback = new MockIpcPasscodeSubmitCallback();
 
-    IpcPasscodePromptOptions options;
-    options.challenge = { 0xAA, 0xBB, 0xCC };
-    options.publicKey = GenerateRsa4096PublicKeyDer();
-    options.asymEncryptAlgorithm = static_cast<int32_t>(AsymEncryptAlgorithm::RSA_4096_OAEP_SHA256);
+    IpcPasscodePromptParam param;
+    param.challenge = { 0xAA, 0xBB, 0xCC };
+    param.publicKey = GenerateRsa4096PublicKeyDer();
+    param.asymEncryptAlgorithm = static_cast<int32_t>(AsymEncryptAlgorithm::RSA_4096_OAEP_SHA256);
 
-    int32_t ret = service->OnPasscodePrompt(submitCallback, options);
+    int32_t ret = service->OnPasscodePrompt(submitCallback, param);
     EXPECT_EQ(ret, 0);
     EXPECT_EQ(fakeImpl->callCount_, static_cast<size_t>(1));
-    // Challenge should be forwarded to client options
-    EXPECT_EQ(fakeImpl->receivedOptions_.challenge, options.challenge);
+    // Challenge should be forwarded to client params
+    EXPECT_EQ(fakeImpl->receivedParams_.challenge, param.challenge);
     // Submit callback should be provided
     EXPECT_NE(fakeImpl->receivedSubmit_, nullptr);
 }
@@ -378,12 +378,12 @@ HWTEST_F(IpcPasscodePromptCallbackServiceTest, PublicKeyInOptions_SubmitCallback
     auto service = std::make_shared<IpcPasscodePromptCallbackService>(fakeImpl);
     sptr<MockIpcPasscodeSubmitCallback> submitCallback = new MockIpcPasscodeSubmitCallback();
 
-    IpcPasscodePromptOptions options;
-    options.challenge = { 0x01 };
-    options.asymEncryptAlgorithm = static_cast<int32_t>(AsymEncryptAlgorithm::RSA_4096_OAEP_SHA256);
-    options.publicKey = std::vector<unsigned char>(pubKeyDer.begin(), pubKeyDer.end());
+    IpcPasscodePromptParam param;
+    param.challenge = { 0x01 };
+    param.asymEncryptAlgorithm = static_cast<int32_t>(AsymEncryptAlgorithm::RSA_4096_OAEP_SHA256);
+    param.publicKey = std::vector<unsigned char>(pubKeyDer.begin(), pubKeyDer.end());
 
-    int32_t ret = service->OnPasscodePrompt(submitCallback, options);
+    int32_t ret = service->OnPasscodePrompt(submitCallback, param);
     EXPECT_EQ(ret, 0);
     ASSERT_NE(fakeImpl->receivedSubmit_, nullptr);
 
@@ -403,11 +403,11 @@ HWTEST_F(IpcPasscodePromptCallbackServiceTest, UnknownAlgorithm_ReturnsError, Te
     auto service = std::make_shared<IpcPasscodePromptCallbackService>(fakeImpl);
     sptr<MockIpcPasscodeSubmitCallback> submitCallback = new MockIpcPasscodeSubmitCallback();
 
-    IpcPasscodePromptOptions options;
-    options.challenge = { 0x01, 0x02 };
-    options.asymEncryptAlgorithm = 0; // UNKNOWN
+    IpcPasscodePromptParam param;
+    param.challenge = { 0x01, 0x02 };
+    param.asymEncryptAlgorithm = 0; // UNKNOWN
 
-    int32_t ret = service->OnPasscodePrompt(submitCallback, options);
+    int32_t ret = service->OnPasscodePrompt(submitCallback, param);
     EXPECT_NE(ret, 0);
     EXPECT_EQ(fakeImpl->callCount_, static_cast<size_t>(0));
 }
@@ -418,11 +418,11 @@ HWTEST_F(IpcPasscodePromptCallbackServiceTest, OutOfRangeAlgorithm_ReturnsError,
     auto service = std::make_shared<IpcPasscodePromptCallbackService>(fakeImpl);
     sptr<MockIpcPasscodeSubmitCallback> submitCallback = new MockIpcPasscodeSubmitCallback();
 
-    IpcPasscodePromptOptions options;
-    options.challenge = { 0x01, 0x02 };
-    options.asymEncryptAlgorithm = -1; // out of range
+    IpcPasscodePromptParam param;
+    param.challenge = { 0x01, 0x02 };
+    param.asymEncryptAlgorithm = -1; // out of range
 
-    int32_t ret = service->OnPasscodePrompt(submitCallback, options);
+    int32_t ret = service->OnPasscodePrompt(submitCallback, param);
     EXPECT_NE(ret, 0);
     EXPECT_EQ(fakeImpl->callCount_, static_cast<size_t>(0));
 }

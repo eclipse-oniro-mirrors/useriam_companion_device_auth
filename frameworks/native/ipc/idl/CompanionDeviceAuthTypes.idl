@@ -102,9 +102,9 @@ struct IpcSubscribeContinuousAuthStatusParam {
 };
 
 /**
- * @brief Options carried by the framework when prompting for a companion device passcode.
+ * @brief Parameters carried by the framework when prompting for a companion device passcode.
  */
-struct IpcPasscodePromptOptions {
+struct IpcPasscodePromptParam {
     /** Challenge that the framework expects to be returned together with the passcode. */
     unsigned char[] challenge;
     /** Public key (DER-encoded SubjectPublicKeyInfo) for encrypting the passcode. */

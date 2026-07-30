@@ -57,7 +57,7 @@ AniPasscodePromptCallback::~AniPasscodePromptCallback()
 }
 
 void AniPasscodePromptCallback::OnPasscodePrompt(const std::shared_ptr<PasscodeSubmitCallback> &submit,
-    const ClientPasscodePromptParams &options)
+    const ClientPasscodePromptParams &params)
 {
     IAM_LOGI("start");
     ENSURE_OR_RETURN(submit != nullptr);
@@ -75,7 +75,7 @@ void AniPasscodePromptCallback::OnPasscodePrompt(const std::shared_ptr<PasscodeS
         taihe::make_holder<PasscodeSubmitter, ::taihe::callback<void(::taihe::array_view<uint8_t>)>>(submit);
 
     companionDeviceAuth::PasscodePromptOptions aniOptions = {
-        taihe::array<uint8_t>(taihe::copy_data_t {}, options.challenge.data(), options.challenge.size()),
+        taihe::array<uint8_t>(taihe::copy_data_t {}, params.challenge.data(), params.challenge.size()),
     };
 
     (**passcodePromptCallback)(submitCb, aniOptions);
