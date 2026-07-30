@@ -135,6 +135,7 @@ struct HostEndAddCompanionInput {
     SecureProtocolId secureProtocolId;
     std::vector<uint16_t> protocolVersionList;
     std::vector<uint16_t> capabilityList;
+    std::vector<BusinessId> supportedBusinessIds;
     std::vector<uint8_t> addHostBindingReply;
 };
 
@@ -418,6 +419,7 @@ struct HostUpdateCompanionStatusInput {
     std::string companionDeviceModelInfo;
     std::string companionDeviceName;
     std::string companionDeviceUserName;
+    std::vector<BusinessId> supportedBusinessIds;
 };
 
 struct HostUpdateCompanionEnabledBusinessIdsInput {

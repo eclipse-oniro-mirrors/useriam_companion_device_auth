@@ -57,8 +57,11 @@ bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, Pers
         return false;
     }
 
-    status.addedTime = ffi.addedTime;
+    if (!FfiArrayToVector(ffi.supportedBusinessIds, status.supportedBusinessIds)) {
+        return false;
+    }
 
+    status.addedTime = ffi.addedTime;
     if (!DecodeDataArrayToString(ffi.deviceModelInfo, status.deviceModelInfo)) {
         return false;
     }
@@ -85,6 +88,10 @@ bool EncodePersistedCompanionStatus(const PersistedCompanionStatus &status, Pers
     ffi.isValid = status.isValid ? 1 : 0;
 
     if (!VectorToFfiArray(status.enabledBusinessIds, ffi.enabledBusinessIds, "enabled business IDs")) {
+        return false;
+    }
+
+    if (!VectorToFfiArray(status.supportedBusinessIds, ffi.supportedBusinessIds, "supported business IDs")) {
         return false;
     }
 
@@ -231,7 +238,8 @@ bool EncodeHostEndAddCompanionInput(const HostEndAddCompanionInput &input, HostE
     }
 
     if (!VectorToFfiArray(input.protocolVersionList, ffi.protocolList, "protocol list") ||
-        !VectorToFfiArray(input.capabilityList, ffi.capabilityList, "capability list")) {
+        !VectorToFfiArray(input.capabilityList, ffi.capabilityList, "capability list") ||
+        !VectorToFfiArray(input.supportedBusinessIds, ffi.supportedBusinessIds, "supported business IDs")) {
         return false;
     }
 
@@ -327,7 +335,8 @@ bool EncodeHostUpdateCompanionStatusInput(const HostUpdateCompanionStatusInput &
 
     if (!EncodeStringToDataArray(input.companionDeviceModelInfo, ffi.deviceModelInfo, "companion device model info") ||
         !EncodeStringToDataArray(input.companionDeviceName, ffi.deviceName, "companion device name") ||
-        !EncodeStringToDataArray(input.companionDeviceUserName, ffi.deviceUserName, "companion device user name")) {
+        !EncodeStringToDataArray(input.companionDeviceUserName, ffi.deviceUserName, "companion device user name") ||
+        !VectorToFfiArray(input.supportedBusinessIds, ffi.supportedBusinessIds, "supported business IDs")) {
         return false;
     }
 

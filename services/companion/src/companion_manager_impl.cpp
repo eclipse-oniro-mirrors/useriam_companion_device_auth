@@ -243,6 +243,7 @@ HostEndAddCompanionInput CompanionManagerImpl::BuildHostEndAddCompanionInput(con
     secInput.secureProtocolId = input.secureProtocolId;
     secInput.protocolVersionList = input.protocolVersionList;
     secInput.capabilityList = input.capabilityList;
+    secInput.supportedBusinessIds = input.supportedBusinessIds;
     secInput.addHostBindingReply = input.addHostBindingReply;
     return secInput;
 }

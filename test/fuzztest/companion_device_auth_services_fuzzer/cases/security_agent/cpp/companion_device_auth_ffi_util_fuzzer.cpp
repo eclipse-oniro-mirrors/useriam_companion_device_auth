@@ -73,6 +73,12 @@ static void FuzzDecodePersistedCompanionStatus(FuzzedDataProvider &fuzzData)
         ffi.enabledBusinessIds.data[i] = fuzzData.ConsumeIntegral<uint32_t>();
     }
 
+    // supportedBusinessIds
+    ffi.supportedBusinessIds.len = fuzzData.ConsumeIntegralInRange<uint32_t>(0, TEST_VAL16);
+    for (uint32_t i = 0; i < ffi.supportedBusinessIds.len && i < TEST_VAL16; ++i) {
+        ffi.supportedBusinessIds.data[i] = fuzzData.ConsumeIntegral<uint32_t>();
+    }
+
     // deviceModelInfo
     ffi.deviceModelInfo.len = fuzzData.ConsumeIntegralInRange<uint32_t>(0, TEST_VAL64);
     for (uint32_t i = 0; i < ffi.deviceModelInfo.len && i < TEST_VAL64; ++i) {
@@ -110,6 +116,11 @@ static void FuzzEncodePersistedCompanionStatus(FuzzedDataProvider &fuzzData)
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, TEST_VAL16);
     for (uint8_t i = 0; i < count; ++i) {
         status.enabledBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));
+    }
+
+    uint8_t supportedCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, TEST_VAL16);
+    for (uint8_t i = 0; i < supportedCount; ++i) {
+        status.supportedBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));
     }
 
     PersistedCompanionStatusFfi ffi;

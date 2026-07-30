@@ -226,6 +226,7 @@ struct PersistedCompanionStatus {
     DeviceKey companionDeviceKey {};
     bool isValid { false };
     std::vector<BusinessId> enabledBusinessIds {};
+    std::vector<BusinessId> supportedBusinessIds {};
     int64_t addedTime { 0 };
     std::string deviceModelInfo {};
     std::string deviceUserName {};
@@ -248,6 +249,7 @@ struct CompanionStatus {
         companionDeviceStatus.deviceUserName = persistedStatus.deviceUserName;
         companionDeviceStatus.deviceName = persistedStatus.deviceName;
         companionDeviceStatus.deviceType = persistedStatus.deviceType;
+        companionDeviceStatus.supportedBusinessIds = persistedStatus.supportedBusinessIds;
         tokenAuthAtl = std::nullopt;
         return *this;
     }
@@ -265,6 +267,7 @@ struct CompanionStatus {
         persistedStatus.deviceUserName = companionDeviceStatus.deviceUserName;
         persistedStatus.deviceName = companionDeviceStatus.deviceName;
         persistedStatus.deviceType = companionDeviceStatus.deviceType;
+        persistedStatus.supportedBusinessIds = companionDeviceStatus.supportedBusinessIds;
         return persistedStatus;
     }
 

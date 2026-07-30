@@ -173,6 +173,10 @@ impl DefaultCompanionDeviceDbManager {
             parcel.write_i32(business_id);
         }
         parcel.write_i32(base_info.device_type);
+        parcel.write_i32(base_info.supported_business_ids.len() as i32);
+        for &supported_business_id in &base_info.supported_business_ids {
+            parcel.write_i32(supported_business_id);
+        }
     }
 
     fn deserialize_device_profile(parcel: &mut Parcel) -> Result<CompanionDeviceProfile, ErrorCode> {
@@ -199,7 +203,21 @@ impl DefaultCompanionDeviceDbManager {
 
         let device_type = parcel.read_i32().map_err(|e| p!(e))?;
 
-        Ok(CompanionDeviceProfile { device_model_info, device_name, device_user_name, business_ids, device_type })
+        let supported_business_ids_len = parcel.read_i32().map_err(|e| p!(e))? as usize;
+        let mut supported_business_ids = Vec::with_capacity(supported_business_ids_len);
+        for _ in 0..supported_business_ids_len {
+            let supported_business_id = parcel.read_i32().map_err(|e| p!(e))?;
+            supported_business_ids.push(supported_business_id);
+        }
+
+        Ok(CompanionDeviceProfile {
+            device_model_info,
+            device_name,
+            device_user_name,
+            business_ids,
+            device_type,
+            supported_business_ids,
+        })
     }
 
     fn serialize_device_capability_info(capability_infos: &[CompanionDeviceCapability], parcel: &mut Parcel) {

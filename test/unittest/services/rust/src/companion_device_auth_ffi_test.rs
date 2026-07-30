@@ -99,6 +99,8 @@ fn command_id_test_try_from() {
     assert_eq!(CommandId::try_from(1024).unwrap(), CommandId::HostProcessObtainToken);
     assert_eq!(CommandId::try_from(1025).unwrap(), CommandId::HostCancelObtainToken);
     assert_eq!(CommandId::try_from(1027).unwrap(), CommandId::HostCheckTemplateEnrolled);
+    assert_eq!(CommandId::try_from(1028).unwrap(), CommandId::HostRefreshToken);
+    assert_eq!(CommandId::try_from(1029).unwrap(), CommandId::HostSetCompanionInvalid);
     assert_eq!(CommandId::try_from(2000).unwrap(), CommandId::CompanionGetPersistedStatus);
     assert_eq!(CommandId::try_from(2001).unwrap(), CommandId::CompanionProcessCheck);
     assert_eq!(CommandId::try_from(2002).unwrap(), CommandId::CompanionInitKeyNegotiation);

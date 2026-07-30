@@ -119,6 +119,7 @@ typedef struct HostEndAddCompanionInputFfi {
     uint16_t secureProtocolId;
     struct Uint16Array64Ffi protocolList;
     struct Uint16Array64Ffi capabilityList;
+    struct Int32Array64Ffi supportedBusinessIds;
     struct DataArray1024Ffi secMessage;
 } HostEndAddCompanionInputFfi;
 
@@ -216,6 +217,7 @@ typedef struct HostUpdateCompanionStatusInputFfi {
     struct DataArray1024Ffi deviceModelInfo;
     struct DataArray256Ffi deviceName;
     struct DataArray256Ffi deviceUserName;
+    struct Int32Array64Ffi supportedBusinessIds;
 } HostUpdateCompanionStatusInputFfi;
 
 typedef struct PlaceHolderFfi HostUpdateCompanionStatusOutputFfi;

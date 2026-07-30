@@ -178,11 +178,14 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationTrue, TestSize.
         ffi.enabledBusinessIds.len = 2;
         ffi.enabledBusinessIds.data[0] = 1;
         ffi.enabledBusinessIds.data[1] = 2;
+        ffi.supportedBusinessIds.len = 1;
+        ffi.supportedBusinessIds.data[0] = 3;
         ffi.companionDeviceKey.deviceId.len = 0;
 
         PersistedCompanionStatus status;
         EXPECT_TRUE(DecodePersistedCompanionStatus(ffi, status));
         EXPECT_EQ(status.enabledBusinessIds.size(), 2U);
+        EXPECT_EQ(status.supportedBusinessIds.size(), 1U);
     }
 }
 
@@ -196,6 +199,8 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationFalse, TestSize
         ffi.templateId = 1;
         ffi.hostUserId = 1;
         ffi.enabledBusinessIds.len = sizeof(ffi.enabledBusinessIds.data) / sizeof(ffi.enabledBusinessIds.data[0]) + 1;
+        ffi.supportedBusinessIds.len =
+            sizeof(ffi.supportedBusinessIds.data) / sizeof(ffi.supportedBusinessIds.data[0]) + 1;
         ffi.companionDeviceKey.deviceId.len = 0;
 
         PersistedCompanionStatus status;
@@ -263,12 +268,14 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
         status.isValid = true;
         status.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(3),
             static_cast<BusinessId>(5) };
+        status.supportedBusinessIds = { static_cast<BusinessId>(2), static_cast<BusinessId>(4) };
         status.deviceModelInfo = "Model X";
 
         PersistedCompanionStatusFfi ffi = {};
 
         EncodePersistedCompanionStatus(status, ffi);
         EXPECT_EQ(ffi.enabledBusinessIds.len, 3U);
+        EXPECT_EQ(ffi.supportedBusinessIds.len, 2U);
     }
 
     // Invalid: Too many business IDs
@@ -628,6 +635,9 @@ HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
     originalStatus.addedTime = 1000;
     originalStatus.isValid = true;
     originalStatus.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2) };
+    originalStatus.supportedBusinessIds = {
+        static_cast<BusinessId>(3), static_cast<BusinessId>(4), static_cast<BusinessId>(5)
+    };
     originalStatus.deviceModelInfo = "Test Device";
 
     DeviceKey key;
@@ -646,6 +656,7 @@ HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
     EXPECT_EQ(decodedStatus.hostUserId, originalStatus.hostUserId);
     EXPECT_EQ(decodedStatus.isValid, originalStatus.isValid);
     EXPECT_EQ(decodedStatus.enabledBusinessIds.size(), originalStatus.enabledBusinessIds.size());
+    EXPECT_EQ(decodedStatus.supportedBusinessIds.size(), originalStatus.supportedBusinessIds.size());
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostRegisterFinishInput_001, TestSize.Level0)
@@ -764,11 +775,13 @@ HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
     input.secureProtocolId = SecureProtocolId::DEFAULT;
     input.companionStatus.templateId = INT32_555;
     input.companionStatus.hostUserId = INT32_666;
+    input.supportedBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2) };
     input.addHostBindingReply = { UINT8_0X55, UINT8_0X66 };
 
     HostEndAddCompanionInputFfi ffi = {};
     EncodeHostEndAddCompanionInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 444U);
+    EXPECT_EQ(ffi.supportedBusinessIds.len, 2U);
 }
 
 HWTEST_F(FfiUtilTest, DecodeHostEndAddCompanionOutput_001, TestSize.Level0)
@@ -933,10 +946,12 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_001, TestSize.Level0)
     input.companionDeviceModelInfo = "TestModel";
     input.companionDeviceName = "TestDevice";
     input.companionDeviceUserName = "TestUser";
+    input.supportedBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2), static_cast<BusinessId>(3) };
 
     HostUpdateCompanionStatusInputFfi ffi = {};
     EncodeHostUpdateCompanionStatusInput(input, ffi);
     EXPECT_EQ(ffi.templateId, 7777U);
+    EXPECT_EQ(ffi.supportedBusinessIds.len, 3U);
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_002, TestSize.Level0)
