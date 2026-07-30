@@ -20,7 +20,7 @@ use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
     DataArray1024Ffi, DataArray20000Ffi, DeviceKeyFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
     HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi, HostGetInitKeyNegotiationInputFfi,
-    HostGetInitKeyNegotiationOutputFfi, PersistedCompanionStatusFfi, Uint16Array64Ffi,
+    HostGetInitKeyNegotiationOutputFfi, Int32Array64Ffi, PersistedCompanionStatusFfi, Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::enroll::enroll_message::{SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply};
@@ -584,6 +584,7 @@ fn host_enroll_request_end_test_sec_message_decode_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
 
@@ -621,6 +622,7 @@ fn host_enroll_request_end_test_hkdf_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -659,6 +661,7 @@ fn host_enroll_request_end_test_decrypt_sec_message_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -694,6 +697,7 @@ fn host_enroll_request_end_test_device_id_mismatch() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -729,6 +733,7 @@ fn host_enroll_request_end_test_user_id_mismatch() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -764,6 +769,7 @@ fn host_enroll_request_end_test_protocol_list_mismatch() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -799,6 +805,7 @@ fn host_enroll_request_end_test_capability_list_mismatch() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -842,6 +849,7 @@ fn host_enroll_request_end_test_secure_random_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -888,6 +896,7 @@ fn host_enroll_request_end_test_get_rtc_time_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -932,6 +941,7 @@ fn host_enroll_request_end_test_add_device_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -977,6 +987,7 @@ fn host_enroll_request_end_test_add_token_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -1026,6 +1037,7 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -1075,6 +1087,7 @@ fn host_enroll_request_end_test_get_session_key_fail() {
         secure_protocol_id: 1,
         protocol_list,
         capability_list,
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -1131,6 +1144,7 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
     };
 

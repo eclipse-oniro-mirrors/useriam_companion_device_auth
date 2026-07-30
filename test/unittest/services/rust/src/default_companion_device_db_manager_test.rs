@@ -49,6 +49,7 @@ fn create_test_base_info() -> CompanionDeviceProfile {
         device_name: "TestDevice".to_string(),
         device_user_name: "TestUser".to_string(),
         business_ids: vec![1, 2, 3],
+        supported_business_ids: vec![1, 2, 3],
         device_type: 0,
     }
 }
@@ -990,6 +991,7 @@ fn default_companion_device_db_manager_read_device_profile_test_success() {
     parcel.write_i32(2);
     parcel.write_i32(3);
     parcel.write_i32(0); // device_type
+    parcel.write_i32(0); // supported_business_ids_len
 
     let serialized_data = parcel.as_slice().to_vec();
 

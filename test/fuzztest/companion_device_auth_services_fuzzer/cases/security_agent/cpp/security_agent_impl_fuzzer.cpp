@@ -157,6 +157,10 @@ static void FuzzHostEndAddCompanion(std::shared_ptr<ISecurityAgent> &agent, Fuzz
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.companionStatus.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     input.companionStatus.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
+    uint32_t supportedBusinessIdsSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, 64);
+    for (uint32_t i = 0; i < supportedBusinessIdsSize; ++i) {
+        input.supportedBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));
+    }
     input.addHostBindingReply = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     HostEndAddCompanionOutput output;
     agent->HostEndAddCompanion(input, output);
@@ -445,8 +449,13 @@ static void FuzzHostUpdateCompanionStatus(std::shared_ptr<ISecurityAgent> &agent
     HostUpdateCompanionStatusInput input;
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     uint32_t testVal64 = SIZE_64;
+    input.companionDeviceModelInfo = GenerateFuzzString(fuzzData, testVal64);
     input.companionDeviceName = GenerateFuzzString(fuzzData, testVal64);
     input.companionDeviceUserName = GenerateFuzzString(fuzzData, testVal64);
+    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
+    for (uint8_t i = 0; i < count; ++i) {
+        input.supportedBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<uint32_t>()));
+    }
     agent->HostUpdateCompanionStatus(input);
 }
 

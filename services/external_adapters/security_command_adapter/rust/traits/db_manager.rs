@@ -76,6 +76,7 @@ pub struct CompanionDeviceProfile {
     pub device_user_name: String,
     pub business_ids: Vec<i32>,
     pub device_type: i32,
+    pub supported_business_ids: Vec<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

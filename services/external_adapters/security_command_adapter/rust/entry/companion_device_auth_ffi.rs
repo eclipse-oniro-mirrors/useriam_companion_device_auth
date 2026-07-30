@@ -242,6 +242,7 @@ pub struct PersistedCompanionStatusFfi {
     pub device_type: i32,
     pub is_valid: u8,
     pub enabled_business_ids: Int32Array64Ffi,
+    pub supported_business_ids: Int32Array64Ffi,
     pub added_time: u64,
     pub device_model_info: DataArray1024Ffi,
     pub device_user_name: DataArray256Ffi,
@@ -461,6 +462,7 @@ pub struct HostEndAddCompanionInputFfi {
     pub secure_protocol_id: u16,
     pub protocol_list: Uint16Array64Ffi,
     pub capability_list: Uint16Array64Ffi,
+    pub supported_business_ids: Int32Array64Ffi,
     pub sec_message: DataArray1024Ffi, /* device_id, user_id, track_ability_level, tag, iv, encrypt_data(device_id, user_id) */
 }
 assert_max_size!(HostEndAddCompanionInputFfi);
@@ -635,6 +637,7 @@ pub struct HostUpdateCompanionStatusInputFfi {
     pub device_model_info: DataArray1024Ffi,
     pub device_name: DataArray256Ffi,
     pub device_user_name: DataArray256Ffi,
+    pub supported_business_ids: Int32Array64Ffi,
 }
 assert_max_size!(HostUpdateCompanionStatusInputFfi);
 

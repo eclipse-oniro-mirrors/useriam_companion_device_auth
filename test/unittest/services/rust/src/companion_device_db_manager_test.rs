@@ -43,6 +43,7 @@ fn create_mock_companion_device_profile() -> CompanionDeviceProfile {
         device_user_name: String::default(),
         business_ids: Vec::<i32>::new(),
         device_type: 0,
+        supported_business_ids: Vec::<i32>::new(),
     }
 }
 

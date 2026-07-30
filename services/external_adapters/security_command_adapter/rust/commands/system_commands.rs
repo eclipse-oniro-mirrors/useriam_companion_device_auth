@@ -138,6 +138,7 @@ pub fn host_get_persisted_status(
                     device_type: device_profile.device_type,
                     is_valid: device_info.is_valid as u8,
                     enabled_business_ids: Int32Array64Ffi::try_from(device_profile.business_ids)?,
+                    supported_business_ids: Int32Array64Ffi::try_from(device_profile.supported_business_ids)?,
                     added_time: device_info.added_time,
                     device_model_info: DataArray1024Ffi::try_from(device_profile.device_model_info)?,
                     device_user_name: DataArray256Ffi::try_from(device_profile.device_user_name)?,
@@ -325,6 +326,7 @@ pub fn host_update_companion_status(
         input.device_model_info.to_string()?,
         input.device_name.to_string()?,
         input.device_user_name.to_string()?,
+        Vec::<i32>::try_from(input.supported_business_ids).map_err(|e| p!(e))?,
     )?;
     Ok(())
 }

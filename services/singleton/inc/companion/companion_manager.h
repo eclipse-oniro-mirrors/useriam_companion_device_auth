@@ -49,6 +49,7 @@ struct EndAddCompanionInput {
     SecureProtocolId secureProtocolId;
     std::vector<uint16_t> protocolVersionList;
     std::vector<uint16_t> capabilityList;
+    std::vector<BusinessId> supportedBusinessIds;
     std::vector<uint8_t> addHostBindingReply;
 };
 

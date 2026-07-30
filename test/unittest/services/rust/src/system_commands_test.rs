@@ -82,6 +82,7 @@ fn create_mock_companion_device_profile() -> CompanionDeviceProfile {
         device_user_name: String::from("TestUser"),
         business_ids: vec![1, 2, 3],
         device_type: 0,
+        supported_business_ids: vec![1, 2, 3],
     }
 }
 
@@ -803,6 +804,7 @@ fn host_end_add_companion_test_success() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndAddCompanionOutputFfi::default();
@@ -825,6 +827,7 @@ fn host_end_add_companion_test_remove_request_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndAddCompanionOutputFfi::default();
@@ -860,6 +863,7 @@ fn host_end_add_companion_test_request_end_fail() {
         secure_protocol_id: 1,
         protocol_list: Uint16Array64Ffi::default(),
         capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = HostEndAddCompanionOutputFfi::default();
@@ -1602,6 +1606,7 @@ fn host_update_companion_status_test_success() {
         device_model_info: DataArray1024Ffi::default(),
         device_name: DataArray256Ffi::default(),
         device_user_name: DataArray256Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
     };
     let mut output = HostUpdateCompanionStatusOutputFfi::default();
     let result = host_update_companion_status(&input, &mut output);
@@ -1622,6 +1627,7 @@ fn host_update_companion_status_test_fail() {
         device_model_info: DataArray1024Ffi::default(),
         device_name: DataArray256Ffi::default(),
         device_user_name: DataArray256Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
     };
     let mut output = HostUpdateCompanionStatusOutputFfi::default();
     let result = host_update_companion_status(&input, &mut output);

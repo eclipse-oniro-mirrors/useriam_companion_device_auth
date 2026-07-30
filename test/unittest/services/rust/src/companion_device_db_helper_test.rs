@@ -32,6 +32,7 @@ fn create_mock_companion_device_profile() -> CompanionDeviceProfile {
         device_user_name: String::from("TestUser"),
         business_ids: vec![1, 2, 3],
         device_type: 0,
+        supported_business_ids: vec![1, 2, 3],
     }
 }
 
@@ -58,8 +59,13 @@ fn update_companion_device_info_test_write_device_profile_fail() {
     mock_companion_device_db_manager.expect_write_device_profile().returning(|| Err(ErrorCode::GeneralError));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let result =
-        update_companion_device_info(123, "model_info".to_string(), "name".to_string(), "user_name".to_string());
+    let result = update_companion_device_info(
+        123,
+        "model_info".to_string(),
+        "name".to_string(),
+        "user_name".to_string(),
+        vec![1, 2, 3],
+    );
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 

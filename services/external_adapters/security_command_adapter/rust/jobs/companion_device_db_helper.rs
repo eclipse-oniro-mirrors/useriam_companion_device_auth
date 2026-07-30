@@ -67,11 +67,13 @@ pub fn update_companion_device_info(
     device_model_info: String,
     device_name: String,
     device_user_name: String,
+    supported_business_ids: Vec<i32>,
 ) -> Result<(), ErrorCode> {
     let mut device_profile = CompanionDeviceDbManagerRegistry::get_mut().read_device_profile(template_id)?;
     device_profile.device_model_info = device_model_info;
     device_profile.device_name = device_name;
     device_profile.device_user_name = device_user_name;
+    device_profile.supported_business_ids = supported_business_ids;
     CompanionDeviceDbManagerRegistry::get_mut().write_device_profile(template_id, &device_profile)?;
     Ok(())
 }

@@ -82,6 +82,7 @@ pub struct HostDeviceEnrollRequest {
     pub device_type: i32,
     pub algorithm_list: Vec<u16>,
     pub selected_algorithm: u16,
+    pub supported_business_ids: Vec<i32>,
 }
 
 impl HostDeviceEnrollRequest {
@@ -121,6 +122,7 @@ impl HostDeviceEnrollRequest {
             device_type: 0,
             algorithm_list: Vec::new(),
             selected_algorithm: 0,
+            supported_business_ids: Vec::new(),
         })
     }
 
@@ -404,6 +406,7 @@ impl HostDeviceEnrollRequest {
             device_user_name: self.device_user_name.clone(),
             business_ids: Vec::new(),
             device_type: self.device_type,
+            supported_business_ids: self.supported_business_ids.clone(),
         });
 
         let mut capability_infos: Vec<CompanionDeviceCapability> = Vec::new();
@@ -523,6 +526,11 @@ impl Request for HostDeviceEnrollRequest {
 
         self.expected_capability_list = Vec::<u16>::try_from(ffi_input.capability_list).map_err(|e| {
             log_e!("Failed to convert capability_list: {:?}", e);
+            ErrorCode::GeneralError
+        })?;
+
+        self.supported_business_ids = Vec::<i32>::try_from(ffi_input.supported_business_ids).map_err(|e| {
+            log_e!("Failed to convert supported_business_ids: {:?}", e);
             ErrorCode::GeneralError
         })?;
 

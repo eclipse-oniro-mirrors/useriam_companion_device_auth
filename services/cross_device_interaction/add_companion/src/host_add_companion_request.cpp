@@ -394,6 +394,7 @@ EndAddCompanionInput HostAddCompanionRequest::BuildEndAddCompanionInput(const Pe
     input.secureProtocolId = secureProtocolId_;
     input.protocolVersionList = protocolVersionList;
     input.capabilityList = capabilityList;
+    input.supportedBusinessIds = deviceStatus.supportedBusinessIds;
     input.addHostBindingReply = addHostBindingReply;
     return input;
 }

@@ -735,6 +735,7 @@ bool ModuleTestGuard::RegisterCompanionDirect(UserId hostUserId, const DeviceKey
     endInput.protocolVersionList = { 1 };
     endInput.capabilityList = { static_cast<uint16_t>(Capability::DELEGATE_AUTH),
         static_cast<uint16_t>(Capability::TOKEN_AUTH) };
+    endInput.supportedBusinessIds = {};
     endInput.addHostBindingReply = {};
 
     EndAddCompanionOutput endOutput;

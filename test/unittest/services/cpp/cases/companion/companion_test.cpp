@@ -65,6 +65,7 @@ PersistedCompanionStatus MakePersistedStatus(TemplateId templateId, UserId hostU
     status.companionDeviceKey.deviceUserId = deviceUserId;
     status.isValid = true;
     status.enabledBusinessIds = { BUSINESS_ID_1, BUSINESS_ID_2 };
+    status.supportedBusinessIds = { BUSINESS_ID_1, BUSINESS_ID_2 };
     status.addedTime = 0;
     status.deviceModelInfo = "TestModel";
     status.deviceUserName = "TestUser";
@@ -73,7 +74,8 @@ PersistedCompanionStatus MakePersistedStatus(TemplateId templateId, UserId hostU
 }
 
 DeviceStatus MakeDeviceStatus(const DeviceKey &deviceKey, bool isOnline = true, bool isAuthMaintainActive = true,
-    std::optional<uint32_t> atlRevokeDelayMs = std::nullopt)
+    std::optional<uint32_t> atlRevokeDelayMs = std::nullopt,
+    std::vector<BusinessId> supportedBusinessIds = {})
 {
     DeviceStatus status;
     status.deviceKey = deviceKey;
@@ -84,6 +86,7 @@ DeviceStatus MakeDeviceStatus(const DeviceKey &deviceKey, bool isOnline = true, 
     status.deviceUserName = "TestUser";
     status.deviceModelInfo = "TestModel";
     status.protocolId = ProtocolId::VERSION_1;
+    status.supportedBusinessIds = supportedBusinessIds;
     return status;
 }
 
@@ -154,7 +157,7 @@ HWTEST_F(CompanionTest, Create_002, TestSize.Level0)
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
 
-    auto deviceStatus = MakeDeviceStatus(deviceKey);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -187,7 +190,7 @@ HWTEST_F(CompanionTest, HandleDeviceStatusChanged_001, TestSize.Level0)
 
     EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
 
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     std::vector<DeviceStatus> statusList { deviceStatus };
     companion->HandleDeviceStatusChanged(statusList);
 
@@ -219,7 +222,7 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_001, TestSize.Level0)
 
     EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
 
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(deviceStatus);
 
     auto status = companion->GetStatus();
@@ -235,7 +238,7 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_002, TestSize.Level0)
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->status_.companionDeviceStatus = deviceStatus;
     companion->HandleDeviceStatusUpdate(deviceStatus);
 }
@@ -379,8 +382,8 @@ HWTEST_F(CompanionTest, HandleCompanionStatusChange_NoChange_NoUpdateCalled, Tes
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    // DeviceStatus has same deviceModelInfo/deviceName/deviceUserName as persisted status
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    // DeviceStatus has same deviceModelInfo/deviceName/deviceUserName/supportedBusinessIds as persisted status
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).Times(0);
     EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
 
@@ -399,7 +402,7 @@ HWTEST_F(CompanionTest, HandleCompanionStatusChange_DeviceNameChanged_UpdateCall
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     deviceStatus.deviceName = "NewDeviceName";
     EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
@@ -417,7 +420,7 @@ HWTEST_F(CompanionTest, HandleCompanionStatusChange_ModelInfoChanged_UpdateCalle
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     deviceStatus.deviceModelInfo = "NewModelInfo";
     EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
@@ -435,7 +438,7 @@ HWTEST_F(CompanionTest, HandleCompanionStatusChange_UpdateFailed_StatusStillUpda
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     deviceStatus.deviceName = "NewDeviceName";
     EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
     EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
@@ -555,12 +558,12 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayNullopt_NoRevoke, Tes
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active (no delay configured yet)
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true);
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
     ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // atlRevokeDelayMs = nullopt, authMaintain goes inactive → no revoke
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false);
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
 
     EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
@@ -577,13 +580,13 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayZero_ImmediateRevoke,
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active with delay=0
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, 0);
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, 0, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
     ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // atlRevokeDelayMs = 0 → immediate revoke
     EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, 0);
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, 0, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
 
     EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
@@ -600,12 +603,14 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayNonZero_TimerFiresAnd
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active with delay=TEST_ATL_REVOKE_DELAY_MS
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS);
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS,
+        { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
     ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // atlRevokeDelayMs = TEST_ATL_REVOKE_DELAY_MS → timer scheduled
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS);
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS,
+        { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
 
     // ATL still present before timer fires
@@ -629,12 +634,14 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_TimerCancelledOnRecovery, TestSize.
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS);
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS,
+        { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
     ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // authMaintain goes inactive → timer scheduled
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS);
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS,
+        { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
     EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
@@ -653,12 +660,14 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_NoAtl_NoRevoke, TestSize.Level0)
     ASSERT_NE(nullptr, companion);
 
     // First set authMaintain active with delay
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS);
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS,
+        { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
     ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // No ATL set, authMaintain goes inactive with delay → nothing happens
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS);
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS,
+        { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
 
     EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
@@ -677,11 +686,13 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_DeviceOffline_CancelsTimer, TestSiz
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // Set online + authMaintain active with delay
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS);
+    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS,
+        { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->status_.companionDeviceStatus = activeStatus;
 
     // authMaintain goes inactive → timer scheduled
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS);
+    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS,
+        { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
 
     // Device offline → timer cancelled, ATL revoked
@@ -719,7 +730,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentWorn_NoNotWornTimer, 
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
 
     // Device is online and worn at creation time
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -759,7 +770,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_StartsNotWorn
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
 
     // Device is online but NOT worn at creation time
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -786,7 +797,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_TimerFiresAnd
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
 
     // Device is online but NOT worn
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -812,7 +823,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_TimerCancelle
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
 
     // Device is online but NOT worn
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -825,7 +836,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_TimerCancelle
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // Device becomes worn -> authMaintainInactiveTimer_ cancelled
-    auto wornStatus = MakeDeviceStatus(deviceKey, true, true);
+    auto wornStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(wornStatus);
 
     // Token should still be present (enrollment timer was cancelled)
@@ -839,7 +850,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_RevokedManual
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
 
     // Device is online but NOT worn
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -868,7 +879,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_RefreshAtl_Ol
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
 
     // Device is online but NOT worn
-    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false);
+    auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));

@@ -255,14 +255,16 @@ void Companion::HandleCompanionStatusChange(const DeviceStatus &deviceStatus)
 {
     const auto &oldStatus = status_.companionDeviceStatus;
     if (oldStatus.deviceModelInfo == deviceStatus.deviceModelInfo && oldStatus.deviceName == deviceStatus.deviceName &&
-        oldStatus.deviceUserName == deviceStatus.deviceUserName) {
+        oldStatus.deviceUserName == deviceStatus.deviceUserName &&
+        oldStatus.supportedBusinessIds == deviceStatus.supportedBusinessIds) {
         return;
     }
 
     HostUpdateCompanionStatusInput input { .templateId = status_.templateId,
         .companionDeviceModelInfo = deviceStatus.deviceModelInfo,
         .companionDeviceName = deviceStatus.deviceName,
-        .companionDeviceUserName = deviceStatus.deviceUserName };
+        .companionDeviceUserName = deviceStatus.deviceUserName,
+        .supportedBusinessIds = deviceStatus.supportedBusinessIds };
     ResultCode ret = GetSecurityAgent().HostUpdateCompanionStatus(input);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s HostUpdateCompanionStatus failed ret %{public}d", GetDescription(), ret);

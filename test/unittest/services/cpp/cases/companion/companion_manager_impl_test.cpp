@@ -64,6 +64,7 @@ PersistedCompanionStatus MakePersistedStatus(TemplateId templateId, UserId hostU
     status.companionDeviceKey.deviceUserId = deviceUserId;
     status.isValid = true;
     status.enabledBusinessIds = { BUSINESS_ID_1, BUSINESS_ID_2 };
+    status.supportedBusinessIds = { BUSINESS_ID_1, BUSINESS_ID_2 };
     // Set addedTime to 0 for MockTimeKeeper compatibility
     status.addedTime = 0;
     status.deviceModelInfo = "TestModel";

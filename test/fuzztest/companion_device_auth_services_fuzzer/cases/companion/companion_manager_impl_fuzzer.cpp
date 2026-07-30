@@ -172,6 +172,10 @@ static void FuzzEndAddCompanion(std::shared_ptr<CompanionManagerImpl> &manager, 
     input.companionStatus.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     input.companionStatus.isValid = fuzzData.ConsumeBool();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint8_t>());
+    uint32_t supportedBusinessIdsSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_BUSINESS_IDS_COUNT);
+    for (uint32_t i = 0; i < supportedBusinessIdsSize; ++i) {
+        input.supportedBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));
+    }
     uint32_t replySize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
     input.addHostBindingReply = fuzzData.ConsumeBytes<uint8_t>(replySize);
     EndAddCompanionOutput output;
