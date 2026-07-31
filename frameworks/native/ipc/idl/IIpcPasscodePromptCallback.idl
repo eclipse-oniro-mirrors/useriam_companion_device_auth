@@ -19,5 +19,5 @@ import IIpcPasscodeSubmitCallback;
 option_stub_hooks on;
 
 interface OHOS.UserIam.CompanionDeviceAuth.IIpcPasscodePromptCallback {
-    void OnPasscodePrompt([in] IIpcPasscodeSubmitCallback submitCallback, [in] IpcPasscodePromptOptions options);
+    void OnPasscodePrompt([in] IIpcPasscodeSubmitCallback submitCallback, [in] IpcPasscodePromptParam param);
 }

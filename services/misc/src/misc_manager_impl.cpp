@@ -294,12 +294,12 @@ bool MiscManagerImpl::PromptPasscode(uint32_t tokenId, const std::vector<uint8_t
         new (std::nothrow) MiscPasscodePromptCallback(std::move(promptCallback));
     ENSURE_OR_RETURN_VAL(ipcSubmitCallback != nullptr, false);
 
-    IpcPasscodePromptOptions ipcOptions;
-    ipcOptions.challenge = challenge;
-    ipcOptions.publicKey = publicKey;
-    ipcOptions.asymEncryptAlgorithm = static_cast<int8_t>(asymEncryptAlgorithm);
+    IpcPasscodePromptParam ipcParam;
+    ipcParam.challenge = challenge;
+    ipcParam.publicKey = publicKey;
+    ipcParam.asymEncryptAlgorithm = static_cast<int8_t>(asymEncryptAlgorithm);
 
-    ErrCode ret = passcodePromptCallback->OnPasscodePrompt(ipcSubmitCallback, ipcOptions);
+    ErrCode ret = passcodePromptCallback->OnPasscodePrompt(ipcSubmitCallback, ipcParam);
     if (ret != ERR_OK) {
         IAM_LOGE("OnPasscodePrompt failed, ret:%{public}d", ret);
         return false;

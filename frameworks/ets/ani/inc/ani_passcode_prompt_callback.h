@@ -39,7 +39,7 @@ public:
     explicit AniPasscodePromptCallback();
     ~AniPasscodePromptCallback() override;
     void OnPasscodePrompt(const std::shared_ptr<PasscodeSubmitCallback> &submit,
-        const ClientPasscodePromptParams &options) override;
+        const ClientPasscodePromptParams &params) override;
     void SetCallback(taihe::optional<PasscodePromptCallback> callback);
 
 private:

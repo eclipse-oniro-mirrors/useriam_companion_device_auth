@@ -29,7 +29,7 @@ public:
     virtual ~IPasscodePromptCallback() = default;
 
     virtual void OnPasscodePrompt(const std::shared_ptr<PasscodeSubmitCallback> &submit,
-        const ClientPasscodePromptParams &options) = 0;
+        const ClientPasscodePromptParams &params) = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

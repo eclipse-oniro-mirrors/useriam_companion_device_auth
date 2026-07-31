@@ -35,7 +35,7 @@ IpcPasscodePromptCallbackService::IpcPasscodePromptCallbackService(const std::sh
 }
 
 int32_t IpcPasscodePromptCallbackService::OnPasscodePrompt(const sptr<IIpcPasscodeSubmitCallback> &submitCallback,
-    const IpcPasscodePromptOptions &options)
+    const IpcPasscodePromptParam &param)
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
@@ -45,17 +45,17 @@ int32_t IpcPasscodePromptCallbackService::OnPasscodePrompt(const sptr<IIpcPassco
     }
 
     ENSURE_OR_RETURN_VAL(submitCallback != nullptr, GENERAL_ERROR);
-    uint8_t rawAlgorithm = options.asymEncryptAlgorithm;
+    uint8_t rawAlgorithm = param.asymEncryptAlgorithm;
     ENSURE_OR_RETURN_VAL(IsValidAsymEncryptAlgorithm(rawAlgorithm), GENERAL_ERROR);
     auto algorithm = static_cast<AsymEncryptAlgorithm>(rawAlgorithm);
-    std::vector<uint8_t> publicKey(options.publicKey.begin(), options.publicKey.end());
+    std::vector<uint8_t> publicKey(param.publicKey.begin(), param.publicKey.end());
     std::unique_ptr<AsymEncryptor> encryptor = CreateAsymEncryptor(algorithm, std::move(publicKey));
     ENSURE_OR_RETURN_VAL(encryptor != nullptr, GENERAL_ERROR);
     auto submitImpl = std::make_shared<PasscodeSubmitCallbackImpl>(submitCallback, std::move(encryptor));
     ENSURE_OR_RETURN_VAL(submitImpl != nullptr, GENERAL_ERROR);
-    ClientPasscodePromptParams clientOptions;
-    clientOptions.challenge = options.challenge;
-    callback_->OnPasscodePrompt(submitImpl, clientOptions);
+    ClientPasscodePromptParams clientParams;
+    clientParams.challenge = param.challenge;
+    callback_->OnPasscodePrompt(submitImpl, clientParams);
     return SUCCESS;
 }
 

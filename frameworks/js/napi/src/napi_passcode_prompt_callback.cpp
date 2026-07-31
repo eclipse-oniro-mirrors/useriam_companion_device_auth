@@ -82,7 +82,7 @@ void FinalizeSubmitCallbackData(napi_env env, void *data, void *hint)
 struct PasscodePromptHolder {
     std::shared_ptr<NapiPasscodePromptCallback> callback { nullptr };
     std::shared_ptr<PasscodeSubmitCallback> submitCallback;
-    ClientPasscodePromptParams options;
+    ClientPasscodePromptParams params;
     std::shared_ptr<JsRefHolder> jsCallback;
     napi_env env { nullptr };
 };
@@ -141,7 +141,7 @@ void DoPasscodePrompt(std::shared_ptr<PasscodePromptHolder> holder)
         return;
     }
     CompanionDeviceAuthNapiHelper::SetUint8ArrayProperty(holder->env, optionsObj, "challenge",
-        holder->options.challenge);
+        holder->params.challenge);
 
     napi_value args[ARGS_TWO] = { submitFunc, optionsObj };
     status = CompanionDeviceAuthNapiHelper::CallVoidNapiFunc(holder->env, holder->jsCallback->GetRef(), ARGS_TWO, args);
@@ -172,7 +172,7 @@ void NapiPasscodePromptCallback::SetCallback(const std::shared_ptr<JsRefHolder> 
 }
 
 void NapiPasscodePromptCallback::OnPasscodePrompt(const std::shared_ptr<PasscodeSubmitCallback> &submit,
-    const ClientPasscodePromptParams &options)
+    const ClientPasscodePromptParams &params)
 {
     IAM_LOGI("start");
     std::lock_guard<std::recursive_mutex> guard(mutex_);
@@ -184,7 +184,7 @@ void NapiPasscodePromptCallback::OnPasscodePrompt(const std::shared_ptr<Passcode
     ENSURE_OR_RETURN(holder != nullptr);
     holder->callback = shared_from_this();
     holder->submitCallback = submit;
-    holder->options = options;
+    holder->params = params;
     holder->jsCallback = callback_;
     holder->env = env_;
     auto task = [holder]() { DoPasscodePrompt(holder); };

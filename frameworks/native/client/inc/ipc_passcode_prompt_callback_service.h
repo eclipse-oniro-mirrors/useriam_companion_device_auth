@@ -29,7 +29,7 @@ public:
     explicit IpcPasscodePromptCallbackService(const std::shared_ptr<IPasscodePromptCallback> &impl);
     ~IpcPasscodePromptCallbackService() override = default;
     int32_t OnPasscodePrompt(const sptr<IIpcPasscodeSubmitCallback> &submitCallback,
-        const IpcPasscodePromptOptions &options) override;
+        const IpcPasscodePromptParam &param) override;
     int32_t CallbackEnter([[maybe_unused]] uint32_t code) override;
     int32_t CallbackExit([[maybe_unused]] uint32_t code, [[maybe_unused]] int32_t result) override;
 
