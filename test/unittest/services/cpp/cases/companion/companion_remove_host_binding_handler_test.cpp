@@ -39,12 +39,17 @@ protected:
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
         .deviceUserId = 100 };
+    DeviceKey localDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
+        .deviceId = "local_device_id",
+        .deviceUserId = INT32_200 };
 };
 
 HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_001, TestSize.Level0)
 {
     MockGuard guard;
     ON_CALL(guard.GetHostBindingManager(), RemoveHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(localDeviceKey_)));
 
     handler_ = std::make_unique<CompanionRemoveHostBindingHandler>();
 
@@ -91,6 +96,8 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_003, TestSize.Leve
 {
     MockGuard guard;
     ON_CALL(guard.GetHostBindingManager(), RemoveHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(localDeviceKey_)));
 
     handler_ = std::make_unique<CompanionRemoveHostBindingHandler>();
 
@@ -114,6 +121,37 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_003, TestSize.Leve
 
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
     EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
+}
+
+// The active-user gate was removed: a request whose companionUserId is not the current local user
+// is now honored (RemoveHostBinding is invoked) instead of being rejected.
+HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_004, TestSize.Level0)
+{
+    MockGuard guard;
+    ON_CALL(guard.GetHostBindingManager(), RemoveHostBinding(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(localDeviceKey_)));
+
+    handler_ = std::make_unique<CompanionRemoveHostBindingHandler>();
+
+    Attributes request;
+    RemoveHostBindingRequest removeHostBindingRequest = { .hostDeviceKey = hostDeviceKey_,
+        .companionUserId = INT32_200,
+        .extraInfo = { 1, 2, 3 } };
+    EncodeRemoveHostBindingRequest(removeHostBindingRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(removeHostBindingRequest.hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, removeHostBindingRequest.hostDeviceKey.deviceId);
+
+    EXPECT_CALL(guard.GetHostBindingManager(), RemoveHostBinding(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+
+    Attributes reply;
+    ErrorGuard errorGuard([](ResultCode) {});
+    handler_->HandleRequest(request, reply);
+    int32_t replyResult = 0;
+
+    EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
+    EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
 }
 
 } // namespace

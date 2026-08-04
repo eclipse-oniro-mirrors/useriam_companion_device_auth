@@ -173,7 +173,7 @@ bool CompanionAddCompanionRequest::SendInitKeyNegotiationReply(ResultCode result
     return true;
 }
 
-ResultCode CompanionAddCompanionRequest::CallBeginAddHostBinding(int32_t companionUserId,
+ResultCode CompanionAddCompanionRequest::BeginAddHostBinding(int32_t companionUserId,
     const std::vector<uint8_t> &extraInfo, BeginAddHostBindingOutput &beginOutput)
 {
     BeginAddHostBindingInput beginInput = BuildBeginAddHostBindingInput(companionUserId, extraInfo);
@@ -187,9 +187,13 @@ void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &a
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
 
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late message", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
-    ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
 
+    ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
     currentReply_ = std::move(onMessageReply);
 
     auto requestOpt = DecodeBeginAddHostBindingRequest(attrInput);
@@ -197,9 +201,9 @@ void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &a
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt->companionUserId == companionDeviceKey_.deviceUserId);
 
     BeginAddHostBindingOutput beginOutput = {};
-    ResultCode ret = CallBeginAddHostBinding(requestOpt->companionUserId, requestOpt->extraInfo, beginOutput);
+    ResultCode ret = BeginAddHostBinding(requestOpt->companionUserId, requestOpt->extraInfo, beginOutput);
     if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s CallBeginAddHostBinding failed ret=%{public}d", GetDescription(), ret);
+        IAM_LOGE("%{public}s BeginAddHostBinding failed ret=%{public}d", GetDescription(), ret);
         errorGuard.UpdateErrorCode(ret);
         return;
     }
@@ -225,8 +229,12 @@ void CompanionAddCompanionRequest::HandleEndAddHostBinding(const Attributes &att
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
 
-    ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late message", GetDescription());
+        return;
+    }
+    ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     currentReply_ = std::move(onMessageReply);
 

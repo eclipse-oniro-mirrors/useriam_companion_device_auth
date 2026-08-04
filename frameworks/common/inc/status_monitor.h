@@ -166,7 +166,7 @@ public:
                 it = continuousAuthStatusCallbackMap_.erase(it);
                 continue;
             }
-            ret = it->second->RemoveCallback(callback, [this, &it]() {
+            int32_t removeRet = it->second->RemoveCallback(callback, [this, &it]() {
                 int32_t ret =
                     CompanionDeviceAuthClient::GetInstance().UnsubscribeContinuousAuthStatusChange(it->second);
                 if (ret != SUCCESS) {
@@ -174,10 +174,12 @@ public:
                 }
                 return ret;
             });
-            if (ret != SUCCESS) {
-                IAM_LOGE("RemoveCallback fail, ret:%{public}d", ret);
-                return ret;
+            if (removeRet != SUCCESS) {
+                // callback not registered under this templateId; keep searching other buckets
+                ++it;
+                continue;
             }
+            ret = SUCCESS;
             if (it->second->Empty()) {
                 it = continuousAuthStatusCallbackMap_.erase(it);
                 continue;

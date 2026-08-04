@@ -74,8 +74,7 @@ PersistedCompanionStatus MakePersistedStatus(TemplateId templateId, UserId hostU
 }
 
 DeviceStatus MakeDeviceStatus(const DeviceKey &deviceKey, bool isOnline = true, bool isAuthMaintainActive = true,
-    std::optional<uint32_t> atlRevokeDelayMs = std::nullopt,
-    std::vector<BusinessId> supportedBusinessIds = {})
+    std::optional<uint32_t> atlRevokeDelayMs = std::nullopt, std::vector<BusinessId> supportedBusinessIds = {})
 {
     DeviceStatus status;
     status.deviceKey = deviceKey;
@@ -603,14 +602,14 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayNonZero_TimerFiresAnd
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active with delay=TEST_ATL_REVOKE_DELAY_MS
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS,
-        { BUSINESS_ID_1, BUSINESS_ID_2 });
+    auto activeStatus =
+        MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
     ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // atlRevokeDelayMs = TEST_ATL_REVOKE_DELAY_MS → timer scheduled
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS,
-        { BUSINESS_ID_1, BUSINESS_ID_2 });
+    auto inactiveStatus =
+        MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
 
     // ATL still present before timer fires
@@ -634,14 +633,14 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_TimerCancelledOnRecovery, TestSize.
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS,
-        { BUSINESS_ID_1, BUSINESS_ID_2 });
+    auto activeStatus =
+        MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
     ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // authMaintain goes inactive → timer scheduled
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS,
-        { BUSINESS_ID_1, BUSINESS_ID_2 });
+    auto inactiveStatus =
+        MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
     EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
@@ -660,14 +659,14 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_NoAtl_NoRevoke, TestSize.Level0)
     ASSERT_NE(nullptr, companion);
 
     // First set authMaintain active with delay
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS,
-        { BUSINESS_ID_1, BUSINESS_ID_2 });
+    auto activeStatus =
+        MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
     ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // No ATL set, authMaintain goes inactive with delay → nothing happens
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS,
-        { BUSINESS_ID_1, BUSINESS_ID_2 });
+    auto inactiveStatus =
+        MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
 
     EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
@@ -686,13 +685,13 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_DeviceOffline_CancelsTimer, TestSiz
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // Set online + authMaintain active with delay
-    auto activeStatus = MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS,
-        { BUSINESS_ID_1, BUSINESS_ID_2 });
+    auto activeStatus =
+        MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->status_.companionDeviceStatus = activeStatus;
 
     // authMaintain goes inactive → timer scheduled
-    auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS,
-        { BUSINESS_ID_1, BUSINESS_ID_2 });
+    auto inactiveStatus =
+        MakeDeviceStatus(deviceKey, true, false, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(inactiveStatus);
 
     // Device offline → timer cancelled, ATL revoked

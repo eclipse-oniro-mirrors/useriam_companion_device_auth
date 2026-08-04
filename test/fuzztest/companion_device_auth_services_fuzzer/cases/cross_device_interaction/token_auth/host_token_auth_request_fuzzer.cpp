@@ -104,12 +104,12 @@ static void FuzzHostBeginTokenAuth(std::shared_ptr<HostTokenAuthRequest> &reques
     request->HostBeginTokenAuth();
 }
 
-static void FuzzSecureAgentEndTokenAuth(std::shared_ptr<HostTokenAuthRequest> &request, FuzzedDataProvider &fuzzData)
+static void FuzzSecurityAgentEndTokenAuth(std::shared_ptr<HostTokenAuthRequest> &request, FuzzedDataProvider &fuzzData)
 {
     uint32_t tokenAuthReplySize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
     std::vector<uint8_t> tokenAuthReply = fuzzData.ConsumeBytes<uint8_t>(tokenAuthReplySize);
     std::vector<uint8_t> outFwkMsg;
-    (void)request->SecureAgentEndTokenAuth(tokenAuthReply, outFwkMsg);
+    (void)request->SecurityAgentEndTokenAuth(tokenAuthReply, outFwkMsg);
 }
 
 static void FuzzGetRequestInfo(std::shared_ptr<HostTokenAuthRequest> &request, FuzzedDataProvider &fuzzData)
@@ -131,7 +131,7 @@ static const HostTokenAuthRequestFuzzFunction g_fuzzFuncs[] = {
     FuzzSendTokenAuthRequest,
     FuzzHandleTokenAuthReply,
     FuzzHostBeginTokenAuth,
-    FuzzSecureAgentEndTokenAuth,
+    FuzzSecurityAgentEndTokenAuth,
     FuzzGetRequestInfo,
 };
 

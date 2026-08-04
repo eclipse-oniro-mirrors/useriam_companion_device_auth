@@ -220,6 +220,10 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late obtain token", GetDescription());
+        return;
+    }
     currentReply_ = std::move(onMessageReply);
     ErrorGuard errorGuard([this](ResultCode code) { CompleteWithError(code); });
 
@@ -247,8 +251,9 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
     }
 
     std::vector<uint8_t> obtainTokenReply = {};
-    bool ret = HandleHostProcessObtainToken(obtainTokenRequest, obtainTokenReply);
-    if (!ret) {
+    ResultCode ret = HandleHostProcessObtainToken(obtainTokenRequest, obtainTokenReply);
+    if (ret != ResultCode::SUCCESS) {
+        errorGuard.UpdateErrorCode(ret);
         return;
     }
 
@@ -292,7 +297,7 @@ bool HostObtainTokenRequest::ProcessHostProcessObtainTokenOutput(const HostProce
     return setTokenAtlRet;
 }
 
-bool HostObtainTokenRequest::HandleHostProcessObtainToken(const ObtainTokenRequest &request,
+ResultCode HostObtainTokenRequest::HandleHostProcessObtainToken(const ObtainTokenRequest &request,
     std::vector<uint8_t> &obtainTokenReply)
 {
     HostProcessObtainTokenInput input = BuildHostProcessObtainTokenInput(request.extraInfo);
@@ -301,11 +306,14 @@ bool HostObtainTokenRequest::HandleHostProcessObtainToken(const ObtainTokenReque
     ResultCode ret = GetSecurityAgent().HostProcessObtainToken(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s HostProcessObtainToken failed ret=%{public}d", GetDescription(), ret);
-        return false;
+        return ret;
     }
 
     needCancelObtainToken_ = false;
-    return ProcessHostProcessObtainTokenOutput(output, obtainTokenReply);
+    if (!ProcessHostProcessObtainTokenOutput(output, obtainTokenReply)) {
+        return ResultCode::GENERAL_ERROR;
+    }
+    return ResultCode::SUCCESS;
 }
 
 void HostObtainTokenRequest::CompleteWithError(ResultCode result)

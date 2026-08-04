@@ -16,6 +16,7 @@
 #include "companion_delegate_auth_request.h"
 
 #include "iam_check.h"
+#include "iam_common_defines.h"
 #include "iam_log_tracer.h"
 #include "iam_logger.h"
 
@@ -25,6 +26,7 @@
 #include "error_guard.h"
 #include "host_binding_manager.h"
 #include "request_stages.h"
+#include "result_code_converter.h"
 #include "security_agent.h"
 #include "service_common.h"
 #include "service_converter.h"
@@ -81,9 +83,11 @@ bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
 {
     IAM_LOGI("%{public}s start", GetDescription());
+    bool bindingResolved = ResolveBinding();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), bindingResolved, false);
     uint64_t challenge = 0;
     Atl atl = 0;
-    bool ret = SecureAgentBeginDelegateAuth(challenge, atl);
+    bool ret = SecurityAgentBeginDelegateAuth(challenge, atl);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), ret, false);
 
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
@@ -92,8 +96,7 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
     AuthResultCallback callback = [weakSelf = weak_from_this()](int32_t result, const std::vector<uint8_t> &token) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
-        ResultCode resultCode = (result == ResultCode::SUCCESS) ? ResultCode::SUCCESS : ResultCode::GENERAL_ERROR;
-        self->HandleDelegateAuthResult(resultCode, token);
+        self->HandleDelegateAuthResult(FromUserAuthResultCode(result), token);
     };
 
     BeginDelegateAuthParam param = {};
@@ -133,22 +136,17 @@ std::optional<BindingId> CompanionDelegateAuthRequest::QueryBindingIdFromHostBin
     return hostBindingStatus->bindingId;
 }
 
-bool CompanionDelegateAuthRequest::SecureAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl)
+bool CompanionDelegateAuthRequest::ResolveBinding()
 {
     auto bindingIdOpt = QueryBindingIdFromHostBinding();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), bindingIdOpt.has_value(), false);
     bindingId_ = *bindingIdOpt;
     desc_.SetBindingId(bindingId_);
     eventCollector_.SetBindingId(bindingId_);
-
-    if (!CallSecurityAgentBeginDelegateAuth(challenge, atl)) {
-        return false;
-    }
-    needEndDelegateAuth_ = true;
     return true;
 }
 
-bool CompanionDelegateAuthRequest::CallSecurityAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl)
+bool CompanionDelegateAuthRequest::SecurityAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl)
 {
     CompanionDelegateAuthBeginOutput output = {};
     ResultCode ret = GetSecurityAgent().CompanionBeginDelegateAuth(BuildCompanionDelegateAuthBeginInput(), output);
@@ -158,6 +156,7 @@ bool CompanionDelegateAuthRequest::CallSecurityAgentBeginDelegateAuth(uint64_t &
     }
     challenge = output.challenge;
     atl = output.atl;
+    needEndDelegateAuth_ = true;
     return true;
 }
 
@@ -165,8 +164,8 @@ void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCod
 {
     eventCollector_.ExitWait(CompanionDelegateAuthStages::DONE_USER_AUTH);
     LogTraceGuard guard;
-    if (cancelled_) {
-        IAM_LOGI("%{public}s already cancelled, skip late user-auth callback", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, skip late user-auth callback", GetDescription());
         return;
     }
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
@@ -174,14 +173,17 @@ void CompanionDelegateAuthRequest::HandleDelegateAuthResult(ResultCode resultCod
     IAM_LOGI("%{public}s start", GetDescription());
     contextId_.reset();
 
-    std::vector<uint8_t> delegateAuthResult;
-    bool result = SecurityAgentEndDelegateAuth(resultCode, token, delegateAuthResult);
-    if (!result) {
-        IAM_LOGE("%{public}s SecurityAgentEndDelegateAuth failed", GetDescription());
-        resultCode = ResultCode::GENERAL_ERROR;
+    CompanionDelegateAuthEndOutput output = {};
+    ResultCode endRet = SecurityAgentEndDelegateAuth(resultCode, token, output);
+    if (endRet == ResultCode::SUCCESS && resultCode == ResultCode::SUCCESS) {
+        eventCollector_.SetSuccessAuthType(output.authType);
+        eventCollector_.SetAtl(output.atl);
+    }
+    if (resultCode == ResultCode::SUCCESS && endRet != ResultCode::SUCCESS) {
+        resultCode = endRet;
     }
 
-    bool sendResult = SendDelegateAuthResult(resultCode, delegateAuthResult);
+    bool sendResult = SendDelegateAuthResult(resultCode, output.delegateAuthResult);
     if (!sendResult) {
         IAM_LOGE("%{public}s SendDelegateAuthResult failed", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
@@ -212,9 +214,11 @@ bool CompanionDelegateAuthRequest::SendDelegateAuthResult(ResultCode resultCode,
     return true;
 }
 
-bool CompanionDelegateAuthRequest::CallSecurityAgentEndDelegateAuth(ResultCode resultCode,
+ResultCode CompanionDelegateAuthRequest::SecurityAgentEndDelegateAuth(ResultCode resultCode,
     const std::vector<uint8_t> &authToken, CompanionDelegateAuthEndOutput &output)
 {
+    IAM_LOGI("%{public}s result=%{public}d", GetDescription(), resultCode);
+
     CompanionDelegateAuthEndInput input = {};
     input.requestId = GetRequestId();
     input.resultCode = resultCode;
@@ -223,20 +227,7 @@ bool CompanionDelegateAuthRequest::CallSecurityAgentEndDelegateAuth(ResultCode r
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionEndDelegateAuth failed ret=%{public}d", GetDescription(), ret);
     }
-    return ret == ResultCode::SUCCESS;
-}
-
-bool CompanionDelegateAuthRequest::SecurityAgentEndDelegateAuth(ResultCode resultCode,
-    const std::vector<uint8_t> &authToken, std::vector<uint8_t> &delegateAuthResult)
-{
-    IAM_LOGI("%{public}s result=%{public}d", GetDescription(), resultCode);
-
-    CompanionDelegateAuthEndOutput output = {};
-    bool ret = CallSecurityAgentEndDelegateAuth(resultCode, authToken, output);
     needEndDelegateAuth_ = false;
-    eventCollector_.SetSuccessAuthType(output.authType);
-    eventCollector_.SetAtl(output.atl);
-    delegateAuthResult.swap(output.delegateAuthResult);
     return ret;
 }
 
@@ -244,6 +235,10 @@ void CompanionDelegateAuthRequest::HandleSendDelegateAuthResultReply(const Attri
 {
     eventCollector_.ExitWait(CompanionDelegateAuthStages::DONE_SEND_RESULT_REPLY);
     LogTraceGuard guard;
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, skip late send-result reply", GetDescription());
+        return;
+    }
     IAM_LOGI("%{public}s start", GetDescription());
     ErrorGuard errorGuard([this](ResultCode code) { CompleteWithError(code); });
     auto replyOpt = DecodeSendDelegateAuthResultReply(message);
@@ -278,9 +273,11 @@ void CompanionDelegateAuthRequest::CompleteWithError(ResultCode result)
     }
     if (needEndDelegateAuth_) {
         IAM_LOGI("%{public}s security agent begin was started, calling End for cleanup", GetDescription());
-        std::vector<uint8_t> delegateAuthResult;
-        (void)SecurityAgentEndDelegateAuth(result, {}, delegateAuthResult);
-        needEndDelegateAuth_ = false;
+        CompanionDelegateAuthEndOutput output = {};
+        ResultCode endRet = SecurityAgentEndDelegateAuth(result, {}, output);
+        if (endRet != ResultCode::SUCCESS) {
+            IAM_LOGE("%{public}s SecurityAgentEndDelegateAuth failed", GetDescription());
+        }
     }
     Destroy();
 }

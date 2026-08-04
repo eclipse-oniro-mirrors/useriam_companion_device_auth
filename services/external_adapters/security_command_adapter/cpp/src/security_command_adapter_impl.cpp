@@ -32,26 +32,13 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-
-// Rust ErrorCode enumeration (mirrors services/security_agent/rust/common/constants.rs)
-enum class RustErrorCode : int32_t {
-    SUCCESS = 0,                 // ErrorCode::Success
-    FAIL = 1,                    // ErrorCode::Fail
-    GENERAL_ERROR = 2,           // ErrorCode::GeneralError
-    TIMEOUT = 4,                 // ErrorCode::Timeout
-    BAD_PARAM = 8,               // ErrorCode::BadParam
-    NOT_FOUND = 10006,           // ErrorCode::NotFound
-    ID_EXISTS = 10015,           // ErrorCode::IdExists
-    TOKEN_NOT_FOUND = 20005,     // ErrorCode::TokenNotFound
-    TOKEN_VERIFY_FAILED = 20006, // ErrorCode::TokenVerifyFailed
-};
-
+namespace {
 struct RustErrorCodeMapping {
     RustErrorCode rustErrorCode;
     ResultCode cppResultCode;
 };
-
-static constexpr RustErrorCodeMapping RUST_ERROR_CODE_MAPPINGS[] = {
+// Rust ErrorCode -> CDA ResultCode lookup table. Unknown codes fall back to GENERAL_ERROR.
+constexpr RustErrorCodeMapping RUST_ERROR_CODE_MAPPINGS[] = {
     { RustErrorCode::SUCCESS, ResultCode::SUCCESS },
     { RustErrorCode::FAIL, ResultCode::FAIL },
     { RustErrorCode::GENERAL_ERROR, ResultCode::GENERAL_ERROR },
@@ -59,24 +46,21 @@ static constexpr RustErrorCodeMapping RUST_ERROR_CODE_MAPPINGS[] = {
     { RustErrorCode::BAD_PARAM, ResultCode::INVALID_PARAMETERS },
     { RustErrorCode::NOT_FOUND, ResultCode::NOT_ENROLLED },
     { RustErrorCode::ID_EXISTS, ResultCode::INVALID_PARAMETERS },
+    { RustErrorCode::EXCEED_LIMIT, ResultCode::EXCEED_LIMIT },
     { RustErrorCode::TOKEN_NOT_FOUND, ResultCode::TOKEN_NOT_FOUND },
     { RustErrorCode::TOKEN_VERIFY_FAILED, ResultCode::TOKEN_VERIFY_FAILED },
 };
+} // namespace
 
-static constexpr size_t RUST_ERROR_CODE_MAPPING_COUNT = sizeof(RUST_ERROR_CODE_MAPPINGS) / sizeof(RustErrorCodeMapping);
-
-static ResultCode ConvertRustErrorCode(int32_t rustErrorCode)
+// Converts a Rust ErrorCode (int32_t returned by the FFI) into the CDA ResultCode.
+ResultCode ConvertRustErrorCode(int32_t rustErrorCode)
 {
-    RustErrorCode rustErrCode = static_cast<RustErrorCode>(rustErrorCode);
-    for (size_t i = 0; i < RUST_ERROR_CODE_MAPPING_COUNT; ++i) {
-        if (RUST_ERROR_CODE_MAPPINGS[i].rustErrorCode == rustErrCode) {
-            ResultCode cppCode = RUST_ERROR_CODE_MAPPINGS[i].cppResultCode;
-            IAM_LOGI("convert rust error code %{public}d to ResultCode %{public}d", static_cast<int32_t>(rustErrCode),
-                static_cast<int32_t>(cppCode));
-            return cppCode;
+    RustErrorCode target = static_cast<RustErrorCode>(rustErrorCode);
+    for (const auto &mapping : RUST_ERROR_CODE_MAPPINGS) {
+        if (mapping.rustErrorCode == target) {
+            return mapping.cppResultCode;
         }
     }
-    IAM_LOGE("unknown rust error code %{public}d, fallback to GENERAL_ERROR", rustErrorCode);
     return ResultCode::GENERAL_ERROR;
 }
 

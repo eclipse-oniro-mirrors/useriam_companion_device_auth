@@ -775,6 +775,13 @@ bool ModuleTestGuard::RegisterHostBindingDirect(UserId companionUserId, const De
     persistedStatus.hostDeviceKey = hostDeviceKey;
     persistedStatus.isTokenValid = false;
 
+    // RemoveHostBinding resolves the binding via CompanionGetPersistedHostBindingStatus
+    // (not the in-memory store), so return this persisted status there too.
+    CompanionGetPersistedHostBindingStatusOutput persistedOutput;
+    persistedOutput.hostBindingStatusList = { persistedStatus };
+    ON_CALL(GetSecurityAgent(), CompanionGetPersistedHostBindingStatus(_, _))
+        .WillByDefault(DoAll(SetArgReferee<1>(persistedOutput), Return(ResultCode::SUCCESS)));
+
     // Setup mock: CompanionBeginAddHostBinding returns our persistedStatus
     CompanionBeginAddHostBindingOutput secOutput;
     secOutput.addHostBindingReply = { 0x01, 0x02, 0x03 };

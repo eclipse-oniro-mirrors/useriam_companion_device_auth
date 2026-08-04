@@ -50,7 +50,7 @@ private:
     bool InitDelegateResultSubscription();
     void HostBeginDelegateAuth();
     void HandleStartDelegateAuthReply(const Attributes &message);
-    bool CallSecurityAgentEndDelegateAuth(const std::vector<uint8_t> &delegateAuthResult,
+    ResultCode SecurityAgentEndDelegateAuth(const std::vector<uint8_t> &delegateAuthResult,
         HostEndDelegateAuthOutput &output);
     ResultCode HandleSendDelegateAuthResult(const Attributes &request, std::vector<uint8_t> &outFwkMsg);
     void HandleSendDelegateAuthResultMessage(const Attributes &request, OnMessageReply &onMessageReply);

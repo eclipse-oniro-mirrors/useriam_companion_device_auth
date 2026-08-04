@@ -195,6 +195,10 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     eventCollector_.ExitWait(HostSyncDeviceStatusStages::DONE_SYNC_DEVICE_STATUS_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late sync device status", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyDataOpt = DecodeSyncDeviceStatusReply(reply);
@@ -243,7 +247,7 @@ bool HostSyncDeviceStatusRequest::EndCompanionCheck(const SyncDeviceStatusReply 
     eventCollector_.SetTemplateIdList({ companionStatus->templateId });
     desc_.SetTemplateId(companionStatus->templateId);
 
-    ResultCode ret = CallHostEndCompanionCheck(companionStatus->templateId, reply);
+    ResultCode ret = HostEndCompanionCheck(companionStatus->templateId, reply);
     ProcessCompanionCheckResult(ret, *companionStatus, reply);
 
     if (cancelCompanionCheckGuard_ != nullptr) {
@@ -257,8 +261,7 @@ std::optional<CompanionStatus> HostSyncDeviceStatusRequest::QueryCompanionStatus
     return GetCompanionManager().GetCompanionStatus(hostUserId_, companionDeviceKey_);
 }
 
-ResultCode HostSyncDeviceStatusRequest::CallHostEndCompanionCheck(TemplateId templateId,
-    const SyncDeviceStatusReply &reply)
+ResultCode HostSyncDeviceStatusRequest::HostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply)
 {
     HostEndCompanionCheckInput input = BuildHostEndCompanionCheckInput(templateId, reply);
     return GetSecurityAgent().HostEndCompanionCheck(input);

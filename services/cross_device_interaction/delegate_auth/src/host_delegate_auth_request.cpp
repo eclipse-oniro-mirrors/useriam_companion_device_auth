@@ -175,6 +175,10 @@ void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &mes
 {
     eventCollector_.ExitWait(HostDelegateAuthStages::DONE_DELEGATE_AUTH_REPLY);
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late start delegate auth", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeStartDelegateAuthReply(message);
@@ -191,7 +195,7 @@ void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &mes
     errorGuard.Cancel();
 }
 
-bool HostDelegateAuthRequest::CallSecurityAgentEndDelegateAuth(const std::vector<uint8_t> &delegateAuthResult,
+ResultCode HostDelegateAuthRequest::SecurityAgentEndDelegateAuth(const std::vector<uint8_t> &delegateAuthResult,
     HostEndDelegateAuthOutput &output)
 {
     HostEndDelegateAuthInput input = {};
@@ -201,9 +205,9 @@ bool HostDelegateAuthRequest::CallSecurityAgentEndDelegateAuth(const std::vector
     ResultCode ret = GetSecurityAgent().HostEndDelegateAuth(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s HostEndDelegateAuth failed ret=%{public}d", GetDescription(), ret);
-        return false;
+        return ret;
     }
-    return true;
+    return ResultCode::SUCCESS;
 }
 
 ResultCode HostDelegateAuthRequest::HandleSendDelegateAuthResult(const Attributes &request,
@@ -215,8 +219,9 @@ ResultCode HostDelegateAuthRequest::HandleSendDelegateAuthResult(const Attribute
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), resultMsgOpt.has_value(), ResultCode::GENERAL_ERROR);
     const auto &resultMsg = *resultMsgOpt;
     HostEndDelegateAuthOutput output = {};
-    if (!CallSecurityAgentEndDelegateAuth(resultMsg.extraInfo, output)) {
-        return ResultCode::GENERAL_ERROR;
+    ResultCode endRet = SecurityAgentEndDelegateAuth(resultMsg.extraInfo, output);
+    if (endRet != ResultCode::SUCCESS) {
+        return endRet;
     }
     if (resultMsg.result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s delegate auth failed result=%{public}d", GetDescription(),
@@ -239,7 +244,7 @@ void HostDelegateAuthRequest::HandleSendDelegateAuthResultMessage(const Attribut
     LogTraceGuard guard;
     IAM_LOGI("%{public}s HandleSendDelegateAuthResultMessage", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
-    if (cancelled_ || completed_) {
+    if (IsFinished()) {
         IAM_LOGI("%{public}s already cancelled/completed, drop late delegate result", GetDescription());
         return;
     }

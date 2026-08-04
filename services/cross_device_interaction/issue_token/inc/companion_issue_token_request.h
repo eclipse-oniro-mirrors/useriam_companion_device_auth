@@ -47,7 +47,7 @@ protected:
 
 private:
     void HandleIssueTokenMessage(const Attributes &request, OnMessageReply &onMessageReply);
-    bool SecureAgentCompanionIssueToken(const std::vector<uint8_t> &issueTokenRequest,
+    ResultCode SecurityAgentCompanionIssueToken(const std::vector<uint8_t> &issueTokenRequest,
         std::vector<uint8_t> &issueTokenReply);
     bool CompanionPreIssueToken(std::vector<uint8_t> &preIssueTokenReply);
     void SendPreIssueTokenReply(ResultCode result, const std::vector<uint8_t> &preIssueTokenReply);
@@ -57,7 +57,7 @@ private:
     CompanionPreIssueTokenInput BuildCompanionPreIssueTokenInput() const;
     SecureProtocolId QuerySecureProtocolId();
     std::optional<BindingId> QueryBindingIdFromHostBinding();
-    bool CallSecurityAgentPreIssueToken(std::vector<uint8_t> &preIssueTokenReply);
+    bool SecurityAgentPreIssueToken(std::vector<uint8_t> &preIssueTokenReply);
 
     Attributes request_;
     int32_t companionUserId_ = 0;

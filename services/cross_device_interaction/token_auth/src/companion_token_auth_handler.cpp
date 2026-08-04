@@ -69,32 +69,50 @@ void CompanionTokenAuthHandler::HandleRequest(const Attributes &request, Attribu
         return;
     }
 
+    auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(connectionName);
+    ENSURE_OR_RETURN_DESC(desc.GetCStr(), localDeviceKey.has_value());
+    if (localDeviceKey->deviceUserId == INVALID_USER_ID) {
+        IAM_LOGE("%{public}s local active user invalid", desc.GetCStr());
+        return;
+    }
+    ENSURE_OR_RETURN_DESC(desc.GetCStr(), tokenRequest.companionUserId == localDeviceKey->deviceUserId);
+
     auto hostBindingStatus =
         GetHostBindingManager().GetHostBindingStatus(tokenRequest.companionUserId, tokenRequest.hostDeviceKey);
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), hostBindingStatus.has_value());
     desc.SetBindingId(hostBindingStatus->bindingId);
     eventCollector.SetBindingId(hostBindingStatus->bindingId);
 
+    ResultCode ret = ProcessTokenAuth(tokenRequest, *hostBindingStatus, reply);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s CompanionProcessTokenAuth failed ret=%{public}d", desc.GetCStr(), ret);
+        errorGuard.UpdateErrorCode(ret);
+        return;
+    }
+    errorGuard.Cancel();
+    eventCollector.Report(ResultCode::SUCCESS);
+    IAM_LOGI("%{public}s success", desc.GetCStr());
+}
+
+ResultCode CompanionTokenAuthHandler::ProcessTokenAuth(const TokenAuthRequest &tokenRequest,
+    const HostBindingStatus &hostBindingStatus, Attributes &reply)
+{
     auto secureProtocolId = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
 
     CompanionProcessTokenAuthInput input = {};
-    input.bindingId = hostBindingStatus->bindingId;
+    input.bindingId = hostBindingStatus.bindingId;
     input.secureProtocolId = secureProtocolId;
     input.tokenAuthRequest = tokenRequest.extraInfo;
 
     CompanionProcessTokenAuthOutput output = {};
     ResultCode ret = GetSecurityAgent().CompanionProcessTokenAuth(input, output);
     if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s CompanionProcessTokenAuth failed ret=%{public}d", desc.GetCStr(), ret);
-        errorGuard.UpdateErrorCode(ret);
-        return;
+        return ret;
     }
 
     TokenAuthReply replyMsg = { .result = ret, .extraInfo = output.tokenAuthReply };
     EncodeTokenAuthReply(replyMsg, reply);
-    errorGuard.Cancel();
-    eventCollector.Report(ResultCode::SUCCESS);
-    IAM_LOGI("%{public}s success", desc.GetCStr());
+    return ResultCode::SUCCESS;
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

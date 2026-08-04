@@ -168,6 +168,10 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
     eventCollector_.ExitWait(HostTokenAuthStages::DONE_TOKEN_AUTH_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late token auth", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
@@ -182,7 +186,10 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
             static_cast<int32_t>(replyMsg.result));
         if (replyMsg.result == ResultCode::TOKEN_NOT_FOUND) {
             IAM_LOGI("%{public}s token not found, revoke token", GetDescription());
-            (void)GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, std::nullopt);
+            bool ok = GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, std::nullopt);
+            if (!ok) {
+                IAM_LOGE("%{public}s SetCompanionTokenAuthAtl failed", GetDescription());
+            }
         }
         errorGuard.UpdateErrorCode(replyMsg.result);
         return;
@@ -190,13 +197,15 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
 
     std::vector<uint8_t> tokenAuthReply = replyMsg.extraInfo;
     std::vector<uint8_t> fwkMsg = {};
-    ResultCode endTokenAuthRet = SecureAgentEndTokenAuth(tokenAuthReply, fwkMsg);
+    ResultCode endTokenAuthRet = SecurityAgentEndTokenAuth(tokenAuthReply, fwkMsg);
     if (endTokenAuthRet != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s SecureAgentEndTokenAuth failed ret=%{public}d", GetDescription(),
-            static_cast<int32_t>(endTokenAuthRet));
+        IAM_LOGE("%{public}s SecurityAgentEndTokenAuth failed ret=%{public}d", GetDescription(), endTokenAuthRet);
         if (endTokenAuthRet == ResultCode::TOKEN_VERIFY_FAILED) {
             IAM_LOGI("%{public}s token verify failed, set companion atl null", GetDescription());
-            (void)GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, std::nullopt);
+            bool ok = GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, std::nullopt);
+            if (!ok) {
+                IAM_LOGE("%{public}s SetCompanionTokenAuthAtl failed", GetDescription());
+            }
         }
         errorGuard.UpdateErrorCode(endTokenAuthRet);
         return;
@@ -206,7 +215,7 @@ void HostTokenAuthRequest::HandleTokenAuthReply(const Attributes &reply)
     CompleteWithSuccess(fwkMsg);
 }
 
-ResultCode HostTokenAuthRequest::SecureAgentEndTokenAuth(const std::vector<uint8_t> &tokenAuthReply,
+ResultCode HostTokenAuthRequest::SecurityAgentEndTokenAuth(const std::vector<uint8_t> &tokenAuthReply,
     std::vector<uint8_t> &outFwkMsg)
 {
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), ResultCode::GENERAL_ERROR);
@@ -249,7 +258,10 @@ void HostTokenAuthRequest::CompleteWithError(ResultCode result)
     IAM_LOGI("%{public}s: token auth request failed, result=%{public}d", GetDescription(), result);
     if (needEndTokenAuth_) {
         std::vector<uint8_t> fwkMsg = {};
-        (void)SecureAgentEndTokenAuth({}, fwkMsg);
+        ResultCode endTokenAuthRet = SecurityAgentEndTokenAuth({}, fwkMsg);
+        if (endTokenAuthRet != ResultCode::SUCCESS) {
+            IAM_LOGE("%{public}s SecurityAgentEndTokenAuth failed ret=%{public}d", GetDescription(), endTokenAuthRet);
+        }
         needEndTokenAuth_ = false;
     }
     InvokeCallback(result, {});
@@ -338,6 +350,9 @@ bool HostTokenAuthRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &de
 void HostTokenAuthRequest::HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList)
 {
     LogTraceGuard guard;
+    if (IsFinished()) {
+        return;
+    }
     auto peerDeviceKey = GetPeerDeviceKey();
     ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKey.has_value());
     for (const auto &status : deviceStatusList) {

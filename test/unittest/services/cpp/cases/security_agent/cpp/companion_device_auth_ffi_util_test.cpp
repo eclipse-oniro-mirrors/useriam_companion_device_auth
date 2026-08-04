@@ -635,9 +635,8 @@ HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
     originalStatus.addedTime = 1000;
     originalStatus.isValid = true;
     originalStatus.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2) };
-    originalStatus.supportedBusinessIds = {
-        static_cast<BusinessId>(3), static_cast<BusinessId>(4), static_cast<BusinessId>(5)
-    };
+    originalStatus.supportedBusinessIds = { static_cast<BusinessId>(3), static_cast<BusinessId>(4),
+        static_cast<BusinessId>(5) };
     originalStatus.deviceModelInfo = "Test Device";
 
     DeviceKey key;

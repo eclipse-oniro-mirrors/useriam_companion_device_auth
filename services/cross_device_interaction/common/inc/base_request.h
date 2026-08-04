@@ -51,6 +51,7 @@ protected:
     void Destroy();
     virtual void CompleteWithError(ResultCode result) = 0;
     bool AcquireCompletion();
+    bool IsFinished() const;
 
     InteractionDesc desc_;
     InteractionEventCollector eventCollector_;

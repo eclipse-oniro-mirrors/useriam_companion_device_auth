@@ -1277,7 +1277,7 @@ HWTEST_F(AuthModuleTest, HostDelegateAuthFailureE2E_001, TestSize.Level0)
         .WillOnce(DoAll(SetArgReferee<1>(beginOutput), Return(ResultCode::SUCCESS)));
 
     // On the failure path, HandleSendDelegateAuthResult still calls HostEndDelegateAuth first
-    // (via CallSecurityAgentEndDelegateAuth) to finalize the session, then returns the peer's
+    // (via SecurityAgentEndDelegateAuth) to finalize the session, then returns the peer's
     // error code (resultMsg.result) when it is not SUCCESS. This test sets no explicit
     // expectation on HostEndDelegateAuth; it relies on the default mock action and focuses on
     // verifying that the error (GENERAL_ERROR) propagates to both the framework callback and

@@ -417,9 +417,9 @@ HWTEST_F(CompanionObtainTokenRequestTest, CompanionBeginObtainToken_001, TestSiz
         .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginObtainToken(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
-    bool result = request->CompanionBeginObtainToken(preObtainTokenReply.extraInfo);
+    ResultCode result = request->CompanionBeginObtainToken(preObtainTokenReply.extraInfo);
 
-    EXPECT_FALSE(result);
+    EXPECT_EQ(result, ResultCode::GENERAL_ERROR);
 }
 
 HWTEST_F(CompanionObtainTokenRequestTest, CompanionBeginObtainToken_002, TestSize.Level0)
@@ -456,9 +456,9 @@ HWTEST_F(CompanionObtainTokenRequestTest, CompanionBeginObtainToken_002, TestSiz
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginObtainToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillOnce(Return(false));
 
-    bool result = request->CompanionBeginObtainToken(preObtainTokenReply.extraInfo);
+    ResultCode result = request->CompanionBeginObtainToken(preObtainTokenReply.extraInfo);
 
-    EXPECT_FALSE(result);
+    EXPECT_EQ(result, ResultCode::COMMUNICATION_ERROR);
 }
 
 HWTEST_F(CompanionObtainTokenRequestTest, HandleObtainTokenReply_001, TestSize.Level0)
@@ -730,9 +730,9 @@ HWTEST_F(CompanionObtainTokenRequestTest, CompanionEndObtainToken_001, TestSize.
 
     ObtainTokenReply obtainTokenReply = { .result = static_cast<int32_t>(ResultCode::SUCCESS),
         .extraInfo = { 1, 2, 3 } };
-    bool result = request->CompanionEndObtainToken(obtainTokenReply);
+    ResultCode result = request->CompanionEndObtainToken(obtainTokenReply);
 
-    EXPECT_TRUE(result);
+    EXPECT_EQ(result, ResultCode::SUCCESS);
 }
 
 HWTEST_F(CompanionObtainTokenRequestTest, GetMaxConcurrency_001, TestSize.Level0)
