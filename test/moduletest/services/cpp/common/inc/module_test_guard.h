@@ -28,6 +28,7 @@
 #include "singleton_manager.h"
 
 // Fakes (stateful + callback-aware test doubles)
+#include "fake_app_foreground_state_adapter.h"
 #include "fake_channel.h"
 #include "fake_driver_manager_adapter.h"
 #include "fake_idm_adapter.h"
@@ -66,6 +67,7 @@ public:
 
     // ---- Fake accessors (stateful, callback-aware) ----
     FakeChannel &GetChannel();
+    FakeAppForegroundStateAdapter &GetAppForegroundStateAdapter();
     MockTimeKeeper &GetTimeKeeper();
     FakeUserIdManager &GetUserIdManager();
     FakeSystemParamManager &GetSystemParamManager();
@@ -87,6 +89,7 @@ public:
 
 protected:
     // ---- AdapterManager injections (override base) ----
+    bool InitializeAppForegroundStateAdapter() override;
     bool InitializeTimeKeeper() override;
     bool InitializeEventManagerAdapter() override;
     bool InitializeSaManagerAdapter() override;
@@ -108,6 +111,7 @@ private:
     void SetupSecurityAgentDefaults();
 
     // AdapterManager adapters
+    std::shared_ptr<FakeAppForegroundStateAdapter> appForegroundStateAdapter_;
     std::shared_ptr<MockTimeKeeper> timeKeeper_;
     std::shared_ptr<MockUserAuthAdapter> userAuthAdapter_;
     std::shared_ptr<FakeIdmAdapter> idmAdapter_;
@@ -142,6 +146,7 @@ public:
 
     // Fake accessors
     FakeChannel &GetChannel();
+    FakeAppForegroundStateAdapter &GetAppForegroundStateAdapter();
     MockTimeKeeper &GetTimeKeeper();
     FakeUserIdManager &GetUserIdManager();
     FakeSystemParamManager &GetSystemParamManager();

@@ -192,7 +192,7 @@ std::vector<uint64_t> IdmAdapterImpl::GetUserTemplates(int32_t userId)
 std::unique_ptr<Subscription> IdmAdapterImpl::SubscribeUserTemplateChange(int32_t userId,
     TemplateChangeCallback callback)
 {
-    uint64_t subscriptionId = GetMiscManager().GetNextGlobalId();
+    SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
     subscriptions_[subscriptionId] = { userId, std::move(callback) };
 
     IAM_LOGI("Subscribed to template changes for user %{public}d, subscriptionId=0x%{public}016" PRIX64, userId,
@@ -209,7 +209,7 @@ std::unique_ptr<Subscription> IdmAdapterImpl::SubscribeUserTemplateChange(int32_
     });
 }
 
-void IdmAdapterImpl::Unsubscribe(uint64_t subscriptionId)
+void IdmAdapterImpl::Unsubscribe(SubscribeId subscriptionId)
 {
     auto it = subscriptions_.find(subscriptionId);
     if (it == subscriptions_.end()) {

@@ -94,6 +94,17 @@ private:
 
 class SyncDeviceStatusModuleTest : public testing::Test {};
 
+// Encode a SYNC_DEVICE_STATUS reply and inject it on connName with the captured seq so the
+// host-side sync handshake completes and HandleSyncResult fires the subscriber callback.
+void InjectSyncReply(ModuleTestGuard &guard, const std::string &connName, uint32_t seq,
+    const SyncDeviceStatusReply &reply)
+{
+    Attributes payload;
+    EncodeSyncDeviceStatusReply(reply, payload);
+    guard.InjectCompanionRequest(connName,
+        BuildReplyRawMsg(connName, seq, MessageType::SYNC_DEVICE_STATUS, payload));
+}
+
 // ============================================================================
 // Test 1: Host side — subscribe available devices → device online → sync
 //         (no template enrolled) → callback fires with available device
@@ -143,7 +154,9 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncNoTemplateE2E_001, TestSize.Level0)
         });
     ASSERT_NE(callback, nullptr);
 
-    EXPECT_EQ(guard.GetCore().SubscribeAvailableDeviceStatus(HOST_USER, callback), ResultCode::SUCCESS);
+    EXPECT_EQ(guard.GetCore().SubscribeAvailableDeviceStatus(HOST_USER, CallerInfo { .name = FOREGROUND_TEST_BUNDLE },
+                  callback),
+        ResultCode::SUCCESS);
     DrainPendingTasks();
 
     // Run: device online triggers TriggerDeviceSync → HostSyncDeviceStatusRequest → FakeChannel
@@ -164,11 +177,7 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncNoTemplateE2E_001, TestSize.Level0)
     reply.secureProtocolId = SecureProtocolId::DEFAULT;
     reply.companionDeviceKey = MakeDeviceKey("companion-test-device-001", 200);
     reply.deviceUserName = "CompanionUser";
-
-    Attributes replyPayload;
-    EncodeSyncDeviceStatusReply(reply, replyPayload);
-    guard.InjectCompanionRequest(connName,
-        BuildReplyRawMsg(connName, msgInfo->seq, MessageType::SYNC_DEVICE_STATUS, replyPayload));
+    InjectSyncReply(guard, connName, msgInfo->seq, reply);
 
     EXPECT_TRUE(callbackFired);
     ASSERT_EQ(capturedDeviceStatusList.size(), 1u);

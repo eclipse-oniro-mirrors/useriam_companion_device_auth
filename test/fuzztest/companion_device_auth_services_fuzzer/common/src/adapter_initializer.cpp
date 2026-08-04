@@ -26,6 +26,7 @@
 #include "system_ability_status_change_stub.h"
 
 #include "adapter_manager.h"
+#include "app_foreground_state_adapter.h"
 #include "driver_manager_adapter.h"
 #include "event_manager_adapter.h"
 #include "fuzz_data_generator.h"
@@ -209,6 +210,33 @@ public:
     void ReportInteractionEvent(const InteractionEventCollector &eventCollector) override
     {
         (void)eventCollector;
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
+class MockAppForegroundStateAdapter : public IAppForegroundStateAdapter {
+public:
+    explicit MockAppForegroundStateAdapter(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    std::unique_ptr<Subscription> AddWatchedApp(const std::string &bundleName) override
+    {
+        (void)bundleName;
+        return std::make_unique<Subscription>([] {});
+    }
+
+    std::unique_ptr<Subscription> SubscribeForegroundWatchedApps(const ForegroundWatchedAppsHandler &handler) override
+    {
+        (void)handler;
+        return std::make_unique<Subscription>([] {});
+    }
+
+    std::vector<std::string> GetForegroundWatchedApps() override
+    {
+        return {};
     }
 
 private:
@@ -453,6 +481,9 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 
     auto eventMgrAdapter = std::make_shared<MockEventManagerAdapter>(fuzzData);
     adapterMgr.SetEventManagerAdapter(eventMgrAdapter);
+
+    auto appForegroundStateAdapter = std::make_shared<MockAppForegroundStateAdapter>(fuzzData);
+    adapterMgr.SetAppForegroundStateAdapter(appForegroundStateAdapter);
 
     auto timeKeeper = std::make_shared<MockTimeKeeper>();
     adapterMgr.SetTimeKeeper(timeKeeper);

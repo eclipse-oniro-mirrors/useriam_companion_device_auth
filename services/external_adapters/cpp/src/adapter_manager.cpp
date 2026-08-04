@@ -23,6 +23,7 @@
 #include "common_defines.h"
 #include "task_runner_manager.h"
 
+#include "app_foreground_state_adapter_impl.h"
 #include "driver_manager_adapter_impl.h"
 #include "idm_adapter_impl.h"
 #include "user_auth_adapter_impl.h"
@@ -147,6 +148,22 @@ void AdapterManager::SetEventManagerAdapter(std::shared_ptr<IEventManagerAdapter
     eventManagerAdapter_ = adapter;
 }
 
+IAppForegroundStateAdapter &AdapterManager::GetAppForegroundStateAdapter()
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    if (appForegroundStateAdapter_ == nullptr) {
+        IAM_LOGE("AppForegroundState adapter is not initialized");
+        AbortIfAdapterUninitialized("AppForegroundState");
+    }
+    return *appForegroundStateAdapter_;
+}
+
+void AdapterManager::SetAppForegroundStateAdapter(std::shared_ptr<IAppForegroundStateAdapter> adapter)
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    appForegroundStateAdapter_ = adapter;
+}
+
 ITimeKeeper &AdapterManager::GetTimeKeeper()
 {
     CHECK_RUNNING_ON_RESIDENT_THREAD();
@@ -230,6 +247,7 @@ void AdapterManager::Reset()
     systemParamManager_ = nullptr;
     userIdManager_ = nullptr;
     systemSettingsManager_ = nullptr;
+    appForegroundStateAdapter_ = nullptr;
 }
 #endif // ENABLE_TEST
 

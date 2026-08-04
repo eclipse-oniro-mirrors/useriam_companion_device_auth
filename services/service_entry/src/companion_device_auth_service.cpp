@@ -197,8 +197,9 @@ ErrCode CompanionDeviceAuthService::SubscribeAvailableDeviceStatus(int32_t local
         core = core_;
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
-    auto resultOpt = RunOnResidentSync([core, localUserId, deviceStatusCallback]() {
-        return core->SubscribeAvailableDeviceStatus(localUserId, deviceStatusCallback);
+    auto callerInfo = AccessTokenUtil::GetCallerInfo(*this);
+    auto resultOpt = RunOnResidentSync([core, localUserId, callerInfo, deviceStatusCallback]() {
+        return core->SubscribeAvailableDeviceStatus(localUserId, callerInfo, deviceStatusCallback);
     });
     if (!resultOpt.has_value()) {
         IAM_LOGE("SubscribeAvailableDeviceStatus timeout");
@@ -248,8 +249,9 @@ ErrCode CompanionDeviceAuthService::SubscribeTemplateStatusChange(int32_t localU
         core = core_;
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
-    auto resultOpt = RunOnResidentSync([core, localUserId, templateStatusCallback]() {
-        return core->SubscribeTemplateStatusChange(localUserId, templateStatusCallback);
+    auto callerInfo = AccessTokenUtil::GetCallerInfo(*this);
+    auto resultOpt = RunOnResidentSync([core, localUserId, callerInfo, templateStatusCallback]() {
+        return core->SubscribeTemplateStatusChange(localUserId, callerInfo, templateStatusCallback);
     });
     if (!resultOpt.has_value()) {
         IAM_LOGE("SubscribeTemplateStatusChange timeout");

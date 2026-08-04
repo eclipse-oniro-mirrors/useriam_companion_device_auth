@@ -26,6 +26,7 @@
 
 #include "idm_adapter.h"
 #include "sa_status_listener.h"
+#include "service_common.h"
 #include "subscription.h"
 #include "user_idm_client_callback.h"
 
@@ -47,12 +48,12 @@ private:
     bool Initialize();
     void OnUserIdmServiceReady();
     void OnUserIdmServiceUnavailable();
-    void Unsubscribe(uint64_t subscriptionId);
+    void Unsubscribe(SubscribeId subscriptionId);
 
     void NotifyTemplateChange(int32_t userId, const std::vector<uint64_t> &templateIds);
 
     std::map<int32_t, std::vector<uint64_t>> templateCache_;
-    std::map<uint64_t, std::pair<int32_t, TemplateChangeCallback>> subscriptions_;
+    std::map<SubscribeId, std::pair<int32_t, TemplateChangeCallback>> subscriptions_;
     std::unique_ptr<SaStatusListener> saListener_;
     std::shared_ptr<UserAuth::CredChangeEventListener> eventListener_;
 };

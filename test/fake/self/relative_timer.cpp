@@ -32,11 +32,33 @@ namespace {
 struct TimerEntry {
     RelativeTimer::TimerCallback callback;
     uint64_t deadlineMs { 0 }; // absolute deadline from time provider
+    uint32_t periodMs { 0 };   // 0 = one-shot, >0 = reschedule this far after each fire
 };
 
 auto g_pendingTasks = std::make_shared<std::map<uint64_t, TimerEntry>>();
 auto g_nextTaskId = std::make_shared<std::atomic<uint64_t>>(0);
 std::function<uint64_t()> g_timeProvider = []() { return 0; };
+
+// Fires a single pending timer if its deadline has elapsed. Expired one-shot timers are
+// consumed (dropped); periodic timers are rescheduled for their next interval; not-yet-due
+// timers are put back to wait. Returns true if the timer fired this pass.
+bool TryFireTask(uint64_t now, uint64_t taskId, TimerEntry &entry)
+{
+    if (!entry.callback || now < entry.deadlineMs) {
+        if (entry.callback) {
+            (*g_pendingTasks)[taskId] = std::move(entry);
+        }
+        return false;
+    }
+    entry.callback();
+    if (entry.periodMs > 0) {
+        // Reschedule a periodic timer for its next interval so repeated DrainExpiredTasks
+        // calls keep firing it (mirrors Utils::Timer).
+        entry.deadlineMs = now + entry.periodMs;
+        (*g_pendingTasks)[taskId] = std::move(entry);
+    }
+    return true;
+}
 } // namespace
 
 RelativeTimer::RelativeTimer()
@@ -56,7 +78,12 @@ std::unique_ptr<Subscription> RelativeTimer::Register(TimerCallback &&callback, 
 
 std::unique_ptr<Subscription> RelativeTimer::RegisterPeriodic(TimerCallback &&callback, uint32_t ms)
 {
-    return Register(std::move(callback), ms);
+    uint64_t taskId = (*g_nextTaskId)++;
+    auto &entry = (*g_pendingTasks)[taskId];
+    entry.callback = std::move(callback);
+    entry.deadlineMs = g_timeProvider() + ms;
+    entry.periodMs = ms;
+    return std::make_unique<Subscription>([taskId]() { g_pendingTasks->erase(taskId); });
 }
 
 void RelativeTimer::PostTask(TimerCallback &&callback, uint32_t ms)
@@ -98,12 +125,7 @@ void RelativeTimer::DrainExpiredTasks()
         uint64_t now = g_timeProvider();
         bool anyExecuted = false;
         for (auto &entry : tasks) {
-            if (entry.second.callback && now >= entry.second.deadlineMs) {
-                entry.second.callback();
-                anyExecuted = true;
-            } else if (entry.second.callback) {
-                (*g_pendingTasks)[entry.first] = std::move(entry.second);
-            }
+            anyExecuted |= TryFireTask(now, entry.first, entry.second);
         }
         if (g_pendingTasks->empty() || !anyExecuted) {
             return;

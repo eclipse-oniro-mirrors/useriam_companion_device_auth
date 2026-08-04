@@ -65,14 +65,14 @@ class SubscriptionManagerTest : public Test {};
 HWTEST_F(SubscriptionManagerTest, Constructor_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     EXPECT_NE(subscriptionManager, nullptr);
 }
 
 HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcAvailableDeviceStatusCallback> callback = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
     ASSERT_NE(callback, nullptr);
@@ -80,7 +80,7 @@ HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_001, TestSize
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
-    subscriptionManager->AddAvailableDeviceStatusCallback(userId, callback);
+    subscriptionManager->AddAvailableDeviceStatusCallback(userId, CallerInfo {}, callback);
 
     EXPECT_FALSE(subscriptionManager->availableDeviceSubscriptions_.empty());
 }
@@ -88,11 +88,11 @@ HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_001, TestSize
 HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcAvailableDeviceStatusCallback> callback = nullptr;
 
-    subscriptionManager->AddAvailableDeviceStatusCallback(userId, callback);
+    subscriptionManager->AddAvailableDeviceStatusCallback(userId, CallerInfo {}, callback);
 
     EXPECT_TRUE(subscriptionManager->availableDeviceSubscriptions_.empty());
 }
@@ -100,14 +100,14 @@ HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_002, TestSize
 HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_003, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcAvailableDeviceStatusCallback> callback = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
     ASSERT_NE(callback, nullptr);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_)).WillOnce(Return(nullptr));
 
-    subscriptionManager->AddAvailableDeviceStatusCallback(userId, callback);
+    subscriptionManager->AddAvailableDeviceStatusCallback(userId, CallerInfo {}, callback);
 
     EXPECT_TRUE(subscriptionManager->availableDeviceSubscriptions_.empty());
 }
@@ -115,7 +115,7 @@ HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_003, TestSize
 HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_004, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcAvailableDeviceStatusCallback> callback1 = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
     sptr<MockIIpcAvailableDeviceStatusCallback> callback2 = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
@@ -125,8 +125,8 @@ HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_004, TestSize
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
-    subscriptionManager->AddAvailableDeviceStatusCallback(userId, callback1);
-    subscriptionManager->AddAvailableDeviceStatusCallback(userId, callback2);
+    subscriptionManager->AddAvailableDeviceStatusCallback(userId, CallerInfo {}, callback1);
+    subscriptionManager->AddAvailableDeviceStatusCallback(userId, CallerInfo {}, callback2);
 
     EXPECT_FALSE(subscriptionManager->availableDeviceSubscriptions_.empty());
 }
@@ -134,7 +134,7 @@ HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_004, TestSize
 HWTEST_F(SubscriptionManagerTest, RemoveAvailableDeviceStatusCallback_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcAvailableDeviceStatusCallback> callback = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
     ASSERT_NE(callback, nullptr);
@@ -142,7 +142,7 @@ HWTEST_F(SubscriptionManagerTest, RemoveAvailableDeviceStatusCallback_001, TestS
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
-    subscriptionManager->AddAvailableDeviceStatusCallback(userId, callback);
+    subscriptionManager->AddAvailableDeviceStatusCallback(userId, CallerInfo {}, callback);
     subscriptionManager->RemoveAvailableDeviceStatusCallback(callback);
 
     EXPECT_TRUE(subscriptionManager->availableDeviceSubscriptions_.empty());
@@ -151,7 +151,7 @@ HWTEST_F(SubscriptionManagerTest, RemoveAvailableDeviceStatusCallback_001, TestS
 HWTEST_F(SubscriptionManagerTest, RemoveAvailableDeviceStatusCallback_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     sptr<MockIIpcAvailableDeviceStatusCallback> callback = nullptr;
 
     ASSERT_NO_THROW(subscriptionManager->RemoveAvailableDeviceStatusCallback(callback));
@@ -160,7 +160,7 @@ HWTEST_F(SubscriptionManagerTest, RemoveAvailableDeviceStatusCallback_002, TestS
 HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcTemplateStatusCallback> callback = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
     ASSERT_NE(callback, nullptr);
@@ -168,7 +168,7 @@ HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_001, TestSize.Level0
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
-    subscriptionManager->AddTemplateStatusCallback(userId, callback);
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback);
 
     EXPECT_FALSE(subscriptionManager->templateStatusSubscriptions_.empty());
 }
@@ -176,11 +176,11 @@ HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_001, TestSize.Level0
 HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcTemplateStatusCallback> callback = nullptr;
 
-    subscriptionManager->AddTemplateStatusCallback(userId, callback);
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback);
 
     EXPECT_TRUE(subscriptionManager->templateStatusSubscriptions_.empty());
 }
@@ -188,14 +188,14 @@ HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_002, TestSize.Level0
 HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_003, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcTemplateStatusCallback> callback = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
     ASSERT_NE(callback, nullptr);
 
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_)).WillOnce(Return(nullptr));
 
-    subscriptionManager->AddTemplateStatusCallback(userId, callback);
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback);
 
     EXPECT_TRUE(subscriptionManager->templateStatusSubscriptions_.empty());
 }
@@ -203,7 +203,7 @@ HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_003, TestSize.Level0
 HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_004, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcTemplateStatusCallback> callback1 = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
     sptr<MockIIpcTemplateStatusCallback> callback2 = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
@@ -213,8 +213,8 @@ HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_004, TestSize.Level0
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
-    subscriptionManager->AddTemplateStatusCallback(userId, callback1);
-    subscriptionManager->AddTemplateStatusCallback(userId, callback2);
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback1);
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback2);
 
     EXPECT_FALSE(subscriptionManager->templateStatusSubscriptions_.empty());
 }
@@ -222,7 +222,7 @@ HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_004, TestSize.Level0
 HWTEST_F(SubscriptionManagerTest, RemoveTemplateStatusCallback_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     sptr<MockIIpcTemplateStatusCallback> callback = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
     ASSERT_NE(callback, nullptr);
@@ -230,7 +230,7 @@ HWTEST_F(SubscriptionManagerTest, RemoveTemplateStatusCallback_001, TestSize.Lev
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
-    subscriptionManager->AddTemplateStatusCallback(userId, callback);
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback);
     subscriptionManager->RemoveTemplateStatusCallback(callback);
 
     EXPECT_TRUE(subscriptionManager->templateStatusSubscriptions_.empty());
@@ -239,7 +239,7 @@ HWTEST_F(SubscriptionManagerTest, RemoveTemplateStatusCallback_001, TestSize.Lev
 HWTEST_F(SubscriptionManagerTest, RemoveTemplateStatusCallback_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     sptr<MockIIpcTemplateStatusCallback> callback = nullptr;
 
     ASSERT_NO_THROW(subscriptionManager->RemoveTemplateStatusCallback(callback));
@@ -248,7 +248,7 @@ HWTEST_F(SubscriptionManagerTest, RemoveTemplateStatusCallback_002, TestSize.Lev
 HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     std::optional<TemplateId> templateId = std::nullopt;
     sptr<MockIIpcContinuousAuthStatusCallback> callback = sptr<MockIIpcContinuousAuthStatusCallback>::MakeSptr();
@@ -265,7 +265,7 @@ HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_001, TestSize.
 HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     std::optional<TemplateId> templateId = 12345;
     sptr<MockIIpcContinuousAuthStatusCallback> callback = sptr<MockIIpcContinuousAuthStatusCallback>::MakeSptr();
@@ -282,7 +282,7 @@ HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_002, TestSize.
 HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_003, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     std::optional<TemplateId> templateId = std::nullopt;
     sptr<MockIIpcContinuousAuthStatusCallback> callback = nullptr;
@@ -295,7 +295,7 @@ HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_003, TestSize.
 HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_004, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     std::optional<TemplateId> templateId = std::nullopt;
     sptr<MockIIpcContinuousAuthStatusCallback> callback1 = sptr<MockIIpcContinuousAuthStatusCallback>::MakeSptr();
@@ -315,7 +315,7 @@ HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_004, TestSize.
 HWTEST_F(SubscriptionManagerTest, RemoveContinuousAuthStatusCallback_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     std::optional<TemplateId> templateId = std::nullopt;
     sptr<MockIIpcContinuousAuthStatusCallback> callback = sptr<MockIIpcContinuousAuthStatusCallback>::MakeSptr();
@@ -331,7 +331,7 @@ HWTEST_F(SubscriptionManagerTest, RemoveContinuousAuthStatusCallback_001, TestSi
 HWTEST_F(SubscriptionManagerTest, RemoveContinuousAuthStatusCallback_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     sptr<MockIIpcContinuousAuthStatusCallback> callback = nullptr;
 
     ASSERT_NO_THROW(subscriptionManager->RemoveContinuousAuthStatusCallback(callback));
@@ -340,7 +340,7 @@ HWTEST_F(SubscriptionManagerTest, RemoveContinuousAuthStatusCallback_002, TestSi
 HWTEST_F(SubscriptionManagerTest, UpdateSubscribeMode_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_AUTH)).Times(1);
 
@@ -350,33 +350,58 @@ HWTEST_F(SubscriptionManagerTest, UpdateSubscribeMode_001, TestSize.Level0)
 HWTEST_F(SubscriptionManagerTest, UpdateSubscribeMode_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_MANAGE)).Times(1);
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
+    // A watched HAP bundle in the foreground keeps MANAGE active.
+    ON_CALL(guard.GetAppForegroundStateAdapter(), GetForegroundWatchedApps())
+        .WillByDefault(Return(std::vector<std::string> { "test.bundle" }));
+
     UserId userId = 100;
     sptr<MockIIpcAvailableDeviceStatusCallback> callback = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
     ASSERT_NE(callback, nullptr);
 
-    subscriptionManager->AddAvailableDeviceStatusCallback(userId, callback);
+    subscriptionManager->AddAvailableDeviceStatusCallback(userId, CallerInfo { .name = "test.bundle" }, callback);
 }
 
 HWTEST_F(SubscriptionManagerTest, UpdateSubscribeMode_003, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_MANAGE)).Times(1);
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
+    // A watched HAP bundle in the foreground keeps MANAGE active.
+    ON_CALL(guard.GetAppForegroundStateAdapter(), GetForegroundWatchedApps())
+        .WillByDefault(Return(std::vector<std::string> { "test.bundle" }));
+
     UserId userId = 100;
     sptr<MockIIpcTemplateStatusCallback> callback = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
     ASSERT_NE(callback, nullptr);
 
-    subscriptionManager->AddTemplateStatusCallback(userId, callback);
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo { .name = "test.bundle" }, callback);
+}
+
+HWTEST_F(SubscriptionManagerTest, UpdateSubscribeMode_004, TestSize.Level0)
+{
+    MockGuard guard;
+    auto subscriptionManager = SubscriptionManager::Create();
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_AUTH)).Times(1);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
+        .WillOnce(Invoke([](OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
+
+    // A HAP subscriber whose bundle is not in the foreground falls back to AUTH.
+    UserId userId = 100;
+    sptr<MockIIpcAvailableDeviceStatusCallback> callback = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
+    ASSERT_NE(callback, nullptr);
+
+    subscriptionManager->AddAvailableDeviceStatusCallback(userId, CallerInfo { .name = "test.bundle" }, callback);
 }
 
 // ============== MAX_SUBSCRIPTIONS_PER_MAP Limit Tests ==============
@@ -391,7 +416,7 @@ constexpr uint64_t TEST_OVERFLOW_TEMPLATE_ID = 999;
 HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_RejectsWhenMapReachesLimit, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillRepeatedly(Invoke([](OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
@@ -400,7 +425,7 @@ HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_RejectsWhenMa
     for (int32_t i = 0; i < static_cast<int32_t>(TEST_MAX_SUBSCRIPTIONS); ++i) {
         auto callback = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
         ASSERT_NE(callback, nullptr);
-        subscriptionManager->AddAvailableDeviceStatusCallback(i + TEST_USER_ID_BASE, callback);
+        subscriptionManager->AddAvailableDeviceStatusCallback(i + TEST_USER_ID_BASE, CallerInfo {}, callback);
     }
 
     EXPECT_EQ(subscriptionManager->availableDeviceSubscriptions_.size(), TEST_MAX_SUBSCRIPTIONS);
@@ -408,7 +433,7 @@ HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_RejectsWhenMa
     // The next one should fail -- map is full, no new subscription created.
     auto overflowCallback = sptr<MockIIpcAvailableDeviceStatusCallback>::MakeSptr();
     ASSERT_NE(overflowCallback, nullptr);
-    subscriptionManager->AddAvailableDeviceStatusCallback(TEST_OVERFLOW_USER_ID, overflowCallback);
+    subscriptionManager->AddAvailableDeviceStatusCallback(TEST_OVERFLOW_USER_ID, CallerInfo {}, overflowCallback);
 
     EXPECT_EQ(subscriptionManager->availableDeviceSubscriptions_.size(), TEST_MAX_SUBSCRIPTIONS);
 }
@@ -416,7 +441,7 @@ HWTEST_F(SubscriptionManagerTest, AddAvailableDeviceStatusCallback_RejectsWhenMa
 HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_RejectsWhenMapReachesLimit, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
 
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillRepeatedly(
@@ -426,14 +451,14 @@ HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_RejectsWhenMapReache
     for (int32_t i = 0; i < static_cast<int32_t>(TEST_MAX_SUBSCRIPTIONS); ++i) {
         auto callback = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
         ASSERT_NE(callback, nullptr);
-        subscriptionManager->AddTemplateStatusCallback(i + TEST_USER_ID_BASE, callback);
+        subscriptionManager->AddTemplateStatusCallback(i + TEST_USER_ID_BASE, CallerInfo {}, callback);
     }
 
     EXPECT_EQ(subscriptionManager->templateStatusSubscriptions_.size(), TEST_MAX_SUBSCRIPTIONS);
 
     auto overflowCallback = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
     ASSERT_NE(overflowCallback, nullptr);
-    subscriptionManager->AddTemplateStatusCallback(TEST_OVERFLOW_USER_ID, overflowCallback);
+    subscriptionManager->AddTemplateStatusCallback(TEST_OVERFLOW_USER_ID, CallerInfo {}, overflowCallback);
 
     EXPECT_EQ(subscriptionManager->templateStatusSubscriptions_.size(), TEST_MAX_SUBSCRIPTIONS);
 }
@@ -441,7 +466,7 @@ HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_RejectsWhenMapReache
 HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_RejectsWhenMapReachesLimit, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_unique<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
 
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillRepeatedly(

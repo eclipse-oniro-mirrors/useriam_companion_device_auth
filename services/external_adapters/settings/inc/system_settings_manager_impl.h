@@ -100,7 +100,7 @@ private:
         sptr<ObserverStub> observer;
         bool observerRegistered { false };
         std::string cachedValue;
-        std::map<uint64_t, SettingsChangeCallback> subscribers;
+        std::map<SubscribeId, SettingsChangeCallback> subscribers;
     };
 
     SettingState *FindState(SettingKey key);
@@ -114,7 +114,7 @@ private:
     void NotifyAll();
     void NotifySubscribers(SettingState &state);
     void OnSettingChanged(SettingKey key);
-    void Unsubscribe(SettingKey key, uint64_t subId);
+    void Unsubscribe(SettingKey key, SubscribeId subId);
 
     Uri BuildKeyUri(std::optional<int32_t> userId, const std::string &key) const;
     std::string QuerySettingsString(DataShare::DataShareHelper &helper, std::optional<int32_t> userId,

@@ -38,7 +38,7 @@ static void FuzzSubscribeAvailableDeviceStatus(std::shared_ptr<BaseServiceCore> 
 {
     int32_t localUserId = fuzzData.ConsumeIntegral<int32_t>();
     sptr<IIpcAvailableDeviceStatusCallback> callback = nullptr;
-    (void)core->SubscribeAvailableDeviceStatus(localUserId, callback);
+    (void)core->SubscribeAvailableDeviceStatus(localUserId, CallerInfo {}, callback);
 }
 
 static void FuzzUnsubscribeAvailableDeviceStatus(std::shared_ptr<BaseServiceCore> &core, FuzzedDataProvider &fuzzData)
@@ -51,7 +51,7 @@ static void FuzzSubscribeTemplateStatusChange(std::shared_ptr<BaseServiceCore> &
 {
     int32_t localUserId = fuzzData.ConsumeIntegral<int32_t>();
     sptr<IIpcTemplateStatusCallback> callback = nullptr;
-    (void)core->SubscribeTemplateStatusChange(localUserId, callback);
+    (void)core->SubscribeTemplateStatusChange(localUserId, CallerInfo {}, callback);
 }
 
 static void FuzzUnsubscribeTemplateStatusChange(std::shared_ptr<BaseServiceCore> &core, FuzzedDataProvider &fuzzData)
@@ -161,7 +161,7 @@ void FuzzCompanionDeviceAuthService(FuzzedDataProvider &fuzzData)
 {
     static const std::vector<BusinessId> supportedBusinessIds = { BusinessId::DEFAULT };
     static std::shared_ptr<BaseServiceCore> core =
-        BaseServiceCore::Create(std::make_shared<SubscriptionManager>(), supportedBusinessIds, supportedBusinessIds);
+        BaseServiceCore::Create(SubscriptionManager::Create(), supportedBusinessIds, supportedBusinessIds);
     if (core == nullptr) {
         return;
     }

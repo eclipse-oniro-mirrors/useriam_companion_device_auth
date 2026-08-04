@@ -16,6 +16,7 @@
 #ifndef COMPANION_DEVICE_AUTH_ACCESS_TOKEN_UTIL_H
 #define COMPANION_DEVICE_AUTH_ACCESS_TOKEN_UTIL_H
 
+#include <cstdint>
 #include <string>
 
 #include "ipc_object_stub.h"
@@ -24,11 +25,27 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+enum class CallerTokenType : int32_t {
+    Hap = 0,
+    Native = 1,
+    Shell = 2,
+    Invalid = 3,
+};
+
+struct CallerInfo {
+    std::string name; // HAP: bundleName; Native: processName; Shell/invalid: empty
+    CallerTokenType type { CallerTokenType::Hap };
+    uint32_t tokenId { 0 };
+    int32_t pid { 0 };
+    int32_t uid { 0 };
+};
+
 class AccessTokenUtil {
 public:
     static bool CheckPermission(IPCObjectStub &stub, const std::string &permissionName);
     static bool CheckSystemPermission(IPCObjectStub &stub);
     static uint32_t GetAccessTokenId(IPCObjectStub &stub);
+    static CallerInfo GetCallerInfo(IPCObjectStub &stub);
 };
 
 } // namespace CompanionDeviceAuth

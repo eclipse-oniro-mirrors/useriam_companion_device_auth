@@ -28,6 +28,7 @@
 #include "companion_device_auth_all_in_one_executor.h"
 
 // Include all mock headers
+#include "mock_app_foreground_state_adapter.h"
 #include "mock_companion_manager.h"
 #include "mock_cross_device_comm_manager.h"
 #include "mock_driver_manager_adapter.h"
@@ -93,6 +94,9 @@ void MockGuard::CreateMocks()
     systemSettingsManager_ = std::make_shared<MockSystemSettingsManager>();
     AdapterManager::GetInstance().SetSystemSettingsManager(systemSettingsManager_);
 
+    appForegroundStateAdapter_ = std::make_shared<MockAppForegroundStateAdapter>();
+    AdapterManager::GetInstance().SetAppForegroundStateAdapter(appForegroundStateAdapter_);
+
     // SingletonManager mocks
     crossDeviceCommManager_ = std::make_shared<MockCrossDeviceCommManager>();
     SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommManager_);
@@ -144,6 +148,18 @@ void MockGuard::SetupDefaultBehaviors()
     SetupEventBusDefaults();
     SetupSoftBusAdapterDefaults();
     SetupSystemSettingsManagerDefaults();
+    SetupAppForegroundStateAdapterDefaults();
+}
+
+void MockGuard::SetupAppForegroundStateAdapterDefaults()
+{
+    ON_CALL(*appForegroundStateAdapter_, AddWatchedApp(_)).WillByDefault(Invoke([](const std::string &) {
+        return std::make_unique<Subscription>([]() {});
+    }));
+    ON_CALL(*appForegroundStateAdapter_, SubscribeForegroundWatchedApps(_))
+        .WillByDefault(
+            Invoke([](const ForegroundWatchedAppsHandler &) { return std::make_unique<Subscription>([]() {}); }));
+    ON_CALL(*appForegroundStateAdapter_, GetForegroundWatchedApps()).WillByDefault(Return(std::vector<std::string> {}));
 }
 
 void MockGuard::SetupMiscManagerDefaults()
@@ -353,6 +369,7 @@ MockGuard::~MockGuard()
     Mock::VerifyAndClearExpectations(userIdManager_.get());
     Mock::VerifyAndClearExpectations(eventManagerAdapter_.get());
     Mock::VerifyAndClearExpectations(systemSettingsManager_.get());
+    Mock::VerifyAndClearExpectations(appForegroundStateAdapter_.get());
 
     // Now it's safe to clear AdapterManager mocks (these don't have nullptr checks)
     AdapterManager::GetInstance().SetTimeKeeper(nullptr);
@@ -364,6 +381,7 @@ MockGuard::~MockGuard()
     AdapterManager::GetInstance().SetUserIdManager(nullptr);
     AdapterManager::GetInstance().SetEventManagerAdapter(nullptr);
     AdapterManager::GetInstance().SetSystemSettingsManager(nullptr);
+    AdapterManager::GetInstance().SetAppForegroundStateAdapter(nullptr);
     // The Reset() call above already cleared all shared_ptr references
 }
 
@@ -412,6 +430,11 @@ MockEventManagerAdapter &MockGuard::GetEventManagerAdapter()
 MockSystemSettingsManager &MockGuard::GetSystemSettingsManager()
 {
     return *systemSettingsManager_;
+}
+
+MockAppForegroundStateAdapter &MockGuard::GetAppForegroundStateAdapter()
+{
+    return *appForegroundStateAdapter_;
 }
 
 // SingletonManager mock access methods

@@ -21,6 +21,7 @@
 #include "nocopyable.h"
 
 // External adapters
+#include "app_foreground_state_adapter.h"
 #include "driver_manager_adapter.h"
 #include "event_manager_adapter.h"
 #include "idm_adapter.h"
@@ -59,6 +60,9 @@ public:
     IEventManagerAdapter &GetEventManagerAdapter();
     void SetEventManagerAdapter(std::shared_ptr<IEventManagerAdapter> adapter);
 
+    IAppForegroundStateAdapter &GetAppForegroundStateAdapter();
+    void SetAppForegroundStateAdapter(std::shared_ptr<IAppForegroundStateAdapter> adapter);
+
     ITimeKeeper &GetTimeKeeper();
     void SetTimeKeeper(std::shared_ptr<ITimeKeeper> adapter);
 
@@ -91,6 +95,7 @@ private:
     std::shared_ptr<ISystemParamManager> systemParamManager_;
     std::shared_ptr<IUserIdManager> userIdManager_;
     std::shared_ptr<ISystemSettingsManager> systemSettingsManager_;
+    std::shared_ptr<IAppForegroundStateAdapter> appForegroundStateAdapter_;
 };
 
 inline IUserAuthAdapter &GetUserAuthAdapter()
@@ -121,6 +126,11 @@ inline ISecurityCommandAdapter &GetSecurityCommandAdapter()
 inline IEventManagerAdapter &GetEventManagerAdapter()
 {
     return AdapterManager::GetInstance().GetEventManagerAdapter();
+}
+
+inline IAppForegroundStateAdapter &GetAppForegroundStateAdapter()
+{
+    return AdapterManager::GetInstance().GetAppForegroundStateAdapter();
 }
 
 inline ITimeKeeper &GetTimeKeeper()

@@ -66,7 +66,7 @@ static void FuzzOp3(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataPro
     (void)fuzzData;
     // Test AddAvailableDeviceStatusCallback with nullptr
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
-    manager->AddAvailableDeviceStatusCallback(userId, nullptr);
+    manager->AddAvailableDeviceStatusCallback(userId, CallerInfo {}, nullptr);
 }
 
 static void FuzzOp4(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
@@ -81,7 +81,7 @@ static void FuzzOp5(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataPro
     (void)fuzzData;
     // Test AddTemplateStatusCallback with nullptr
     int32_t userId = fuzzData.ConsumeIntegral<int32_t>();
-    manager->AddTemplateStatusCallback(userId, nullptr);
+    manager->AddTemplateStatusCallback(userId, CallerInfo {}, nullptr);
 }
 
 static void FuzzOp6(std::shared_ptr<SubscriptionManager> &manager, FuzzedDataProvider &fuzzData)
@@ -124,7 +124,7 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(Subscriptio
 void FuzzSubscriptionManager(FuzzedDataProvider &fuzzData)
 {
     // Create SubscriptionManager instance
-    auto manager = std::make_shared<SubscriptionManager>();
+    auto manager = SubscriptionManager::Create();
     if (!manager) {
         return;
     }
