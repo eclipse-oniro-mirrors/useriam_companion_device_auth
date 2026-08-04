@@ -23,6 +23,7 @@
 #include "iremote_object.h"
 #include "nocopyable.h"
 
+#include "access_token_kit.h"
 #include "common_defines.h"
 #include "companion_device_auth_stub.h"
 
@@ -36,10 +37,10 @@ public:
     static std::shared_ptr<BaseServiceCore> Create(const std::shared_ptr<SubscriptionManager> &subscriptionManager,
         const std::vector<BusinessId> &hostBusinessId, const std::vector<BusinessId> &companionBusinessId);
 
-    ResultCode SubscribeAvailableDeviceStatus(int32_t localUserId,
+    ResultCode SubscribeAvailableDeviceStatus(int32_t localUserId, CallerInfo callerInfo,
         const sptr<IIpcAvailableDeviceStatusCallback> &deviceStatusCallback);
     ResultCode UnsubscribeAvailableDeviceStatus(const sptr<IIpcAvailableDeviceStatusCallback> &deviceStatusCallback);
-    ResultCode SubscribeTemplateStatusChange(int32_t localUserId,
+    ResultCode SubscribeTemplateStatusChange(int32_t localUserId, CallerInfo callerInfo,
         const sptr<IIpcTemplateStatusCallback> &templateStatusCallback);
     ResultCode UnsubscribeTemplateStatusChange(const sptr<IIpcTemplateStatusCallback> &templateStatusCallback);
     ResultCode SubscribeContinuousAuthStatusChange(

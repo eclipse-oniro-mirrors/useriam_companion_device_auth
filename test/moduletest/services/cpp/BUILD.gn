@@ -30,6 +30,7 @@ ohos_moduletest("companion_device_auth_services_cpp_module_test") {
     "cases/auth_module_test.cpp",
     "cases/connection_module_test.cpp",
     "cases/service_init_module_test.cpp",
+    "cases/subscribe_mode_module_test.cpp",
     "cases/sync_device_status_module_test.cpp",
     "common/src/module_test_guard.cpp",
     "common/src/module_test_helpers.cpp",

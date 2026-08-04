@@ -53,6 +53,7 @@ protected:
     virtual bool Initialize();
     virtual bool InitializeTimeKeeper();
     virtual bool InitializeEventManagerAdapter();
+    virtual bool InitializeAppForegroundStateAdapter();
     virtual bool InitializeSaManagerAdapter();
     virtual bool InitializeSecurityCommandAdapter();
     virtual bool InitializeSystemParamManager();

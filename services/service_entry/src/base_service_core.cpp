@@ -65,7 +65,7 @@ bool BaseServiceCore::IsValidBusinessId(BusinessId businessId) const
     return std::find(hostBusinessIds_.begin(), hostBusinessIds_.end(), businessId) != hostBusinessIds_.end();
 }
 
-ResultCode BaseServiceCore::SubscribeAvailableDeviceStatus(int32_t localUserId,
+ResultCode BaseServiceCore::SubscribeAvailableDeviceStatus(int32_t localUserId, CallerInfo callerInfo,
     const sptr<IIpcAvailableDeviceStatusCallback> &deviceStatusCallback)
 {
     IAM_LOGI("Start");
@@ -78,7 +78,8 @@ ResultCode BaseServiceCore::SubscribeAvailableDeviceStatus(int32_t localUserId,
         return ResultCode::GENERAL_ERROR;
     }
 
-    ResultCode ret = subscriptionManager_->AddAvailableDeviceStatusCallback(localUserId, deviceStatusCallback);
+    ResultCode ret =
+        subscriptionManager_->AddAvailableDeviceStatusCallback(localUserId, callerInfo, deviceStatusCallback);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("AddAvailableDeviceStatusCallback failed ret=%{public}d", ret);
         return ret;
@@ -100,7 +101,7 @@ ResultCode BaseServiceCore::UnsubscribeAvailableDeviceStatus(
     return ResultCode::SUCCESS;
 }
 
-ResultCode BaseServiceCore::SubscribeTemplateStatusChange(int32_t localUserId,
+ResultCode BaseServiceCore::SubscribeTemplateStatusChange(int32_t localUserId, CallerInfo callerInfo,
     const sptr<IIpcTemplateStatusCallback> &templateStatusCallback)
 {
     IAM_LOGI("Start");
@@ -113,7 +114,7 @@ ResultCode BaseServiceCore::SubscribeTemplateStatusChange(int32_t localUserId,
         return ResultCode::GENERAL_ERROR;
     }
 
-    ResultCode ret = subscriptionManager_->AddTemplateStatusCallback(localUserId, templateStatusCallback);
+    ResultCode ret = subscriptionManager_->AddTemplateStatusCallback(localUserId, callerInfo, templateStatusCallback);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("AddTemplateStatusCallback failed ret=%{public}d", ret);
         return ret;

@@ -34,6 +34,22 @@ namespace CompanionDeviceAuth {
 
 using namespace Security::AccessToken;
 
+namespace {
+CallerTokenType MapCallerTokenType(ATokenTypeEnum type)
+{
+    switch (type) {
+        case TOKEN_HAP:
+            return CallerTokenType::Hap;
+        case TOKEN_NATIVE:
+            return CallerTokenType::Native;
+        case TOKEN_SHELL:
+            return CallerTokenType::Shell;
+        default:
+            return CallerTokenType::Invalid;
+    }
+}
+} // namespace
+
 bool AccessTokenUtil::CheckPermission(IPCObjectStub &stub, const std::string &permissionName)
 {
     if (permissionName.empty()) {
@@ -73,6 +89,29 @@ uint32_t AccessTokenUtil::GetAccessTokenId(IPCObjectStub &stub)
     uint32_t tokenId = stub.GetCallingTokenID();
     IAM_LOGD("get caller tokenId: %{public}u", tokenId);
     return tokenId;
+}
+
+CallerInfo AccessTokenUtil::GetCallerInfo(IPCObjectStub &stub)
+{
+    CallerInfo info;
+    info.tokenId = stub.GetCallingTokenID();
+    info.pid = IPCSkeleton::GetCallingPid();
+    info.uid = IPCSkeleton::GetCallingUid();
+    info.type = MapCallerTokenType(AccessTokenKit::GetTokenTypeFlag(info.tokenId));
+    if (info.type == CallerTokenType::Hap) {
+        HapTokenInfo hapTokenInfo;
+        if (AccessTokenKit::GetHapTokenInfo(info.tokenId, hapTokenInfo) == RET_SUCCESS) {
+            info.name = hapTokenInfo.bundleName;
+        }
+    } else if (info.type == CallerTokenType::Native) {
+        NativeTokenInfo nativeTokenInfo;
+        if (AccessTokenKit::GetNativeTokenInfo(info.tokenId, nativeTokenInfo) == RET_SUCCESS) {
+            info.name = nativeTokenInfo.processName;
+        }
+    }
+    IAM_LOGI("caller name:%{public}s type:%{public}d pid:%{public}d uid:%{public}d", info.name.c_str(),
+        static_cast<int32_t>(info.type), info.pid, info.uid);
+    return info;
 }
 
 } // namespace CompanionDeviceAuth

@@ -17,16 +17,23 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <new>
 #include <utility>
 
 #include "iam_check.h"
 #include "iam_logger.h"
+#include "iam_para2str.h"
+
+#include "accesstoken_kit.h"
+#include "adapter_manager.h"
+#include "task_runner_manager.h"
 
 #include "available_device_subscription.h"
 #include "continuous_auth_subscription.h"
 #include "cross_device_comm_manager.h"
 #include "cross_device_common.h"
 #include "singleton_manager.h"
+#include "stale_subscription_monitor.h"
 #include "template_status_subscription.h"
 
 #define LOG_TAG "CDA_SA"
@@ -40,7 +47,41 @@ namespace {
 constexpr size_t MAX_SUBSCRIPTIONS_PER_MAP = 100;
 } // namespace
 
-SubscriptionManager::SubscriptionManager() = default;
+SubscriptionManager::CallerSubscription::CallerSubscription(const CallerInfo &callerInfo,
+    std::weak_ptr<StaleSubscriptionMonitor> monitor)
+    : callerType_(callerInfo.type)
+{
+    if (auto staleMonitor = monitor.lock()) {
+        staleMonitorSub_ = staleMonitor->AddSubscription(callerInfo);
+        if (staleMonitorSub_ == nullptr) {
+            IAM_LOGE("AddSubscription to stale monitor failed, callerName:%{public}s", callerInfo.name.c_str());
+        }
+    }
+    if (callerType_ == CallerTokenType::Hap) {
+        bundleSub_ = GetAppForegroundStateAdapter().AddWatchedApp(callerInfo.name);
+        if (bundleSub_ == nullptr) {
+            IAM_LOGE("AddWatchedApp failed, callerName:%{public}s", callerInfo.name.c_str());
+        }
+    }
+}
+
+std::shared_ptr<SubscriptionManager> SubscriptionManager::Create()
+{
+    auto self = std::shared_ptr<SubscriptionManager>(new (std::nothrow) SubscriptionManager());
+    ENSURE_OR_RETURN_VAL(self != nullptr, nullptr);
+    if (!self->Init()) {
+        IAM_LOGE("SubscriptionManager init failed");
+        return nullptr;
+    }
+    return self;
+}
+
+bool SubscriptionManager::Init()
+{
+    staleSubscriptionMonitor_ = StaleSubscriptionMonitor::Create();
+    ENSURE_OR_RETURN_VAL(staleSubscriptionMonitor_ != nullptr, false);
+    return true;
+}
 
 std::shared_ptr<AvailableDeviceSubscription> SubscriptionManager::GetOrCreateAvailableDeviceSubscription(UserId userId)
 {
@@ -115,7 +156,7 @@ std::shared_ptr<ContinuousAuthSubscription> SubscriptionManager::GetOrCreateCont
     return subscription;
 }
 
-ResultCode SubscriptionManager::AddAvailableDeviceStatusCallback(int32_t userId,
+ResultCode SubscriptionManager::AddAvailableDeviceStatusCallback(int32_t userId, CallerInfo callerInfo,
     const sptr<IIpcAvailableDeviceStatusCallback> &availableDeviceStatusCallback)
 {
     if (availableDeviceStatusCallback == nullptr) {
@@ -126,6 +167,8 @@ ResultCode SubscriptionManager::AddAvailableDeviceStatusCallback(int32_t userId,
     auto subscription = GetOrCreateAvailableDeviceSubscription(userId);
     ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
     subscription->AddCallback(availableDeviceStatusCallback);
+    callerSubs_.insert_or_assign(availableDeviceStatusCallback->AsObject(),
+        CallerSubscription(callerInfo, staleSubscriptionMonitor_));
     UpdateSubscribeMode();
     return ResultCode::SUCCESS;
 }
@@ -148,10 +191,11 @@ void SubscriptionManager::RemoveAvailableDeviceStatusCallback(
         }
         ++it;
     }
+    callerSubs_.erase(availableDeviceStatusCallback->AsObject());
     UpdateSubscribeMode();
 }
 
-ResultCode SubscriptionManager::AddTemplateStatusCallback(int32_t userId,
+ResultCode SubscriptionManager::AddTemplateStatusCallback(int32_t userId, CallerInfo callerInfo,
     const sptr<IIpcTemplateStatusCallback> &templateStatusCallback)
 {
     if (templateStatusCallback == nullptr) {
@@ -162,6 +206,8 @@ ResultCode SubscriptionManager::AddTemplateStatusCallback(int32_t userId,
     auto subscription = GetOrCreateTemplateStatusSubscription(userId);
     ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
     subscription->AddCallback(templateStatusCallback);
+    callerSubs_.insert_or_assign(templateStatusCallback->AsObject(),
+        CallerSubscription(callerInfo, staleSubscriptionMonitor_));
     UpdateSubscribeMode();
     return ResultCode::SUCCESS;
 }
@@ -183,6 +229,7 @@ void SubscriptionManager::RemoveTemplateStatusCallback(const sptr<IIpcTemplateSt
         }
         ++it;
     }
+    callerSubs_.erase(templateStatusCallback->AsObject());
     UpdateSubscribeMode();
 }
 
@@ -222,15 +269,29 @@ void SubscriptionManager::RemoveContinuousAuthStatusCallback(
 
 void SubscriptionManager::UpdateSubscribeMode()
 {
-    bool hasAvailableDeviceSubscriptions = !availableDeviceSubscriptions_.empty();
-    bool hasTemplateStatusSubscriptions = !templateStatusSubscriptions_.empty();
-
-    SubscribeMode mode = SUBSCRIBE_MODE_AUTH;
-    if (hasAvailableDeviceSubscriptions || hasTemplateStatusSubscriptions) {
-        mode = SUBSCRIBE_MODE_MANAGE;
-    }
-
+    EnsureAppForegroundStateSubscribed();
+    auto foregroundApps = GetAppForegroundStateAdapter().GetForegroundWatchedApps();
+    SubscribeMode mode = !foregroundApps.empty() ? SUBSCRIBE_MODE_MANAGE : SUBSCRIBE_MODE_AUTH;
+    IAM_LOGI("UpdateSubscribeMode mode:%{public}d foreground:%{public}s", static_cast<int32_t>(mode),
+        GetVectorString(foregroundApps).c_str());
     GetCrossDeviceCommManager().SetSubscribeMode(mode);
+}
+
+void SubscriptionManager::EnsureAppForegroundStateSubscribed()
+{
+    if (foregroundAppSub_) {
+        return;
+    }
+    ForegroundWatchedAppsHandler handler = [weakSelf = weak_from_this()](const std::vector<std::string> &) {
+        auto self = weakSelf.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        self->UpdateSubscribeMode();
+    };
+    foregroundAppSub_ = GetAppForegroundStateAdapter().SubscribeForegroundWatchedApps(handler);
+    if (!foregroundAppSub_) {
+        IAM_LOGE("subscribe app foreground state failed");
+        return;
+    }
 }
 
 } // namespace CompanionDeviceAuth

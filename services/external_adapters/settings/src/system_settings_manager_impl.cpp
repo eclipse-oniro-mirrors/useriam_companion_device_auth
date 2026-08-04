@@ -197,7 +197,7 @@ std::unique_ptr<Subscription> SystemSettingsManagerImpl::SubscribeSettingsChange
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
     auto *state = FindState(settingKey);
     ENSURE_OR_RETURN_VAL(state != nullptr, nullptr);
-    uint64_t subId = GetMiscManager().GetNextGlobalId();
+    SubscribeId subId = GetMiscManager().GetNextGlobalId();
     state->subscribers.emplace(subId, std::move(callback));
     std::weak_ptr<SystemSettingsManagerImpl> weakSelf = shared_from_this();
     return std::make_unique<Subscription>([weakSelf, settingKey, subId]() {
@@ -286,13 +286,18 @@ void SystemSettingsManagerImpl::RefreshCache(SettingState &state)
 
 void SystemSettingsManagerImpl::NotifySubscribers(SettingState &state)
 {
-    for (auto &kv : state.subscribers) {
-        TaskRunnerManager::GetInstance().PostTaskOnResident([cb = kv.second]() {
-            if (cb != nullptr) {
+    std::vector<SettingsChangeCallback> callbacks;
+    callbacks.reserve(state.subscribers.size());
+    for (const auto &kv : state.subscribers) {
+        callbacks.push_back(kv.second);
+    }
+    TaskRunnerManager::GetInstance().PostTaskOnResident([callbacks = std::move(callbacks)]() {
+        for (auto &cb : callbacks) {
+            if (cb) {
                 cb();
             }
-        });
-    }
+        }
+    });
 }
 
 void SystemSettingsManagerImpl::NotifyAll()
@@ -310,7 +315,7 @@ void SystemSettingsManagerImpl::OnSettingChanged(SettingKey key)
     NotifySubscribers(*state);
 }
 
-void SystemSettingsManagerImpl::Unsubscribe(SettingKey key, uint64_t subId)
+void SystemSettingsManagerImpl::Unsubscribe(SettingKey key, SubscribeId subId)
 {
     auto *state = FindState(key);
     ENSURE_OR_RETURN(state != nullptr);

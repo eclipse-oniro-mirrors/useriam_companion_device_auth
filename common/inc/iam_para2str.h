@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace OHOS {
@@ -67,7 +68,11 @@ std::string GetVectorString(const std::vector<T> &vec)
 {
     std::string result = "[";
     for (size_t i = 0; i < vec.size(); ++i) {
-        result += std::to_string(vec[i]);
+        if constexpr (std::is_same_v<T, std::string>) {
+            result += vec[i];
+        } else {
+            result += std::to_string(vec[i]);
+        }
         if (i + 1 < vec.size()) {
             result += ", ";
         }

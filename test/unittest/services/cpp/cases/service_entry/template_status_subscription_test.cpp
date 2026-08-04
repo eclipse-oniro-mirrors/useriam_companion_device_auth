@@ -52,7 +52,7 @@ class TemplateStatusSubscriptionTest : public Test {};
 HWTEST_F(TemplateStatusSubscriptionTest, Create_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
 
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
@@ -68,7 +68,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, Create_001, TestSize.Level0)
 HWTEST_F(TemplateStatusSubscriptionTest, Create_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
 
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_)).WillOnce(Return(nullptr));
@@ -81,7 +81,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, Create_002, TestSize.Level0)
 HWTEST_F(TemplateStatusSubscriptionTest, GetUserId_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
 
     auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
@@ -93,7 +93,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, GetUserId_001, TestSize.Level0)
 HWTEST_F(TemplateStatusSubscriptionTest, GetWeakPtr_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
 
     auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
@@ -106,7 +106,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, GetWeakPtr_001, TestSize.Level0)
 HWTEST_F(TemplateStatusSubscriptionTest, OnCallbackAdded_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
 
     auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
@@ -121,7 +121,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, OnCallbackAdded_001, TestSize.Level0)
 HWTEST_F(TemplateStatusSubscriptionTest, OnCallbackAdded_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
 
     auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
@@ -136,7 +136,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_001, TestSi
 {
     MockGuard guard;
     UserId userId = 100;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     OnCompanionDeviceStatusChange storedCallback;
 
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
@@ -161,7 +161,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_002, TestSi
 {
     MockGuard guard;
     UserId userId = 100;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     OnCompanionDeviceStatusChange storedCallback;
 
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
@@ -189,7 +189,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_003, TestSi
 {
     MockGuard guard;
     UserId userId = 100;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     OnCompanionDeviceStatusChange storedCallback;
 
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))

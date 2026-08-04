@@ -22,6 +22,7 @@
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
+#include "app_foreground_state_adapter_impl.h"
 #include "companion_manager_impl.h"
 #include "cross_device_comm_manager_impl.h"
 #include "default_executor_factory.h"
@@ -67,7 +68,7 @@ std::shared_ptr<BaseServiceInitializer> BaseServiceInitializer::Create(const wpt
     deviceCapabilityInfo.companionLocalCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH,
         Capability::OBTAIN_TOKEN };
 
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     ENSURE_OR_RETURN_VAL(subscriptionManager != nullptr, nullptr);
     auto initializer = std::shared_ptr<BaseServiceInitializer>(
         new (std::nothrow) BaseServiceInitializer(subscriptionManager, deviceCapabilityInfo, true, cdaService));
@@ -175,6 +176,15 @@ bool BaseServiceInitializer::InitializeSaManagerAdapter()
     auto saManagerAdapter = std::make_shared<SaManagerAdapterImpl>();
     ENSURE_OR_RETURN_VAL(saManagerAdapter != nullptr, false);
     adapterManager.SetSaManagerAdapter(saManagerAdapter);
+    return true;
+}
+
+bool BaseServiceInitializer::InitializeAppForegroundStateAdapter()
+{
+    auto &adapterManager = AdapterManager::GetInstance();
+    auto appForegroundStateAdapter = AppForegroundStateAdapterImpl::Create();
+    ENSURE_OR_RETURN_VAL(appForegroundStateAdapter != nullptr, false);
+    adapterManager.SetAppForegroundStateAdapter(appForegroundStateAdapter);
     return true;
 }
 
@@ -377,6 +387,7 @@ const BaseServiceInitializer::BasicInitStep BaseServiceInitializer::BASIC_INIT_T
     { &BaseServiceInitializer::InitializeSecurityAgent, "InitializeSecurityAgent" },
     { &BaseServiceInitializer::InitializeIncomingMessageHandlerRegistry, "InitializeIncomingMessageHandlerRegistry" },
     { &BaseServiceInitializer::InitializeEventBus, "InitializeEventBus" },
+    { &BaseServiceInitializer::InitializeAppForegroundStateAdapter, "InitializeAppForegroundStateAdapter" },
 };
 
 const size_t BaseServiceInitializer::BASIC_INIT_TABLE_SIZE = sizeof(BASIC_INIT_TABLE) / sizeof(BASIC_INIT_TABLE[0]);

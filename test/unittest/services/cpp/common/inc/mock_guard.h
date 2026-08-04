@@ -19,6 +19,7 @@
 #include <memory>
 
 // Include all mock headers to provide complete type definitions
+#include "mock_app_foreground_state_adapter.h"
 #include "mock_companion_manager.h"
 #include "mock_cross_device_comm_manager.h"
 #include "mock_device_manager_adapter.h"
@@ -65,6 +66,7 @@ public:
     MockUserIdManager &GetUserIdManager();
     MockEventManagerAdapter &GetEventManagerAdapter();
     MockSystemSettingsManager &GetSystemSettingsManager();
+    MockAppForegroundStateAdapter &GetAppForegroundStateAdapter();
 
     // SingletonManager mock access methods
 
@@ -99,6 +101,7 @@ private:
     void SetupEventBusDefaults();
     void SetupSoftBusAdapterDefaults();
     void SetupSystemSettingsManagerDefaults();
+    void SetupAppForegroundStateAdapterDefaults();
 
     // AdapterManager mock instances
     std::shared_ptr<MockTimeKeeper> timeKeeper_;
@@ -110,6 +113,7 @@ private:
     std::shared_ptr<MockUserIdManager> userIdManager_;
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
     std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
+    std::shared_ptr<MockAppForegroundStateAdapter> appForegroundStateAdapter_;
 
     // SingletonManager mock instances
     std::shared_ptr<MockCrossDeviceCommManager> crossDeviceCommManager_;

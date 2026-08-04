@@ -97,6 +97,7 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
     "cases/service_entry/available_device_subscription_test.cpp",
     "cases/service_entry/companion_device_auth_service_test.cpp",
     "cases/service_entry/continuous_auth_subscription_test.cpp",
+    "cases/service_entry/stale_subscription_monitor_test.cpp",
     "cases/service_entry/subscription_manager_test.cpp",
     "cases/service_entry/subscription_test.cpp",
     "cases/service_entry/subscription_util_test.cpp",

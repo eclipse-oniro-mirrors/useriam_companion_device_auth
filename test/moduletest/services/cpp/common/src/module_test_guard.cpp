@@ -66,7 +66,7 @@ TestServiceInitializer::TestServiceInitializer(std::shared_ptr<SubscriptionManag
 
 std::shared_ptr<TestServiceInitializer> TestServiceInitializer::Create()
 {
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     auto initializer = std::make_shared<TestServiceInitializer>(subscriptionManager);
     if (!initializer || !initializer->Initialize()) {
         IAM_LOGE("TestServiceInitializer::Create failed");
@@ -97,6 +97,13 @@ bool TestServiceInitializer::InitializeSaManagerAdapter()
 {
     saManagerAdapter_ = std::make_shared<FakeSaManagerAdapter>();
     AdapterManager::GetInstance().SetSaManagerAdapter(saManagerAdapter_);
+    return true;
+}
+
+bool TestServiceInitializer::InitializeAppForegroundStateAdapter()
+{
+    appForegroundStateAdapter_ = std::make_shared<FakeAppForegroundStateAdapter>();
+    AdapterManager::GetInstance().SetAppForegroundStateAdapter(appForegroundStateAdapter_);
     return true;
 }
 
@@ -228,6 +235,10 @@ FakeSaManagerAdapter &TestServiceInitializer::GetSaManagerAdapter()
 {
     return *saManagerAdapter_;
 }
+FakeAppForegroundStateAdapter &TestServiceInitializer::GetAppForegroundStateAdapter()
+{
+    return *appForegroundStateAdapter_;
+}
 FakeDriverManagerAdapter &TestServiceInitializer::GetDriverManagerAdapter()
 {
     return *driverManagerAdapter_;
@@ -265,6 +276,11 @@ std::shared_ptr<MockEventManagerAdapter> TestServiceInitializer::GetEventManager
 // ============================================================================
 // ModuleTestGuard — composition wrapper
 // ============================================================================
+
+FakeAppForegroundStateAdapter &ModuleTestGuard::GetAppForegroundStateAdapter()
+{
+    return initializer_->GetAppForegroundStateAdapter();
+}
 
 ModuleTestGuard::ModuleTestGuard()
 {
@@ -343,6 +359,9 @@ void ModuleTestGuard::SetupDefaultValues()
     ON_CALL(initializer_->GetUserAuthAdapter(), BeginDelegateAuth(_))
         .WillByDefault(Return(1)); // non-zero contextId = success
     ON_CALL(initializer_->GetUserAuthAdapter(), CancelAuthentication(_)).WillByDefault(Return(0)); // SUCCESS
+
+    // FakeAppForegroundStateAdapter: default foreground subscriber so subscriptions resolve to MANAGE.
+    initializer_->GetAppForegroundStateAdapter().TestSetForegroundBundles({ FOREGROUND_TEST_BUNDLE });
 }
 
 void ModuleTestGuard::SimulateDeviceOnline(const std::string &deviceId)

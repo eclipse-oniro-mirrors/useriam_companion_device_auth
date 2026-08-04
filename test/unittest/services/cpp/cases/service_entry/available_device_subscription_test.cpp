@@ -54,7 +54,7 @@ class AvailableDeviceSubscriptionTest : public Test {};
 HWTEST_F(AvailableDeviceSubscriptionTest, Create_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
@@ -70,7 +70,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, Create_001, TestSize.Level0)
 HWTEST_F(AvailableDeviceSubscriptionTest, Create_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_)).WillOnce(Return(nullptr));
@@ -83,7 +83,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, Create_002, TestSize.Level0)
 HWTEST_F(AvailableDeviceSubscriptionTest, GetUserId_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
@@ -94,7 +94,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, GetUserId_001, TestSize.Level0)
 HWTEST_F(AvailableDeviceSubscriptionTest, GetWeakPtr_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
@@ -106,7 +106,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, GetWeakPtr_001, TestSize.Level0)
 HWTEST_F(AvailableDeviceSubscriptionTest, OnCallbackAdded_001, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
@@ -120,7 +120,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, OnCallbackAdded_001, TestSize.Level0)
 HWTEST_F(AvailableDeviceSubscriptionTest, OnCallbackAdded_002, TestSize.Level0)
 {
     MockGuard guard;
-    auto subscriptionManager = std::make_shared<SubscriptionManager>();
+    auto subscriptionManager = SubscriptionManager::Create();
     UserId userId = 100;
     auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
     ASSERT_NE(subscription, nullptr);
