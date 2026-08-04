@@ -55,7 +55,7 @@ private:
     void HandleSyncDeviceStatusReply(const Attributes &reply);
     bool EndCompanionCheck(const SyncDeviceStatusReply &reply);
     std::optional<CompanionStatus> QueryCompanionStatus();
-    ResultCode CallHostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply);
+    ResultCode HostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply);
     void ProcessCompanionCheckResult(ResultCode checkResult, const CompanionStatus &companionStatus,
         const SyncDeviceStatusReply &reply);
     bool NeedBeginCompanionCheck() const;

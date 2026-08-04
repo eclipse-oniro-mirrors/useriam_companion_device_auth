@@ -724,9 +724,9 @@ HWTEST_F(HostAddCompanionRequestTest, EndAddCompanion_001, TestSize.Level0)
     BeginAddHostBindingReply reply;
     std::vector<uint8_t> fwkMsg;
 
-    bool result = request->EndAddCompanion(reply, fwkMsg);
+    ResultCode result = request->EndAddCompanion(reply, fwkMsg);
 
-    EXPECT_TRUE(result);
+    EXPECT_EQ(result, ResultCode::SUCCESS);
     EXPECT_EQ(request->templateId_, TEMPLATE_ID);
 }
 

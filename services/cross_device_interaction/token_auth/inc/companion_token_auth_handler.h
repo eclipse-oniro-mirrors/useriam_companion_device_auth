@@ -19,6 +19,7 @@
 #include "host_binding_manager.h"
 #include "security_agent.h"
 #include "sync_incoming_message_handler.h"
+#include "token_auth_message.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -30,6 +31,10 @@ public:
 
 protected:
     void HandleRequest(const Attributes &request, Attributes &reply) override;
+
+private:
+    ResultCode ProcessTokenAuth(const TokenAuthRequest &tokenRequest, const HostBindingStatus &hostBindingStatus,
+        Attributes &reply);
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

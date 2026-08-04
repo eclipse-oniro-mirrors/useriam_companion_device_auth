@@ -142,7 +142,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompanionBeginDelegateAuth_001, TestS
     EXPECT_FALSE(result);
 }
 
-HWTEST_F(CompanionDelegateAuthRequestTest, SecureAgentBeginDelegateAuth_001, TestSize.Level0)
+HWTEST_F(CompanionDelegateAuthRequestTest, SecurityAgentBeginDelegateAuth_001, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -150,13 +150,11 @@ HWTEST_F(CompanionDelegateAuthRequestTest, SecureAgentBeginDelegateAuth_001, Tes
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
-    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
-        .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     uint64_t challenge = 0;
     Atl atl = 0;
-    bool result = request->SecureAgentBeginDelegateAuth(challenge, atl);
+    bool result = request->SecurityAgentBeginDelegateAuth(challenge, atl);
 
     EXPECT_FALSE(result);
 }

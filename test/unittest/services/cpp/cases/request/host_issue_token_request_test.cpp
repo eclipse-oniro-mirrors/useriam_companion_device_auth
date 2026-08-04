@@ -57,6 +57,7 @@ protected:
 HWTEST_F(HostIssueTokenRequestTest, OnStart_001, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
@@ -88,6 +89,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_001, TestSize.Level0)
 HWTEST_F(HostIssueTokenRequestTest, OnStart_002, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
@@ -103,6 +105,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_002, TestSize.Level0)
 HWTEST_F(HostIssueTokenRequestTest, OnStart_003, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
@@ -127,6 +130,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_003, TestSize.Level0)
 HWTEST_F(HostIssueTokenRequestTest, OnStart_004, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
@@ -154,6 +158,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_004, TestSize.Level0)
 HWTEST_F(HostIssueTokenRequestTest, OnStart_005, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
@@ -174,6 +179,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_005, TestSize.Level0)
 HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_Disabled_FallsThrough, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
@@ -206,6 +212,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_Disabled_FallsThroug
 HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_NoCachedAtl_FallsThrough, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
@@ -238,6 +245,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_NoCachedAtl_FallsThr
 HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_HostRefreshTokenFails_FallsThrough, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
@@ -269,6 +277,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_HostRefreshTokenFail
 HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_NeedReissue_FallsThrough, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
@@ -301,6 +310,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_NeedReissue_FallsThr
 HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_Success_CompletesWithRefresh, TestSize.Level0)
 {
     MockGuard guard;
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     auto request = std::make_shared<HostIssueTokenRequest>(HOST_USER_ID, TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE,
         FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);

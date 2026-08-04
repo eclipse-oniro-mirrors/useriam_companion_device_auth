@@ -48,7 +48,7 @@ protected:
 private:
     void HostBeginTokenAuth();
     bool SendTokenAuthRequest(const std::vector<uint8_t> &tokenAuthRequest);
-    ResultCode SecureAgentEndTokenAuth(const std::vector<uint8_t> &tokenAuthReply, std::vector<uint8_t> &outFwkMsg);
+    ResultCode SecurityAgentEndTokenAuth(const std::vector<uint8_t> &tokenAuthReply, std::vector<uint8_t> &outFwkMsg);
     void HandleTokenAuthReply(const Attributes &reply);
     void CompleteWithSuccess(const std::vector<uint8_t> &extraInfo);
     bool EnsureCompanionAuthMaintainActive(const DeviceKey &deviceKey, ErrorGuard &errorGuard);

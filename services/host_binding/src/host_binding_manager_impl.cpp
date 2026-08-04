@@ -245,34 +245,48 @@ ResultCode HostBindingManagerImpl::EndAddHostBinding(const EndAddHostBindingInpu
 
 ResultCode HostBindingManagerImpl::RemoveHostBinding(UserId companionUserId, const DeviceKey &hostDeviceKey)
 {
-    auto binding = FindBindingByDeviceUser(companionUserId, hostDeviceKey);
-    if (binding == nullptr) {
+    auto persistedId = FindPersistedBindingId(companionUserId, hostDeviceKey);
+    if (!persistedId.has_value()) {
         IAM_LOGE("binding not found for user %{public}d", companionUserId);
         return ResultCode::GENERAL_ERROR;
     }
 
-    BindingId bindingId = binding->GetBindingId();
-    CompanionRemoveHostBindingInput input { bindingId };
+    CompanionRemoveHostBindingInput input { *persistedId };
     ResultCode ret = GetSecurityAgent().CompanionRemoveHostBinding(input);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("security agent failed to remove host binding %{public}s, ret %{public}d",
-            GET_MASKED_NUM_STRING(bindingId).c_str(), ret);
+            GET_MASKED_NUM_STRING(*persistedId).c_str(), ret);
         return ret;
     }
 
-    ResultCode removeRet = RemoveBindingInternal(bindingId);
-    if (removeRet != ResultCode::SUCCESS) {
-        IAM_LOGE("binding id %{public}s not cached locally", GET_MASKED_NUM_STRING(bindingId).c_str());
+    RemoveBindingInternal(*persistedId);
+    IAM_LOGI("remove host binding success, id %{public}s", GET_MASKED_NUM_STRING(*persistedId).c_str());
+    return ResultCode::SUCCESS;
+}
+
+std::optional<BindingId> HostBindingManagerImpl::FindPersistedBindingId(UserId companionUserId,
+    const DeviceKey &hostDeviceKey)
+{
+    CompanionGetPersistedHostBindingStatusInput input { companionUserId };
+    CompanionGetPersistedHostBindingStatusOutput output {};
+    ResultCode ret = GetSecurityAgent().CompanionGetPersistedHostBindingStatus(input, output);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("failed to get persisted host binding status, ret %{public}d, user %{public}d", ret, companionUserId);
+        return std::nullopt;
     }
 
-    IAM_LOGI("remove host binding success, id %{public}s", GET_MASKED_NUM_STRING(bindingId).c_str());
-    return ResultCode::SUCCESS;
+    for (const auto &status : output.hostBindingStatusList) {
+        if (status.hostDeviceKey == hostDeviceKey) {
+            return status.bindingId;
+        }
+    }
+    return std::nullopt;
 }
 
 std::shared_ptr<HostBinding> HostBindingManagerImpl::FindBindingById(BindingId bindingId)
 {
-    auto it = std::find_if(bindings_.begin(), bindings_.end(),
-        [bindingId](const std::shared_ptr<HostBinding> &binding) {
+    auto it =
+        std::find_if(bindings_.begin(), bindings_.end(), [bindingId](const std::shared_ptr<HostBinding> &binding) {
             return binding != nullptr && binding->GetBindingId() == bindingId;
         });
 
@@ -329,7 +343,7 @@ ResultCode HostBindingManagerImpl::RemoveBindingInternal(BindingId bindingId)
     auto it = std::find_if(bindings_.begin(), bindings_.end(),
         [bindingId](const std::shared_ptr<HostBinding> &binding) { return binding->GetBindingId() == bindingId; });
     if (it == bindings_.end()) {
-        IAM_LOGE("binding id %{public}s not found", GET_MASKED_NUM_STRING(bindingId).c_str());
+        IAM_LOGI("binding id %{public}s not found", GET_MASKED_NUM_STRING(bindingId).c_str());
         return ResultCode::GENERAL_ERROR;
     }
 

@@ -33,6 +33,9 @@ class CompanionTokenAuthHandlerTest : public Test {
 protected:
     std::unique_ptr<CompanionTokenAuthHandler> handler_;
     int32_t companionUserId_ = 200;
+    DeviceKey localDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
+        .deviceId = "local_device_id",
+        .deviceUserId = companionUserId_ };
     DeviceKey hostDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "host_device_id",
         .deviceUserId = 100 };
@@ -43,6 +46,8 @@ protected:
 HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_001, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(localDeviceKey_)));
 
     handler_ = std::make_unique<CompanionTokenAuthHandler>();
 
@@ -88,6 +93,8 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_002, TestSize.Level0)
 HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_003, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(localDeviceKey_)));
 
     handler_ = std::make_unique<CompanionTokenAuthHandler>();
 
@@ -114,6 +121,8 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_003, TestSize.Level0)
 HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_004, TestSize.Level0)
 {
     MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(localDeviceKey_)));
 
     handler_ = std::make_unique<CompanionTokenAuthHandler>();
 
@@ -139,6 +148,65 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_004, TestSize.Level0)
     int32_t result = -1;
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result));
     EXPECT_EQ(result, static_cast<int32_t>(ResultCode::FAIL));
+}
+
+HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_005, TestSize.Level0)
+{
+    MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(localDeviceKey_)));
+
+    handler_ = std::make_unique<CompanionTokenAuthHandler>();
+
+    Attributes request;
+    int32_t mismatchCompanionUserId = companionUserId_ + 1;
+    TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
+        .companionUserId = mismatchCompanionUserId,
+        .extraInfo = extraInfo_ };
+    EncodeTokenAuthRequest(tokenAuthRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(tokenAuthRequest.hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, tokenAuthRequest.hostDeviceKey.deviceId);
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).Times(0);
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionProcessTokenAuth(_, _)).Times(0);
+
+    Attributes reply;
+    handler_->HandleRequest(request, reply);
+
+    int32_t result = -1;
+    EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result));
+    EXPECT_EQ(result, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
+}
+
+HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_006, TestSize.Level0)
+{
+    MockGuard guard;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::nullopt));
+
+    handler_ = std::make_unique<CompanionTokenAuthHandler>();
+
+    Attributes request;
+    TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
+        .companionUserId = companionUserId_,
+        .extraInfo = extraInfo_ };
+    EncodeTokenAuthRequest(tokenAuthRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(tokenAuthRequest.hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, tokenAuthRequest.hostDeviceKey.deviceId);
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).Times(0);
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionProcessTokenAuth(_, _)).Times(0);
+
+    Attributes reply;
+    handler_->HandleRequest(request, reply);
+
+    int32_t result = -1;
+    EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result));
+    EXPECT_EQ(result, static_cast<int32_t>(ResultCode::GENERAL_ERROR));
 }
 
 } // namespace

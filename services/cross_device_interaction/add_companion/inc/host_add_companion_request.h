@@ -56,7 +56,7 @@ private:
     void HandleInitKeyNegotiationReply(const Attributes &reply);
     void HandleBeginAddHostBindingReply(const Attributes &reply);
     void HandleEndAddHostBindingReply(const Attributes &reply);
-    bool EndAddCompanion(const BeginAddHostBindingReply &reply, std::vector<uint8_t> &fwkMsg);
+    ResultCode EndAddCompanion(const BeginAddHostBindingReply &reply, std::vector<uint8_t> &fwkMsg);
     bool SendEndAddHostBindingRequest(ResultCode result);
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo);
     std::optional<PersistedCompanionStatus> BuildPersistedCompanionStatus(const DeviceStatus &deviceStatus);
@@ -68,7 +68,7 @@ private:
     void ValidateAndFilterBusinessIds(const std::vector<BusinessId> &parsedIds);
     std::optional<DeviceKey> QueryLocalDeviceKey();
     std::optional<SecureProtocolId> QuerySecureProtocolId(const DeviceKey &peerDeviceKey);
-    ResultCode CallSecurityAgentGetInitKeyNegotiationRequest(std::vector<uint8_t> &initKeyNegotiationRequest);
+    ResultCode SecurityAgentGetInitKeyNegotiationRequest(std::vector<uint8_t> &initKeyNegotiationRequest);
     ResultCode SendInitKeyNegotiationRequest(const std::vector<uint8_t> &initKeyNegotiationRequest);
     bool BuildBeginAddCompanionParams(const InitKeyNegotiationReply &reply, BeginAddCompanionParams &params) const;
 

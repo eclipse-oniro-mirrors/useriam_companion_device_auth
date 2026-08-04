@@ -121,7 +121,7 @@ bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &pr
     desc_.SetBindingId(bindingId_);
     eventCollector_.SetBindingId(bindingId_);
 
-    return CallSecurityAgentPreIssueToken(preIssueTokenReply);
+    return SecurityAgentPreIssueToken(preIssueTokenReply);
 }
 
 SecureProtocolId CompanionIssueTokenRequest::QuerySecureProtocolId()
@@ -139,7 +139,7 @@ std::optional<BindingId> CompanionIssueTokenRequest::QueryBindingIdFromHostBindi
     return hostBindingStatus->bindingId;
 }
 
-bool CompanionIssueTokenRequest::CallSecurityAgentPreIssueToken(std::vector<uint8_t> &preIssueTokenReply)
+bool CompanionIssueTokenRequest::SecurityAgentPreIssueToken(std::vector<uint8_t> &preIssueTokenReply)
 {
     auto input = BuildCompanionPreIssueTokenInput();
     CompanionPreIssueTokenOutput output = {};
@@ -194,6 +194,10 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
     ENSURE_OR_RETURN_DESC(GetDescription(), onMessageReply != nullptr);
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late message", GetDescription());
+        return;
+    }
     currentReply_ = std::move(onMessageReply);
     ErrorGuard errorGuard([this](ResultCode code) { CompleteWithError(code); });
 
@@ -202,9 +206,10 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
     const auto &issueRequest = *issueRequestOpt;
 
     std::vector<uint8_t> issueTokenReply;
-    bool success = SecureAgentCompanionIssueToken(issueRequest.extraInfo, issueTokenReply);
-    if (!success) {
-        IAM_LOGE("%{public}s SecureAgentCompanionIssueToken failed", GetDescription());
+    ResultCode ret = SecurityAgentCompanionIssueToken(issueRequest.extraInfo, issueTokenReply);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s SecurityAgentCompanionIssueToken failed", GetDescription());
+        errorGuard.UpdateErrorCode(ret);
         return;
     }
 
@@ -218,7 +223,7 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
     CompleteWithSuccess();
 }
 
-bool CompanionIssueTokenRequest::SecureAgentCompanionIssueToken(const std::vector<uint8_t> &issueTokenRequest,
+ResultCode CompanionIssueTokenRequest::SecurityAgentCompanionIssueToken(const std::vector<uint8_t> &issueTokenRequest,
     std::vector<uint8_t> &issueTokenReply)
 {
     IAM_LOGI("%{public}s start", GetDescription());
@@ -230,7 +235,7 @@ bool CompanionIssueTokenRequest::SecureAgentCompanionIssueToken(const std::vecto
     ResultCode ret = GetSecurityAgent().CompanionProcessIssueToken(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionProcessIssueToken failed ret=%{public}d", GetDescription(), ret);
-        return false;
+        return ret;
     }
 
     eventCollector_.SetAtl(output.atl);
@@ -240,7 +245,7 @@ bool CompanionIssueTokenRequest::SecureAgentCompanionIssueToken(const std::vecto
         IAM_LOGE("%{public}s SetHostBindingTokenValid failed", GetDescription());
     }
     needCancelIssueToken_ = false;
-    return true;
+    return ResultCode::SUCCESS;
 }
 
 std::weak_ptr<InboundRequest> CompanionIssueTokenRequest::GetWeakPtr()
@@ -258,7 +263,10 @@ void CompanionIssueTokenRequest::CompleteWithError(ResultCode result)
     localDeviceStatusSubscription_.reset();
     if (needCancelIssueToken_) {
         CompanionCancelIssueTokenInput input = { GetRequestId() };
-        (void)GetSecurityAgent().CompanionCancelIssueToken(input);
+        ResultCode ret = GetSecurityAgent().CompanionCancelIssueToken(input);
+        if (ret != ResultCode::SUCCESS) {
+            IAM_LOGE("%{public}s CompanionCancelIssueToken failed ret=%{public}d", GetDescription(), ret);
+        }
         needCancelIssueToken_ = false;
     }
     eventCollector_.Report(result);

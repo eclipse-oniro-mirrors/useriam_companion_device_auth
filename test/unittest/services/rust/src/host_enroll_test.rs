@@ -759,7 +759,7 @@ fn host_enroll_request_end_test_protocol_list_mismatch() {
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
-        &[],
+        &[2u16],
         SUPPORT_CAPABILITIES,
         ExecutorSecurityLevel::Esl2 as i32,
     );
@@ -783,6 +783,78 @@ fn host_enroll_request_end_test_protocol_list_mismatch() {
 fn host_enroll_request_end_test_capability_list_mismatch() {
     let _guard = ut_registry_guard!();
     log_i!("host_enroll_request_end_test_capability_list_mismatch start");
+
+    mock_set_crypto_engine();
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_key_negotial_param());
+
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        SUPPORTED_PROTOCOL_VERSIONS,
+        &[Capability::Invalid as u16],
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi::default(),
+        secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn host_enroll_request_end_test_empty_protocol_list() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_empty_protocol_list start");
+
+    mock_set_crypto_engine();
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_key_negotial_param());
+
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        &[],
+        SUPPORT_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi::default(),
+        secure_protocol_id: 1,
+        protocol_list: Uint16Array64Ffi::default(),
+        capability_list: Uint16Array64Ffi::default(),
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn host_enroll_request_end_test_empty_capability_list() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_empty_capability_list start");
 
     mock_set_crypto_engine();
 

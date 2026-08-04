@@ -925,6 +925,12 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_002, TestSize.Level0)
     deviceKey.deviceId = "device-1";
     deviceKey.deviceUserId = 200;
 
+    ON_CALL(securityAgent, CompanionGetPersistedHostBindingStatus(_, _))
+        .WillByDefault(Invoke([](const CompanionGetPersistedHostBindingStatusInput &in,
+                                  CompanionGetPersistedHostBindingStatusOutput &out) {
+            out.hostBindingStatusList = { MakePersistedStatus(12345, in.userId, "device-1", 200) };
+            return ResultCode::SUCCESS;
+        }));
     EXPECT_CALL(securityAgent, CompanionRemoveHostBinding(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     ResultCode ret = manager->RemoveHostBinding(activeUserId_, deviceKey);
@@ -963,11 +969,61 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_003, TestSize.Level0)
     deviceKey.deviceId = "device-1";
     deviceKey.deviceUserId = 200;
 
+    ON_CALL(securityAgent, CompanionGetPersistedHostBindingStatus(_, _))
+        .WillByDefault(Invoke([](const CompanionGetPersistedHostBindingStatusInput &in,
+                                  CompanionGetPersistedHostBindingStatusOutput &out) {
+            out.hostBindingStatusList = { MakePersistedStatus(12345, in.userId, "device-1", 200) };
+            return ResultCode::SUCCESS;
+        }));
     EXPECT_CALL(securityAgent, CompanionRemoveHostBinding(_)).WillOnce(Return(ResultCode::SUCCESS));
 
     ResultCode ret = manager->RemoveHostBinding(activeUserId_, deviceKey);
     EXPECT_EQ(ResultCode::SUCCESS, ret);
     EXPECT_FALSE(manager->GetHostBindingStatus(12345).has_value());
+}
+
+HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_004, TestSize.Level0)
+{
+    MockGuard guard;
+    int32_t activeUserId_ = 100;
+    (void)activeUserId_;
+    auto &userIdMgr = guard.GetUserIdManager();
+    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+        return MakeSubscription();
+    }));
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
+        .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
+        return MakeSubscription();
+    }));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(false));
+    auto &securityAgent = guard.GetSecurityAgent();
+    auto manager = CreateManager(guard, activeUserId_);
+    ASSERT_NE(nullptr, manager);
+
+    // Binding belongs to a NON-active user (200); it is not present in the active-user cache,
+    // so RemoveHostBinding must resolve its bindingId from the persisted store.
+    constexpr int32_t nonActiveUserId = 200;
+    constexpr BindingId nonActiveBindingId = 67890;
+    ON_CALL(securityAgent, CompanionGetPersistedHostBindingStatus(_, _))
+        .WillByDefault(Invoke([](const CompanionGetPersistedHostBindingStatusInput &in,
+                                  CompanionGetPersistedHostBindingStatusOutput &out) {
+            out.hostBindingStatusList = { MakePersistedStatus(nonActiveBindingId, in.userId, "device-1", 200) };
+            return ResultCode::SUCCESS;
+        }));
+    EXPECT_CALL(securityAgent, CompanionRemoveHostBinding(_)).WillOnce(Return(ResultCode::SUCCESS));
+
+    DeviceKey deviceKey;
+    deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    deviceKey.deviceId = "device-1";
+    deviceKey.deviceUserId = 200;
+
+    ResultCode ret = manager->RemoveHostBinding(nonActiveUserId, deviceKey);
+    EXPECT_EQ(ResultCode::SUCCESS, ret);
+    EXPECT_FALSE(manager->GetHostBindingStatus(nonActiveBindingId).has_value());
 }
 
 HWTEST_F(HostBindingManagerImplTest, SetHostBindingTokenValid_001, TestSize.Level0)

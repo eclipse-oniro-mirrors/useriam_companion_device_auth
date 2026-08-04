@@ -346,7 +346,11 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
         IAM_LOGE("rolling back SecurityAgent for %{public}s", GET_MASKED_NUM_CSTR(templateId));
         HostRemoveCompanionInput removeInput { templateId };
         HostRemoveCompanionOutput removeOutput {};
-        (void)GetSecurityAgent().HostRemoveCompanion(removeInput, removeOutput);
+        ResultCode removeRet = GetSecurityAgent().HostRemoveCompanion(removeInput, removeOutput);
+        if (removeRet != ResultCode::SUCCESS) {
+            IAM_LOGE("failed to rollback SecurityAgent for %{public}s ret %{public}d", GET_MASKED_NUM_CSTR(templateId),
+                removeRet);
+        }
     });
 
     PersistedCompanionStatus updatedStatus = input.companionStatus;

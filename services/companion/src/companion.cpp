@@ -219,7 +219,10 @@ void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl, bool f
     if (oldTokenAuthAtl.has_value() && !tokenAuthAtl.has_value()) {
         authMaintainInactiveTimer_.reset();
         HostRevokeTokenInput input = { status_.templateId };
-        (void)GetSecurityAgent().HostRevokeToken(input);
+        ResultCode ret = GetSecurityAgent().HostRevokeToken(input);
+        if (ret != ResultCode::SUCCESS) {
+            IAM_LOGE("%{public}s HostRevokeToken failed ret %{public}d", GetDescription(), ret);
+        }
     } else if (tokenAuthAtl.has_value()) {
         tokenTimeoutSubscription_ = RelativeTimer::GetInstance().Register(
             [weakSelf = weak_from_this()]() {

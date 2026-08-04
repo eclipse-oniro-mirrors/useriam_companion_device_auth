@@ -176,6 +176,11 @@ bool BaseRequest::AcquireCompletion()
     return true;
 }
 
+bool BaseRequest::IsFinished() const
+{
+    return cancelled_ || completed_;
+}
+
 void BaseRequest::Destroy()
 {
     IAM_LOGI("%{public}s destroy", GetDescription());

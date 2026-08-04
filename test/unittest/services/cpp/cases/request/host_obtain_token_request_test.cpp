@@ -607,9 +607,9 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_001, TestSize.
     ObtainTokenRequest req = { .hostUserId = 100, .extraInfo = {}, .companionDeviceKey = COMPANION_DEVICE_KEY };
     std::vector<uint8_t> obtainTokenReply;
 
-    bool result = request->HandleHostProcessObtainToken(req, obtainTokenReply);
+    ResultCode result = request->HandleHostProcessObtainToken(req, obtainTokenReply);
 
-    EXPECT_FALSE(result);
+    EXPECT_EQ(result, ResultCode::GENERAL_ERROR);
 }
 
 HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_002, TestSize.Level0)
@@ -625,9 +625,9 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_002, TestSize.
     request->templateId_ = TEST_TEMPLATE_ID;
     EXPECT_CALL(mockCompanionManager_, SetCompanionTokenAuthAtl(_, _, _)).WillOnce(Return(true));
 
-    bool result = request->HandleHostProcessObtainToken(req, obtainTokenReply);
+    ResultCode result = request->HandleHostProcessObtainToken(req, obtainTokenReply);
 
-    EXPECT_TRUE(result);
+    EXPECT_EQ(result, ResultCode::SUCCESS);
 }
 
 HWTEST_F(HostObtainTokenRequestTest, CompleteWithError_001, TestSize.Level0)

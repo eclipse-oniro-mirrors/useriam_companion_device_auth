@@ -150,6 +150,10 @@ void HostIssueTokenRequest::HandlePreIssueTokenReply(const Attributes &message)
     eventCollector_.ExitWait(HostIssueTokenStages::DONE_PRE_ISSUE_TOKEN_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late pre issue token", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodePreIssueTokenReply(message);
@@ -173,8 +177,6 @@ void HostIssueTokenRequest::HandlePreIssueTokenReply(const Attributes &message)
         errorGuard.UpdateErrorCode(ret);
         return;
     }
-    needCancelIssueToken_ = true;
-
     bool sendRet = SendIssueTokenRequest(output.issueTokenRequest);
     if (!sendRet) {
         IAM_LOGE("%{public}s SendIssueTokenRequest failed", GetDescription());
@@ -211,7 +213,7 @@ bool HostIssueTokenRequest::SendIssueTokenRequest(const std::vector<uint8_t> &is
     return true;
 }
 
-ResultCode HostIssueTokenRequest::CallSecurityAgentEndIssueToken(const std::vector<uint8_t> &issueTokenReply, Atl &atl)
+ResultCode HostIssueTokenRequest::SecurityAgentEndIssueToken(const std::vector<uint8_t> &issueTokenReply, Atl &atl)
 {
     HostEndIssueTokenInput input = {};
     input.requestId = GetRequestId();
@@ -233,6 +235,10 @@ void HostIssueTokenRequest::HandleIssueTokenReply(const Attributes &message)
     eventCollector_.ExitWait(HostIssueTokenStages::DONE_ISSUE_TOKEN_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late issue token", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
     auto replyOpt = DecodeIssueTokenReply(message);
@@ -245,13 +251,13 @@ void HostIssueTokenRequest::HandleIssueTokenReply(const Attributes &message)
         return;
     }
     Atl atl = 0;
-    ResultCode ret = CallSecurityAgentEndIssueToken(reply.extraInfo, atl);
-    needCancelIssueToken_ = false;
+    ResultCode ret = SecurityAgentEndIssueToken(reply.extraInfo, atl);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s HostEndIssueToken failed ret=%{public}d", GetDescription(), ret);
         errorGuard.UpdateErrorCode(ret);
         return;
     }
+    needCancelIssueToken_ = false;
     eventCollector_.SetAtl(atl);
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
     bool setTokenAtlRet = GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, atl);
@@ -326,6 +332,10 @@ bool HostIssueTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &d
 void HostIssueTokenRequest::HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList)
 {
     LogTraceGuard guard;
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, skip late device-status callback", GetDescription());
+        return;
+    }
     auto peerDeviceKey = GetPeerDeviceKey();
     ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKey.has_value());
     for (const auto &status : deviceStatusList) {

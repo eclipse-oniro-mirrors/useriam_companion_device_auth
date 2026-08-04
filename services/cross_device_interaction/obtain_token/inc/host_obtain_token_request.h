@@ -51,7 +51,7 @@ private:
     void SendPreObtainTokenReply(ResultCode result, const std::vector<uint8_t> &preObtainTokenReply);
     void SendErrorReply(ResultCode result);
     void HandleObtainTokenMessage(const Attributes &request, OnMessageReply &onMessageReply);
-    bool HandleHostProcessObtainToken(const ObtainTokenRequest &request, std::vector<uint8_t> &obtainTokenReply);
+    ResultCode HandleHostProcessObtainToken(const ObtainTokenRequest &request, std::vector<uint8_t> &obtainTokenReply);
     bool EnsureCompanionAuthMaintainActive(const DeviceKey &deviceKey, ErrorGuard &errorGuard);
     void HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
     HostProcessObtainTokenInput BuildHostProcessObtainTokenInput(const std::vector<uint8_t> &obtainTokenRequest);

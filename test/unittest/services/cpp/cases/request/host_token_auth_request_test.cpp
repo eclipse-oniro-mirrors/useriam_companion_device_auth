@@ -843,6 +843,73 @@ HWTEST_F(HostTokenAuthRequestTest, CanStart_004, TestSize.Level0)
     EXPECT_TRUE(request->CanStart(prevRequests));
 }
 
+HWTEST_F(HostTokenAuthRequestTest, HandlePeerDeviceStatusChanged_PeerAbsent_NoFailure, TestSize.Level0)
+{
+    // Behavior change: peer absent from the synced-status snapshot means transiently unsynced, NOT a failure
+    // (the old "peer absent => fail" branch was removed). Only another device is present here.
+    MockGuard guard;
+
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callback = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
+    auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    DeviceStatus otherStatus = { .deviceKey = OTHER_DEVICE_KEY, .isAuthMaintainActive = true };
+    request->HandlePeerDeviceStatusChanged({ otherStatus });
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_FALSE(*callbackCalled);
+}
+
+HWTEST_F(HostTokenAuthRequestTest, HandlePeerDeviceStatusChanged_PeerLeftAuthMaintain_CompletesWithError,
+    TestSize.Level0)
+{
+    // Retained branch: peer explicitly reports it left auth-maintain state => fail the request.
+    MockGuard guard;
+
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
+    auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+    auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+    request->needEndTokenAuth_ = false;
+
+    DeviceStatus inactiveStatus = { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = false };
+    request->HandlePeerDeviceStatusChanged({ inactiveStatus });
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::GENERAL_ERROR);
+}
+
+HWTEST_F(HostTokenAuthRequestTest, HandlePeerDeviceStatusChanged_AfterFinished_DropsLateCallback, TestSize.Level0)
+{
+    // A late device-status callback arriving after the request is already cancelled must be dropped.
+    // cancelled_ is set but completed_ stays false, so IsFinished() is true while AcquireCompletion() would still
+    // pass — this isolates the IsFinished() guard in HandlePeerDeviceStatusChanged as the sole defense.
+    MockGuard guard;
+
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callback = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
+    auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    request->cancelled_ = true;
+    ASSERT_TRUE(request->IsFinished());
+
+    DeviceStatus inactiveStatus = { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = false };
+    request->HandlePeerDeviceStatusChanged({ inactiveStatus });
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_FALSE(*callbackCalled);
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

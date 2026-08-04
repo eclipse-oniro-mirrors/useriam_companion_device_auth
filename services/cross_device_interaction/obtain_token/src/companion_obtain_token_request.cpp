@@ -123,6 +123,10 @@ void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &re
     eventCollector_.ExitWait(CompanionObtainTokenStages::DONE_PRE_OBTAIN_TOKEN_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late pre obtain token", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto preObtainTokenReplyOpt = DecodePreObtainTokenReply(reply);
@@ -136,9 +140,10 @@ void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &re
         return;
     }
 
-    bool beginRet = CompanionBeginObtainToken(preObtainTokenReply.extraInfo);
-    if (!beginRet) {
+    ResultCode ret = CompanionBeginObtainToken(preObtainTokenReply.extraInfo);
+    if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionBeginObtainToken failed", GetDescription());
+        errorGuard.UpdateErrorCode(ret);
         return;
     }
     errorGuard.Cancel();
@@ -178,10 +183,10 @@ CompanionBeginObtainTokenInput CompanionObtainTokenRequest::BuildCompanionBeginO
     return input;
 }
 
-bool CompanionObtainTokenRequest::CompanionBeginObtainToken(const std::vector<uint8_t> &extraInfo)
+ResultCode CompanionObtainTokenRequest::CompanionBeginObtainToken(const std::vector<uint8_t> &extraInfo)
 {
     if (!GetBindingIdFromHostBindingStatus()) {
-        return false;
+        return ResultCode::GENERAL_ERROR;
     }
 
     auto input = BuildCompanionBeginObtainTokenInput(extraInfo);
@@ -189,13 +194,16 @@ bool CompanionObtainTokenRequest::CompanionBeginObtainToken(const std::vector<ui
     ResultCode ret = GetSecurityAgent().CompanionBeginObtainToken(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionBeginObtainToken failed ret=%{public}d", GetDescription(), ret);
-        return false;
+        return ret;
     }
 
     eventCollector_.SetAtl(output.atl);
 
     needCancelObtainToken_ = true;
-    return SendObtainTokenRequest(output.obtainTokenRequest);
+    if (!SendObtainTokenRequest(output.obtainTokenRequest)) {
+        return ResultCode::COMMUNICATION_ERROR;
+    }
+    return ResultCode::SUCCESS;
 }
 
 bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest)
@@ -228,6 +236,10 @@ void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply
     eventCollector_.ExitWait(CompanionObtainTokenStages::DONE_OBTAIN_TOKEN_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late obtain token", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto obtainTokenReplyOpt = DecodeObtainTokenReply(reply);
@@ -241,9 +253,10 @@ void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply
         return;
     }
 
-    bool endRet = CompanionEndObtainToken(obtainTokenReply);
-    if (!endRet) {
+    ResultCode ret = CompanionEndObtainToken(obtainTokenReply);
+    if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionEndObtainToken failed", GetDescription());
+        errorGuard.UpdateErrorCode(ret);
         return;
     }
     needCancelObtainToken_ = false;
@@ -251,7 +264,7 @@ void CompanionObtainTokenRequest::HandleObtainTokenReply(const Attributes &reply
     CompleteWithSuccess();
 }
 
-bool CompanionObtainTokenRequest::CompanionEndObtainToken(const ObtainTokenReply &obtainTokenReply)
+ResultCode CompanionObtainTokenRequest::CompanionEndObtainToken(const ObtainTokenReply &obtainTokenReply)
 {
     CompanionEndObtainTokenInput input = {};
     input.requestId = GetRequestId();
@@ -260,13 +273,14 @@ bool CompanionObtainTokenRequest::CompanionEndObtainToken(const ObtainTokenReply
     ResultCode ret = GetSecurityAgent().CompanionEndObtainToken(input);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionEndObtainToken failed ret=%{public}d", GetDescription(), ret);
-        return false;
+        return ret;
     }
     bool setTokenValidRet = GetHostBindingManager().SetHostBindingTokenValid(bindingId_, true);
     if (!setTokenValidRet) {
         IAM_LOGE("%{public}s SetHostBindingTokenValid failed", GetDescription());
+        return ResultCode::GENERAL_ERROR;
     }
-    return true;
+    return ResultCode::SUCCESS;
 }
 
 void CompanionObtainTokenRequest::CompleteWithError(ResultCode result)

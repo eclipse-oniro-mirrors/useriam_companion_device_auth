@@ -190,7 +190,6 @@ bool MiscManagerImpl::SetDeviceSelectCallback(uint32_t tokenId,
     auto it = callbacks_.find(tokenId);
     if (it != callbacks_.end()) {
         IAM_LOGI("replacing existing callback");
-        callbacks_.erase(it);
     }
 
     callbacks_[tokenId] = { deviceSelectCallback, deathRecipient };

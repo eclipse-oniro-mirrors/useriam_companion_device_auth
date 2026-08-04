@@ -64,6 +64,7 @@ private:
 
     std::shared_ptr<HostBinding> FindBindingById(BindingId bindingId);
     std::shared_ptr<HostBinding> FindBindingByDeviceUser(UserId userId, const DeviceKey &deviceKey);
+    std::optional<BindingId> FindPersistedBindingId(UserId companionUserId, const DeviceKey &hostDeviceKey);
 
     ResultCode BeginAddHostBindingWithSecurityAgent(const CompanionBeginAddHostBindingInput &input,
         CompanionBeginAddHostBindingOutput &output);

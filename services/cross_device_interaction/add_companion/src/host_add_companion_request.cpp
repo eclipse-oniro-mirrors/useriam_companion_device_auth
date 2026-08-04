@@ -145,6 +145,10 @@ void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceK
 {
     eventCollector_.ExitWait(HostAddCompanionStages::DONE_DEVICE_SELECT);
     IAM_LOGI("%{public}s HandleDeviceSelectResult", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late device select", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     if (selectedDevices.size() != 1) {
@@ -171,6 +175,10 @@ void HostAddCompanionRequest::OnConnected()
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late connected", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto hostDeviceKeyOpt = QueryLocalDeviceKey();
@@ -189,9 +197,9 @@ void HostAddCompanionRequest::OnConnected()
     eventCollector_.SetScheduleId(GetScheduleId());
 
     std::vector<uint8_t> initKeyNegotiationRequest;
-    ResultCode ret = CallSecurityAgentGetInitKeyNegotiationRequest(initKeyNegotiationRequest);
+    ResultCode ret = SecurityAgentGetInitKeyNegotiationRequest(initKeyNegotiationRequest);
     if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s CallSecurityAgentGetInitKeyNegotiationRequest failed", GetDescription());
+        IAM_LOGE("%{public}s SecurityAgentGetInitKeyNegotiationRequest failed", GetDescription());
         errorGuard.UpdateErrorCode(ret);
         return;
     }
@@ -215,7 +223,7 @@ std::optional<SecureProtocolId> HostAddCompanionRequest::QuerySecureProtocolId(c
     return GetCrossDeviceCommManager().HostGetSecureProtocolId(peerDeviceKey);
 }
 
-ResultCode HostAddCompanionRequest::CallSecurityAgentGetInitKeyNegotiationRequest(
+ResultCode HostAddCompanionRequest::SecurityAgentGetInitKeyNegotiationRequest(
     std::vector<uint8_t> &initKeyNegotiationRequest)
 {
     HostGetInitKeyNegotiationRequestInput input = {
@@ -263,6 +271,10 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     eventCollector_.ExitWait(HostAddCompanionStages::DONE_INIT_KEY_NEG_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late init key negotiation", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto initReplyOpt = DecodeInitKeyNegotiationReply(reply);
@@ -303,8 +315,8 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     errorGuard.Cancel();
 }
 
-bool HostAddCompanionRequest::BuildBeginAddCompanionParams(
-    const InitKeyNegotiationReply &reply, BeginAddCompanionParams& params) const
+bool HostAddCompanionRequest::BuildBeginAddCompanionParams(const InitKeyNegotiationReply &reply,
+    BeginAddCompanionParams &params) const
 {
     auto companionDeviceKey = GetPeerDeviceKey();
     ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), false);
@@ -339,6 +351,10 @@ void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &r
     eventCollector_.ExitWait(HostAddCompanionStages::DONE_BEGIN_ADD_BINDING_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late begin add host binding", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto beginReplyOpt = DecodeBeginAddHostBindingReply(reply);
@@ -351,12 +367,17 @@ void HostAddCompanionRequest::HandleBeginAddHostBindingReply(const Attributes &r
         return;
     }
 
-    bool handleRet = EndAddCompanion(*beginReplyOpt, addCompanionFwkMsg_);
-    ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
+    ResultCode endRet = EndAddCompanion(*beginReplyOpt, addCompanionFwkMsg_);
+    if (endRet != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s EndAddCompanion failed", GetDescription());
+        errorGuard.UpdateErrorCode(endRet);
+        return;
+    }
 
     bool sendRet = SendEndAddHostBindingRequest(ResultCode::SUCCESS);
     if (!sendRet) {
         IAM_LOGE("%{public}s SendEndAddHostBindingRequest failed", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
         return;
     }
 
@@ -428,28 +449,28 @@ void HostAddCompanionRequest::ProcessEndAddCompanionOutput(const EndAddCompanion
     }
 }
 
-bool HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &reply, std::vector<uint8_t> &fwkMsg)
+ResultCode HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingReply &reply, std::vector<uint8_t> &fwkMsg)
 {
     auto companionDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionDeviceKey.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionDeviceKey.has_value(), ResultCode::GENERAL_ERROR);
 
     auto deviceStatus = GetCrossDeviceCommManager().GetDeviceStatus(*companionDeviceKey);
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), deviceStatus.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), deviceStatus.has_value(), ResultCode::GENERAL_ERROR);
 
     auto companionStatusOpt = BuildPersistedCompanionStatus(*deviceStatus);
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionStatusOpt.has_value(), false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionStatusOpt.has_value(), ResultCode::GENERAL_ERROR);
 
     EndAddCompanionInput input = BuildEndAddCompanionInput(*companionStatusOpt, *deviceStatus, reply.extraInfo);
     EndAddCompanionOutput output = {};
     ResultCode ret = GetCompanionManager().EndAddCompanion(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s EndAddCompanion failed ret=%{public}d", GetDescription(), ret);
-        return false;
+        return ret;
     }
     enrollmentSucceeded_ = true;
 
     ProcessEndAddCompanionOutput(output, fwkMsg);
-    return true;
+    return ResultCode::SUCCESS;
 }
 
 bool HostAddCompanionRequest::SendEndAddHostBindingRequest(ResultCode result)
@@ -484,6 +505,10 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
     eventCollector_.ExitWait(HostAddCompanionStages::DONE_END_ADD_BINDING_REPLY);
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    if (IsFinished()) {
+        IAM_LOGI("%{public}s already cancelled/completed, drop late end add host binding", GetDescription());
+        return;
+    }
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
     auto replyMsgOpt = DecodeEndAddHostBindingReply(reply);

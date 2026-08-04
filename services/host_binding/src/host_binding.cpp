@@ -204,7 +204,10 @@ void HostBinding::SetTokenValid(bool isTokenValid, const std::string &triggerRea
 
     if (!isTokenValid && oldTokenValid) {
         CompanionRevokeTokenInput input = { status_.bindingId };
-        (void)GetSecurityAgent().CompanionRevokeToken(input);
+        ResultCode ret = GetSecurityAgent().CompanionRevokeToken(input);
+        if (ret != ResultCode::SUCCESS) {
+            IAM_LOGE("%{public}s CompanionRevokeToken failed ret %{public}d", GetDescription(), ret);
+        }
 
         const DeviceKey &hostDeviceKey = status_.hostDeviceStatus.deviceKey;
         auto request = GetRequestFactory().CreateCompanionRevokeTokenRequest(status_.companionUserId, hostDeviceKey,
