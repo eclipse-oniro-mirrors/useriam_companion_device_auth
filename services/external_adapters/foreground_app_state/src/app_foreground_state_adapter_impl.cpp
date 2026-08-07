@@ -127,7 +127,11 @@ std::unique_ptr<Subscription> AppForegroundStateAdapterImpl::AddWatchedApp(const
 void AppForegroundStateAdapterImpl::RemoveWatchedApp(SubscribeId id)
 {
     watchedBundles_.erase(id);
-    RefreshObserver();
+    TaskRunnerManager::GetInstance().PostTaskOnResident([weak = weak_from_this()]() {
+        if (auto self = weak.lock()) {
+            self->RefreshObserver();
+        }
+    });
 }
 
 std::unique_ptr<Subscription> AppForegroundStateAdapterImpl::SubscribeForegroundWatchedApps(

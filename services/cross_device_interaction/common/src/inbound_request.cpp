@@ -154,6 +154,13 @@ void InboundRequest::CompleteWithError(ResultCode result)
     eventCollector_.Report(result);
     Destroy();
 }
+
+void InboundRequest::Destroy()
+{
+    connectionStatusSubscription_.reset();
+    BaseRequest::Destroy();
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

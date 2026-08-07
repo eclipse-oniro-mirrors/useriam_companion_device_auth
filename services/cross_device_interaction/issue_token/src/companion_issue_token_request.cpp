@@ -314,6 +314,14 @@ void CompanionIssueTokenRequest::HandleAuthMaintainActiveChanged(bool isActive)
     // OutboundRequest subscribes to it during OpenConnection) so the host can abort promptly.
     Cancel(ResultCode::GENERAL_ERROR);
 }
+
+void CompanionIssueTokenRequest::Destroy()
+{
+    issueTokenSubscription_.reset();
+    localDeviceStatusSubscription_.reset();
+    InboundRequest::Destroy();
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

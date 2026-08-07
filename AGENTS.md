@@ -151,6 +151,15 @@ TaskRunnerManager::GetInstance().PostTaskOnTemporary("name", [...]() {
 
 **`PostTaskOnResident` 设计**：它从非常驻线程调用，用于在常驻线程上调度工作。从 IPC/临时线程调用它是正确且预期的行为。
 
+### 请求与订阅生命周期（Request / Subscription）
+
+**析构期销毁陷阱**：`RequestManagerImpl::Remove` 由 `BaseRequest::Destroy` 经 `PostTaskOnResident` 延迟触发；常驻线程执行 `deque::erase` 时，若该 `shared_ptr<IRequest>` 是最后一个引用，Request 析构函数会**同步在 erase 现场执行**。此时若析构链上的 `Subscription` cleanup 同步执行复杂逻辑（典型：`DeviceStatusManager::UnsubscribeDeviceStatus → RefreshDeviceList` 改 `deviceStatusMap_`），会破坏正在被 erase 的堆，表现为 jemalloc 的 `may double free`。崩溃栈特征：`Timer::OnTimer → BaseRequest::Destroy lambda → RequestManagerImpl::Remove → ~Request → free → "may double free"`。
+
+为此定两条硬规则：
+
+1. **每个 Request 必须在自己的 `Destroy()` 里释放所有 Subscription 成员**——在调用基类 `Destroy()` 前 `xxxSubscription_.reset()`。`Destroy()` 必先于析构执行（`Remove` 是从 `Destroy` 内 PostTask 的），从而把 cleanup 移出 erase 现场。各层级各管各的：`OutboundRequest::Destroy`/`InboundRequest::Destroy` 释放本层 subscription（`connectionStatusSubscription_`、`requestAbortedSubscription_`），派生类释放自己的；`BaseRequest::Destroy` 已通过 `StopTimeout` 释放 `timeoutSubscription_`。`Destroy()` 非虚，派生类靠 name-hiding（不加 `override`），`Complete*` 中的非限定 `Destroy()` 会解析到最派生版本。
+2. **Subscription 的 cleanup lambda 必须是纯本地 erase**（只从所属 manager 的容器移除/取消定时器，然后结束）。任何周边副作用（`RefreshDeviceList`、`NotifySubscribers`、`RefreshObserver`、observer register/unregister、外部 sysparam 解注册等）必须用 `PostTaskOnResident` 延迟，并捕获**所属 manager** 的 `weak_from_this()`（不是 Request 的）——manager 比单个 Request 长命，故 late-safe。合规模板：`SystemSettingsManagerImpl::SubscribeSettingsChange`、`AuthenticatorManager::SubscribeAuthenticatorStatus`。
+
 ### 工具
 
 - 使用 `useriam-format-include` 技能进行头文件排序

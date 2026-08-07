@@ -345,6 +345,13 @@ void CompanionObtainTokenRequest::HandleAuthMaintainActiveChanged(bool isActive)
     IAM_LOGE("%{public}s local auth maintain inactive, cancel request", GetDescription());
     CompleteWithError(ResultCode::GENERAL_ERROR);
 }
+
+void CompanionObtainTokenRequest::Destroy()
+{
+    localDeviceStatusSubscription_.reset();
+    OutboundRequest::Destroy();
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

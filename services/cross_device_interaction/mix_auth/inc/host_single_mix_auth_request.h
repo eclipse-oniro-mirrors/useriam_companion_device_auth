@@ -41,7 +41,7 @@ public:
 private:
     void CompleteWithError(ResultCode result) override;
     void CompleteWithSuccess(const std::vector<uint8_t> &extraInfo);
-    void Destroy();
+    void Destroy() override;
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo);
 
     void HandleTokenAuthResult(ResultCode result, const std::vector<uint8_t> &extraInfo);

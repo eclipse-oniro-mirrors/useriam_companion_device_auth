@@ -394,6 +394,8 @@ void HostMixAuthRequest::CompleteWithSuccess(TemplateId templateId, const std::v
 void HostMixAuthRequest::Destroy()
 {
     IAM_LOGI("%{public}s destroy", GetDescription());
+    lockEventSubscription_.reset();
+    activeUserSubscription_.reset();
     BaseRequest::Destroy();
 }
 } // namespace CompanionDeviceAuth

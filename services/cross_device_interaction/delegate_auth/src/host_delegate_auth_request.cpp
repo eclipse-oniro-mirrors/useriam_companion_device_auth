@@ -395,6 +395,13 @@ bool HostDelegateAuthRequest::ShouldCancelOnNewRequest(const IRequest &newReques
 
     return false;
 }
+
+void HostDelegateAuthRequest::Destroy()
+{
+    delegateResultSubscription_.reset();
+    OutboundRequest::Destroy();
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

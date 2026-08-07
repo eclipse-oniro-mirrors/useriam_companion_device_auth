@@ -44,6 +44,7 @@ protected:
     void CompleteWithError(ResultCode result) override;
 
     std::weak_ptr<OutboundRequest> GetWeakPtr() override;
+    void Destroy() override;
 
 private:
     void HostBeginTokenAuth();

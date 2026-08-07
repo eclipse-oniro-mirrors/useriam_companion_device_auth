@@ -447,6 +447,7 @@ HWTEST_F(DeviceStatusManagerTest, SpecificDeviceSubscriptionTriggersRefreshOnSub
     auto subscription =
         ctx.manager->SubscribeDeviceStatus(MakeDeviceKey(targetKey), true, [](const std::vector<DeviceStatus> &) {});
     ASSERT_NO_THROW(subscription.reset());
+    TaskRunnerManager::GetInstance().ExecuteAll();
 }
 
 HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallback, TestSize.Level0)
