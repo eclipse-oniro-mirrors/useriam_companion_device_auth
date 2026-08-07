@@ -57,6 +57,12 @@ HostTokenAuthRequest::~HostTokenAuthRequest()
 {
 }
 
+void HostTokenAuthRequest::Destroy()
+{
+    deviceStatusSubscription_.reset();
+    OutboundRequest::Destroy();
+}
+
 bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
 {
     IAM_LOGI("%{public}s start", GetDescription());

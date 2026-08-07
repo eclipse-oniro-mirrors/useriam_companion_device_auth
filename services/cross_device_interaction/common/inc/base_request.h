@@ -48,7 +48,7 @@ protected:
     uint32_t CountSameType(const std::vector<std::shared_ptr<IRequest>> &prevRequests) const;
     void StartTimeout(std::weak_ptr<BaseRequest> weakSelf);
     void StopTimeout();
-    void Destroy();
+    virtual void Destroy();
     virtual void CompleteWithError(ResultCode result) = 0;
     bool AcquireCompletion();
     bool IsFinished() const;

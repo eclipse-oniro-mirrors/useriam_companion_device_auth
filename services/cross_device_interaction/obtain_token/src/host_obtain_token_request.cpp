@@ -423,6 +423,16 @@ void HostObtainTokenRequest::HandlePeerDeviceStatusChanged(const std::vector<Dev
         return;
     }
 }
+
+void HostObtainTokenRequest::Destroy()
+{
+    obtainTokenSubscription_.reset();
+    deviceStatusSubscription_.reset();
+    lockEventSubscription_.reset();
+    activeUserSubscription_.reset();
+    InboundRequest::Destroy();
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

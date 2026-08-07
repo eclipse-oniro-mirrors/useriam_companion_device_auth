@@ -285,7 +285,11 @@ bool DeviceStatusManager::UnsubscribeDeviceStatus(SubscribeId subscriptionId)
         subscriptions_.erase(it);
         IAM_LOGD("device status subscription removed: id=0x%{public}016" PRIX64 "", subscriptionId);
         if (wasSpecificDevice) {
-            RefreshDeviceList(false);
+            TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this()]() {
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->RefreshDeviceList(false);
+            });
         }
         return true;
     }

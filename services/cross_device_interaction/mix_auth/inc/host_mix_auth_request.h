@@ -41,7 +41,7 @@ public:
 private:
     void CompleteWithError(ResultCode result) override;
     void CompleteWithSuccess(TemplateId templateId, const std::vector<uint8_t> &extraInfo);
-    void Destroy();
+    void Destroy() override;
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo);
 
     void HandleAuthResult(TemplateId templateId, ResultCode result, const std::vector<uint8_t> &extraInfo);

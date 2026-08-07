@@ -42,6 +42,7 @@ protected:
     void CompleteWithError(ResultCode result) override;
     void CompleteWithSuccess();
     std::weak_ptr<InboundRequest> GetWeakPtr() override;
+    void Destroy() override;
 
 private:
     bool ParsePreObtainTokenRequest(ErrorGuard &errorGuard);

@@ -42,7 +42,7 @@ public:
     bool Cancel(ResultCode resultCode) override final;
 
 protected:
-    void Destroy();
+    void Destroy() override;
 
     virtual bool OnStart(ErrorGuard &errorGuard);
     virtual void OnConnected() = 0;

@@ -354,6 +354,14 @@ bool CompanionAddCompanionRequest::ShouldCancelOnNewRequest(const IRequest &newR
 
     return false;
 }
+
+void CompanionAddCompanionRequest::Destroy()
+{
+    beginAddHostBindingSubscription_.reset();
+    endAddHostBindingSubscription_.reset();
+    InboundRequest::Destroy();
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

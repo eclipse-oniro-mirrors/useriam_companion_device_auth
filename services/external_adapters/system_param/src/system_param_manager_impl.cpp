@@ -142,10 +142,12 @@ void SystemParamManagerImpl::UnwatchParam(SubscribeId subscriptionId)
         [&key](const auto &info) { return info.key == key; }) != subscriptions_.end();
     // clang-format on
     if (!hasOtherSubscriptionForKey) {
-        int32_t ret = RemoveParameterWatcher(key.c_str(), OnParamChg, nullptr);
-        if (ret != 0) {
-            IAM_LOGE("RemoveParameterWatcher failed, key %{public}s, ret %{public}d", key.c_str(), ret);
-        }
+        TaskRunnerManager::GetInstance().PostTaskOnResident([key]() {
+            int32_t ret = RemoveParameterWatcher(key.c_str(), OnParamChg, nullptr);
+            if (ret != 0) {
+                IAM_LOGE("RemoveParameterWatcher failed, key %{public}s, ret %{public}d", key.c_str(), ret);
+            }
+        });
     }
 
     IAM_LOGD("unwatch subscription id 0x%{public}016" PRIX64 ", key %{public}s", subscriptionId, key.c_str());

@@ -273,6 +273,12 @@ std::weak_ptr<OutboundRequest> HostIssueTokenRequest::GetWeakPtr()
     return weak_from_this();
 }
 
+void HostIssueTokenRequest::Destroy()
+{
+    deviceStatusSubscription_.reset();
+    OutboundRequest::Destroy();
+}
+
 bool HostIssueTokenRequest::TryRefreshToken(const CompanionStatus &companionStatus, ErrorGuard &errorGuard)
 {
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);

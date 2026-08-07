@@ -44,6 +44,7 @@ protected:
     virtual bool OnStart(ErrorGuard &errorGuard) = 0;
 
     virtual std::weak_ptr<InboundRequest> GetWeakPtr() = 0;
+    void Destroy() override;
 
     std::optional<DeviceKey> GetPeerDeviceKey() const override;
     const DeviceKey &PeerDeviceKey() const;

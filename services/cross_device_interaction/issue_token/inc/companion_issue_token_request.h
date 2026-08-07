@@ -42,6 +42,7 @@ public:
 protected:
     bool OnStart(ErrorGuard &errorGuard) override;
     std::weak_ptr<InboundRequest> GetWeakPtr() override;
+    void Destroy() override;
     void CompleteWithError(ResultCode result) override;
     void CompleteWithSuccess();
 

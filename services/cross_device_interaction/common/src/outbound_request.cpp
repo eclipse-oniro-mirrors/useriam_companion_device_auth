@@ -78,6 +78,8 @@ bool OutboundRequest::Cancel(ResultCode resultCode)
 
 void OutboundRequest::Destroy()
 {
+    connectionStatusSubscription_.reset();
+    requestAbortedSubscription_.reset();
     CloseConnection();
     BaseRequest::Destroy();
 }
