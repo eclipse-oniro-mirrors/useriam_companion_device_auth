@@ -45,8 +45,12 @@ public:
     std::unique_ptr<Subscription> SubscribeForegroundWatchedApps(const ForegroundWatchedAppsHandler &handler) override;
     std::vector<std::string> GetForegroundWatchedApps() override;
 
-private:
+protected:
+    virtual std::set<std::string> GetForegroundExemptBundles();
+
     AppForegroundStateAdapterImpl() = default;
+
+private:
     friend class AppForegroundStateObserver;
 
     bool Init();

@@ -152,12 +152,18 @@ void AppForegroundStateAdapterImpl::UnsubscribeForegroundApps(SubscribeId id)
     foregroundHandlers_.erase(id);
 }
 
+std::set<std::string> AppForegroundStateAdapterImpl::GetForegroundExemptBundles()
+{
+    return {};
+}
+
 std::vector<std::string> AppForegroundStateAdapterImpl::GetForegroundWatchedApps()
 {
     auto watched = GetWatchedBundles();
+    auto exemptBundles = GetForegroundExemptBundles();
     std::vector<std::string> result;
     for (const auto &bundleName : watched) {
-        if (foregroundBundles_.count(bundleName) > 0) {
+        if (foregroundBundles_.count(bundleName) > 0 || exemptBundles.count(bundleName) > 0) {
             result.push_back(bundleName);
         }
     }
