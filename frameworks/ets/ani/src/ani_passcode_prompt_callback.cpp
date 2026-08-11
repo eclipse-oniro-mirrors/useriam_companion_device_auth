@@ -18,8 +18,10 @@
 #include "taihe/invoke.hpp"
 #include "taihe/runtime.hpp"
 
+#include "cda_secure_vector.h"
 #include "iam_check.h"
 #include "iam_logger.h"
+#include "securec.h"
 
 #include "companion_device_auth_ani_helper.h"
 
@@ -39,8 +41,11 @@ public:
     {
         IAM_LOGI("start");
         ENSURE_OR_RETURN(submit_ != nullptr);
-        std::vector<uint8_t> passcodeVec(passcode.begin(), passcode.end());
-        submit_->OnPasscodeSubmit(passcodeVec);
+        SecureVector passcodeVec(passcode.begin(), passcode.end());
+        if (!passcode.empty()) {
+            (void)memset_s(passcode.data(), passcode.size(), 0, passcode.size());
+        }
+        submit_->OnPasscodeSubmit(passcodeVec.Get());
         IAM_LOGI("end");
     }
 

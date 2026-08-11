@@ -15,7 +15,9 @@
 
 #include "misc_manager_impl.h"
 
+#include <algorithm>
 #include <limits>
+#include <memory>
 #include <new>
 #include <random>
 #include <utility>
@@ -27,7 +29,9 @@
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
+#include "adapter_manager.h"
 #include "callback_death_recipient.h"
+#include "cda_secure_vector.h"
 #include "ipc_passcode_submit_callback_stub.h"
 #include "ipc_set_device_select_result_callback_stub.h"
 #include "parameter.h"
@@ -120,13 +124,13 @@ public:
             IAM_LOGE("handler has already been consumed");
             return GENERAL_ERROR;
         }
-        std::vector<uint8_t> passcodeVec(passcode.begin(), passcode.end());
-        TaskRunnerManager::GetInstance().PostTaskOnResident(
-            [handler = std::move(handler_), passcode = std::move(passcodeVec)]() mutable {
-                if (handler) {
-                    handler(passcode);
-                }
-            });
+        auto passcodeCipher = std::make_shared<SecureVector>(passcode);
+        ENSURE_OR_RETURN_VAL(passcodeCipher != nullptr, GENERAL_ERROR);
+        TaskRunnerManager::GetInstance().PostTaskOnResident([handler = std::move(handler_), passcodeCipher]() {
+            if (handler) {
+                handler(passcodeCipher->Get());
+            }
+        });
         return ERR_OK;
     }
 
@@ -375,6 +379,29 @@ void MiscManagerImpl::NotifyCompanionAuthBlockedChange(bool blocked)
             }
         }
     });
+}
+
+void MiscManagerImpl::PushPendingUnlock(uint64_t scheduleId, uint64_t templateId)
+{
+    constexpr size_t MAX_PENDING_UNLOCK_SCHEDULE_IDS = 5;
+    pendingUnlocks_.remove_if([scheduleId](const PendingUnlockEntry &entry) { return entry.scheduleId == scheduleId; });
+    pendingUnlocks_.push_back({ scheduleId, templateId });
+    while (pendingUnlocks_.size() > MAX_PENDING_UNLOCK_SCHEDULE_IDS) {
+        IAM_LOGI("pending unlock list full, evict oldest scheduleId");
+        pendingUnlocks_.pop_front();
+    }
+}
+
+std::optional<uint64_t> MiscManagerImpl::TakePendingUnlock(uint64_t scheduleId)
+{
+    auto it = std::find_if(pendingUnlocks_.begin(), pendingUnlocks_.end(),
+        [scheduleId](const PendingUnlockEntry &entry) { return entry.scheduleId == scheduleId; });
+    if (it == pendingUnlocks_.end()) {
+        return std::nullopt;
+    }
+    uint64_t templateId = it->templateId;
+    pendingUnlocks_.erase(it);
+    return templateId;
 }
 
 } // namespace CompanionDeviceAuth

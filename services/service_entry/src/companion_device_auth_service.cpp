@@ -132,7 +132,7 @@ void CompanionDeviceAuthService::OnStart()
         }
     }
 
-    auto resultOpt = RunOnResidentSync(
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync(
         [initializerCreator = initializerCreator_, coreCreator = coreCreator_, cdaService = weakSelf_]()
             -> std::pair<std::shared_ptr<BaseServiceInitializer>, std::shared_ptr<BaseServiceCore>> {
             auto baseServiceInitializer = initializerCreator(cdaService);
@@ -198,9 +198,10 @@ ErrCode CompanionDeviceAuthService::SubscribeAvailableDeviceStatus(int32_t local
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
     auto callerInfo = AccessTokenUtil::GetCallerInfo(*this);
-    auto resultOpt = RunOnResidentSync([core, localUserId, callerInfo, deviceStatusCallback]() {
-        return core->SubscribeAvailableDeviceStatus(localUserId, callerInfo, deviceStatusCallback);
-    });
+    auto resultOpt =
+        TaskRunnerManager::GetInstance().RunTaskOnResidentSync([core, localUserId, callerInfo, deviceStatusCallback]() {
+            return core->SubscribeAvailableDeviceStatus(localUserId, callerInfo, deviceStatusCallback);
+        });
     if (!resultOpt.has_value()) {
         IAM_LOGE("SubscribeAvailableDeviceStatus timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -224,7 +225,7 @@ ErrCode CompanionDeviceAuthService::UnsubscribeAvailableDeviceStatus(
         core = core_;
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
-    auto resultOpt = RunOnResidentSync(
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync(
         [core, deviceStatusCallback]() { return core->UnsubscribeAvailableDeviceStatus(deviceStatusCallback); });
     if (!resultOpt.has_value()) {
         IAM_LOGE("UnsubscribeAvailableDeviceStatus timeout");
@@ -250,9 +251,10 @@ ErrCode CompanionDeviceAuthService::SubscribeTemplateStatusChange(int32_t localU
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
     auto callerInfo = AccessTokenUtil::GetCallerInfo(*this);
-    auto resultOpt = RunOnResidentSync([core, localUserId, callerInfo, templateStatusCallback]() {
-        return core->SubscribeTemplateStatusChange(localUserId, callerInfo, templateStatusCallback);
-    });
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync(
+        [core, localUserId, callerInfo, templateStatusCallback]() {
+            return core->SubscribeTemplateStatusChange(localUserId, callerInfo, templateStatusCallback);
+        });
     if (!resultOpt.has_value()) {
         IAM_LOGE("SubscribeTemplateStatusChange timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -276,7 +278,7 @@ ErrCode CompanionDeviceAuthService::UnsubscribeTemplateStatusChange(
         core = core_;
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
-    auto resultOpt = RunOnResidentSync(
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync(
         [core, templateStatusCallback]() { return core->UnsubscribeTemplateStatusChange(templateStatusCallback); });
     if (!resultOpt.has_value()) {
         IAM_LOGE("UnsubscribeTemplateStatusChange timeout");
@@ -304,10 +306,11 @@ ErrCode CompanionDeviceAuthService::SubscribeContinuousAuthStatusChange(
         core = core_;
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
-    auto resultOpt = RunOnResidentSync([core, subscribeContinuousAuthStatusParam, continuousAuthStatusCallback]() {
-        return core->SubscribeContinuousAuthStatusChange(subscribeContinuousAuthStatusParam,
-            continuousAuthStatusCallback);
-    });
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync(
+        [core, subscribeContinuousAuthStatusParam, continuousAuthStatusCallback]() {
+            return core->SubscribeContinuousAuthStatusChange(subscribeContinuousAuthStatusParam,
+                continuousAuthStatusCallback);
+        });
     if (!resultOpt.has_value()) {
         IAM_LOGE("SubscribeContinuousAuthStatusChange timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -331,7 +334,7 @@ ErrCode CompanionDeviceAuthService::UnsubscribeContinuousAuthStatusChange(
         core = core_;
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
-    auto resultOpt = RunOnResidentSync([core, continuousAuthStatusCallback]() {
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync([core, continuousAuthStatusCallback]() {
         return core->UnsubscribeContinuousAuthStatusChange(continuousAuthStatusCallback);
     });
     if (!resultOpt.has_value()) {
@@ -358,7 +361,7 @@ ErrCode CompanionDeviceAuthService::UpdateTemplateEnabledBusinessIds(uint64_t te
         core = core_;
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
-    auto resultOpt = RunOnResidentSync([core, templateId, enabledBusinessIds]() {
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync([core, templateId, enabledBusinessIds]() {
         return core->UpdateTemplateEnabledBusinessIds(templateId, enabledBusinessIds);
     });
     if (!resultOpt.has_value()) {
@@ -384,7 +387,7 @@ ErrCode CompanionDeviceAuthService::GetTemplateStatus(int32_t localUserId,
         core = core_;
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
-    auto resultPair = RunOnResidentSync([core, localUserId]() {
+    auto resultPair = TaskRunnerManager::GetInstance().RunTaskOnResidentSync([core, localUserId]() {
         std::vector<IpcTemplateStatus> array;
         ResultCode result = core->GetTemplateStatus(localUserId, array);
         return std::make_pair(result, std::move(array));
@@ -415,7 +418,7 @@ ErrCode CompanionDeviceAuthService::RegisterDeviceSelectCallback(
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
     uint32_t tokenId = AccessTokenUtil::GetAccessTokenId(*this);
     ENSURE_OR_RETURN_VAL(tokenId != 0, ResultCode::GENERAL_ERROR);
-    auto resultOpt = RunOnResidentSync([core, deviceSelectCallback, tokenId]() {
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync([core, deviceSelectCallback, tokenId]() {
         return core->RegisterDeviceSelectCallback(tokenId, deviceSelectCallback);
     });
     if (!resultOpt.has_value()) {
@@ -442,7 +445,8 @@ ErrCode CompanionDeviceAuthService::UnregisterDeviceSelectCallback(int32_t &comp
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
     uint32_t tokenId = AccessTokenUtil::GetAccessTokenId(*this);
     ENSURE_OR_RETURN_VAL(tokenId != 0, ResultCode::GENERAL_ERROR);
-    auto resultOpt = RunOnResidentSync([core, tokenId]() { return core->UnregisterDeviceSelectCallback(tokenId); });
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync(
+        [core, tokenId]() { return core->UnregisterDeviceSelectCallback(tokenId); });
     if (!resultOpt.has_value()) {
         IAM_LOGE("UnregisterDeviceSelectCallback timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -468,7 +472,7 @@ ErrCode CompanionDeviceAuthService::RegisterPasscodePromptCallback(
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
     uint32_t tokenId = AccessTokenUtil::GetAccessTokenId(*this);
     ENSURE_OR_RETURN_VAL(tokenId != 0, ResultCode::GENERAL_ERROR);
-    auto resultOpt = RunOnResidentSync([core, passcodePromptCallback, tokenId]() {
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync([core, passcodePromptCallback, tokenId]() {
         return core->RegisterPasscodePromptCallback(tokenId, passcodePromptCallback);
     });
     if (!resultOpt.has_value()) {
@@ -495,7 +499,8 @@ ErrCode CompanionDeviceAuthService::UnregisterPasscodePromptCallback(int32_t &co
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
     uint32_t tokenId = AccessTokenUtil::GetAccessTokenId(*this);
     ENSURE_OR_RETURN_VAL(tokenId != 0, ResultCode::GENERAL_ERROR);
-    auto resultOpt = RunOnResidentSync([core, tokenId]() { return core->UnregisterPasscodePromptCallback(tokenId); });
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync(
+        [core, tokenId]() { return core->UnregisterPasscodePromptCallback(tokenId); });
     if (!resultOpt.has_value()) {
         IAM_LOGE("UnregisterPasscodePromptCallback timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -519,7 +524,8 @@ ErrCode CompanionDeviceAuthService::CheckLocalUserIdValid(int32_t localUserId, b
         core = core_;
     }
     ENSURE_OR_RETURN_VAL(core != nullptr, ERR_INVALID_VALUE);
-    auto resultOpt = RunOnResidentSync([core, localUserId]() { return core->CheckLocalUserIdValid(localUserId); });
+    auto resultOpt = TaskRunnerManager::GetInstance().RunTaskOnResidentSync(
+        [core, localUserId]() { return core->CheckLocalUserIdValid(localUserId); });
     if (!resultOpt.has_value()) {
         IAM_LOGE("CheckLocalUserIdValid timeout");
         companionDeviceAuthResult = static_cast<int32_t>(ResultCode::TIMEOUT);
@@ -543,53 +549,6 @@ int32_t CompanionDeviceAuthService::CallbackExit(uint32_t code, int32_t result)
     return 0;
 }
 
-template <typename Func>
-std::optional<typename std::invoke_result<Func>::type> CompanionDeviceAuthService::RunOnResidentSync(Func &&func,
-    uint32_t timeoutSec)
-{
-    using Ret = typename std::invoke_result<Func>::type;
-
-    if (TaskRunnerManager::GetInstance().RunningOnDefaultTaskRunner()) {
-        IAM_LOGI("running on resident task runner");
-        return func();
-    }
-
-    auto promise = std::make_shared<std::promise<Ret>>();
-    ENSURE_OR_RETURN_VAL(promise != nullptr, std::nullopt);
-    auto future = promise->get_future();
-    auto cancelled = std::make_shared<std::atomic<bool>>(false);
-    ENSURE_OR_RETURN_VAL(cancelled != nullptr, std::nullopt);
-
-    TaskRunnerManager::GetInstance().PostTaskOnResident(
-        [task = std::forward<Func>(func), promise, cancelled]() mutable {
-            if (cancelled->load()) {
-                IAM_LOGI("RunOnResidentSync task cancelled before execution");
-                return;
-            }
-            try {
-                promise->set_value(task());
-            } catch (...) {
-                try {
-                    promise->set_exception(std::current_exception());
-                } catch (...) {
-                    IAM_LOGE("RunOnResidentSync set_exception failed");
-                }
-            }
-        });
-
-#ifdef ENABLE_TEST
-    timeoutSec = 0;
-#endif
-    auto status = future.wait_for(std::chrono::seconds(timeoutSec));
-    if (status != std::future_status::ready) {
-        IAM_LOGE("RunOnResidentSync timeout - task not completed in %{public}u second, status: %{public}d", timeoutSec,
-            static_cast<int32_t>(status));
-        cancelled->store(true);
-        return std::nullopt;
-    }
-
-    return future.get();
-}
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

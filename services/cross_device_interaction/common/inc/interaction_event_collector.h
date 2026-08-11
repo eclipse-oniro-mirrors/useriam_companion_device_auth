@@ -43,6 +43,7 @@ public:
     void SetCompanionUserId(UserId companionUserId);
     void SetCompanionDeviceKey(const DeviceKey &companionDeviceKey);
     void SetConnectionName(const std::string &connectionName);
+    void SetDisconnectReason(const std::string &reason);
     void SetScheduleId(ScheduleId scheduleId);
     void SetTriggerReason(const std::string &triggerReason);
     void SetTemplateIdList(const std::vector<TemplateId> &templateIdList);
@@ -145,6 +146,7 @@ private:
     std::string templateAuthResult_;
     std::optional<TemplateId> successTemplateId_;
     std::string logTrace_;
+    std::string disconnectReason_;
     TimingTracer tracer_;
 };
 

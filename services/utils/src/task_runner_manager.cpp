@@ -16,8 +16,10 @@
 #include "task_runner_manager.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <functional>
+#include <future>
 #include <map>
 #include <memory>
 #include <string>
@@ -168,6 +170,35 @@ void TaskRunnerManager::PostTask(const std::string &name, std::function<void()> 
 void TaskRunnerManager::PostTaskOnResident(std::function<void()> &&task)
 {
     PostTask(RESIDENT_TASK_RUNNER_NAME, std::move(task));
+}
+
+bool TaskRunnerManager::RunOnResidentSyncInner(std::function<void()> &&task, uint32_t timeoutSec)
+{
+    if (RunningOnDefaultTaskRunner()) {
+        IAM_LOGI("running on resident task runner");
+        task();
+        return true;
+    }
+
+    IAM_LOGI("post function to default task runner");
+    auto promise = std::make_shared<std::promise<void>>();
+    ENSURE_OR_RETURN_VAL(promise != nullptr, false);
+    auto future = promise->get_future();
+    PostTaskOnResident([task = std::move(task), promise]() mutable {
+        task();
+        promise->set_value();
+    });
+
+#ifdef ENABLE_TEST
+    timeoutSec = 0;
+#endif
+    std::future_status status = future.wait_for(std::chrono::seconds(timeoutSec));
+    if (status != std::future_status::ready) {
+        IAM_LOGE("RunOnResidentSyncInner timeout - task not completed in %{public}u second, status: %{public}d",
+            timeoutSec, static_cast<int32_t>(status));
+        return false;
+    }
+    return true;
 }
 
 void TaskRunnerManager::PostTaskOnTemporary(const std::string &name, std::function<void()> &&task)

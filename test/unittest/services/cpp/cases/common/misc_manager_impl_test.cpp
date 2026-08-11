@@ -381,6 +381,77 @@ HWTEST_F(MiscManagerImplTest, CompanionAuthBlockedChange_001, TestSize.Level0)
     EXPECT_EQ(unblockedCount, 1);
 }
 
+// PushPendingUnlock / TakePendingUnlock gate the [5012] commit. The pending set is keyed by
+// scheduleId and bounded to MAX_PENDING_UNLOCK_SCHEDULE_IDS (5): Take returns the templateId stored at
+// push time for a pushed schedule and removes it; absent or already-taken schedules return nullopt.
+// No TTL.
+HWTEST_F(MiscManagerImplTest, PendingUnlock_PushAndTake_001, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = MiscManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    constexpr uint64_t scheduleId = 0x1234;
+    constexpr uint64_t templateId = 0x5678;
+    EXPECT_FALSE(manager->TakePendingUnlock(scheduleId).has_value()); // nothing pushed yet
+    manager->PushPendingUnlock(scheduleId, templateId);
+    EXPECT_EQ(templateId, manager->TakePendingUnlock(scheduleId));    // fresh -> stored templateId
+    EXPECT_FALSE(manager->TakePendingUnlock(scheduleId).has_value()); // already taken
+}
+
+HWTEST_F(MiscManagerImplTest, PendingUnlock_DistinctSchedules_002, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = MiscManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->PushPendingUnlock(1, 10);
+    manager->PushPendingUnlock(2, 20);
+    EXPECT_EQ(20ULL, manager->TakePendingUnlock(2)); // order-independent, returns stored templateId
+    EXPECT_EQ(10ULL, manager->TakePendingUnlock(1));
+    EXPECT_FALSE(manager->TakePendingUnlock(1).has_value());
+    EXPECT_FALSE(manager->TakePendingUnlock(2).has_value());
+}
+
+// Re-pushing a schedule that was already taken refreshes it for another take cycle; the templateId
+// stored at the latest push is the one returned.
+HWTEST_F(MiscManagerImplTest, PendingUnlock_RePush_003, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = MiscManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    constexpr uint64_t scheduleId = 0xABCD;
+    constexpr uint64_t templateId = 0x1111;
+    manager->PushPendingUnlock(scheduleId, templateId);
+    EXPECT_EQ(templateId, manager->TakePendingUnlock(scheduleId));
+    EXPECT_FALSE(manager->TakePendingUnlock(scheduleId).has_value());
+    manager->PushPendingUnlock(scheduleId, templateId + 1); // re-push refreshes templateId
+    EXPECT_EQ(templateId + 1, manager->TakePendingUnlock(scheduleId));
+}
+
+// The pending set holds at most 5 entries; a 6th distinct push evicts the oldest. Re-pushing an
+// existing schedule does not grow the list and refreshes its position (so it is not the one evicted next).
+HWTEST_F(MiscManagerImplTest, PendingUnlock_EvictOldestAtCap_004, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = MiscManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    for (uint64_t id = 1; id <= 5; ++id) {
+        manager->PushPendingUnlock(id, id * 10);
+    }
+    manager->PushPendingUnlock(3, 30); // re-push refreshes position to newest, list stays at 5
+    manager->PushPendingUnlock(6, 60); // 6th distinct id evicts the oldest still-pending (1)
+
+    EXPECT_FALSE(manager->TakePendingUnlock(1).has_value()); // evicted
+    EXPECT_EQ(20ULL, manager->TakePendingUnlock(2));
+    EXPECT_EQ(30ULL, manager->TakePendingUnlock(3)); // refreshed, still present
+    EXPECT_EQ(40ULL, manager->TakePendingUnlock(4));
+    EXPECT_EQ(50ULL, manager->TakePendingUnlock(5));
+    EXPECT_EQ(60ULL, manager->TakePendingUnlock(6));
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

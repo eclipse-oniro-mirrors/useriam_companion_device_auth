@@ -25,11 +25,6 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class Companion;
-class CompanionManagerImpl;
-class HostBinding;
-class HostBindingManagerImpl;
-
 // Framework interaction input/output structs
 struct SetActiveUserInput {
     UserId userId;

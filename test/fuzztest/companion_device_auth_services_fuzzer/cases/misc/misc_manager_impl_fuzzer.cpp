@@ -102,6 +102,26 @@ static void FuzzMiscManagerImplConstructor(FuzzedDataProvider &fuzzData)
     (void)manager;
 }
 
+static void FuzzPendingUnlock(FuzzedDataProvider &fuzzData)
+{
+    auto manager = MiscManagerImpl::Create();
+    if (!manager) {
+        return;
+    }
+    // Interleave Push/Take with fuzz scheduleIds to exercise the bounded pending list, the max-5
+    // eviction, dedupe-on-re-push, and idempotent take. Results are not asserted (state depends on
+    // prior iterations).
+    int32_t opCount = fuzzData.ConsumeIntegralInRange<int32_t>(0, INT32_10);
+    for (int32_t i = 0; i < opCount && fuzzData.remaining_bytes() >= sizeof(uint64_t); ++i) {
+        uint64_t scheduleId = fuzzData.ConsumeIntegral<uint64_t>();
+        if (fuzzData.ConsumeBool()) {
+            manager->PushPendingUnlock(scheduleId, scheduleId);
+        } else {
+            (void)manager->TakePendingUnlock(scheduleId);
+        }
+    }
+}
+
 static const MiscManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzCreate,
     FuzzGetNextGlobalId,
@@ -110,6 +130,7 @@ static const MiscManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzSetDeviceSelectCallback,
     FuzzGetDeviceSelectResult,
     FuzzMiscManagerImplConstructor,
+    FuzzPendingUnlock,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(MiscManagerImplFuzzFunction);

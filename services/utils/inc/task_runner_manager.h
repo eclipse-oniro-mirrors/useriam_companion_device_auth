@@ -20,7 +20,10 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "task_runner.h"
@@ -31,6 +34,18 @@ namespace CompanionDeviceAuth {
 
 const std::string RESIDENT_TASK_RUNNER_NAME = "ResidentRunner";
 
+constexpr uint32_t MAX_RESIDENT_SYNC_TIMEOUT_SEC = 2;
+
+template <typename T>
+struct ResidentSyncResult {
+    using type = std::optional<T>;
+};
+
+template <>
+struct ResidentSyncResult<void> {
+    using type = bool; // void callable has no value to carry; success/failure only
+};
+
 class TaskRunnerManager {
 public:
     static TaskRunnerManager &GetInstance();
@@ -40,11 +55,6 @@ public:
 
     virtual bool RunningOnDefaultTaskRunner() const;
     void SetRunningOnDefaultTaskRunner(bool value);
-
-    // Check that the current thread is the resident task runner thread.
-    // If not, logs a fatal error, reports system fault.
-    // This is a design verification check - all business logic must run on the resident thread.
-    // @param caller The function signature of the caller, used for fault reporting.
     void CheckRunningOnResidentThread(const char *caller);
 
     virtual bool CreateTaskRunner(const std::string &name);
@@ -55,12 +65,35 @@ public:
     virtual void PostTaskOnResident(std::function<void()> &&task);
     virtual void PostTaskOnTemporary(const std::string &name, std::function<void()> &&task);
 
+    template <typename Func>
+    typename ResidentSyncResult<typename std::invoke_result<Func>::type>::type RunTaskOnResidentSync(Func &&func,
+        uint32_t timeoutSec = MAX_RESIDENT_SYNC_TIMEOUT_SEC)
+    {
+        using Ret = typename std::invoke_result<Func>::type;
+        if constexpr (std::is_void_v<Ret>) {
+            return RunOnResidentSyncInner(std::forward<Func>(func), timeoutSec);
+        } else {
+            auto resultBox = std::make_shared<std::optional<Ret>>(std::nullopt);
+            if (resultBox == nullptr) {
+                return std::nullopt;
+            }
+            if (!RunOnResidentSyncInner([func = std::forward<Func>(func), resultBox]() mutable { *resultBox = func(); },
+                    timeoutSec)) {
+                return std::nullopt;
+            }
+            return *resultBox;
+        }
+    }
+
 #ifdef ENABLE_TEST
     virtual void ExecuteAll();
     virtual void EnsureAllTaskExecuted();
 #endif // ENABLE_TEST
 
 private:
+    // Internal seam behind RunTaskOnResidentSync; test/fake overrides this virtual.
+    virtual bool RunOnResidentSyncInner(std::function<void()> &&task, uint32_t timeoutSec);
+
     std::recursive_mutex mutex_;
     std::map<std::string, std::shared_ptr<TaskRunner>> taskRunnerMap_;
 };

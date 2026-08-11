@@ -46,7 +46,8 @@ int32_t IpcPasscodePromptCallbackService::OnPasscodePrompt(const sptr<IIpcPassco
 
     ENSURE_OR_RETURN_VAL(submitCallback != nullptr, GENERAL_ERROR);
     uint8_t rawAlgorithm = param.asymEncryptAlgorithm;
-    ENSURE_OR_RETURN_VAL(IsValidAsymEncryptAlgorithm(rawAlgorithm), GENERAL_ERROR);
+    bool algorithmValid = IsValidAsymEncryptAlgorithm(rawAlgorithm);
+    ENSURE_OR_RETURN_VAL(algorithmValid, GENERAL_ERROR);
     auto algorithm = static_cast<AsymEncryptAlgorithm>(rawAlgorithm);
     std::vector<uint8_t> publicKey(param.publicKey.begin(), param.publicKey.end());
     std::unique_ptr<AsymEncryptor> encryptor = CreateAsymEncryptor(algorithm, std::move(publicKey));

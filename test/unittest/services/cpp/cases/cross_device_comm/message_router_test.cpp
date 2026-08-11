@@ -118,6 +118,18 @@ public:
         return true;
     }
 
+    void PushPendingUnlock(uint64_t scheduleId, uint64_t templateId) override
+    {
+        (void)scheduleId;
+        (void)templateId;
+    }
+
+    std::optional<uint64_t> TakePendingUnlock(uint64_t scheduleId) override
+    {
+        (void)scheduleId;
+        return std::nullopt;
+    }
+
 private:
     uint64_t nextGlobalId_ { UINT64_INITIAL_GLOBAL_ID };
 };

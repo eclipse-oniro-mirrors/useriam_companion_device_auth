@@ -74,7 +74,6 @@ taihe_shared_library("companiondeviceauth_ani") {
     ":companion_device_auth_taihe",
     "${companion_device_auth_path}/frameworks/native/client:companion_device_auth_client",
   ]
-  remove_configs = [ "//build/config/compiler:no_exceptions" ]
   taihe_generated_file_path = "$taihe_generated_file_path"
   output_extension = "so"
   part_name = companion_device_auth_part_name

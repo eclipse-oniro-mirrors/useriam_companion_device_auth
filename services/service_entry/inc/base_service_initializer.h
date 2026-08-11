@@ -22,16 +22,15 @@
 #include "nocopyable.h"
 
 #include "common_defines.h"
+#include "icross_device_channel.h"
+#include "incoming_message_handler_registry.h"
 #include "iremote_object.h"
 #include "service_common.h"
+#include "subscription_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-
-class SubscriptionManager;
-class IncomingMessageHandlerRegistry;
-class ICrossDeviceChannel;
 
 class BaseServiceInitializer : public NoCopyable {
 public:

@@ -117,6 +117,7 @@ void InboundRequest::HandleConnectionStatus(const std::string &connName, Connect
             break;
         case ConnectionStatus::DISCONNECTED:
             IAM_LOGI("%{public}s disconnected", GetDescription());
+            eventCollector_.SetDisconnectReason(reason);
             CompleteWithError(ResultCode::COMMUNICATION_ERROR);
             break;
         default:

@@ -356,6 +356,18 @@ public:
         return GenerateFuzzBool(fuzzData_);
     }
 
+    void PushPendingUnlock(uint64_t scheduleId, uint64_t templateId) override
+    {
+        (void)scheduleId;
+        (void)templateId;
+    }
+
+    std::optional<uint64_t> TakePendingUnlock(uint64_t scheduleId) override
+    {
+        (void)scheduleId;
+        return GenerateFuzzBool(fuzzData_) ? std::optional<uint64_t>(0) : std::nullopt;
+    }
+
 private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };
@@ -1075,6 +1087,11 @@ public:
         return std::nullopt;
     }
 
+    std::vector<TemplateId> GetTemplateIdList() const override
+    {
+        return {};
+    }
+
     uint32_t GetMaxConcurrency() const override
     {
         uint32_t leftRange = 1;
@@ -1112,11 +1129,27 @@ public:
         if (!request) {
             return false;
         }
-        if (fuzzData_.ConsumeIntegral<uint32_t>() > 0) {
-            requestStorage_[request->GetRequestId()] = request;
-            return true;
+        // >95% success. fuzzData is shared across the whole iteration and frequently exhausted by
+        // the time Start runs (ConsumeIntegral then returns 0); treat exhaustion as success so the
+        // request lifecycle (Connect -> DoEnroll/DoAuthenticate -> callback) is actually driven.
+        // Only a small explicit band (~5%) fails, keeping the errorGuard branch covered.
+        constexpr uint8_t failBandMin = 1;
+        constexpr uint8_t failBandMax = 12;
+        uint8_t v = fuzzData_.ConsumeIntegral<uint8_t>();
+        if (v >= failBandMin && v <= failBandMax) {
+            return false;
         }
-        return false;
+        requestStorage_[request->GetRequestId()] = request;
+        // Mimic the real RequestManager: launch the request lifecycle on the resident thread so
+        // Start() -> OpenConnection -> DoEnroll/DoAuthenticate runs (drained by the harness's
+        // EnsureAllTaskExecuted). Without this the mock only stores the request and the deep
+        // lifecycle logic is never reached.
+        TaskRunnerManager::GetInstance().PostTaskOnResident([request]() {
+            if (request->CanStart({})) {
+                request->Start();
+            }
+        });
+        return true;
     }
 
     bool Cancel(RequestId requestId) override

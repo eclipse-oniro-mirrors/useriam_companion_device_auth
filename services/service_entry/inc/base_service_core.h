@@ -26,12 +26,12 @@
 #include "access_token_kit.h"
 #include "common_defines.h"
 #include "companion_device_auth_stub.h"
+#include "subscription_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class SubscriptionManager;
 class BaseServiceCore : public NoCopyable {
 public:
     static std::shared_ptr<BaseServiceCore> Create(const std::shared_ptr<SubscriptionManager> &subscriptionManager,

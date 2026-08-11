@@ -25,6 +25,7 @@
 
 #include "adapter_manager.h"
 #include "add_companion_message.h"
+#include "cda_json_helper.h"
 #include "common_defines.h"
 #include "common_message.h"
 #include "companion_manager.h"
@@ -62,21 +63,20 @@ void HostAddCompanionRequest::ParseAdditionalInfo()
     }
 
     IAM_LOGI("%{public}s parsing additionalInfo", GetDescription());
-    try {
-        auto json = nlohmann::json::parse(additionalInfo_);
-        ENSURE_OR_RETURN_DESC(GetDescription(), json.is_object());
-
-        auto it = json.find("enabled_business_ids");
-        if (it == json.end() || !it->is_array()) {
-            IAM_LOGI("%{public}s no enabled_business_ids array in additionalInfo", GetDescription());
-            return;
-        }
-
-        std::vector<BusinessId> parsedIds = ParseBusinessIdsFromJson(*it);
-        ValidateAndFilterBusinessIds(parsedIds);
-    } catch (const nlohmann::json::exception &e) {
-        IAM_LOGE("%{public}s failed to parse additionalInfo JSON: %{public}s", GetDescription(), e.what());
+    auto json = TryParseJson(additionalInfo_);
+    if (!json.has_value()) {
+        IAM_LOGE("%{public}s failed to parse additionalInfo JSON", GetDescription());
+        return;
     }
+
+    auto it = json->find("enabled_business_ids");
+    if (it == json->end() || !it->is_array()) {
+        IAM_LOGI("%{public}s no enabled_business_ids array in additionalInfo", GetDescription());
+        return;
+    }
+
+    std::vector<BusinessId> parsedIds = ParseBusinessIdsFromJson(*it);
+    ValidateAndFilterBusinessIds(parsedIds);
 }
 
 std::vector<BusinessId> HostAddCompanionRequest::ParseBusinessIdsFromJson(const nlohmann::json &businessIdsArray)
@@ -334,7 +334,8 @@ bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &r
     std::vector<uint8_t> &addHostBindingRequest, ErrorGuard &errorGuard)
 {
     BeginAddCompanionParams params;
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), BuildBeginAddCompanionParams(reply, params), false);
+    bool buildOk = BuildBeginAddCompanionParams(reply, params);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), buildOk, false);
     uint16_t selectedAlgorithm;
     ResultCode ret = GetCompanionManager().BeginAddCompanion(params, addHostBindingRequest, selectedAlgorithm);
     if (ret != ResultCode::SUCCESS) {

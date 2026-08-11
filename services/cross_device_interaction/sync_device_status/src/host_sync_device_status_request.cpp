@@ -236,7 +236,8 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
 
 bool HostSyncDeviceStatusRequest::EndCompanionCheck(const SyncDeviceStatusReply &reply)
 {
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
+    auto peerDeviceKey = GetPeerDeviceKey();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
 
     auto companionStatus = QueryCompanionStatus();
     if (!companionStatus) {

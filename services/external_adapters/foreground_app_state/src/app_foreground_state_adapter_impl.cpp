@@ -308,9 +308,7 @@ void AppForegroundStateAdapterImpl::NotifyOneSubscriber(SubscribeId id)
     auto handler = it->second;
     auto foregroundApps = GetForegroundWatchedApps();
     TaskRunnerManager::GetInstance().PostTaskOnResident(
-        [handler = std::move(handler), foregroundApps = std::move(foregroundApps)]() {
-            handler(foregroundApps);
-        });
+        [handler = std::move(handler), foregroundApps = std::move(foregroundApps)]() { handler(foregroundApps); });
 }
 
 void AppForegroundStateAdapterImpl::NotifySubscribers()

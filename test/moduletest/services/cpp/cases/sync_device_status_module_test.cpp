@@ -101,8 +101,7 @@ void InjectSyncReply(ModuleTestGuard &guard, const std::string &connName, uint32
 {
     Attributes payload;
     EncodeSyncDeviceStatusReply(reply, payload);
-    guard.InjectCompanionRequest(connName,
-        BuildReplyRawMsg(connName, seq, MessageType::SYNC_DEVICE_STATUS, payload));
+    guard.InjectCompanionRequest(connName, BuildReplyRawMsg(connName, seq, MessageType::SYNC_DEVICE_STATUS, payload));
 }
 
 // ============================================================================

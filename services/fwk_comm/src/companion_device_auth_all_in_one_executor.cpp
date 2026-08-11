@@ -15,9 +15,7 @@
 
 #include "companion_device_auth_all_in_one_executor.h"
 
-#include <atomic>
 #include <cstdint>
-#include <future>
 #include <new>
 #include <optional>
 #include <utility>
@@ -30,6 +28,7 @@
 #include "adapter_manager.h"
 #include "blocked_state_sync_scheduler.h"
 #include "cda_attributes.h"
+#include "cda_json_helper.h"
 #include "common_defines.h"
 #include "companion_device_auth_executor_callback.h"
 #include "companion_manager.h"
@@ -326,43 +325,43 @@ FwkResultCode Inner::GetProperty(const std::vector<uint64_t> &templateIdList, co
 void Inner::HandleSetCompanionInvalid(const std::vector<uint8_t> &extraInfo)
 {
     IAM_LOGI("start");
-    std::string jsonStr(extraInfo.begin(), extraInfo.end());
-    try {
-        auto json = nlohmann::json::parse(jsonStr);
-        if (!json.is_object() || !json.contains("templateId")) {
-            IAM_LOGE("invalid extraInfo: not an object or missing templateId");
-            return;
-        }
-        auto &val = json["templateId"];
-        // JS Uint8Array serializes as {"0":173,"1":157,...}; accept both formats
-        bool isArray = val.is_array();
-        bool isObj = val.is_object();
-        if (!isArray && !isObj) {
-            IAM_LOGE("invalid templateId: not an array or object");
-            return;
-        }
-        if (isArray && val.size() != sizeof(uint64_t)) {
-            IAM_LOGE("invalid templateId: array size %{public}zu != %{public}zu", val.size(), sizeof(uint64_t));
-            return;
-        }
-        uint64_t templateId = 0;
-        for (size_t i = 0; i < sizeof(uint64_t); ++i) {
-            if (isObj && !val.contains(std::to_string(i))) {
-                IAM_LOGE("invalid templateId: missing key %{public}zu", i);
-                return;
-            }
-            auto &elem = isArray ? val[i] : val[std::to_string(i)];
-            if (!elem.is_number_integer() || elem.get<int64_t>() < 0 || elem.get<int64_t>() > UINT8_MAX) {
-                IAM_LOGE("invalid templateId: element %{public}zu is not a valid uint8", i);
-                return;
-            }
-            templateId |= static_cast<uint64_t>(elem.get<uint8_t>()) << (i * UINT8_BIT_WIDTH);
-        }
-        IAM_LOGI("setting companion invalid, templateId %{public}s", GET_MASKED_NUM_CSTR(templateId));
-        GetCompanionManager().SetTemplateInvalid(templateId, "fwkCommand");
-    } catch (const nlohmann::json::exception &) {
+    auto json = TryParseJson(extraInfo);
+    if (!json.has_value()) {
         IAM_LOGE("failed to parse extraInfo as JSON");
+        return;
     }
+    auto it = json->find("templateId");
+    if (it == json->end()) {
+        IAM_LOGE("invalid extraInfo: missing templateId");
+        return;
+    }
+    auto &val = *it;
+    // JS Uint8Array serializes as {"0":173,"1":157,...}; accept both formats
+    bool isArray = val.is_array();
+    bool isObj = val.is_object();
+    if (!isArray && !isObj) {
+        IAM_LOGE("invalid templateId: not an array or object");
+        return;
+    }
+    if (isArray && val.size() != sizeof(uint64_t)) {
+        IAM_LOGE("invalid templateId: array size %{public}zu != %{public}zu", val.size(), sizeof(uint64_t));
+        return;
+    }
+    uint64_t templateId = 0;
+    for (size_t i = 0; i < sizeof(uint64_t); ++i) {
+        if (isObj && !val.contains(std::to_string(i))) {
+            IAM_LOGE("invalid templateId: missing key %{public}zu", i);
+            return;
+        }
+        auto &elem = isArray ? val[i] : val[std::to_string(i)];
+        if (!elem.is_number_integer() || elem.get<int64_t>() < 0 || elem.get<int64_t>() > UINT8_MAX) {
+            IAM_LOGE("invalid templateId: element %{public}zu is not a valid uint8", i);
+            return;
+        }
+        templateId |= static_cast<uint64_t>(elem.get<uint8_t>()) << (i * UINT8_BIT_WIDTH);
+    }
+    IAM_LOGI("setting companion invalid, templateId %{public}s", GET_MASKED_NUM_CSTR(templateId));
+    GetCompanionManager().SetTemplateInvalid(templateId, "fwkCommand");
     IAM_LOGI("end");
 }
 
@@ -633,47 +632,8 @@ FwkResultCode CompanionDeviceAuthAllInOneExecutor::RunOnResidentSync(std::functi
 {
     IAM_LOGI("start");
     ENSURE_OR_RETURN_VAL(inner_ != nullptr, FwkResultCode::GENERAL_ERROR);
-    if (TaskRunnerManager::GetInstance().RunningOnDefaultTaskRunner()) {
-        IAM_LOGI("running on resident task runner");
-        return func();
-    }
-
-    IAM_LOGI("post function to default task runner");
-    auto resultPromise = std::make_shared<std::promise<FwkResultCode>>();
-    ENSURE_OR_RETURN_VAL(resultPromise != nullptr, FwkResultCode::GENERAL_ERROR);
-    auto future = resultPromise->get_future();
-    auto cancelled = std::make_shared<std::atomic<bool>>(false);
-    ENSURE_OR_RETURN_VAL(cancelled != nullptr, FwkResultCode::GENERAL_ERROR);
-
-    TaskRunnerManager::GetInstance().PostTaskOnResident(
-        [taskFunc = std::move(func), promise = resultPromise, cancelled]() mutable {
-            if (cancelled->load()) {
-                IAM_LOGI("RunOnResidentSync task cancelled before execution");
-                return;
-            }
-            try {
-                promise->set_value(taskFunc());
-            } catch (...) {
-                try {
-                    promise->set_exception(std::current_exception());
-                } catch (...) {
-                    IAM_LOGE("RunOnResidentSync set_exception failed");
-                }
-            }
-        });
-
-#ifdef ENABLE_TEST
-    timeoutSec = 0;
-#endif
-    std::future_status status = future.wait_for(std::chrono::seconds(timeoutSec));
-    if (status != std::future_status::ready) {
-        IAM_LOGE("RunOnResidentSync timeout - task not completed in %{public}u second, status: %{public}d", timeoutSec,
-            static_cast<int32_t>(status));
-        cancelled->store(true);
-        return FwkResultCode::TIMEOUT;
-    }
-
-    return future.get();
+    auto ret = TaskRunnerManager::GetInstance().RunTaskOnResidentSync(std::move(func), timeoutSec);
+    return ret.value_or(FwkResultCode::TIMEOUT);
 }
 
 } // namespace CompanionDeviceAuth

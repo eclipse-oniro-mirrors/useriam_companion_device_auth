@@ -101,16 +101,14 @@ HWTEST_F(StaleSubscriptionMonitorTest, NoReport_Before1h, TestSize.Level0)
 // fake RelativeTimer's forward-only scheduling getting in the way.
 HWTEST_F(StaleSubscriptionMonitorTest, ClockRegression_NoFalseReport, TestSize.Level0)
 {
-    EXPECT_CALL(guard_->GetEventManagerAdapter(),
-        ReportSystemFault(StrEq("STALE_SUBSCRIPTION"), _, _))
-        .Times(0);
+    EXPECT_CALL(guard_->GetEventManagerAdapter(), ReportSystemFault(StrEq("STALE_SUBSCRIPTION"), _, _)).Times(0);
 
     // Seed a non-zero subscribe time so the clock can later regress below it.
     guard_->GetTimeKeeper().SetSteadyTime(HOUR_MS);
     auto token = monitor_->AddSubscription(MakeCaller("com.test.app")); // subscribeTimeMs = 1h
 
     guard_->GetTimeKeeper().SetSteadyTime(MIN_MS); // clock regresses: now (1min) < subscribeTimeMs (1h)
-    monitor_->OnScanTimer();                        // raw subtraction would underflow -> false report
+    monitor_->OnScanTimer();                       // raw subtraction would underflow -> false report
 }
 
 // First report fires once the 1h threshold is crossed, carries the holder identity, and

@@ -170,6 +170,7 @@ void OutboundRequest::HandleConnectionStatus(const std::string &connName, Connec
             break;
         case ConnectionStatus::DISCONNECTED:
             IAM_LOGI("%{public}s disconnected", GetDescription());
+            eventCollector_.SetDisconnectReason(reason);
             CompleteWithError(reason == REASON_PEER_SERVICE_NOT_AVAILABLE ? ResultCode::PEER_SERVICE_NOT_AVAILABLE
                                                                           : ResultCode::COMMUNICATION_ERROR);
             break;

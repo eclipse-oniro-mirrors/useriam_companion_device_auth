@@ -17,6 +17,7 @@
 #define COMPANION_DEVICE_AUTH_MISC_MANAGER_IMPL_H
 
 #include <functional>
+#include <list>
 #include <map>
 #include <memory>
 
@@ -55,6 +56,9 @@ public:
     bool IsCompanionAuthBlocked() const override;
     std::unique_ptr<Subscription> SubscribeCompanionAuthBlockedChange(CompanionAuthBlockedCallback callback) override;
 
+    void PushPendingUnlock(uint64_t scheduleId, uint64_t templateId) override;
+    std::optional<uint64_t> TakePendingUnlock(uint64_t scheduleId) override;
+
 private:
     MiscManagerImpl();
     void NotifyCompanionAuthBlockedChange(bool blocked);
@@ -73,6 +77,11 @@ private:
     std::map<uint32_t, PasscodePromptCallbackInfo> passcodePromptCallbacks_;
     std::optional<std::string> cachedUdid_;
     std::map<SubscribeId, CompanionAuthBlockedCallback> blockedChangeSubscribers_;
+    struct PendingUnlockEntry {
+        uint64_t scheduleId;
+        uint64_t templateId;
+    };
+    std::list<PendingUnlockEntry> pendingUnlocks_;
 };
 
 } // namespace CompanionDeviceAuth

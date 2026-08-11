@@ -38,11 +38,7 @@ public:
     ~ErrorGuard() override
     {
         if (handler_ != nullptr) {
-            try {
-                handler_(resultCode_);
-            } catch (...) {
-                return;
-            }
+            handler_(resultCode_);
         }
     }
 

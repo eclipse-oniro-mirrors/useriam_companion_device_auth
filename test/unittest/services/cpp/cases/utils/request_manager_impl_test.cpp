@@ -100,6 +100,7 @@ public:
     MOCK_METHOD(ScheduleId, GetScheduleId, (), (const, override));
     MOCK_METHOD(std::optional<DeviceKey>, GetPeerDeviceKey, (), (const, override));
     MOCK_METHOD(std::optional<TemplateId>, GetTemplateId, (), (const, override));
+    MOCK_METHOD(std::vector<TemplateId>, GetTemplateIdList, (), (const, override));
     MOCK_METHOD(uint32_t, GetMaxConcurrency, (), (const, override));
     MOCK_METHOD(bool, ShouldCancelOnNewRequest, (const IRequest &, uint32_t), (const, override));
 

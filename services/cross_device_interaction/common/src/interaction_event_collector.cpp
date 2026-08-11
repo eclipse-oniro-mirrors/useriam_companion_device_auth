@@ -51,6 +51,11 @@ void InteractionEventCollector::SetConnectionName(const std::string &connectionN
     connectionName_ = connectionName;
 }
 
+void InteractionEventCollector::SetDisconnectReason(const std::string &reason)
+{
+    disconnectReason_ = reason;
+}
+
 void InteractionEventCollector::SetScheduleId(ScheduleId scheduleId)
 {
     scheduleId_ = scheduleId;
@@ -93,6 +98,7 @@ constexpr const char *KEY_SECURE_PROTOCOL_ID = "secureProtocolId";
 constexpr const char *KEY_TEMPLATE_AUTH_RESULT = "templateAuthResult";
 constexpr const char *KEY_SUCCESS_TEMPLATE_ID = "successTemplateId";
 constexpr const char *KEY_LOG_TRACE = "logTrace";
+constexpr const char *KEY_DISCONNECT_REASON = "disconnectReason";
 constexpr const char *KEY_TIME_TRACE = "timeTrace";
 
 } // namespace
@@ -237,6 +243,9 @@ void InteractionEventCollector::BuildExtraInfoStep2(std::ostringstream &oss) con
     }
     if (successTemplateId_.has_value()) {
         oss << ";" << KEY_SUCCESS_TEMPLATE_ID << ":" << ToHexString(*successTemplateId_);
+    }
+    if (!disconnectReason_.empty()) {
+        oss << ";" << KEY_DISCONNECT_REASON << ":" << disconnectReason_;
     }
     if (!logTrace_.empty()) {
         oss << ";" << KEY_LOG_TRACE << ":" << logTrace_;
