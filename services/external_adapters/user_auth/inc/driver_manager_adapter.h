@@ -18,13 +18,12 @@
 
 #include <memory>
 
+#include "companion_device_auth_driver.h"
 #include "nocopyable.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-
-class CompanionDeviceAuthDriver;
 
 class IDriverManagerAdapter : public NoCopyable {
 public:

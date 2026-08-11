@@ -26,8 +26,6 @@ ohos_static_library("companion_device_auth_common") {
 
   public_configs = [ ":companion_device_auth_common_config" ]
 
-  remove_configs = [ "//build/config/compiler:no_exceptions" ]
-
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",

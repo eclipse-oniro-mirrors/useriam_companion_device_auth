@@ -15,6 +15,7 @@
 
 #include "passcode_submit_callback_impl.h"
 
+#include "cda_secure_vector.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
@@ -51,7 +52,8 @@ void PasscodeSubmitCallbackImpl::OnPasscodeSubmit(const std::vector<uint8_t> &pa
         return;
     }
 
-    ErrCode ret = callback_->OnPasscodeSubmit(*encryptResult);
+    SecureVector cipher(std::move(*encryptResult));
+    ErrCode ret = callback_->OnPasscodeSubmit(cipher.Get());
     if (ret != ERR_OK) {
         IAM_LOGE("OnPasscodeSubmit failed, ret:%{public}d", ret);
     }

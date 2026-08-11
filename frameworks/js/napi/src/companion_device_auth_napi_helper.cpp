@@ -49,6 +49,15 @@ const std::map<int32_t, std::string> g_result2Str = {
     { static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED), "Permission denied." },
     { static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED), "Not system application." }
 };
+
+const std::string &GetResultMsg(int32_t error)
+{
+    auto it = g_result2Str.find(error);
+    if (it != g_result2Str.end()) {
+        return it->second;
+    }
+    return g_result2Str.at(GENERAL_ERROR);
+}
 } // namespace
 
 JsRefHolder::JsRefHolderInner::~JsRefHolderInner()
@@ -751,24 +760,19 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertTemplateStatusToNapiValue(napi_
 
 napi_value CompanionDeviceAuthNapiHelper::GenerateBusinessError(napi_env env, int32_t error)
 {
-    std::string msgStr;
+    std::string msgStr = GetResultMsg(error);
     napi_value code;
     napi_value msg;
     napi_value businessError;
     if (error == INVALID_BUSINESS_ID) {
-        msgStr = g_result2Str.at(error);
         error = FRAMEWORKS_INVALID_PARAMS;
     } else if ((error == USER_ID_NOT_FOUND) || (error == NOT_ENROLLED)) {
-        msgStr = g_result2Str.at(error);
         error = FRAMEWORKS_NOT_FOUND;
     } else if (error == CHECK_PERMISSION_FAILED) {
-        msgStr = g_result2Str.at(error);
         error = FRAMEWORKS_CHECK_PERMISSION_FAILED;
     } else if (error == CHECK_SYSTEM_PERMISSION_FAILED) {
-        msgStr = g_result2Str.at(error);
         error = FRAMEWORKS_CHECK_SYSTEM_PERMISSION_FAILED;
     } else {
-        msgStr = g_result2Str.at(GENERAL_ERROR);
         error = FRAMEWORKS_GENERAL_ERROR;
     }
     IAM_LOGI("GenerateBusinessError, errorCode: %{public}d, errmsg: %{public}s", error, msgStr.c_str());

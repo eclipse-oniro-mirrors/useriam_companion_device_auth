@@ -18,13 +18,12 @@
 
 #include <string>
 
+#include "interaction_event_collector.h"
 #include "nocopyable.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-
-class InteractionEventCollector;
 
 class IEventManagerAdapter : public NoCopyable {
 public:

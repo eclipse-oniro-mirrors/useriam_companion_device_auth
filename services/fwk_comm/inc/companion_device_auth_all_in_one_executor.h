@@ -28,6 +28,7 @@
 #include "fwk_common.h"
 #include "service_common.h"
 #include "singleton_manager.h"
+#include "task_runner_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -66,7 +67,8 @@ protected:
     virtual WidgetAuthParam GetWidgetAuthParam(int32_t authIntent) const;
 
 private:
-    FwkResultCode RunOnResidentSync(std::function<FwkResultCode()> func, uint32_t timeoutSec = MAX_SYNC_WAIT_TIME_SEC);
+    FwkResultCode RunOnResidentSync(std::function<FwkResultCode()> func,
+        uint32_t timeoutSec = MAX_RESIDENT_SYNC_TIMEOUT_SEC);
 
     std::shared_ptr<CompanionDeviceAuthAllInOneExecutorInner> inner_;
 };

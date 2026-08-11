@@ -35,11 +35,7 @@ public:
     ~ScopeGuard() override
     {
         if (action_ != nullptr) {
-            try {
-                action_();
-            } catch (...) {
-                return;
-            }
+            action_();
         }
     }
 

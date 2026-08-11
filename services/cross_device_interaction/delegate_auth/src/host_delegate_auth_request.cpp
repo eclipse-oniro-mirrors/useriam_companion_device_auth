@@ -24,6 +24,7 @@
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
+#include "cda_json_helper.h"
 #include "common_defines.h"
 #include "companion_manager.h"
 #include "delegate_auth_message.h"
@@ -39,6 +40,10 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+namespace {
+constexpr size_t MAX_DEVICE_ID_LEN = 256;
+} // namespace
+
 HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params, const DeviceKey &companionDeviceKey,
     FwkResultCallback &&requestCallback)
     : OutboundRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
@@ -282,44 +287,40 @@ std::optional<uint32_t> HostDelegateAuthRequest::GetRemoteTokenId(const DeviceKe
         return std::nullopt;
     }
 
-    std::string jsonStr(selectContext_->begin(), selectContext_->end());
-    try {
-        auto json = nlohmann::json::parse(jsonStr);
-        auto it = json.find("deviceSelectContext");
-        if (it == json.end()) {
-            IAM_LOGE("%{public}s deviceSelectContext not found in json", GetDescription());
-            return std::nullopt;
-        }
-        if (!it->is_array()) {
-            IAM_LOGE("%{public}s deviceSelectContext is not array", GetDescription());
-            return std::nullopt;
-        }
-        for (const auto &deviceEntry : *it) {
-            if (!deviceEntry.contains("deviceIdType") || !deviceEntry.contains("deviceId") ||
-                !deviceEntry.contains("deviceUserId") || !deviceEntry.contains("remoteTokenId")) {
-                continue;
-            }
-            if (!deviceEntry.at("deviceIdType").is_number_integer() || !deviceEntry.at("deviceId").is_string() ||
-                !deviceEntry.at("deviceUserId").is_number_integer() ||
-                !deviceEntry.at("remoteTokenId").is_number_unsigned()) {
-                IAM_LOGE("%{public}s invalid json data type in deviceSelectContext", GetDescription());
-                continue;
-            }
-            auto idType = deviceEntry.at("deviceIdType").get<int32_t>();
-            auto deviceId = deviceEntry.at("deviceId").get<std::string>();
-            auto deviceUserId = deviceEntry.at("deviceUserId").get<int32_t>();
-            if (idType == static_cast<int32_t>(deviceKey.idType) && deviceId == deviceKey.deviceId &&
-                deviceUserId == deviceKey.deviceUserId) {
-                IAM_LOGI("GetRemoteTokenId success");
-                return deviceEntry.at("remoteTokenId").get<uint32_t>();
-            }
-        }
-        IAM_LOGE("%{public}s device not found in selectContext", GetDescription());
-        return std::nullopt;
-    } catch (const nlohmann::json::exception &e) {
-        IAM_LOGE("%{public}s json parse error: %{public}s", GetDescription(), e.what());
+    auto json = TryParseJson(*selectContext_);
+    if (!json.has_value()) {
+        IAM_LOGE("%{public}s json parse error", GetDescription());
         return std::nullopt;
     }
+    auto it = json->find("deviceSelectContext");
+    if (it == json->end()) {
+        IAM_LOGE("%{public}s deviceSelectContext not found in json", GetDescription());
+        return std::nullopt;
+    }
+    if (!it->is_array()) {
+        IAM_LOGE("%{public}s deviceSelectContext is not array", GetDescription());
+        return std::nullopt;
+    }
+    for (const auto &deviceEntry : *it) {
+        int32_t idType = 0;
+        std::string deviceId;
+        int32_t deviceUserId = 0;
+        uint32_t remoteTokenId = 0;
+        if (!GetJsonField(deviceEntry, "deviceIdType", idType) ||
+            !GetJsonField(deviceEntry, "deviceId", deviceId, MAX_DEVICE_ID_LEN) ||
+            !GetJsonField(deviceEntry, "deviceUserId", deviceUserId) ||
+            !GetJsonField(deviceEntry, "remoteTokenId", remoteTokenId)) {
+            IAM_LOGE("%{public}s invalid json data in deviceSelectContext", GetDescription());
+            continue;
+        }
+        if (idType == static_cast<int32_t>(deviceKey.idType) && deviceId == deviceKey.deviceId &&
+            deviceUserId == deviceKey.deviceUserId) {
+            IAM_LOGI("GetRemoteTokenId success");
+            return remoteTokenId;
+        }
+    }
+    IAM_LOGE("%{public}s device not found in selectContext", GetDescription());
+    return std::nullopt;
 }
 
 void HostDelegateAuthRequest::InvokeCallback(ResultCode result, const std::vector<uint8_t> &fwkMsg)

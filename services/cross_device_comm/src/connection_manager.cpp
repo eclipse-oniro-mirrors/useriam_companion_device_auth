@@ -123,7 +123,8 @@ bool ConnectionManager::OpenConnection(const PhysicalDeviceKey &physicalDeviceKe
         static_cast<int32_t>(physicalDeviceKey.idType), GetMaskedString(physicalDeviceKey.deviceId).c_str(), channelId);
 
     ENSURE_OR_RETURN_VAL(channelManager_ != nullptr, false);
-    ENSURE_OR_RETURN_VAL(CheckResourceLimits(physicalDeviceKey), false);
+    bool resourceLimitOk = CheckResourceLimits(physicalDeviceKey);
+    ENSURE_OR_RETURN_VAL(resourceLimitOk, false);
 
     auto channel = channelManager_->GetChannelById(channelId);
     ENSURE_OR_RETURN_VAL(channel != nullptr, false);

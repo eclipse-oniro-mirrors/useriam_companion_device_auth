@@ -85,12 +85,7 @@ bool FfiArrayToVector(const FfiArrayType &ffiArr, std::vector<T> &vec)
 
         vec.clear();
         if (ffiArr.len > 0) {
-            try {
-                vec.reserve(ffiArr.len);
-            } catch (...) {
-                IAM_LOGE("Failed to reserve memory for vector conversion");
-                return false;
-            }
+            vec.reserve(ffiArr.len);
             for (uint32_t i = 0; i < ffiArr.len; ++i) {
                 vec.push_back(static_cast<T>(ffiArr.data[i]));
             }
@@ -146,12 +141,7 @@ bool FfiArrayToVectorWithConvert(const FfiArrayType &ffiArr, std::vector<ItemTyp
     }
     vec.clear();
     if (ffiArr.len > 0) {
-        try {
-            vec.reserve(ffiArr.len);
-        } catch (...) {
-            IAM_LOGE("Failed to reserve memory for %{public}s conversion", name);
-            return false;
-        }
+        vec.reserve(ffiArr.len);
         for (uint32_t i = 0; i < ffiArr.len; ++i) {
             ItemType item {};
             if (!convertFunc(ffiArr.data[i], item)) {

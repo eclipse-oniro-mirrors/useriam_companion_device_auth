@@ -95,10 +95,11 @@ void CompanionObtainTokenRequest::OnConnected()
 
 bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
 {
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
+    auto peerDeviceKey = GetPeerDeviceKey();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
     Attributes request = {};
     PreObtainTokenRequest preObtainTokenRequest = {
-        .hostUserId = GetPeerDeviceKey().value().deviceUserId,
+        .hostUserId = peerDeviceKey.value().deviceUserId,
         .companionDeviceKey = companionDeviceKey_,
         .extraInfo = {},
     };
@@ -151,9 +152,10 @@ void CompanionObtainTokenRequest::HandlePreObtainTokenReply(const Attributes &re
 
 std::optional<BindingId> CompanionObtainTokenRequest::QueryBindingIdFromHostBinding()
 {
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), std::nullopt);
+    auto peerDeviceKey = GetPeerDeviceKey();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), std::nullopt);
     auto hostBindingStatus =
-        GetHostBindingManager().GetHostBindingStatus(companionDeviceKey_.deviceUserId, GetPeerDeviceKey().value());
+        GetHostBindingManager().GetHostBindingStatus(companionDeviceKey_.deviceUserId, peerDeviceKey.value());
     if (!hostBindingStatus.has_value()) {
         IAM_LOGE("%{public}s GetHostBindingStatus failed", GetDescription());
         return std::nullopt;
@@ -208,10 +210,11 @@ ResultCode CompanionObtainTokenRequest::CompanionBeginObtainToken(const std::vec
 
 bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest)
 {
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), GetPeerDeviceKey().has_value(), false);
+    auto peerDeviceKey = GetPeerDeviceKey();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
     Attributes request = {};
     ObtainTokenRequest obtainRequest = {
-        .hostUserId = GetPeerDeviceKey().value().deviceUserId,
+        .hostUserId = peerDeviceKey.value().deviceUserId,
         .extraInfo = obtainTokenRequest,
         .companionDeviceKey = companionDeviceKey_,
     };

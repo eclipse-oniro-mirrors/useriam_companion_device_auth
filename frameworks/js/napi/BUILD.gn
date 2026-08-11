@@ -21,7 +21,6 @@ config("companion_device_auth_public_config") {
 ohos_shared_library("companiondeviceauth") {
   sanitize = companion_device_auth_default_sanitize
   branch_protector_ret = "pac_ret"
-  remove_configs = [ "//build/config/compiler:no_exceptions" ]
 
   include_dirs = [
     "inc",

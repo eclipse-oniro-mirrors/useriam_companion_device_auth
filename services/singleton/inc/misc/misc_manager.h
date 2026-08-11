@@ -64,6 +64,9 @@ public:
     virtual std::unique_ptr<Subscription> SubscribeCompanionAuthBlockedChange(
         CompanionAuthBlockedCallback callback) = 0;
 
+    virtual void PushPendingUnlock(uint64_t scheduleId, uint64_t templateId) = 0;
+    virtual std::optional<uint64_t> TakePendingUnlock(uint64_t scheduleId) = 0;
+
 protected:
     IMiscManager() = default;
 };

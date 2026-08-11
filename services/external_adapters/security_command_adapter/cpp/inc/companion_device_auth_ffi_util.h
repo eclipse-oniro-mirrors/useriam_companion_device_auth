@@ -75,12 +75,9 @@ bool EncodeHostUpdateCompanionStatusInput(const HostUpdateCompanionStatusInput &
 bool EncodeHostUpdateCompanionEnabledBusinessIdsInput(const HostUpdateCompanionEnabledBusinessIdsInput &input,
     HostUpdateCompanionEnabledBusinessIdsInputFfi &ffi);
 
-struct HostSetCompanionInvalidInput;
 bool EncodeHostSetCompanionInvalidInput(const HostSetCompanionInvalidInput &input,
     HostSetCompanionInvalidInputFfi &ffi);
 
-struct HostCheckTemplateEnrolledInput;
-struct HostCheckTemplateEnrolledOutput;
 bool EncodeHostCheckTemplateEnrolledInput(const HostCheckTemplateEnrolledInput &input,
     HostCheckTemplateEnrolledInputFfi &ffi);
 bool DecodeHostCheckTemplateEnrolledOutput(const HostCheckTemplateEnrolledOutputFfi &ffi,

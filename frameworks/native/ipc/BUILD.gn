@@ -69,7 +69,6 @@ ohos_source_set("companion_device_auth_proxy") {
                             [ "*ipc_passcode_submit_callback_stub.cpp" ])
 
   public_configs = [ ":companion_device_auth_native_ipc_config" ]
-  remove_configs = [ "//build/config/compiler:no_exceptions" ]
 
   deps = [
     ":companion_device_auth_ipc_interface",
@@ -114,7 +113,6 @@ ohos_source_set("companion_device_auth_stub") {
                             [ "*ipc_passcode_submit_callback_stub.cpp" ])
 
   public_configs = [ ":companion_device_auth_native_ipc_config" ]
-  remove_configs = [ "//build/config/compiler:no_exceptions" ]
 
   deps = [
     ":companion_device_auth_ipc_interface",

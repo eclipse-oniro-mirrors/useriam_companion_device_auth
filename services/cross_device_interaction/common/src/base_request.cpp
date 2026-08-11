@@ -126,6 +126,11 @@ std::optional<TemplateId> BaseRequest::GetTemplateId() const
     return templateId_;
 }
 
+std::vector<TemplateId> BaseRequest::GetTemplateIdList() const
+{
+    return {};
+}
+
 uint32_t BaseRequest::CountSameType(const std::vector<std::shared_ptr<IRequest>> &prevRequests) const
 {
     uint32_t sameTypeCount = 0;

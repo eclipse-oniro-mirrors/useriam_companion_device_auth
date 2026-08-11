@@ -92,6 +92,13 @@ void TaskRunnerManager::PostTaskOnResident(std::function<void()> &&task)
     (*g_pendingTasks)[taskId] = std::move(task);
 }
 
+bool TaskRunnerManager::RunOnResidentSyncInner(std::function<void()> &&task, uint32_t timeoutSec)
+{
+    (void)timeoutSec;
+    task();
+    return true;
+}
+
 void TaskRunnerManager::PostTaskOnTemporary(const std::string &name, std::function<void()> &&task)
 {
     if (g_temporaryRunners.size() >= MAX_CONCURRENT_TEMPORARY_RUNNERS) {

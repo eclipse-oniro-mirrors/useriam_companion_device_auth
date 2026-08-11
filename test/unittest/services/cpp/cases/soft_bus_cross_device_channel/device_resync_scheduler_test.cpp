@@ -72,6 +72,10 @@ public:
     {
         return std::nullopt;
     }
+    std::vector<TemplateId> GetTemplateIdList() const override
+    {
+        return {};
+    }
     uint32_t GetMaxConcurrency() const override
     {
         return 1;

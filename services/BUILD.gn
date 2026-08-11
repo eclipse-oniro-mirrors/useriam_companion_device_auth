@@ -28,8 +28,6 @@ ohos_shared_library("companiondeviceauthservice") {
   sanitize = companion_device_auth_default_sanitize
   branch_protector_ret = "pac_ret"
 
-  remove_configs = [ "//build/config/compiler:no_exceptions" ]
-
   sources = companion_device_auth_service_sources
 
   configs = [
@@ -61,8 +59,6 @@ ohos_static_library("companion_device_auth_service_static") {
   sanitize = companion_device_auth_default_sanitize
   branch_protector_ret = "pac_ret"
 
-  remove_configs = [ "//build/config/compiler:no_exceptions" ]
-
   sources = companion_device_auth_service_static_sources
   sources += [ "${companion_device_auth_path}/common/src/iam_log_tracer.cpp" ]
 
@@ -87,8 +83,6 @@ ohos_static_library("companion_device_auth_service_static") {
 ohos_static_library("companion_device_auth_service_header_static") {
   sanitize = companion_device_auth_default_sanitize
   branch_protector_ret = "pac_ret"
-
-  remove_configs = [ "//build/config/compiler:no_exceptions" ]
 
   public_configs = [
     ":service_config",

@@ -35,12 +35,11 @@
 #include "common_defines.h"
 #include "companion_device_auth_stub.h"
 #include "service_common.h"
+#include "subscription_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-
-class SubscriptionManager;
 
 // Function pointer types for Creator methods
 using BaseServiceInitializerCreator =
@@ -96,10 +95,6 @@ protected:
 
 private:
     bool CheckPermission(const std::string &permission, int32_t &companionDeviceAuthResult);
-
-    template <typename Func>
-    std::optional<typename std::invoke_result<Func>::type> RunOnResidentSync(Func &&func,
-        uint32_t timeoutSec = MAX_SYNC_WAIT_TIME_SEC);
 
     std::shared_ptr<BaseServiceCore> core_;
     std::shared_ptr<BaseServiceInitializer> baseServiceInitializer_;

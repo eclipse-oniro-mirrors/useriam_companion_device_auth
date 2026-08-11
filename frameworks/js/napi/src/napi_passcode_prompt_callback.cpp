@@ -17,6 +17,7 @@
 
 #include "napi/native_node_api.h"
 
+#include "cda_secure_vector.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 
@@ -52,18 +53,20 @@ napi_value SubmitFunc(napi_env env, napi_callback_info info)
         IAM_LOGE("submit callback data is null");
         return nullptr;
     }
-    std::vector<uint8_t> passcode;
+    std::vector<uint8_t> raw;
     if (argv[PARAM0] == nullptr) {
         IAM_LOGE("passcode argument is null, skipping submit");
         return nullptr;
     }
-    status = CompanionDeviceAuthNapiHelper::GetUint8ArrayValue(env, argv[PARAM0], passcode);
+    status = CompanionDeviceAuthNapiHelper::GetUint8ArrayValue(env, argv[PARAM0], raw);
     if (status != napi_ok) {
         IAM_LOGE("GetUint8ArrayValue for passcode fail, status:%{public}d", static_cast<int>(status));
         return nullptr;
     }
-    IAM_LOGI("submit passcode, len:%{public}zu", passcode.size());
-    cbData->submit->OnPasscodeSubmit(passcode);
+
+    SecureVector passcode(std::move(raw));
+    IAM_LOGI("submit passcode, len:%{public}zu", passcode.Get().size());
+    cbData->submit->OnPasscodeSubmit(passcode.Get());
     return nullptr;
 }
 

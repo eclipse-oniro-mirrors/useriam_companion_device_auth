@@ -42,6 +42,7 @@ public:
     ScheduleId GetScheduleId() const final override;
     std::optional<DeviceKey> GetPeerDeviceKey() const override;
     std::optional<TemplateId> GetTemplateId() const override;
+    std::vector<TemplateId> GetTemplateIdList() const override;
     bool CanStart(const std::vector<std::shared_ptr<IRequest>> &prevRequests) const override;
 
 protected:
