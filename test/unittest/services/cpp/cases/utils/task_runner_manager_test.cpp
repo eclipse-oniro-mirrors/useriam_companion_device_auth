@@ -65,6 +65,31 @@ HWTEST_F(TaskRunnerManagerTest, PostTaskOnTemporary_RejectsWhenTooManyConcurrent
     }
 }
 
+// The fake RunOnResidentSyncInner runs the callable inline and returns true, which is enough to
+// exercise the template's two return-type branches: void callable -> bool, value callable ->
+// optional<T>. The real timeout/nullopt path lives in the non-fake RunOnResidentSyncInner and is
+// not reachable through the test fake.
+HWTEST_F(TaskRunnerManagerTest, RunTaskOnResidentSync_VoidCallable_ReturnsTrueAndRuns, TestSize.Level0)
+{
+    MockGuard guard;
+    auto &trm = TaskRunnerManager::GetInstance();
+
+    auto ran = std::make_shared<bool>(false);
+    bool ok = trm.RunTaskOnResidentSync([ran]() { *ran = true; });
+    EXPECT_TRUE(ok);
+    EXPECT_TRUE(*ran);
+}
+
+HWTEST_F(TaskRunnerManagerTest, RunTaskOnResidentSync_ValueCallable_ReturnsOptional, TestSize.Level0)
+{
+    MockGuard guard;
+    auto &trm = TaskRunnerManager::GetInstance();
+
+    auto result = trm.RunTaskOnResidentSync([]() { return 0xABCD; });
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(*result, 0xABCD);
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
