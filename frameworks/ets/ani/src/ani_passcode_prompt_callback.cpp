@@ -40,11 +40,11 @@ public:
     void operator()(::taihe::array_view<uint8_t> passcode)
     {
         IAM_LOGI("start");
-        ENSURE_OR_RETURN(submit_ != nullptr);
         SecureVector passcodeVec(passcode.begin(), passcode.end());
         if (!passcode.empty()) {
             (void)memset_s(passcode.data(), passcode.size(), 0, passcode.size());
         }
+        ENSURE_OR_RETURN(submit_ != nullptr);
         submit_->OnPasscodeSubmit(passcodeVec.Get());
         IAM_LOGI("end");
     }
@@ -67,7 +67,7 @@ void AniPasscodePromptCallback::OnPasscodePrompt(const std::shared_ptr<PasscodeS
     IAM_LOGI("start");
     ENSURE_OR_RETURN(submit != nullptr);
     auto passcodePromptCallback = GetCallback();
-    if (passcodePromptCallback == nullptr) {
+    if (passcodePromptCallback == nullptr || !passcodePromptCallback->has_value()) {
         IAM_LOGE("passcodePromptCallback is null");
         return;
     }
