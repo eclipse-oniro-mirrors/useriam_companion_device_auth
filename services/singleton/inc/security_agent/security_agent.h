@@ -28,6 +28,7 @@ namespace CompanionDeviceAuth {
 // Framework interaction input/output structs
 struct SetActiveUserInput {
     UserId userId;
+    std::vector<UserId> validUserIds;
 };
 
 struct HostGetExecutorInfoOutput {

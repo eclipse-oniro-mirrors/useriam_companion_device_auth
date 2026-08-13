@@ -103,9 +103,20 @@ pub fn get_executor_info(
 
 // SetActiveUserId
 pub fn set_active_user_id(
-    _input: &SetActiveUserInputFfi,
+    input: &SetActiveUserInputFfi,
     _output: &mut SetActiveUserOutputFfi,
 ) -> Result<(), ErrorCode> {
+    let len = core::cmp::min(input.valid_user_ids.len as usize, input.valid_user_ids.data.len());
+    let valid_user_ids: Vec<i32> = input.valid_user_ids.data[..len].to_vec();
+    log_i!(
+        "set_active_user_id, active user:{}, valid user count:{}",
+        input.user_id,
+        valid_user_ids.len()
+    );
+    let removed = crate::jobs::host_binding_db_helper::remove_devices_by_invalid_users(&valid_user_ids);
+    if !removed.is_empty() {
+        log_i!("cleaned {} orphan host binding(s) on set active user", removed.len());
+    }
     Ok(())
 }
 

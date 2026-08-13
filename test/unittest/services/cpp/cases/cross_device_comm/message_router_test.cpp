@@ -177,6 +177,11 @@ public:
         return userId == activeUserId_;
     }
 
+    std::vector<UserId> GetAllValidUserIds() const override
+    {
+        return {activeUserId_};
+    }
+
 private:
     int32_t activeUserId_ { INT32_TEST_ACTIVE_USER_ID };
     ActiveUserIdCallback activeUserIdCallback_ {};

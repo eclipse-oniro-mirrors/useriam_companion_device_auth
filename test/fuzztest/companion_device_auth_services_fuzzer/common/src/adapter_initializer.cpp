@@ -386,6 +386,11 @@ public:
         return fuzzData_.ConsumeBool();
     }
 
+    std::vector<UserId> GetAllValidUserIds() const override
+    {
+        return {};
+    }
+
 private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };

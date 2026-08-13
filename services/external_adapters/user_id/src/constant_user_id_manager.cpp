@@ -18,6 +18,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "iam_check.h"
 #include "iam_logger.h"
@@ -85,6 +86,11 @@ public:
     bool IsUserIdValid(int32_t userId) override
     {
         return userId == DEFAULT_USER_ID;
+    }
+
+    std::vector<UserId> GetAllValidUserIds() const override
+    {
+        return {DEFAULT_USER_ID};
     }
 };
 

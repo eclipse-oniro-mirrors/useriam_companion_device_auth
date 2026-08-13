@@ -55,3 +55,7 @@ pub fn get_session_key(binding_id: i32, salt: &[u8]) -> Result<Vec<u8>, ErrorCod
     let sk = HostBindingDbManagerRegistry::get_mut().read_device_sk(binding_id).map_err(|e| p!(e))?;
     CryptoEngineRegistry::get().hkdf(salt, &sk.sk).map_err(|e| p!(e))
 }
+
+pub fn remove_devices_by_invalid_users(valid_user_ids: &[i32]) -> Vec<i32> {
+    HostBindingDbManagerRegistry::get_mut().remove_devices_by_invalid_users(valid_user_ids)
+}
