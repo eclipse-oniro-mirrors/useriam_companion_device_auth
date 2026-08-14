@@ -69,6 +69,11 @@ public:
         return userId > 0;
     }
 
+    std::optional<std::vector<UserId>> GetAllValidUserIds() const override
+    {
+        return std::vector<UserId> { userId_ };
+    }
+
     // Test backdoor: set user and auto-notify all subscribers
     void TestSetActiveUser(UserId userId, const std::string &userName = "", const std::string &userTypeName = "normal")
     {

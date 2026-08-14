@@ -47,7 +47,7 @@ HWTEST_F(CdaJsonHelperTest, TryParseJson_ValidObject_HasValue, TestSize.Level0)
 HWTEST_F(CdaJsonHelperTest, TryParseJson_Malformed_ReturnsNullopt, TestSize.Level0)
 {
     EXPECT_FALSE(TryParseJson(R"(not json{)").has_value());
-    EXPECT_FALSE(TryParseJson("").has_value()); // empty input is not a valid JSON document
+    EXPECT_FALSE(TryParseJson("").has_value());          // empty input is not a valid JSON document
     EXPECT_FALSE(TryParseJson(R"({"k":})").has_value()); // truncated value
 }
 
@@ -205,7 +205,7 @@ HWTEST_F(CdaJsonHelperTest, GetJsonField_String_RejectsNonStringAndMissing, Test
     auto json = TryParseJson(R"({"n":1})");
     ASSERT_TRUE(json.has_value());
     std::string d = "untouched";
-    EXPECT_FALSE(GetJsonField(*json, "n", d, 256)); // integer, not string
+    EXPECT_FALSE(GetJsonField(*json, "n", d, 256));      // integer, not string
     EXPECT_FALSE(GetJsonField(*json, "absent", d, 256)); // missing
     EXPECT_EQ(d, "untouched");
 }

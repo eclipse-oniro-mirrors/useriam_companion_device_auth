@@ -57,6 +57,7 @@ typedef struct HostGetPersistedStatusOutputFfi {
 
 typedef struct SetActiveUserInputFfi {
     int32_t userId;
+    struct Int32Array64Ffi validUserIds;
 } SetActiveUserInputFfi;
 
 typedef struct PlaceHolderFfi SetActiveUserOutputFfi;

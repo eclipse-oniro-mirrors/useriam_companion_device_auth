@@ -1110,6 +1110,7 @@ pub struct MockHostBindingDbManager {
     write_device_sk: Expectation0<Result<(), ErrorCode>>,
     delete_device_sk: Expectation0<Result<(), ErrorCode>>,
     get_device_list: Expectation0<Vec<crate::traits::db_manager::HostBinding>>,
+    remove_devices_by_invalid_users: Expectation0<Vec<i32>>,
 }
 
 #[cfg(any(test, feature = "test-utils"))]
@@ -1131,6 +1132,7 @@ impl MockHostBindingDbManager {
             write_device_sk: Expectation0::new(),
             delete_device_sk: Expectation0::new(),
             get_device_list: Expectation0::new(),
+            remove_devices_by_invalid_users: Expectation0::new(),
         }
     }
 
@@ -1188,6 +1190,9 @@ impl MockHostBindingDbManager {
     }
     pub fn expect_get_device_list(&mut self) -> &mut Expectation0<Vec<crate::traits::db_manager::HostBinding>> {
         &mut self.get_device_list
+    }
+    pub fn expect_remove_devices_by_invalid_users(&mut self) -> &mut Expectation0<Vec<i32>> {
+        &mut self.remove_devices_by_invalid_users
     }
 }
 
@@ -1253,6 +1258,9 @@ impl crate::traits::host_binding_db_manager::HostBindingDbManager for MockHostBi
     }
     fn get_device_list(&self, _user_id: i32) -> Vec<crate::traits::db_manager::HostBinding> {
         self.get_device_list.call()
+    }
+    fn remove_devices_by_invalid_users(&mut self, _valid_user_ids: &[i32]) -> Vec<i32> {
+        self.remove_devices_by_invalid_users.call()
     }
 }
 

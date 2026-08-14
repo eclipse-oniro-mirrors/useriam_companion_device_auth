@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "securec.h"
 
@@ -25,6 +26,7 @@
 #include "adapter_manager.h"
 #include "common_defines.h"
 #include "companion_device_auth_ffi.h"
+#include "companion_device_auth_ffi_array_util.h"
 #include "companion_device_auth_ffi_util.h"
 #include "event_manager_adapter.h"
 #include "security_agent_impl.h"
@@ -55,7 +57,7 @@ bool SecurityAgentImpl::Initialize()
 {
     auto &userIdManager = GetUserIdManager();
     unlockedActiveUserSubscription_ = userIdManager.SubscribeUnlockedActiveUserId([this](UserId userId) {
-        auto result = SetActiveUser(SetActiveUserInput { userId });
+        auto result = SetActiveUser(SetActiveUserInput { userId, CollectValidUserIds() });
         if (result != SUCCESS) {
             IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
         }
@@ -64,12 +66,22 @@ bool SecurityAgentImpl::Initialize()
         return false;
     }
 
-    auto result = SetActiveUser(SetActiveUserInput { userIdManager.GetUnlockedActiveUserId() });
+    auto result = SetActiveUser(SetActiveUserInput { userIdManager.GetUnlockedActiveUserId(), CollectValidUserIds() });
     if (result != SUCCESS) {
         return false;
     }
 
     return true;
+}
+
+std::vector<UserId> SecurityAgentImpl::CollectValidUserIds()
+{
+    auto validUserIds = GetUserIdManager().GetAllValidUserIds();
+    if (!validUserIds.has_value()) {
+        IAM_LOGW("GetAllValidUserIds failed, proceeding with empty valid user id list");
+        return {};
+    }
+    return std::move(*validUserIds);
 }
 
 ResultCode SecurityAgentImpl::SetActiveUser(const SetActiveUserInput &input)
@@ -79,6 +91,10 @@ ResultCode SecurityAgentImpl::SetActiveUser(const SetActiveUserInput &input)
     auto ffiInput = std::make_unique<SetActiveUserInputFfi>();
     ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
     ffiInput->userId = input.userId;
+    ffiInput->validUserIds = {};
+    if (!VectorToFfiArray(input.validUserIds, ffiInput->validUserIds, "valid user ids")) {
+        IAM_LOGE("encode valid user ids failed, cleanup skipped this round");
+    }
 
     auto ffiOutput = std::make_unique<SetActiveUserOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);

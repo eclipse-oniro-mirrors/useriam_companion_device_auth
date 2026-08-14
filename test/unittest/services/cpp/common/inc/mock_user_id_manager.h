@@ -35,6 +35,7 @@ public:
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeUnlockedActiveUserId, (ActiveUserIdCallback && callback),
         (override));
     MOCK_METHOD(bool, IsUserIdValid, (int32_t userId), (override));
+    MOCK_METHOD(std::optional<std::vector<UserId>>, GetAllValidUserIds, (), (const, override));
 
     // Helper method to trigger the unlocked active user ID change callback in tests
     void NotifyUnlockedActiveUserIdChanged(UserId userId)

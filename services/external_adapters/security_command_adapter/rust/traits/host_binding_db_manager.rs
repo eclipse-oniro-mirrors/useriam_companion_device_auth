@@ -40,6 +40,7 @@ pub trait HostBindingDbManager {
     fn delete_device_sk(&self, binding_id: i32) -> Result<(), ErrorCode>;
 
     fn get_device_list(&self, user_id: i32) -> Vec<HostBinding>;
+    fn remove_devices_by_invalid_users(&mut self, valid_user_ids: &[i32]) -> Vec<i32>;
 }
 
 pub struct DummyHostBindingDbManager;
@@ -107,6 +108,11 @@ impl HostBindingDbManager for DummyHostBindingDbManager {
     }
 
     fn get_device_list(&self, _user_id: i32) -> Vec<HostBinding> {
+        log_e!("not implemented");
+        Vec::new()
+    }
+
+    fn remove_devices_by_invalid_users(&mut self, _valid_user_ids: &[i32]) -> Vec<i32> {
         log_e!("not implemented");
         Vec::new()
     }

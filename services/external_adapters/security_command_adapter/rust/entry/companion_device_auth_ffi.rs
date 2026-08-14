@@ -358,6 +358,7 @@ assert_max_size!(HostGetPersistedStatusOutputFfi);
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct SetActiveUserInputFfi {
     pub user_id: i32,
+    pub valid_user_ids: Int32Array64Ffi,
 }
 assert_max_size!(SetActiveUserInputFfi);
 

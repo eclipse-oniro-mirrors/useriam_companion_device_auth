@@ -21,6 +21,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "nocopyable.h"
 
@@ -46,6 +47,7 @@ public:
     virtual UserId GetUnlockedActiveUserId() const = 0;
     virtual std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) = 0;
     virtual bool IsUserIdValid(int32_t userId) = 0;
+    virtual std::optional<std::vector<UserId>> GetAllValidUserIds() const = 0;
 
 protected:
     IUserIdManager() = default;

@@ -426,6 +426,31 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         log_i!("get_device_list start");
         self.host_bindings.iter().filter(|device_info| device_info.user_info.user_id == user_id).cloned().collect()
     }
+
+    fn remove_devices_by_invalid_users(&mut self, valid_user_ids: &[i32]) -> Vec<i32> {
+        log_i!("remove_devices_by_invalid_users start, valid user count:{}", valid_user_ids.len());
+        if valid_user_ids.is_empty() {
+            log_i!("valid user id list empty, skip cleanup to protect existing bindings");
+            return Vec::new();
+        }
+        let orphan_binding_ids: Vec<i32> = self
+            .host_bindings
+            .iter()
+            .filter(|info| !valid_user_ids.contains(&info.user_info.user_id))
+            .map(|info| info.binding_id)
+            .collect();
+        for &binding_id in orphan_binding_ids.iter().rev() {
+            match self.remove_device(binding_id) {
+                Ok(device) => log_i!(
+                    "removed orphan host binding, binding_id:{:04x}, user_id:{}",
+                    device.binding_id as u16,
+                    device.user_info.user_id
+                ),
+                Err(err) => log_e!("failed to remove orphan binding:{:04x}, error:{:?}", binding_id as u16, err),
+            }
+        }
+        orphan_binding_ids
+    }
 }
 
 impl Default for DefaultHostBindingDbManager {
