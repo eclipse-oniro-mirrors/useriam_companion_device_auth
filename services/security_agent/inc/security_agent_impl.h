@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "nocopyable.h"
 #include "securec.h"
@@ -132,6 +133,7 @@ public:
 private:
     SecurityAgentImpl();
     bool Initialize();
+    std::vector<UserId> CollectValidUserIds();
     std::unique_ptr<Subscription> unlockedActiveUserSubscription_;
 };
 } // namespace CompanionDeviceAuth

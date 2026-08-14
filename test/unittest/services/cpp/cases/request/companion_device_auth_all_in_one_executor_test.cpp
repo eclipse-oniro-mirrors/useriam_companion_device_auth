@@ -92,9 +92,9 @@ public:
         return userId == activeUserId_;
     }
 
-    std::vector<UserId> GetAllValidUserIds() const override
+    std::optional<std::vector<UserId>> GetAllValidUserIds() const override
     {
-        return {activeUserId_};
+        return std::vector<UserId> { activeUserId_ };
     }
 
 private:

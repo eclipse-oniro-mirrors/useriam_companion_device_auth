@@ -40,7 +40,6 @@ pub trait HostBindingDbManager {
     fn delete_device_sk(&self, binding_id: i32) -> Result<(), ErrorCode>;
 
     fn get_device_list(&self, user_id: i32) -> Vec<HostBinding>;
-
     fn remove_devices_by_invalid_users(&mut self, valid_user_ids: &[i32]) -> Vec<i32>;
 }
 

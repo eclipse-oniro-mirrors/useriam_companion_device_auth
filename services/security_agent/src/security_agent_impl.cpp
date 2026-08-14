@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "securec.h"
 
@@ -56,7 +57,7 @@ bool SecurityAgentImpl::Initialize()
 {
     auto &userIdManager = GetUserIdManager();
     unlockedActiveUserSubscription_ = userIdManager.SubscribeUnlockedActiveUserId([this](UserId userId) {
-        auto result = SetActiveUser(SetActiveUserInput { userId, GetUserIdManager().GetAllValidUserIds() });
+        auto result = SetActiveUser(SetActiveUserInput { userId, CollectValidUserIds() });
         if (result != SUCCESS) {
             IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
         }
@@ -65,13 +66,22 @@ bool SecurityAgentImpl::Initialize()
         return false;
     }
 
-    auto result = SetActiveUser(
-        SetActiveUserInput { userIdManager.GetUnlockedActiveUserId(), userIdManager.GetAllValidUserIds() });
+    auto result = SetActiveUser(SetActiveUserInput { userIdManager.GetUnlockedActiveUserId(), CollectValidUserIds() });
     if (result != SUCCESS) {
         return false;
     }
 
     return true;
+}
+
+std::vector<UserId> SecurityAgentImpl::CollectValidUserIds()
+{
+    auto validUserIds = GetUserIdManager().GetAllValidUserIds();
+    if (!validUserIds.has_value()) {
+        IAM_LOGW("GetAllValidUserIds failed, proceeding with empty valid user id list");
+        return {};
+    }
+    return std::move(*validUserIds);
 }
 
 ResultCode SecurityAgentImpl::SetActiveUser(const SetActiveUserInput &input)

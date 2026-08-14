@@ -88,9 +88,9 @@ public:
         return userId == DEFAULT_USER_ID;
     }
 
-    std::vector<UserId> GetAllValidUserIds() const override
+    std::optional<std::vector<UserId>> GetAllValidUserIds() const override
     {
-        return {DEFAULT_USER_ID};
+        return std::vector<UserId> { DEFAULT_USER_ID };
     }
 };
 

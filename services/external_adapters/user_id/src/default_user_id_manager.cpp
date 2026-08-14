@@ -56,7 +56,7 @@ public:
     UserId GetUnlockedActiveUserId() const override;
     std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override;
     bool IsUserIdValid(int32_t userId) override;
-    std::vector<UserId> GetAllValidUserIds() const override;
+    std::optional<std::vector<UserId>> GetAllValidUserIds() const override;
 
 private:
     class ActiveUserOsAccountSubscriber final : public AccountSA::OsAccountSubscriber {
@@ -229,15 +229,15 @@ bool DefaultUserIdManager::IsUserIdValid(int32_t userId)
     return exists;
 }
 
-std::vector<UserId> DefaultUserIdManager::GetAllValidUserIds() const
+std::optional<std::vector<UserId>> DefaultUserIdManager::GetAllValidUserIds() const
 {
-    std::vector<UserId> userIds;
     std::vector<AccountSA::OsAccountInfo> osAccountInfos;
     ErrCode errCode = AccountSA::OsAccountManager::QueryAllCreatedOsAccounts(osAccountInfos);
     if (errCode != ERR_OK) {
         IAM_LOGE("QueryAllCreatedOsAccounts failed %{public}d", errCode);
-        return userIds;
+        return std::nullopt;
     }
+    std::vector<UserId> userIds;
     for (const auto &info : osAccountInfos) {
         userIds.push_back(info.GetLocalId());
     }

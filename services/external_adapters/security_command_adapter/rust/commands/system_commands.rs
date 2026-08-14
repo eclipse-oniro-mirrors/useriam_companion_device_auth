@@ -113,7 +113,7 @@ pub fn set_active_user_id(
         input.user_id,
         valid_user_ids.len()
     );
-    let removed = crate::jobs::host_binding_db_helper::remove_devices_by_invalid_users(&valid_user_ids);
+    let removed = HostBindingDbManagerRegistry::get_mut().remove_devices_by_invalid_users(&valid_user_ids);
     if !removed.is_empty() {
         log_i!("cleaned {} orphan host binding(s) on set active user", removed.len());
     }
