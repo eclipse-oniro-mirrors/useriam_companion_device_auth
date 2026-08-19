@@ -38,7 +38,7 @@ namespace {
 const size_t UINT64_BYTE_SIZE = 8;
 const uint8_t UINT8_BYTE_MASK = 0xFF;
 static constexpr const int MAX_STRING_LENGTH = 65536;
-static constexpr const int MAX_UNIT8_ARRAY_LENGTH = 20 * 1024;
+static constexpr const uint32_t MAX_ARRAY_LENGTH = 20 * 1024;
 
 const std::map<int32_t, std::string> g_result2Str = {
     { static_cast<int32_t>(ResultCode::GENERAL_ERROR),
@@ -144,7 +144,7 @@ napi_status CompanionDeviceAuthNapiHelper::GetUint8ArrayValue(napi_env env, napi
         IAM_LOGE("value is not napi_uint8_array");
         return napi_invalid_arg;
     }
-    if (data == nullptr || length > MAX_UNIT8_ARRAY_LENGTH) {
+    if (data == nullptr || length > MAX_ARRAY_LENGTH) {
         IAM_LOGE("data is invalid");
         return napi_invalid_arg;
     }
@@ -171,6 +171,10 @@ napi_status CompanionDeviceAuthNapiHelper::GetInt32Array(napi_env env, napi_valu
     if (status != napi_ok) {
         IAM_LOGE("get array length fail");
         return napi_array_expected;
+    }
+    if (len > MAX_ARRAY_LENGTH) {
+        IAM_LOGE("array length exceeds limit: %{public}u", len);
+        return napi_invalid_arg;
     }
     IAM_LOGI("GetInt32Array length: %{public}d", len);
     for (uint32_t index = 0; index < len; index++) {
@@ -463,6 +467,10 @@ napi_status CompanionDeviceAuthNapiHelper::ConvertNapiValueToDeviceKeys(napi_env
         IAM_LOGE("get array length fail");
         return status;
     }
+    if (arrayLength > MAX_ARRAY_LENGTH) {
+        IAM_LOGE("device key array length exceeds limit: %{public}u", arrayLength);
+        return napi_invalid_arg;
+    }
 
     for (size_t i = 0; i < arrayLength; ++i) {
         napi_value deviceKey;
@@ -519,7 +527,7 @@ std::string CompanionDeviceAuthNapiHelper::GetStringFromValueUtf8(napi_env env, 
     std::string result;
     std::vector<char> str(MAX_STRING_LENGTH + 1, '\0');
     size_t length = 0;
-    NAPI_CALL(env, napi_get_value_string_utf8(env, value, &str[0], MAX_STRING_LENGTH, &length));
+    NAPI_CALL_BASE(env, napi_get_value_string_utf8(env, value, &str[0], MAX_STRING_LENGTH, &length), result);
     if (length > 0) {
         return result.append(&str[0], length);
     }

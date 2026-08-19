@@ -614,8 +614,11 @@ int32_t RegisterPasscodePromptCallbackInternal(napi_env env, napi_callback_info 
     ENSURE_OR_RETURN_VAL(status == napi_ok && ref != nullptr, GENERAL_ERROR);
 
     auto callbackRef = std::make_shared<JsRefHolder>(env, ref);
-    bool callbackRefValid = callbackRef != nullptr && callbackRef->IsValid();
-    ENSURE_OR_RETURN_VAL(callbackRefValid, GENERAL_ERROR);
+    if (callbackRef == nullptr || !callbackRef->IsValid()) {
+        IAM_LOGE("generate callbackRef fail");
+        CompanionDeviceAuthNapiHelper::DeleteReference(env, ref);
+        return GENERAL_ERROR;
+    }
 
     passcodePromptCallback->SetCallback(callbackRef);
     int32_t ret = CompanionDeviceAuthClient::GetInstance().RegisterPasscodePromptCallback(passcodePromptCallback);
