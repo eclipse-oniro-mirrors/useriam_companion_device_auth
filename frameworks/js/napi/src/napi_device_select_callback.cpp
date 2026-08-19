@@ -45,7 +45,11 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
         return;
     }
     napi_handle_scope scope = nullptr;
-    napi_open_handle_scope(deviceSelectCallbackHolder->env, &scope);
+    napi_status status = napi_open_handle_scope(deviceSelectCallbackHolder->env, &scope);
+    if (status != napi_ok) {
+        IAM_LOGE("napi_open_handle_scope fail");
+        return;
+    }
     if (scope == nullptr) {
         IAM_LOGE("scope is invalid");
         return;
@@ -53,7 +57,7 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
 
     ClientDeviceSelectResult result {};
     napi_value napiDeviceSelectResult = nullptr;
-    napi_status status = deviceSelectCallbackHolder->callback->DoCallback(deviceSelectCallbackHolder->selectPurpose,
+    status = deviceSelectCallbackHolder->callback->DoCallback(deviceSelectCallbackHolder->selectPurpose,
         &napiDeviceSelectResult);
     if (status != napi_ok) {
         IAM_LOGE("DoCallback fail, ret:%{public}d", status);
