@@ -36,6 +36,7 @@ struct BeginDelegateAuthParam {
     uint32_t authTrustLevel;
     std::vector<AuthType> authTypes;
     std::optional<uint32_t> remoteTokenId;
+    std::string title;
     std::string navigationButtonText;
     AuthResultCallback callback;
 };
