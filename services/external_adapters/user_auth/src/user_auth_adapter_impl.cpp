@@ -147,7 +147,7 @@ uint64_t UserAuthAdapterImpl::BeginDelegateAuth(const BeginDelegateAuthParam &pa
     authParam.remoteTokenId = param.remoteTokenId;
 
     UserAuth::WidgetParam widgetParam = {};
-    widgetParam.title = "Delegate Authentication";
+    widgetParam.title = param.title.empty() ? "Delegate Authentication" : param.title;
     widgetParam.navigationButtonText = param.navigationButtonText;
     widgetParam.windowMode = UserAuth::WindowModeType::UNKNOWN_WINDOW_MODE;
 
