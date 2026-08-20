@@ -265,10 +265,10 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SetSubscribeMode_001, TestSize.Level0)
         channels, false);
     ASSERT_NE(manager, nullptr);
 
-    manager->SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
+    manager->SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES);
 }
 
-HWTEST_F(CrossDeviceCommManagerImplTest, GetManageSubscribeTime_001, TestSize.Level0)
+HWTEST_F(CrossDeviceCommManagerImplTest, GetTemplateStatusSubscribeTimeMs_001, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -280,7 +280,7 @@ HWTEST_F(CrossDeviceCommManagerImplTest, GetManageSubscribeTime_001, TestSize.Le
         channels, false);
     ASSERT_NE(manager, nullptr);
 
-    auto subscribeTime = manager->GetManageSubscribeTime();
+    auto subscribeTime = manager->GetTemplateStatusSubscribeTimeMs();
     EXPECT_FALSE(subscribeTime.has_value());
 }
 

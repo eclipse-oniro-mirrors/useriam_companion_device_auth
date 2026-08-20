@@ -120,7 +120,7 @@ void TemplateStatusSubscription::HandleCompanionStatusChange(const std::vector<C
 {
     IAM_LOGI("HandleCompanionStatusChange start, total companion status count:%{public}zu, userId:%{public}d",
         companionStatusList.size(), userId_);
-    std::optional<SteadyTimeMs> manageSubscribeTime = GetCrossDeviceCommManager().GetManageSubscribeTime();
+    std::optional<SteadyTimeMs> subscribeTimeMs = GetCrossDeviceCommManager().GetTemplateStatusSubscribeTimeMs();
     std::vector<IpcTemplateStatus> templateStatusList;
     templateStatusList.reserve(companionStatusList.size());
 
@@ -128,7 +128,7 @@ void TemplateStatusSubscription::HandleCompanionStatusChange(const std::vector<C
         if (status.hostUserId != userId_) {
             continue;
         }
-        templateStatusList.push_back(ConvertToIpcTemplateStatus(status, manageSubscribeTime));
+        templateStatusList.push_back(ConvertToIpcTemplateStatus(status, subscribeTimeMs));
     }
 
     if (IpcTemplateStatusVectorEqual(cachedTemplateStatus_, templateStatusList)) {

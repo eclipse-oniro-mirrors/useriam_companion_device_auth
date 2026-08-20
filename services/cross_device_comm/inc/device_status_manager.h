@@ -54,19 +54,19 @@ public:
     std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey);
     std::optional<ChannelId> GetChannelIdByDeviceKey(const DeviceKey &deviceKey);
     std::vector<DeviceStatus> GetAllDeviceStatus();
-    std::optional<SteadyTimeMs> GetManageSubscribeTime() const;
+    std::optional<SteadyTimeMs> GetTemplateStatusSubscribeTimeMs() const;
+    void SetTemplateStatusSubscribed(bool isActive);
 
     std::unique_ptr<Subscription> SubscribeDeviceStatus(OnDeviceStatusChange &&callback);
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
         OnDeviceStatusChange &&callback);
 
     void SetSubscribeMode(SubscribeMode mode);
+    SubscribeMode GetSubscribeMode() const;
     void RefreshDeviceStatus();
     void TriggerDeviceSync(const PhysicalDeviceKey &physicalKey);
 
 private:
-    static constexpr int32_t PERIODIC_SYNC_INTERVAL_MS = 60 * 1000; // 60 seconds
-
     struct DeviceStatusSubscriptionInfo {
         SubscribeId subscriptionId;
         std::optional<DeviceKey> deviceKey;
@@ -84,9 +84,6 @@ private:
         const SyncDeviceStatus &syncDeviceStatus);
 
     void DoTriggerDeviceSync(const PhysicalDeviceKey &physicalKey);
-
-    void StartPeriodicSync();
-    void StopPeriodicSync();
 
     bool UnsubscribeDeviceStatus(SubscribeId subscriptionId);
 
@@ -107,10 +104,9 @@ private:
     void NotifySubscribers();
 
     std::map<PhysicalDeviceKey, DeviceStatusEntry> deviceStatusMap_;
-    SubscribeMode currentMode_ { SUBSCRIBE_MODE_AUTH };
-    std::optional<SteadyTimeMs> manageSubscribeTime_;
+    SubscribeMode currentMode_ { SUBSCRIBE_MODE_SUBSCRIBED_ONLY };
+    std::optional<SteadyTimeMs> templateStatusSubscribeTimeMs_;
     std::vector<DeviceStatusSubscriptionInfo> subscriptions_;
-    std::unique_ptr<Subscription> periodicSyncTimerSubscription_;
     std::vector<BusinessId> hostSupportBusinessIds_;
 
     std::map<ChannelId, std::unique_ptr<Subscription>> channelSubscriptions_;

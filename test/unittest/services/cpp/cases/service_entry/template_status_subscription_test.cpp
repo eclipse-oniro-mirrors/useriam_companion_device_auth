@@ -58,7 +58,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, Create_001, TestSize.Level0)
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&callback) { return MakeSubscription(); }));
     EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus()).WillOnce(Return(std::vector<CompanionStatus> {}));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetManageSubscribeTime()).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetTemplateStatusSubscribeTimeMs()).WillOnce(Return(std::nullopt));
 
     auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
 

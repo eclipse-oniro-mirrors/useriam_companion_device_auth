@@ -68,10 +68,11 @@ static void FuzzSetSubscribeMode(std::shared_ptr<DeviceStatusManager> &mgr, Fuzz
     mgr->SetSubscribeMode(mode);
 }
 
-static void FuzzGetManageSubscribeTime(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
+static void FuzzGetTemplateStatusSubscribeTimeMs(std::shared_ptr<DeviceStatusManager> &mgr,
+    FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    auto time = mgr->GetManageSubscribeTime();
+    auto time = mgr->GetTemplateStatusSubscribeTimeMs();
     (void)time;
 }
 
@@ -120,18 +121,6 @@ static void FuzzTriggerDeviceSync(std::shared_ptr<DeviceStatusManager> &mgr, Fuz
     physicalKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     physicalKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     mgr->TriggerDeviceSync(physicalKey);
-}
-
-static void FuzzStartPeriodicSync(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    mgr->StartPeriodicSync();
-}
-
-static void FuzzStopPeriodicSync(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
-    mgr->StopPeriodicSync();
 }
 
 static void FuzzUnsubscribeDeviceStatus(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
@@ -219,14 +208,12 @@ static const DeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetAllDeviceStatus,
     FuzzSubscribeDeviceStatus,
     FuzzSetSubscribeMode,
-    FuzzGetManageSubscribeTime,
+    FuzzGetTemplateStatusSubscribeTimeMs,
     FuzzSubscribeAllDeviceStatus,
     FuzzGetChannelIdByDeviceKey,
     FuzzInitialize,
     FuzzHandleSyncResult,
     FuzzTriggerDeviceSync,
-    FuzzStartPeriodicSync,
-    FuzzStopPeriodicSync,
     FuzzUnsubscribeDeviceStatus,
     FuzzNegotiateProtocol,
     FuzzShouldMonitorDevice,

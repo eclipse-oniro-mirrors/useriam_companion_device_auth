@@ -19,6 +19,7 @@
 #include "cross_device_common.h"
 #include "soft_bus_device_status_manager.h"
 #include "subscription.h"
+#include "synced_peer_registry.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -57,6 +58,7 @@ private:
     std::shared_ptr<SoftBusDeviceStatusManager> deviceStatusManager_;
     std::map<PhysicalDeviceKey, ResyncEntry> scheduledResyncs_;
     std::set<PhysicalDeviceKey> prevOnlineDevices_;
+    SyncedPeerRegistry syncedPeerRegistry_;
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
     std::unique_ptr<Subscription> deviceNameSubscription_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;

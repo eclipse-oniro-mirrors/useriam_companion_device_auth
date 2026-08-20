@@ -21,6 +21,7 @@
 
 #include "mock_guard.h"
 
+#include "cda_attributes.h"
 #include "device_resync_scheduler.h"
 #include "irequest.h"
 #include "relative_timer.h"
@@ -110,6 +111,25 @@ void MarkDeviceOffline(SoftBusDeviceStatusManager &manager, const PhysicalDevice
             ++i;
         }
     }
+}
+
+EventData BuildPeerSyncedEvent(const PhysicalDeviceKey &key)
+{
+    Attributes event;
+    event.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, key.deviceId);
+    event.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(key.idType));
+    return event.Serialize();
+}
+
+// Must be installed before scheduler->Start() so the registry's PEER_SYNCED subscription
+// is captured; firing the handler afterwards simulates a peer pull for that device.
+void CapturePeerSyncHandler(MockGuard &guard, EventDataHandler &handler)
+{
+    ON_CALL(guard.GetEventBus(), Subscribe(_, _))
+        .WillByDefault(Invoke([&handler](EventType, EventDataHandler &&registered) {
+            handler = std::move(registered);
+            return std::make_shared<Subscription>([]() {});
+        }));
 }
 
 class DeviceResyncSchedulerTest : public testing::Test {
@@ -230,9 +250,12 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DoesNotResyncA
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
-    EXPECT_TRUE(scheduler->Start());
+    ASSERT_TRUE(scheduler->Start());
 
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
@@ -248,6 +271,9 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DoesNotResyncA
             return std::make_shared<FakeResyncRequest>();
         }));
 
+    // The peer pulled our status before coming online, so it holds a cache of us.
+    peerSyncHandler(BuildPeerSyncedEvent(key));
+
     // First snapshot: device is newly online -> resync launched.
     scheduler->OnPhysicalDeviceStatusChanged({ status });
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -259,6 +285,84 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DoesNotResyncA
     EXPECT_EQ(*factoryCallCount, 1);
 }
 
+// A device that never pulled our status holds no cache of us — a newly-online
+// transition must not trigger a resync for it.
+HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_SkipsDeviceNeverSynced, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = SoftBusDeviceStatusManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
+    auto scheduler = DeviceResyncScheduler::Create(manager);
+    ASSERT_NE(scheduler, nullptr);
+    ASSERT_TRUE(scheduler->Start());
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "dev_never_synced";
+    MarkDeviceOnline(*manager, key);
+    PhysicalDeviceStatus status;
+    status.physicalDeviceKey = key;
+
+    auto factoryCallCount = std::make_shared<int>(0);
+    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
+        .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
+            ++(*factoryCallCount);
+            return std::make_shared<FakeResyncRequest>();
+        }));
+
+    scheduler->OnPhysicalDeviceStatusChanged({ status });
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_EQ(*factoryCallCount, 0);
+}
+
+// ResyncAllPhysicalDevices fans out only to devices that recently pulled our status.
+HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_OnlyNotifiesSyncedDevices, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = SoftBusDeviceStatusManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
+    auto scheduler = DeviceResyncScheduler::Create(manager);
+    ASSERT_NE(scheduler, nullptr);
+    ASSERT_TRUE(scheduler->Start());
+
+    PhysicalDeviceKey syncedKey;
+    syncedKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    syncedKey.deviceId = "dev_synced";
+    MarkDeviceOnline(*manager, syncedKey);
+    peerSyncHandler(BuildPeerSyncedEvent(syncedKey));
+
+    PhysicalDeviceKey unsyncedKey;
+    unsyncedKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    unsyncedKey.deviceId = "dev_unsynced";
+    MarkDeviceOnline(*manager, unsyncedKey);
+
+    auto factoryCallCount = std::make_shared<int>(0);
+    auto lastFactoryKey = std::make_shared<PhysicalDeviceKey>();
+    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
+        .WillByDefault(Invoke([factoryCallCount, lastFactoryKey](const PhysicalDeviceKey &key, ResultCodeCallback) {
+            ++(*factoryCallCount);
+            *lastFactoryKey = key;
+            return std::make_shared<FakeResyncRequest>();
+        }));
+
+    scheduler->ResyncAllPhysicalDevices("test");
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_EQ(*factoryCallCount, 1);
+    EXPECT_EQ(*lastFactoryKey, syncedKey);
+}
+
 // ResyncAllPhysicalDevices drives the fan-out path synchronously; a device whose resync fails
 // to launch arms a retry and retains the entry, so the fan-out is not stranded by one launch failure.
 HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_LaunchFailureArmsRetry, TestSize.Level0)
@@ -268,6 +372,9 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_LaunchFailureArmsRe
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
     EXPECT_TRUE(scheduler->Start());
@@ -276,6 +383,7 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_LaunchFailureArmsRe
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "dev_A";
     MarkDeviceOnline(*manager, key);
+    peerSyncHandler(BuildPeerSyncedEvent(key));
 
     // Launch failure (factory returns nullptr) arms a retry instead of erasing.
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _)).WillByDefault(Return(nullptr));
@@ -547,6 +655,9 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
 
@@ -565,6 +676,7 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "dev_A";
     MarkDeviceOnline(*manager, key);
+    peerSyncHandler(BuildPeerSyncedEvent(key));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -590,6 +702,9 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesDeviceNameChangeToFactory, TestS
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
 
@@ -607,6 +722,7 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesDeviceNameChangeToFactory, TestS
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "dev_A";
     MarkDeviceOnline(*manager, key);
+    peerSyncHandler(BuildPeerSyncedEvent(key));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -621,13 +737,16 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesDeviceNameChangeToFactory, TestS
     EXPECT_GE(*factoryCallCount, 1);
 }
 
-// T1: ResyncAllPhysicalDevices fans out to every device known to the status manager.
+// T1: ResyncAllPhysicalDevices fans out to every recently synced device known to the status manager.
 HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_CoversAllDevices, TestSize.Level0)
 {
     MockGuard guard;
 
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
+
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
 
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
@@ -645,6 +764,9 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_CoversAllDevices, T
     MarkDeviceOnline(*manager, keyA);
     MarkDeviceOnline(*manager, keyB);
     MarkDeviceOnline(*manager, keyC);
+    peerSyncHandler(BuildPeerSyncedEvent(keyA));
+    peerSyncHandler(BuildPeerSyncedEvent(keyB));
+    peerSyncHandler(BuildPeerSyncedEvent(keyC));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -1040,14 +1162,17 @@ HWTEST_F(DeviceResyncSchedulerTest, StaleCompletion_DoesNotCorruptRebuiltEntry, 
     EXPECT_EQ(scheduler->scheduledResyncs_.count(key), 0u);
 }
 
-// First snapshot: prevOnline is empty, so every currently-online device is treated as newly
-// online and resynced — SA does not distinguish start-up-online from later-online devices.
+// First snapshot: prevOnline is empty, so every currently-online recently synced device is treated
+// as newly online and resynced — SA does not distinguish start-up-online from later-online devices.
 HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_FirstSnapshot_ResyncsAllOnline, TestSize.Level0)
 {
     MockGuard guard;
 
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
+
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
 
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
@@ -1059,6 +1184,8 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_FirstSnapshot_
     PhysicalDeviceKey keyB;
     keyB.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     keyB.deviceId = "dev_B";
+    peerSyncHandler(BuildPeerSyncedEvent(keyA));
+    peerSyncHandler(BuildPeerSyncedEvent(keyB));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -1088,6 +1215,9 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_NewDeviceOnlin
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
     EXPECT_TRUE(scheduler->Start());
@@ -1098,6 +1228,8 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_NewDeviceOnlin
     PhysicalDeviceKey keyB;
     keyB.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     keyB.deviceId = "dev_B";
+    peerSyncHandler(BuildPeerSyncedEvent(keyA));
+    peerSyncHandler(BuildPeerSyncedEvent(keyB));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -1131,6 +1263,9 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_MultipleNewDev
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
     EXPECT_TRUE(scheduler->Start());
@@ -1144,6 +1279,9 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_MultipleNewDev
     PhysicalDeviceKey keyC;
     keyC.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     keyC.deviceId = "dev_C";
+    peerSyncHandler(BuildPeerSyncedEvent(keyA));
+    peerSyncHandler(BuildPeerSyncedEvent(keyB));
+    peerSyncHandler(BuildPeerSyncedEvent(keyC));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -1177,6 +1315,9 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_OfflineThenOnl
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
     EXPECT_TRUE(scheduler->Start());
@@ -1184,6 +1325,7 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_OfflineThenOnl
     PhysicalDeviceKey keyA;
     keyA.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     keyA.deviceId = "dev_A";
+    peerSyncHandler(BuildPeerSyncedEvent(keyA));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -1219,6 +1361,9 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DmRestart_ReTr
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
     EXPECT_TRUE(scheduler->Start());
@@ -1229,6 +1374,8 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DmRestart_ReTr
     PhysicalDeviceKey keyB;
     keyB.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     keyB.deviceId = "dev_B";
+    peerSyncHandler(BuildPeerSyncedEvent(keyA));
+    peerSyncHandler(BuildPeerSyncedEvent(keyB));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -1264,6 +1411,9 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_AlreadyOnline_
     auto manager = SoftBusDeviceStatusManager::Create();
     ASSERT_NE(manager, nullptr);
 
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
     auto scheduler = DeviceResyncScheduler::Create(manager);
     ASSERT_NE(scheduler, nullptr);
     EXPECT_TRUE(scheduler->Start());
@@ -1271,6 +1421,7 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_AlreadyOnline_
     PhysicalDeviceKey keyA;
     keyA.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     keyA.deviceId = "dev_A";
+    peerSyncHandler(BuildPeerSyncedEvent(keyA));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))

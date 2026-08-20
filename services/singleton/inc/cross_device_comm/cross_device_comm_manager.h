@@ -50,9 +50,11 @@ public:
     virtual std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
         OnDeviceStatusChange &&onDeviceStatusChange) = 0;
     virtual void SetSubscribeMode(SubscribeMode subscribeMode) = 0;
+    virtual SubscribeMode GetSubscribeMode() const = 0;
     virtual void RefreshDeviceStatus() = 0;
     virtual void TriggerDeviceSync(const DeviceKey &deviceKey) = 0;
-    virtual std::optional<SteadyTimeMs> GetManageSubscribeTime() const = 0;
+    virtual std::optional<SteadyTimeMs> GetTemplateStatusSubscribeTimeMs() const = 0;
+    virtual void SetTemplateStatusSubscribed(bool isActive) = 0;
 
     virtual bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) = 0;
     virtual void CloseConnection(const std::string &connectionName, const std::string &reason) = 0;

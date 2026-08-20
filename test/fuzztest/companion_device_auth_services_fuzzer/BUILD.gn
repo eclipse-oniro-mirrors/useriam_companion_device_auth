@@ -36,6 +36,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
     "cases/cross_device_channels/soft_bus/soft_bus_connection_manager_fuzzer.cpp",
     "cases/cross_device_channels/soft_bus/soft_bus_device_status_manager_fuzzer.cpp",
     "cases/cross_device_channels/soft_bus/soft_bus_socket_fuzzer.cpp",
+    "cases/cross_device_channels/soft_bus/synced_peer_registry_fuzzer.cpp",
 
     # cross_device_interaction cases
     "cases/cross_device_interaction/add_companion/add_companion_message_fuzzer.cpp",

@@ -141,6 +141,12 @@ void CrossDeviceCommManagerImpl::SetSubscribeMode(SubscribeMode subscribeMode)
     deviceStatusMgr_->SetSubscribeMode(subscribeMode);
 }
 
+SubscribeMode CrossDeviceCommManagerImpl::GetSubscribeMode() const
+{
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, SUBSCRIBE_MODE_SUBSCRIBED_ONLY);
+    return deviceStatusMgr_->GetSubscribeMode();
+}
+
 void CrossDeviceCommManagerImpl::RefreshDeviceStatus()
 {
     ENSURE_OR_RETURN(deviceStatusMgr_ != nullptr);
@@ -156,10 +162,16 @@ void CrossDeviceCommManagerImpl::TriggerDeviceSync(const DeviceKey &deviceKey)
     deviceStatusMgr_->TriggerDeviceSync(physicalKey);
 }
 
-std::optional<SteadyTimeMs> CrossDeviceCommManagerImpl::GetManageSubscribeTime() const
+std::optional<SteadyTimeMs> CrossDeviceCommManagerImpl::GetTemplateStatusSubscribeTimeMs() const
 {
     ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, std::nullopt);
-    return deviceStatusMgr_->GetManageSubscribeTime();
+    return deviceStatusMgr_->GetTemplateStatusSubscribeTimeMs();
+}
+
+void CrossDeviceCommManagerImpl::SetTemplateStatusSubscribed(bool isActive)
+{
+    ENSURE_OR_RETURN(deviceStatusMgr_ != nullptr);
+    deviceStatusMgr_->SetTemplateStatusSubscribed(isActive);
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeDeviceStatus(const DeviceKey &deviceKey,

@@ -118,6 +118,13 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
     }
 
     EncodeSyncDeviceStatusReply(syncReply, reply);
+
+    Attributes peerSyncedEvent {};
+    peerSyncedEvent.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncRequest.hostDeviceKey.deviceId);
+    peerSyncedEvent.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(syncRequest.hostDeviceKey.idType));
+    GetEventBus().Publish(EventType::PEER_SYNCED, peerSyncedEvent.Serialize());
+
     errorGuard.Cancel();
     eventCollector.Report(ResultCode::SUCCESS);
     IAM_LOGI("%{public}s success", desc.GetCStr());

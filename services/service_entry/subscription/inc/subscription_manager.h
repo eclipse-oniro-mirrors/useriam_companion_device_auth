@@ -65,7 +65,8 @@ private:
 
     class CallerSubscription {
     public:
-        CallerSubscription(const CallerInfo &callerInfo, std::weak_ptr<StaleSubscriptionMonitor> monitor);
+        CallerSubscription(const CallerInfo &callerInfo, std::weak_ptr<StaleSubscriptionMonitor> monitor,
+            bool watchForeground);
 
     private:
         CallerTokenType callerType_ { CallerTokenType::Hap };
@@ -73,7 +74,7 @@ private:
         std::unique_ptr<Subscription> bundleSub_;
     };
 
-    void UpdateSubscribeMode();
+    bool UpdateSubscribeMode();
     void EnsureAppForegroundStateSubscribed();
 
     std::shared_ptr<AvailableDeviceSubscription> GetOrCreateAvailableDeviceSubscription(UserId userId);

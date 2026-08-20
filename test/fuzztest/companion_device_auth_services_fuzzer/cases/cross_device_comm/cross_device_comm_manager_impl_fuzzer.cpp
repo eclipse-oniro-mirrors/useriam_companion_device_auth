@@ -128,10 +128,10 @@ static void FuzzSubscribeAllDeviceStatus(ICrossDeviceCommManager &manager, Fuzze
     (void)subscription;
 }
 
-static void FuzzGetManageSubscribeTime(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
+static void FuzzGetTemplateStatusSubscribeTimeMs(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    auto time = manager.GetManageSubscribeTime();
+    auto time = manager.GetTemplateStatusSubscribeTimeMs();
     (void)time;
 }
 
@@ -227,7 +227,7 @@ static const CrossDeviceCommManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzSubscribeIsAuthMaintainActive,
     FuzzGetAllDeviceStatus,
     FuzzSubscribeAllDeviceStatus,
-    FuzzGetManageSubscribeTime,
+    FuzzGetTemplateStatusSubscribeTimeMs,
     FuzzSubscribeDeviceStatus,
     FuzzGetLocalDeviceKeyByConnectionName,
     FuzzSubscribeConnectionStatus,

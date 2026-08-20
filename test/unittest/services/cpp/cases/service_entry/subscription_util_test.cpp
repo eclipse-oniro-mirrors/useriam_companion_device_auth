@@ -40,8 +40,8 @@ class SubscriptionUtilTest : public Test {};
 HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_ConfirmedAtBoundary, TestSize.Level0)
 {
     auto status = MakeStatus(100);
-    std::optional<int64_t> manageSubscribeTime = 100;
-    auto ipcStatus = ConvertToIpcTemplateStatus(status, manageSubscribeTime);
+    std::optional<int64_t> templateConfirmSinceMs = 100;
+    auto ipcStatus = ConvertToIpcTemplateStatus(status, templateConfirmSinceMs);
     EXPECT_TRUE(ipcStatus.isConfirmed);
 }
 
@@ -49,8 +49,8 @@ HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_ConfirmedAtBoundary, T
 HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_ConfirmedAfterSubscribe, TestSize.Level0)
 {
     auto status = MakeStatus(200);
-    std::optional<int64_t> manageSubscribeTime = 100;
-    auto ipcStatus = ConvertToIpcTemplateStatus(status, manageSubscribeTime);
+    std::optional<int64_t> templateConfirmSinceMs = 100;
+    auto ipcStatus = ConvertToIpcTemplateStatus(status, templateConfirmSinceMs);
     EXPECT_TRUE(ipcStatus.isConfirmed);
 }
 
@@ -58,8 +58,8 @@ HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_ConfirmedAfterSubscrib
 HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_NotConfirmedBeforeSubscribe, TestSize.Level0)
 {
     auto status = MakeStatus(50);
-    std::optional<int64_t> manageSubscribeTime = 100;
-    auto ipcStatus = ConvertToIpcTemplateStatus(status, manageSubscribeTime);
+    std::optional<int64_t> templateConfirmSinceMs = 100;
+    auto ipcStatus = ConvertToIpcTemplateStatus(status, templateConfirmSinceMs);
     EXPECT_FALSE(ipcStatus.isConfirmed);
 }
 
@@ -67,8 +67,8 @@ HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_NotConfirmedBeforeSubs
 HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_NotConfirmedWithoutManageSubscribe, TestSize.Level0)
 {
     auto status = MakeStatus(200);
-    std::optional<int64_t> manageSubscribeTime = std::nullopt;
-    auto ipcStatus = ConvertToIpcTemplateStatus(status, manageSubscribeTime);
+    std::optional<int64_t> templateConfirmSinceMs = std::nullopt;
+    auto ipcStatus = ConvertToIpcTemplateStatus(status, templateConfirmSinceMs);
     EXPECT_FALSE(ipcStatus.isConfirmed);
 }
 

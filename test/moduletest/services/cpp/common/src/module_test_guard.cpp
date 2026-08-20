@@ -901,7 +901,7 @@ std::optional<RawMsgInfo> ModuleTestGuard::InjectRequestAndCaptureReply(const st
 
 void ModuleTestGuard::SetupHostSideSync(const std::string &companionDeviceId, UserId hostUserId)
 {
-    GetCrossDeviceCommManager().SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
+    GetCrossDeviceCommManager().SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES);
     SimulateDeviceOnline(companionDeviceId);
     SyncDeviceStatusReply syncReply;
     syncReply.result = ResultCode::SUCCESS;

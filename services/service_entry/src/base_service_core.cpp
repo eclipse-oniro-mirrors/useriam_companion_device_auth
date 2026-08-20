@@ -238,7 +238,7 @@ ResultCode BaseServiceCore::GetTemplateStatus(int32_t localUserId, std::vector<I
     }
 
     std::vector<CompanionStatus> companionStatusList = GetCompanionManager().GetAllCompanionStatus();
-    std::optional<SteadyTimeMs> manageSubscribeTime = GetCrossDeviceCommManager().GetManageSubscribeTime();
+    std::optional<SteadyTimeMs> subscribeTimeMs = GetCrossDeviceCommManager().GetTemplateStatusSubscribeTimeMs();
 
     for (const auto &status : companionStatusList) {
         if (status.hostUserId != localUserId) {
@@ -248,8 +248,8 @@ ResultCode BaseServiceCore::GetTemplateStatus(int32_t localUserId, std::vector<I
 
         IpcTemplateStatus ipcStatus {};
         ipcStatus.templateId = status.templateId;
-        ipcStatus.isConfirmed = manageSubscribeTime.has_value() &&
-            (status.companionDeviceStatus.lastSyncTimeMs >= manageSubscribeTime.value());
+        ipcStatus.isConfirmed =
+            subscribeTimeMs.has_value() && (status.companionDeviceStatus.lastSyncTimeMs >= subscribeTimeMs.value());
         ipcStatus.isValid = status.isValid;
         ipcStatus.localUserId = status.hostUserId;
         ipcStatus.addedTime = status.addedTime;

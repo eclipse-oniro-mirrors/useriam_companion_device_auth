@@ -82,10 +82,10 @@ private:
     sptr<Remote> remote_;
 };
 
-// MANAGE sets manageSubscribeTime_, AUTH clears it — has_value() mirrors the mode decision.
+// MANAGE = SUBSCRIBE_MODE_ALL_DEVICES (a foreground HAP pins it); AUTH = SUBSCRIBE_MODE_SUBSCRIBED_ONLY.
 bool IsManageMode()
 {
-    return GetCrossDeviceCommManager().GetManageSubscribeTime().has_value();
+    return GetCrossDeviceCommManager().GetSubscribeMode() == SUBSCRIBE_MODE_ALL_DEVICES;
 }
 
 class SubscribeModeModuleTest : public testing::Test {};

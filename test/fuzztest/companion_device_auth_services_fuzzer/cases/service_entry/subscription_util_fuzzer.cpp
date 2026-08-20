@@ -56,16 +56,16 @@ static void FuzzConvertToIpcDeviceStatusWithLargeDeviceId(FuzzedDataProvider &fu
 static void FuzzConvertToIpcTemplateStatus(FuzzedDataProvider &fuzzData)
 {
     CompanionStatus companionStatus = GenerateFuzzCompanionStatus(fuzzData);
-    std::optional<int64_t> manageSubscribeTime = std::make_optional(fuzzData.ConsumeIntegral<int64_t>());
-    auto ipcStatus = ConvertToIpcTemplateStatus(companionStatus, manageSubscribeTime);
+    std::optional<int64_t> templateConfirmSinceMs = std::make_optional(fuzzData.ConsumeIntegral<int64_t>());
+    auto ipcStatus = ConvertToIpcTemplateStatus(companionStatus, templateConfirmSinceMs);
     (void)ipcStatus;
 }
 
 static void FuzzConvertToIpcTemplateStatusWithoutSubscribeTime(FuzzedDataProvider &fuzzData)
 {
     CompanionStatus companionStatus = GenerateFuzzCompanionStatus(fuzzData);
-    std::optional<int64_t> manageSubscribeTime = std::nullopt;
-    auto ipcStatus = ConvertToIpcTemplateStatus(companionStatus, manageSubscribeTime);
+    std::optional<int64_t> templateConfirmSinceMs = std::nullopt;
+    auto ipcStatus = ConvertToIpcTemplateStatus(companionStatus, templateConfirmSinceMs);
     (void)ipcStatus;
 }
 
@@ -73,8 +73,8 @@ static void FuzzConvertToIpcTemplateStatusWithEmptyStatus(FuzzedDataProvider &fu
 {
     (void)fuzzData;
     CompanionStatus companionStatus;
-    std::optional<int64_t> manageSubscribeTime = std::nullopt;
-    auto ipcStatus = ConvertToIpcTemplateStatus(companionStatus, manageSubscribeTime);
+    std::optional<int64_t> templateConfirmSinceMs = std::nullopt;
+    auto ipcStatus = ConvertToIpcTemplateStatus(companionStatus, templateConfirmSinceMs);
     (void)ipcStatus;
 }
 

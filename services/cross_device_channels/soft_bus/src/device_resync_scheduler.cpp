@@ -74,6 +74,9 @@ bool DeviceResyncScheduler::Start()
         });
     ENSURE_OR_RETURN_VAL(deviceStatusSubscription_ != nullptr, false);
 
+    bool registryStartRet = syncedPeerRegistry_.Start();
+    ENSURE_OR_RETURN_VAL(registryStartRet, false);
+
     IAM_LOGI("DeviceResyncScheduler started");
     return true;
 }
@@ -94,9 +97,16 @@ void DeviceResyncScheduler::ResyncAllPhysicalDevices(const std::string &reason)
 {
     ENSURE_OR_RETURN(deviceStatusManager_ != nullptr);
     auto devices = deviceStatusManager_->GetAllPhysicalDevices();
-    IAM_LOGI("resync %{public}zu physical devices, reason %{public}s", devices.size(), reason.c_str());
+    std::vector<PhysicalDeviceKey> recentlySyncedDevices;
     for (const auto &device : devices) {
-        ResyncOneDevice(device.physicalDeviceKey, reason);
+        if (syncedPeerRegistry_.IsRecentlySynced(device.physicalDeviceKey)) {
+            recentlySyncedDevices.push_back(device.physicalDeviceKey);
+        }
+    }
+    IAM_LOGI("resync %{public}zu/%{public}zu recently synced physical devices, reason %{public}s",
+        recentlySyncedDevices.size(), devices.size(), reason.c_str());
+    for (const auto &deviceKey : recentlySyncedDevices) {
+        ResyncOneDevice(deviceKey, reason);
     }
 }
 
@@ -230,7 +240,7 @@ void DeviceResyncScheduler::OnPhysicalDeviceStatusChanged(const std::vector<Phys
     }
 
     for (const auto &key : currentOnline) {
-        if (prevOnlineDevices_.find(key) == prevOnlineDevices_.end()) {
+        if (prevOnlineDevices_.find(key) == prevOnlineDevices_.end() && syncedPeerRegistry_.IsRecentlySynced(key)) {
             IAM_LOGI("device %{public}s newly online, resync", GET_MASKED_STR_CSTR(key.deviceId));
             ResyncOneDevice(key, "device_online");
         }

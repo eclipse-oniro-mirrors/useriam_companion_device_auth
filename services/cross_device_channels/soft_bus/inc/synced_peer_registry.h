@@ -13,46 +13,42 @@
  * limitations under the License.
  */
 
-#ifndef COMPANION_DEVICE_AUTH_EVENT_BUS_H
-#define COMPANION_DEVICE_AUTH_EVENT_BUS_H
+#ifndef SYNCED_PEER_REGISTRY_H
+#define SYNCED_PEER_REGISTRY_H
 
-#include <functional>
+#include <cstdint>
+#include <map>
 #include <memory>
-#include <optional>
-#include <vector>
 
 #include "nocopyable.h"
+
+#include "cross_device_common.h"
+#include "event_bus/event_bus.h"
 #include "service_common.h"
 #include "subscription.h"
-
-#include "common_defines.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-enum class EventType : uint16_t {
-    AUTH_SUCCESS = 1,
-    PEER_SYNCED = 2,
-};
-
-using EventData = std::vector<uint8_t>;
-using EventDataHandler = std::function<void(const EventData &)>;
-
-class IEventBus : public NoCopyable {
+class SyncedPeerRegistry : public NoCopyable {
 public:
-    virtual ~IEventBus() = default;
+    SyncedPeerRegistry() = default;
+    ~SyncedPeerRegistry() = default;
 
-    virtual void Publish(EventType type, const EventData &data) = 0;
-    virtual std::shared_ptr<Subscription> Subscribe(EventType type, EventDataHandler &&handler) = 0;
-    virtual void PersistSubscribe(EventType type, EventDataHandler &&handler) = 0;
+    bool Start();
+    bool IsRecentlySynced(const PhysicalDeviceKey &deviceKey) const;
 
-protected:
-    IEventBus() = default;
+private:
+    void HandlePeerSynced(const EventData &data);
+    void RecordPeerSync(const PhysicalDeviceKey &deviceKey);
+
+    std::map<PhysicalDeviceKey, SteadyTimeMs> syncedPeers_;
+    std::shared_ptr<Subscription> peerSyncSubscription_;
 };
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
 
-#endif // COMPANION_DEVICE_AUTH_EVENT_BUS_H
+#endif // SYNCED_PEER_REGISTRY_H
