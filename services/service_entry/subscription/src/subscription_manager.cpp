@@ -48,7 +48,7 @@ constexpr size_t MAX_SUBSCRIPTIONS_PER_MAP = 100;
 } // namespace
 
 SubscriptionManager::CallerSubscription::CallerSubscription(const CallerInfo &callerInfo,
-    std::weak_ptr<StaleSubscriptionMonitor> monitor)
+    std::weak_ptr<StaleSubscriptionMonitor> monitor, bool watchForeground)
     : callerType_(callerInfo.type)
 {
     if (auto staleMonitor = monitor.lock()) {
@@ -57,7 +57,7 @@ SubscriptionManager::CallerSubscription::CallerSubscription(const CallerInfo &ca
             IAM_LOGE("AddSubscription to stale monitor failed, callerName:%{public}s", callerInfo.name.c_str());
         }
     }
-    if (callerType_ == CallerTokenType::Hap) {
+    if (watchForeground && callerType_ == CallerTokenType::Hap) {
         bundleSub_ = GetAppForegroundStateAdapter().AddWatchedApp(callerInfo.name);
         if (bundleSub_ == nullptr) {
             IAM_LOGE("AddWatchedApp failed, callerName:%{public}s", callerInfo.name.c_str());
@@ -168,7 +168,7 @@ ResultCode SubscriptionManager::AddAvailableDeviceStatusCallback(int32_t userId,
     ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
     subscription->AddCallback(availableDeviceStatusCallback);
     callerSubs_.insert_or_assign(availableDeviceStatusCallback->AsObject(),
-        CallerSubscription(callerInfo, staleSubscriptionMonitor_));
+        CallerSubscription(callerInfo, staleSubscriptionMonitor_, true));
     UpdateSubscribeMode();
     return ResultCode::SUCCESS;
 }
@@ -207,8 +207,9 @@ ResultCode SubscriptionManager::AddTemplateStatusCallback(int32_t userId, Caller
     ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
     subscription->AddCallback(templateStatusCallback);
     callerSubs_.insert_or_assign(templateStatusCallback->AsObject(),
-        CallerSubscription(callerInfo, staleSubscriptionMonitor_));
+        CallerSubscription(callerInfo, staleSubscriptionMonitor_, false));
     UpdateSubscribeMode();
+    GetCrossDeviceCommManager().SetTemplateStatusSubscribed(!templateStatusSubscriptions_.empty());
     return ResultCode::SUCCESS;
 }
 
@@ -231,6 +232,7 @@ void SubscriptionManager::RemoveTemplateStatusCallback(const sptr<IIpcTemplateSt
     }
     callerSubs_.erase(templateStatusCallback->AsObject());
     UpdateSubscribeMode();
+    GetCrossDeviceCommManager().SetTemplateStatusSubscribed(!templateStatusSubscriptions_.empty());
 }
 
 ResultCode SubscriptionManager::AddContinuousAuthStatusCallback(int32_t userId, std::optional<uint64_t> templateId,
@@ -267,14 +269,16 @@ void SubscriptionManager::RemoveContinuousAuthStatusCallback(
     }
 }
 
-void SubscriptionManager::UpdateSubscribeMode()
+bool SubscriptionManager::UpdateSubscribeMode()
 {
     EnsureAppForegroundStateSubscribed();
     auto foregroundApps = GetAppForegroundStateAdapter().GetForegroundWatchedApps();
-    SubscribeMode mode = !foregroundApps.empty() ? SUBSCRIBE_MODE_MANAGE : SUBSCRIBE_MODE_AUTH;
+    SubscribeMode oldMode = GetCrossDeviceCommManager().GetSubscribeMode();
+    SubscribeMode mode = !foregroundApps.empty() ? SUBSCRIBE_MODE_ALL_DEVICES : SUBSCRIBE_MODE_SUBSCRIBED_ONLY;
     IAM_LOGI("UpdateSubscribeMode mode:%{public}d foreground:%{public}s", static_cast<int32_t>(mode),
         GetVectorString(foregroundApps).c_str());
     GetCrossDeviceCommManager().SetSubscribeMode(mode);
+    return (oldMode == SUBSCRIBE_MODE_SUBSCRIBED_ONLY && mode == SUBSCRIBE_MODE_ALL_DEVICES);
 }
 
 void SubscriptionManager::EnsureAppForegroundStateSubscribed()
@@ -285,7 +289,10 @@ void SubscriptionManager::EnsureAppForegroundStateSubscribed()
     ForegroundWatchedAppsHandler handler = [weakSelf = weak_from_this()](const std::vector<std::string> &) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
-        self->UpdateSubscribeMode();
+        if (self->UpdateSubscribeMode()) {
+            TaskRunnerManager::GetInstance().PostTaskOnResident(
+                []() { GetCrossDeviceCommManager().RefreshDeviceStatus(); });
+        }
     };
     foregroundAppSub_ = GetAppForegroundStateAdapter().SubscribeForegroundWatchedApps(handler);
     if (!foregroundAppSub_) {

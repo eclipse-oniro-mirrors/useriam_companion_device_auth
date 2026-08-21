@@ -307,6 +307,56 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_EncodesUserTypePref
     EXPECT_EQ(deviceUserName, "private:TestUser");
 }
 
+// A successful sync publishes PEER_SYNCED carrying the host's physical key, which feeds
+// the synced-peer registry that gates resync fan-out.
+HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_PublishesPeerSyncedEvent, TestSize.Level0)
+{
+    MockGuard guard;
+
+    handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
+
+    Attributes request;
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
+        .capabilityList = { Capability::TOKEN_AUTH },
+        .hostDeviceKey = hostDeviceKey_,
+        .salt = { 1, 2, 3 },
+        .challenge = 0 };
+    EncodeSyncDeviceStatusRequest(syncDeviceStatusRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
+
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserName()).WillOnce(Return(std::optional<std::string>("TestUser")));
+    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserTypeName()).WillOnce(Return("normal"));
+    EXPECT_CALL(guard.GetSystemSettingsManager(), GetSettingsValue(SettingKey::DisplayDeviceName))
+        .WillOnce(Return("TestDevice"));
+    // With no host binding the CompanionProcessCheck branch (the second GetLocalDeviceProfile
+    // call site) never runs, so exactly one profile pull serves BuildSyncDeviceStatusReply.
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(profile_));
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).WillOnce(Return(std::nullopt));
+
+    EventData publishedData;
+    EXPECT_CALL(guard.GetEventBus(), Publish(EventType::PEER_SYNCED, _))
+        .WillOnce(Invoke([&publishedData](EventType, const EventData &data) { publishedData = data; }));
+
+    Attributes reply;
+    ErrorGuard errorGuard([](ResultCode) {});
+    handler_->HandleRequest(request, reply);
+
+    int32_t replyResult = 0;
+    EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
+    EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
+
+    Attributes payload(publishedData);
+    std::string deviceId;
+    int32_t idType = 0;
+    EXPECT_TRUE(payload.GetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, deviceId));
+    EXPECT_EQ(deviceId, hostDeviceKey_.deviceId);
+    EXPECT_TRUE(payload.GetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, idType));
+    EXPECT_EQ(idType, static_cast<int32_t>(hostDeviceKey_.idType));
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

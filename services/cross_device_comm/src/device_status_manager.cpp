@@ -225,17 +225,25 @@ void DeviceStatusManager::SetSubscribeMode(SubscribeMode mode)
     IAM_LOGI("changing subscribe mode: %{public}d -> %{public}d", currentMode_, mode);
 
     currentMode_ = mode;
+    RefreshDeviceList(false);
+}
 
-    if (mode == SUBSCRIBE_MODE_MANAGE) {
-        auto now = GetTimeKeeper().GetSteadyTimeMs();
-        ENSURE_OR_RETURN(now.has_value());
-        manageSubscribeTime_ = now.value();
-        StartPeriodicSync();
-    } else {
-        manageSubscribeTime_ = std::nullopt;
-        StopPeriodicSync();
-        RefreshDeviceList(false);
+void DeviceStatusManager::SetTemplateStatusSubscribed(bool isActive)
+{
+    if (isActive) {
+        if (!templateStatusSubscribeTimeMs_.has_value()) {
+            auto now = GetTimeKeeper().GetSteadyTimeMs();
+            ENSURE_OR_RETURN(now.has_value());
+            templateStatusSubscribeTimeMs_ = now.value();
+        }
+        return;
     }
+    templateStatusSubscribeTimeMs_ = std::nullopt;
+}
+
+SubscribeMode DeviceStatusManager::GetSubscribeMode() const
+{
+    return currentMode_;
 }
 
 void DeviceStatusManager::RefreshDeviceStatus()
@@ -249,9 +257,9 @@ void DeviceStatusManager::RefreshDeviceStatus()
     RefreshDeviceList(true);
 }
 
-std::optional<SteadyTimeMs> DeviceStatusManager::GetManageSubscribeTime() const
+std::optional<SteadyTimeMs> DeviceStatusManager::GetTemplateStatusSubscribeTimeMs() const
 {
-    return manageSubscribeTime_;
+    return templateStatusSubscribeTimeMs_;
 }
 
 std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
@@ -356,30 +364,6 @@ void DeviceStatusManager::DoTriggerDeviceSync(const PhysicalDeviceKey &physicalK
     IAM_LOGI("SyncDeviceStatus request started for device: %{public}s", companionDeviceKey.GetDesc().c_str());
 }
 
-void DeviceStatusManager::StartPeriodicSync()
-{
-    StopPeriodicSync();
-    periodicSyncTimerSubscription_ = RelativeTimer::GetInstance().RegisterPeriodic(
-        [weakSelf = weak_from_this()]() {
-            IAM_LOGI("trigger periodic sync");
-            auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            self->RefreshDeviceList(true);
-        },
-        PERIODIC_SYNC_INTERVAL_MS);
-    ENSURE_OR_RETURN(periodicSyncTimerSubscription_ != nullptr);
-    IAM_LOGI("periodic sync started");
-    RefreshDeviceList(true);
-}
-
-void DeviceStatusManager::StopPeriodicSync()
-{
-    if (periodicSyncTimerSubscription_ != nullptr) {
-        periodicSyncTimerSubscription_.reset();
-    }
-    IAM_LOGI("periodic sync stopped");
-}
-
 std::optional<ProtocolId> DeviceStatusManager::NegotiateProtocol(const std::vector<ProtocolId> &remoteProtocols)
 {
     ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, std::nullopt);
@@ -423,7 +407,7 @@ void DeviceStatusManager::NotifySubscribers()
 
 bool DeviceStatusManager::ShouldMonitorDevice(const PhysicalDeviceKey &physicalKey)
 {
-    if (currentMode_ == SUBSCRIBE_MODE_MANAGE) {
+    if (currentMode_ == SUBSCRIBE_MODE_ALL_DEVICES) {
         return true;
     }
 
@@ -442,7 +426,7 @@ bool DeviceStatusManager::ShouldMonitorDevice(const PhysicalDeviceKey &physicalK
 
 bool DeviceStatusManager::NeedSyncDevice(const PhysicalDeviceKey &physicalKey)
 {
-    if (currentMode_ == SUBSCRIBE_MODE_MANAGE) {
+    if (currentMode_ == SUBSCRIBE_MODE_ALL_DEVICES) {
         return true;
     }
 

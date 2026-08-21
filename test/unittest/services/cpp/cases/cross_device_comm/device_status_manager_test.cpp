@@ -401,10 +401,10 @@ HWTEST_F(DeviceStatusManagerTest, ShouldMonitorDeviceRespectsModeAndSubscription
     EXPECT_TRUE(ctx.manager->ShouldMonitorDevice(targetKey));
     EXPECT_FALSE(ctx.manager->ShouldMonitorDevice(otherKey));
 
-    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
+    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES);
     EXPECT_TRUE(ctx.manager->ShouldMonitorDevice(otherKey));
 
-    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_AUTH);
+    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_SUBSCRIBED_ONLY);
     subscription.reset();
     EXPECT_FALSE(ctx.manager->ShouldMonitorDevice(otherKey));
 }
@@ -412,7 +412,7 @@ HWTEST_F(DeviceStatusManagerTest, ShouldMonitorDeviceRespectsModeAndSubscription
 HWTEST_F(DeviceStatusManagerTest, RefreshDeviceListAddsAndRemovesDevices, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_ALL_DEVICES;
 
     auto statusA = MakePhysicalStatus("device-A", ChannelId::SOFTBUS, "DeviceA");
     auto statusB = MakePhysicalStatus("device-B", ChannelId::SOFTBUS, "DeviceB");
@@ -793,7 +793,7 @@ HWTEST_F(DeviceStatusManagerTest, ShouldSyncDevice_NeedSyncFalse, TestSize.Level
     EXPECT_FALSE(ctx.manager->NeedSyncDevice(targetKey));
 
     // MANAGE mode should always sync regardless of needSync
-    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
+    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES);
     EXPECT_TRUE(ctx.manager->NeedSyncDevice(targetKey));
 }
 
@@ -913,30 +913,41 @@ HWTEST_F(DeviceStatusManagerTest, NeedSyncDevice_GlobalSubscriptionDoesNotAffect
 HWTEST_F(DeviceStatusManagerTest, SetSubscribeMode_SameMode, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.manager->currentMode_ = SUBSCRIBE_MODE_AUTH;
-    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_AUTH);
-    EXPECT_EQ(SUBSCRIBE_MODE_AUTH, ctx.manager->currentMode_);
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_SUBSCRIBED_ONLY;
+    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_SUBSCRIBED_ONLY);
+    EXPECT_EQ(SUBSCRIBE_MODE_SUBSCRIBED_ONLY, ctx.manager->currentMode_);
 }
 
 HWTEST_F(DeviceStatusManagerTest, SetSubscribeMode_ToManage, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
-    EXPECT_EQ(SUBSCRIBE_MODE_MANAGE, ctx.manager->currentMode_);
-    EXPECT_TRUE(ctx.manager->GetManageSubscribeTime().has_value());
+    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES);
+    EXPECT_EQ(SUBSCRIBE_MODE_ALL_DEVICES, ctx.manager->currentMode_);
+}
+
+HWTEST_F(DeviceStatusManagerTest, SetTemplateStatusSubscribed_OpensAndClosesWindow, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+    constexpr uint64_t steadyTimeMs = 12345;
+    ctx.guard->GetTimeKeeper().SetSteadyTime(steadyTimeMs);
+    EXPECT_FALSE(ctx.manager->GetTemplateStatusSubscribeTimeMs().has_value());
+
+    ctx.manager->SetTemplateStatusSubscribed(true);
+    EXPECT_TRUE(ctx.manager->GetTemplateStatusSubscribeTimeMs().has_value());
+
+    ctx.manager->SetTemplateStatusSubscribed(false);
+    EXPECT_FALSE(ctx.manager->GetTemplateStatusSubscribeTimeMs().has_value());
 }
 
 HWTEST_F(DeviceStatusManagerTest, SetSubscribeMode_FromManageToAuth, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
-    EXPECT_TRUE(ctx.manager->GetManageSubscribeTime().has_value());
+    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES);
 
     EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices()).WillOnce(Return(std::vector<PhysicalDeviceStatus> {}));
 
-    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_AUTH);
-    EXPECT_EQ(SUBSCRIBE_MODE_AUTH, ctx.manager->currentMode_);
-    EXPECT_FALSE(ctx.manager->GetManageSubscribeTime().has_value());
+    ctx.manager->SetSubscribeMode(SUBSCRIBE_MODE_SUBSCRIBED_ONLY);
+    EXPECT_EQ(SUBSCRIBE_MODE_SUBSCRIBED_ONLY, ctx.manager->currentMode_);
 }
 
 HWTEST_F(DeviceStatusManagerTest, CollectFilteredDevices_NullChannel, TestSize.Level0)
@@ -948,7 +959,7 @@ HWTEST_F(DeviceStatusManagerTest, CollectFilteredDevices_NullChannel, TestSize.L
     auto mgr = DeviceStatusManager::Create({ BusinessId::DEFAULT }, ctx.connectionMgr, channelMgrWithNull,
         ctx.localStatusManager);
     ASSERT_NE(mgr, nullptr);
-    mgr->SetSubscribeMode(SUBSCRIBE_MODE_MANAGE);
+    mgr->SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES);
 
     auto filteredDevices = mgr->CollectFilteredDevices();
 }
@@ -956,7 +967,7 @@ HWTEST_F(DeviceStatusManagerTest, CollectFilteredDevices_NullChannel, TestSize.L
 HWTEST_F(DeviceStatusManagerTest, RefreshDeviceList_WithResync, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_ALL_DEVICES;
 
     auto statusA = MakePhysicalStatus("device-resync-A", ChannelId::SOFTBUS, "DeviceA");
     DeviceStatusEntry entryA(statusA, []() {});
@@ -1062,7 +1073,7 @@ HWTEST_F(DeviceStatusManagerTest, NotifySubscribers_WithNullCallback, TestSize.L
 HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_DetectsRefreshTokenChange, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_ALL_DEVICES;
 
     auto physicalStatus = MakePhysicalStatus("device-refresh-token", ChannelId::SOFTBUS, "Device");
     physicalStatus.refreshToken = false;
@@ -1133,7 +1144,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_ComputesEffective
 {
     auto ctx = SetupTestContextWithBusinessIds({ static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) });
     ASSERT_NE(ctx.manager, nullptr);
-    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_ALL_DEVICES;
 
     auto physicalStatus = MakePhysicalStatus("device-new", ChannelId::SOFTBUS, "Device");
     physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10002), static_cast<BusinessId>(10003) };
@@ -1160,7 +1171,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_EmptyDeviceIds, T
 {
     auto ctx = SetupTestContextWithBusinessIds({ static_cast<BusinessId>(10001) });
     ASSERT_NE(ctx.manager, nullptr);
-    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_ALL_DEVICES;
 
     auto physicalStatus = MakePhysicalStatus("device-empty", ChannelId::SOFTBUS, "Device");
 
@@ -1186,7 +1197,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsChanged
     auto ctx = SetupTestContextWithBusinessIds(
         { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002), static_cast<BusinessId>(10003) });
     ASSERT_NE(ctx.manager, nullptr);
-    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_ALL_DEVICES;
 
     auto physicalStatus = MakePhysicalStatus("device-biz-change", ChannelId::SOFTBUS, "Device");
     physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
@@ -1216,7 +1227,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchang
 {
     auto ctx = SetupTestContextWithBusinessIds({ static_cast<BusinessId>(10001) });
     ASSERT_NE(ctx.manager, nullptr);
-    ctx.manager->currentMode_ = SUBSCRIBE_MODE_MANAGE;
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_ALL_DEVICES;
 
     auto physicalStatus = MakePhysicalStatus("device-biz-same", ChannelId::SOFTBUS, "Device");
     physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001) };

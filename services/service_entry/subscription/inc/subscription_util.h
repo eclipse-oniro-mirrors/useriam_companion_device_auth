@@ -29,7 +29,7 @@ namespace CompanionDeviceAuth {
 
 IpcDeviceStatus ConvertToIpcDeviceStatus(const DeviceStatus &status);
 IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionStatus,
-    const std::optional<int64_t> &manageSubscribeTime);
+    const std::optional<int64_t> &templateConfirmSinceMs);
 
 bool IpcDeviceStatusEqual(const IpcDeviceStatus &lhs, const IpcDeviceStatus &rhs);
 bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs, const std::vector<IpcDeviceStatus> &rhs);

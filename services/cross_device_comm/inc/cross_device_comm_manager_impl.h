@@ -62,9 +62,11 @@ public:
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
         OnDeviceStatusChange &&onDeviceStatusChange) override;
     void SetSubscribeMode(SubscribeMode subscribeMode) override;
+    SubscribeMode GetSubscribeMode() const override;
     void RefreshDeviceStatus() override;
     void TriggerDeviceSync(const DeviceKey &deviceKey) override;
-    std::optional<SteadyTimeMs> GetManageSubscribeTime() const override;
+    std::optional<SteadyTimeMs> GetTemplateStatusSubscribeTimeMs() const override;
+    void SetTemplateStatusSubscribed(bool isActive) override;
 
     bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) override;
     void CloseConnection(const std::string &connectionName, const std::string &reason) override;

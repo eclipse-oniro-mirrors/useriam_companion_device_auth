@@ -888,6 +888,11 @@ public:
         (void)subscribeMode;
     }
 
+    SubscribeMode GetSubscribeMode() const override
+    {
+        return SubscribeMode::SUBSCRIBE_MODE_SUBSCRIBED_ONLY;
+    }
+
     void RefreshDeviceStatus() override
     {
     }
@@ -897,9 +902,14 @@ public:
         (void)deviceKey;
     }
 
-    std::optional<SteadyTimeMs> GetManageSubscribeTime() const override
+    std::optional<SteadyTimeMs> GetTemplateStatusSubscribeTimeMs() const override
     {
         return std::optional<SteadyTimeMs>();
+    }
+
+    void SetTemplateStatusSubscribed(bool isActive) override
+    {
+        (void)isActive;
     }
 
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,

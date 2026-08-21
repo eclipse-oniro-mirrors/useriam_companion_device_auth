@@ -213,7 +213,8 @@ void MockGuard::SetupCrossDeviceCommManagerDefaults()
         return std::make_unique<Subscription>([]() {});
     }));
     ON_CALL(*crossDeviceCommManager_, SetSubscribeMode(_)).WillByDefault(Return());
-    ON_CALL(*crossDeviceCommManager_, GetManageSubscribeTime()).WillByDefault(Return(std::nullopt));
+    ON_CALL(*crossDeviceCommManager_, GetTemplateStatusSubscribeTimeMs()).WillByDefault(Return(std::nullopt));
+    ON_CALL(*crossDeviceCommManager_, SetTemplateStatusSubscribed(_)).WillByDefault(Return());
     ON_CALL(*crossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke(
             [](const DeviceKey &, bool, OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
@@ -477,6 +478,11 @@ MockRequestFactory &MockGuard::GetRequestFactory()
 MockExecutorFactory &MockGuard::GetExecutorFactory()
 {
     return *executorFactory_;
+}
+
+MockEventBus &MockGuard::GetEventBus()
+{
+    return *eventBus_;
 }
 
 MockDeviceManagerAdapter &MockGuard::GetSoftBusDeviceManagerAdapter()

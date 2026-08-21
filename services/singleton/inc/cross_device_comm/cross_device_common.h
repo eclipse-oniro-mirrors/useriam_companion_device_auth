@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -30,8 +31,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 enum SubscribeMode : int32_t {
-    SUBSCRIBE_MODE_AUTH = 0,
-    SUBSCRIBE_MODE_MANAGE = 1,
+    SUBSCRIBE_MODE_SUBSCRIBED_ONLY = 0,
+    SUBSCRIBE_MODE_ALL_DEVICES = 1,
 };
 
 class PhysicalDeviceKey {

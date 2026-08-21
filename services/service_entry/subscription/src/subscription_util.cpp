@@ -42,12 +42,12 @@ IpcDeviceStatus ConvertToIpcDeviceStatus(const DeviceStatus &status)
 }
 
 IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionStatus,
-    const std::optional<int64_t> &manageSubscribeTime)
+    const std::optional<int64_t> &templateConfirmSinceMs)
 {
     IpcTemplateStatus ipcStatus {};
     ipcStatus.templateId = companionStatus.templateId;
-    ipcStatus.isConfirmed = manageSubscribeTime.has_value() &&
-        (companionStatus.companionDeviceStatus.lastSyncTimeMs >= static_cast<uint64_t>(manageSubscribeTime.value()));
+    ipcStatus.isConfirmed = templateConfirmSinceMs.has_value() &&
+        (companionStatus.companionDeviceStatus.lastSyncTimeMs >= static_cast<uint64_t>(templateConfirmSinceMs.value()));
     ipcStatus.isValid = companionStatus.isValid;
     ipcStatus.localUserId = companionStatus.hostUserId;
     ipcStatus.addedTime = companionStatus.addedTime;

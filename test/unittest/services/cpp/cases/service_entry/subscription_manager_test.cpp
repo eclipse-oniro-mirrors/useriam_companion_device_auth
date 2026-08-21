@@ -245,6 +245,66 @@ HWTEST_F(SubscriptionManagerTest, RemoveTemplateStatusCallback_002, TestSize.Lev
     ASSERT_NO_THROW(subscriptionManager->RemoveTemplateStatusCallback(callback));
 }
 
+// The first template status subscriber opens the confirm window; the fresh sync that
+// keeps lastSyncTimeMs inside the window is driven by BaseServiceCore on subscribe.
+HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_OpensConfirmWindow, TestSize.Level0)
+{
+    MockGuard guard;
+    auto subscriptionManager = SubscriptionManager::Create();
+    UserId userId = 100;
+    sptr<MockIIpcTemplateStatusCallback> callback = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
+    ASSERT_NE(callback, nullptr);
+
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
+        .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetTemplateStatusSubscribed(true));
+
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback);
+
+    EXPECT_FALSE(subscriptionManager->templateStatusSubscriptions_.empty());
+}
+
+// Every subscriber keeps the confirm window open, one SetTemplateStatusSubscribed(true) per add.
+HWTEST_F(SubscriptionManagerTest, AddTemplateStatusCallback_EachSubscriberReopensWindow, TestSize.Level0)
+{
+    MockGuard guard;
+    auto subscriptionManager = SubscriptionManager::Create();
+    UserId userId = 100;
+    sptr<MockIIpcTemplateStatusCallback> callback1 = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
+    sptr<MockIIpcTemplateStatusCallback> callback2 = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
+    ASSERT_NE(callback1, nullptr);
+    ASSERT_NE(callback2, nullptr);
+
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
+        .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetTemplateStatusSubscribed(true)).Times(2);
+
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback1);
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback2);
+
+    EXPECT_FALSE(subscriptionManager->templateStatusSubscriptions_.empty());
+}
+
+// Removing the last template status subscriber closes the confirm window.
+HWTEST_F(SubscriptionManagerTest, RemoveTemplateStatusCallback_ClosesWindow, TestSize.Level0)
+{
+    MockGuard guard;
+    auto subscriptionManager = SubscriptionManager::Create();
+    UserId userId = 100;
+    sptr<MockIIpcTemplateStatusCallback> callback = sptr<MockIIpcTemplateStatusCallback>::MakeSptr();
+    ASSERT_NE(callback, nullptr);
+
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
+        .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetTemplateStatusSubscribed(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetTemplateStatusSubscribed(false));
+
+    subscriptionManager->AddTemplateStatusCallback(userId, CallerInfo {}, callback);
+    subscriptionManager->RemoveTemplateStatusCallback(callback);
+
+    EXPECT_TRUE(subscriptionManager->templateStatusSubscriptions_.empty());
+}
+
 HWTEST_F(SubscriptionManagerTest, AddContinuousAuthStatusCallback_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -342,7 +402,7 @@ HWTEST_F(SubscriptionManagerTest, UpdateSubscribeMode_001, TestSize.Level0)
     MockGuard guard;
     auto subscriptionManager = SubscriptionManager::Create();
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_AUTH)).Times(1);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_SUBSCRIBED_ONLY)).Times(1);
 
     ASSERT_NO_THROW(subscriptionManager->UpdateSubscribeMode());
 }
@@ -352,7 +412,7 @@ HWTEST_F(SubscriptionManagerTest, UpdateSubscribeMode_002, TestSize.Level0)
     MockGuard guard;
     auto subscriptionManager = SubscriptionManager::Create();
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_MANAGE)).Times(1);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES)).Times(1);
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
@@ -372,7 +432,7 @@ HWTEST_F(SubscriptionManagerTest, UpdateSubscribeMode_003, TestSize.Level0)
     MockGuard guard;
     auto subscriptionManager = SubscriptionManager::Create();
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_MANAGE)).Times(1);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES)).Times(1);
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([](OnCompanionDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
@@ -392,7 +452,7 @@ HWTEST_F(SubscriptionManagerTest, UpdateSubscribeMode_004, TestSize.Level0)
     MockGuard guard;
     auto subscriptionManager = SubscriptionManager::Create();
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_AUTH)).Times(1);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SetSubscribeMode(SUBSCRIBE_MODE_SUBSCRIBED_ONLY)).Times(1);
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
 
