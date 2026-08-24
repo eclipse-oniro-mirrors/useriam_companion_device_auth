@@ -19,5 +19,5 @@ import IIpcSetDeviceSelectResultCallback;
 option_stub_hooks on;
 
 interface OHOS.UserIam.CompanionDeviceAuth.IIpcDeviceSelectCallback {
-    void OnDeviceSelect([in] int selectPurpose, [in] IIpcSetDeviceSelectResultCallback setDeviceSelectResultCallback);
+    [oneway] void OnDeviceSelect([in] int selectPurpose, [in] IIpcSetDeviceSelectResultCallback setDeviceSelectResultCallback);
 }

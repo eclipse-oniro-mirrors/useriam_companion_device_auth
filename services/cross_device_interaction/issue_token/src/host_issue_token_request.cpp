@@ -52,6 +52,11 @@ HostIssueTokenRequest::HostIssueTokenRequest(UserId hostUserId, TemplateId templ
 
 bool HostIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
+    if (hostUserId_ != GetUserIdManager().GetActiveUserId()) {
+        IAM_LOGE("%{public}s hostUserId %{public}d mismatch active %{public}d", GetDescription(), hostUserId_,
+            GetUserIdManager().GetActiveUserId());
+        return false;
+    }
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
     auto companionStatus = GetCompanionManager().GetCompanionStatus(*templateId_);
     if (!companionStatus.has_value()) {

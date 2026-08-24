@@ -27,6 +27,7 @@
 #include "iam_logger.h"
 
 #include "common_defines.h"
+#include "framework_defines.h"
 
 #define LOG_TAG "CDA_NAPI"
 #define LOG_FILE_ID LOG_FILE_CDA_NAPI_HELPER
@@ -34,31 +35,6 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-namespace {
-const size_t UINT64_BYTE_SIZE = 8;
-const uint8_t UINT8_BYTE_MASK = 0xFF;
-static constexpr const int MAX_STRING_LENGTH = 65536;
-static constexpr const uint32_t MAX_ARRAY_LENGTH = 20 * 1024;
-
-const std::map<int32_t, std::string> g_result2Str = {
-    { static_cast<int32_t>(ResultCode::GENERAL_ERROR),
-        "The system service is not working properly. Please try again later." },
-    { static_cast<int32_t>(ResultCode::NOT_ENROLLED), "The template is not found." },
-    { static_cast<int32_t>(ResultCode::USER_ID_NOT_FOUND), "The local user is not found." },
-    { static_cast<int32_t>(ResultCode::INVALID_BUSINESS_ID), "The business id is invalid." },
-    { static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED), "Permission denied." },
-    { static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED), "Not system application." }
-};
-
-const std::string &GetResultMsg(int32_t error)
-{
-    auto it = g_result2Str.find(error);
-    if (it != g_result2Str.end()) {
-        return it->second;
-    }
-    return g_result2Str.at(GENERAL_ERROR);
-}
-} // namespace
 
 JsRefHolder::JsRefHolderInner::~JsRefHolderInner()
 {
@@ -231,7 +207,7 @@ napi_status CompanionDeviceAuthNapiHelper::SetDateProperty(napi_env env, napi_va
     int64_t timeStamp)
 {
     napi_value addedTimeValue;
-    double jsTimeStamp = static_cast<double>(timeStamp) * 1000.0;
+    double jsTimeStamp = static_cast<double>(timeStamp);
     napi_status ret = napi_create_date(env, jsTimeStamp, &addedTimeValue);
     if (ret != napi_ok) {
         IAM_LOGE("napi_create_date failed %{public}d", ret);
@@ -477,16 +453,16 @@ napi_status CompanionDeviceAuthNapiHelper::ConvertNapiValueToDeviceKeys(napi_env
         status = napi_get_element(env, deviceKeyArray, i, &deviceKey);
         if (status != napi_ok) {
             IAM_LOGE("failed to get device key at index %{public}zu", i);
-            continue;
+            return napi_invalid_arg;
         }
 
         ClientDeviceKey clientDeviceKey;
         status = ConvertNapiValueToDeviceKey(env, deviceKey, clientDeviceKey);
-        if (status == napi_ok) {
-            deviceKeyList.push_back(clientDeviceKey);
-        } else {
+        if (status != napi_ok) {
             IAM_LOGE("fail to convert at index %{public}zu", i);
+            return napi_invalid_arg;
         }
+        deviceKeyList.push_back(clientDeviceKey);
     }
     return napi_ok;
 }

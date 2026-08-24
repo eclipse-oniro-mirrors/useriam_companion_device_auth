@@ -43,7 +43,7 @@ namespace CompanionDeviceAuth {
 
 namespace {
 thread_local bool g_runningOnDefaultTaskRunner = false;
-constexpr uint32_t TASK_BLOCK_MONITOR_TIMEOUT = 70;
+constexpr uint32_t TASK_BLOCK_MONITOR_TIMEOUT = 100;
 } // namespace
 
 TaskRunnerManager &TaskRunnerManager::GetInstance()
@@ -161,7 +161,7 @@ void TaskRunnerManager::PostTask(const std::string &name, std::function<void()> 
     auto taskRunner = taskRunnerMap_[name];
     ENSURE_OR_RETURN(taskRunner != nullptr);
 
-    auto taskBlockMonitor = std::make_shared<XCollieHelper>("taskBlockMonitor", TASK_BLOCK_MONITOR_TIMEOUT, false);
+    auto taskBlockMonitor = std::make_shared<XCollieHelper>("taskBlockMonitor", TASK_BLOCK_MONITOR_TIMEOUT);
     ENSURE_OR_RETURN(taskBlockMonitor != nullptr);
 
     taskRunner->PostTask([taskRunner, taskBlockMonitor, originalTask = std::move(task)]() mutable { originalTask(); });
@@ -184,7 +184,13 @@ bool TaskRunnerManager::RunOnResidentSyncInner(std::function<void()> &&task, uin
     auto promise = std::make_shared<std::promise<void>>();
     ENSURE_OR_RETURN_VAL(promise != nullptr, false);
     auto future = promise->get_future();
-    PostTaskOnResident([task = std::move(task), promise]() mutable {
+    auto cancelled = std::make_shared<std::atomic<bool>>(false);
+    ENSURE_OR_RETURN_VAL(cancelled != nullptr, false);
+    PostTaskOnResident([task = std::move(task), promise, cancelled]() mutable {
+        if (cancelled->load()) {
+            IAM_LOGI("RunOnResidentSyncInner task cancelled before execution");
+            return;
+        }
         task();
         promise->set_value();
     });
@@ -196,6 +202,7 @@ bool TaskRunnerManager::RunOnResidentSyncInner(std::function<void()> &&task, uin
     if (status != std::future_status::ready) {
         IAM_LOGE("RunOnResidentSyncInner timeout - task not completed in %{public}u second, status: %{public}d",
             timeoutSec, static_cast<int32_t>(status));
+        cancelled->store(true);
         return false;
     }
     return true;

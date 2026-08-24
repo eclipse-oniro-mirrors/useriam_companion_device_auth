@@ -31,8 +31,10 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "nocopyable.h"
+#include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "xcollie_helper.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_SYSTEM_SETTINGS_MANAGER_IMPL
@@ -69,6 +71,7 @@ public:
     ~DataShareHelperGuard()
     {
         if (helper_ != nullptr) {
+            XCollieHelper xcollie("DataShareHelperGuard-Release", API_CALL_TIMEOUT);
             helper_->Release();
         }
     }
@@ -93,6 +96,7 @@ private:
         ENSURE_OR_RETURN_VAL(cdaService != nullptr, nullptr);
         std::string uriStr = BuildBaseUri(userId);
         std::string extUriStr(SETTINGS_DATA_EXT_URI);
+        XCollieHelper xcollie("DataShareHelperGuard-Create", API_CALL_TIMEOUT);
         auto [errCode, helper] = DataShare::DataShareHelper::Create(cdaService, uriStr, extUriStr);
         if (helper == nullptr) {
             IAM_LOGE("create DataShareHelper failed, err=%{public}d, uri=%{public}s", errCode, uriStr.c_str());
@@ -345,6 +349,7 @@ std::string SystemSettingsManagerImpl::QuerySettingsString(DataShare::DataShareH
     predicates.EqualTo(SETTINGS_COLUMN_KEYWORD, key);
 
     Uri uri = BuildKeyUri(userId, key);
+    XCollieHelper xcollie("SystemSettingsManagerImpl-QuerySettingsString", API_CALL_TIMEOUT);
     auto resultSet = helper.Query(uri, predicates, columns, nullptr);
     ENSURE_OR_RETURN_VAL(resultSet != nullptr, "");
 
@@ -386,6 +391,7 @@ bool SystemSettingsManagerImpl::RegisterOneObserver(SettingState &state)
         return false;
     }
     Uri uri = BuildKeyUri(state.userId, state.dataShareKey);
+    XCollieHelper xcollie("SystemSettingsManagerImpl-RegisterOneObserver", API_CALL_TIMEOUT);
     int32_t ret = guard->RegisterObserver(uri, state.observer);
     if (ret != DataShare::E_OK) {
         IAM_LOGE("RegisterObserver failed %{public}d key=%{public}s", ret, state.dataShareKey.c_str());
@@ -405,6 +411,7 @@ void SystemSettingsManagerImpl::UnregisterOneObserver(SettingState &state)
     DataShareHelperGuard guard(cdaService_, state.userId);
     if (guard) {
         Uri uri = BuildKeyUri(state.userId, state.dataShareKey);
+        XCollieHelper xcollie("SystemSettingsManagerImpl-UnregisterOneObserver", API_CALL_TIMEOUT);
         guard->UnregisterObserver(uri, state.observer);
     }
     state.observerRegistered = false;

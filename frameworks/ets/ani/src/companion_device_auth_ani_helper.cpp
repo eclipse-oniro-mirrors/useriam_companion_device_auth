@@ -16,12 +16,13 @@
 #include "companion_device_auth_ani_helper.h"
 
 #include <cinttypes>
-#include <map>
 #include <string>
 
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
+
+#include "framework_defines.h"
 
 #include "taihe/runtime.hpp"
 
@@ -33,33 +34,6 @@ using namespace taihe;
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-namespace {
-const size_t UINT64_BYTE_SIZE = 8;
-const uint8_t UINT8_BYTE_MASK = 0xFF;
-const int32_t ATL1 = 10000;
-const int32_t ATL2 = 20000;
-const int32_t ATL3 = 30000;
-const int32_t ATL4 = 40000;
-
-const std::map<int32_t, std::string> g_result2Str = {
-    { static_cast<int32_t>(ResultCode::GENERAL_ERROR),
-        "The system service is not working properly. Please try again later." },
-    { static_cast<int32_t>(ResultCode::NOT_ENROLLED), "The template is not found." },
-    { static_cast<int32_t>(ResultCode::USER_ID_NOT_FOUND), "The local user is not found." },
-    { static_cast<int32_t>(ResultCode::INVALID_BUSINESS_ID), "The business id is invalid." },
-    { static_cast<int32_t>(ResultCode::CHECK_PERMISSION_FAILED), "Permission denied." },
-    { static_cast<int32_t>(ResultCode::CHECK_SYSTEM_PERMISSION_FAILED), "Not system application." }
-};
-
-const std::string &GetResultMsg(int32_t error)
-{
-    auto it = g_result2Str.find(error);
-    if (it != g_result2Str.end()) {
-        return it->second;
-    }
-    return g_result2Str.at(GENERAL_ERROR);
-}
-} // namespace
 
 taihe::array<uint8_t> CompanionDeviceAuthAniHelper::ConvertTemplateId(uint64_t templateId)
 {
@@ -200,11 +174,6 @@ bool CompanionDeviceAuthAniHelper::IsAuthTrustLevelValid(int32_t authTrustLevel)
 {
     return (
         (authTrustLevel == ATL1) || (authTrustLevel == ATL2) || (authTrustLevel == ATL3) || (authTrustLevel == ATL4));
-}
-
-std::vector<uint8_t> CompanionDeviceAuthAniHelper::ConvertArrayToUint8Vector(const taihe::array<uint8_t> &input)
-{
-    return std::vector<uint8_t>(input.begin(), input.end());
 }
 
 void CompanionDeviceAuthAniHelper::ThrowBusinessError(int32_t error)

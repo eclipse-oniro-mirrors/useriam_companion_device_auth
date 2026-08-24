@@ -21,6 +21,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "cda_scope_guard.h"
 #include "companion_device_auth_napi_helper.h"
 
 #define LOG_TAG "CDA_NAPI"
@@ -40,6 +41,13 @@ struct DeviceSelectCallbackHolder {
 void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSelectCallbackHolder)
 {
     IAM_LOGI("start");
+    ClientDeviceSelectResult emptyResult {};
+    ScopeGuard failGuard([&deviceSelectCallbackHolder, &emptyResult]() {
+        ENSURE_OR_RETURN(deviceSelectCallbackHolder != nullptr);
+        ENSURE_OR_RETURN(deviceSelectCallbackHolder->setCallback != nullptr);
+        deviceSelectCallbackHolder->setCallback->OnSetDeviceSelectResult(emptyResult);
+    });
+
     if (deviceSelectCallbackHolder == nullptr || deviceSelectCallbackHolder->callback == nullptr) {
         IAM_LOGE("deviceSelectCallbackHolder is invalid");
         return;
@@ -50,10 +58,8 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
         IAM_LOGE("napi_open_handle_scope fail");
         return;
     }
-    if (scope == nullptr) {
-        IAM_LOGE("scope is invalid");
-        return;
-    }
+    ENSURE_OR_RETURN(scope != nullptr);
+    ScopeGuard scopeGuard([env = deviceSelectCallbackHolder->env, scope]() { napi_close_handle_scope(env, scope); });
 
     ClientDeviceSelectResult result {};
     napi_value napiDeviceSelectResult = nullptr;
@@ -61,7 +67,6 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
         &napiDeviceSelectResult);
     if (status != napi_ok) {
         IAM_LOGE("DoCallback fail, ret:%{public}d", status);
-        napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
         return;
     }
 
@@ -69,16 +74,12 @@ void DeviceSelectCallback(std::shared_ptr<DeviceSelectCallbackHolder> deviceSele
         napiDeviceSelectResult, result);
     if (status != napi_ok) {
         IAM_LOGE("ConvertNapiValueToClientDeviceSelectResult fail, ret:%{public}d", status);
-        napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
         return;
     }
-    if (deviceSelectCallbackHolder->setCallback == nullptr) {
-        IAM_LOGE("setCallback is null");
-        napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
-        return;
-    }
+
+    failGuard.Cancel();
+    ENSURE_OR_RETURN(deviceSelectCallbackHolder->setCallback != nullptr);
     deviceSelectCallbackHolder->setCallback->OnSetDeviceSelectResult(result);
-    napi_close_handle_scope(deviceSelectCallbackHolder->env, scope);
     IAM_LOGI("end");
 }
 } // namespace
@@ -107,7 +108,7 @@ napi_status NapiDeviceSelectCallback::DoCallback(int32_t selectPurpose, napi_val
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (callback_ == nullptr) {
         IAM_LOGE("callback_ is null");
-        return napi_ok;
+        return napi_generic_failure;
     }
 
     napi_value napiSelectPurpose = nullptr;
@@ -125,6 +126,9 @@ void NapiDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     const std::shared_ptr<SetDeviceSelectResultCallback> &callback)
 {
     IAM_LOGI("start, selectPurpose:%{public}d", selectPurpose);
+    ENSURE_OR_RETURN(callback != nullptr);
+    ClientDeviceSelectResult emptyResult {};
+    ScopeGuard failGuard([&callback, &emptyResult]() { callback->OnSetDeviceSelectResult(emptyResult); });
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     std::shared_ptr<DeviceSelectCallbackHolder> deviceSelectCallbackHolder =
         std::make_shared<DeviceSelectCallbackHolder>();
@@ -138,8 +142,10 @@ void NapiDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     if (napi_send_event(env_, task, napi_eprio_immediate,
         "CompanionDeviceAuthNapi::NapiDeviceSelectCallback::OnDeviceSelect") != napi_status::napi_ok) {
         IAM_LOGE("napi_send_event: Failed to SendEvent");
+        return;
     }
     // clang-format on
+    failGuard.Cancel();
     IAM_LOGI("end");
 }
 } // namespace CompanionDeviceAuth

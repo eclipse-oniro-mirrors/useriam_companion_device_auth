@@ -17,12 +17,14 @@
 
 #include "taihe/runtime.hpp"
 
+#include "cda_scope_guard.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "iam_para2str.h"
 
 #include "common_defines.h"
 #include "companion_device_auth_ani_helper.h"
+#include "framework_defines.h"
 
 #define LOG_TAG "CDA_ANI"
 #define LOG_FILE_ID LOG_FILE_ANI_DEVICE_SELECT_CALLBACK
@@ -44,6 +46,9 @@ void AniDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
     IAM_LOGI("start");
     ENSURE_OR_RETURN(callback != nullptr);
     ClientDeviceSelectResult result;
+    ClientDeviceSelectResult emptyResult;
+    ScopeGuard scopeGuard([&callback, &emptyResult]() { callback->OnSetDeviceSelectResult(emptyResult); });
+
     auto deviceSelectCallback = GetCallback();
     if (deviceSelectCallback == nullptr || !deviceSelectCallback->has_value()) {
         IAM_LOGE("deviceSelectCallback is null or not set");
@@ -63,11 +68,13 @@ void AniDeviceSelectCallback::OnDeviceSelect(int32_t selectPurpose,
         }
 
         if (deviceSelectResult.selectionContext.has_value()) {
-            result.selectionContext =
-                CompanionDeviceAuthAniHelper::ConvertArrayToUint8Vector(deviceSelectResult.selectionContext.value());
+            auto &selectionContext = deviceSelectResult.selectionContext.value();
+            ENSURE_OR_RETURN(selectionContext.size() <= MAX_ARRAY_LENGTH);
+            result.selectionContext = std::vector<uint8_t>(selectionContext.begin(), selectionContext.end());
         }
     }
 
+    scopeGuard.Cancel();
     callback->OnSetDeviceSelectResult(result);
 }
 

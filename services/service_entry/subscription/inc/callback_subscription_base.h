@@ -56,38 +56,35 @@ public:
         return callback1->AsObject() == callback2->AsObject();
     }
 
-    virtual ~CallbackSubscriptionBase()
-    {
-        for (auto &[obj, recipient] : deathRecipients_) {
-            if (obj != nullptr && recipient != nullptr) {
-                obj->RemoveDeathRecipient(recipient);
-            }
-        }
-        deathRecipients_.clear();
-    }
+    virtual ~CallbackSubscriptionBase() = default;
 
     void SetDeathHandler(DeathHandler &&handler)
     {
         deathHandler_ = std::move(handler);
     }
 
-    void AddCallback(const sptr<CallbackType> &callback)
+    bool AddCallback(const sptr<CallbackType> &callback)
     {
         IAM_LOGI("start");
-        ENSURE_OR_RETURN(callback != nullptr);
+        ENSURE_OR_RETURN_VAL(callback != nullptr, false);
 
         auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
             [&callback](const sptr<CallbackType> &item) { return IsCallbackSame(item, callback); });
         if (it != callbacks_.end()) {
             IAM_LOGI("Callback already exists");
-            return;
+            return true;
+        }
+
+        if (callbacks_.size() >= MAX_CALLBACKS_PER_SUBSCRIPTION) {
+            IAM_LOGE("callbacks limit reached (%{public}zu)", callbacks_.size());
+            return false;
         }
 
         auto obj = callback->AsObject();
-        ENSURE_OR_RETURN(obj != nullptr);
+        ENSURE_OR_RETURN_VAL(obj != nullptr, false);
 
         wptr<CallbackType> weakCallback(callback);
-        sptr<IRemoteObject::DeathRecipient> deathRecipient =
+        std::unique_ptr<Subscription> deathSubscription =
             CallbackDeathRecipient::Register(obj, [weakCallback, deathHandler = deathHandler_]() {
                 IAM_LOGI("callback died, schedule remove callback");
                 TaskRunnerManager::GetInstance().PostTaskOnResident([weakCallback, deathHandler]() {
@@ -97,11 +94,12 @@ public:
                     deathHandler(cb);
                 });
             });
-        ENSURE_OR_RETURN(deathRecipient != nullptr);
-        deathRecipients_[obj] = deathRecipient;
+        ENSURE_OR_RETURN_VAL(deathSubscription != nullptr, false);
+        deathSubscriptions_[obj] = std::move(deathSubscription);
         callbacks_.push_back(callback);
 
         OnCallbackAdded(callback);
+        return true;
     }
 
     void RemoveCallback(const sptr<CallbackType> &callback)
@@ -111,11 +109,7 @@ public:
 
         auto obj = callback->AsObject();
         if (obj != nullptr) {
-            auto recipientIt = deathRecipients_.find(obj);
-            if (recipientIt != deathRecipients_.end()) {
-                obj->RemoveDeathRecipient(recipientIt->second);
-                deathRecipients_.erase(recipientIt);
-            }
+            deathSubscriptions_.erase(obj);
         }
 
         auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
@@ -139,8 +133,10 @@ public:
     virtual void OnCallbackRemoteDied(const sptr<CallbackType> &callback) = 0;
 
 protected:
+    static constexpr size_t MAX_CALLBACKS_PER_SUBSCRIPTION = 100;
+
     std::vector<sptr<CallbackType>> callbacks_;
-    std::map<sptr<IRemoteObject>, sptr<IRemoteObject::DeathRecipient>> deathRecipients_;
+    std::map<sptr<IRemoteObject>, std::unique_ptr<Subscription>> deathSubscriptions_;
     DeathHandler deathHandler_;
 };
 

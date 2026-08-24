@@ -25,6 +25,7 @@
 
 #include "common_defines.h"
 #include "misc_manager.h"
+#include "subscription.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -64,11 +65,11 @@ private:
     void NotifyCompanionAuthBlockedChange(bool blocked);
     struct CallbackInfo {
         sptr<IIpcDeviceSelectCallback> callback;
-        sptr<IRemoteObject::DeathRecipient> deathRecipient;
+        std::unique_ptr<Subscription> deathSubscription;
     };
     struct PasscodePromptCallbackInfo {
         sptr<IIpcPasscodePromptCallback> callback;
-        sptr<IRemoteObject::DeathRecipient> deathRecipient;
+        std::unique_ptr<Subscription> deathSubscription;
     };
 
     uint64_t globalIdCounter_;

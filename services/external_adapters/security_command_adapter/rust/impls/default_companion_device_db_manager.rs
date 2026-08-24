@@ -41,6 +41,7 @@ pub const COMPANION_DEVICE_SK: &str = "companion_device_sk";
 const MAX_DEVICE_NUM: usize = 1;
 const MAX_TOKEN_NUM: usize = 1;
 const MAX_CAPABILITY_NUM: usize = 64;
+const MAX_BUSINESS_ID_NUM: usize = 64;
 
 pub struct DefaultCompanionDeviceDbManager {
     pub companion_device_infos: Vec<CompanionDevice>,
@@ -190,7 +191,7 @@ impl DefaultCompanionDeviceDbManager {
         let device_name = parcel.read_string().map_err(|e| p!(e))?;
         let device_user_name = parcel.read_string().map_err(|e| p!(e))?;
         let business_ids_len_raw = parcel.read_i32().map_err(|e| p!(e))?;
-        if business_ids_len_raw < 0 {
+        if business_ids_len_raw < 0 || business_ids_len_raw as usize > MAX_BUSINESS_ID_NUM {
             log_e!("business_ids_len is invalid: {}", business_ids_len_raw);
             return Err(ErrorCode::BadParam);
         }
@@ -203,7 +204,12 @@ impl DefaultCompanionDeviceDbManager {
 
         let device_type = parcel.read_i32().map_err(|e| p!(e))?;
 
-        let supported_business_ids_len = parcel.read_i32().map_err(|e| p!(e))? as usize;
+        let supported_business_ids_len_raw = parcel.read_i32().map_err(|e| p!(e))?;
+        if supported_business_ids_len_raw < 0 || supported_business_ids_len_raw as usize > MAX_BUSINESS_ID_NUM {
+            log_e!("supported_business_ids_len is invalid: {}", supported_business_ids_len_raw);
+            return Err(ErrorCode::BadParam);
+        }
+        let supported_business_ids_len = supported_business_ids_len_raw as usize;
         let mut supported_business_ids = Vec::with_capacity(supported_business_ids_len);
         for _ in 0..supported_business_ids_len {
             let supported_business_id = parcel.read_i32().map_err(|e| p!(e))?;

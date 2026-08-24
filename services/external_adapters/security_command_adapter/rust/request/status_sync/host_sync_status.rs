@@ -106,6 +106,12 @@ impl HostDeviceSyncStatusRequest {
                 return Err(ErrorCode::GeneralError);
             }
         }
+
+        if device_capabilities.is_empty() {
+            log_e!("no device capabilities found");
+            return Err(ErrorCode::GeneralError);
+        }
+
         Ok(())
     }
 }

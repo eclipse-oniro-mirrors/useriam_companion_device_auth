@@ -22,6 +22,116 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+namespace {
+// Accessor kind per real CDA tag, mirroring the Encode/Decode call sites in services so that
+// generated Attributes reach decode paths beyond the "attribute missing" early-return.
+enum FuzzAttrType : uint8_t {
+    FUZZ_ATTR_INT32,
+    FUZZ_ATTR_UINT64,
+    FUZZ_ATTR_UINT32,
+    FUZZ_ATTR_UINT16,
+    FUZZ_ATTR_BOOL,
+    FUZZ_ATTR_STRING,
+    FUZZ_ATTR_UINT8_ARRAY,
+    FUZZ_ATTR_INT32_ARRAY,
+    FUZZ_ATTR_UINT16_ARRAY,
+    FUZZ_ATTR_TYPE_COUNT,
+};
+
+struct FuzzAttrSpec {
+    Attributes::AttributeKey key;
+    FuzzAttrType type;
+};
+
+const FuzzAttrSpec g_fuzzAttrSpecs[] = {
+    { Attributes::ATTR_CDA_SA_HOST_USER_ID, FUZZ_ATTR_INT32 },
+    { Attributes::ATTR_CDA_SA_COMPANION_USER_ID, FUZZ_ATTR_INT32 },
+    { Attributes::ATTR_CDA_SA_RESULT, FUZZ_ATTR_INT32 },
+    { Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, FUZZ_ATTR_INT32 },
+    { Attributes::ATTR_CDA_SA_AUTH_INTENT, FUZZ_ATTR_INT32 },
+    { Attributes::ATTR_CDA_SA_AUTH_SCENE, FUZZ_ATTR_INT32 },
+    { Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, FUZZ_ATTR_STRING },
+    { Attributes::ATTR_CDA_SA_REASON, FUZZ_ATTR_STRING },
+    { Attributes::ATTR_CDA_SA_USER_NAME, FUZZ_ATTR_STRING },
+    { Attributes::ATTR_CDA_SA_DEVICE_NAME, FUZZ_ATTR_STRING },
+    { Attributes::ATTR_CDA_SA_MODEL, FUZZ_ATTR_STRING },
+    { Attributes::ATTR_CDA_SA_CONNECTION_NAME, FUZZ_ATTR_STRING },
+    { Attributes::ATTR_CDA_SA_NAVIGATION_BUTTON_TEXT, FUZZ_ATTR_STRING },
+    { Attributes::ATTR_CDA_SA_WIDGET_TITLE, FUZZ_ATTR_STRING },
+    { Attributes::ATTR_CDA_SA_EXTRA_INFO, FUZZ_ATTR_UINT8_ARRAY },
+    { Attributes::ATTR_CDA_SA_SALT, FUZZ_ATTR_UINT8_ARRAY },
+    { Attributes::ATTR_CDA_SA_SELECT_CONTEXT, FUZZ_ATTR_UINT8_ARRAY },
+    { Attributes::ATTR_CDA_SA_CHALLENGE, FUZZ_ATTR_UINT64 },
+    { Attributes::ATTR_CDA_SA_TEMPLATE_ID, FUZZ_ATTR_UINT64 },
+    { Attributes::ATTR_CDA_SA_MSG_ACK, FUZZ_ATTR_BOOL },
+    { Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, FUZZ_ATTR_BOOL },
+    { Attributes::ATTR_CDA_SA_MSG_TYPE, FUZZ_ATTR_UINT16 },
+    { Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, FUZZ_ATTR_UINT16 },
+    { Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, FUZZ_ATTR_UINT32 },
+    { Attributes::ATTR_CDA_SA_REMOTE_TOKEN_ID, FUZZ_ATTR_UINT32 },
+    { Attributes::ATTR_CDA_SA_AUTH_TYPE, FUZZ_ATTR_INT32_ARRAY },
+    { Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST, FUZZ_ATTR_INT32_ARRAY },
+    { Attributes::ATTR_CDA_SA_CAPABILITY_LIST, FUZZ_ATTR_UINT16_ARRAY },
+    { Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, FUZZ_ATTR_UINT16_ARRAY },
+};
+
+const size_t FUZZ_ATTR_SPEC_COUNT = sizeof(g_fuzzAttrSpecs) / sizeof(g_fuzzAttrSpecs[0]);
+
+// Weights out of FUZZ_ATTR_TOTAL_WEIGHT: mostly well-typed real tags (deep decode paths), plus
+// type-confused real tags and unknown keys near the CDA range (malformed-peer cases).
+constexpr uint8_t FUZZ_ATTR_TOTAL_WEIGHT = 10;
+constexpr uint8_t FUZZ_UNKNOWN_TAG_WEIGHT = 1;
+constexpr uint8_t FUZZ_WRONG_TYPE_WEIGHT = 1;
+// Enum-sized values (ResultCode 0..19, DeviceIdType 0..2) so int32 attributes can hit SUCCESS
+// and other defined values instead of only random garbage.
+constexpr uint32_t FUZZ_ENUM_VALUE_MAX = 19;
+constexpr size_t FUZZ_ATTR_VALUE_MAX_SIZE = 64;
+constexpr size_t FUZZ_ATTR_ARRAY_MAX_COUNT = 8;
+// Offset band around ATTR_CDA_SA_BEGIN for unknown-key generation: a few keys below the CDA
+// range plus a wide span above it, so keys land outside the defined CDA tag set.
+constexpr int32_t FUZZ_UNKNOWN_KEY_OFFSET_MIN = -16;
+constexpr int32_t FUZZ_UNKNOWN_KEY_OFFSET_MAX = 256;
+
+void FillFuzzAttribute(FuzzedDataProvider &fuzzData, Attributes &attrs, Attributes::AttributeKey key, FuzzAttrType type)
+{
+    switch (type) {
+        case FUZZ_ATTR_INT32: {
+            int32_t value = fuzzData.ConsumeBool()
+                ? static_cast<int32_t>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_ENUM_VALUE_MAX))
+                : fuzzData.ConsumeIntegral<int32_t>();
+            attrs.SetInt32Value(key, value);
+            break;
+        }
+        case FUZZ_ATTR_UINT64:
+            attrs.SetUint64Value(key, fuzzData.ConsumeIntegral<uint64_t>());
+            break;
+        case FUZZ_ATTR_UINT32:
+            attrs.SetUint32Value(key, fuzzData.ConsumeIntegral<uint32_t>());
+            break;
+        case FUZZ_ATTR_UINT16:
+            attrs.SetUint16Value(key, fuzzData.ConsumeIntegral<uint16_t>());
+            break;
+        case FUZZ_ATTR_BOOL:
+            attrs.SetBoolValue(key, fuzzData.ConsumeBool());
+            break;
+        case FUZZ_ATTR_STRING:
+            attrs.SetStringValue(key, GenerateFuzzString(fuzzData));
+            break;
+        case FUZZ_ATTR_UINT8_ARRAY:
+            attrs.SetUint8ArrayValue(key, GenerateFuzzVector<uint8_t>(fuzzData, FUZZ_ATTR_VALUE_MAX_SIZE));
+            break;
+        case FUZZ_ATTR_INT32_ARRAY:
+            attrs.SetInt32ArrayValue(key, GenerateFuzzVector<int32_t>(fuzzData, FUZZ_ATTR_ARRAY_MAX_COUNT));
+            break;
+        case FUZZ_ATTR_UINT16_ARRAY:
+            attrs.SetUint16ArrayValue(key, GenerateFuzzVector<uint16_t>(fuzzData, FUZZ_ATTR_ARRAY_MAX_COUNT));
+            break;
+        default:
+            break;
+    }
+}
+} // namespace
+
 std::string GenerateFuzzString(FuzzedDataProvider &fuzzData, uint32_t maxSize)
 {
     return fuzzData.ConsumeRandomLengthString(maxSize);
@@ -45,8 +155,26 @@ bool GenerateFuzzBool(FuzzedDataProvider &fuzzData)
 Attributes GenerateFuzzAttributes(FuzzedDataProvider &fuzzData, size_t maxAttributeCount)
 {
     Attributes attrs;
-    (void)fuzzData;
-    (void)maxAttributeCount;
+    size_t attrCount = fuzzData.ConsumeIntegralInRange<size_t>(0, maxAttributeCount);
+    for (size_t i = 0; i < attrCount; ++i) {
+        uint8_t selector = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_ATTR_TOTAL_WEIGHT - 1);
+        Attributes::AttributeKey key;
+        FuzzAttrType type;
+        if (selector < FUZZ_UNKNOWN_TAG_WEIGHT) {
+            key = static_cast<Attributes::AttributeKey>(static_cast<int32_t>(Attributes::ATTR_CDA_SA_BEGIN) +
+                fuzzData.ConsumeIntegralInRange<int32_t>(FUZZ_UNKNOWN_KEY_OFFSET_MIN, FUZZ_UNKNOWN_KEY_OFFSET_MAX));
+            type = static_cast<FuzzAttrType>(fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_ATTR_TYPE_COUNT - 1));
+        } else {
+            const FuzzAttrSpec &spec =
+                g_fuzzAttrSpecs[fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_ATTR_SPEC_COUNT - 1)];
+            key = spec.key;
+            type = spec.type;
+            if (selector < FUZZ_UNKNOWN_TAG_WEIGHT + FUZZ_WRONG_TYPE_WEIGHT) {
+                type = static_cast<FuzzAttrType>(fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_ATTR_TYPE_COUNT - 1));
+            }
+        }
+        FillFuzzAttribute(fuzzData, attrs, key, type);
+    }
     return attrs;
 }
 

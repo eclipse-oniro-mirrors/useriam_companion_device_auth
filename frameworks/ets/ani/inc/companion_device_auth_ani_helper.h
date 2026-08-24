@@ -47,7 +47,6 @@ public:
     static ClientDeviceKey ConvertAniDeviceKey(companionDeviceAuth::DeviceKey deviceKey);
     static ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel ConvertAuthTrustLevel(int32_t authTrustLevel);
     static bool IsAuthTrustLevelValid(int32_t authTrustLevel);
-    static std::vector<uint8_t> ConvertArrayToUint8Vector(const taihe::array<uint8_t> &input);
     static void ThrowBusinessError(int32_t error);
 
 private:

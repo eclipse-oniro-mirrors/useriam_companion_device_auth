@@ -15,8 +15,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <fuzz_config>
   <fuzztest>
-    <!-- maximum length of a test input -->
-    <max_len>2000</max_len>
+    <!-- maximum length of a test input: large enough that one input can feed the function
+         dispatcher plus a full operation loop without the FuzzedDataProvider running dry -->
+    <max_len>8192</max_len>
     <!-- maximum total time in seconds to run the fuzzer -->
     <max_total_time>300</max_total_time>
     <!-- memory usage limit in Mb -->

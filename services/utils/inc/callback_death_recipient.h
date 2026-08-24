@@ -22,6 +22,7 @@
 
 #include "iremote_object.h"
 #include "nocopyable.h"
+#include "subscription.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -31,7 +32,7 @@ class CallbackDeathRecipient : public IRemoteObject::DeathRecipient, public NoCo
 public:
     using DeathCallback = std::function<void()>;
 
-    static sptr<CallbackDeathRecipient> Register(const sptr<IRemoteObject> &remoteObj, DeathCallback &&callback);
+    static std::unique_ptr<Subscription> Register(const sptr<IRemoteObject> &remoteObj, DeathCallback &&callback);
 
     ~CallbackDeathRecipient() override = default;
     void OnRemoteDied(const wptr<IRemoteObject> &remote) override;

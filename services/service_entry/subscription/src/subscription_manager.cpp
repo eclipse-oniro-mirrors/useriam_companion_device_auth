@@ -166,7 +166,7 @@ ResultCode SubscriptionManager::AddAvailableDeviceStatusCallback(int32_t userId,
 
     auto subscription = GetOrCreateAvailableDeviceSubscription(userId);
     ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
-    subscription->AddCallback(availableDeviceStatusCallback);
+    ENSURE_OR_RETURN_VAL(subscription->AddCallback(availableDeviceStatusCallback), ResultCode::GENERAL_ERROR);
     callerSubs_.insert_or_assign(availableDeviceStatusCallback->AsObject(),
         CallerSubscription(callerInfo, staleSubscriptionMonitor_, true));
     UpdateSubscribeMode();
@@ -205,7 +205,7 @@ ResultCode SubscriptionManager::AddTemplateStatusCallback(int32_t userId, Caller
 
     auto subscription = GetOrCreateTemplateStatusSubscription(userId);
     ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
-    subscription->AddCallback(templateStatusCallback);
+    ENSURE_OR_RETURN_VAL(subscription->AddCallback(templateStatusCallback), ResultCode::GENERAL_ERROR);
     callerSubs_.insert_or_assign(templateStatusCallback->AsObject(),
         CallerSubscription(callerInfo, staleSubscriptionMonitor_, false));
     UpdateSubscribeMode();
@@ -245,7 +245,7 @@ ResultCode SubscriptionManager::AddContinuousAuthStatusCallback(int32_t userId, 
 
     auto subscription = GetOrCreateContinuousAuthSubscription(userId, templateId);
     ENSURE_OR_RETURN_VAL(subscription != nullptr, ResultCode::GENERAL_ERROR);
-    subscription->AddCallback(continuousAuthStatusCallback);
+    ENSURE_OR_RETURN_VAL(subscription->AddCallback(continuousAuthStatusCallback), ResultCode::GENERAL_ERROR);
     return ResultCode::SUCCESS;
 }
 
