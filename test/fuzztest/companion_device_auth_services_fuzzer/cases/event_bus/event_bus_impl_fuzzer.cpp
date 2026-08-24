@@ -40,7 +40,8 @@ static void FuzzCreate(FuzzedDataProvider &fuzzData)
 static void FuzzPublish(FuzzedDataProvider &fuzzData)
 {
     uint16_t eventTypeValue = fuzzData.ConsumeIntegral<uint16_t>();
-    std::vector<uint8_t> eventData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+    std::vector<uint8_t> eventData =
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
 
     auto eventBus = EventBusImpl::Create();
     if (eventBus) {
@@ -53,7 +54,8 @@ static void FuzzPublish(FuzzedDataProvider &fuzzData)
 static void FuzzSubscribe(FuzzedDataProvider &fuzzData)
 {
     uint16_t eventTypeValue = fuzzData.ConsumeIntegral<uint16_t>();
-    std::vector<uint8_t> eventData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+    std::vector<uint8_t> eventData =
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
 
     auto eventBus = EventBusImpl::Create();
     if (eventBus) {
@@ -66,14 +68,16 @@ static void FuzzSubscribe(FuzzedDataProvider &fuzzData)
 static void FuzzSubscribeAndPublish(FuzzedDataProvider &fuzzData)
 {
     uint16_t eventTypeValue = fuzzData.ConsumeIntegral<uint16_t>();
-    std::vector<uint8_t> eventData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+    std::vector<uint8_t> eventData =
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
 
     auto eventBus = EventBusImpl::Create();
     if (eventBus) {
         EventType type = static_cast<EventType>(eventTypeValue);
         auto subscription = eventBus->Subscribe(type, [&eventData](const EventData &data) { (void)data; });
         if (subscription) {
-            std::vector<uint8_t> publishData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+            std::vector<uint8_t> publishData =
+                fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
             eventBus->Publish(type, publishData);
         }
     }
@@ -100,7 +104,8 @@ static void FuzzMultipleSubscribers(FuzzedDataProvider &fuzzData)
             }
         }
 
-        std::vector<uint8_t> publishData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+        std::vector<uint8_t> publishData =
+            fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
         eventBus->Publish(type, publishData);
     }
     EnsureAllTaskExecuted();
@@ -120,7 +125,8 @@ static void FuzzUnsubscribe(FuzzedDataProvider &fuzzData)
                 subscription->Cancel();
             }
 
-            std::vector<uint8_t> publishData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+            std::vector<uint8_t> publishData =
+                fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
             eventBus->Publish(type, publishData);
         }
     }
@@ -146,7 +152,8 @@ static void DoSubscribeOperation(const std::shared_ptr<EventBusImpl> &eventBus, 
 static void DoPublishOperation(const std::shared_ptr<EventBusImpl> &eventBus, EventType type,
     FuzzedDataProvider &fuzzData)
 {
-    std::vector<uint8_t> publishData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+    std::vector<uint8_t> publishData =
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
     eventBus->Publish(type, publishData);
 }
 
@@ -204,7 +211,8 @@ static void FuzzMixedOperations(FuzzedDataProvider &fuzzData)
 static void FuzzPersistSubscribe(FuzzedDataProvider &fuzzData)
 {
     uint16_t eventTypeValue = fuzzData.ConsumeIntegral<uint16_t>();
-    std::vector<uint8_t> eventData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+    std::vector<uint8_t> eventData =
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
 
     auto eventBus = EventBusImpl::Create();
     if (eventBus) {
@@ -216,14 +224,16 @@ static void FuzzPersistSubscribe(FuzzedDataProvider &fuzzData)
 static void FuzzPersistSubscribeAndPublish(FuzzedDataProvider &fuzzData)
 {
     uint16_t eventTypeValue = fuzzData.ConsumeIntegral<uint16_t>();
-    std::vector<uint8_t> eventData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+    std::vector<uint8_t> eventData =
+        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
 
     auto eventBus = EventBusImpl::Create();
     if (eventBus) {
         EventType type = static_cast<EventType>(eventTypeValue);
         eventBus->PersistSubscribe(type, [&eventData](const EventData &data) { (void)data; });
 
-        std::vector<uint8_t> publishData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+        std::vector<uint8_t> publishData =
+            fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
         eventBus->Publish(type, publishData);
     }
     EnsureAllTaskExecuted();
@@ -245,7 +255,8 @@ static void FuzzMultiplePersistSubscribers(FuzzedDataProvider &fuzzData)
             });
         }
 
-        std::vector<uint8_t> publishData = fuzzData.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+        std::vector<uint8_t> publishData =
+            fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
         eventBus->Publish(type, publishData);
     }
     EnsureAllTaskExecuted();

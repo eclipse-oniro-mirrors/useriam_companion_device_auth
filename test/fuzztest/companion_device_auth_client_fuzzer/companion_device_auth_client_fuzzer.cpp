@@ -42,10 +42,12 @@ __attribute__((used)) extern "C" int32_t LLVMFuzzerTestOneInput(const uint8_t *d
     const auto &fuzzFunctions = FuzzRegistry::GetAllFunctions();
     size_t fuzzFunctionCount = FuzzRegistry::GetCount();
 
-    // Read function index from fuzz data
-    uint32_t functionIndex = fuzzData.ConsumeIntegral<uint32_t>();
-    // Call the selected fuzz function if index is valid
-    if (fuzzFunctionCount > 0 && functionIndex < fuzzFunctionCount) {
+    // Read function index from fuzz data; the in-range consumer maps every input to a valid
+    // function instead of wasting most of the index space on out-of-range selections
+    uint32_t functionIndex = fuzzFunctionCount > 0
+        ? fuzzData.ConsumeIntegralInRange<uint32_t>(0, static_cast<uint32_t>(fuzzFunctionCount) - 1)
+        : 0;
+    if (fuzzFunctionCount > 0) {
         fuzzFunctions[functionIndex](fuzzData);
     }
 

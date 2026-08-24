@@ -79,6 +79,9 @@ void HostMixAuthRequest::HandleDeviceSelectResult(const std::vector<DeviceKey> &
     LogTraceGuard guard;
     IAM_LOGI("%{public}s HandleDeviceSelectResult size:%{public}zu", GetDescription(), selectedDevices.size());
 
+    ENSURE_OR_RETURN_DESC(GetDescription(), !deviceSelectResultHandled_);
+    deviceSelectResultHandled_ = true;
+
     if (selectedDevices.empty()) {
         IAM_LOGI("%{public}s selected devices is empty, use all templates", GetDescription());
         StartAuthWithTemplateList(templateIdList_);

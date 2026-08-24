@@ -36,6 +36,7 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 #include "user_id_manager.h"
+#include "xcollie_helper.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_DEFAULT_USER_ID_MANAGER
@@ -160,6 +161,7 @@ std::optional<std::string> DefaultUserIdManager::GetActiveUserName() const
     }
 
     std::string userName;
+    XCollieHelper xcollie("DefaultUserIdManager-GetActiveUserName", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::GetOsAccountNameById(activeUserId_, userName);
     if (errCode != ERR_OK) {
         IAM_LOGE("GetOsAccountNameById failed %{public}d for %{public}d", errCode, activeUserId_);
@@ -221,6 +223,7 @@ bool DefaultUserIdManager::IsUserIdValid(int32_t userId)
         return false;
     }
     bool exists = false;
+    XCollieHelper xcollie("DefaultUserIdManager-IsUserIdValid", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::IsOsAccountExists(userId, exists);
     if (errCode != ERR_OK) {
         IAM_LOGE("IsOsAccountExists failed %{public}d for %{public}d", errCode, userId);
@@ -232,6 +235,7 @@ bool DefaultUserIdManager::IsUserIdValid(int32_t userId)
 std::optional<std::vector<UserId>> DefaultUserIdManager::GetAllValidUserIds() const
 {
     std::vector<AccountSA::OsAccountInfo> osAccountInfos;
+    XCollieHelper xcollie("DefaultUserIdManager-GetAllValidUserIds", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::QueryAllCreatedOsAccounts(osAccountInfos);
     if (errCode != ERR_OK) {
         IAM_LOGE("QueryAllCreatedOsAccounts failed %{public}d", errCode);
@@ -280,6 +284,7 @@ void DefaultUserIdManager::SubscribeOsAccount()
     auto subscriber = std::make_shared<ActiveUserOsAccountSubscriber>(subscribeInfo, weak_from_this());
     ENSURE_OR_RETURN(subscriber != nullptr);
 
+    XCollieHelper xcollie("DefaultUserIdManager-SubscribeOsAccount", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::SubscribeOsAccount(subscriber);
     if (errCode != ERR_OK) {
         IAM_LOGE("SubscribeOsAccount failed %{public}d", errCode);
@@ -297,6 +302,7 @@ void DefaultUserIdManager::UnsubscribeOsAccount()
     auto subscriber = osAccountSubscriber_;
     osAccountSubscriber_.reset();
 
+    XCollieHelper xcollie("DefaultUserIdManager-UnsubscribeOsAccount", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::UnsubscribeOsAccount(subscriber);
     if (errCode != ERR_OK) {
         IAM_LOGE("UnsubscribeOsAccount failed %{public}d", errCode);
@@ -369,6 +375,7 @@ void DefaultUserIdManager::QueryActiveAndUnlockedFromSystem(UserId &active, User
     unlocked = INVALID_USER_ID;
 
     std::vector<int32_t> ids;
+    XCollieHelper xcollie("DefaultUserIdManager-QueryActiveOsAccountIds", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::QueryActiveOsAccountIds(ids);
     if (errCode != ERR_OK) {
         IAM_LOGE("QueryActiveOsAccountIds failed %{public}d", errCode);
@@ -382,6 +389,7 @@ void DefaultUserIdManager::QueryActiveAndUnlockedFromSystem(UserId &active, User
     active = ids.front();
 
     bool isVerified = false;
+    XCollieHelper xcollieVerify("DefaultUserIdManager-IsOsAccountVerified", API_CALL_TIMEOUT);
     errCode = AccountSA::OsAccountManager::IsOsAccountVerified(active, isVerified);
     if (errCode != ERR_OK) {
         IAM_LOGE("IsOsAccountVerified failed %{public}d for %{public}d", errCode, active);
@@ -402,6 +410,7 @@ std::string DefaultUserIdManager::QueryUserTypeNameById(UserId userId)
     }
 
     AccountSA::OsAccountInfo info;
+    XCollieHelper xcollie("DefaultUserIdManager-QueryUserTypeNameById", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::QueryOsAccountById(userId, info);
     if (errCode != ERR_OK) {
         IAM_LOGE("QueryOsAccountById failed %{public}d for %{public}d", errCode, userId);

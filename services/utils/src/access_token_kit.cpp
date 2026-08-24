@@ -59,7 +59,7 @@ bool AccessTokenUtil::CheckPermission(IPCObjectStub &stub, const std::string &pe
 
     uint32_t callingTokenId = stub.GetCallingTokenID();
 
-    XCollieHelper xcollie("AccessTokenUtil-CheckPermission", API_CALL_TIMEOUT, false);
+    XCollieHelper xcollie("AccessTokenUtil-CheckPermission", API_CALL_TIMEOUT);
     if (AccessTokenKit::VerifyAccessToken(callingTokenId, permissionName) != RET_SUCCESS) {
         return false;
     }
@@ -69,7 +69,7 @@ bool AccessTokenUtil::CheckPermission(IPCObjectStub &stub, const std::string &pe
 bool AccessTokenUtil::CheckSystemPermission(IPCObjectStub &stub)
 {
     uint32_t callingTokenId = stub.GetCallingTokenID();
-    XCollieHelper xcollie("AccessTokenUtil-CheckSystemPermission", API_CALL_TIMEOUT, false);
+    XCollieHelper xcollie("AccessTokenUtil-CheckSystemPermission", API_CALL_TIMEOUT);
     ATokenTypeEnum callingType = AccessTokenKit::GetTokenTypeFlag(callingTokenId);
     if (callingType == TOKEN_NATIVE) {
         IAM_LOGI("the caller is native system service");

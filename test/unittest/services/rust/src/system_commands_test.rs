@@ -25,7 +25,7 @@ use crate::request::delegate_auth::host_delegate_auth::HostDelegateAuthRequest;
 use crate::request::enroll::companion_enroll::CompanionDeviceEnrollRequest;
 use crate::request::enroll::enroll_message::{SecBindingRequest, SecKeyNegoReply, SecKeyNegoRequest};
 use crate::request::enroll::host_enroll::HostDeviceEnrollRequest;
-use crate::request::jobs::common_message::{SecCommonRequest, SecIssueToken};
+use crate::request::jobs::common_message::{SecCommonReply, SecCommonRequest, SecIssueToken};
 use crate::request::jobs::token_helper::DeviceTokenInfo;
 use crate::request::status_sync::host_sync_status::HostDeviceSyncStatusRequest;
 use crate::request::token_auth::host_token_auth::HostTokenAuthRequest;
@@ -477,6 +477,17 @@ fn host_end_companion_check_test_success() {
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_salt, _key| Ok(vec![0u8; SHARE_KEY_LEN]));
+    let decrypt_attribute = {
+        let mut attribute = Attribute::new();
+        attribute.set_u64(AttributeKey::AttrHostChallenge, 0);
+        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &[SUPPORTED_PROTOCOL_VERSIONS[0]]);
+        attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &[SUPPORT_CAPABILITIES[0]]);
+        attribute.to_bytes().unwrap()
+    };
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(move |_aes_gcm_result| Ok(decrypt_attribute.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let begin_input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0 };
@@ -487,10 +498,27 @@ fn host_end_companion_check_test_success() {
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
-    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Ok(Vec::new()));
-    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
-    mock_companion_device_db_manager.expect_update_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| {
+        Ok(vec![CompanionDeviceCapability {
+            processor_type: ProcessorType::Default,
+            esl: ExecutorSecurityLevel::Esl0,
+            track_ability_level: TrackAbilityLevel::Tal0,
+        }])
+    });
+    mock_companion_device_db_manager.expect_read_device_sk().returning(|| {
+        Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }])
+    });
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let sec_reply = SecCommonReply {
+        tag: [0u8; AES_GCM_TAG_SIZE],
+        iv: [0u8; AES_GCM_IV_SIZE],
+        encrypt_data: vec![0u8; 8],
+    };
+    let sec_message_bytes = sec_reply.encode(ProcessorType::Default).unwrap();
+    let mut sec_message = DataArray1024Ffi::default();
+    sec_message.data[..sec_message_bytes.len()].copy_from_slice(&sec_message_bytes);
+    sec_message.len = sec_message_bytes.len() as u32;
 
     let mut capability_list = Uint16Array64Ffi::default();
     capability_list.data[0] = SUPPORT_CAPABILITIES[0];
@@ -504,7 +532,7 @@ fn host_end_companion_check_test_success() {
         protocol_list: Uint16Array64Ffi::default(),
         capability_list,
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
+        sec_message,
     };
     let mut output = HostEndCompanionCheckOutputFfi::default();
     let result = host_end_companion_check(&input, &mut output);
@@ -1870,6 +1898,17 @@ fn host_end_delegate_auth_test_success() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine.expect_hkdf().returning(|_salt, _key| Ok(vec![0u8; SHARE_KEY_LEN]));
+    let decrypt_attribute = {
+        let mut attribute = Attribute::new();
+        attribute.set_u64(AttributeKey::AttrHostChallenge, 0);
+        attribute.set_i32(AttributeKey::AttrType, 64);
+        attribute.set_i32(AttributeKey::AttrAuthTrustLevel, AuthTrustLevel::Atl3 as i32);
+        attribute.to_bytes().unwrap()
+    };
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(move |_aes_gcm_result| Ok(decrypt_attribute.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let begin_input = HostBeginDelegateAuthInputFfi {
@@ -1887,15 +1926,33 @@ fn host_end_delegate_auth_test_success() {
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
-    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Ok(Vec::new()));
+    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| {
+        Ok(vec![CompanionDeviceCapability {
+            processor_type: ProcessorType::Default,
+            esl: ExecutorSecurityLevel::Esl0,
+            track_ability_level: TrackAbilityLevel::Tal0,
+        }])
+    });
+    mock_companion_device_db_manager.expect_read_device_sk().returning(|| {
+        Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }])
+    });
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let mut mock_misc_manager = MockMiscManager::new();
     mock_misc_manager.expect_get_local_key_pair().returning(|| Ok(create_mock_key_pair()));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
-    let input =
-        HostEndDelegateAuthInputFfi { request_id: 1, secure_protocol_id: 1, sec_message: DataArray1024Ffi::default() };
+    let sec_reply = SecCommonReply {
+        tag: [0u8; AES_GCM_TAG_SIZE],
+        iv: [0u8; AES_GCM_IV_SIZE],
+        encrypt_data: vec![0u8; 8],
+    };
+    let sec_message_bytes = sec_reply.encode(ProcessorType::Default).unwrap();
+    let mut sec_message = DataArray1024Ffi::default();
+    sec_message.data[..sec_message_bytes.len()].copy_from_slice(&sec_message_bytes);
+    sec_message.len = sec_message_bytes.len() as u32;
+
+    let input = HostEndDelegateAuthInputFfi { request_id: 1, secure_protocol_id: 1, sec_message };
     let mut output = HostEndDelegateAuthOutputFfi { fwk_message: DataArray1024Ffi::default(), auth_type: 0, atl: 0 };
     let result = host_end_delegate_auth(&input, &mut output);
     assert!(result.is_ok());

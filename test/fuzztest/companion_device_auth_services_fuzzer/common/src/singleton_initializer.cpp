@@ -112,7 +112,8 @@ public:
         uint16_t &selectedAlgorithm) override
     {
         (void)params;
-        outAddHostBindingRequest = fuzzData_.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+        outAddHostBindingRequest =
+            fuzzData_.ConsumeBytes<uint8_t>(fuzzData_.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
         selectedAlgorithm = fuzzData_.ConsumeIntegral<uint16_t>();
         return ResultCode::SUCCESS;
     }
@@ -235,7 +236,8 @@ public:
     ResultCode BeginAddHostBinding(const BeginAddHostBindingInput &input, BeginAddHostBindingOutput &output) override
     {
         (void)input;
-        output.addHostBindingReply = fuzzData_.ConsumeBytes<uint8_t>(FUZZ_MAX_MESSAGE_LENGTH);
+        output.addHostBindingReply =
+            fuzzData_.ConsumeBytes<uint8_t>(fuzzData_.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
         output.bindingId = fuzzData_.ConsumeIntegral<BindingId>();
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }

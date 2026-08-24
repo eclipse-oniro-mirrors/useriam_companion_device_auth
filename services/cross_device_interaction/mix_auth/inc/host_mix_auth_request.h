@@ -65,6 +65,7 @@ private:
     std::string title_;
     WidgetAuthParam widgetAuthParam_;
     std::vector<DeviceKey> selectedDevices_;
+    bool deviceSelectResultHandled_ = false;
     FwkResultCallback requestCallback_;
     std::unordered_map<TemplateId, RequestId> requestMap_;
     std::unique_ptr<Subscription> lockEventSubscription_;

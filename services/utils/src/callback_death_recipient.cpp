@@ -30,7 +30,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-sptr<CallbackDeathRecipient> CallbackDeathRecipient::Register(const sptr<IRemoteObject> &remoteObj,
+std::unique_ptr<Subscription> CallbackDeathRecipient::Register(const sptr<IRemoteObject> &remoteObj,
     DeathCallback &&callback)
 {
     ENSURE_OR_RETURN_VAL(remoteObj != nullptr, nullptr);
@@ -44,9 +44,10 @@ sptr<CallbackDeathRecipient> CallbackDeathRecipient::Register(const sptr<IRemote
         IAM_LOGE("AddDeathRecipient failed");
         return nullptr;
     }
+    return std::make_unique<Subscription>([remoteObj, recipient]() { remoteObj->RemoveDeathRecipient(recipient); });
+#else
+    return std::make_unique<Subscription>([]() {});
 #endif // ENABLE_TEST
-
-    return recipient;
 }
 
 CallbackDeathRecipient::CallbackDeathRecipient(DeathCallback &&callback) : callback_(std::move(callback))

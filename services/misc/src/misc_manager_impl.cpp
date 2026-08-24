@@ -72,6 +72,7 @@ public:
 
     ErrCode OnSetDeviceSelectResult(const IpcDeviceSelectResult &ipcDeviceSelectResult) override
     {
+        std::lock_guard<std::recursive_mutex> guard(mutex_);
         if (!handler_) {
             IAM_LOGE("handler is invalid");
             return ERR_INVALID_VALUE;
@@ -81,8 +82,7 @@ public:
             ? std::optional<std::vector<uint8_t>>(ipcDeviceSelectResult.selectionContext)
             : std::nullopt;
         TaskRunnerManager::GetInstance().PostTaskOnResident(
-            [handler = std::move(handler_), devices = std::move(deviceKeys),
-                context = std::move(selectContext)]() mutable {
+            [handler = handler_, devices = std::move(deviceKeys), context = std::move(selectContext)]() mutable {
                 IAM_LOGI("devices:%{public}s contextLen:%{public}zu", DeviceKey::GetVectorDesc(devices).c_str(),
                     context.has_value() ? context->size() : 0);
                 if (handler) {
@@ -107,6 +107,7 @@ public:
 
 private:
     DeviceSelectResultHandler handler_ {};
+    std::recursive_mutex mutex_;
 };
 
 class MiscPasscodePromptCallback : public IpcPasscodeSubmitCallbackStub {
@@ -182,21 +183,19 @@ bool MiscManagerImpl::SetDeviceSelectCallback(uint32_t tokenId,
     auto obj = deviceSelectCallback->AsObject();
     ENSURE_OR_RETURN_VAL(obj != nullptr, false);
 
-    sptr<IRemoteObject::DeathRecipient> deathRecipient =
+    std::unique_ptr<Subscription> deathSubscription =
         CallbackDeathRecipient::Register(obj, [weakSelf = weak_from_this(), tokenId]() {
             IAM_LOGI("device select callback died, clearing callback");
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->ClearDeviceSelectCallback(tokenId);
         });
-    ENSURE_OR_RETURN_VAL(deathRecipient != nullptr, false);
+    ENSURE_OR_RETURN_VAL(deathSubscription != nullptr, false);
 
-    auto it = callbacks_.find(tokenId);
-    if (it != callbacks_.end()) {
+    if (callbacks_.find(tokenId) != callbacks_.end()) {
         IAM_LOGI("replacing existing callback");
     }
-
-    callbacks_[tokenId] = { deviceSelectCallback, deathRecipient };
+    callbacks_[tokenId] = { deviceSelectCallback, std::move(deathSubscription) };
     IAM_LOGI("set device select callback");
     return true;
 }
@@ -233,12 +232,9 @@ bool MiscManagerImpl::GetDeviceDeviceSelectResult(uint32_t tokenId, SelectPurpos
 
 void MiscManagerImpl::ClearDeviceSelectCallback(uint32_t tokenId)
 {
-    auto it = callbacks_.find(tokenId);
-    if (it == callbacks_.end()) {
+    if (callbacks_.erase(tokenId) == 0) {
         return;
     }
-
-    callbacks_.erase(it);
     IAM_LOGI("cleared device select callback");
 }
 
@@ -250,33 +246,28 @@ bool MiscManagerImpl::SetPasscodePromptCallback(uint32_t tokenId,
     auto obj = passcodePromptCallback->AsObject();
     ENSURE_OR_RETURN_VAL(obj != nullptr, false);
 
-    sptr<IRemoteObject::DeathRecipient> deathRecipient =
+    std::unique_ptr<Subscription> deathSubscription =
         CallbackDeathRecipient::Register(obj, [weakSelf = weak_from_this(), tokenId]() {
             IAM_LOGI("passcode prompt callback died, clearing callback");
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->ClearPasscodePromptCallback(tokenId);
         });
-    ENSURE_OR_RETURN_VAL(deathRecipient != nullptr, false);
+    ENSURE_OR_RETURN_VAL(deathSubscription != nullptr, false);
 
-    auto it = passcodePromptCallbacks_.find(tokenId);
-    if (it != passcodePromptCallbacks_.end()) {
+    if (passcodePromptCallbacks_.find(tokenId) != passcodePromptCallbacks_.end()) {
         IAM_LOGI("replacing existing passcode prompt callback");
     }
-
-    passcodePromptCallbacks_[tokenId] = { passcodePromptCallback, deathRecipient };
+    passcodePromptCallbacks_[tokenId] = { passcodePromptCallback, std::move(deathSubscription) };
     IAM_LOGI("set passcode prompt callback");
     return true;
 }
 
 void MiscManagerImpl::ClearPasscodePromptCallback(uint32_t tokenId)
 {
-    auto it = passcodePromptCallbacks_.find(tokenId);
-    if (it == passcodePromptCallbacks_.end()) {
+    if (passcodePromptCallbacks_.erase(tokenId) == 0) {
         return;
     }
-
-    passcodePromptCallbacks_.erase(it);
     IAM_LOGI("cleared passcode prompt callback");
 }
 

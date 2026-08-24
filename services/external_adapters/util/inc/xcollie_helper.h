@@ -24,7 +24,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class XCollieHelper {
 public:
-    XCollieHelper(const std::string &name, unsigned int timeout, bool enableLog = true);
+    XCollieHelper(const std::string &name, unsigned int timeout, bool enableLog = false);
     ~XCollieHelper();
 
 private:

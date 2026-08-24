@@ -33,6 +33,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr uint32_t TOKEN_ID = 12345;
+
 class FakeRemoteObject : public IPCObjectStub {
 public:
     FakeRemoteObject() : IPCObjectStub(u"FakeRemoteObject")
@@ -102,7 +104,7 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_001, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     sptr<MockIIpcDeviceSelectCallback> callback = sptr<MockIIpcDeviceSelectCallback>::MakeSptr();
     ASSERT_NE(nullptr, callback);
 
@@ -122,7 +124,7 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_002, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     bool result = manager->SetDeviceSelectCallback(tokenId, nullptr);
     EXPECT_FALSE(result);
 }
@@ -134,7 +136,7 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_003, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     sptr<MockIIpcDeviceSelectCallback> callback = sptr<MockIIpcDeviceSelectCallback>::MakeSptr();
     ASSERT_NE(nullptr, callback);
 
@@ -151,7 +153,7 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_004, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     sptr<MockIIpcDeviceSelectCallback> callback1 = sptr<MockIIpcDeviceSelectCallback>::MakeSptr();
     sptr<MockIIpcDeviceSelectCallback> callback2 = sptr<MockIIpcDeviceSelectCallback>::MakeSptr();
     ASSERT_NE(nullptr, callback1);
@@ -162,7 +164,7 @@ HWTEST_F(MiscManagerImplTest, SetDeviceSelectCallback_004, TestSize.Level0)
     ASSERT_NE(nullptr, remoteObj1);
     ASSERT_NE(nullptr, remoteObj2);
 
-    EXPECT_CALL(*callback1, AsObject()).WillOnce(Return(remoteObj1));
+    EXPECT_CALL(*callback1, AsObject()).WillRepeatedly(Return(remoteObj1));
     EXPECT_CALL(*callback2, AsObject()).WillOnce(Return(remoteObj2));
 
     bool result1 = manager->SetDeviceSelectCallback(tokenId, callback1);
@@ -179,7 +181,7 @@ HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_001, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     SelectPurpose selectPurpose = SelectPurpose::SELECT_ADD_DEVICE;
 
     auto callbackCalled = std::make_shared<bool>(false);
@@ -200,7 +202,7 @@ HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_002, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     SelectPurpose selectPurpose = SelectPurpose::SELECT_ADD_DEVICE;
 
     bool result = manager->GetDeviceDeviceSelectResult(tokenId, selectPurpose, nullptr);
@@ -214,7 +216,7 @@ HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_003, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     sptr<MockIIpcDeviceSelectCallback> callback = sptr<MockIIpcDeviceSelectCallback>::MakeSptr();
     ASSERT_NE(nullptr, callback);
 
@@ -246,7 +248,7 @@ HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_004, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     sptr<MockIIpcDeviceSelectCallback> callback = sptr<MockIIpcDeviceSelectCallback>::MakeSptr();
     ASSERT_NE(nullptr, callback);
 
@@ -268,6 +270,51 @@ HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_004, TestSize.Level0)
     EXPECT_FALSE(result);
 }
 
+// Repeated OnSetDeviceSelectResult callbacks are all delivered to the handler;
+// duplicate handling policy belongs to the request layer.
+HWTEST_F(MiscManagerImplTest, GetDeviceDeviceSelectResult_005, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = MiscManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    uint32_t tokenId = TOKEN_ID;
+    sptr<MockIIpcDeviceSelectCallback> callback = sptr<MockIIpcDeviceSelectCallback>::MakeSptr();
+    ASSERT_NE(nullptr, callback);
+
+    sptr<FakeRemoteObject> remoteObj = sptr<FakeRemoteObject>::MakeSptr();
+    ASSERT_NE(nullptr, remoteObj);
+
+    EXPECT_CALL(*callback, AsObject()).WillRepeatedly(Return(remoteObj));
+
+    bool setResult = manager->SetDeviceSelectCallback(tokenId, callback);
+    EXPECT_TRUE(setResult);
+
+    sptr<IIpcSetDeviceSelectResultCallback> captured;
+    EXPECT_CALL(*callback, OnDeviceSelect(_, _))
+        .WillOnce(Invoke([&captured](int32_t, const sptr<IIpcSetDeviceSelectResultCallback> &resultCallback) {
+            captured = resultCallback;
+            return ERR_OK;
+        }));
+
+    int32_t handlerCount = 0;
+    DeviceSelectResultHandler resultHandler = [&handlerCount](const std::vector<DeviceKey> &,
+                                                  const std::optional<std::vector<uint8_t>> &) { ++handlerCount; };
+
+    SelectPurpose selectPurpose = SelectPurpose::SELECT_ADD_DEVICE;
+    bool result = manager->GetDeviceDeviceSelectResult(tokenId, selectPurpose, std::move(resultHandler));
+    EXPECT_TRUE(result);
+    ASSERT_NE(nullptr, captured);
+
+    IpcDeviceSelectResult ipcResult;
+    EXPECT_EQ(captured->OnSetDeviceSelectResult(ipcResult), ERR_OK);
+    EXPECT_EQ(captured->OnSetDeviceSelectResult(ipcResult), ERR_OK);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_EQ(handlerCount, 2);
+}
+
 HWTEST_F(MiscManagerImplTest, ClearDeviceSelectCallback_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -275,7 +322,7 @@ HWTEST_F(MiscManagerImplTest, ClearDeviceSelectCallback_001, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     sptr<MockIIpcDeviceSelectCallback> callback = sptr<MockIIpcDeviceSelectCallback>::MakeSptr();
     ASSERT_NE(nullptr, callback);
 
@@ -304,7 +351,7 @@ HWTEST_F(MiscManagerImplTest, ClearDeviceSelectCallback_002, TestSize.Level0)
     auto manager = MiscManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
 
-    uint32_t tokenId = 12345;
+    uint32_t tokenId = TOKEN_ID;
     manager->ClearDeviceSelectCallback(tokenId);
 }
 

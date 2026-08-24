@@ -143,6 +143,8 @@ bool HostAddCompanionRequest::OnStart([[maybe_unused]] ErrorGuard &errorGuard)
 
 void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices)
 {
+    ENSURE_OR_RETURN_DESC(GetDescription(), !deviceSelectResultHandled_);
+    deviceSelectResultHandled_ = true;
     eventCollector_.ExitWait(HostAddCompanionStages::DONE_DEVICE_SELECT);
     IAM_LOGI("%{public}s HandleDeviceSelectResult", GetDescription());
     if (IsFinished()) {

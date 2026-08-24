@@ -274,6 +274,12 @@ void MessageRouter::HandleReply(const MessageHeader &header, const Attributes &p
         return;
     }
 
+    if (it->second.connectionName != header.connectionName || it->second.msgType != header.msgType) {
+        IAM_LOGE("reply does not match pending message: seq=0x%{public}08X, conn=%{public}s, type=0x%{public}04x",
+            header.messageSeq, header.connectionName.c_str(), static_cast<uint16_t>(header.msgType));
+        return;
+    }
+
     auto pending = std::move(it->second);
     pendingReplyMessages_.erase(it);
 
