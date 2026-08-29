@@ -16,12 +16,19 @@
 #ifndef COMPANION_DEVICE_AUTH_TASK_RUNNER_H
 #define COMPANION_DEVICE_AUTH_TASK_RUNNER_H
 
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+
+enum class TaskBlockPolicy {
+    FATAL,
+    REPORT,
+};
 
 class TaskRunner {
 public:
@@ -29,6 +36,8 @@ public:
     virtual ~TaskRunner() = default;
     virtual void PostTask(Task &&task) = 0;
     virtual void Suspend() = 0;
+    virtual TaskBlockPolicy GetBlockPolicy() const = 0;
+    virtual std::string GetOwner() const = 0;
     static std::shared_ptr<TaskRunner> GetDefaultRunner();
 };
 

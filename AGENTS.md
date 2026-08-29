@@ -135,14 +135,15 @@ TaskRunnerManager::GetInstance().PostTask([cb = std::move(callback)]() mutable {
 });
 ```
 
-**阻塞操作** — 在临时线程上运行，然后 PostTask 回常驻线程：
+**阻塞操作** — 在临时线程上运行，然后回常驻线程（REPORT = 外部依赖挂起只上报不杀进程）：
 ```cpp
-TaskRunnerManager::GetInstance().PostTaskOnTemporary("name", [...]() {
-    int result = BlockingCall();
-    TaskRunnerManager::GetInstance().PostTask([result]() {
-        GetManager().HandleResult(result);
+TaskRunnerManager::GetInstance().PostOneShotTask("name", "ownerBundleName", TaskBlockPolicy::REPORT,
+    [...]() {
+        int result = BlockingCall();
+        TaskRunnerManager::GetInstance().PostTaskOnResident([result]() {
+            GetManager().HandleResult(result);
+        });
     });
-});
 ```
 
 **线程检查**：`TaskRunnerManager::GetInstance().RunningOnDefaultTaskRunner()` 在当前处于常驻线程时返回 true。

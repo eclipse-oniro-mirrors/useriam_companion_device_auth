@@ -28,7 +28,8 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-XCollieHelper::XCollieHelper(const std::string &name, unsigned int timeout, bool enableLog)
+
+XCollieHelper::XCollieHelper(const std::string &name, unsigned int timeout, unsigned int flag, bool enableLog)
     : name_(name),
       enableLog_(enableLog),
       startTime_(std::chrono::steady_clock::now())
@@ -36,7 +37,7 @@ XCollieHelper::XCollieHelper(const std::string &name, unsigned int timeout, bool
     if (enableLog_) {
         IAM_LOGI("XCollieHelper %{public}s start", name_.c_str());
     }
-    id_ = HiviewDFX::XCollie::GetInstance().SetTimer(name, timeout, nullptr, nullptr, HiviewDFX::XCOLLIE_FLAG_DEFAULT);
+    id_ = HiviewDFX::XCollie::GetInstance().SetTimer(name, timeout, nullptr, nullptr, flag);
 }
 
 XCollieHelper::~XCollieHelper()

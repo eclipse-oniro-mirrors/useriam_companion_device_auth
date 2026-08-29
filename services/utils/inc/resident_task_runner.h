@@ -30,6 +30,14 @@ public:
     ~ResidentTaskRunner() override = default;
     void PostTask(Task &&task) override;
     void Suspend() override;
+    TaskBlockPolicy GetBlockPolicy() const override
+    {
+        return TaskBlockPolicy::FATAL;
+    }
+    std::string GetOwner() const override
+    {
+        return "";
+    }
 };
 
 } // namespace CompanionDeviceAuth

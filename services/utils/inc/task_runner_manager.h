@@ -34,6 +34,9 @@ namespace CompanionDeviceAuth {
 
 const std::string RESIDENT_TASK_RUNNER_NAME = "ResidentRunner";
 
+constexpr size_t MAX_TMP_RUNNERS_PER_OWNER = 3;
+constexpr size_t MAX_TMP_RUNNERS = 12;
+
 constexpr uint32_t MAX_RESIDENT_SYNC_TIMEOUT_SEC = 2;
 
 template <typename T>
@@ -57,13 +60,15 @@ public:
     void SetRunningOnDefaultTaskRunner(bool value);
     void CheckRunningOnResidentThread(const char *caller);
 
-    virtual bool CreateTaskRunner(const std::string &name);
+    virtual bool CreateTaskRunner(const std::string &name, const std::string &owner,
+        TaskBlockPolicy policy = TaskBlockPolicy::FATAL);
     virtual void DestroyTaskRunner(const std::string &name);
     virtual void DeleteTaskRunner(const std::string &name);
     virtual std::shared_ptr<TaskRunner> GetTaskRunner(const std::string &name);
     virtual void PostTask(const std::string &name, std::function<void()> &&task);
     virtual void PostTaskOnResident(std::function<void()> &&task);
-    virtual void PostTaskOnTemporary(const std::string &name, std::function<void()> &&task);
+    virtual bool PostOneShotTask(const std::string &owner, TaskBlockPolicy policy,
+        std::function<void()> &&task);
 
     template <typename Func>
     typename ResidentSyncResult<typename std::invoke_result<Func>::type>::type RunTaskOnResidentSync(Func &&func,

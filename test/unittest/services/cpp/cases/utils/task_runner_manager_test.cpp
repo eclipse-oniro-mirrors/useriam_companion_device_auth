@@ -13,15 +13,15 @@
  * limitations under the License.
  */
 
-#include <cstddef>
 #include <memory>
-#include <string>
 
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
 
+#include "resident_task_runner.h"
 #include "task_runner_manager.h"
+#include "temporary_task_runner.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -40,35 +40,49 @@ protected:
     }
 };
 
-HWTEST_F(TaskRunnerManagerTest, PostTaskOnTemporary_RejectsWhenTooManyConcurrentRunners, TestSize.Level0)
+HWTEST_F(TaskRunnerManagerTest, PostOneShotTask_SucceedsAndRuns, TestSize.Level0)
 {
     MockGuard guard;
     auto &trm = TaskRunnerManager::GetInstance();
 
-    // Saturate with 8 concurrent temporary runners by directly creating entries.
-    constexpr size_t maxConcurrentTemporaryRunners = 8;
-    for (size_t i = 0; i < maxConcurrentTemporaryRunners; ++i) {
-        std::string runnerName = "saturation_runner_" + std::to_string(i);
-        ASSERT_TRUE(trm.CreateTaskRunner(runnerName));
-    }
-
-    // The 9th temporary task should be silently rejected.
-    auto flag = std::make_shared<bool>(false);
-    trm.PostTaskOnTemporary("overflow_test", [flag]() { *flag = true; });
+    auto ran = std::make_shared<bool>(false);
+    EXPECT_TRUE(trm.PostOneShotTask("one_shot_owner", TaskBlockPolicy::FATAL,
+        [ran]() { *ran = true; }));
 
     trm.ExecuteAll();
-    EXPECT_FALSE(*flag);
-
-    // Cleanup: remove the saturated runners from the map.
-    for (size_t i = 0; i < maxConcurrentTemporaryRunners; ++i) {
-        trm.DeleteTaskRunner("saturation_runner_" + std::to_string(i));
-    }
+    EXPECT_TRUE(*ran);
 }
 
-// The fake RunOnResidentSyncInner runs the callable inline and returns true, which is enough to
-// exercise the template's two return-type branches: void callable -> bool, value callable ->
-// optional<T>. The real timeout/nullopt path lives in the non-fake RunOnResidentSyncInner and is
-// not reachable through the test fake.
+// GetBlockPolicy / GetOwner tests run against the real runner classes (not excluded from test
+// builds): only TemporaryTaskRunner carries the knobs; ResidentTaskRunner pins FATAL and an
+// empty owner explicitly, which is how "the resident thread ignores the policy" is enforced.
+HWTEST_F(TaskRunnerManagerTest, GetBlockPolicy_TemporaryRunnerCarriesPolicy, TestSize.Level0)
+{
+    TemporaryTaskRunner reportRunner("policy_report_runner", "policy_owner", TaskBlockPolicy::REPORT);
+    EXPECT_EQ(reportRunner.GetBlockPolicy(), TaskBlockPolicy::REPORT);
+
+    TemporaryTaskRunner fatalRunner("policy_fatal_runner", "policy_owner", TaskBlockPolicy::FATAL);
+    EXPECT_EQ(fatalRunner.GetBlockPolicy(), TaskBlockPolicy::FATAL);
+}
+
+HWTEST_F(TaskRunnerManagerTest, GetBlockPolicy_ResidentRunnerStaysFatal, TestSize.Level0)
+{
+    ResidentTaskRunner residentRunner;
+    EXPECT_EQ(residentRunner.GetBlockPolicy(), TaskBlockPolicy::FATAL);
+}
+
+HWTEST_F(TaskRunnerManagerTest, GetOwner_TemporaryRunnerCarriesOwner, TestSize.Level0)
+{
+    TemporaryTaskRunner runner("owner_runner", "owner_a", TaskBlockPolicy::FATAL);
+    EXPECT_EQ(runner.GetOwner(), "owner_a");
+}
+
+HWTEST_F(TaskRunnerManagerTest, GetOwner_ResidentRunnerHasNoOwner, TestSize.Level0)
+{
+    ResidentTaskRunner residentRunner;
+    EXPECT_EQ(residentRunner.GetOwner(), "");
+}
+
 HWTEST_F(TaskRunnerManagerTest, RunTaskOnResidentSync_VoidCallable_ReturnsTrueAndRuns, TestSize.Level0)
 {
     MockGuard guard;

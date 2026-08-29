@@ -30,14 +30,17 @@ namespace CompanionDeviceAuth {
 
 class TemporaryTaskRunner : public TaskRunner, NoCopyable {
 public:
-    TemporaryTaskRunner(std::string name, bool canSuspend);
+    TemporaryTaskRunner(std::string name, std::string owner, TaskBlockPolicy policy);
     ~TemporaryTaskRunner() override;
     void PostTask(Task &&task) override;
     void Suspend() override;
+    TaskBlockPolicy GetBlockPolicy() const override;
+    std::string GetOwner() const override;
 
 private:
     OHOS::ThreadPool pool_;
-    bool canSuspend_ = false;
+    TaskBlockPolicy policy_;
+    std::string owner_;
 
     std::recursive_mutex mutex_;
     bool isSuspended_ = false;

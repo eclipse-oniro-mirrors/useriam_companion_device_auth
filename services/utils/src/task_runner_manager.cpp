@@ -15,6 +15,7 @@
 
 #include "task_runner_manager.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstddef>
@@ -32,6 +33,7 @@
 #include "event_manager_adapter.h"
 #include "resident_task_runner.h"
 #include "temporary_task_runner.h"
+#include "xcollie/xcollie_define.h"
 #include "xcollie_helper.h"
 
 #define LOG_TAG "CDA_SA"
@@ -44,6 +46,11 @@ namespace CompanionDeviceAuth {
 namespace {
 thread_local bool g_runningOnDefaultTaskRunner = false;
 constexpr uint32_t TASK_BLOCK_MONITOR_TIMEOUT = 100;
+
+unsigned int ToXCollieFlag(TaskBlockPolicy policy)
+{
+    return policy == TaskBlockPolicy::REPORT ? HiviewDFX::XCOLLIE_FLAG_LOG : HiviewDFX::XCOLLIE_FLAG_DEFAULT;
+}
 } // namespace
 
 TaskRunnerManager &TaskRunnerManager::GetInstance()
@@ -81,17 +88,40 @@ TaskRunnerManager::TaskRunnerManager()
     taskRunnerMap_.emplace(RESIDENT_TASK_RUNNER_NAME, taskRunner);
 }
 
-bool TaskRunnerManager::CreateTaskRunner(const std::string &name)
+bool TaskRunnerManager::CreateTaskRunner(const std::string &name, const std::string &owner,
+    TaskBlockPolicy policy)
 {
+    if (name == RESIDENT_TASK_RUNNER_NAME) {
+        IAM_LOGE("cannot create resident runner %{public}s via CreateTaskRunner", name.c_str());
+        return false;
+    }
+    if (name.empty() || owner.empty()) {
+        IAM_LOGE("empty runner name or owner");
+        return false;
+    }
+
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (taskRunnerMap_.find(name) != taskRunnerMap_.end()) {
         IAM_LOGE("task runner %{public}s already exists", name.c_str());
         return false;
     }
-    auto taskRunner = std::make_shared<TemporaryTaskRunner>(name, true);
+    // RESIDENT always occupies exactly one map slot and has no erase path.
+    size_t temporaryCount = taskRunnerMap_.size() - 1;
+    if (temporaryCount >= MAX_TMP_RUNNERS) {
+        IAM_LOGE("too many temporary task runners %{public}zu, reject %{public}s", temporaryCount, name.c_str());
+        return false;
+    }
+    auto ownerCount = std::count_if(taskRunnerMap_.begin(), taskRunnerMap_.end(),
+        [&owner](const auto &entry) { return entry.second->GetOwner() == owner; });
+    if (ownerCount >= MAX_TMP_RUNNERS_PER_OWNER) {
+        IAM_LOGE("too many runners for owner %{public}s %{public}zu/%{public}zu, reject %{public}s",
+            owner.c_str(), ownerCount, MAX_TMP_RUNNERS_PER_OWNER, name.c_str());
+        return false;
+    }
+    std::shared_ptr<TemporaryTaskRunner> taskRunner = std::make_shared<TemporaryTaskRunner>(name, owner, policy);
     ENSURE_OR_RETURN_VAL(taskRunner != nullptr, false);
     taskRunnerMap_.emplace(name, taskRunner);
-    IAM_LOGI("task runner %{public}s create success", name.c_str());
+    IAM_LOGI("task runner %{public}s owner %{public}s create success", name.c_str(), owner.c_str());
     return true;
 }
 
@@ -161,7 +191,8 @@ void TaskRunnerManager::PostTask(const std::string &name, std::function<void()> 
     auto taskRunner = taskRunnerMap_[name];
     ENSURE_OR_RETURN(taskRunner != nullptr);
 
-    auto taskBlockMonitor = std::make_shared<XCollieHelper>("taskBlockMonitor", TASK_BLOCK_MONITOR_TIMEOUT);
+    auto taskBlockMonitor = std::make_shared<XCollieHelper>("taskBlockMonitor", TASK_BLOCK_MONITOR_TIMEOUT,
+        ToXCollieFlag(taskRunner->GetBlockPolicy()));
     ENSURE_OR_RETURN(taskBlockMonitor != nullptr);
 
     taskRunner->PostTask([taskRunner, taskBlockMonitor, originalTask = std::move(task)]() mutable { originalTask(); });
@@ -208,23 +239,20 @@ bool TaskRunnerManager::RunOnResidentSyncInner(std::function<void()> &&task, uin
     return true;
 }
 
-void TaskRunnerManager::PostTaskOnTemporary(const std::string &name, std::function<void()> &&task)
+bool TaskRunnerManager::PostOneShotTask(const std::string &owner, TaskBlockPolicy policy,
+    std::function<void()> &&task)
 {
     static std::atomic<uint32_t> runnerSerial = 1;
-    constexpr size_t maxConcurrentRunners = 9;
 
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    size_t mapSize = taskRunnerMap_.size();
-    if (mapSize >= maxConcurrentRunners) {
-        IAM_LOGE("too many concurrent temporary task runners %{public}zu, reject '%{public}s'", mapSize, name.c_str());
-        return;
-    }
-
     uint32_t serial = runnerSerial.fetch_add(1);
-    std::string thread_name = name + "_" + std::to_string(serial);
-    CreateTaskRunner(thread_name);
-    PostTask(thread_name, std::move(task));
-    DestroyTaskRunner(thread_name);
+    std::string runnerName = "OneShot_" + std::to_string(serial);
+    if (!CreateTaskRunner(runnerName, owner, policy)) {
+        return false;
+    }
+    PostTask(runnerName, std::move(task));
+    DestroyTaskRunner(runnerName);
+    return true;
 }
 
 } // namespace CompanionDeviceAuth
