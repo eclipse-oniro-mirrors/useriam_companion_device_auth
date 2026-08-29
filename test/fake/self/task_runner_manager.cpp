@@ -21,12 +21,7 @@
 #include <functional>
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
-
-#include "iam_logger.h"
-
-#define LOG_TAG "CDA_SA"
 
 namespace OHOS {
 namespace UserIam {
@@ -35,8 +30,6 @@ namespace CompanionDeviceAuth {
 namespace {
 auto g_pendingTasks = std::make_shared<std::map<uint64_t, TaskRunner::Task>>();
 auto g_nextTaskId = std::make_shared<std::atomic<uint64_t>>(0);
-std::set<std::string> g_temporaryRunners;
-constexpr size_t MAX_CONCURRENT_TEMPORARY_RUNNERS = 8;
 } // namespace
 
 TaskRunnerManager &TaskRunnerManager::GetInstance()
@@ -57,9 +50,17 @@ void TaskRunnerManager::SetRunningOnDefaultTaskRunner(bool value)
     (void)value;
 }
 
-bool TaskRunnerManager::CreateTaskRunner(const std::string &name)
+// The fake is a deterministic queue for UT/FUZZ: posted tasks wait in g_pendingTasks until
+// ExecuteAll/EnsureAllTaskExecuted drains them, sync callables run inline. It never rejects
+// work — admission caps and watchdog policy are resource defenses of the real implementation
+// (excluded from test builds) and must not be mirrored here: a rejecting fake would make test
+// outcomes depend on runner state leaked by earlier cases.
+bool TaskRunnerManager::CreateTaskRunner(const std::string &name, const std::string &owner,
+    TaskBlockPolicy policy)
 {
-    g_temporaryRunners.insert(name);
+    (void)name;
+    (void)owner;
+    (void)policy;
     return true;
 }
 
@@ -70,7 +71,7 @@ void TaskRunnerManager::DestroyTaskRunner(const std::string &name)
 
 void TaskRunnerManager::DeleteTaskRunner(const std::string &name)
 {
-    g_temporaryRunners.erase(name);
+    (void)name;
 }
 
 std::shared_ptr<TaskRunner> TaskRunnerManager::GetTaskRunner(const std::string &name)
@@ -99,15 +100,14 @@ bool TaskRunnerManager::RunOnResidentSyncInner(std::function<void()> &&task, uin
     return true;
 }
 
-void TaskRunnerManager::PostTaskOnTemporary(const std::string &name, std::function<void()> &&task)
+bool TaskRunnerManager::PostOneShotTask(const std::string &owner, TaskBlockPolicy policy,
+    std::function<void()> &&task)
 {
-    if (g_temporaryRunners.size() >= MAX_CONCURRENT_TEMPORARY_RUNNERS) {
-        IAM_LOGE("too many concurrent temporary task runners (%{public}zu), reject '%{public}s'",
-            g_temporaryRunners.size(), name.c_str());
-        return;
-    }
+    (void)owner;
+    (void)policy;
     uint64_t taskId = (*g_nextTaskId)++;
     (*g_pendingTasks)[taskId] = std::move(task);
+    return true;
 }
 
 void TaskRunnerManager::CheckRunningOnResidentThread(const char *caller)

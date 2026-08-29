@@ -15,6 +15,7 @@
 
 #include "temporary_task_runner.h"
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -32,7 +33,16 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-TemporaryTaskRunner::TemporaryTaskRunner(std::string name, bool canSuspend) : pool_(name), canSuspend_(canSuspend)
+namespace {
+std::string BuildThreadName()
+{
+    static std::atomic<uint32_t> serial = 0;
+    return "cda_" + std::to_string(serial.fetch_add(1));
+}
+} // namespace
+
+TemporaryTaskRunner::TemporaryTaskRunner(std::string name, std::string owner, TaskBlockPolicy policy)
+    : pool_(BuildThreadName()), policy_(policy), owner_(std::move(owner))
 {
     pool_.Start(1);
 }
@@ -40,6 +50,16 @@ TemporaryTaskRunner::TemporaryTaskRunner(std::string name, bool canSuspend) : po
 TemporaryTaskRunner::~TemporaryTaskRunner()
 {
     pool_.Stop();
+}
+
+TaskBlockPolicy TemporaryTaskRunner::GetBlockPolicy() const
+{
+    return policy_;
+}
+
+std::string TemporaryTaskRunner::GetOwner() const
+{
+    return owner_;
 }
 
 void TemporaryTaskRunner::PostTask(Task &&task)
@@ -55,10 +75,6 @@ void TemporaryTaskRunner::PostTask(Task &&task)
 void TemporaryTaskRunner::Suspend()
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (!canSuspend_) {
-        IAM_LOGE("can not suspend");
-        return;
-    }
     isSuspended_ = true;
 }
 
