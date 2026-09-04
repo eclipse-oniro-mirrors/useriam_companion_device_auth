@@ -29,6 +29,9 @@ public:
 
     void ReportSystemFault(std::string faultType, std::string faultId, std::string faultInfo) override;
     void ReportInteractionEvent(const InteractionEventCollector &eventCollector) override;
+
+private:
+    uint32_t CastUint64ToUint32(uint64_t num);
 };
 
 } // namespace CompanionDeviceAuth
