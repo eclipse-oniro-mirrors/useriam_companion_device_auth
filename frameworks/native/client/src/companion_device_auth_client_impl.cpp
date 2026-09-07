@@ -142,7 +142,7 @@ void CompanionDeviceAuthClientImpl::PrintIpcTemplateStatus(const IpcTemplateStat
              "addedTime:%{public}" PRId64 ", enabledBusinessIds:%{public}s, "
              "key(idType:%{public}d, id:%{public}s, userId:%{public}d), "
              "userName:%{public}s, modelInfo:%{public}s, name:%{public}s, online:%{public}d, "
-             "supportedBusinessIds:%{public}s",
+             "supportedBusinessIds:%{public}s, atl(valid:%{public}d, value:%{public}d)",
         GET_MASKED_NUM_CSTR(ipcTemplateStatus.templateId), ipcTemplateStatus.isConfirmed, ipcTemplateStatus.isValid,
         ipcTemplateStatus.localUserId, ipcTemplateStatus.addedTime,
         GetVectorString(ipcTemplateStatus.enabledBusinessIds).c_str(),
@@ -152,7 +152,8 @@ void CompanionDeviceAuthClientImpl::PrintIpcTemplateStatus(const IpcTemplateStat
         GET_MASKED_STR_CSTR(ipcTemplateStatus.deviceStatus.deviceUserName),
         GET_MASKED_STR_CSTR(ipcTemplateStatus.deviceStatus.deviceModelInfo),
         GET_MASKED_STR_CSTR(ipcTemplateStatus.deviceStatus.deviceName), ipcTemplateStatus.deviceStatus.isOnline,
-        GetVectorString(ipcTemplateStatus.deviceStatus.supportedBusinessIds).c_str());
+        GetVectorString(ipcTemplateStatus.deviceStatus.supportedBusinessIds).c_str(),
+        ipcTemplateStatus.hasAuthTrustLevel, ipcTemplateStatus.authTrustLevel);
 }
 
 int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(int32_t userId,
@@ -203,6 +204,9 @@ int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(int32_t userId,
         clientTemplateStatus.addedTime = ipcTemplateStatus.addedTime;
         clientTemplateStatus.enabledBusinessIds = ipcTemplateStatus.enabledBusinessIds;
         clientTemplateStatus.deviceStatus = clientDeviceStatus;
+        clientTemplateStatus.authTrustLevel = ipcTemplateStatus.hasAuthTrustLevel
+            ? std::optional<int32_t>(ipcTemplateStatus.authTrustLevel)
+            : std::nullopt;
         templateStatusList.push_back(clientTemplateStatus);
     }
 

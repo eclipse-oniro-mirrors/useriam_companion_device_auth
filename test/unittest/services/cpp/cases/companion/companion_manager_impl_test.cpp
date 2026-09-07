@@ -734,13 +734,34 @@ HWTEST_F(CompanionManagerImplTest, SetCompanionTokenAuthAtl_002, TestSize.Level0
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
     manager->Reload(persistedList, activeTemplateIds);
 
-    bool result = manager->SetCompanionTokenAuthAtl(TEMPLATE_ID_12345, INT32_3, false);
+    bool result = manager->SetCompanionTokenAuthAtl(TEMPLATE_ID_12345, ATL3, false);
     EXPECT_TRUE(result);
 
     auto status = manager->GetCompanionStatus(TEMPLATE_ID_12345);
     ASSERT_TRUE(status.has_value());
     ASSERT_TRUE(status->tokenAuthAtl.has_value());
-    EXPECT_EQ(status->tokenAuthAtl.value(), INT32_3);
+    EXPECT_EQ(status->tokenAuthAtl.value(), ATL3);
+}
+
+HWTEST_F(CompanionManagerImplTest, SetCompanionTokenAuthAtl_003, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserId_ = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    bool result = manager->SetCompanionTokenAuthAtl(TEMPLATE_ID_12345, 12345, false);
+    EXPECT_TRUE(result);
+
+    auto status = manager->GetCompanionStatus(TEMPLATE_ID_12345);
+    ASSERT_TRUE(status.has_value());
+    EXPECT_FALSE(status->tokenAuthAtl.has_value());
 }
 
 HWTEST_F(CompanionManagerImplTest, OnActiveUserIdChanged_001, TestSize.Level0)

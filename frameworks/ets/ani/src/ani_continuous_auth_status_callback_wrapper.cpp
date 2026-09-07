@@ -27,8 +27,9 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-using AniContinuousAuthStatusCallbackWrapper = ContinuousAuthStatusCallbackWrapper<::taihe::callback<void(
-    bool isAuthPassed, ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>;
+namespace TaiheUserAuth = ::ohos::userIAM::userAuth::userAuth;
+using AniContinuousAuthStatusCallbackWrapper = ContinuousAuthStatusCallbackWrapper<
+    ::taihe::callback<void(bool isAuthPassed, ::taihe::optional_view<TaiheUserAuth::AuthTrustLevel> authTrustLevel)>>;
 
 template <>
 void AniContinuousAuthStatusCallbackWrapper::OnContinuousAuthStatusChange(const bool isAuthPassed,
@@ -39,14 +40,14 @@ void AniContinuousAuthStatusCallbackWrapper::OnContinuousAuthStatusChange(const 
     ::taihe::env_guard guard;
     ENSURE_OR_RETURN(guard.get_env() != nullptr);
 
-    ::taihe::optional<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> optAuthTrustLevel = std::nullopt;
+    ::taihe::optional<TaiheUserAuth::AuthTrustLevel> optAuthTrustLevel = std::nullopt;
     if (authTrustLevel) {
         IAM_LOGI("authTrustLevel:%{public}d", *authTrustLevel);
         if (!CompanionDeviceAuthAniHelper::IsAuthTrustLevelValid(*authTrustLevel)) {
             IAM_LOGE("invalid atl");
             return;
         }
-        optAuthTrustLevel = ::taihe::optional<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel>(std::in_place,
+        optAuthTrustLevel = ::taihe::optional<TaiheUserAuth::AuthTrustLevel>(std::in_place,
             CompanionDeviceAuthAniHelper::ConvertAuthTrustLevel(*authTrustLevel));
     }
     this->GetCallback()(isAuthPassed, optAuthTrustLevel);

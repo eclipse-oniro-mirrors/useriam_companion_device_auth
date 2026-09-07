@@ -333,6 +333,9 @@ CompanionStatus GenerateFuzzCompanionStatus(FuzzedDataProvider &fuzzData)
     status.companionDeviceStatus = GenerateFuzzDeviceStatus(fuzzData);
     status.isValid = fuzzData.ConsumeBool();
     status.addedTime = fuzzData.ConsumeIntegral<int64_t>();
+    if (fuzzData.ConsumeBool()) {
+        status.tokenAuthAtl = fuzzData.ConsumeIntegral<Atl>();
+    }
 
     // Generate enabledBusinessIds
     uint8_t businessIdCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);

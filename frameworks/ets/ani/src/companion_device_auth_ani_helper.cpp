@@ -34,6 +34,7 @@ using namespace taihe;
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+namespace TaiheUserAuth = ::ohos::userIAM::userAuth::userAuth;
 
 taihe::array<uint8_t> CompanionDeviceAuthAniHelper::ConvertTemplateId(uint64_t templateId)
 {
@@ -76,8 +77,19 @@ companionDeviceAuth::TemplateStatus CompanionDeviceAuthAniHelper::ConvertTemplat
     uintptr_t addedTime = ConvertAddedTime(clientTemplateStatus.addedTime, env);
     taihe::array<int32_t> enabledBusinessIds = ConvertInt32VectorToArray(clientTemplateStatus.enabledBusinessIds);
     companionDeviceAuth::DeviceStatus deviceStatus = ConvertDeviceStatus(clientTemplateStatus.deviceStatus);
+    ::taihe::optional<TaiheUserAuth::AuthTrustLevel> authTrustLevel = std::nullopt;
+    if (clientTemplateStatus.authTrustLevel.has_value()) {
+        int32_t atl = clientTemplateStatus.authTrustLevel.value();
+        if (IsAuthTrustLevelValid(atl)) {
+            authTrustLevel =
+                ::taihe::optional<TaiheUserAuth::AuthTrustLevel>(std::in_place, ConvertAuthTrustLevel(atl));
+        } else {
+            IAM_LOGE("invalid authTrustLevel:%{public}d, treat as absent", atl);
+        }
+    }
     companionDeviceAuth::TemplateStatus result { templateId, clientTemplateStatus.isConfirmed,
-        clientTemplateStatus.isValid, clientTemplateStatus.localUserId, addedTime, enabledBusinessIds, deviceStatus };
+        clientTemplateStatus.isValid, clientTemplateStatus.localUserId, addedTime, enabledBusinessIds, deviceStatus,
+        authTrustLevel };
     return result;
 }
 
@@ -152,21 +164,20 @@ bool CompanionDeviceAuthAniHelper::WrapDate(int64_t time, ani_object &outObj, an
     return true;
 }
 
-::ohos::userIAM::userAuth::userAuth::AuthTrustLevel CompanionDeviceAuthAniHelper::ConvertAuthTrustLevel(
-    int32_t authTrustLevel)
+TaiheUserAuth::AuthTrustLevel CompanionDeviceAuthAniHelper::ConvertAuthTrustLevel(int32_t authTrustLevel)
 {
     switch (authTrustLevel) {
         case ATL1:
-            return ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel::key_t::ATL1;
+            return TaiheUserAuth::AuthTrustLevel::key_t::ATL1;
         case ATL2:
-            return ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel::key_t::ATL2;
+            return TaiheUserAuth::AuthTrustLevel::key_t::ATL2;
         case ATL3:
-            return ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel::key_t::ATL3;
+            return TaiheUserAuth::AuthTrustLevel::key_t::ATL3;
         case ATL4:
-            return ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel::key_t::ATL4;
+            return TaiheUserAuth::AuthTrustLevel::key_t::ATL4;
         default:
             IAM_LOGE("fail to convert atl");
-            return ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel::key_t::ATL1;
+            return TaiheUserAuth::AuthTrustLevel::key_t::ATL1;
     }
 }
 

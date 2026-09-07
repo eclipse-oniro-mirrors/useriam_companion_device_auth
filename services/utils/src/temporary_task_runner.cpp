@@ -42,7 +42,9 @@ std::string BuildThreadName()
 } // namespace
 
 TemporaryTaskRunner::TemporaryTaskRunner(std::string name, std::string owner, TaskBlockPolicy policy)
-    : pool_(BuildThreadName()), policy_(policy), owner_(std::move(owner))
+    : pool_(BuildThreadName()),
+      policy_(policy),
+      owner_(std::move(owner))
 {
     pool_.Start(1);
 }

@@ -55,8 +55,7 @@ void TaskRunnerManager::SetRunningOnDefaultTaskRunner(bool value)
 // work — admission caps and watchdog policy are resource defenses of the real implementation
 // (excluded from test builds) and must not be mirrored here: a rejecting fake would make test
 // outcomes depend on runner state leaked by earlier cases.
-bool TaskRunnerManager::CreateTaskRunner(const std::string &name, const std::string &owner,
-    TaskBlockPolicy policy)
+bool TaskRunnerManager::CreateTaskRunner(const std::string &name, const std::string &owner, TaskBlockPolicy policy)
 {
     (void)name;
     (void)owner;
@@ -100,8 +99,7 @@ bool TaskRunnerManager::RunOnResidentSyncInner(std::function<void()> &&task, uin
     return true;
 }
 
-bool TaskRunnerManager::PostOneShotTask(const std::string &owner, TaskBlockPolicy policy,
-    std::function<void()> &&task)
+bool TaskRunnerManager::PostOneShotTask(const std::string &owner, TaskBlockPolicy policy, std::function<void()> &&task)
 {
     (void)owner;
     (void)policy;

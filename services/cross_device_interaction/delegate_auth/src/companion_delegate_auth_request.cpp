@@ -89,6 +89,10 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
     Atl atl = 0;
     bool ret = SecurityAgentBeginDelegateAuth(challenge, atl);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), ret, false);
+    if (!IsValidAtl(atl)) {
+        IAM_LOGE("%{public}s invalid atl %{public}d from delegate auth begin", GetDescription(), atl);
+        return false;
+    }
 
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);

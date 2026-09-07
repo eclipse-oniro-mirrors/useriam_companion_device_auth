@@ -75,6 +75,10 @@ struct IpcTemplateStatus {
     int[] enabledBusinessIds;
     /** Device status of the companion device bound to this template. */
     IpcDeviceStatus deviceStatus;
+    /** Whether authTrustLevel is present. */
+    boolean hasAuthTrustLevel;
+    /** Runtime token auth trust level (enum represented by int). */
+    int authTrustLevel;
 };
 
 /**

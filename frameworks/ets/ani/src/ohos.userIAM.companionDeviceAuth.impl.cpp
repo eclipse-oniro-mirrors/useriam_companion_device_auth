@@ -32,6 +32,7 @@
 
 namespace CompanionDeviceAuth = OHOS::UserIam::CompanionDeviceAuth;
 namespace TaiheCompanionDeviceAuth = ::ohos::userIAM::companionDeviceAuth;
+namespace TaiheUserAuth = ::ohos::userIAM::userAuth::userAuth;
 
 namespace {
 int32_t CheckPermission(const std::string &permission)
@@ -58,8 +59,8 @@ using TaiheTemplateStatusCallback = ::taihe::callback<void(
     ::taihe::array_view<::ohos::userIAM::companionDeviceAuth::TemplateStatus> templateStatusList)>;
 using TaiheAvailableDeviceStatusCallback =
     ::taihe::callback<void(::taihe::array_view<::ohos::userIAM::companionDeviceAuth::DeviceStatus> deviceStatusList)>;
-using TaiheContinuousAuthStatusCallback = ::taihe::callback<void(bool isAuthPassed,
-    ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>;
+using TaiheContinuousAuthStatusCallback =
+    ::taihe::callback<void(bool isAuthPassed, ::taihe::optional_view<TaiheUserAuth::AuthTrustLevel> authTrustLevel)>;
 
 using AniStatusMonitor = CompanionDeviceAuth::StatusMonitor<TaiheTemplateStatusCallback,
     TaiheAvailableDeviceStatusCallback, TaiheContinuousAuthStatusCallback>;
@@ -244,7 +245,7 @@ public:
 
     int32_t onContinuousAuthChangeInternal(TaiheCompanionDeviceAuth::ContinuousAuthParam const &param,
         ::taihe::callback_view<void(bool isAuthPassed,
-            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
+            ::taihe::optional_view<TaiheUserAuth::AuthTrustLevel> authTrustLevel)>
             callback)
     {
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
@@ -269,7 +270,7 @@ public:
 
     void onContinuousAuthChange(TaiheCompanionDeviceAuth::ContinuousAuthParam const &param,
         ::taihe::callback_view<void(bool isAuthPassed,
-            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>
+            ::taihe::optional_view<TaiheUserAuth::AuthTrustLevel> authTrustLevel)>
             callback)
     {
         IAM_LOGI("start");
@@ -282,7 +283,7 @@ public:
     }
 
     int32_t offContinuousAuthChangeInternal(::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
-            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
+            ::taihe::optional_view<TaiheUserAuth::AuthTrustLevel> authTrustLevel)>>
             callback)
     {
         int32_t checkPermission = CheckPermission(CompanionDeviceAuth::USE_USER_IDM_PERMISSION);
@@ -302,7 +303,7 @@ public:
     }
 
     void offContinuousAuthChange(::taihe::optional_view<::taihe::callback<void(bool isAuthPassed,
-            ::taihe::optional_view<::ohos::userIAM::userAuth::userAuth::AuthTrustLevel> authTrustLevel)>>
+            ::taihe::optional_view<TaiheUserAuth::AuthTrustLevel> authTrustLevel)>>
             callback)
     {
         IAM_LOGI("start");

@@ -32,6 +32,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr int32_t TEST_ATL2 = 20000;
+
 std::unique_ptr<Subscription> MakeSubscription()
 {
     return std::make_unique<Subscription>([]() {});
@@ -211,6 +213,75 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_003, TestSi
     }
 
     EXPECT_TRUE(subscription->cachedTemplateStatus_.empty());
+}
+
+// An ATL-only change must update the cache (and push), not be swallowed by dedup.
+HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_004, TestSize.Level0)
+{
+    MockGuard guard;
+    UserId userId = 100;
+    auto subscriptionManager = SubscriptionManager::Create();
+    OnCompanionDeviceStatusChange storedCallback;
+
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
+        .WillOnce(Invoke([&storedCallback](OnCompanionDeviceStatusChange &&callback) {
+            storedCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
+    ASSERT_NE(subscription, nullptr);
+
+    CompanionStatus status {};
+    status.hostUserId = userId;
+
+    if (storedCallback) {
+        storedCallback({ status });
+    }
+    ASSERT_EQ(subscription->cachedTemplateStatus_.size(), 1u);
+    EXPECT_FALSE(subscription->cachedTemplateStatus_[0].hasAuthTrustLevel);
+
+    status.tokenAuthAtl = TEST_ATL2;
+    if (storedCallback) {
+        storedCallback({ status });
+    }
+    ASSERT_EQ(subscription->cachedTemplateStatus_.size(), 1u);
+    EXPECT_TRUE(subscription->cachedTemplateStatus_[0].hasAuthTrustLevel);
+    EXPECT_EQ(subscription->cachedTemplateStatus_[0].authTrustLevel, TEST_ATL2);
+}
+
+// An unchanged ATL must not be reported as a status change.
+HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_005, TestSize.Level0)
+{
+    MockGuard guard;
+    UserId userId = 100;
+    auto subscriptionManager = SubscriptionManager::Create();
+    OnCompanionDeviceStatusChange storedCallback;
+
+    EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
+        .WillOnce(Invoke([&storedCallback](OnCompanionDeviceStatusChange &&callback) {
+            storedCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+
+    auto subscription = TemplateStatusSubscription::Create(userId, subscriptionManager);
+    ASSERT_NE(subscription, nullptr);
+
+    CompanionStatus status {};
+    status.hostUserId = userId;
+    status.tokenAuthAtl = TEST_ATL2;
+
+    if (storedCallback) {
+        storedCallback({ status });
+    }
+    ASSERT_EQ(subscription->cachedTemplateStatus_.size(), 1u);
+
+    if (storedCallback) {
+        storedCallback({ status });
+    }
+    EXPECT_EQ(subscription->cachedTemplateStatus_.size(), 1u);
+    EXPECT_TRUE(subscription->cachedTemplateStatus_[0].hasAuthTrustLevel);
+    EXPECT_EQ(subscription->cachedTemplateStatus_[0].authTrustLevel, TEST_ATL2);
 }
 
 } // namespace
