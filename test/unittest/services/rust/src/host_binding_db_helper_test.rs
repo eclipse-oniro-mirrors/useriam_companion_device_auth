@@ -26,9 +26,14 @@ use crate::ut_registry_guard;
 
 fn create_mock_host_binding(binding_id: i32) -> HostBinding {
     HostBinding {
-        device_key: DeviceKey { device_id: String::from("host_device"), device_id_type: 1, user_id: 100 },
+        device_key: DeviceKey {
+            device_id: String::from("host_device"),
+            device_id_type: 1,
+            user_id: 100,
+            sub_profile_id: 0,
+        },
         binding_id,
-        user_info: UserInfo { user_id: 100, user_type: 0 },
+        user_info: UserInfo { user_id: 100, user_type: 0, sub_profile_id: 0 },
         binding_time: 123456,
         last_used_time: 123456,
     }

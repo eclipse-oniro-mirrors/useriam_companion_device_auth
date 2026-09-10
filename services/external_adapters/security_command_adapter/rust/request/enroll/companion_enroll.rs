@@ -166,7 +166,11 @@ impl CompanionDeviceEnrollRequest {
         let device_info = Box::new(HostBinding {
             binding_id,
             device_key: self.key_nego_param.host_device_key.clone(),
-            user_info: UserInfo { user_id: self.key_nego_param.companion_device_key.user_id, user_type: 0 },
+            user_info: UserInfo {
+                user_id: self.key_nego_param.companion_device_key.user_id,
+                user_type: 0,
+                sub_profile_id: self.key_nego_param.companion_device_key.sub_profile_id,
+            },
             binding_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             last_used_time: 0,
         });
@@ -198,6 +202,7 @@ impl CompanionDeviceEnrollRequest {
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let device_id = decrypt_attribute.get_string(AttributeKey::AttrDeviceId).map_err(|e| p!(e))?;
         let user_id = decrypt_attribute.get_i32(AttributeKey::AttrUserId).map_err(|e| p!(e))?;
+        let sub_profile_id = decrypt_attribute.get_i32(AttributeKey::AttrSubProfileId).map_err(|e| p!(e))?;
         let challenge = decrypt_attribute.get_u64(AttributeKey::AttrCompanionChallenge).map_err(|e| p!(e))?;
 
         if self.key_nego_param.host_device_key.device_id != device_id {
@@ -207,6 +212,15 @@ impl CompanionDeviceEnrollRequest {
 
         if self.key_nego_param.host_device_key.user_id != user_id {
             log_e!("user_id check fail, expected: {}, got: {}", self.key_nego_param.host_device_key.user_id, user_id);
+            return Err(ErrorCode::GeneralError);
+        }
+
+        if self.key_nego_param.host_device_key.sub_profile_id != sub_profile_id {
+            log_e!(
+                "sub_profile_id check fail, expected: {}, got: {}",
+                self.key_nego_param.host_device_key.sub_profile_id,
+                sub_profile_id
+            );
             return Err(ErrorCode::GeneralError);
         }
 
@@ -225,6 +239,7 @@ impl CompanionDeviceEnrollRequest {
         let reply_info = Box::new(SecBindingReplyInfo {
             device_id: self.key_nego_param.companion_device_key.device_id.clone(),
             user_id: self.key_nego_param.companion_device_key.user_id,
+            sub_profile_id: self.key_nego_param.companion_device_key.sub_profile_id,
             esl: ExecutorSecurityLevel::Esl3 as i32,
             track_ability_level: TrackAbilityLevel::Tal4 as i32,
             challenge: self.binding_param.host_challenge,
@@ -319,6 +334,7 @@ impl Request for CompanionDeviceEnrollRequest {
             companion_user_id: device_info.user_info.user_id,
             host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
             is_token_valid: false,
+            companion_sub_profile_id: device_info.user_info.sub_profile_id,
         };
         Ok(())
     }

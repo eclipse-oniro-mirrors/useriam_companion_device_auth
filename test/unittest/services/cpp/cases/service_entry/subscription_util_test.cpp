@@ -72,6 +72,59 @@ HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_NotConfirmedWithoutMan
     EXPECT_FALSE(ipcStatus.isConfirmed);
 }
 
+// ConvertToIpcDeviceStatus propagates deviceSubProfileId and deviceSubProfileName to the IPC struct.
+HWTEST_F(SubscriptionUtilTest, ConvertToIpcDeviceStatus_PropagatesSubProfileFields, TestSize.Level0)
+{
+    DeviceStatus status;
+    status.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    status.deviceKey.deviceUserId = 100;
+    status.deviceKey.deviceId = "test_device_id";
+    status.deviceKey.deviceSubProfileId = 42;
+    status.deviceSubProfileName = "test_sub_profile";
+
+    auto ipcStatus = ConvertToIpcDeviceStatus(status);
+    EXPECT_EQ(ipcStatus.deviceKey.deviceSubProfileId, status.deviceKey.deviceSubProfileId);
+    EXPECT_EQ(ipcStatus.deviceSubProfileName, status.deviceSubProfileName);
+}
+
+// IpcDeviceStatusEqual returns true when all fields including sub profile fields match.
+HWTEST_F(SubscriptionUtilTest, IpcDeviceStatusEqual_EqualWhenSubProfileFieldsMatch, TestSize.Level0)
+{
+    DeviceStatus status;
+    status.deviceKey.deviceSubProfileId = 42;
+    status.deviceSubProfileName = "test_sub_profile";
+
+    auto lhs = ConvertToIpcDeviceStatus(status);
+    auto rhs = ConvertToIpcDeviceStatus(status);
+    EXPECT_TRUE(IpcDeviceStatusEqual(lhs, rhs));
+}
+
+// IpcDeviceStatusEqual returns false when deviceSubProfileId differs.
+HWTEST_F(SubscriptionUtilTest, IpcDeviceStatusEqual_NotEqualWhenSubProfileIdDiffers, TestSize.Level0)
+{
+    DeviceStatus status;
+    status.deviceKey.deviceSubProfileId = 42;
+    status.deviceSubProfileName = "test_sub_profile";
+
+    auto lhs = ConvertToIpcDeviceStatus(status);
+    auto rhs = ConvertToIpcDeviceStatus(status);
+    rhs.deviceKey.deviceSubProfileId = 99;
+    EXPECT_FALSE(IpcDeviceStatusEqual(lhs, rhs));
+}
+
+// IpcDeviceStatusEqual returns false when deviceSubProfileName differs.
+HWTEST_F(SubscriptionUtilTest, IpcDeviceStatusEqual_NotEqualWhenSubProfileNameDiffers, TestSize.Level0)
+{
+    DeviceStatus status;
+    status.deviceKey.deviceSubProfileId = 42;
+    status.deviceSubProfileName = "test_sub_profile";
+
+    auto lhs = ConvertToIpcDeviceStatus(status);
+    auto rhs = ConvertToIpcDeviceStatus(status);
+    rhs.deviceSubProfileName = "different_sub_profile";
+    EXPECT_FALSE(IpcDeviceStatusEqual(lhs, rhs));
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

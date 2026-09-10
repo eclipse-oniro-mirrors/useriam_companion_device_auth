@@ -140,26 +140,10 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
     }
 
     needCancelDelegateAuth_ = true;
-    auto peerDeviceKey = GetPeerDeviceKey();
-    ENSURE_OR_RETURN_DESC(GetDescription(), peerDeviceKey.has_value());
-    DeviceKey hostDeviceKey = {};
-    auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKey.has_value());
-    hostDeviceKey = localDeviceKey.value();
-    hostDeviceKey.deviceUserId = hostUserId_;
-    std::vector<int32_t> authTypes;
-    for (auto type : widgetAuthParam_.authTypes) {
-        authTypes.push_back(static_cast<int32_t>(type));
-    }
-    StartDelegateAuthRequest startRequest = { .hostDeviceKey = hostDeviceKey,
-        .companionUserId = peerDeviceKey->deviceUserId,
-        .extraInfo = output.startDelegateAuthRequest,
-        .selectContext = selectContext_,
-        .remoteTokenId = GetRemoteTokenId(*peerDeviceKey),
-        .authTypes = authTypes,
-        .navigationButtonText = widgetAuthParam_.navigationButtonText };
+    auto startRequestOpt = BuildStartDelegateAuthRequest(output);
+    ENSURE_OR_RETURN_DESC(GetDescription(), startRequestOpt.has_value());
     Attributes request = {};
-    EncodeStartDelegateAuthRequest(startRequest, request);
+    EncodeStartDelegateAuthRequest(*startRequestOpt, request);
     eventCollector_.EnterWait(HostDelegateAuthStages::WAIT_DELEGATE_AUTH_REPLY);
 
     bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::START_DELEGATE_AUTH,
@@ -174,6 +158,31 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
         return;
     }
     errorGuard.Cancel();
+}
+
+std::optional<StartDelegateAuthRequest> HostDelegateAuthRequest::BuildStartDelegateAuthRequest(
+    const HostBeginDelegateAuthOutput &output)
+{
+    auto peerDeviceKey = GetPeerDeviceKey();
+    ENSURE_OR_RETURN_VAL(peerDeviceKey.has_value(), std::nullopt);
+    DeviceKey hostDeviceKey = {};
+    auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
+    ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), std::nullopt);
+    hostDeviceKey = localDeviceKey.value();
+    hostDeviceKey.deviceUserId = hostUserId_;
+    hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
+    std::vector<int32_t> authTypes;
+    for (auto type : widgetAuthParam_.authTypes) {
+        authTypes.push_back(static_cast<int32_t>(type));
+    }
+    return StartDelegateAuthRequest { .hostDeviceKey = hostDeviceKey,
+        .companionUserId = peerDeviceKey->deviceUserId,
+        .companionSubProfileId = peerDeviceKey->deviceSubProfileId,
+        .extraInfo = output.startDelegateAuthRequest,
+        .selectContext = selectContext_,
+        .remoteTokenId = GetRemoteTokenId(*peerDeviceKey),
+        .authTypes = authTypes,
+        .navigationButtonText = widgetAuthParam_.navigationButtonText };
 }
 
 void HostDelegateAuthRequest::HandleStartDelegateAuthReply(const Attributes &message)
@@ -305,16 +314,18 @@ std::optional<uint32_t> HostDelegateAuthRequest::GetRemoteTokenId(const DeviceKe
         int32_t idType = 0;
         std::string deviceId;
         int32_t deviceUserId = 0;
+        int32_t deviceSubProfileId = INVALID_SUB_PROFILE_ID;
         uint32_t remoteTokenId = 0;
         if (!GetJsonField(deviceEntry, "deviceIdType", idType) ||
             !GetJsonField(deviceEntry, "deviceId", deviceId, MAX_DEVICE_ID_LEN) ||
             !GetJsonField(deviceEntry, "deviceUserId", deviceUserId) ||
+            !GetJsonField(deviceEntry, "deviceSubProfileId", deviceSubProfileId) ||
             !GetJsonField(deviceEntry, "remoteTokenId", remoteTokenId)) {
             IAM_LOGE("%{public}s invalid json data in deviceSelectContext", GetDescription());
             continue;
         }
         if (idType == static_cast<int32_t>(deviceKey.idType) && deviceId == deviceKey.deviceId &&
-            deviceUserId == deviceKey.deviceUserId) {
+            deviceUserId == deviceKey.deviceUserId && deviceSubProfileId == deviceKey.deviceSubProfileId) {
             IAM_LOGI("GetRemoteTokenId success");
             return remoteTokenId;
         }

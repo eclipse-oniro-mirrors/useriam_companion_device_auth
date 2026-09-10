@@ -109,10 +109,12 @@ HWTEST_F(CompanionObtainTokenRequestTest, OnStart_002, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillOnce(Return(false));
 
+    // When IsAuthMaintainActive() returns false, OnStart now sets waitingForAuthMaintainActive_ = true
+    // and returns true (deferred proceed) instead of returning false.
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
 
-    EXPECT_FALSE(result);
+    EXPECT_TRUE(result);
 }
 
 HWTEST_F(CompanionObtainTokenRequestTest, OnStart_003, TestSize.Level0)
@@ -205,6 +207,7 @@ HWTEST_F(CompanionObtainTokenRequestTest, OnConnected_001, TestSize.Level0)
     ON_CALL(guard.GetSecurityAgent(), CompanionBeginObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(guard.GetSecurityAgent(), CompanionEndObtainToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(guard.GetSecurityAgent(), CompanionCancelObtainToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSubProfileIdManager(), IsForegroundSubProfileId(_, _)).WillByDefault(Return(true));
 
     auto request =
         std::make_shared<CompanionObtainTokenRequest>(HOST_DEVICE_KEY, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG);
@@ -236,6 +239,7 @@ HWTEST_F(CompanionObtainTokenRequestTest, OnConnected_002, TestSize.Level0)
     ON_CALL(guard.GetSecurityAgent(), CompanionBeginObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(guard.GetSecurityAgent(), CompanionEndObtainToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(guard.GetSecurityAgent(), CompanionCancelObtainToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSubProfileIdManager(), IsForegroundSubProfileId(_, _)).WillByDefault(Return(true));
 
     auto request =
         std::make_shared<CompanionObtainTokenRequest>(HOST_DEVICE_KEY, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG);
@@ -886,6 +890,96 @@ HWTEST_F(CompanionObtainTokenRequestTest, HandleAuthMaintainActiveChanged_002, T
         std::make_shared<CompanionObtainTokenRequest>(HOST_DEVICE_KEY, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG);
 
     ASSERT_NO_THROW(request->HandleAuthMaintainActiveChanged(false));
+}
+
+HWTEST_F(CompanionObtainTokenRequestTest, OnStart_WaitThenProceed, TestSize.Level0)
+{
+    // When IsAuthMaintainActive()==false at OnStart, the request defers (waitingForAuthMaintainActive_=true).
+    // When HandleAuthMaintainActiveChanged(true) fires, the request proceeds with connection.
+    MockGuard guard;
+    ON_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
+        .WillByDefault(Return(std::make_optional(HOST_BINDING_STATUS)));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetSecurityAgent(), CompanionBeginObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSecurityAgent(), CompanionEndObtainToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSecurityAgent(), CompanionCancelObtainToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+
+    // Capture the auth-maintain-active callback so we can simulate the active transition.
+    std::function<void(bool)> capturedCallback;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeIsAuthMaintainActive(_))
+        .WillOnce(Invoke([&capturedCallback](std::function<void(bool)> &&cb) {
+            capturedCallback = std::move(cb);
+            return MakeSubscription();
+        }));
+
+    auto request =
+        std::make_shared<CompanionObtainTokenRequest>(HOST_DEVICE_KEY, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG);
+
+    // IsAuthMaintainActive()==false → OnStart returns true (deferred), no connection yet.
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillOnce(Return(false));
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+    EXPECT_TRUE(result);
+
+    // OpenConnection should NOT have been called during OnStart (deferred).
+    ::testing::Mock::VerifyAndClearExpectations(&guard.GetCrossDeviceCommManager());
+
+    // Simulate auth-maintain-active becoming true → request should proceed with connection.
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    ASSERT_NO_THROW(capturedCallback(true));
+}
+
+HWTEST_F(CompanionObtainTokenRequestTest, OnStart_WaitThenInactive_KeepsWaiting, TestSize.Level0)
+{
+    // When waiting and auth-maintain becomes inactive (false), the request keeps waiting
+    // (no error, no connection); the outer timeout will eventually complete with TIMEOUT.
+    MockGuard guard;
+    ON_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
+        .WillByDefault(Return(std::make_optional(HOST_BINDING_STATUS)));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillByDefault(Return(std::make_optional(COMPANION_DEVICE_KEY)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetSecurityAgent(), CompanionBeginObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSecurityAgent(), CompanionEndObtainToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSecurityAgent(), CompanionCancelObtainToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+
+    std::function<void(bool)> capturedCallback;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeIsAuthMaintainActive(_))
+        .WillOnce(Invoke([&capturedCallback](std::function<void(bool)> &&cb) {
+            capturedCallback = std::move(cb);
+            return MakeSubscription();
+        }));
+
+    auto request =
+        std::make_shared<CompanionObtainTokenRequest>(HOST_DEVICE_KEY, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG);
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillOnce(Return(false));
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+    EXPECT_TRUE(result);
+
+    ::testing::Mock::VerifyAndClearExpectations(&guard.GetCrossDeviceCommManager());
+
+    // OpenConnection should NOT be called when auth-maintain goes inactive while waiting;
+    // request keeps waiting silently for the outer timeout.
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).Times(0);
+    ASSERT_NO_THROW(capturedCallback(false));
 }
 
 } // namespace

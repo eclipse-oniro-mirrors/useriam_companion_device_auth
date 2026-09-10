@@ -168,7 +168,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.
         .companionDeviceKey = companionDeviceKey_,
         .deviceUserName = deviceUserName_,
         .deviceName = "test_device_name",
-        .companionCheckResponse = companionCheckResponse_ };
+        .companionCheckResponse = companionCheckResponse_,
+        .deviceSubProfileName = "test_sub_profile" };
 
     Attributes attributes;
     EncodeSyncDeviceStatusReply(reply, attributes);
@@ -191,6 +192,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.
     EXPECT_EQ(decoded.deviceUserName, reply.deviceUserName);
     EXPECT_EQ(decoded.deviceName, reply.deviceName);
     EXPECT_EQ(decoded.companionCheckResponse, reply.companionCheckResponse);
+    EXPECT_EQ(decoded.deviceSubProfileName, reply.deviceSubProfileName);
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_002, TestSize.Level0)
@@ -362,6 +364,100 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MissingDeviceN
     SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_TRUE(decoded.deviceName.empty());
+}
+
+/**
+ * Scenario: EncodeSyncDeviceStatusReply with deviceSubProfileName and isAuthMaintainActive
+ * Expected: Round-trip encode/decode preserves these new fields
+ */
+HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_WithSubProfileFields, TestSize.Level0)
+{
+    SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
+        .protocolIdList = protocolIdList_,
+        .capabilityList = capabilityList_,
+        .secureProtocolId = secureProtocolId_,
+        .companionDeviceKey = companionDeviceKey_,
+        .deviceUserName = deviceUserName_,
+        .deviceName = "test_device_name",
+        .companionCheckResponse = companionCheckResponse_,
+        .deviceSubProfileName = "SubProfile1",
+        .isAuthMaintainActive = true };
+
+    Attributes attributes;
+    EncodeSyncDeviceStatusReply(reply, attributes);
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(reply.companionDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    SyncDeviceStatusReply decoded = result.value();
+
+    EXPECT_EQ(decoded.deviceSubProfileName, "SubProfile1");
+    EXPECT_TRUE(decoded.isAuthMaintainActive);
+}
+
+/**
+ * Scenario: DecodeSyncDeviceStatusReply without deviceSubProfileName and isAuthMaintainActive
+ * Expected: Fields default to empty string and false respectively
+ */
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MissingSubProfileFields_Defaults, TestSize.Level0)
+{
+    Attributes attributes;
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
+        ProtocolIdConverter::ToUnderlyingVec(protocolIdList_));
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
+        CapabilityConverter::ToUnderlyingVec(capabilityList_));
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, companionDeviceKey_.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(companionDeviceKey_.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey_.deviceId);
+    attributes.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID,
+        SecureProtocolIdConverter::ToUnderlying(secureProtocolId_));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, deviceUserName_);
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_DEVICE_NAME, "test_device_name");
+    attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, companionCheckResponse_);
+    // ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME and ATTR_CDA_SA_AUTH_STATE_MAINTAIN intentionally omitted
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    SyncDeviceStatusReply decoded = result.value();
+
+    EXPECT_TRUE(decoded.deviceSubProfileName.empty());
+    EXPECT_FALSE(decoded.isAuthMaintainActive);
+}
+
+/**
+ * Scenario: EncodeSyncDeviceStatusRequest with hostDeviceKey containing deviceSubProfileId
+ * Expected: Round-trip preserves deviceSubProfileId
+ */
+HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_WithSubProfileId, TestSize.Level0)
+{
+    DeviceKey hostKey = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
+        .deviceId = "host_device_id",
+        .deviceUserId = 100,
+        .deviceSubProfileId = 100001 };
+
+    SyncDeviceStatusRequest request = { .protocolIdList = protocolIdList_,
+        .capabilityList = capabilityList_,
+        .hostDeviceKey = hostKey,
+        .salt = salt_,
+        .challenge = 0 };
+
+    Attributes attributes;
+    EncodeSyncDeviceStatusRequest(request, attributes);
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(request.hostDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
+
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    SyncDeviceStatusRequest decoded = result.value();
+
+    EXPECT_EQ(decoded.hostDeviceKey.deviceSubProfileId, 100001);
 }
 
 } // namespace

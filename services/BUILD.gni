@@ -228,6 +228,14 @@ if (companion_device_auth_has_account_os_account) {
       [ "external_adapters/user_id/src/constant_user_id_manager.cpp" ]
 }
 
+if (companion_device_auth_enable_multiple_os_account_sub_profiles) {
+  companion_device_auth_service_static_sources +=
+      [ "external_adapters/user_id/src/default_sub_profile_id_manager.cpp" ]
+} else {
+  companion_device_auth_service_static_sources +=
+      [ "external_adapters/user_id/src/constant_sub_profile_id_manager.cpp" ]
+}
+
 companion_device_auth_service_local_sources =
     companion_device_auth_service_static_sources
 
@@ -248,6 +256,10 @@ companion_device_auth_service_sources_for_test = companion_device_auth_service_s
 # Tests always use constant_user_id_manager instead of os_account-dependent default_user_id_manager
 companion_device_auth_service_sources_for_test -= [ "${companion_device_auth_path}/services/external_adapters/user_id/src/default_user_id_manager.cpp" ]
 companion_device_auth_service_sources_for_test += [ "${companion_device_auth_path}/services/external_adapters/user_id/src/constant_user_id_manager.cpp" ]
+if (companion_device_auth_enable_multiple_os_account_sub_profiles) {
+  companion_device_auth_service_sources_for_test -= [ "${companion_device_auth_path}/services/external_adapters/user_id/src/default_sub_profile_id_manager.cpp" ]
+  companion_device_auth_service_sources_for_test += [ "${companion_device_auth_path}/services/external_adapters/user_id/src/constant_sub_profile_id_manager.cpp" ]
+}
 
 companion_device_auth_test_include_dirs = []
 foreach(dir, companion_device_auth_service_include_dirs) {

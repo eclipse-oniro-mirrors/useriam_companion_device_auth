@@ -35,8 +35,8 @@ const MAX_DEVICE_NUM: usize = 1;
 fn create_test_companion_device(template_id: u64, device_id: &str, user_id: i32) -> CompanionDevice {
     CompanionDevice {
         template_id,
-        device_key: DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id },
-        user_info: UserInfo { user_id, user_type: 1 },
+        device_key: DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id, sub_profile_id: 0 },
+        user_info: UserInfo { user_id, user_type: 1, sub_profile_id: 0 },
         added_time: 1000,
         is_valid: true,
         capability_list: vec![1, 2, 3],
@@ -51,6 +51,7 @@ fn create_test_base_info() -> CompanionDeviceProfile {
         business_ids: vec![1, 2, 3],
         supported_business_ids: vec![1, 2, 3],
         device_type: 0,
+        device_sub_profile_name: String::new(),
     }
 }
 
@@ -672,13 +673,15 @@ fn default_companion_device_db_manager_read_device_db_test_success() {
 
     let mut parcel = Parcel::new();
     parcel.write_i32(0);
-    parcel.write_i32(1);
+    parcel.write_u32(1);
     parcel.write_u64(123);
     parcel.write_string("device1");
     parcel.write_i32(1);
     parcel.write_i32(100);
+    parcel.write_i32(0);
     parcel.write_i32(100);
     parcel.write_i32(1);
+    parcel.write_i32(0);
     parcel.write_u64(1000);
     parcel.write_u32(1);
     // capability_list
@@ -992,6 +995,7 @@ fn default_companion_device_db_manager_read_device_profile_test_success() {
     parcel.write_i32(3);
     parcel.write_i32(0); // device_type
     parcel.write_i32(0); // supported_business_ids_len
+    parcel.write_string(""); // device_sub_profile_name
 
     let serialized_data = parcel.as_slice().to_vec();
 

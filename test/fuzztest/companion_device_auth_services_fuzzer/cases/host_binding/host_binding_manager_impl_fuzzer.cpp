@@ -162,6 +162,15 @@ static void FuzzRemoveBindingInternal(std::shared_ptr<HostBindingManagerImpl> &m
     manager->RemoveBindingInternal(bindingId);
 }
 
+static void FuzzOnSubProfileChanged(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+{
+    UserId userId = fuzzData.ConsumeIntegral<UserId>();
+    int32_t subProfileId = fuzzData.ConsumeIntegral<int32_t>();
+    int32_t eventTypeRaw = fuzzData.ConsumeIntegralInRange<int32_t>(0, 1);
+    SubProfileEventType eventType = (eventTypeRaw == 0) ? SubProfileEventType::SWITCHED : SubProfileEventType::DELETED;
+    manager->OnSubProfileChanged(userId, subProfileId, eventType);
+}
+
 static const HostBindingManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzGetHostBindingStatusById,
     FuzzGetHostBindingStatusByUserDevice,
@@ -179,6 +188,7 @@ static const HostBindingManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzFindBindingByDeviceUser,
     FuzzAddBindingInternal,
     FuzzRemoveBindingInternal,
+    FuzzOnSubProfileChanged,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostBindingManagerImplFuzzFunction);

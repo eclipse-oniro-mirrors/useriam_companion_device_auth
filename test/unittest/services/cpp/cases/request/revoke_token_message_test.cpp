@@ -38,7 +38,8 @@ protected:
 
 HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenRequest_001, TestSize.Level0)
 {
-    RevokeTokenRequest request = { .hostUserId = hostUserId_, .companionDeviceKey = companionDeviceKey_ };
+    RevokeTokenRequest request = { .hostUserId = hostUserId_, .companionDeviceKey = companionDeviceKey_,
+        .hostSubProfileId = 42 };
 
     Attributes attributes;
     EncodeRevokeTokenRequest(request, attributes);
@@ -55,6 +56,7 @@ HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenRequest_001, TestSize.Le
     EXPECT_EQ(decoded.companionDeviceKey.idType, request.companionDeviceKey.idType);
     EXPECT_EQ(decoded.companionDeviceKey.deviceId, request.companionDeviceKey.deviceId);
     EXPECT_EQ(decoded.companionDeviceKey.deviceUserId, request.companionDeviceKey.deviceUserId);
+    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
 }
 
 HWTEST_F(RevokeTokenMessageTest, DecodeRevokeTokenRequest_001, TestSize.Level0)

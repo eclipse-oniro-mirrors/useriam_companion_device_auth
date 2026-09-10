@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "companion_manager.h"
+#include "delegate_auth_message.h"
 #include "outbound_request.h"
 #include "request_factory.h"
 #include "security_agent.h"
@@ -50,6 +51,7 @@ private:
     void HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices);
     bool InitDelegateResultSubscription();
     void HostBeginDelegateAuth();
+    std::optional<StartDelegateAuthRequest> BuildStartDelegateAuthRequest(const HostBeginDelegateAuthOutput &output);
     void HandleStartDelegateAuthReply(const Attributes &message);
     ResultCode SecurityAgentEndDelegateAuth(const std::vector<uint8_t> &delegateAuthResult,
         HostEndDelegateAuthOutput &output);

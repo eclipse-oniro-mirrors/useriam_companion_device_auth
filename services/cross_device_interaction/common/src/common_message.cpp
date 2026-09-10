@@ -25,11 +25,20 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-bool DecodeDeviceKey(const Attributes &attributes, Attributes::AttributeKey userIdKey, DeviceKey &deviceKey)
+bool DecodeDeviceKey(const Attributes &attributes, Attributes::AttributeKey userIdKey,
+    Attributes::AttributeKey subProfileIdKey, DeviceKey &deviceKey)
 {
     if (!attributes.GetInt32Value(userIdKey, deviceKey.deviceUserId)) {
         IAM_LOGE("Get device user id failed");
         return false;
+    }
+    if (attributes.HasAttribute(subProfileIdKey)) {
+        if (!attributes.GetInt32Value(subProfileIdKey, deviceKey.deviceSubProfileId)) {
+            IAM_LOGE("Get device sub profile id failed");
+            return false;
+        }
+    } else {
+        deviceKey.deviceSubProfileId = INVALID_SUB_PROFILE_ID;
     }
     int32_t idType = 0;
     if (!attributes.GetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, idType)) {
@@ -52,7 +61,8 @@ bool DecodeDeviceKey(const Attributes &attributes, Attributes::AttributeKey user
 std::optional<DeviceKey> DecodeHostDeviceKey(const Attributes &attributes)
 {
     DeviceKey deviceKey = {};
-    if (!DecodeDeviceKey(attributes, Attributes::ATTR_CDA_SA_HOST_USER_ID, deviceKey)) {
+    if (!DecodeDeviceKey(attributes, Attributes::ATTR_CDA_SA_HOST_USER_ID,
+        Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, deviceKey)) {
         return std::nullopt;
     }
     return deviceKey;
@@ -61,7 +71,8 @@ std::optional<DeviceKey> DecodeHostDeviceKey(const Attributes &attributes)
 std::optional<DeviceKey> DecodeCompanionDeviceKey(const Attributes &attributes)
 {
     DeviceKey deviceKey = {};
-    if (!DecodeDeviceKey(attributes, Attributes::ATTR_CDA_SA_COMPANION_USER_ID, deviceKey)) {
+    if (!DecodeDeviceKey(attributes, Attributes::ATTR_CDA_SA_COMPANION_USER_ID,
+        Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, deviceKey)) {
         return std::nullopt;
     }
     return deviceKey;
@@ -70,11 +81,13 @@ std::optional<DeviceKey> DecodeCompanionDeviceKey(const Attributes &attributes)
 void EncodeHostDeviceKey(const DeviceKey &deviceKey, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, deviceKey.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, deviceKey.deviceSubProfileId);
 }
 
 void EncodeCompanionDeviceKey(const DeviceKey &deviceKey, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, deviceKey.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, deviceKey.deviceSubProfileId);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

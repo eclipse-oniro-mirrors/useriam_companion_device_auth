@@ -51,8 +51,13 @@ pub fn update_companion_device_valid_flag(template_id: u64, is_valid: bool) -> R
     Ok(())
 }
 
-pub fn get_companion_device_by_user_id(user_id: i32) -> Result<Vec<CompanionDevice>, ErrorCode> {
-    let filter = Box::new(move |device_info: &CompanionDevice| device_info.user_info.user_id == user_id);
+pub fn get_companion_device_by_user_id(
+    user_id: i32,
+    sub_profile_id: i32,
+) -> Result<Vec<CompanionDevice>, ErrorCode> {
+    let filter = Box::new(move |device_info: &CompanionDevice| {
+        device_info.user_info.user_id == user_id && device_info.user_info.sub_profile_id == sub_profile_id
+    });
     let device_info = CompanionDeviceDbManagerRegistry::get_mut().get_device_list(filter);
     Ok(device_info)
 }
@@ -68,12 +73,14 @@ pub fn update_companion_device_info(
     device_name: String,
     device_user_name: String,
     supported_business_ids: Vec<i32>,
+    device_sub_profile_name: String,
 ) -> Result<(), ErrorCode> {
     let mut device_profile = CompanionDeviceDbManagerRegistry::get_mut().read_device_profile(template_id)?;
     device_profile.device_model_info = device_model_info;
     device_profile.device_name = device_name;
     device_profile.device_user_name = device_user_name;
     device_profile.supported_business_ids = supported_business_ids;
+    device_profile.device_sub_profile_name = device_sub_profile_name;
     CompanionDeviceDbManagerRegistry::get_mut().write_device_profile(template_id, &device_profile)?;
     Ok(())
 }

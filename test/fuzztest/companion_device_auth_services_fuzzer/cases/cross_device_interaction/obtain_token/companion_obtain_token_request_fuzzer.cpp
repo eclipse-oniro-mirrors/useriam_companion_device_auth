@@ -125,7 +125,7 @@ static void FuzzSendObtainTokenRequest(std::shared_ptr<CompanionObtainTokenReque
     (void)fuzzData;
     std::vector<uint8_t> obtainTokenRequestData =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
-    (void)request->SendObtainTokenRequest(obtainTokenRequestData);
+    (void)request->SendObtainTokenRequest(obtainTokenRequestData, fuzzData.ConsumeIntegral<int32_t>());
 }
 
 static void FuzzHandleObtainTokenReply(std::shared_ptr<CompanionObtainTokenRequest> &request,

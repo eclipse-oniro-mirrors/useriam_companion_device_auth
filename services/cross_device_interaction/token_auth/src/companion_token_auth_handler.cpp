@@ -27,6 +27,7 @@
 #include "security_agent.h"
 #include "singleton_manager.h"
 #include "token_auth_message.h"
+#include "adapter_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_COMPANION_TOKEN_AUTH_HANDLER
@@ -64,18 +65,9 @@ void CompanionTokenAuthHandler::HandleRequest(const Attributes &request, Attribu
     }
     const auto &tokenRequest = *tokenRequestOpt;
 
-    if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
-        IAM_LOGE("%{public}s local auth maintain inactive", desc.GetCStr());
+    if (!CheckLocalDeviceStatus(connectionName, tokenRequest.companionUserId, desc)) {
         return;
     }
-
-    auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(connectionName);
-    ENSURE_OR_RETURN_DESC(desc.GetCStr(), localDeviceKey.has_value());
-    if (localDeviceKey->deviceUserId == INVALID_USER_ID) {
-        IAM_LOGE("%{public}s local active user invalid", desc.GetCStr());
-        return;
-    }
-    ENSURE_OR_RETURN_DESC(desc.GetCStr(), tokenRequest.companionUserId == localDeviceKey->deviceUserId);
 
     auto hostBindingStatus =
         GetHostBindingManager().GetHostBindingStatus(tokenRequest.companionUserId, tokenRequest.hostDeviceKey);
@@ -92,6 +84,29 @@ void CompanionTokenAuthHandler::HandleRequest(const Attributes &request, Attribu
     errorGuard.Cancel();
     eventCollector.Report(ResultCode::SUCCESS);
     IAM_LOGI("%{public}s success", desc.GetCStr());
+}
+
+bool CompanionTokenAuthHandler::CheckLocalDeviceStatus(const std::string &connectionName, int32_t companionUserId,
+    const InteractionDesc &desc)
+{
+    if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
+        IAM_LOGE("%{public}s local auth maintain inactive", desc.GetCStr());
+        return false;
+    }
+
+    auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(connectionName);
+    ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(), localDeviceKey.has_value(), false);
+    if (localDeviceKey->deviceUserId == INVALID_USER_ID) {
+        IAM_LOGE("%{public}s local active user invalid", desc.GetCStr());
+        return false;
+    }
+    ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(), companionUserId == localDeviceKey->deviceUserId, false);
+    ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(),
+        GetSubProfileIdManager().IsForegroundSubProfileId(
+            localDeviceKey->deviceUserId, localDeviceKey->deviceSubProfileId),
+        false);
+
+    return true;
 }
 
 ResultCode CompanionTokenAuthHandler::ProcessTokenAuth(const TokenAuthRequest &tokenRequest,

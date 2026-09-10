@@ -198,7 +198,12 @@ fn device_key_ffi_try_from_test() {
     let _guard = ut_registry_guard!();
     log_i!("device_key_ffi_try_from_test start");
 
-    let device_key = DeviceKey { device_id: String::from("test_device_id"), device_id_type: 1, user_id: 100 };
+    let device_key = DeviceKey {
+        device_id: String::from("test_device_id"),
+        device_id_type: 1,
+        user_id: 100,
+        sub_profile_id: 0,
+    };
 
     let device_key_ffi = DeviceKeyFfi::try_from(device_key);
     assert!(device_key_ffi.is_ok());
@@ -206,7 +211,12 @@ fn device_key_ffi_try_from_test() {
     assert_eq!(device_key_ffi.device_id_type, 1);
     assert_eq!(device_key_ffi.user_id, 100);
 
-    let long_device_key = DeviceKey { device_id: String::from("a").repeat(100), device_id_type: 1, user_id: 100 };
+    let long_device_key = DeviceKey {
+        device_id: String::from("a").repeat(100),
+        device_id_type: 1,
+        user_id: 100,
+        sub_profile_id: 0,
+    };
     let result = DeviceKeyFfi::try_from(long_device_key);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }

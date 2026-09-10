@@ -262,6 +262,7 @@ ResultCode BaseServiceCore::GetTemplateStatus(int32_t localUserId, std::vector<I
         ipcDeviceStatus.deviceKey.deviceIdType = static_cast<int32_t>(status.companionDeviceStatus.deviceKey.idType);
         ipcDeviceStatus.deviceKey.deviceId = status.companionDeviceStatus.deviceKey.deviceId;
         ipcDeviceStatus.deviceKey.deviceUserId = status.companionDeviceStatus.deviceKey.deviceUserId;
+        ipcDeviceStatus.deviceKey.deviceSubProfileId = status.companionDeviceStatus.deviceKey.deviceSubProfileId;
         ipcDeviceStatus.deviceUserName = status.companionDeviceStatus.deviceUserName;
         ipcDeviceStatus.deviceModelInfo = status.companionDeviceStatus.deviceModelInfo;
         ipcDeviceStatus.deviceName = status.companionDeviceStatus.deviceName;
@@ -270,6 +271,7 @@ ResultCode BaseServiceCore::GetTemplateStatus(int32_t localUserId, std::vector<I
         for (const auto &id : status.companionDeviceStatus.supportedBusinessIds) {
             ipcDeviceStatus.supportedBusinessIds.push_back(static_cast<int>(id));
         }
+        ipcDeviceStatus.deviceSubProfileName = status.companionDeviceStatus.deviceSubProfileName;
         ipcStatus.deviceStatus = ipcDeviceStatus;
 
         templateStatusArray.push_back(ipcStatus);

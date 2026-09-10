@@ -41,7 +41,8 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_001,
 {
     RemoveHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
-        .extraInfo = extraInfo_ };
+        .extraInfo = extraInfo_,
+        .companionSubProfileId = 42 };
 
     Attributes attributes;
     EncodeRemoveHostBindingRequest(request, attributes);
@@ -57,13 +58,15 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_001,
     EXPECT_EQ(decoded->hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
     EXPECT_EQ(decoded->companionUserId, request.companionUserId);
     EXPECT_EQ(decoded->extraInfo, request.extraInfo);
+    EXPECT_EQ(decoded->companionSubProfileId, request.companionSubProfileId);
 }
 
 HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_002, TestSize.Level0)
 {
     RemoveHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
-        .extraInfo = {} };
+        .extraInfo = {},
+        .companionSubProfileId = 42 };
 
     Attributes attributes;
     EncodeRemoveHostBindingRequest(request, attributes);
@@ -75,6 +78,7 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_002,
     auto decoded = DecodeRemoveHostBindingRequest(attributes);
     EXPECT_TRUE(decoded.has_value());
     EXPECT_TRUE(decoded->extraInfo.empty());
+    EXPECT_EQ(decoded->companionSubProfileId, request.companionSubProfileId);
 }
 
 HWTEST_F(RemoveHostBindingMessageTest, DecodeRemoveHostBindingRequest_001, TestSize.Level0)

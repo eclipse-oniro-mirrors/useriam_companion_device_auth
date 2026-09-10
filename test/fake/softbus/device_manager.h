@@ -34,6 +34,7 @@ enum class DmDeviceType : int32_t {
     DEVICE_TYPE_PC = 0x0C,
     DEVICE_TYPE_PHONE = 0x0E,
     DEVICE_TYPE_PAD = 0x11,
+    DEVICE_TYPE_CAR = 0x83,
     DEVICE_TYPE_2IN1 = 0xA2F,
 };
 

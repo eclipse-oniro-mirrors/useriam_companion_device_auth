@@ -45,17 +45,19 @@ int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
 
     std::vector<ClientDeviceStatus> clientDeviceStatusList;
     for (const auto &deviceStatus : deviceStatusList) {
-        IAM_LOGI("key(idType:%{public}d, id:%{public}s, userId:%{public}d), "
+        IAM_LOGI("key(idType:%{public}d, id:%{public}s, userId:%{public}d, subProfileId:%{public}d), "
                  "userName:%{public}s, modelInfo:%{public}s, name:%{public}s, isOnline:%{public}d, "
                  "supportedBusinessIds:%{public}s",
             deviceStatus.deviceKey.deviceIdType, GetMaskedString(deviceStatus.deviceKey.deviceId).c_str(),
-            deviceStatus.deviceKey.deviceUserId, GET_MASKED_STR_CSTR(deviceStatus.deviceUserName),
-            GET_MASKED_STR_CSTR(deviceStatus.deviceModelInfo), GET_MASKED_STR_CSTR(deviceStatus.deviceName),
+            deviceStatus.deviceKey.deviceUserId, deviceStatus.deviceKey.deviceSubProfileId,
+            GET_MASKED_STR_CSTR(deviceStatus.deviceUserName), GET_MASKED_STR_CSTR(deviceStatus.deviceModelInfo),
+            GET_MASKED_STR_CSTR(deviceStatus.deviceName),
             deviceStatus.isOnline, GetVectorString(deviceStatus.supportedBusinessIds).c_str());
         ClientDeviceKey clientDeviceKey;
         clientDeviceKey.deviceIdType = deviceStatus.deviceKey.deviceIdType;
         clientDeviceKey.deviceId = deviceStatus.deviceKey.deviceId;
         clientDeviceKey.deviceUserId = deviceStatus.deviceKey.deviceUserId;
+        clientDeviceKey.deviceSubProfileId = deviceStatus.deviceKey.deviceSubProfileId;
 
         ClientDeviceStatus clientDeviceStatus;
         clientDeviceStatus.deviceKey = clientDeviceKey;
@@ -64,6 +66,7 @@ int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
         clientDeviceStatus.deviceName = deviceStatus.deviceName;
         clientDeviceStatus.isOnline = deviceStatus.isOnline;
         clientDeviceStatus.supportedBusinessIds = deviceStatus.supportedBusinessIds;
+        clientDeviceStatus.deviceSubProfileName = deviceStatus.deviceSubProfileName;
 
         clientDeviceStatusList.push_back(clientDeviceStatus);
     }

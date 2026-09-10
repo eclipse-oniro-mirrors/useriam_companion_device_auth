@@ -23,6 +23,7 @@
 #include "mock_request.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_sub_profile_id_manager.h"
 #include "mock_time_keeper.h"
 #include "mock_user_id_manager.h"
 
@@ -90,6 +91,10 @@ public:
         auto userIdMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
         AdapterManager::GetInstance().SetUserIdManager(userIdMgr);
 
+        auto subProfileIdMgr =
+            std::shared_ptr<ISubProfileIdManager>(&mockSubProfileIdManager_, [](ISubProfileIdManager *) {});
+        AdapterManager::GetInstance().SetSubProfileIdManager(subProfileIdMgr);
+
         auto timeKeeper = std::make_shared<MockTimeKeeper>();
         AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
 
@@ -106,6 +111,8 @@ public:
         ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
         ON_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).WillByDefault(Return());
         ON_CALL(mockEventManagerAdapter_, ReportInteractionEvent(_)).WillByDefault(Return());
+        ON_CALL(mockSubProfileIdManager_, GetForegroundSubProfileId(_))
+            .WillByDefault(Return(INVALID_SUB_PROFILE_ID));
     }
 
     void TearDown() override
@@ -125,6 +132,7 @@ protected:
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
     NiceMock<MockMiscManager> mockMiscManager_;
     NiceMock<MockUserIdManager> mockUserIdManager_;
+    NiceMock<MockSubProfileIdManager> mockSubProfileIdManager_;
     NiceMock<MockEventManagerAdapter> mockEventManagerAdapter_;
 };
 

@@ -143,6 +143,7 @@ std::optional<DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKey(ChannelId c
     deviceKey.idType = physicalKey.idType;
     deviceKey.deviceId = physicalKey.deviceId;
     deviceKey.deviceUserId = GetUserIdManager().GetUnlockedActiveUserId();
+    deviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(deviceKey.deviceUserId);
 
     return deviceKey;
 }

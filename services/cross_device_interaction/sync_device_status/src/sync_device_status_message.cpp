@@ -34,6 +34,7 @@ void EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attri
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
         CapabilityConverter::ToUnderlyingVec(request.capabilityList));
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostDeviceKey.deviceSubProfileId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_SALT, request.salt);
     attributes.SetUint64Value(Attributes::ATTR_CDA_SA_CHALLENGE, request.challenge);
 }
@@ -70,11 +71,15 @@ void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
     attributes.SetInt32ArrayValue(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST,
         BusinessIdConverter::ToUnderlyingVec(reply.businessIdList));
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, reply.companionDeviceKey.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID,
+        reply.companionDeviceKey.deviceSubProfileId);
     attributes.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID,
         SecureProtocolIdConverter::ToUnderlying(reply.secureProtocolId));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, reply.deviceUserName);
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_DEVICE_NAME, reply.deviceName);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME, reply.deviceSubProfileName);
+    attributes.SetBoolValue(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, reply.isAuthMaintainActive);
 }
 
 std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attributes &attributes)
@@ -113,6 +118,9 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
     if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_DEVICE_NAME)) {
         attributes.GetStringValue(Attributes::ATTR_CDA_SA_DEVICE_NAME, reply.deviceName);
     }
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME)) {
+        attributes.GetStringValue(Attributes::ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME, reply.deviceSubProfileName);
+    }
     bool getExtraInfoRet =
         attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
@@ -120,6 +128,9 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
     reply.capabilityList = CapabilityConverter::FromUnderlyingVec(capabilityList);
     reply.businessIdList = BusinessIdConverter::FromUnderlyingVec(businessIdList);
     reply.secureProtocolId = SecureProtocolIdConverter::FromUnderlying(secureProtocolId);
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN)) {
+        attributes.GetBoolValue(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, reply.isAuthMaintainActive);
+    }
     return reply;
 }
 

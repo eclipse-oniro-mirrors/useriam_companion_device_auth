@@ -153,6 +153,7 @@ ResultCode SecurityAgentImpl::HostGetPersistedCompanionStatus(const HostGetPersi
     auto ffiInput = std::make_unique<HostGetPersistedStatusInputFfi>();
     ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
     ffiInput->userId = input.userId;
+    ffiInput->subProfileId = input.subProfileId;
 
     auto ffiOutput = std::make_unique<HostGetPersistedStatusOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
@@ -175,6 +176,7 @@ ResultCode SecurityAgentImpl::CompanionGetPersistedHostBindingStatus(
     auto ffiInput = std::make_unique<CompanionGetPersistedStatusInputFfi>();
     ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
     ffiInput->userId = input.userId;
+    ffiInput->subProfileId = input.subProfileId;
 
     auto ffiOutput = std::make_unique<CompanionGetPersistedStatusOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);

@@ -244,7 +244,8 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
     const auto &peerKey = PeerDeviceKey();
     const auto &companionKey = obtainTokenRequest.companionDeviceKey;
     if (peerKey.deviceUserId != companionKey.deviceUserId || peerKey.idType != companionKey.idType ||
-        peerKey.deviceId != companionKey.deviceId) {
+        peerKey.deviceId != companionKey.deviceId ||
+        peerKey.deviceSubProfileId != companionKey.deviceSubProfileId) {
         IAM_LOGE("%{public}s device key mismatch", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::INVALID_PARAMETERS);
         return;
@@ -271,7 +272,7 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
 }
 
 HostProcessObtainTokenInput HostObtainTokenRequest::BuildHostProcessObtainTokenInput(
-    const std::vector<uint8_t> &obtainTokenRequest)
+    const std::vector<uint8_t> &obtainTokenRequest, Atl atl)
 {
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), HostProcessObtainTokenInput {});
     HostProcessObtainTokenInput input = {};
@@ -279,6 +280,7 @@ HostProcessObtainTokenInput HostObtainTokenRequest::BuildHostProcessObtainTokenI
     input.templateId = *templateId_;
     input.secureProtocolId = secureProtocolId_;
     input.obtainTokenRequest = obtainTokenRequest;
+    input.atl = atl;
     return input;
 }
 
@@ -300,7 +302,7 @@ bool HostObtainTokenRequest::ProcessHostProcessObtainTokenOutput(const HostProce
 ResultCode HostObtainTokenRequest::HandleHostProcessObtainToken(const ObtainTokenRequest &request,
     std::vector<uint8_t> &obtainTokenReply)
 {
-    HostProcessObtainTokenInput input = BuildHostProcessObtainTokenInput(request.extraInfo);
+    HostProcessObtainTokenInput input = BuildHostProcessObtainTokenInput(request.extraInfo, request.atl);
 
     HostProcessObtainTokenOutput output = {};
     ResultCode ret = GetSecurityAgent().HostProcessObtainToken(input, output);
@@ -386,7 +388,7 @@ bool HostObtainTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &
         IAM_LOGE("%{public}s failed to get device status", GetDescription());
         return false;
     }
-    if (!deviceStatus->isAuthMaintainActive) {
+    if (!deviceStatus->isAuthMaintainActive && deviceStatus->deviceType != DeviceType::CAR) {
         IAM_LOGE("%{public}s device not in auth maintain active state", GetDescription());
         return false;
     }
@@ -411,7 +413,7 @@ void HostObtainTokenRequest::HandlePeerDeviceStatusChanged(const std::vector<Dev
         if (status.deviceKey != peerDeviceKey) {
             continue;
         }
-        if (!status.isAuthMaintainActive) {
+        if (!status.isAuthMaintainActive && status.deviceType != DeviceType::CAR) {
             IAM_LOGE("%{public}s companion device left auth maintain state", GetDescription());
             // companion may already hold PreObtainTokenReply(SUCCESS) and be waiting for OBTAIN_TOKEN; a bare
             // CompleteWithError sends nothing to the companion (InboundRequest does not own the connection), so it

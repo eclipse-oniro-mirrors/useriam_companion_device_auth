@@ -101,7 +101,7 @@ public:
         UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
         const CompanionDelegateAuthParam &delegateAuthParam) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId,
-        const DeviceKey &hostDeviceKey, const std::string &triggerReason) = 0;
+        int32_t companionSubProfileId, const DeviceKey &hostDeviceKey, const std::string &triggerReason) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRequestResyncRequest(
         const PhysicalDeviceKey &hostPhysicalDeviceKey, ResultCodeCallback onComplete) = 0;
     virtual std::shared_ptr<IRequest> CreateHostMixAuthRequest(const HostMixAuthParams &params,

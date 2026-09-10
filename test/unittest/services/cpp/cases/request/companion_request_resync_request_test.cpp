@@ -33,11 +33,13 @@ constexpr int32_t INT32_200 = 200;
 
 class CompanionRequestResyncRequestTest : public Test {
 protected:
-    DeviceKey MakeHostKey(const std::string &deviceId, UserId deviceUserId)
+    DeviceKey MakeHostKey(
+        const std::string &deviceId, UserId deviceUserId, int32_t subProfileId = INVALID_SUB_PROFILE_ID)
     {
         return DeviceKey { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
             .deviceId = deviceId,
-            .deviceUserId = deviceUserId };
+            .deviceUserId = deviceUserId,
+            .deviceSubProfileId = subProfileId };
     }
 };
 

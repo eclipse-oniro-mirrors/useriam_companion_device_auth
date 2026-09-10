@@ -77,9 +77,30 @@ fn handle_rust_command_test() {
     );
 
     let mut common_output = [0u8; size_of::<CommonOutputFfi>()];
-    assert!(handle_rust_command(CommandId::Init as i32, &input, &mut output, &common_input, &mut common_output).is_ok());
+    assert!(handle_rust_command(
+        CommandId::Init as i32,
+        &input,
+        &mut output,
+        &common_input,
+        &mut common_output,
+    )
+    .is_ok());
 
     mock_set_init_command_env();
-    assert!(handle_rust_command(CommandId::Init as i32, &input, &mut output, &common_input, &mut common_output).is_ok());
-    assert!(handle_rust_command(99999, &input, &mut output, &common_input, &mut common_output).is_ok());
+    assert!(handle_rust_command(
+        CommandId::Init as i32,
+        &input,
+        &mut output,
+        &common_input,
+        &mut common_output,
+    )
+    .is_ok());
+    assert!(handle_rust_command(
+        99999,
+        &input,
+        &mut output,
+        &common_input,
+        &mut common_output,
+    )
+    .is_ok());
 }

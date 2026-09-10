@@ -43,6 +43,7 @@ static void FuzzDecodeDeviceKey(FuzzedDataProvider &fuzzData)
         ffi.deviceId.data[i] = fuzzData.ConsumeIntegral<uint8_t>();
     }
     ffi.userId = fuzzData.ConsumeIntegral<uint32_t>();
+    ffi.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
 
     DeviceKey key;
     (void)DecodeDeviceKey(ffi, key);

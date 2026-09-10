@@ -139,7 +139,12 @@ impl TryFrom<DeviceKey> for DeviceKeyFfi {
     fn try_from(key: DeviceKey) -> Result<Self, ErrorCode> {
         let device_id = DataArray64Ffi::try_from(key.device_id.as_bytes().to_vec())?;
 
-        Ok(DeviceKeyFfi { device_id, device_id_type: key.device_id_type, user_id: key.user_id })
+        Ok(DeviceKeyFfi {
+            device_id,
+            device_id_type: key.device_id_type,
+            user_id: key.user_id,
+            sub_profile_id: key.sub_profile_id
+        })
     }
 }
 

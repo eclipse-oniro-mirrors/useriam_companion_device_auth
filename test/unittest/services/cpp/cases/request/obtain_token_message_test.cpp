@@ -42,7 +42,8 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_001, TestSize
 {
     PreObtainTokenRequest request = { .hostUserId = hostUserId_,
         .companionDeviceKey = companionDeviceKey_,
-        .extraInfo = extraInfo_ };
+        .extraInfo = extraInfo_,
+        .hostSubProfileId = 42 };
 
     Attributes attributes;
     EncodePreObtainTokenRequest(request, attributes);
@@ -60,13 +61,15 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_001, TestSize
     EXPECT_EQ(decoded.companionDeviceKey.deviceId, request.companionDeviceKey.deviceId);
     EXPECT_EQ(decoded.companionDeviceKey.deviceUserId, request.companionDeviceKey.deviceUserId);
     EXPECT_EQ(decoded.extraInfo, request.extraInfo);
+    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
 }
 
 HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_002, TestSize.Level0)
 {
     PreObtainTokenRequest request = { .hostUserId = hostUserId_,
         .companionDeviceKey = companionDeviceKey_,
-        .extraInfo = {} };
+        .extraInfo = {},
+        .hostSubProfileId = 42 };
 
     Attributes attributes;
     EncodePreObtainTokenRequest(request, attributes);
@@ -81,6 +84,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_002, TestSize
 
     EXPECT_EQ(decoded.hostUserId, request.hostUserId);
     EXPECT_TRUE(decoded.extraInfo.empty());
+    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
 }
 
 HWTEST_F(ObtainTokenMessageTest, DecodePreObtainTokenRequest_001, TestSize.Level0)
@@ -171,7 +175,8 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_001, TestSize.Le
 {
     ObtainTokenRequest request = { .hostUserId = hostUserId_,
         .extraInfo = extraInfo_,
-        .companionDeviceKey = companionDeviceKey_ };
+        .companionDeviceKey = companionDeviceKey_,
+        .hostSubProfileId = 42 };
 
     Attributes attributes;
     EncodeObtainTokenRequest(request, attributes);
@@ -189,13 +194,15 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_001, TestSize.Le
     EXPECT_EQ(decoded.companionDeviceKey.idType, request.companionDeviceKey.idType);
     EXPECT_EQ(decoded.companionDeviceKey.deviceId, request.companionDeviceKey.deviceId);
     EXPECT_EQ(decoded.companionDeviceKey.deviceUserId, request.companionDeviceKey.deviceUserId);
+    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
 }
 
 HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_002, TestSize.Level0)
 {
     ObtainTokenRequest request = { .hostUserId = hostUserId_,
         .extraInfo = {},
-        .companionDeviceKey = companionDeviceKey_ };
+        .companionDeviceKey = companionDeviceKey_,
+        .hostSubProfileId = 42 };
 
     Attributes attributes;
     EncodeObtainTokenRequest(request, attributes);
@@ -209,6 +216,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_002, TestSize.Le
     ObtainTokenRequest decoded = result.value();
 
     EXPECT_TRUE(decoded.extraInfo.empty());
+    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
 }
 
 HWTEST_F(ObtainTokenMessageTest, DecodeObtainTokenRequest_001, TestSize.Level0)

@@ -25,6 +25,7 @@
 #include "adapter_manager.h"
 #include "host_binding.h"
 #include "singleton_manager.h"
+#include "sub_profile_id_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_HOST_BINDING_MANAGER_IMPL
@@ -56,6 +57,14 @@ bool HostBindingManagerImpl::Initialize()
         });
     ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
 
+    subProfileChangedSubscription_ = GetSubProfileIdManager().SubscribeSubProfileChanged(
+        [weakSelf = weak_from_this()](UserId userId, int32_t subProfileId, SubProfileEventType eventType) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->OnSubProfileChanged(userId, subProfileId, eventType);
+        });
+    ENSURE_OR_RETURN_VAL(subProfileChangedSubscription_ != nullptr, false);
+
     IAM_LOGI("success");
     return true;
 }
@@ -75,7 +84,26 @@ void HostBindingManagerImpl::OnActiveUserIdChanged(UserId userId)
         return;
     }
 
-    CompanionGetPersistedHostBindingStatusInput input { activeUserId_ };
+    ReloadBindingsForSubProfile(activeUserId_,
+        GetSubProfileIdManager().GetForegroundSubProfileId(activeUserId_));
+}
+
+void HostBindingManagerImpl::OnSubProfileSwitched(UserId userId, int32_t subProfileId)
+{
+    IAM_LOGI("sub profile switched, userId=%{public}d, subProfileId=%{public}d", userId, subProfileId);
+
+    if (userId != activeUserId_) {
+        IAM_LOGI("userId %{public}d mismatch with active user id %{public}d, skip", userId, activeUserId_);
+        return;
+    }
+
+    bindings_.clear();
+    ReloadBindingsForSubProfile(userId, subProfileId);
+}
+
+void HostBindingManagerImpl::ReloadBindingsForSubProfile(UserId userId, int32_t subProfileId)
+{
+    CompanionGetPersistedHostBindingStatusInput input { userId, subProfileId };
     CompanionGetPersistedHostBindingStatusOutput output {};
     ResultCode ret = GetSecurityAgent().CompanionGetPersistedHostBindingStatus(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -97,8 +125,41 @@ void HostBindingManagerImpl::OnActiveUserIdChanged(UserId userId)
                 GET_MASKED_NUM_STRING(persistedStatus.bindingId).c_str(), ret);
         }
     }
-    IAM_LOGI("reloaded %{public}zu bindings for user %{public}d", bindings_.size(), activeUserId_);
-    return;
+    IAM_LOGI("reloaded %{public}zu bindings for user %{public}d, subProfileId=%{public}d",
+        bindings_.size(), userId, subProfileId);
+}
+
+void HostBindingManagerImpl::OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType)
+{
+    IAM_LOGI("sub profile changed, userId=%{public}d, subProfileId=%{public}d, eventType=%{public}d",
+        userId, subProfileId, static_cast<int32_t>(eventType));
+
+    if (eventType == SubProfileEventType::SWITCHED) {
+        OnSubProfileSwitched(userId, subProfileId);
+        return;
+    }
+
+    if (eventType != SubProfileEventType::DELETED) {
+        IAM_LOGI("not a DELETED or SWITCHED event, ignore");
+        return;
+    }
+
+    CompanionGetPersistedHostBindingStatusInput input { userId, subProfileId };
+    CompanionGetPersistedHostBindingStatusOutput output {};
+    ResultCode ret = GetSecurityAgent().CompanionGetPersistedHostBindingStatus(input, output);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("failed to get persisted host binding status for deleted sub profile, ret=%{public}d", ret);
+        return;
+    }
+
+    for (const auto &status : output.hostBindingStatusList) {
+        IAM_LOGI("removing host binding for deleted sub profile, bindingId=%{public}s",
+            GET_MASKED_NUM_STRING(status.bindingId).c_str());
+        ret = RemoveHostBindingById(status.bindingId);
+        if (ret != ResultCode::SUCCESS) {
+            IAM_LOGE("failed to remove host binding for deleted sub profile, ret=%{public}d", ret);
+        }
+    }
 }
 
 std::optional<HostBindingStatus> HostBindingManagerImpl::GetHostBindingStatus(BindingId bindingId)
@@ -264,10 +325,26 @@ ResultCode HostBindingManagerImpl::RemoveHostBinding(UserId companionUserId, con
     return ResultCode::SUCCESS;
 }
 
+ResultCode HostBindingManagerImpl::RemoveHostBindingById(BindingId bindingId)
+{
+    CompanionRemoveHostBindingInput input { bindingId };
+    ResultCode ret = GetSecurityAgent().CompanionRemoveHostBinding(input);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("security agent failed to remove host binding %{public}s, ret %{public}d",
+            GET_MASKED_NUM_STRING(bindingId).c_str(), ret);
+        return ret;
+    }
+
+    RemoveBindingInternal(bindingId);
+    IAM_LOGI("remove host binding by id success, id %{public}s", GET_MASKED_NUM_STRING(bindingId).c_str());
+    return ResultCode::SUCCESS;
+}
+
 std::optional<BindingId> HostBindingManagerImpl::FindPersistedBindingId(UserId companionUserId,
     const DeviceKey &hostDeviceKey)
 {
-    CompanionGetPersistedHostBindingStatusInput input { companionUserId };
+    CompanionGetPersistedHostBindingStatusInput input { companionUserId,
+        GetSubProfileIdManager().GetForegroundSubProfileId(companionUserId) };
     CompanionGetPersistedHostBindingStatusOutput output {};
     ResultCode ret = GetSecurityAgent().CompanionGetPersistedHostBindingStatus(input, output);
     if (ret != ResultCode::SUCCESS) {

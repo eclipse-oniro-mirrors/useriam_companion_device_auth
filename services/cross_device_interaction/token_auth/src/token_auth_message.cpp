@@ -29,7 +29,9 @@ namespace CompanionDeviceAuth {
 void EncodeTokenAuthRequest(const TokenAuthRequest &request, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostDeviceKey.deviceSubProfileId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionSubProfileId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
 }
 
@@ -42,6 +44,7 @@ std::optional<TokenAuthRequest> DecodeTokenAuthRequest(const Attributes &attribu
     bool getCompanionUserIdRet =
         attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
     ENSURE_OR_RETURN_VAL(getCompanionUserIdRet, std::nullopt);
+    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionSubProfileId);
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
     return request;

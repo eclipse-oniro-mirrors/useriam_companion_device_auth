@@ -65,7 +65,7 @@ companionDeviceAuth::DeviceStatus CompanionDeviceAuthAniHelper::ConvertDeviceSta
     taihe::array<int32_t> supportedBusinessIds = ConvertInt32VectorToArray(clientDeviceStatus.supportedBusinessIds);
     companionDeviceAuth::DeviceStatus result { deviceKey, clientDeviceStatus.deviceUserName,
         clientDeviceStatus.deviceModelInfo, clientDeviceStatus.deviceName, clientDeviceStatus.isOnline,
-        supportedBusinessIds };
+        supportedBusinessIds, clientDeviceStatus.deviceSubProfileName };
     return result;
 }
 
@@ -109,7 +109,7 @@ uintptr_t CompanionDeviceAuthAniHelper::ConvertAddedTime(int64_t addedTime, ani_
 companionDeviceAuth::DeviceKey CompanionDeviceAuthAniHelper::ConvertDeviceKey(ClientDeviceKey clientDeviceKey)
 {
     companionDeviceAuth::DeviceKey result { clientDeviceKey.deviceIdType, clientDeviceKey.deviceId,
-        clientDeviceKey.deviceUserId };
+        clientDeviceKey.deviceUserId, clientDeviceKey.deviceSubProfileId };
     return result;
 }
 
@@ -119,6 +119,7 @@ ClientDeviceKey CompanionDeviceAuthAniHelper::ConvertAniDeviceKey(companionDevic
     result.deviceIdType = deviceKey.deviceIdType;
     result.deviceId = deviceKey.deviceId;
     result.deviceUserId = deviceKey.deviceUserId;
+    result.deviceSubProfileId = deviceKey.deviceSubProfileId;
     return result;
 }
 

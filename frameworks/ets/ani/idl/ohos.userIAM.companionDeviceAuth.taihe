@@ -41,6 +41,7 @@ struct DeviceKey {
     deviceIdType: i32;
     deviceId: String;
     deviceUserId: i32;
+    deviceSubProfileId: i32;
 }
 
 struct DeviceStatus {
@@ -50,6 +51,7 @@ struct DeviceStatus {
     deviceName: String;
     isOnline: bool;
     supportedBusinessIds: Array<i32>;
+    deviceSubProfileName: String;
 }
 
 struct TemplateStatus {

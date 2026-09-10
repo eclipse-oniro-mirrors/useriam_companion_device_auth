@@ -27,6 +27,7 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
 
   sources = [
     "cases/common/attributes_test.cpp",
+    "cases/common/device_key_test.cpp",
     "cases/common/error_guard_test.cpp",
     "cases/common/event_bus_impl_test.cpp",
     "cases/common/interaction_desc_test.cpp",
@@ -48,12 +49,14 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
     "cases/companion/companion_test.cpp",
     "cases/companion/companion_token_auth_handler_test.cpp",
     "cases/cross_device_comm/channel_manager_test.cpp",
+    "cases/cross_device_comm/common_message_test.cpp",
     "cases/cross_device_comm/connection_manager_test.cpp",
     "cases/cross_device_comm/cross_device_comm_manager_impl_test.cpp",
     "cases/cross_device_comm/device_status_entry_test.cpp",
     "cases/cross_device_comm/device_status_manager_test.cpp",
     "cases/cross_device_comm/local_device_status_manager_test.cpp",
     "cases/cross_device_comm/message_router_test.cpp",
+    "cases/external_adapters/constant_sub_profile_id_manager_test.cpp",
     "cases/external_adapters/result_code_converter_test.cpp",
     "cases/external_adapters/rust_error_code_converter_test.cpp",
     "cases/external_adapters/soft_bus_adapter_test.cpp",

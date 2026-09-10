@@ -45,7 +45,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_001, Test
 
     StartDelegateAuthRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
-        .extraInfo = extraInfo_ };
+        .extraInfo = extraInfo_,
+        .companionSubProfileId = 42 };
 
     Attributes attributes;
     EncodeStartDelegateAuthRequest(request, attributes);
@@ -61,6 +62,7 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_001, Test
     EXPECT_EQ(decodedRequest->hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
     EXPECT_EQ(decodedRequest->companionUserId, request.companionUserId);
     EXPECT_EQ(decodedRequest->extraInfo, request.extraInfo);
+    EXPECT_EQ(decodedRequest->companionSubProfileId, request.companionSubProfileId);
 }
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_002, TestSize.Level0)

@@ -199,6 +199,7 @@ typedef struct DeviceKeyFfi {
     int32_t deviceIdType;
     struct DataArray64Ffi deviceId;
     int32_t userId;
+    int32_t subProfileId;
 } DeviceKeyFfi;
 
 typedef struct Int32Array64Ffi {
@@ -223,6 +224,7 @@ typedef struct PersistedCompanionStatusFfi {
     struct DataArray1024Ffi deviceModelInfo;
     struct DataArray256Ffi deviceUserName;
     struct DataArray256Ffi deviceName;
+    struct DataArray256Ffi deviceSubProfileIdName;
 } PersistedCompanionStatusFfi;
 
 typedef struct PersistedHostBindingStatusFfi {
@@ -230,6 +232,7 @@ typedef struct PersistedHostBindingStatusFfi {
     int32_t companionUserId;
     struct DeviceKeyFfi hostDeviceKey;
     bool isTokenValid;
+    int32_t companionSubProfileId;
 } PersistedHostBindingStatusFfi;
 
 typedef struct CompanionStatusArrayFfi {

@@ -31,6 +31,7 @@
 #include "request_manager.h"
 #include "service_common.h"
 #include "singleton_manager.h"
+#include "sub_profile_id_manager.h"
 #include "subscription.h"
 #include "subscription_manager.h"
 #include "system_param_manager.h"
@@ -125,6 +126,10 @@ bool TestServiceInitializer::InitializeUserIdManager()
 {
     userIdManager_ = std::make_shared<FakeUserIdManager>();
     AdapterManager::GetInstance().SetUserIdManager(userIdManager_);
+
+    auto subProfileIdManager = ISubProfileIdManager::Create();
+    ENSURE_OR_RETURN_VAL(subProfileIdManager != nullptr, false);
+    AdapterManager::GetInstance().SetSubProfileIdManager(subProfileIdManager);
     return true;
 }
 
@@ -793,6 +798,7 @@ bool ModuleTestGuard::RegisterHostBindingDirect(UserId companionUserId, const De
     persistedStatus.companionUserId = companionUserId;
     persistedStatus.hostDeviceKey = hostDeviceKey;
     persistedStatus.isTokenValid = false;
+    persistedStatus.companionSubProfileId = INVALID_SUB_PROFILE_ID;
 
     // RemoveHostBinding resolves the binding via CompanionGetPersistedHostBindingStatus
     // (not the in-memory store), so return this persisted status there too.

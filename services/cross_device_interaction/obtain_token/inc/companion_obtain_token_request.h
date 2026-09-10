@@ -52,17 +52,19 @@ private:
     bool GetBindingIdFromHostBindingStatus();
     CompanionBeginObtainTokenInput BuildCompanionBeginObtainTokenInput(const std::vector<uint8_t> &extraInfo) const;
     ResultCode CompanionBeginObtainToken(const std::vector<uint8_t> &extraInfo);
-    bool SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest);
+    bool SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest, Atl atl);
     void HandleObtainTokenReply(const Attributes &reply);
     ResultCode CompanionEndObtainToken(const ObtainTokenReply &obtainTokenReply);
     void CompleteWithSuccess();
     void HandleAuthMaintainActiveChanged(bool isActive);
+    bool ProceedWithConnection();
 
     DeviceKey companionDeviceKey_;
     std::vector<uint8_t> fwkUnlockMsg_;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     BindingId bindingId_ = 0;
     bool needCancelObtainToken_ = false;
+    bool waitingForAuthMaintainActive_ = false;
     std::unique_ptr<Subscription> localDeviceStatusSubscription_;
 };
 } // namespace CompanionDeviceAuth

@@ -213,6 +213,7 @@ public:
             status.bindingId = fuzzData_.ConsumeIntegral<BindingId>();
             status.companionUserId = fuzzData_.ConsumeIntegral<UserId>();
             status.hostDeviceStatus.deviceKey.deviceId = GenerateRandomString(fuzzData_);
+            status.companionSubProfileId = INVALID_SUB_PROFILE_ID;
             return std::optional<HostBindingStatus>(status);
         }
         return std::optional<HostBindingStatus>();
@@ -228,6 +229,7 @@ public:
             status.bindingId = fuzzData_.ConsumeIntegral<BindingId>();
             status.companionUserId = fuzzData_.ConsumeIntegral<UserId>();
             status.hostDeviceStatus.deviceKey.deviceId = GenerateRandomString(fuzzData_);
+            status.companionSubProfileId = INVALID_SUB_PROFILE_ID;
             return std::optional<HostBindingStatus>(status);
         }
         return std::optional<HostBindingStatus>();
@@ -540,6 +542,7 @@ public:
             output.hostBindingStatus.companionUserId = fuzzData_.ConsumeIntegral<UserId>();
             output.hostBindingStatus.hostDeviceKey.deviceId = GenerateRandomString(fuzzData_);
             output.hostBindingStatus.isTokenValid = fuzzData_.ConsumeBool();
+            output.hostBindingStatus.companionSubProfileId = INVALID_SUB_PROFILE_ID;
         }
         return result;
     }
@@ -1338,10 +1341,11 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId, const DeviceKey &hostDeviceKey,
-        const std::string &triggerReason) override
+    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId,
+        int32_t companionSubProfileId, const DeviceKey &hostDeviceKey, const std::string &triggerReason) override
     {
         (void)companionUserId;
+        (void)companionSubProfileId;
         (void)hostDeviceKey;
         (void)triggerReason;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0

@@ -240,6 +240,7 @@ impl SecBindingReply {
 pub struct SecBindingReplyInfo {
     pub device_id: String,
     pub user_id: i32,
+    pub sub_profile_id: i32,
     pub esl: i32,
     pub track_ability_level: i32,
     pub challenge: u64,
@@ -252,6 +253,7 @@ impl SecBindingReplyInfo {
         let mut attribute = Attribute::new();
         attribute.set_string(AttributeKey::AttrDeviceId, self.device_id.clone());
         attribute.set_i32(AttributeKey::AttrUserId, self.user_id);
+        attribute.set_i32(AttributeKey::AttrSubProfileId, self.sub_profile_id);
         attribute.set_i32(AttributeKey::AttrEsl, self.esl);
         attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, self.track_ability_level);
         attribute.set_u64(AttributeKey::AttrHostChallenge, self.challenge);
@@ -264,12 +266,22 @@ impl SecBindingReplyInfo {
         let attribute = Attribute::try_from_bytes(decrypt_data).map_err(|e| p!(e))?;
         let device_id = attribute.get_string(AttributeKey::AttrDeviceId).map_err(|e| p!(e))?;
         let user_id = attribute.get_i32(AttributeKey::AttrUserId).map_err(|e| p!(e))?;
+        let sub_profile_id = attribute.get_i32(AttributeKey::AttrSubProfileId).map_err(|e| p!(e))?;
         let esl = attribute.get_i32(AttributeKey::AttrEsl).map_err(|e| p!(e))?;
         let track_ability_level = attribute.get_i32(AttributeKey::AttrTrackAbilityLevel).map_err(|e| p!(e))?;
         let challenge = attribute.get_u64(AttributeKey::AttrHostChallenge).map_err(|e| p!(e))?;
         let protocol_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
         let capability_list = attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
 
-        Ok(Box::new(Self { device_id, user_id, esl, track_ability_level, challenge, protocol_list, capability_list }))
+        Ok(Box::new(Self {
+            device_id,
+            user_id,
+            sub_profile_id,
+            esl,
+            track_ability_level,
+            challenge,
+            protocol_list,
+            capability_list,
+        }))
     }
 }

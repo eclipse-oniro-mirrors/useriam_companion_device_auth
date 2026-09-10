@@ -28,6 +28,7 @@ namespace CompanionDeviceAuth {
 // Companion -> Host
 struct RevokeTokenRequest {
     int32_t hostUserId { INVALID_USER_ID };
+    int32_t hostSubProfileId { INVALID_SUB_PROFILE_ID };
     DeviceKey companionDeviceKey {};
 };
 

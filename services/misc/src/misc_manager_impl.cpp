@@ -57,6 +57,7 @@ std::vector<DeviceKey> ConvertIpcDeviceSelectResultToDeviceKeys(const IpcDeviceS
         deviceKey.idType = static_cast<DeviceIdType>(ipcDeviceKey.deviceIdType);
         deviceKey.deviceId = ipcDeviceKey.deviceId;
         deviceKey.deviceUserId = ipcDeviceKey.deviceUserId;
+        deviceKey.deviceSubProfileId = ipcDeviceKey.deviceSubProfileId;
         deviceKeys.push_back(deviceKey);
     }
 

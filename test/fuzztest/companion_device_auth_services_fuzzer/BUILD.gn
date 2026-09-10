@@ -135,6 +135,7 @@ ohos_fuzztest("CompanionDeviceAuthServiceFuzzer") {
 
     # external_adapters cases
     "cases/external_adapters/security_command/security_command_adapter_fuzzer.cpp",
+    "cases/external_adapters/sub_profile_id_manager_fuzzer.cpp",
 
     # utils cases
     "cases/utils/backoff_retry_timer_fuzzer.cpp",

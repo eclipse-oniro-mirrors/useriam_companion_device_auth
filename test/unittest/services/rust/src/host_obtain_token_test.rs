@@ -59,8 +59,13 @@ fn create_mock_companion_device_capability() -> CompanionDeviceCapability {
 fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
     CompanionDevice {
         template_id,
-        device_key: DeviceKey { device_id: String::from("test_device"), device_id_type: 1, user_id: 100 },
-        user_info: UserInfo { user_id: 100, user_type: 0 },
+        device_key: DeviceKey {
+            device_id: String::from("test_device"),
+            device_id_type: 1,
+            user_id: 100,
+            sub_profile_id: 0,
+        },
+        user_info: UserInfo { user_id: 100, user_type: 0, sub_profile_id: 0 },
         added_time: 123456,
         is_valid: true,
         capability_list: vec![1, 2, 3], // Includes both DelegateAuth(1) and TokenAuth(2)
@@ -164,6 +169,7 @@ fn host_obtain_token_request_begin_test_wrong_input_type() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -241,6 +247,7 @@ fn host_obtain_token_request_end_test_read_device_capability_info_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -274,6 +281,7 @@ fn host_obtain_token_request_end_test_decode_sec_message_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -308,6 +316,7 @@ fn host_obtain_token_request_end_test_get_session_key_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -339,6 +348,7 @@ fn host_obtain_token_request_end_test_decrypt_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -366,6 +376,7 @@ fn host_obtain_token_request_end_test_challenge_mismatch() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -393,6 +404,7 @@ fn host_obtain_token_request_end_test_atl_try_from_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -427,6 +439,7 @@ fn host_obtain_token_request_end_test_secure_random_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -461,6 +474,7 @@ fn host_obtain_token_request_end_test_generate_token_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -494,6 +508,7 @@ fn host_obtain_token_request_end_test_sec_message_get_session_key_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -527,6 +542,7 @@ fn host_obtain_token_request_end_test_sec_message_encrypt_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -558,6 +574,7 @@ fn host_obtain_token_request_end_test_get_rtc_time_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -594,6 +611,7 @@ fn host_obtain_token_request_end_test_add_token_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -621,6 +639,7 @@ fn host_obtain_token_request_end_test_success() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: 0,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();

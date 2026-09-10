@@ -24,6 +24,7 @@
 #include "adapter_manager.h"
 #include "companion_device_auth_driver.h"
 #include "fwk_common.h"
+#include "sub_profile_id_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -85,6 +86,32 @@ public:
 private:
     int32_t activeUserId_ { 100 };
     ActiveUserIdCallback activeUserIdCallback_ {};
+};
+
+class FakeSubProfileIdManager : public ISubProfileIdManager {
+public:
+    int32_t GetForegroundSubProfileId(UserId userId) const override
+    {
+        return INVALID_SUB_PROFILE_ID;
+    }
+
+    bool IsForegroundSubProfileId(UserId userId, int32_t subProfileId) const override
+    {
+        (void)userId;
+        (void)subProfileId;
+        return false;
+    }
+
+    std::optional<std::string> GetSubProfileName(UserId userId, int32_t subProfileId) const override
+    {
+        return std::nullopt;
+    }
+
+    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
+    {
+        (void)callback;
+        return std::make_unique<Subscription>(nullptr);
+    }
 };
 } // namespace
 

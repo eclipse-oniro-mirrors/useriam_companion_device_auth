@@ -25,6 +25,7 @@ pub struct DeviceKey {
     pub device_id: String,
     pub device_id_type: i32,
     pub user_id: i32,
+    pub sub_profile_id: i32,
 }
 
 impl TryFrom<&DeviceKeyFfi> for DeviceKey {
@@ -32,7 +33,12 @@ impl TryFrom<&DeviceKeyFfi> for DeviceKey {
 
     fn try_from(ffi_key: &DeviceKeyFfi) -> Result<Self, ErrorCode> {
         let device_id = ffi_key.device_id.to_string()?;
-        Ok(DeviceKey { device_id, device_id_type: ffi_key.device_id_type, user_id: ffi_key.user_id })
+        Ok(DeviceKey {
+            device_id,
+            device_id_type: ffi_key.device_id_type,
+            user_id: ffi_key.user_id,
+            sub_profile_id: ffi_key.sub_profile_id,
+        })
     }
 }
 
@@ -41,6 +47,7 @@ impl TryFrom<&DeviceKeyFfi> for DeviceKey {
 pub struct UserInfo {
     pub user_id: i32,
     pub user_type: i32,
+    pub sub_profile_id: i32,
 }
 
 // Host Binding Db
@@ -77,6 +84,7 @@ pub struct CompanionDeviceProfile {
     pub business_ids: Vec<i32>,
     pub device_type: i32,
     pub supported_business_ids: Vec<i32>,
+    pub device_sub_profile_name: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
