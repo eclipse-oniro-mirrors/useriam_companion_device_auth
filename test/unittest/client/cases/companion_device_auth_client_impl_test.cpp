@@ -54,6 +54,7 @@ constexpr uint64_t UINT64_12345 = 12345;
 constexpr uint64_t UINT64_67890 = 67890;
 constexpr uint64_t UINT64_1234567890 = 1234567890;
 constexpr uint32_t UINT32_2 = 2;
+constexpr int32_t TEST_ATL3 = 30000;
 } // namespace
 
 class CompanionDeviceAuthClientImplTest : public testing::Test {
@@ -242,6 +243,62 @@ HWTEST_F(CompanionDeviceAuthClientImplTest, GetTemplateStatus_Success, TestSize.
     EXPECT_EQ(statusList.size(), UINT32_2);
     EXPECT_EQ(statusList[0].templateId, UINT64_12345);
     EXPECT_EQ(statusList[1].templateId, UINT64_67890);
+}
+
+/**
+ * @brief Test GetTemplateStatus carries authTrustLevel when present.
+ */
+HWTEST_F(CompanionDeviceAuthClientImplTest, GetTemplateStatus_AuthTrustLevelPresent, TestSize.Level0)
+{
+    // Arrange
+    const int32_t userId = INT32_100;
+    std::vector<IpcTemplateStatus> mockStatusList;
+    IpcTemplateStatus status = CreateTestTemplateStatus(UINT64_12345, userId);
+    status.hasAuthTrustLevel = true;
+    status.authTrustLevel = TEST_ATL3;
+    mockStatusList.push_back(status);
+
+    SetUpFakeProxyDefaults();
+    EXPECT_CALL(*fakeProxy_, GetTemplateStatus(userId, _, _))
+        .WillOnce(DoAll(SetArgReferee<INDEX_1>(mockStatusList), SetArgReferee<INDEX_2>(SUCCESS), Return(SUCCESS)));
+
+    // Act
+    CompanionDeviceAuthClientImpl client;
+    client.SetProxy(sptr<ICompanionDeviceAuth>(fakeProxy_));
+    std::vector<ClientTemplateStatus> statusList;
+    int32_t result = client.GetTemplateStatus(userId, statusList);
+
+    // Assert
+    EXPECT_EQ(result, SUCCESS);
+    ASSERT_EQ(statusList.size(), 1u);
+    EXPECT_TRUE(statusList[0].authTrustLevel.has_value());
+    EXPECT_EQ(statusList[0].authTrustLevel.value(), TEST_ATL3);
+}
+
+/**
+ * @brief Test GetTemplateStatus leaves authTrustLevel empty when absent.
+ */
+HWTEST_F(CompanionDeviceAuthClientImplTest, GetTemplateStatus_AuthTrustLevelAbsent, TestSize.Level0)
+{
+    // Arrange
+    const int32_t userId = INT32_100;
+    std::vector<IpcTemplateStatus> mockStatusList;
+    mockStatusList.push_back(CreateTestTemplateStatus(UINT64_12345, userId));
+
+    SetUpFakeProxyDefaults();
+    EXPECT_CALL(*fakeProxy_, GetTemplateStatus(userId, _, _))
+        .WillOnce(DoAll(SetArgReferee<INDEX_1>(mockStatusList), SetArgReferee<INDEX_2>(SUCCESS), Return(SUCCESS)));
+
+    // Act
+    CompanionDeviceAuthClientImpl client;
+    client.SetProxy(sptr<ICompanionDeviceAuth>(fakeProxy_));
+    std::vector<ClientTemplateStatus> statusList;
+    int32_t result = client.GetTemplateStatus(userId, statusList);
+
+    // Assert
+    EXPECT_EQ(result, SUCCESS);
+    ASSERT_EQ(statusList.size(), 1u);
+    EXPECT_FALSE(statusList[0].authTrustLevel.has_value());
 }
 
 /**

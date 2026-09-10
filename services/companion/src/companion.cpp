@@ -210,6 +210,10 @@ void Companion::SetCompanionValid(bool isValid)
 
 void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl, bool forEnrollment)
 {
+    if (tokenAuthAtl.has_value() && !IsValidAtl(tokenAuthAtl.value())) {
+        IAM_LOGE("%{public}s invalid atl %{public}d, treat as no token", GetDescription(), tokenAuthAtl.value());
+        tokenAuthAtl = std::nullopt;
+    }
     std::optional<Atl> oldTokenAuthAtl = status_.tokenAuthAtl;
     status_.tokenAuthAtl = tokenAuthAtl;
     IAM_LOGI("%{public}s set token auth atl %{public}s -> %{public}s", GetDescription(),

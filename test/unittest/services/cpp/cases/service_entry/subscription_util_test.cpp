@@ -25,6 +25,9 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr int32_t TEST_ATL2 = 20000;
+constexpr int32_t TEST_ATL3 = 30000;
+
 CompanionStatus MakeStatus(uint64_t lastCheckTime)
 {
     CompanionStatus status;
@@ -70,6 +73,38 @@ HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_NotConfirmedWithoutMan
     std::optional<int64_t> templateConfirmSinceMs = std::nullopt;
     auto ipcStatus = ConvertToIpcTemplateStatus(status, templateConfirmSinceMs);
     EXPECT_FALSE(ipcStatus.isConfirmed);
+}
+
+// tokenAuthAtl is carried to the IPC status when a token is currently issued.
+HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_AtlPresent, TestSize.Level0)
+{
+    auto status = MakeStatus(100);
+    status.tokenAuthAtl = TEST_ATL2;
+    auto ipcStatus = ConvertToIpcTemplateStatus(status, std::nullopt);
+    EXPECT_TRUE(ipcStatus.hasAuthTrustLevel);
+    EXPECT_EQ(ipcStatus.authTrustLevel, TEST_ATL2);
+}
+
+// tokenAuthAtl absence is carried as hasAuthTrustLevel=false.
+HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_AtlAbsent, TestSize.Level0)
+{
+    auto status = MakeStatus(100);
+    auto ipcStatus = ConvertToIpcTemplateStatus(status, std::nullopt);
+    EXPECT_FALSE(ipcStatus.hasAuthTrustLevel);
+}
+
+// A difference only in authTrustLevel makes two otherwise-identical statuses unequal,
+// so an ATL-only change still triggers an OnTemplateStatusChange push.
+HWTEST_F(SubscriptionUtilTest, IpcTemplateStatusEqual_AtlDifference, TestSize.Level0)
+{
+    auto status = MakeStatus(100);
+    auto lhs = ConvertToIpcTemplateStatus(status, std::nullopt);
+    auto rhs = ConvertToIpcTemplateStatus(status, std::nullopt);
+    EXPECT_TRUE(IpcTemplateStatusEqual(lhs, rhs));
+
+    rhs.hasAuthTrustLevel = true;
+    rhs.authTrustLevel = TEST_ATL3;
+    EXPECT_FALSE(IpcTemplateStatusEqual(lhs, rhs));
 }
 
 } // namespace CompanionDeviceAuth

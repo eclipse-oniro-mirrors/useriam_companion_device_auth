@@ -45,9 +45,8 @@ constexpr BusinessId BUSINESS_ID_2 = static_cast<BusinessId>(2);
 constexpr uint32_t TEST_ATL_REVOKE_DELAY_MS = 30000;
 constexpr BusinessId BUSINESS_ID_3 = static_cast<BusinessId>(3);
 constexpr BusinessId BUSINESS_ID_4 = static_cast<BusinessId>(4);
-constexpr int32_t INT32_1 = 1;
 constexpr BusinessId BUSINESS_ID_5 = static_cast<BusinessId>(5);
-constexpr int32_t INT32_3 = 3;
+constexpr Atl TEST_ATL_INVALID = 12345;
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
@@ -337,11 +336,11 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_001, TestSize.Level0)
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    companion->SetCompanionTokenAuthAtl(INT32_3);
+    companion->SetCompanionTokenAuthAtl(ATL3);
 
     auto status = companion->GetStatus();
     ASSERT_TRUE(status.tokenAuthAtl.has_value());
-    EXPECT_EQ(INT32_3, status.tokenAuthAtl.value());
+    EXPECT_EQ(ATL3, status.tokenAuthAtl.value());
 }
 
 HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_002, TestSize.Level0)
@@ -353,7 +352,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_002, TestSize.Level0)
     // HostRevokeToken is called twice: once in SetCompanionTokenAuthAtl, once in destructor
     EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
 
-    companion->status_.tokenAuthAtl = INT32_1;
+    companion->status_.tokenAuthAtl = ATL1;
     companion->SetCompanionTokenAuthAtl(std::nullopt);
 
     EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
@@ -365,11 +364,39 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_003, TestSize.Level0)
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    companion->SetCompanionTokenAuthAtl(INT32_3);
+    companion->SetCompanionTokenAuthAtl(ATL3);
 
     RelativeTimer::GetInstance().ExecuteAll();
 
     EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_004, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->SetCompanionTokenAuthAtl(TEST_ATL_INVALID);
+
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+}
+
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_005, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->SetCompanionTokenAuthAtl(ATL3);
+    ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
+
+    // An invalid atl replaces a valid token with "no token" and revokes the old one.
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
+    companion->SetCompanionTokenAuthAtl(TEST_ATL_INVALID);
+
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+    testing::Mock::VerifyAndClearExpectations(&mockSecurityAgent_);
 }
 
 // --- HandleCompanionStatusChange tests ---
@@ -553,7 +580,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayNullopt_NoRevoke, Tes
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    companion->SetCompanionTokenAuthAtl(INT32_3);
+    companion->SetCompanionTokenAuthAtl(ATL3);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active (no delay configured yet)
@@ -575,7 +602,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayZero_ImmediateRevoke,
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    companion->SetCompanionTokenAuthAtl(INT32_3);
+    companion->SetCompanionTokenAuthAtl(ATL3);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active with delay=0
@@ -598,7 +625,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayNonZero_TimerFiresAnd
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    companion->SetCompanionTokenAuthAtl(INT32_3);
+    companion->SetCompanionTokenAuthAtl(ATL3);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active with delay=TEST_ATL_REVOKE_DELAY_MS
@@ -629,7 +656,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_TimerCancelledOnRecovery, TestSize.
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    companion->SetCompanionTokenAuthAtl(INT32_3);
+    companion->SetCompanionTokenAuthAtl(ATL3);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // First set authMaintain active
@@ -681,7 +708,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_DeviceOffline_CancelsTimer, TestSiz
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    companion->SetCompanionTokenAuthAtl(INT32_3);
+    companion->SetCompanionTokenAuthAtl(ATL3);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // Set online + authMaintain active with delay
@@ -708,7 +735,7 @@ HWTEST_F(CompanionTest, HandleDeviceOffline_WithAtl_RevokesToken, TestSize.Level
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    companion->SetCompanionTokenAuthAtl(INT32_3);
+    companion->SetCompanionTokenAuthAtl(ATL3);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     companion->status_.companionDeviceStatus.isOnline = true;
@@ -739,11 +766,11 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentWorn_NoNotWornTimer, 
     EXPECT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // Set ATL with forEnrollment=true: not-worn timer should NOT be started because device IS worn
-    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    companion->SetCompanionTokenAuthAtl(ATL3, true);
 
     auto status = companion->GetStatus();
     ASSERT_TRUE(status.tokenAuthAtl.has_value());
-    EXPECT_EQ(INT32_3, status.tokenAuthAtl.value());
+    EXPECT_EQ(ATL3, status.tokenAuthAtl.value());
 }
 
 HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_NotForEnrollment_NoNotWornTimer, TestSize.Level0)
@@ -755,11 +782,11 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_NotForEnrollment_NoNotWornTimer
     auto companion = Companion::Create(persistedStatus, true, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
 
-    companion->SetCompanionTokenAuthAtl(INT32_3);
+    companion->SetCompanionTokenAuthAtl(ATL3);
 
     auto status = companion->GetStatus();
     ASSERT_TRUE(status.tokenAuthAtl.has_value());
-    EXPECT_EQ(INT32_3, status.tokenAuthAtl.value());
+    EXPECT_EQ(ATL3, status.tokenAuthAtl.value());
 }
 
 // Core positive scenario: forEnrollment=true + device not worn -> timer starts
@@ -779,11 +806,11 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_StartsNotWorn
     EXPECT_FALSE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
 
     // Set ATL with forEnrollment=true + device not worn -> not-worn timer SHOULD be started
-    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    companion->SetCompanionTokenAuthAtl(ATL3, true);
 
     auto status = companion->GetStatus();
     ASSERT_TRUE(status.tokenAuthAtl.has_value());
-    EXPECT_EQ(INT32_3, status.tokenAuthAtl.value());
+    EXPECT_EQ(ATL3, status.tokenAuthAtl.value());
 
     // ATL still present before timer fires
     EXPECT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
@@ -805,7 +832,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_TimerFiresAnd
     ASSERT_NE(nullptr, companion);
 
     // Set ATL with forEnrollment=true + device not worn -> not-worn timer started
-    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    companion->SetCompanionTokenAuthAtl(ATL3, true);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // Timer fires -> HostRevokeToken called and token cleared
@@ -831,7 +858,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_TimerCancelle
     ASSERT_NE(nullptr, companion);
 
     // Set ATL with forEnrollment=true + device not worn -> not-worn timer started
-    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    companion->SetCompanionTokenAuthAtl(ATL3, true);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // Device becomes worn -> authMaintainInactiveTimer_ cancelled
@@ -858,7 +885,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_RevokedManual
     ASSERT_NE(nullptr, companion);
 
     // Set ATL with forEnrollment=true + device not worn -> not-worn timer started
-    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    companion->SetCompanionTokenAuthAtl(ATL3, true);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // Manually revoke token -> enrollment timer should be cleaned
@@ -887,13 +914,13 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_RefreshAtl_Ol
     ASSERT_NE(nullptr, companion);
 
     // Set ATL with forEnrollment=true + device not worn -> not-worn timer started
-    companion->SetCompanionTokenAuthAtl(INT32_3, true);
+    companion->SetCompanionTokenAuthAtl(ATL3, true);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
 
     // Token refreshed with forEnrollment=false (e.g. obtain_token path)
-    companion->SetCompanionTokenAuthAtl(INT32_1, false);
+    companion->SetCompanionTokenAuthAtl(ATL1, false);
     ASSERT_TRUE(companion->GetStatus().tokenAuthAtl.has_value());
-    EXPECT_EQ(INT32_1, companion->GetStatus().tokenAuthAtl.value());
+    EXPECT_EQ(ATL1, companion->GetStatus().tokenAuthAtl.value());
 
     // Enrollment timer fires -> token revoked (old timer was NOT cancelled by refresh)
     EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));

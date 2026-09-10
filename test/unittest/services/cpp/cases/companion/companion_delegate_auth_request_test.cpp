@@ -59,7 +59,11 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
         .WillOnce(Return(SecureProtocolId::DEFAULT));
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
         .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
-    EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _))
+        .WillOnce([](const CompanionDelegateAuthBeginInput &, CompanionDelegateAuthBeginOutput &output) {
+            output.atl = ATL3;
+            return ResultCode::SUCCESS;
+        });
     EXPECT_CALL(guard.GetUserAuthAdapter(), BeginDelegateAuth(_)).WillOnce(Return(12345));
 
     ErrorGuard errorGuard([](ResultCode) {});
@@ -134,8 +138,29 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompanionBeginDelegateAuth_001, TestS
 
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
         .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
-    EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _))
+        .WillOnce([](const CompanionDelegateAuthBeginInput &, CompanionDelegateAuthBeginOutput &output) {
+            output.atl = ATL3;
+            return ResultCode::SUCCESS;
+        });
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
+
+    bool result = request->CompanionBeginDelegateAuth();
+
+    EXPECT_FALSE(result);
+}
+
+HWTEST_F(CompanionDelegateAuthRequestTest, CompanionBeginDelegateAuth_002, TestSize.Level0)
+{
+    MockGuard guard;
+
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
+        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
+        .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
 
     bool result = request->CompanionBeginDelegateAuth();
 

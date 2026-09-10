@@ -79,6 +79,8 @@ struct ClientTemplateStatus {
     std::vector<int32_t> enabledBusinessIds;
     /* Device status associated with this template. */
     ClientDeviceStatus deviceStatus;
+    /* Runtime token auth trust level; absent when no token is currently issued. */
+    std::optional<int32_t> authTrustLevel;
 };
 
 /**

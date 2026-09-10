@@ -88,8 +88,7 @@ TaskRunnerManager::TaskRunnerManager()
     taskRunnerMap_.emplace(RESIDENT_TASK_RUNNER_NAME, taskRunner);
 }
 
-bool TaskRunnerManager::CreateTaskRunner(const std::string &name, const std::string &owner,
-    TaskBlockPolicy policy)
+bool TaskRunnerManager::CreateTaskRunner(const std::string &name, const std::string &owner, TaskBlockPolicy policy)
 {
     if (name == RESIDENT_TASK_RUNNER_NAME) {
         IAM_LOGE("cannot create resident runner %{public}s via CreateTaskRunner", name.c_str());
@@ -114,8 +113,8 @@ bool TaskRunnerManager::CreateTaskRunner(const std::string &name, const std::str
     auto ownerCount = std::count_if(taskRunnerMap_.begin(), taskRunnerMap_.end(),
         [&owner](const auto &entry) { return entry.second->GetOwner() == owner; });
     if (ownerCount >= MAX_TMP_RUNNERS_PER_OWNER) {
-        IAM_LOGE("too many runners for owner %{public}s %{public}zu/%{public}zu, reject %{public}s",
-            owner.c_str(), ownerCount, MAX_TMP_RUNNERS_PER_OWNER, name.c_str());
+        IAM_LOGE("too many runners for owner %{public}s %{public}zu/%{public}zu, reject %{public}s", owner.c_str(),
+            ownerCount, MAX_TMP_RUNNERS_PER_OWNER, name.c_str());
         return false;
     }
     std::shared_ptr<TemporaryTaskRunner> taskRunner = std::make_shared<TemporaryTaskRunner>(name, owner, policy);
@@ -239,8 +238,7 @@ bool TaskRunnerManager::RunOnResidentSyncInner(std::function<void()> &&task, uin
     return true;
 }
 
-bool TaskRunnerManager::PostOneShotTask(const std::string &owner, TaskBlockPolicy policy,
-    std::function<void()> &&task)
+bool TaskRunnerManager::PostOneShotTask(const std::string &owner, TaskBlockPolicy policy, std::function<void()> &&task)
 {
     static std::atomic<uint32_t> runnerSerial = 1;
 

@@ -57,6 +57,8 @@ IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionSta
         ipcStatus.enabledBusinessIds.push_back(static_cast<int>(id));
     }
     ipcStatus.deviceStatus = ConvertToIpcDeviceStatus(companionStatus.companionDeviceStatus);
+    ipcStatus.hasAuthTrustLevel = companionStatus.tokenAuthAtl.has_value();
+    ipcStatus.authTrustLevel = companionStatus.tokenAuthAtl.value_or(0);
     return ipcStatus;
 }
 
@@ -86,7 +88,8 @@ bool IpcTemplateStatusEqual(const IpcTemplateStatus &lhs, const IpcTemplateStatu
 {
     return lhs.templateId == rhs.templateId && lhs.isConfirmed == rhs.isConfirmed && lhs.isValid == rhs.isValid &&
         lhs.localUserId == rhs.localUserId && lhs.addedTime == rhs.addedTime &&
-        lhs.enabledBusinessIds == rhs.enabledBusinessIds && IpcDeviceStatusEqual(lhs.deviceStatus, rhs.deviceStatus);
+        lhs.enabledBusinessIds == rhs.enabledBusinessIds && IpcDeviceStatusEqual(lhs.deviceStatus, rhs.deviceStatus) &&
+        lhs.hasAuthTrustLevel == rhs.hasAuthTrustLevel && lhs.authTrustLevel == rhs.authTrustLevel;
 }
 
 bool IpcTemplateStatusVectorEqual(const std::vector<IpcTemplateStatus> &lhs, const std::vector<IpcTemplateStatus> &rhs)
