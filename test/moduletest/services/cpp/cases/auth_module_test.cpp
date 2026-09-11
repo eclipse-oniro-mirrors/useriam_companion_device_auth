@@ -1215,7 +1215,7 @@ HWTEST_F(AuthModuleTest, CompanionDelegateAuthFullE2E_001, TestSize.Level0)
 
     // 3. Setup Mock: CompanionBeginDelegateAuth returns challenge
     uint64_t expectedChallenge = 12345678;
-    Atl expectedAtl = 3;
+    Atl expectedAtl = ATL3;
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _))
         .WillOnce([&expectedChallenge, &expectedAtl](const CompanionDelegateAuthBeginInput &input,
                       CompanionDelegateAuthBeginOutput &output) {
@@ -1533,7 +1533,7 @@ HWTEST_F(AuthModuleTest, CompanionDelegateAuthFullFlowE2E_001, TestSize.Level0)
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _))
         .WillOnce([](const CompanionDelegateAuthBeginInput &, CompanionDelegateAuthBeginOutput &output) {
             output.challenge = 12345;
-            output.atl = 3;
+            output.atl = ATL3;
             return ResultCode::SUCCESS;
         });
     AuthResultCallback capturedCallback;

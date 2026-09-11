@@ -169,17 +169,21 @@ static void FuzzAuthMaintainActiveTransition(std::shared_ptr<DeviceStatusEntry> 
         return;
     }
     // Exercise various sequences of physical/sync isAuthMaintainActive transitions
-    uint8_t sequence = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 3);
+    constexpr uint8_t authSequencePhysicalSync = 0;
+    constexpr uint8_t authSequenceSyncPhysical = 1;
+    constexpr uint8_t authSequenceRepeated = 2;
+    constexpr uint8_t authSequenceDefault = 3;
+    uint8_t sequence = fuzzData.ConsumeIntegralInRange<uint8_t>(authSequencePhysicalSync, authSequenceDefault);
     switch (sequence) {
-        case 0:
+        case authSequencePhysicalSync:
             entry->SetPhysicalIsAuthMaintainActive(fuzzData.ConsumeBool());
             entry->SetSyncIsAuthMaintainActive(fuzzData.ConsumeBool());
             break;
-        case 1:
+        case authSequenceSyncPhysical:
             entry->SetSyncIsAuthMaintainActive(fuzzData.ConsumeBool());
             entry->SetPhysicalIsAuthMaintainActive(fuzzData.ConsumeBool());
             break;
-        case 2:
+        case authSequenceRepeated:
             entry->SetPhysicalIsAuthMaintainActive(fuzzData.ConsumeBool());
             entry->SetPhysicalIsAuthMaintainActive(fuzzData.ConsumeBool());
             entry->SetSyncIsAuthMaintainActive(fuzzData.ConsumeBool());

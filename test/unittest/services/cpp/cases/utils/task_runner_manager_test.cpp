@@ -46,8 +46,7 @@ HWTEST_F(TaskRunnerManagerTest, PostOneShotTask_SucceedsAndRuns, TestSize.Level0
     auto &trm = TaskRunnerManager::GetInstance();
 
     auto ran = std::make_shared<bool>(false);
-    EXPECT_TRUE(trm.PostOneShotTask("one_shot_owner", TaskBlockPolicy::FATAL,
-        [ran]() { *ran = true; }));
+    EXPECT_TRUE(trm.PostOneShotTask("one_shot_owner", TaskBlockPolicy::FATAL, [ran]() { *ran = true; }));
 
     trm.ExecuteAll();
     EXPECT_TRUE(*ran);

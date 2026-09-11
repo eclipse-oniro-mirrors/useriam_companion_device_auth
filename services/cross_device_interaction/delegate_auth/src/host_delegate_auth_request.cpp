@@ -319,11 +319,11 @@ std::optional<uint32_t> HostDelegateAuthRequest::GetRemoteTokenId(const DeviceKe
         if (!GetJsonField(deviceEntry, "deviceIdType", idType) ||
             !GetJsonField(deviceEntry, "deviceId", deviceId, MAX_DEVICE_ID_LEN) ||
             !GetJsonField(deviceEntry, "deviceUserId", deviceUserId) ||
-            !GetJsonField(deviceEntry, "deviceSubProfileId", deviceSubProfileId) ||
             !GetJsonField(deviceEntry, "remoteTokenId", remoteTokenId)) {
             IAM_LOGE("%{public}s invalid json data in deviceSelectContext", GetDescription());
             continue;
         }
+        GetJsonField(deviceEntry, "deviceSubProfileId", deviceSubProfileId);
         if (idType == static_cast<int32_t>(deviceKey.idType) && deviceId == deviceKey.deviceId &&
             deviceUserId == deviceKey.deviceUserId && deviceSubProfileId == deviceKey.deviceSubProfileId) {
             IAM_LOGI("GetRemoteTokenId success");

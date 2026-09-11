@@ -705,59 +705,32 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertTemplateStatusToNapiValue(napi_
     const ClientTemplateStatus &status)
 {
     napi_value templateStatusValue;
-    napi_status ret = napi_create_object(env, &templateStatusValue);
-    if (ret != napi_ok) {
-        IAM_LOGE("napi_create_object fail ret:%{public}d", ret);
-        return nullptr;
-    }
+    napi_status ret1 = napi_create_object(env, &templateStatusValue);
+    ENSURE_OR_RETURN_VAL(ret1 == napi_ok, nullptr);
 
     std::vector<uint8_t> result(UINT64_BYTE_SIZE);
     for (size_t i = 0; i < UINT64_BYTE_SIZE; ++i) {
         result[i] = static_cast<uint8_t>((status.templateId >> (i * UINT64_BYTE_SIZE)) & UINT8_BYTE_MASK);
     }
+    napi_status ret2 = SetUint8ArrayProperty(env, templateStatusValue, "templateId", result);
+    ENSURE_OR_RETURN_VAL(ret2 == napi_ok, nullptr);
 
-    ret = CompanionDeviceAuthNapiHelper::SetUint8ArrayProperty(env, templateStatusValue, "templateId", result);
-    if (ret != napi_ok) {
-        IAM_LOGE("SetUint8ArrayProperty fail ret:%{public}d", ret);
-        return nullptr;
-    }
-
-    ret = CompanionDeviceAuthNapiHelper::SetBoolProperty(env, templateStatusValue, "isConfirmed", status.isConfirmed);
-    if (ret != napi_ok) {
-        IAM_LOGE("SetBoolProperty fail ret:%{public}d", ret);
-        return nullptr;
-    }
-
-    ret = CompanionDeviceAuthNapiHelper::SetBoolProperty(env, templateStatusValue, "isValid", status.isValid);
-    if (ret != napi_ok) {
-        IAM_LOGE("SetBoolProperty fail ret:%{public}d", ret);
-        return nullptr;
-    }
-
-    ret = CompanionDeviceAuthNapiHelper::SetInt32Property(env, templateStatusValue, "localUserId", status.localUserId);
-    if (ret != napi_ok) {
-        IAM_LOGE("SetInt32Property fail ret:%{public}d", ret);
-        return nullptr;
-    }
-
-    ret = CompanionDeviceAuthNapiHelper::SetDateProperty(env, templateStatusValue, "addedTime", status.addedTime);
-    if (ret != napi_ok) {
-        IAM_LOGE("SetDateProperty fail ret:%{public}d", ret);
-        return nullptr;
-    }
-
-    ret = CompanionDeviceAuthNapiHelper::SetBusinessIdsProperty(env, templateStatusValue, "enabledBusinessIds",
-        status.enabledBusinessIds);
-    if (ret != napi_ok) {
-        IAM_LOGE("SetBusinessIdsProperty fail ret:%{public}d", ret);
-        return nullptr;
-    }
-
-    ret = CompanionDeviceAuthNapiHelper::SetDeviceStatusProperty(env, templateStatusValue, "deviceStatus",
-        status.deviceStatus);
-    if (ret != napi_ok) {
-        IAM_LOGE("SetDeviceStatusProperty fail ret:%{public}d", ret);
-        return nullptr;
+    napi_status ret3 = SetBoolProperty(env, templateStatusValue, "isConfirmed", status.isConfirmed);
+    ENSURE_OR_RETURN_VAL(ret3 == napi_ok, nullptr);
+    napi_status ret4 = SetBoolProperty(env, templateStatusValue, "isValid", status.isValid);
+    ENSURE_OR_RETURN_VAL(ret4 == napi_ok, nullptr);
+    napi_status ret5 = SetInt32Property(env, templateStatusValue, "localUserId", status.localUserId);
+    ENSURE_OR_RETURN_VAL(ret5 == napi_ok, nullptr);
+    napi_status ret6 = SetDateProperty(env, templateStatusValue, "addedTime", status.addedTime);
+    ENSURE_OR_RETURN_VAL(ret6 == napi_ok, nullptr);
+    napi_status ret7 =
+        SetBusinessIdsProperty(env, templateStatusValue, "enabledBusinessIds", status.enabledBusinessIds);
+    ENSURE_OR_RETURN_VAL(ret7 == napi_ok, nullptr);
+    napi_status ret8 = SetDeviceStatusProperty(env, templateStatusValue, "deviceStatus", status.deviceStatus);
+    ENSURE_OR_RETURN_VAL(ret8 == napi_ok, nullptr);
+    if (status.authTrustLevel.has_value()) {
+        napi_status ret9 = SetInt32Property(env, templateStatusValue, "authTrustLevel", status.authTrustLevel.value());
+        ENSURE_OR_RETURN_VAL(ret9 == napi_ok, nullptr);
     }
 
     return templateStatusValue;

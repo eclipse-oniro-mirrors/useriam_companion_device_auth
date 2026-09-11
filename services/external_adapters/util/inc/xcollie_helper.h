@@ -27,8 +27,8 @@ namespace CompanionDeviceAuth {
 
 class XCollieHelper {
 public:
-    XCollieHelper(const std::string &name, unsigned int timeout,
-        unsigned int flag = HiviewDFX::XCOLLIE_FLAG_DEFAULT, bool enableLog = false);
+    XCollieHelper(const std::string &name, unsigned int timeout, unsigned int flag = HiviewDFX::XCOLLIE_FLAG_DEFAULT,
+        bool enableLog = false);
     ~XCollieHelper();
 
 private:

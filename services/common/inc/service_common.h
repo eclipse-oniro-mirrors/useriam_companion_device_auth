@@ -43,6 +43,17 @@ using UserId = int32_t;
 using BindingId = uint32_t;
 using SubscribeId = uint64_t;
 using Atl = int32_t;
+// Runtime token auth trust levels, aligned with userIAM userAuth AuthTrustLevel.
+constexpr Atl ATL1 = 10000;
+constexpr Atl ATL2 = 20000;
+constexpr Atl ATL3 = 30000;
+constexpr Atl ATL4 = 40000;
+
+inline bool IsValidAtl(Atl atl)
+{
+    return atl == ATL1 || atl == ATL2 || atl == ATL3 || atl == ATL4;
+}
+
 using SystemTimeMs = uint64_t;
 using SteadyTimeMs = uint64_t;
 using StageId = uint32_t;

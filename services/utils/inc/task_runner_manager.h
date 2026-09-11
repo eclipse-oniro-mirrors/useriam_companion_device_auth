@@ -67,8 +67,7 @@ public:
     virtual std::shared_ptr<TaskRunner> GetTaskRunner(const std::string &name);
     virtual void PostTask(const std::string &name, std::function<void()> &&task);
     virtual void PostTaskOnResident(std::function<void()> &&task);
-    virtual bool PostOneShotTask(const std::string &owner, TaskBlockPolicy policy,
-        std::function<void()> &&task);
+    virtual bool PostOneShotTask(const std::string &owner, TaskBlockPolicy policy, std::function<void()> &&task);
 
     template <typename Func>
     typename ResidentSyncResult<typename std::invoke_result<Func>::type>::type RunTaskOnResidentSync(Func &&func,

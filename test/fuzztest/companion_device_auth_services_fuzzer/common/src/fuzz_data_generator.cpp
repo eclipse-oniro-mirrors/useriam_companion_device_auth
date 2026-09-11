@@ -290,7 +290,8 @@ DeviceStatus GenerateFuzzDeviceStatus(FuzzedDataProvider &fuzzData)
     status.secureProtocolId = GenerateFuzzSecureProtocolId(fuzzData);
     status.isOnline = fuzzData.ConsumeBool();
     status.isAuthMaintainActive = fuzzData.ConsumeBool();
-    status.deviceType = static_cast<DeviceType>(fuzzData.ConsumeIntegralInRange<int32_t>(0, 6));
+    status.deviceType = static_cast<DeviceType>(fuzzData.ConsumeIntegralInRange<int32_t>(
+        0, static_cast<int32_t>(DeviceType::UNKNOWN)));
     status.deviceSubProfileName = GenerateFuzzString(fuzzData, FUZZ_MAX_STRING_SIZE);
 
     const uint8_t capabilitiesVal = 2;
@@ -342,6 +343,9 @@ CompanionStatus GenerateFuzzCompanionStatus(FuzzedDataProvider &fuzzData)
     status.companionDeviceStatus = GenerateFuzzDeviceStatus(fuzzData);
     status.isValid = fuzzData.ConsumeBool();
     status.addedTime = fuzzData.ConsumeIntegral<int64_t>();
+    if (fuzzData.ConsumeBool()) {
+        status.tokenAuthAtl = fuzzData.ConsumeIntegral<Atl>();
+    }
 
     // Generate enabledBusinessIds
     uint8_t businessIdCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, 5);

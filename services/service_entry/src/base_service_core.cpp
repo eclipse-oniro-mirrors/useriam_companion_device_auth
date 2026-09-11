@@ -273,6 +273,8 @@ ResultCode BaseServiceCore::GetTemplateStatus(int32_t localUserId, std::vector<I
         }
         ipcDeviceStatus.deviceSubProfileName = status.companionDeviceStatus.deviceSubProfileName;
         ipcStatus.deviceStatus = ipcDeviceStatus;
+        ipcStatus.hasAuthTrustLevel = status.tokenAuthAtl.has_value();
+        ipcStatus.authTrustLevel = status.tokenAuthAtl.value_or(0);
 
         templateStatusArray.push_back(ipcStatus);
     }

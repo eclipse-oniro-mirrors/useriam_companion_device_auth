@@ -62,6 +62,7 @@ struct TemplateStatus {
     addedTime: @sts_type("Date") Opaque;
     enabledBusinessIds: Array<i32>;
     deviceStatus: DeviceStatus;
+    authTrustLevel: Optional<AuthTrustLevel>;
 }
 
 struct ContinuousAuthParam {

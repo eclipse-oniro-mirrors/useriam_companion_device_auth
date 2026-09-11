@@ -50,7 +50,7 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
                  "addedTime:%{public}" PRId64 ", enabledBusinessIds:%{public}s, "
                  "key(idType:%{public}d, id:%{public}s, userId:%{public}d), "
                  "userName:%{public}s, modelInfo:%{public}s, name:%{public}s, online:%{public}d, "
-                 "supportedBusinessIds:%{public}s",
+                 "supportedBusinessIds:%{public}s, atl(valid:%{public}d, value:%{public}d)",
             GET_MASKED_NUM_CSTR(templateStatus.templateId), templateStatus.isConfirmed, templateStatus.isValid,
             templateStatus.localUserId, templateStatus.addedTime,
             GetVectorString(templateStatus.enabledBusinessIds).c_str(),
@@ -60,7 +60,8 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
             GET_MASKED_STR_CSTR(templateStatus.deviceStatus.deviceUserName),
             GET_MASKED_STR_CSTR(templateStatus.deviceStatus.deviceModelInfo),
             GET_MASKED_STR_CSTR(templateStatus.deviceStatus.deviceName), templateStatus.deviceStatus.isOnline,
-            GetVectorString(templateStatus.deviceStatus.supportedBusinessIds).c_str());
+            GetVectorString(templateStatus.deviceStatus.supportedBusinessIds).c_str(), templateStatus.hasAuthTrustLevel,
+            templateStatus.authTrustLevel);
         ClientDeviceKey clientDeviceKey;
         clientDeviceKey.deviceIdType = templateStatus.deviceStatus.deviceKey.deviceIdType;
         clientDeviceKey.deviceId = templateStatus.deviceStatus.deviceKey.deviceId;
@@ -84,6 +85,8 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
         clientTemplateStatus.addedTime = templateStatus.addedTime;
         clientTemplateStatus.enabledBusinessIds = templateStatus.enabledBusinessIds;
         clientTemplateStatus.deviceStatus = clientDeviceStatus;
+        clientTemplateStatus.authTrustLevel =
+            templateStatus.hasAuthTrustLevel ? std::optional<int32_t>(templateStatus.authTrustLevel) : std::nullopt;
         clientTemplateStatusList.push_back(clientTemplateStatus);
     }
 

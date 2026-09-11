@@ -773,7 +773,7 @@ bool ModuleTestGuard::RegisterCompanionDirect(UserId hostUserId, const DeviceKey
     GetIdmAdapter().TestSimulateTemplateChange(hostUserId, { templateId });
     TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
 
-    GetCompanionManager().SetCompanionTokenAuthAtl(templateId, 1);
+    GetCompanionManager().SetCompanionTokenAuthAtl(templateId, ATL3);
     TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
 
     auto statusCheck = GetCompanionManager().GetCompanionStatus(templateId);

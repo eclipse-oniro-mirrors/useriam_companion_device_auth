@@ -103,7 +103,7 @@ static void FuzzIsForegroundSubProfileIdBoundary(ISubProfileIdManager &manager, 
     }
 }
 
-static const SubProfileIdManagerFuzzFunction g_fuzzFuncs[] = {
+static const SubProfileIdManagerFuzzFunction FUZZ_FUNCS[] = {
     FuzzGetForegroundSubProfileId,
     FuzzGetSubProfileName,
     FuzzIsForegroundSubProfileId,
@@ -113,7 +113,7 @@ static const SubProfileIdManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzIsForegroundSubProfileIdBoundary,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(SubProfileIdManagerFuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(FUZZ_FUNCS) / sizeof(SubProfileIdManagerFuzzFunction);
 
 void FuzzSubProfileIdManager(FuzzedDataProvider &fuzzData)
 {
@@ -128,7 +128,7 @@ void FuzzSubProfileIdManager(FuzzedDataProvider &fuzzData)
             break;
         }
         uint8_t operation = fuzzData.ConsumeIntegralInRange<uint8_t>(0, NUM_FUZZ_OPERATIONS - 1);
-        g_fuzzFuncs[operation](*manager, fuzzData);
+        FUZZ_FUNCS[operation](*manager, fuzzData);
         EnsureAllTaskExecuted();
     }
 }

@@ -68,7 +68,7 @@ static void FuzzEncodeCompanionDeviceKey(FuzzedDataProvider &fuzzData)
     EncodeCompanionDeviceKey(deviceKey, attr);
 }
 
-static const CommonMessageFuzzFunction g_fuzzFuncs[] = {
+static const CommonMessageFuzzFunction FUZZ_FUNCS[] = {
     FuzzDecodeHostDeviceKey,
     FuzzDecodeCompanionDeviceKey,
     FuzzEncodeHostDeviceKey,
@@ -106,14 +106,14 @@ static void FuzzDecodeCompanionDeviceKeyWithSubProfile(FuzzedDataProvider &fuzzD
     (void)result;
 }
 
-static const CommonMessageFuzzFunction g_subProfileFuzzFuncs[] = {
+static const CommonMessageFuzzFunction SUB_PROFILE_FUZZ_FUNCS[] = {
     FuzzDecodeHostDeviceKeyWithSubProfile,
     FuzzDecodeCompanionDeviceKeyWithSubProfile,
 };
 
-constexpr uint8_t NUM_SUB_PROFILE_FUZZ_OPS = sizeof(g_subProfileFuzzFuncs) / sizeof(CommonMessageFuzzFunction);
+constexpr uint8_t NUM_SUB_PROFILE_FUZZ_OPS = sizeof(SUB_PROFILE_FUZZ_FUNCS) / sizeof(CommonMessageFuzzFunction);
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CommonMessageFuzzFunction);
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(FUZZ_FUNCS) / sizeof(CommonMessageFuzzFunction);
 
 void FuzzCommonMessage(FuzzedDataProvider &fuzzData)
 {
@@ -121,7 +121,7 @@ void FuzzCommonMessage(FuzzedDataProvider &fuzzData)
         if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
             break;
         }
-        g_fuzzFuncs[i](fuzzData);
+        FUZZ_FUNCS[i](fuzzData);
         EnsureAllTaskExecuted();
     }
 
@@ -132,7 +132,7 @@ void FuzzCommonMessage(FuzzedDataProvider &fuzzData)
         }
 
         uint8_t operation = fuzzData.ConsumeIntegralInRange<uint8_t>(0, NUM_FUZZ_OPERATIONS - 1);
-        g_fuzzFuncs[operation](fuzzData);
+        FUZZ_FUNCS[operation](fuzzData);
     }
 
     // Sub-profile specific fuzz loop
@@ -140,7 +140,7 @@ void FuzzCommonMessage(FuzzedDataProvider &fuzzData)
         if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
             break;
         }
-        g_subProfileFuzzFuncs[i](fuzzData);
+        SUB_PROFILE_FUZZ_FUNCS[i](fuzzData);
         EnsureAllTaskExecuted();
     }
 

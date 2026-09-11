@@ -97,6 +97,10 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
     Atl atl = 0;
     bool ret = SecurityAgentBeginDelegateAuth(challenge, atl);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), ret, false);
+    if (!IsValidAtl(atl)) {
+        IAM_LOGE("%{public}s invalid atl %{public}d from delegate auth begin", GetDescription(), atl);
+        return false;
+    }
 
     AuthResultCallback callback = [weakSelf = weak_from_this()](int32_t result, const std::vector<uint8_t> &token) {
         auto self = weakSelf.lock();
