@@ -70,6 +70,11 @@ bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionUserId_ == localDeviceKey->deviceUserId, false);
 
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(),
+        GetSubProfileIdManager().IsForegroundSubProfileId(
+            localDeviceKey->deviceUserId, localDeviceKey->deviceSubProfileId),
+        false);
+
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), secureProtocolId_ != SecureProtocolId::INVALID, false);
 
@@ -83,6 +88,9 @@ bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
 {
     IAM_LOGI("%{public}s start", GetDescription());
+    auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
+
     bool bindingResolved = ResolveBinding();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), bindingResolved, false);
     uint64_t challenge = 0;
@@ -93,9 +101,6 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
         IAM_LOGE("%{public}s invalid atl %{public}d from delegate auth begin", GetDescription(), atl);
         return false;
     }
-
-    auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
 
     AuthResultCallback callback = [weakSelf = weak_from_this()](int32_t result, const std::vector<uint8_t> &token) {
         auto self = weakSelf.lock();

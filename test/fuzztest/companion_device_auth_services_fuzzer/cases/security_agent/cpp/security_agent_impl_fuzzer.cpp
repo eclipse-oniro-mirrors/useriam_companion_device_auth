@@ -452,6 +452,7 @@ static void FuzzHostUpdateCompanionStatus(std::shared_ptr<ISecurityAgent> &agent
     input.companionDeviceModelInfo = GenerateFuzzString(fuzzData, testVal64);
     input.companionDeviceName = GenerateFuzzString(fuzzData, testVal64);
     input.companionDeviceUserName = GenerateFuzzString(fuzzData, testVal64);
+    input.companionDeviceSubProfileName = GenerateFuzzString(fuzzData, testVal64);
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < count; ++i) {
         input.supportedBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<uint32_t>()));

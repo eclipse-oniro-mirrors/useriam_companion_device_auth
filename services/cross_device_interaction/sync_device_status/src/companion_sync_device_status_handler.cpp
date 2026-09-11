@@ -42,6 +42,8 @@ void CompanionSyncDeviceStatusHandler::SetCompanionDeviceKeyUserId(SyncDeviceSta
     UserId companionUserId)
 {
     syncReply.companionDeviceKey.deviceUserId = companionUserId;
+    syncReply.companionDeviceKey.deviceSubProfileId =
+        GetSubProfileIdManager().GetForegroundSubProfileId(companionUserId);
 }
 
 std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSyncDeviceStatusReply(
@@ -68,6 +70,12 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
     if (syncReply.deviceName.empty()) {
         syncReply.deviceName = GetSystemParamManager().GetParam("const.product.name", "");
     }
+    auto subProfileNameOpt = GetSubProfileIdManager().GetSubProfileName(
+        companionUserId, syncReply.companionDeviceKey.deviceSubProfileId);
+    if (subProfileNameOpt.has_value()) {
+        syncReply.deviceSubProfileName = subProfileNameOpt.value();
+    }
+    syncReply.isAuthMaintainActive = GetCrossDeviceCommManager().IsAuthMaintainActive();
     return syncReply;
 }
 

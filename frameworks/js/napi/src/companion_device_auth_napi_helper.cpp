@@ -279,6 +279,12 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertDeviceStatusToNapiValue(napi_en
         return nullptr;
     }
 
+    status = SetStringPropertyUtf8(env, deviceStatusValue, "deviceSubProfileName", deviceStatus.deviceSubProfileName);
+    if (status != napi_ok) {
+        IAM_LOGE("SetStringPropertyUtf8 fail ret:%{public}d", status);
+        return nullptr;
+    }
+
     return deviceStatusValue;
 }
 
@@ -315,6 +321,12 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertDeviceKeyToNapiValue(napi_env e
     }
 
     status = SetInt32Property(env, deviceKeyValue, "deviceUserId", deviceKey.deviceUserId);
+    if (status != napi_ok) {
+        IAM_LOGE("SetInt32Property fail ret:%{public}d", status);
+        return nullptr;
+    }
+
+    status = SetInt32Property(env, deviceKeyValue, "deviceSubProfileId", deviceKey.deviceSubProfileId);
     if (status != napi_ok) {
         IAM_LOGE("SetInt32Property fail ret:%{public}d", status);
         return nullptr;
@@ -490,6 +502,15 @@ napi_status CompanionDeviceAuthNapiHelper::ConvertNapiValueToDeviceKey(napi_env 
     ret = CompanionDeviceAuthNapiHelper::GetInt32Value(env, deviceUserIdValue, clientDeviceKey.deviceUserId);
     if (ret != napi_ok) {
         IAM_LOGE("get deviceUserId fail ret:%{public}d", ret);
+    }
+
+    napi_value deviceSubProfileIdValue =
+        CompanionDeviceAuthNapiHelper::GetNamedProperty(env, deviceKey, "deviceSubProfileId");
+    if (deviceSubProfileIdValue != nullptr &&
+        CompanionDeviceAuthNapiHelper::CheckNapiType(env, deviceSubProfileIdValue, napi_number) == napi_ok) {
+        CompanionDeviceAuthNapiHelper::GetInt32Value(env, deviceSubProfileIdValue, clientDeviceKey.deviceSubProfileId);
+    } else {
+        clientDeviceKey.deviceSubProfileId = -1;
     }
 
     return ret;

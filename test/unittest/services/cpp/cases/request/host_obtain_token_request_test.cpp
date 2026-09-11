@@ -93,11 +93,15 @@ public:
         ON_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
             .WillByDefault(Return(std::make_optional(SecureProtocolId::DEFAULT)));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, _, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
+            .WillByDefault(Invoke([](const std::string &, MessageType, OnMessage &&) {
+                return MakeSubscription();
+            }));
         ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_))
             .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
-            .WillByDefault(Return(ByMove(MakeSubscription())));
+            .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) {
+                return MakeSubscription();
+            }));
         ON_CALL(mockSecurityAgent_, HostProcessPreObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostProcessObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockEventManagerAdapter_, ReportInteractionEvent(_)).WillByDefault(Return());
@@ -752,6 +756,55 @@ HWTEST_F(HostObtainTokenRequestTest, EnsureCompanionAuthMaintainActive_002, Test
     bool result = request->EnsureCompanionAuthMaintainActive(COMPANION_DEVICE_KEY, errorGuard);
 
     EXPECT_FALSE(result);
+}
+
+HWTEST_F(HostObtainTokenRequestTest, EnsureCompanionAuthMaintainActive_CarBypass, TestSize.Level0)
+{
+    // CAR devices bypass the isAuthMaintainActive check: even when isAuthMaintainActive is false,
+    // EnsureCompanionAuthMaintainActive succeeds for DeviceType::CAR.
+    auto preObtainTokenRequest = MakePreObtainTokenRequest();
+    auto onMessageReply = [](const Attributes &) {};
+    auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
+        OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    EXPECT_TRUE(request->OnStart(errorGuard));
+
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(
+            DeviceStatus { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = false,
+                .deviceType = DeviceType::CAR })));
+
+    bool result = request->EnsureCompanionAuthMaintainActive(COMPANION_DEVICE_KEY, errorGuard);
+
+    EXPECT_TRUE(result);
+}
+
+HWTEST_F(HostObtainTokenRequestTest, HandlePeerDeviceStatusChanged_CarBypass, TestSize.Level0)
+{
+    // CAR devices are exempt from the auth-maintain-active drop: when a CAR companion's
+    // isAuthMaintainActive goes false, HandlePeerDeviceStatusChanged must NOT Cancel().
+    auto preObtainTokenRequest = MakePreObtainTokenRequest();
+    auto onMessageReply = [](const Attributes &) {};
+    auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
+        OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    EXPECT_TRUE(request->OnStart(errorGuard));
+
+    int abortCount = 0;
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, MessageType::REQUEST_ABORTED, _, _))
+        .WillRepeatedly(Invoke([&abortCount](const std::string &, MessageType, const Attributes &, OnMessageReply) {
+            abortCount++;
+            return true;
+        }));
+
+    DeviceStatus status = { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = false,
+        .deviceType = DeviceType::CAR };
+    std::vector<DeviceStatus> deviceStatusList = { status };
+
+    ASSERT_NO_THROW(request->HandlePeerDeviceStatusChanged(deviceStatusList));
+    EXPECT_EQ(abortCount, 0);
 }
 
 HWTEST_F(HostObtainTokenRequestTest, HandlePeerDeviceStatusChanged_001, TestSize.Level0)

@@ -52,6 +52,7 @@ public:
 protected:
     IUserIdManager() = default;
 };
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

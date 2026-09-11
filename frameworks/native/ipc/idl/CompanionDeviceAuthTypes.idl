@@ -25,6 +25,8 @@ struct IpcDeviceKey {
     String deviceId;
     /** Device user id in remote device. */
     int deviceUserId;
+    /** Device sub profile id in remote device. */
+    int deviceSubProfileId;
 };
 
 /**
@@ -55,6 +57,8 @@ struct IpcDeviceStatus {
     boolean isOnline;
     /** Supported business ids (enums represented by int). */
     int[] supportedBusinessIds;
+    /** Remote device sub profile name. */
+    String deviceSubProfileName;
 };
 
 /**

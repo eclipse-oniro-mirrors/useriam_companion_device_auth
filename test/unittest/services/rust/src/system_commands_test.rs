@@ -67,8 +67,13 @@ fn create_mock_token_issue_reply() -> Vec<u8> {
 fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
     CompanionDevice {
         template_id,
-        device_key: DeviceKey { device_id: String::from("test_device"), device_id_type: 1, user_id: 100 },
-        user_info: UserInfo { user_id: 100, user_type: 0 },
+        device_key: DeviceKey {
+            device_id: String::from("test_device"),
+            device_id_type: 1,
+            user_id: 100,
+            sub_profile_id: 0,
+        },
+        user_info: UserInfo { user_id: 100, user_type: 0, sub_profile_id: 0 },
         added_time: 123456,
         is_valid: true,
         capability_list: vec![1, 2, 3],
@@ -83,14 +88,20 @@ fn create_mock_companion_device_profile() -> CompanionDeviceProfile {
         business_ids: vec![1, 2, 3],
         device_type: 0,
         supported_business_ids: vec![1, 2, 3],
+        device_sub_profile_name: String::new(),
     }
 }
 
 fn create_mock_host_binding(binding_id: i32) -> HostBinding {
     HostBinding {
-        device_key: DeviceKey { device_id: String::from("host_device"), device_id_type: 1, user_id: 100 },
+        device_key: DeviceKey {
+            device_id: String::from("host_device"),
+            device_id_type: 1,
+            user_id: 100,
+            sub_profile_id: 0,
+        },
         binding_id,
-        user_info: UserInfo { user_id: 100, user_type: 0 },
+        user_info: UserInfo { user_id: 100, user_type: 0, sub_profile_id: 0 },
         binding_time: 123456,
         last_used_time: 123456,
     }
@@ -369,7 +380,7 @@ fn host_get_persisted_status_test_success_with_devices() {
         .returning(|| Ok(create_mock_companion_device_profile()));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetPersistedStatusInputFfi { user_id: 100 };
+    let input = HostGetPersistedStatusInputFfi { user_id: 100, sub_profile_id: 0 };
     let mut output = HostGetPersistedStatusOutputFfi { companion_status_list: CompanionStatusArrayFfi::default() };
     let result = host_get_persisted_status(&input, &mut output);
     assert!(result.is_ok());
@@ -385,7 +396,7 @@ fn host_get_persisted_status_test_success_no_devices() {
     mock_companion_device_db_manager.expect_get_device_list().returning(|| Vec::new());
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetPersistedStatusInputFfi { user_id: 100 };
+    let input = HostGetPersistedStatusInputFfi { user_id: 100, sub_profile_id: 0 };
     let mut output = HostGetPersistedStatusOutputFfi { companion_status_list: CompanionStatusArrayFfi::default() };
     let result = host_get_persisted_status(&input, &mut output);
     assert!(result.is_ok());
@@ -402,7 +413,7 @@ fn host_get_persisted_status_test_read_device_profile_fail() {
     mock_companion_device_db_manager.expect_read_device_profile().returning(|| Err(ErrorCode::GeneralError));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetPersistedStatusInputFfi { user_id: 100 };
+    let input = HostGetPersistedStatusInputFfi { user_id: 100, sub_profile_id: 0 };
     let mut output = HostGetPersistedStatusOutputFfi { companion_status_list: CompanionStatusArrayFfi::default() };
     let result = host_get_persisted_status(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
@@ -1635,6 +1646,7 @@ fn host_update_companion_status_test_success() {
         device_name: DataArray256Ffi::default(),
         device_user_name: DataArray256Ffi::default(),
         supported_business_ids: Int32Array64Ffi::default(),
+        device_sub_profile_name: DataArray256Ffi::default(),
     };
     let mut output = HostUpdateCompanionStatusOutputFfi::default();
     let result = host_update_companion_status(&input, &mut output);
@@ -1656,6 +1668,7 @@ fn host_update_companion_status_test_fail() {
         device_name: DataArray256Ffi::default(),
         device_user_name: DataArray256Ffi::default(),
         supported_business_ids: Int32Array64Ffi::default(),
+        device_sub_profile_name: DataArray256Ffi::default(),
     };
     let mut output = HostUpdateCompanionStatusOutputFfi::default();
     let result = host_update_companion_status(&input, &mut output);
@@ -2186,6 +2199,7 @@ fn host_process_obtain_token_test_success() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
+        atl: AuthTrustLevel::Atl3 as i32,
     };
     let mut output = HostProcessObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default(), atl: 0 };
     let result = host_process_obtain_token(&input, &mut output);
@@ -2207,6 +2221,7 @@ fn host_process_obtain_token_test_remove_request_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
+        atl: 0,
     };
     let mut output = HostProcessObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default(), atl: 0 };
     let result = host_process_obtain_token(&input, &mut output);
@@ -2238,6 +2253,7 @@ fn host_process_obtain_token_test_request_end_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
+        atl: 0,
     };
     let mut output = HostProcessObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default(), atl: 0 };
     let result = host_process_obtain_token(&input, &mut output);
@@ -2358,7 +2374,7 @@ fn host_refresh_token_test_success() {
     assert_eq!(output.need_reissue, false);
     assert_eq!(output.cached_atl, AuthTrustLevel::Atl3 as i32);
 
-    // ATL mismatch → need_reissue
+    // ATL mismatch -> need_reissue
     let result = host_refresh_token(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.need_reissue, true);
@@ -2368,7 +2384,7 @@ fn host_refresh_token_test_success() {
     assert!(result.is_ok());
     assert_eq!(output.need_reissue, true);
 
-    // get_token fail → need_reissue
+    // get_token fail -> need_reissue
     let result = host_refresh_token(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.need_reissue, true);
@@ -2580,7 +2596,7 @@ fn companion_get_persisted_status_test_success() {
     mock_host_binding_db_manager.expect_is_device_token_valid().returning(|| Ok(true));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
-    let input = CompanionGetPersistedStatusInputFfi { user_id: 100 };
+    let input = CompanionGetPersistedStatusInputFfi { user_id: 100, sub_profile_id: 0 };
     let mut output = CompanionGetPersistedStatusOutputFfi { binding_status_list: HostBindingStatusArrayFfi::default() };
     let result = companion_get_persisted_status(&input, &mut output);
     assert!(result.is_ok());
@@ -2597,7 +2613,7 @@ fn companion_get_persisted_status_test_token_valid_fail() {
     mock_host_binding_db_manager.expect_is_device_token_valid().returning(|| Err(ErrorCode::GeneralError));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
-    let input = CompanionGetPersistedStatusInputFfi { user_id: 100 };
+    let input = CompanionGetPersistedStatusInputFfi { user_id: 100, sub_profile_id: 0 };
     let mut output = CompanionGetPersistedStatusOutputFfi { binding_status_list: HostBindingStatusArrayFfi::default() };
     let result = companion_get_persisted_status(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
@@ -2812,6 +2828,7 @@ fn companion_begin_add_host_binding_test_success() {
     let mut attr = Attribute::new();
     attr.set_string(AttributeKey::AttrDeviceId, "test-device-id".to_string());
     attr.set_i32(AttributeKey::AttrUserId, 100);
+    attr.set_i32(AttributeKey::AttrSubProfileId, 0);
     attr.set_u64(AttributeKey::AttrCompanionChallenge, 0);
 
     let sec_binding_request = SecBindingRequest {
@@ -2893,6 +2910,7 @@ fn companion_begin_add_host_binding_test_replaced_binding() {
     let mut attr = Attribute::new();
     attr.set_string(AttributeKey::AttrDeviceId, "test-device-id".to_string());
     attr.set_i32(AttributeKey::AttrUserId, 100);
+    attr.set_i32(AttributeKey::AttrSubProfileId, 0);
     attr.set_u64(AttributeKey::AttrCompanionChallenge, 0);
 
     let sec_binding_request = SecBindingRequest {

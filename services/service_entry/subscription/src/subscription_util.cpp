@@ -29,6 +29,7 @@ IpcDeviceStatus ConvertToIpcDeviceStatus(const DeviceStatus &status)
     ipcStatus.deviceKey.deviceIdType = static_cast<int32_t>(status.deviceKey.idType);
     ipcStatus.deviceKey.deviceId = status.deviceKey.deviceId;
     ipcStatus.deviceKey.deviceUserId = status.deviceKey.deviceUserId;
+    ipcStatus.deviceKey.deviceSubProfileId = status.deviceKey.deviceSubProfileId;
     ipcStatus.deviceUserName = status.deviceUserName;
     ipcStatus.deviceModelInfo = status.deviceModelInfo;
     ipcStatus.deviceName = status.deviceName;
@@ -38,6 +39,7 @@ IpcDeviceStatus ConvertToIpcDeviceStatus(const DeviceStatus &status)
     for (const auto &id : status.supportedBusinessIds) {
         ipcStatus.supportedBusinessIds.push_back(static_cast<int>(id));
     }
+    ipcStatus.deviceSubProfileName = status.deviceSubProfileName;
     return ipcStatus;
 }
 
@@ -66,9 +68,11 @@ bool IpcDeviceStatusEqual(const IpcDeviceStatus &lhs, const IpcDeviceStatus &rhs
 {
     return lhs.deviceKey.deviceIdType == rhs.deviceKey.deviceIdType &&
         lhs.deviceKey.deviceId == rhs.deviceKey.deviceId && lhs.deviceKey.deviceUserId == rhs.deviceKey.deviceUserId &&
+        lhs.deviceKey.deviceSubProfileId == rhs.deviceKey.deviceSubProfileId &&
         lhs.deviceUserName == rhs.deviceUserName && lhs.deviceModelInfo == rhs.deviceModelInfo &&
         lhs.deviceName == rhs.deviceName && lhs.isOnline == rhs.isOnline &&
-        lhs.supportedBusinessIds == rhs.supportedBusinessIds;
+        lhs.supportedBusinessIds == rhs.supportedBusinessIds &&
+        lhs.deviceSubProfileName == rhs.deviceSubProfileName;
 }
 
 bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs, const std::vector<IpcDeviceStatus> &rhs)

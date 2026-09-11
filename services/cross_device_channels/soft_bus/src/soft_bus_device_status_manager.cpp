@@ -57,7 +57,7 @@ bool SoftBusDeviceStatusManager::IsDeviceTypeIdSupport(DmDeviceType deviceTypeId
     // RK3568 device type is unknown
     return deviceTypeId == DmDeviceType::DEVICE_TYPE_PHONE || deviceTypeId == DmDeviceType::DEVICE_TYPE_PAD ||
         deviceTypeId == DmDeviceType::DEVICE_TYPE_2IN1 || deviceTypeId == DmDeviceType::DEVICE_TYPE_PC ||
-        deviceTypeId == DmDeviceType::DEVICE_TYPE_UNKNOWN;
+        deviceTypeId == DmDeviceType::DEVICE_TYPE_CAR || deviceTypeId == DmDeviceType::DEVICE_TYPE_UNKNOWN;
 }
 
 DeviceType SoftBusDeviceStatusManager::ConvertToDeviceType(DmDeviceType deviceTypeId)
@@ -71,6 +71,8 @@ DeviceType SoftBusDeviceStatusManager::ConvertToDeviceType(DmDeviceType deviceTy
             return DeviceType::TWO_IN_ONE;
         case DmDeviceType::DEVICE_TYPE_PC:
             return DeviceType::PC;
+        case DmDeviceType::DEVICE_TYPE_CAR:
+            return DeviceType::CAR;
         case DmDeviceType::DEVICE_TYPE_UNKNOWN:
             return DeviceType::UNKNOWN;
         default:
@@ -90,6 +92,8 @@ std::string SoftBusDeviceStatusManager::DeviceTypeIdToString(DmDeviceType device
             return "pad";
         case DmDeviceType::DEVICE_TYPE_2IN1:
             return "2in1";
+        case DmDeviceType::DEVICE_TYPE_CAR:
+            return "car";
         // RK3568 device type is unknown
         case DmDeviceType::DEVICE_TYPE_UNKNOWN:
             return "unknown";
@@ -209,7 +213,8 @@ bool SoftBusDeviceStatusManager::Start()
         GetSystemParamManager().GetParam(CDA_IS_AUTH_MAINTAIN_ACTIVE_KEY, FALSE_STR) == TRUE_STR;
     HandleLocalIsAuthMaintainActiveChange(initialIsLocalAuthMaintainActive);
 #else
-    HandleLocalIsAuthMaintainActiveChange(false);
+    bool isAuthMaintainActive = GetAuthMaintainActive();
+    HandleLocalIsAuthMaintainActiveChange(isAuthMaintainActive);
 #endif
 
     started_ = true;

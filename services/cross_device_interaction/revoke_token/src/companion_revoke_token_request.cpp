@@ -32,10 +32,11 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-CompanionRevokeTokenRequest::CompanionRevokeTokenRequest(int32_t companionUserId, const DeviceKey &hostDeviceKey,
-    const std::string &triggerReason)
+CompanionRevokeTokenRequest::CompanionRevokeTokenRequest(int32_t companionUserId, int32_t companionSubProfileId,
+    const DeviceKey &hostDeviceKey, const std::string &triggerReason)
     : OutboundRequest(RequestType::COMPANION_REVOKE_TOKEN_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
-      companionUserId_(companionUserId)
+      companionUserId_(companionUserId),
+      companionSubProfileId_(companionSubProfileId)
 {
     SetPeerDeviceKey(hostDeviceKey);
     eventCollector_.SetHostDeviceKey(hostDeviceKey);
@@ -67,7 +68,9 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
     ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKey.has_value());
     companionDeviceKey = localDeviceKey.value();
     companionDeviceKey.deviceUserId = companionUserId_;
+    companionDeviceKey.deviceSubProfileId = companionSubProfileId_;
     RevokeTokenRequest requestMsg = { .hostUserId = peerDeviceKey->deviceUserId,
+        .hostSubProfileId = peerDeviceKey->deviceSubProfileId,
         .companionDeviceKey = companionDeviceKey };
     Attributes request = {};
     EncodeRevokeTokenRequest(requestMsg, request);

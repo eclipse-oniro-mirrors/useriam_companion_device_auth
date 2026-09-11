@@ -49,6 +49,8 @@ struct SyncDeviceStatusReply {
     std::string deviceUserName;
     std::string deviceName;
     std::vector<uint8_t> companionCheckResponse;
+    std::string deviceSubProfileName;
+    bool isAuthMaintainActive { false };
 };
 
 void EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes);

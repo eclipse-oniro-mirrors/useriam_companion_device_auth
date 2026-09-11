@@ -34,6 +34,7 @@
 #include "mock_request_manager.h"
 #include "mock_sa_manager_adapter.h"
 #include "mock_security_agent.h"
+#include "mock_sub_profile_id_manager.h"
 #include "mock_soft_bus_adapter.h"
 #include "mock_system_param_manager.h"
 #include "mock_system_settings_manager.h"
@@ -64,6 +65,7 @@ public:
     MockSAManagerAdapter &GetSaManagerAdapter();
     MockSystemParamManager &GetSystemParamManager();
     MockUserIdManager &GetUserIdManager();
+    MockSubProfileIdManager &GetSubProfileIdManager();
     MockEventManagerAdapter &GetEventManagerAdapter();
     MockSystemSettingsManager &GetSystemSettingsManager();
     MockAppForegroundStateAdapter &GetAppForegroundStateAdapter();
@@ -90,6 +92,7 @@ private:
     void SetupDefaultBehaviors();
     void SetupMiscManagerDefaults();
     void SetupUserIdManagerDefaults();
+    void SetupSubProfileIdManagerDefaults();
     void SetupCrossDeviceCommManagerDefaults();
     void SetupCompanionManagerDefaults();
     void SetupRequestManagerDefaults();
@@ -111,6 +114,7 @@ private:
     std::shared_ptr<MockSAManagerAdapter> saManagerAdapter_;
     std::shared_ptr<MockSystemParamManager> systemParamManager_;
     std::shared_ptr<MockUserIdManager> userIdManager_;
+    std::shared_ptr<MockSubProfileIdManager> subProfileIdManager_;
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
     std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<MockAppForegroundStateAdapter> appForegroundStateAdapter_;

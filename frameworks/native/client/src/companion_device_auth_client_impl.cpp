@@ -187,6 +187,7 @@ int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(int32_t userId,
         clientDeviceKey.deviceIdType = ipcTemplateStatus.deviceStatus.deviceKey.deviceIdType;
         clientDeviceKey.deviceId = ipcTemplateStatus.deviceStatus.deviceKey.deviceId;
         clientDeviceKey.deviceUserId = ipcTemplateStatus.deviceStatus.deviceKey.deviceUserId;
+        clientDeviceKey.deviceSubProfileId = ipcTemplateStatus.deviceStatus.deviceKey.deviceSubProfileId;
 
         ClientDeviceStatus clientDeviceStatus {};
         clientDeviceStatus.deviceKey = clientDeviceKey;
@@ -195,6 +196,7 @@ int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(int32_t userId,
         clientDeviceStatus.deviceName = ipcTemplateStatus.deviceStatus.deviceName;
         clientDeviceStatus.isOnline = ipcTemplateStatus.deviceStatus.isOnline;
         clientDeviceStatus.supportedBusinessIds = ipcTemplateStatus.deviceStatus.supportedBusinessIds;
+        clientDeviceStatus.deviceSubProfileName = ipcTemplateStatus.deviceStatus.deviceSubProfileName;
 
         ClientTemplateStatus clientTemplateStatus {};
         clientTemplateStatus.templateId = ipcTemplateStatus.templateId;

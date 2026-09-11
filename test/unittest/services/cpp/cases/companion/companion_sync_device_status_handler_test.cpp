@@ -51,7 +51,8 @@ protected:
         .secureProtocolId = SecureProtocolId::DEFAULT };
     HostBindingStatus hostBindingStatus_ = { .bindingId = 1,
         .companionUserId = INT32_200,
-        .hostDeviceStatus = hostDeviceStatus_ };
+        .hostDeviceStatus = hostDeviceStatus_,
+        .companionSubProfileId = INVALID_SUB_PROFILE_ID };
 };
 
 HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_001, TestSize.Level0)

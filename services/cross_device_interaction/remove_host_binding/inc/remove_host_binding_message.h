@@ -29,6 +29,7 @@ namespace CompanionDeviceAuth {
 struct RemoveHostBindingRequest {
     DeviceKey hostDeviceKey {};
     int32_t companionUserId { INVALID_USER_ID };
+    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
     std::vector<uint8_t> extraInfo;
 };
 

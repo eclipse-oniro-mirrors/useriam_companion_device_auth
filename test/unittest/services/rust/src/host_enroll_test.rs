@@ -64,6 +64,7 @@ fn create_valid_binding_reply(
     let reply_info = SecBindingReplyInfo {
         device_id: device_id.to_string(),
         user_id,
+        sub_profile_id: 0,
         esl,
         track_ability_level: 0,
         challenge: 0,
@@ -88,7 +89,7 @@ fn create_key_negotial_param() -> KeyNegotialParam {
 }
 
 fn create_device_key(device_id: &str, user_id: i32) -> DeviceKey {
-    DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id }
+    DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id, sub_profile_id: 0 }
 }
 
 fn mock_set_crypto_engine() {

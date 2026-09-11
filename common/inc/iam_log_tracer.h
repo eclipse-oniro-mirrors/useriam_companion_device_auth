@@ -53,6 +53,8 @@ enum LogTraceFileId : uint16_t {
     // services/host_binding (0x011x)
     LOG_FILE_HOST_BINDING_MANAGER_IMPL = 0x0111,
     LOG_FILE_HOST_BINDING = 0x0112,
+    LOG_FILE_CONSTANT_SUB_PROFILE_ID_MANAGER = 0x0113,
+    LOG_FILE_DEFAULT_SUB_PROFILE_ID_MANAGER = 0x0114,
 
     // services/misc (0x012x)
     LOG_FILE_MISC_MANAGER_IMPL = 0x0120,

@@ -19,8 +19,9 @@ const FILE_ID: u16 = TestFileId::HostBindingDbManagerTest as u16;
 use crate::common::constants::*;
 use crate::log_i;
 use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo};
-use crate::traits::host_binding_db_manager::{DummyHostBindingDbManager, HostBindingDbManager};
+use crate::traits::host_binding_db_manager::{DummyHostBindingDbManager, HostBindingDbManager, HostDeviceFilter};
 use crate::ut_registry_guard;
+use std::boxed::Box;
 
 #[test]
 fn dummy_host_binding_db_manager_test() {
@@ -31,7 +32,7 @@ fn dummy_host_binding_db_manager_test() {
     let device_info = HostBinding {
         device_key: DeviceKey::default(),
         binding_id: 0,
-        user_info: UserInfo { user_id: 0, user_type: 0 },
+        user_info: UserInfo { user_id: 0, user_type: 0, sub_profile_id: 0 },
         binding_time: 0,
         last_used_time: 0,
     };
@@ -52,5 +53,7 @@ fn dummy_host_binding_db_manager_test() {
     assert!(dummy_host_binding_db_manager.read_device_sk(0).is_err());
     assert!(dummy_host_binding_db_manager.write_device_sk(0, &sk_info).is_err());
     assert!(dummy_host_binding_db_manager.delete_device_sk(0).is_err());
-    assert!(dummy_host_binding_db_manager.get_device_list(0).is_empty());
+    assert!(dummy_host_binding_db_manager
+        .get_device_list(Box::new(|_: &HostBinding| true) as HostDeviceFilter)
+        .is_empty());
 }

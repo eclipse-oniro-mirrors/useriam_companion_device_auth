@@ -41,6 +41,7 @@ pub struct HostDeviceObtainTokenRequest {
     pub token_infos: Vec<DeviceTokenInfo>,
     pub salt: [u8; HKDF_SALT_SIZE],
     pub host_challenge: u64,
+    pub atl: AuthTrustLevel,
 }
 
 impl HostDeviceObtainTokenRequest {
@@ -60,6 +61,7 @@ impl HostDeviceObtainTokenRequest {
             token_infos: Vec::new(),
             salt,
             host_challenge: u64::from_ne_bytes(challenge),
+            atl: AuthTrustLevel::Atl0,
         })
     }
 
@@ -190,12 +192,12 @@ impl Request for HostDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
+        self.atl = AuthTrustLevel::try_from(ffi_input.atl)?;
         self.decode_sec_token_obtain_request(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.encode_sec_token_obtain_reply()?;
         self.store_token()?;
-        let max_atl = self.token_infos.iter().map(|info| info.atl as i32).max().unwrap_or(AuthTrustLevel::Atl0 as i32);
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
-        ffi_output.atl = max_atl;
+        ffi_output.atl = ffi_input.atl;
         Ok(())
     }
 }

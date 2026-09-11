@@ -39,7 +39,8 @@ const DeviceKey COMPANION_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_
     .deviceUserId = 200 };
 const std::vector<uint8_t> START_DELEGATE_AUTH_REQUEST = { 1, 2, 3, 4 };
 constexpr BindingId BINDING_ID = 1;
-const HostBindingStatus HOST_BINDING_STATUS = { .bindingId = BINDING_ID };
+const HostBindingStatus HOST_BINDING_STATUS = { .bindingId = BINDING_ID,
+    .companionSubProfileId = INVALID_SUB_PROFILE_ID };
 
 class CompanionDelegateAuthRequestTest : public Test {
 protected:
@@ -53,6 +54,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
+    ON_CALL(guard.GetSubProfileIdManager(), IsForegroundSubProfileId(_, _)).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
@@ -97,6 +99,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
+    ON_CALL(guard.GetSubProfileIdManager(), IsForegroundSubProfileId(_, _)).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
@@ -116,6 +119,7 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
+    ON_CALL(guard.GetSubProfileIdManager(), IsForegroundSubProfileId(_, _)).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
@@ -144,6 +148,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompanionBeginDelegateAuth_001, TestS
             return ResultCode::SUCCESS;
         });
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).Times(0);
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).Times(0);
 
     bool result = request->CompanionBeginDelegateAuth();
 

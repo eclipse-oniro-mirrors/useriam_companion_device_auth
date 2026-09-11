@@ -35,6 +35,7 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 #include "time_keeper.h"
+#include "sub_profile_id_manager.h"
 #include "user_id_manager.h"
 
 using namespace testing;
@@ -187,6 +188,32 @@ private:
     ActiveUserIdCallback activeUserIdCallback_ {};
 };
 
+class FakeSubProfileIdManager : public ISubProfileIdManager {
+public:
+    int32_t GetForegroundSubProfileId(UserId userId) const override
+    {
+        return INVALID_SUB_PROFILE_ID;
+    }
+
+    bool IsForegroundSubProfileId(UserId userId, int32_t subProfileId) const override
+    {
+        (void)userId;
+        (void)subProfileId;
+        return false;
+    }
+
+    std::optional<std::string> GetSubProfileName(UserId userId, int32_t subProfileId) const override
+    {
+        return std::nullopt;
+    }
+
+    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
+    {
+        (void)callback;
+        return std::make_unique<Subscription>(nullptr);
+    }
+};
+
 class FakeCrossDeviceChannel : public ICrossDeviceChannel {
 public:
     explicit FakeCrossDeviceChannel(ChannelId channelId) : channelId_(channelId)
@@ -332,6 +359,7 @@ public:
         AdapterManager::GetInstance().SetTimeKeeper(staticTimeKeeper);
 
         AdapterManager::GetInstance().SetUserIdManager(std::make_shared<FakeUserIdManager>());
+        AdapterManager::GetInstance().SetSubProfileIdManager(std::make_shared<FakeSubProfileIdManager>());
     }
 
     static void TearDownTestCase()

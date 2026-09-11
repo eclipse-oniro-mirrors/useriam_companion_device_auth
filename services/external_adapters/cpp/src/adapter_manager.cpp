@@ -212,6 +212,22 @@ void AdapterManager::SetUserIdManager(std::shared_ptr<IUserIdManager> adapter)
     userIdManager_ = adapter;
 }
 
+ISubProfileIdManager &AdapterManager::GetSubProfileIdManager()
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    if (subProfileIdManager_ == nullptr) {
+        IAM_LOGE("SubProfileIdManager is not initialized");
+        AbortIfAdapterUninitialized("SubProfileIdManager");
+    }
+    return *subProfileIdManager_;
+}
+
+void AdapterManager::SetSubProfileIdManager(std::shared_ptr<ISubProfileIdManager> adapter)
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    subProfileIdManager_ = adapter;
+}
+
 ISystemSettingsManager &AdapterManager::GetSystemSettingsManager()
 {
     CHECK_RUNNING_ON_RESIDENT_THREAD();
@@ -246,6 +262,7 @@ void AdapterManager::Reset()
     timeKeeperAdapter_ = nullptr;
     systemParamManager_ = nullptr;
     userIdManager_ = nullptr;
+    subProfileIdManager_ = nullptr;
     systemSettingsManager_ = nullptr;
     appForegroundStateAdapter_ = nullptr;
 }

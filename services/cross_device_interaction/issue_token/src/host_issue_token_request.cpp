@@ -130,8 +130,12 @@ bool HostIssueTokenRequest::SendPreIssueTokenRequest(const std::vector<uint8_t> 
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
     hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
+    hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
+    auto peerDeviceKey = GetPeerDeviceKey();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
     PreIssueTokenRequest requestMsg = { .hostDeviceKey = hostDeviceKey,
         .companionUserId = companionUserId_,
+        .companionSubProfileId = peerDeviceKey->deviceSubProfileId,
         .extraInfo = preIssueTokenRequest };
     Attributes request = {};
     EncodePreIssueTokenRequest(requestMsg, request);
@@ -198,8 +202,12 @@ bool HostIssueTokenRequest::SendIssueTokenRequest(const std::vector<uint8_t> &is
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
     hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
+    hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
+    auto peerDeviceKey = GetPeerDeviceKey();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
     IssueTokenRequest requestMsg = { .hostDeviceKey = hostDeviceKey,
         .companionUserId = companionUserId_,
+        .companionSubProfileId = peerDeviceKey->deviceSubProfileId,
         .extraInfo = issueTokenRequest };
     Attributes request = {};
     EncodeIssueTokenRequest(requestMsg, request);

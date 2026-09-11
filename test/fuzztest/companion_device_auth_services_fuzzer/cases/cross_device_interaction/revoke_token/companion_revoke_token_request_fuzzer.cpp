@@ -121,11 +121,13 @@ constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CompanionRe
 void FuzzCompanionRevokeTokenRequest(FuzzedDataProvider &fuzzData)
 {
     int32_t companionUserId = fuzzData.ConsumeIntegral<int32_t>();
+    int32_t companionSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     std::string triggerReason = GenerateFuzzString(fuzzData, 64);
 
     auto revokeTokenRequest =
-        std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey, triggerReason);
+        std::make_shared<CompanionRevokeTokenRequest>(companionUserId, companionSubProfileId, hostDeviceKey,
+            triggerReason);
     if (!revokeTokenRequest) {
         return;
     }

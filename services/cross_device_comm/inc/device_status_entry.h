@@ -50,14 +50,17 @@ public:
     bool SetPhysicalCompanionBusinessIds(std::vector<BusinessId> physicalCompanionBusinessIds);
     bool SetSyncCompanionBusinessIds(std::vector<BusinessId> syncCompanionBusinessIds);
     const std::vector<BusinessId> &GetSupportedBusinessIds() const;
-
+    bool SetPhysicalIsAuthMaintainActive(bool physicalIsAuthMaintainActive);
+    bool SetSyncIsAuthMaintainActive(bool syncIsAuthMaintainActive);
     PhysicalDeviceKey physicalDeviceKey;
     ChannelId channelId { ChannelId::INVALID };
     int32_t deviceUserId { INVALID_USER_ID };
+    int32_t deviceSubProfileId { INVALID_SUB_PROFILE_ID };
     std::string deviceModelInfo {};
     std::string deviceUserName {};
     std::string physicalDeviceName {};
     std::string syncDeviceName {};
+    std::string deviceSubProfileName {};
     bool useSyncDeviceName { false };
     ProtocolId protocolId { ProtocolId::INVALID };
     SecureProtocolId secureProtocolId { SecureProtocolId::INVALID };
@@ -73,6 +76,7 @@ public:
 
 private:
     void RecomputeEffectiveBusinessIds();
+    void RecomputeEffectiveIsAuthMaintainActive();
     static std::vector<BusinessId> IntersectBusinessIds(const std::vector<BusinessId> &hostSupportBusinessIds,
         const std::vector<BusinessId> &deviceSupportedBusinessIds);
 
@@ -81,6 +85,9 @@ private:
     std::vector<BusinessId> syncCompanionBusinessIds_;
     std::vector<BusinessId> effectiveBusinessIds_;
     std::unique_ptr<BackoffRetryTimer> syncRetryTimer_;
+    std::optional<bool> syncIsAuthMaintainActive_;
+    bool physicalIsAuthMaintainActive_;
+    bool effectiveIsAuthMaintainActive_;
 };
 
 } // namespace CompanionDeviceAuth

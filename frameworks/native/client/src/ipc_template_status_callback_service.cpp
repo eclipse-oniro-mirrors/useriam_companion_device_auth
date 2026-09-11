@@ -66,6 +66,7 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
         clientDeviceKey.deviceIdType = templateStatus.deviceStatus.deviceKey.deviceIdType;
         clientDeviceKey.deviceId = templateStatus.deviceStatus.deviceKey.deviceId;
         clientDeviceKey.deviceUserId = templateStatus.deviceStatus.deviceKey.deviceUserId;
+        clientDeviceKey.deviceSubProfileId = templateStatus.deviceStatus.deviceKey.deviceSubProfileId;
 
         ClientDeviceStatus clientDeviceStatus;
         clientDeviceStatus.deviceKey = clientDeviceKey;
@@ -74,6 +75,7 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
         clientDeviceStatus.deviceName = templateStatus.deviceStatus.deviceName;
         clientDeviceStatus.isOnline = templateStatus.deviceStatus.isOnline;
         clientDeviceStatus.supportedBusinessIds = templateStatus.deviceStatus.supportedBusinessIds;
+        clientDeviceStatus.deviceSubProfileName = templateStatus.deviceStatus.deviceSubProfileName;
 
         ClientTemplateStatus clientTemplateStatus;
         clientTemplateStatus.templateId = templateStatus.templateId;

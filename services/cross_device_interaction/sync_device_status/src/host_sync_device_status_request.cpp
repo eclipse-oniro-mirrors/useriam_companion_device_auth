@@ -145,6 +145,7 @@ SyncDeviceStatusRequest HostSyncDeviceStatusRequest::BuildSyncDeviceStatusReques
     request.protocolIdList = profile.protocols;
     request.capabilityList = profile.hostCapabilities;
     request.hostDeviceKey.deviceUserId = hostUserId_;
+    request.hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
     request.salt = salt;
     request.challenge = challenge;
     return request;
@@ -212,7 +213,8 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
         return;
     }
 
-    UpdateCompanionUserId(replyData.companionDeviceKey.deviceUserId);
+    UpdateCompanionUserIdAndSubProfileId(replyData.companionDeviceKey.deviceUserId,
+        replyData.companionDeviceKey.deviceSubProfileId);
 
     bool handleRet = EndCompanionCheck(replyData);
     ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
@@ -226,6 +228,9 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     syncDeviceStatus.deviceUserName = replyData.deviceUserName;
     syncDeviceStatus.deviceName = replyData.deviceName;
     syncDeviceStatus.deviceUserId = replyData.companionDeviceKey.deviceUserId;
+    syncDeviceStatus.deviceSubProfileId = replyData.companionDeviceKey.deviceSubProfileId;
+    syncDeviceStatus.deviceSubProfileName = replyData.deviceSubProfileName;
+    syncDeviceStatus.isAuthMaintainActive = replyData.isAuthMaintainActive;
 
     eventCollector_.SetSelectedProtocolIdList(ProtocolIdConverter::ToUnderlyingVec(syncDeviceStatus.protocolIdList));
     eventCollector_.SetSecureProtocolId(static_cast<uint16_t>(syncDeviceStatus.secureProtocolId));
@@ -305,10 +310,12 @@ bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest([[maybe_unused]] cons
     return false;
 }
 
-void HostSyncDeviceStatusRequest::UpdateCompanionUserId(int32_t companionUserId)
+void HostSyncDeviceStatusRequest::UpdateCompanionUserIdAndSubProfileId(int32_t companionUserId,
+    int32_t companionSubProfileId)
 {
-    IAM_LOGI("companionUserId: %{public}d", companionUserId);
+    IAM_LOGI("companionUserId: %{public}d, companionSubProfileId: %{public}d", companionUserId, companionSubProfileId);
     companionDeviceKey_.deviceUserId = companionUserId;
+    companionDeviceKey_.deviceSubProfileId = companionSubProfileId;
     SetPeerDeviceKey(companionDeviceKey_);
     desc_.SetDeviceId(companionDeviceKey_);
 }

@@ -51,9 +51,11 @@ DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus,
       isSyncInProgress(false),
       hostSupportBusinessIds_(std::move(hostSupportBusinessIds)),
       physicalCompanionBusinessIds_(physicalStatus.supportedBusinessIds),
-      syncCompanionBusinessIds_()
+      syncCompanionBusinessIds_(),
+      physicalIsAuthMaintainActive_(physicalStatus.isAuthMaintainActive)
 {
     RecomputeEffectiveBusinessIds();
+    RecomputeEffectiveIsAuthMaintainActive();
 
     constexpr uint32_t syncRetryBaseDelayMs = 1000;          // 1 second
     constexpr uint32_t syncRetryMaxDelayMs = 30 * 60 * 1000; // 30 minutes
@@ -68,10 +70,12 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
     : physicalDeviceKey(std::move(other.physicalDeviceKey)),
       channelId(other.channelId),
       deviceUserId(other.deviceUserId),
+      deviceSubProfileId(other.deviceSubProfileId),
       deviceModelInfo(std::move(other.deviceModelInfo)),
       deviceUserName(std::move(other.deviceUserName)),
       physicalDeviceName(std::move(other.physicalDeviceName)),
       syncDeviceName(std::move(other.syncDeviceName)),
+      deviceSubProfileName(std::move(other.deviceSubProfileName)),
       useSyncDeviceName(other.useSyncDeviceName),
       protocolId(other.protocolId),
       secureProtocolId(other.secureProtocolId),
@@ -88,7 +92,10 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       physicalCompanionBusinessIds_(std::move(other.physicalCompanionBusinessIds_)),
       syncCompanionBusinessIds_(std::move(other.syncCompanionBusinessIds_)),
       effectiveBusinessIds_(std::move(other.effectiveBusinessIds_)),
-      syncRetryTimer_(std::move(other.syncRetryTimer_))
+      syncRetryTimer_(std::move(other.syncRetryTimer_)),
+      syncIsAuthMaintainActive_(std::move(other.syncIsAuthMaintainActive_)),
+      physicalIsAuthMaintainActive_(other.physicalIsAuthMaintainActive_),
+      effectiveIsAuthMaintainActive_(other.effectiveIsAuthMaintainActive_)
 {
 }
 
@@ -138,6 +145,7 @@ DeviceKey DeviceStatusEntry::BuildDeviceKey() const
     deviceKey.idType = physicalDeviceKey.idType;
     deviceKey.deviceId = physicalDeviceKey.deviceId;
     deviceKey.deviceUserId = deviceUserId;
+    deviceKey.deviceSubProfileId = deviceSubProfileId;
     return deviceKey;
 }
 
@@ -147,6 +155,8 @@ DeviceStatus DeviceStatusEntry::BuildDeviceStatus() const
     status.deviceKey.idType = physicalDeviceKey.idType;
     status.deviceKey.deviceId = physicalDeviceKey.deviceId;
     status.deviceKey.deviceUserId = deviceUserId;
+    status.deviceKey.deviceSubProfileId = deviceSubProfileId;
+    status.deviceSubProfileName = deviceSubProfileName;
     status.channelId = channelId;
     status.deviceName = GetDeviceName();
     status.deviceUserName = deviceUserName;
@@ -208,6 +218,35 @@ std::vector<BusinessId> DeviceStatusEntry::IntersectBusinessIds(const std::vecto
         }
     }
     return effectiveBusinessIds;
+}
+
+bool DeviceStatusEntry::SetPhysicalIsAuthMaintainActive(bool physicalIsAuthMaintainActive)
+{
+    physicalIsAuthMaintainActive_ = physicalIsAuthMaintainActive;
+    bool previousEffective = effectiveIsAuthMaintainActive_;
+    RecomputeEffectiveIsAuthMaintainActive();
+    return previousEffective != effectiveIsAuthMaintainActive_;
+}
+
+bool DeviceStatusEntry::SetSyncIsAuthMaintainActive(bool syncIsAuthMaintainActive)
+{
+    syncIsAuthMaintainActive_ = syncIsAuthMaintainActive;
+    bool previousEffective = effectiveIsAuthMaintainActive_;
+    RecomputeEffectiveIsAuthMaintainActive();
+    return previousEffective != effectiveIsAuthMaintainActive_;
+}
+
+void DeviceStatusEntry::RecomputeEffectiveIsAuthMaintainActive()
+{
+    if (syncIsAuthMaintainActive_.has_value()) {
+        effectiveIsAuthMaintainActive_ = syncIsAuthMaintainActive_.value();
+    } else {
+        effectiveIsAuthMaintainActive_ = physicalIsAuthMaintainActive_;
+    }
+    isAuthMaintainActive = effectiveIsAuthMaintainActive_;
+    IAM_LOGI("recompute effective isAuthMaintainActive: physical=%{public}d, sync=%{public}d, effective=%{public}d",
+        physicalIsAuthMaintainActive_, syncIsAuthMaintainActive_.has_value(),
+        effectiveIsAuthMaintainActive_);
 }
 
 } // namespace CompanionDeviceAuth

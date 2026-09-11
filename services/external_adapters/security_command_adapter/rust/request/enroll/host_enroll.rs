@@ -83,6 +83,7 @@ pub struct HostDeviceEnrollRequest {
     pub algorithm_list: Vec<u16>,
     pub selected_algorithm: u16,
     pub supported_business_ids: Vec<i32>,
+    pub device_sub_profile_name: String,
 }
 
 impl HostDeviceEnrollRequest {
@@ -123,6 +124,7 @@ impl HostDeviceEnrollRequest {
             algorithm_list: Vec::new(),
             selected_algorithm: 0,
             supported_business_ids: Vec::new(),
+            device_sub_profile_name: String::new(),
         })
     }
 
@@ -243,6 +245,7 @@ impl HostDeviceEnrollRequest {
             encrypt_attribute
                 .set_string(AttributeKey::AttrDeviceId, self.enroll_param.host_device_key.device_id.clone());
             encrypt_attribute.set_i32(AttributeKey::AttrUserId, self.enroll_param.host_device_key.user_id);
+            encrypt_attribute.set_i32(AttributeKey::AttrSubProfileId, self.enroll_param.host_device_key.sub_profile_id);
             encrypt_attribute.set_u64(AttributeKey::AttrCompanionChallenge, key_nego_param.companion_challenge);
             let (encrypt_data, tag, iv) =
                 message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
@@ -292,6 +295,15 @@ impl HostDeviceEnrollRequest {
                 "user_id check fail, expected: {}, got: {}",
                 self.enroll_param.companion_device_key.user_id,
                 reply_info.user_id
+            );
+            return Err(ErrorCode::GeneralError);
+        }
+
+        if self.enroll_param.companion_device_key.sub_profile_id != reply_info.sub_profile_id {
+            log_e!(
+                "sub_profile_id check fail, expected: {}, got: {}",
+                self.enroll_param.companion_device_key.sub_profile_id,
+                reply_info.sub_profile_id
             );
             return Err(ErrorCode::GeneralError);
         }
@@ -394,7 +406,11 @@ impl HostDeviceEnrollRequest {
         let device_info = Box::new(CompanionDevice {
             template_id,
             device_key: self.enroll_param.companion_device_key.clone(),
-            user_info: UserInfo { user_id: self.enroll_param.host_device_key.user_id, user_type: 0 },
+            user_info: UserInfo {
+                user_id: self.enroll_param.host_device_key.user_id,
+                user_type: 0,
+                sub_profile_id: self.enroll_param.host_device_key.sub_profile_id,
+            },
             added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             is_valid: true,
             capability_list: self.expected_capability_list.clone(),
@@ -407,6 +423,7 @@ impl HostDeviceEnrollRequest {
             business_ids: Vec::new(),
             device_type: self.device_type,
             supported_business_ids: self.supported_business_ids.clone(),
+            device_sub_profile_name: self.device_sub_profile_name.clone(),
         });
 
         let mut capability_infos: Vec<CompanionDeviceCapability> = Vec::new();
@@ -538,6 +555,8 @@ impl Request for HostDeviceEnrollRequest {
         self.device_name = ffi_input.companion_status.device_name.to_string().unwrap_or_default();
         self.device_user_name = ffi_input.companion_status.device_user_name.to_string().unwrap_or_default();
         self.device_type = ffi_input.companion_status.device_type;
+        self.device_sub_profile_name =
+            ffi_input.companion_status.device_sub_profile_name.to_string().unwrap_or_default();
 
         self.decode_sec_binding_reply(ffi_input.sec_message.as_slice()?)?;
         let device_info = self.store_device_info()?;

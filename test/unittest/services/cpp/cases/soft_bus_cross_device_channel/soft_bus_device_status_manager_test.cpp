@@ -359,6 +359,7 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, IsDeviceTypeIdSupport_001, TestSize.Lev
     EXPECT_TRUE(manager->IsDeviceTypeIdSupport(DistributedHardware::DmDeviceType::DEVICE_TYPE_PAD));
     EXPECT_TRUE(manager->IsDeviceTypeIdSupport(DistributedHardware::DmDeviceType::DEVICE_TYPE_2IN1));
     EXPECT_TRUE(manager->IsDeviceTypeIdSupport(DistributedHardware::DmDeviceType::DEVICE_TYPE_PC));
+    EXPECT_TRUE(manager->IsDeviceTypeIdSupport(DistributedHardware::DmDeviceType::DEVICE_TYPE_CAR));
     EXPECT_TRUE(manager->IsDeviceTypeIdSupport(DistributedHardware::DmDeviceType::DEVICE_TYPE_UNKNOWN));
 }
 
@@ -373,6 +374,7 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, DeviceTypeIdToString_001, TestSize.Leve
     EXPECT_EQ(manager->DeviceTypeIdToString(DistributedHardware::DmDeviceType::DEVICE_TYPE_PHONE), "phone");
     EXPECT_EQ(manager->DeviceTypeIdToString(DistributedHardware::DmDeviceType::DEVICE_TYPE_PAD), "pad");
     EXPECT_EQ(manager->DeviceTypeIdToString(DistributedHardware::DmDeviceType::DEVICE_TYPE_2IN1), "2in1");
+    EXPECT_EQ(manager->DeviceTypeIdToString(DistributedHardware::DmDeviceType::DEVICE_TYPE_CAR), "car");
     EXPECT_EQ(manager->DeviceTypeIdToString(DistributedHardware::DmDeviceType::DEVICE_TYPE_UNKNOWN), "unknown");
 }
 
@@ -400,6 +402,7 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, ConvertToDeviceType_001, TestSize.Level
     EXPECT_EQ(manager->ConvertToDeviceType(DistributedHardware::DmDeviceType::DEVICE_TYPE_2IN1),
         DeviceType::TWO_IN_ONE);
     EXPECT_EQ(manager->ConvertToDeviceType(DistributedHardware::DmDeviceType::DEVICE_TYPE_PC), DeviceType::PC);
+    EXPECT_EQ(manager->ConvertToDeviceType(DistributedHardware::DmDeviceType::DEVICE_TYPE_CAR), DeviceType::CAR);
     EXPECT_EQ(manager->ConvertToDeviceType(DistributedHardware::DmDeviceType::DEVICE_TYPE_UNKNOWN),
         DeviceType::UNKNOWN);
 }
@@ -418,6 +421,7 @@ HWTEST_F(SoftBusDeviceStatusManagerTest, ConvertToDeviceType_002, TestSize.Level
     EXPECT_EQ(manager->ConvertToDeviceType(DistributedHardware::DmDeviceType::DEVICE_TYPE_PHONE), DeviceType::PHONE);
     EXPECT_EQ(manager->ConvertToDeviceType(DistributedHardware::DmDeviceType::DEVICE_TYPE_PAD), DeviceType::PAD);
     EXPECT_EQ(manager->ConvertToDeviceType(DistributedHardware::DmDeviceType::DEVICE_TYPE_PC), DeviceType::PC);
+    EXPECT_EQ(manager->ConvertToDeviceType(DistributedHardware::DmDeviceType::DEVICE_TYPE_CAR), DeviceType::CAR);
 }
 
 HWTEST_F(SoftBusDeviceStatusManagerTest, HandleDeviceManagerServiceReady_001, TestSize.Level0)

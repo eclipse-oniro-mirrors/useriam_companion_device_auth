@@ -43,7 +43,8 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_001, TestSize.Level0
     MockGuard guard;
     TokenAuthRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionUserId_,
-        .extraInfo = extraInfo_ };
+        .extraInfo = extraInfo_,
+        .companionSubProfileId = 42 };
 
     Attributes attributes;
     EncodeTokenAuthRequest(request, attributes);
@@ -59,6 +60,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_001, TestSize.Level0
     EXPECT_EQ(decodedRequest->hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
     EXPECT_EQ(decodedRequest->companionUserId, request.companionUserId);
     EXPECT_EQ(decodedRequest->extraInfo, request.extraInfo);
+    EXPECT_EQ(decodedRequest->companionSubProfileId, request.companionSubProfileId);
 }
 
 HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_002, TestSize.Level0)

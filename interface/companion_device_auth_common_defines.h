@@ -41,6 +41,7 @@ struct ClientDeviceKey {
     std::string deviceId;
     /* Local user identifier on the device. */
     int32_t deviceUserId;
+    int32_t deviceSubProfileId { -1 };
 };
 
 /**
@@ -59,6 +60,8 @@ struct ClientDeviceStatus {
     bool isOnline;
     /* Business identifiers currently enabled on the device. */
     std::vector<int32_t> supportedBusinessIds;
+    /* Friendly name assigned to the device sub profile. */
+    std::string deviceSubProfileName;
 };
 
 /**

@@ -272,7 +272,8 @@ void CompanionManagerImpl::ReconcileWithSecurityAgent()
         return;
     }
 
-    HostGetPersistedCompanionStatusInput input { hostUserId_ };
+    HostGetPersistedCompanionStatusInput input { hostUserId_,
+        GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_) };
     HostGetPersistedCompanionStatusOutput output {};
     ResultCode ret = GetSecurityAgent().HostGetPersistedCompanionStatus(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -511,7 +512,8 @@ void CompanionManagerImpl::OnActiveUserIdChanged(UserId userId)
     auto activeUserTemplateIds = AdapterManager::GetInstance().GetIdmAdapter().GetUserTemplates(hostUserId_);
     IAM_LOGI("Got %{public}zu templates for user %{public}d", activeUserTemplateIds.size(), hostUserId_);
 
-    HostGetPersistedCompanionStatusInput input { hostUserId_ };
+    HostGetPersistedCompanionStatusInput input { hostUserId_,
+        GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_) };
     HostGetPersistedCompanionStatusOutput output {};
     ResultCode ret = GetSecurityAgent().HostGetPersistedCompanionStatus(input, output);
     if (ret != ResultCode::SUCCESS) {

@@ -56,12 +56,14 @@ inline PhysicalDeviceKey MakePhysKey(const std::string &deviceId)
     return key;
 }
 
-inline DeviceKey MakeDeviceKey(const std::string &deviceId, int32_t userId)
+inline DeviceKey MakeDeviceKey(
+    const std::string &deviceId, int32_t userId, int32_t subProfileId = INVALID_SUB_PROFILE_ID)
 {
     DeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = deviceId;
     key.deviceUserId = userId;
+    key.deviceSubProfileId = subProfileId;
     return key;
 }
 

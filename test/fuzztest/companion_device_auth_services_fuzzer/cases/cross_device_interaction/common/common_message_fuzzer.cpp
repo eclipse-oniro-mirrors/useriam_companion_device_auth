@@ -52,6 +52,7 @@ static void FuzzEncodeHostDeviceKey(FuzzedDataProvider &fuzzData)
     deviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     deviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     deviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
+    deviceKey.deviceSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     Attributes attr;
     EncodeHostDeviceKey(deviceKey, attr);
 }
@@ -62,18 +63,57 @@ static void FuzzEncodeCompanionDeviceKey(FuzzedDataProvider &fuzzData)
     deviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     deviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     deviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
+    deviceKey.deviceSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     Attributes attr;
     EncodeCompanionDeviceKey(deviceKey, attr);
 }
 
-static const CommonMessageFuzzFunction g_fuzzFuncs[] = {
+static const CommonMessageFuzzFunction FUZZ_FUNCS[] = {
     FuzzDecodeHostDeviceKey,
     FuzzDecodeCompanionDeviceKey,
     FuzzEncodeHostDeviceKey,
     FuzzEncodeCompanionDeviceKey,
 };
 
-constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(CommonMessageFuzzFunction);
+/**
+ * Fuzz sub-profile specific attribute keys for DecodeHostDeviceKey and DecodeCompanionDeviceKey.
+ */
+static void FuzzDecodeHostDeviceKeyWithSubProfile(FuzzedDataProvider &fuzzData)
+{
+    Attributes attr;
+    attr.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, fuzzData.ConsumeIntegral<int32_t>());
+    if (fuzzData.ConsumeBool()) {
+        attr.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, fuzzData.ConsumeIntegral<int32_t>());
+    }
+    attr.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, fuzzData.ConsumeIntegral<int32_t>());
+    attr.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, GenerateFuzzString(fuzzData, TEST_VAL64));
+
+    auto result = DecodeHostDeviceKey(attr);
+    (void)result;
+}
+
+static void FuzzDecodeCompanionDeviceKeyWithSubProfile(FuzzedDataProvider &fuzzData)
+{
+    Attributes attr;
+    attr.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, fuzzData.ConsumeIntegral<int32_t>());
+    if (fuzzData.ConsumeBool()) {
+        attr.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, fuzzData.ConsumeIntegral<int32_t>());
+    }
+    attr.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, fuzzData.ConsumeIntegral<int32_t>());
+    attr.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, GenerateFuzzString(fuzzData, TEST_VAL64));
+
+    auto result = DecodeCompanionDeviceKey(attr);
+    (void)result;
+}
+
+static const CommonMessageFuzzFunction SUB_PROFILE_FUZZ_FUNCS[] = {
+    FuzzDecodeHostDeviceKeyWithSubProfile,
+    FuzzDecodeCompanionDeviceKeyWithSubProfile,
+};
+
+constexpr uint8_t NUM_SUB_PROFILE_FUZZ_OPS = sizeof(SUB_PROFILE_FUZZ_FUNCS) / sizeof(CommonMessageFuzzFunction);
+
+constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(FUZZ_FUNCS) / sizeof(CommonMessageFuzzFunction);
 
 void FuzzCommonMessage(FuzzedDataProvider &fuzzData)
 {
@@ -81,7 +121,7 @@ void FuzzCommonMessage(FuzzedDataProvider &fuzzData)
         if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
             break;
         }
-        g_fuzzFuncs[i](fuzzData);
+        FUZZ_FUNCS[i](fuzzData);
         EnsureAllTaskExecuted();
     }
 
@@ -92,7 +132,16 @@ void FuzzCommonMessage(FuzzedDataProvider &fuzzData)
         }
 
         uint8_t operation = fuzzData.ConsumeIntegralInRange<uint8_t>(0, NUM_FUZZ_OPERATIONS - 1);
-        g_fuzzFuncs[operation](fuzzData);
+        FUZZ_FUNCS[operation](fuzzData);
+    }
+
+    // Sub-profile specific fuzz loop
+    for (size_t i = 0; i < NUM_SUB_PROFILE_FUZZ_OPS; ++i) {
+        if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {
+            break;
+        }
+        SUB_PROFILE_FUZZ_FUNCS[i](fuzzData);
+        EnsureAllTaskExecuted();
     }
 
     EnsureAllTaskExecuted();

@@ -26,6 +26,7 @@
 #include "security_agent.h"
 #include "service_common.h"
 #include "singleton.h"
+#include "sub_profile_id_manager.h"
 #include "subscription.h"
 #include "user_id_manager.h"
 
@@ -59,6 +60,9 @@ private:
     HostBindingManagerImpl() = default;
     bool Initialize();
     void OnActiveUserIdChanged(UserId userId);
+    void OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType);
+    void OnSubProfileSwitched(UserId userId, int32_t subProfileId);
+    void ReloadBindingsForSubProfile(UserId userId, int32_t subProfileId);
 
     std::vector<HostBindingStatus> GetAllHostBindingStatus();
 
@@ -70,6 +74,7 @@ private:
         CompanionBeginAddHostBindingOutput &output);
     ResultCode AddBindingInternal(const std::shared_ptr<HostBinding> &binding);
     ResultCode RemoveBindingInternal(BindingId bindingId);
+    ResultCode RemoveHostBindingById(BindingId bindingId);
 
     CompanionEndAddHostBindingInput BuildCompanionEndAddHostBindingInput(const EndAddHostBindingInput &input);
     void FillEndAddHostBindingOutput(const CompanionEndAddHostBindingOutput &ffiOutput,
@@ -79,6 +84,7 @@ private:
     std::vector<std::shared_ptr<HostBinding>> bindings_;
 
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
+    std::unique_ptr<Subscription> subProfileChangedSubscription_;
 };
 
 } // namespace CompanionDeviceAuth

@@ -201,12 +201,7 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, uint64_t 
         deviceStatus.protocolId = negotiatedProtocol.value();
     }
 
-    deviceStatus.deviceUserName = syncDeviceStatus.deviceUserName;
-    deviceStatus.syncDeviceName = syncDeviceStatus.deviceName;
-    deviceStatus.deviceUserId = syncDeviceStatus.deviceUserId;
-    deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
-    deviceStatus.capabilities = syncDeviceStatus.capabilityList;
-    deviceStatus.SetSyncCompanionBusinessIds(syncDeviceStatus.businessIdList);
+    ApplySyncResult(deviceStatus, syncDeviceStatus);
 
     guard.Cancel();
     deviceStatus.isSynced = true;
@@ -214,6 +209,19 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, uint64_t 
     NotifySubscribers();
     auto newDeviceKey = deviceStatus.BuildDeviceKey();
     IAM_LOGI("device synced successfully: %{public}s", newDeviceKey.GetDesc().c_str());
+}
+
+void DeviceStatusManager::ApplySyncResult(DeviceStatusEntry &deviceStatus, const SyncDeviceStatus &syncDeviceStatus)
+{
+    deviceStatus.deviceUserName = syncDeviceStatus.deviceUserName;
+    deviceStatus.syncDeviceName = syncDeviceStatus.deviceName;
+    deviceStatus.deviceUserId = syncDeviceStatus.deviceUserId;
+    deviceStatus.deviceSubProfileId = syncDeviceStatus.deviceSubProfileId;
+    deviceStatus.deviceSubProfileName = syncDeviceStatus.deviceSubProfileName;
+    deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
+    deviceStatus.capabilities = syncDeviceStatus.capabilityList;
+    deviceStatus.SetSyncIsAuthMaintainActive(syncDeviceStatus.isAuthMaintainActive);
+    deviceStatus.SetSyncCompanionBusinessIds(syncDeviceStatus.businessIdList);
 }
 
 void DeviceStatusManager::SetSubscribeMode(SubscribeMode mode)
@@ -540,19 +548,21 @@ bool DeviceStatusManager::AddOrUpdateDevices(
             TriggerDeviceSync(key);
         } else {
             DeviceStatusEntry &deviceStatus = it->second;
-            bool effectiveChanged = deviceStatus.SetPhysicalCompanionBusinessIds(status.supportedBusinessIds);
+            bool effectiveBusinessIdsChanged =
+                deviceStatus.SetPhysicalCompanionBusinessIds(status.supportedBusinessIds);
+            bool effectiveIsAuthMaintainActiveChanged =
+                deviceStatus.SetPhysicalIsAuthMaintainActive(status.isAuthMaintainActive);
             bool hasChange = deviceStatus.channelId != status.channelId ||
                 deviceStatus.physicalDeviceName != status.deviceName ||
                 deviceStatus.deviceModelInfo != status.deviceModelInfo ||
-                deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive ||
                 deviceStatus.deviceType != status.deviceType ||
                 deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs ||
-                deviceStatus.refreshToken != status.refreshToken || effectiveChanged;
+                deviceStatus.refreshToken != status.refreshToken || effectiveBusinessIdsChanged ||
+                effectiveIsAuthMaintainActiveChanged;
             if (hasChange) {
                 deviceStatus.channelId = status.channelId;
                 deviceStatus.physicalDeviceName = status.deviceName;
                 deviceStatus.deviceModelInfo = status.deviceModelInfo;
-                deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
                 deviceStatus.deviceType = status.deviceType;
                 deviceStatus.atlRevokeDelayMs = status.atlRevokeDelayMs;
                 deviceStatus.refreshToken = status.refreshToken;

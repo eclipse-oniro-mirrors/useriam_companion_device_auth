@@ -620,7 +620,7 @@ std::optional<BusinessId> CompanionDeviceAuthAllInOneExecutor::GetAuthBusinessId
 WidgetAuthParam CompanionDeviceAuthAllInOneExecutor::GetWidgetAuthParam(int32_t authIntent) const
 {
     static_cast<void>(authIntent);
-    IAM_LOGI("get delegate auth param is not supported");
+    IAM_LOGI("get delegate auth param");
     WidgetAuthParam authParam = {};
     authParam.authTypes = std::vector<UserAuth::AuthType> { UserAuth::AuthType::PIN, UserAuth::AuthType::FACE,
         UserAuth::AuthType::FINGERPRINT };

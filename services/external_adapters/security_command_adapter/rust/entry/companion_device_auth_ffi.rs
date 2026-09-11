@@ -247,6 +247,7 @@ pub struct PersistedCompanionStatusFfi {
     pub device_model_info: DataArray1024Ffi,
     pub device_user_name: DataArray256Ffi,
     pub device_name: DataArray256Ffi,
+    pub device_sub_profile_name: DataArray256Ffi,
 }
 assert_max_size!(PersistedCompanionStatusFfi);
 
@@ -258,6 +259,7 @@ pub struct PersistedHostBindingStatusFfi {
     pub companion_user_id: i32,
     pub host_device_key: DeviceKeyFfi,
     pub is_token_valid: bool,
+    pub companion_sub_profile_id: i32,
 }
 assert_max_size!(PersistedHostBindingStatusFfi);
 
@@ -304,6 +306,7 @@ pub struct DeviceKeyFfi {
     pub device_id_type: i32,
     pub device_id: DataArray64Ffi,
     pub user_id: i32,
+    pub sub_profile_id: i32,
 }
 
 // Init
@@ -342,6 +345,7 @@ pub type HostRegisterFinishOutputFfi = PlaceHolderFfi;
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostGetPersistedStatusInputFfi {
     pub user_id: i32,
+    pub sub_profile_id: i32,
 }
 assert_max_size!(HostGetPersistedStatusInputFfi);
 
@@ -448,7 +452,9 @@ assert_max_size!(HostBeginAddCompanionInputFfi);
 #[derive(Default, Copy, Clone)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostBeginAddCompanionOutputFfi {
-    pub sec_message: DataArray20000Ffi, /* device_id, user_id, pub_key, salt, tag, iv, encrypt_data(challenge, device_id, user_id) */
+    // device_id, user_id, pub_key, salt, tag, iv,
+    // encrypt_data(challenge, device_id, user_id)
+    pub sec_message: DataArray20000Ffi,
     pub selected_algorithm: u16,
 }
 assert_max_size!(HostBeginAddCompanionOutputFfi);
@@ -464,7 +470,9 @@ pub struct HostEndAddCompanionInputFfi {
     pub protocol_list: Uint16Array64Ffi,
     pub capability_list: Uint16Array64Ffi,
     pub supported_business_ids: Int32Array64Ffi,
-    pub sec_message: DataArray1024Ffi, /* device_id, user_id, track_ability_level, tag, iv, encrypt_data(device_id, user_id) */
+    // device_id, user_id, track_ability_level, tag, iv,
+    // encrypt_data(device_id, user_id)
+    pub sec_message: DataArray1024Ffi,
 }
 assert_max_size!(HostEndAddCompanionInputFfi);
 
@@ -639,6 +647,7 @@ pub struct HostUpdateCompanionStatusInputFfi {
     pub device_name: DataArray256Ffi,
     pub device_user_name: DataArray256Ffi,
     pub supported_business_ids: Int32Array64Ffi,
+    pub device_sub_profile_name: DataArray256Ffi,
 }
 assert_max_size!(HostUpdateCompanionStatusInputFfi);
 
@@ -764,6 +773,7 @@ pub struct HostProcessObtainTokenInputFfi {
     pub template_id: u64,
     pub secure_protocol_id: u16,
     pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge, atl) */
+    pub atl: i32,
 }
 assert_max_size!(HostProcessObtainTokenInputFfi);
 
@@ -813,6 +823,7 @@ assert_max_size!(HostRefreshTokenOutputFfi);
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionGetPersistedStatusInputFfi {
     pub user_id: i32,
+    pub sub_profile_id: i32,
 }
 assert_max_size!(CompanionGetPersistedStatusInputFfi);
 
@@ -879,7 +890,9 @@ assert_max_size!(CompanionInitKeyNegotiationOutputFfi);
 pub struct CompanionBeginAddHostBindingInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
-    pub sec_message: DataArray20000Ffi, /* device_id, user_id, pub_key, salt, tag, iv, encrypt_data(challenge, device_id, user_id) */
+    // device_id, user_id, pub_key, salt, tag, iv,
+    // encrypt_data(challenge, device_id, user_id)
+    pub sec_message: DataArray20000Ffi,
 }
 assert_max_size!(CompanionBeginAddHostBindingInputFfi);
 
@@ -887,7 +900,9 @@ assert_max_size!(CompanionBeginAddHostBindingInputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionBeginAddHostBindingOutputFfi {
-    pub sec_message: DataArray1024Ffi, /* device_id, user_id, track_ability_level, tag, iv, encrypt_data(device_id, user_id) */
+    // device_id, user_id, track_ability_level, tag, iv,
+    // encrypt_data(device_id, user_id)
+    pub sec_message: DataArray1024Ffi,
     pub replaced_binding_id: i32,
     pub binding_status: PersistedHostBindingStatusFfi,
 }

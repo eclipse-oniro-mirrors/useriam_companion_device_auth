@@ -104,8 +104,13 @@ fn mock_set_companion_device_db_manager() {
 fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
     CompanionDevice {
         template_id,
-        device_key: DeviceKey { device_id: String::from("test_device"), device_id_type: 1, user_id: 100 },
-        user_info: UserInfo { user_id: 100, user_type: 0 },
+        device_key: DeviceKey {
+            device_id: String::from("test_device"),
+            device_id_type: 1,
+            user_id: 100,
+            sub_profile_id: 0,
+        },
+        user_info: UserInfo { user_id: 100, user_type: 0, sub_profile_id: 0 },
         added_time: 123456,
         is_valid: true,
         capability_list: vec![1, 2, 3], // Includes both DelegateAuth(1) and TokenAuth(2)

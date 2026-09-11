@@ -51,6 +51,7 @@ static void FuzzEncodeSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
     request.hostDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     request.hostDeviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     request.hostDeviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
+    request.hostDeviceKey.deviceSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t testVal32 = TEST_VAL32;
     request.salt = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, testVal32));
     request.challenge = fuzzData.ConsumeIntegral<uint64_t>();
@@ -85,9 +86,12 @@ static void FuzzEncodeSyncDeviceStatusReply(FuzzedDataProvider &fuzzData)
     reply.companionDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     reply.companionDeviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     reply.companionDeviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
+    reply.companionDeviceKey.deviceSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     reply.deviceUserName = GenerateFuzzString(fuzzData, TEST_VAL64);
     reply.companionCheckResponse =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
+    reply.deviceSubProfileName = GenerateFuzzString(fuzzData, TEST_VAL64);
+    reply.isAuthMaintainActive = fuzzData.ConsumeBool();
 
     Attributes attr;
     EncodeSyncDeviceStatusReply(reply, attr);

@@ -135,6 +135,7 @@ static void FuzzAddBindingInternal(std::shared_ptr<HostBindingManagerImpl> &mana
     persistedStatus.companionUserId = fuzzData.ConsumeIntegral<UserId>();
     persistedStatus.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     persistedStatus.isTokenValid = fuzzData.ConsumeBool();
+    persistedStatus.companionSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     auto binding = HostBinding::Create(persistedStatus);
     if (binding) {
         (void)manager->AddBindingInternal(binding);

@@ -39,6 +39,7 @@ static void FuzzDecodeDeviceKey(FuzzedDataProvider &fuzzData)
         ffi.deviceId.data[i] = fuzzData.ConsumeIntegral<uint8_t>();
     }
     ffi.userId = fuzzData.ConsumeIntegral<uint32_t>();
+    ffi.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
 
     DeviceKey key;
     (void)DecodeDeviceKey(ffi, key);
@@ -66,6 +67,7 @@ static void FuzzDecodePersistedCompanionStatus(FuzzedDataProvider &fuzzData)
         ffi.companionDeviceKey.deviceId.data[i] = fuzzData.ConsumeIntegral<uint8_t>();
     }
     ffi.companionDeviceKey.userId = fuzzData.ConsumeIntegral<uint32_t>();
+    ffi.companionDeviceKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
 
     // enabledBusinessIds
     ffi.enabledBusinessIds.len = fuzzData.ConsumeIntegralInRange<uint32_t>(0, TEST_VAL16);
@@ -97,6 +99,12 @@ static void FuzzDecodePersistedCompanionStatus(FuzzedDataProvider &fuzzData)
         ffi.deviceName.data[i] = fuzzData.ConsumeIntegral<uint8_t>();
     }
 
+    // deviceSubProfileIdName
+    ffi.deviceSubProfileIdName.len = fuzzData.ConsumeIntegralInRange<uint32_t>(0, TEST_VAL64);
+    for (uint32_t i = 0; i < ffi.deviceSubProfileIdName.len && i < TEST_VAL64; ++i) {
+        ffi.deviceSubProfileIdName.data[i] = fuzzData.ConsumeIntegral<uint8_t>();
+    }
+
     PersistedCompanionStatus status;
     (void)DecodePersistedCompanionStatus(ffi, status);
 }
@@ -112,6 +120,7 @@ static void FuzzEncodePersistedCompanionStatus(FuzzedDataProvider &fuzzData)
     status.deviceModelInfo = GenerateFuzzString(fuzzData, TEST_VAL64);
     status.deviceUserName = GenerateFuzzString(fuzzData, TEST_VAL64);
     status.deviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
+    status.deviceSubProfileName = GenerateFuzzString(fuzzData, TEST_VAL64);
 
     uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, TEST_VAL16);
     for (uint8_t i = 0; i < count; ++i) {
@@ -144,6 +153,7 @@ static void FuzzDecodePersistedCompanionStatusList(FuzzedDataProvider &fuzzData)
             item.companionDeviceKey.deviceId.data[j] = fuzzData.ConsumeIntegral<uint8_t>();
         }
         item.companionDeviceKey.userId = fuzzData.ConsumeIntegral<uint32_t>();
+        item.companionDeviceKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
     }
 
     std::vector<PersistedCompanionStatus> list;
@@ -482,7 +492,9 @@ static void FuzzDecodePersistedHostBindingStatusList(FuzzedDataProvider &fuzzDat
             item.hostDeviceKey.deviceId.data[j] = fuzzData.ConsumeIntegral<uint8_t>();
         }
         item.hostDeviceKey.userId = fuzzData.ConsumeIntegral<uint32_t>();
+        item.hostDeviceKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
         item.isTokenValid = fuzzData.ConsumeBool();
+        item.companionSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     }
 
     std::vector<PersistedHostBindingStatus> list;

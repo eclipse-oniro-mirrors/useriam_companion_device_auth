@@ -48,10 +48,6 @@ CompanionObtainTokenRequest::CompanionObtainTokenRequest(const DeviceKey &hostDe
 
 bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
-    if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
-        IAM_LOGE("%{public}s local auth maintain inactive", GetDescription());
-        return false;
-    }
     localDeviceStatusSubscription_ =
         GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive([weakSelf = weak_from_this()](bool isActive) {
             auto self = weakSelf.lock();
@@ -63,12 +59,26 @@ bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
 
-    if (!OpenConnection()) {
+    if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
+        IAM_LOGI("%{public}s local auth maintain inactive, waiting for active", GetDescription());
+        waitingForAuthMaintainActive_ = true;
+        return true;
+    }
+
+    if (!ProceedWithConnection()) {
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
         return false;
     }
-    eventCollector_.SetConnectionName(GetConnectionName());
+    return true;
+}
 
+bool CompanionObtainTokenRequest::ProceedWithConnection()
+{
+    if (!OpenConnection()) {
+        IAM_LOGE("%{public}s OpenConnection failed", GetDescription());
+        return false;
+    }
+    eventCollector_.SetConnectionName(GetConnectionName());
     return true;
 }
 
@@ -80,6 +90,10 @@ void CompanionObtainTokenRequest::OnConnected()
 
     auto localDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKeyOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(),
+        GetSubProfileIdManager().IsForegroundSubProfileId(
+            localDeviceKeyOpt->deviceUserId, localDeviceKeyOpt->deviceSubProfileId));
+
     companionDeviceKey_ = localDeviceKeyOpt.value();
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
     eventCollector_.SetCompanionUserId(companionDeviceKey_.deviceUserId);
@@ -100,6 +114,7 @@ bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
     Attributes request = {};
     PreObtainTokenRequest preObtainTokenRequest = {
         .hostUserId = peerDeviceKey.value().deviceUserId,
+        .hostSubProfileId = peerDeviceKey.value().deviceSubProfileId,
         .companionDeviceKey = companionDeviceKey_,
         .extraInfo = {},
     };
@@ -202,21 +217,23 @@ ResultCode CompanionObtainTokenRequest::CompanionBeginObtainToken(const std::vec
     eventCollector_.SetAtl(output.atl);
 
     needCancelObtainToken_ = true;
-    if (!SendObtainTokenRequest(output.obtainTokenRequest)) {
+    if (!SendObtainTokenRequest(output.obtainTokenRequest, output.atl)) {
         return ResultCode::COMMUNICATION_ERROR;
     }
     return ResultCode::SUCCESS;
 }
 
-bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest)
+bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8_t> &obtainTokenRequest, Atl atl)
 {
     auto peerDeviceKey = GetPeerDeviceKey();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
     Attributes request = {};
     ObtainTokenRequest obtainRequest = {
         .hostUserId = peerDeviceKey.value().deviceUserId,
+        .hostSubProfileId = peerDeviceKey.value().deviceSubProfileId,
         .extraInfo = obtainTokenRequest,
         .companionDeviceKey = companionDeviceKey_,
+        .atl = atl,
     };
     EncodeObtainTokenRequest(obtainRequest, request);
     eventCollector_.EnterWait(CompanionObtainTokenStages::WAIT_OBTAIN_TOKEN_REPLY);
@@ -342,10 +359,27 @@ std::weak_ptr<OutboundRequest> CompanionObtainTokenRequest::GetWeakPtr()
 void CompanionObtainTokenRequest::HandleAuthMaintainActiveChanged(bool isActive)
 {
     LogTraceGuard guard;
+    if (waitingForAuthMaintainActive_) {
+        if (!isActive) {
+            IAM_LOGI("%{public}s local auth maintain still inactive while waiting, keep waiting", GetDescription());
+            return;
+        }
+        waitingForAuthMaintainActive_ = false;
+        IAM_LOGI("%{public}s local auth maintain became active, proceed with connection", GetDescription());
+        if (IsFinished()) {
+            IAM_LOGI("%{public}s already cancelled/completed, skip", GetDescription());
+            return;
+        }
+        if (!ProceedWithConnection()) {
+            CompleteWithError(ResultCode::COMMUNICATION_ERROR);
+        }
+        return;
+    }
+
     if (isActive) {
         return;
     }
-    IAM_LOGE("%{public}s local auth maintain inactive, cancel request", GetDescription());
+    IAM_LOGE("%{public}s local auth maintain inactive", GetDescription());
     CompleteWithError(ResultCode::GENERAL_ERROR);
 }
 

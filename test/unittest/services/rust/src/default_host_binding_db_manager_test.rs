@@ -21,7 +21,7 @@ use crate::impls::default_host_binding_db_manager::{DefaultHostBindingDbManager,
 use crate::log_i;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo};
-use crate::traits::host_binding_db_manager::HostBindingDbManager;
+use crate::traits::host_binding_db_manager::{HostBindingDbManager, HostDeviceFilter};
 use crate::traits::storage_io::{MockStorageIo, StorageIoRegistry};
 use crate::ut_registry_guard;
 use crate::utils::parcel::Parcel;
@@ -29,9 +29,9 @@ use std::boxed::Box;
 
 fn create_test_host_binding(binding_id: i32, device_id: &str, user_id: i32) -> HostBinding {
     HostBinding {
-        device_key: DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id },
+        device_key: DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id, sub_profile_id: 0 },
         binding_id,
-        user_info: UserInfo { user_id, user_type: 1 },
+        user_info: UserInfo { user_id, user_type: 1, sub_profile_id: 0 },
         binding_time: 1000,
         last_used_time: 2000,
     }
@@ -43,6 +43,12 @@ fn create_test_sk_info(_sk: Vec<u8>) -> HostBindingSk {
 
 fn create_test_token_info() -> HostBindingToken {
     HostBindingToken { token: [0u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl3 }
+}
+
+fn filter_by_user_and_profile(user_id: i32, sub_profile_id: i32) -> HostDeviceFilter {
+    Box::new(move |device: &HostBinding| {
+        device.user_info.user_id == user_id && device.user_info.sub_profile_id == sub_profile_id
+    })
 }
 
 fn mock_set_storage_io_success() {
@@ -60,7 +66,7 @@ fn default_host_binding_db_manager_new_test() {
     log_i!("default_host_binding_db_manager_new_test start");
 
     let manager = DefaultHostBindingDbManager::new();
-    assert_eq!(manager.get_device_list(0).len(), 0);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(0, 0)).len(), 0);
 }
 
 #[test]
@@ -77,7 +83,7 @@ fn default_host_binding_db_manager_add_device_test_success() {
     let result = manager.add_device(&device_info, &sk_info);
     assert!(result.is_ok());
     assert!(manager.get_device_by_binding_id(123).is_ok());
-    assert_eq!(manager.get_device_list(100).len(), 1);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(100, 0)).len(), 1);
 }
 
 #[test]
@@ -91,7 +97,7 @@ fn default_host_binding_db_manager_add_device_test_empty_device_id() {
 
     let result = manager.add_device(&device_info, &sk_info);
     assert_eq!(result, Err(ErrorCode::BadParam));
-    assert_eq!(manager.get_device_list(100).len(), 0);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(100, 0)).len(), 0);
 }
 
 #[test]
@@ -112,7 +118,7 @@ fn default_host_binding_db_manager_add_device_test_device_key_exists() {
 
     let result = manager.add_device(&device_info2, &sk_info);
     assert_eq!(result, Err(ErrorCode::BadParam));
-    assert_eq!(manager.get_device_list(100).len(), 1);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(100, 0)).len(), 1);
 }
 
 #[test]
@@ -131,7 +137,7 @@ fn default_host_binding_db_manager_add_device_test_binding_id_exists() {
 
     let result = manager.add_device(&device_info2, &sk_info);
     assert_eq!(result, Err(ErrorCode::BadParam));
-    assert_eq!(manager.get_device_list(100).len(), 1);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(100, 0)).len(), 1);
 }
 
 #[test]
@@ -150,13 +156,13 @@ fn default_host_binding_db_manager_add_device_test_max_devices_per_user() {
         let _ = manager.add_device(&device_info, &sk_info);
     }
 
-    assert_eq!(manager.get_device_list(user_id).len(), MAX_DEVICE_NUM_PER_USER);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(user_id, 0)).len(), MAX_DEVICE_NUM_PER_USER);
 
     let new_device = create_test_host_binding(999, "new_device", user_id);
     let result = manager.add_device(&new_device, &sk_info);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), Some(100)); // evicted the first device with binding_id 100
-    assert_eq!(manager.get_device_list(user_id).len(), MAX_DEVICE_NUM_PER_USER);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(user_id, 0)).len(), MAX_DEVICE_NUM_PER_USER);
 }
 
 #[test]
@@ -181,7 +187,7 @@ fn default_host_binding_db_manager_add_device_test_write_db_fail() {
 
     let result = manager.add_device(&device_info, &sk_info);
     assert_eq!(result, Err(ErrorCode::GeneralError));
-    assert_eq!(manager.get_device_list(100).len(), 0);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(100, 0)).len(), 0);
 }
 
 #[test]
@@ -228,7 +234,7 @@ fn default_host_binding_db_manager_get_device_by_device_key_test_success() {
 
     let _ = manager.add_device(&device_info, &sk_info);
 
-    let device_key = DeviceKey { device_id: "device1".to_string(), device_id_type: 1, user_id: 100 };
+    let device_key = DeviceKey { device_id: "device1".to_string(), device_id_type: 1, user_id: 100, sub_profile_id: 0 };
 
     let result = manager.get_device_by_device_key(100, &device_key);
     assert!(result.is_ok());
@@ -243,7 +249,12 @@ fn default_host_binding_db_manager_get_device_by_device_key_test_not_found() {
 
     let manager = DefaultHostBindingDbManager::new();
 
-    let device_key = DeviceKey { device_id: "device999".to_string(), device_id_type: 1, user_id: 100 };
+    let device_key = DeviceKey {
+        device_id: "device999".to_string(),
+        device_id_type: 1,
+        user_id: 100,
+        sub_profile_id: 0,
+    };
 
     let result = manager.get_device_by_device_key(100, &device_key);
     assert_eq!(result, Err(ErrorCode::NotFound));
@@ -261,11 +272,11 @@ fn default_host_binding_db_manager_remove_device_test_success() {
     let sk_info = create_test_sk_info(vec![1u8, 2, 3]);
 
     let _ = manager.add_device(&device_info, &sk_info);
-    assert_eq!(manager.get_device_list(100).len(), 1);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(100, 0)).len(), 1);
 
     let result = manager.remove_device(123);
     assert!(result.is_ok());
-    assert_eq!(manager.get_device_list(100).len(), 0);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(100, 0)).len(), 0);
 }
 
 #[test]
@@ -296,7 +307,7 @@ fn default_host_binding_db_manager_remove_device_test_write_db_fail() {
     let sk_info = create_test_sk_info(vec![1u8, 2, 3]);
 
     let _ = manager.add_device(&device_info, &sk_info);
-    assert_eq!(manager.get_device_list(100).len(), 1);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(100, 0)).len(), 1);
 
     // Set up mock to fail on write
     let mut mock_storage_io_fail = MockStorageIo::new();
@@ -308,7 +319,7 @@ fn default_host_binding_db_manager_remove_device_test_write_db_fail() {
 
     let result = manager.remove_device(123);
     assert_eq!(result, Err(ErrorCode::GeneralError));
-    assert_eq!(manager.get_device_list(100).len(), 1);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(100, 0)).len(), 1);
 }
 
 #[test]
@@ -527,13 +538,15 @@ fn default_host_binding_db_manager_read_device_db_test_success() {
 
     let mut parcel = Parcel::new();
     parcel.write_i32(0);
-    parcel.write_i32(1);
+    parcel.write_u32(1);
     parcel.write_string("device1");
     parcel.write_i32(1);
     parcel.write_i32(100);
+    parcel.write_i32(0);
     parcel.write_i32(123);
     parcel.write_i32(100);
     parcel.write_i32(1);
+    parcel.write_i32(0);
     parcel.write_u64(1000);
     parcel.write_u64(2000);
 

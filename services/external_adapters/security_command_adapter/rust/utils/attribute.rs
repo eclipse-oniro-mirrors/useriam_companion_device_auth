@@ -58,6 +58,7 @@ pub enum AttributeKey {
     AttrHmac = 300011,
     AttrHostChallenge = 300016,
     AttrCompanionChallenge = 300017,
+    AttrSubProfileId = 300018,
 }
 
 impl TryFrom<i32> for AttributeKey {
@@ -96,6 +97,7 @@ impl TryFrom<i32> for AttributeKey {
             300011 => Ok(AttributeKey::AttrHmac),
             300016 => Ok(AttributeKey::AttrHostChallenge),
             300017 => Ok(AttributeKey::AttrCompanionChallenge),
+            300018 => Ok(AttributeKey::AttrSubProfileId),
             _ => Err(ErrorCode::GeneralError),
         }
     }

@@ -58,6 +58,7 @@ int32_t SetDeviceSelectResultCallback::OnSetDeviceSelectResult(const ClientDevic
         ipcDeviceKey.deviceIdType = clientKey.deviceIdType;
         ipcDeviceKey.deviceId = clientKey.deviceId;
         ipcDeviceKey.deviceUserId = clientKey.deviceUserId;
+        ipcDeviceKey.deviceSubProfileId = clientKey.deviceSubProfileId;
         selectedDevices.push_back(ipcDeviceKey);
     }
     ipcResult.deviceKeys = selectedDevices;

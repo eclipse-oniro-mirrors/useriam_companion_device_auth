@@ -69,13 +69,13 @@ public:
 
     bool GetAuthMaintainActive() const override
     {
-        return authMaintainActive_;
+        return isAuthMaintainActive_;
     }
 
     // Test backdoor: set auth maintain active state
     void TestSetAuthMaintainActive(bool active)
     {
-        authMaintainActive_ = active;
+        isAuthMaintainActive_ = active;
     }
 
     std::vector<PhysicalDeviceStatus> GetAllPhysicalDevices() const override
@@ -233,7 +233,7 @@ public:
 
 private:
     mutable std::mutex mutex_;
-    bool authMaintainActive_ = true; // Default to active for companion-side tests
+    bool isAuthMaintainActive_ = true; // Default to active for companion-side tests
     std::vector<PhysicalDeviceStatus> onlineDevices_;
     std::map<std::string, std::vector<std::vector<uint8_t>>> sentMessages_;
     OnPhysicalDeviceStatusChange physicalDeviceStatusCb_;

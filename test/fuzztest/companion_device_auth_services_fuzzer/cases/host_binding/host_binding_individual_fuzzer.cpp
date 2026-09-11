@@ -120,6 +120,15 @@ static void FuzzHandleAuthMaintainActiveChanged(std::shared_ptr<HostBinding> &bi
     }
 }
 
+static void FuzzGetCompanionSubProfileId(std::shared_ptr<HostBinding> &binding, FuzzedDataProvider &fuzzData)
+{
+    (void)fuzzData;
+    if (binding) {
+        auto subProfileId = binding->GetCompanionSubProfileId();
+        (void)subProfileId;
+    }
+}
+
 static const HostBindingFuzzFunction g_fuzzFuncs[] = {
     FuzzGetBindingId,
     FuzzGetCompanionUserId,
@@ -131,6 +140,7 @@ static const HostBindingFuzzFunction g_fuzzFuncs[] = {
     FuzzHandleHostDeviceStatusUpdate,
     FuzzHandleHostDeviceOffline,
     FuzzHandleAuthMaintainActiveChanged,
+    FuzzGetCompanionSubProfileId,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostBindingFuzzFunction);

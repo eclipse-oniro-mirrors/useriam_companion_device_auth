@@ -29,7 +29,7 @@ fn create_mock_companion_device() -> CompanionDevice {
     CompanionDevice {
         template_id: 0,
         device_key: DeviceKey::default(),
-        user_info: UserInfo { user_id: 0, user_type: 0 },
+        user_info: UserInfo { user_id: 0, user_type: 0, sub_profile_id: 0 },
         added_time: 0,
         is_valid: false,
         capability_list: Vec::new(),
@@ -44,6 +44,7 @@ fn create_mock_companion_device_profile() -> CompanionDeviceProfile {
         business_ids: Vec::<i32>::new(),
         device_type: 0,
         supported_business_ids: Vec::<i32>::new(),
+        device_sub_profile_name: String::default(),
     }
 }
 

@@ -54,8 +54,8 @@ public:
     std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
         UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
         const CompanionDelegateAuthParam &delegateAuthParam) override;
-    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId, const DeviceKey &hostDeviceKey,
-        const std::string &triggerReason) override;
+    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId,
+        int32_t companionSubProfileId, const DeviceKey &hostDeviceKey, const std::string &triggerReason) override;
     std::shared_ptr<IRequest> CreateCompanionRequestResyncRequest(const PhysicalDeviceKey &hostPhysicalDeviceKey,
         ResultCodeCallback onComplete) override;
     std::shared_ptr<IRequest> CreateHostMixAuthRequest(const HostMixAuthParams &params,

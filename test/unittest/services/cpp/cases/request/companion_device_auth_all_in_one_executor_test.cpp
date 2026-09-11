@@ -27,6 +27,7 @@
 #include "fwk_common.h"
 #include "host_add_companion_request.h"
 #include "host_mix_auth_request.h"
+#include "sub_profile_id_manager.h"
 #include "user_id_manager.h"
 
 using namespace testing;
@@ -100,6 +101,32 @@ public:
 private:
     int32_t activeUserId_ { INT32_100 };
     ActiveUserIdCallback activeUserIdCallback_ {};
+};
+
+class FakeSubProfileIdManager : public ISubProfileIdManager {
+public:
+    int32_t GetForegroundSubProfileId(UserId userId) const override
+    {
+        return INVALID_SUB_PROFILE_ID;
+    }
+
+    bool IsForegroundSubProfileId(UserId userId, int32_t subProfileId) const override
+    {
+        (void)userId;
+        (void)subProfileId;
+        return false;
+    }
+
+    std::optional<std::string> GetSubProfileName(UserId userId, int32_t subProfileId) const override
+    {
+        return std::nullopt;
+    }
+
+    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
+    {
+        (void)callback;
+        return std::make_unique<Subscription>(nullptr);
+    }
 };
 
 class MockFwkExecuteCallback : public FwkIExecuteCallback {

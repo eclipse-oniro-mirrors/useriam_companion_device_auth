@@ -286,7 +286,8 @@ pub enum DeviceType {
     Pad = 2,
     TwoInOne = 3,
     Pc = 4,
-    Unknown = 5,
+    Car = 5,
+    Unknown = 6,
 }
 
 impl TryFrom<i32> for DeviceType {
@@ -298,7 +299,8 @@ impl TryFrom<i32> for DeviceType {
             2 => Ok(DeviceType::Pad),
             3 => Ok(DeviceType::TwoInOne),
             4 => Ok(DeviceType::Pc),
-            5 => Ok(DeviceType::Unknown),
+            5 => Ok(DeviceType::Car),
+            6 => Ok(DeviceType::Unknown),
             _ => {
                 log_e!("Invalid device type: {}", value);
                 Err(ErrorCode::BadParam)

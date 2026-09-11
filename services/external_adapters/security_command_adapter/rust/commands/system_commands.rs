@@ -69,6 +69,7 @@ use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainT
 use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenRequest;
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
+use crate::traits::db_manager::HostBinding;
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
 use crate::traits::log_trace::RustFileId;
 use crate::traits::misc_manager::MiscManagerRegistry;
@@ -136,7 +137,7 @@ pub fn host_get_persisted_status(
     output: &mut HostGetPersistedStatusOutputFfi,
 ) -> Result<(), ErrorCode> {
     let mut companion_status_list: Vec<PersistedCompanionStatusFfi> = Vec::new();
-    match companion_device_db_helper::get_companion_device_by_user_id(input.user_id) {
+    match companion_device_db_helper::get_companion_device_by_user_id(input.user_id, input.sub_profile_id) {
         Ok(device_list) => {
             for device_info in device_list {
                 let device_profile =
@@ -154,6 +155,7 @@ pub fn host_get_persisted_status(
                     device_model_info: DataArray1024Ffi::try_from(device_profile.device_model_info)?,
                     device_user_name: DataArray256Ffi::try_from(device_profile.device_user_name)?,
                     device_name: DataArray256Ffi::try_from(device_profile.device_name)?,
+                    device_sub_profile_name: DataArray256Ffi::try_from(device_profile.device_sub_profile_name)?,
                 };
 
                 companion_status_list.push(companion_status);
@@ -338,6 +340,7 @@ pub fn host_update_companion_status(
         input.device_name.to_string()?,
         input.device_user_name.to_string()?,
         Vec::<i32>::try_from(input.supported_business_ids).map_err(|e| p!(e))?,
+        input.device_sub_profile_name.to_string()?,
     )?;
     Ok(())
 }
@@ -517,13 +520,20 @@ pub fn companion_get_persisted_status(
     output: &mut CompanionGetPersistedStatusOutputFfi,
 ) -> Result<(), ErrorCode> {
     let mut binding_status_list: Vec<PersistedHostBindingStatusFfi> = Vec::new();
-    let device_info_list = HostBindingDbManagerRegistry::get().get_device_list(input.user_id);
+    let user_id = input.user_id;
+    let sub_profile_id = input.sub_profile_id;
+    let device_info_list = HostBindingDbManagerRegistry::get().get_device_list(Box::new(
+        move |device_info: &HostBinding| {
+            device_info.user_info.user_id == user_id && device_info.user_info.sub_profile_id == sub_profile_id
+        },
+    ));
     for device_info in device_info_list {
         let binding_status = PersistedHostBindingStatusFfi {
             binding_id: device_info.binding_id,
             companion_user_id: device_info.user_info.user_id,
             host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
             is_token_valid: HostBindingDbManagerRegistry::get().is_device_token_valid(device_info.binding_id)?,
+            companion_sub_profile_id: device_info.user_info.sub_profile_id,
         };
         binding_status_list.push(binding_status);
     }

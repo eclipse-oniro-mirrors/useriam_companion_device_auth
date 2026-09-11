@@ -118,6 +118,87 @@ static void FuzzOnSyncAbort(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDat
     }
 }
 
+static void FuzzSetPhysicalIsAuthMaintainActive(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
+{
+    if (entry) {
+        bool value = fuzzData.ConsumeBool();
+        entry->SetPhysicalIsAuthMaintainActive(value);
+    }
+}
+
+static void FuzzSetSyncIsAuthMaintainActive(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
+{
+    if (entry) {
+        bool value = fuzzData.ConsumeBool();
+        entry->SetSyncIsAuthMaintainActive(value);
+    }
+}
+
+static void FuzzSetSubProfileFields(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
+{
+    if (entry) {
+        entry->deviceSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
+        entry->deviceSubProfileName = GenerateFuzzString(fuzzData, TEST_VAL64);
+    }
+}
+
+static void FuzzBuildDeviceKeyWithSubProfile(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
+{
+    if (entry) {
+        entry->deviceUserId = fuzzData.ConsumeIntegral<UserId>();
+        entry->deviceSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
+        auto key = entry->BuildDeviceKey();
+        (void)key;
+    }
+}
+
+static void FuzzBuildDeviceStatusWithSubProfile(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
+{
+    if (entry) {
+        entry->deviceUserId = fuzzData.ConsumeIntegral<UserId>();
+        entry->deviceSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
+        entry->deviceSubProfileName = GenerateFuzzString(fuzzData, TEST_VAL64);
+        auto status = entry->BuildDeviceStatus();
+        (void)status;
+    }
+}
+
+static void FuzzAuthMaintainActiveTransition(std::shared_ptr<DeviceStatusEntry> &entry, FuzzedDataProvider &fuzzData)
+{
+    if (!entry) {
+        return;
+    }
+    // Exercise various sequences of physical/sync isAuthMaintainActive transitions
+    constexpr uint8_t authSequencePhysicalSync = 0;
+    constexpr uint8_t authSequenceSyncPhysical = 1;
+    constexpr uint8_t authSequenceRepeated = 2;
+    constexpr uint8_t authSequenceDefault = 3;
+    uint8_t sequence = fuzzData.ConsumeIntegralInRange<uint8_t>(authSequencePhysicalSync, authSequenceDefault);
+    switch (sequence) {
+        case authSequencePhysicalSync:
+            entry->SetPhysicalIsAuthMaintainActive(fuzzData.ConsumeBool());
+            entry->SetSyncIsAuthMaintainActive(fuzzData.ConsumeBool());
+            break;
+        case authSequenceSyncPhysical:
+            entry->SetSyncIsAuthMaintainActive(fuzzData.ConsumeBool());
+            entry->SetPhysicalIsAuthMaintainActive(fuzzData.ConsumeBool());
+            break;
+        case authSequenceRepeated:
+            entry->SetPhysicalIsAuthMaintainActive(fuzzData.ConsumeBool());
+            entry->SetPhysicalIsAuthMaintainActive(fuzzData.ConsumeBool());
+            entry->SetSyncIsAuthMaintainActive(fuzzData.ConsumeBool());
+            entry->SetSyncIsAuthMaintainActive(fuzzData.ConsumeBool());
+            break;
+        default:
+            entry->SetSyncIsAuthMaintainActive(fuzzData.ConsumeBool());
+            entry->SetPhysicalIsAuthMaintainActive(fuzzData.ConsumeBool());
+            entry->SetSyncIsAuthMaintainActive(fuzzData.ConsumeBool());
+            break;
+    }
+    auto status = entry->BuildDeviceStatus();
+    (void)status;
+}
+
 static const DeviceStatusEntryFuzzFunction g_fuzzFuncs[] = {
     FuzzBuildDeviceKey,
     FuzzBuildDeviceStatus,
@@ -127,6 +208,12 @@ static const DeviceStatusEntryFuzzFunction g_fuzzFuncs[] = {
     FuzzOnSyncSuccess,
     FuzzOnSyncFailure,
     FuzzOnSyncAbort,
+    FuzzSetPhysicalIsAuthMaintainActive,
+    FuzzSetSyncIsAuthMaintainActive,
+    FuzzSetSubProfileFields,
+    FuzzBuildDeviceKeyWithSubProfile,
+    FuzzBuildDeviceStatusWithSubProfile,
+    FuzzAuthMaintainActiveTransition,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(DeviceStatusEntryFuzzFunction);

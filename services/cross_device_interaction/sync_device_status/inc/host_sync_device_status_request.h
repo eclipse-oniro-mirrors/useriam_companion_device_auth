@@ -64,7 +64,7 @@ private:
     HostEndCompanionCheckInput BuildHostEndCompanionCheckInput(TemplateId templateId,
         const SyncDeviceStatusReply &reply) const;
     void CollectSyncDeviceStatusEventInfo(const LocalDeviceProfile &profile);
-    void UpdateCompanionUserId(int32_t companionUserId);
+    void UpdateCompanionUserIdAndSubProfileId(int32_t companionUserId, int32_t companionSubProfileId);
 
     int32_t hostUserId_ = INVALID_USER_ID;
     std::unique_ptr<ScopeGuard> cancelCompanionCheckGuard_;

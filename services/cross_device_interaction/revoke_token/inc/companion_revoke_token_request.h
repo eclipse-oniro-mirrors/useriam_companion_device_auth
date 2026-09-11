@@ -27,8 +27,8 @@ namespace CompanionDeviceAuth {
 class CompanionRevokeTokenRequest : public std::enable_shared_from_this<CompanionRevokeTokenRequest>,
                                     public OutboundRequest {
 public:
-    CompanionRevokeTokenRequest(int32_t companionUserId, const DeviceKey &hostDeviceKey,
-        const std::string &triggerReason);
+    CompanionRevokeTokenRequest(int32_t companionUserId, int32_t companionSubProfileId,
+        const DeviceKey &hostDeviceKey, const std::string &triggerReason);
     ~CompanionRevokeTokenRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
@@ -47,6 +47,7 @@ private:
     void CompleteWithSuccess();
 
     int32_t companionUserId_ = INVALID_USER_ID;
+    int32_t companionSubProfileId_ = INVALID_SUB_PROFILE_ID;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

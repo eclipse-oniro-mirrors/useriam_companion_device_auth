@@ -16,7 +16,7 @@
 use crate::common::constants::{AuthTrustLevel, ErrorCode, SECURE_RANDOM_MAX_ATTEMPTS, SHARE_KEY_LEN, TOKEN_KEY_LEN};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo};
-use crate::traits::host_binding_db_manager::HostBindingDbManager;
+use crate::traits::host_binding_db_manager::{HostBindingDbManager, HostDeviceFilter};
 use crate::traits::log_trace::RustFileId;
 use crate::traits::storage_io::StorageIoRegistry;
 use crate::utils::parcel::Parcel;
@@ -90,9 +90,11 @@ impl DefaultHostBindingDbManager {
             parcel.write_string(&host_binding.device_key.device_id);
             parcel.write_i32(host_binding.device_key.device_id_type);
             parcel.write_i32(host_binding.device_key.user_id);
+            parcel.write_i32(host_binding.device_key.sub_profile_id);
             parcel.write_i32(host_binding.binding_id);
             parcel.write_i32(host_binding.user_info.user_id);
             parcel.write_i32(host_binding.user_info.user_type);
+            parcel.write_i32(host_binding.user_info.sub_profile_id);
             parcel.write_u64(host_binding.binding_time);
             parcel.write_u64(host_binding.last_used_time);
         }
@@ -116,16 +118,22 @@ impl DefaultHostBindingDbManager {
             let device_id = parcel.read_string().map_err(|e| p!(e))?;
             let device_id_type = parcel.read_i32().map_err(|e| p!(e))?;
             let user_id = parcel.read_i32().map_err(|e| p!(e))?;
+            let sub_profile_id = parcel.read_i32().map_err(|e| p!(e))?;
             let binding_id = parcel.read_i32().map_err(|e| p!(e))?;
             let user_info_user_id = parcel.read_i32().map_err(|e| p!(e))?;
             let user_info_user_type = parcel.read_i32().map_err(|e| p!(e))?;
+            let user_info_sub_profile_id = parcel.read_i32().map_err(|e| p!(e))?;
             let binding_time = parcel.read_u64().map_err(|e| p!(e))?;
             let last_used_time = parcel.read_u64().map_err(|e| p!(e))?;
 
             let host_binding = HostBinding {
-                device_key: DeviceKey { device_id, device_id_type, user_id },
+                device_key: DeviceKey { device_id, device_id_type, user_id, sub_profile_id },
                 binding_id,
-                user_info: UserInfo { user_id: user_info_user_id, user_type: user_info_user_type },
+                user_info: UserInfo {
+                    user_id: user_info_user_id,
+                    user_type: user_info_user_type,
+                    sub_profile_id: user_info_sub_profile_id,
+                },
                 binding_time,
                 last_used_time,
             };
@@ -191,16 +199,22 @@ impl DefaultHostBindingDbManager {
         Ok(())
     }
 
-    fn get_device_num_by_user_id(&self, user_id: i32) -> usize {
-        self.host_bindings.iter().filter(|device| device.user_info.user_id == user_id).count()
+    fn get_device_num_by_user_id(&self, user_id: i32, sub_profile_id: i32) -> usize {
+        self.host_bindings
+            .iter()
+            .filter(|device| device.user_info.user_id == user_id && device.user_info.sub_profile_id == sub_profile_id)
+            .count()
     }
 
-    fn remove_oldest_unused_device(&mut self, user_id: i32) -> Result<Option<i32>, ErrorCode> {
-        let user_devices: Vec<&HostBinding> =
-            self.host_bindings.iter().filter(|info| info.user_info.user_id == user_id).collect();
+    fn remove_oldest_unused_device(&mut self, user_id: i32, sub_profile_id: i32) -> Result<Option<i32>, ErrorCode> {
+        let user_devices: Vec<&HostBinding> = self
+            .host_bindings
+            .iter()
+            .filter(|info| info.user_info.user_id == user_id && info.user_info.sub_profile_id == sub_profile_id)
+            .collect();
 
         if user_devices.is_empty() {
-            log_i!("No devices found for user_id: {}", user_id);
+            log_i!("No devices found for user_id: {}, sub_profile_id: {}", user_id, sub_profile_id);
             return Ok(None);
         }
 
@@ -228,9 +242,13 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         }
 
         let mut evicted_binding_id = None;
-        let device_num = self.get_device_num_by_user_id(device_info.user_info.user_id);
+        let device_num = self.get_device_num_by_user_id(
+            device_info.user_info.user_id,
+            device_info.user_info.sub_profile_id,
+        );
         if device_num >= MAX_DEVICE_NUM_PER_USER {
-            evicted_binding_id = self.remove_oldest_unused_device(device_info.user_info.user_id)?;
+            evicted_binding_id =
+                self.remove_oldest_unused_device(device_info.user_info.user_id, device_info.user_info.sub_profile_id)?;
         }
 
         if self.get_index_by_binding_id(device_info.binding_id).is_some() {
@@ -422,9 +440,9 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))
     }
 
-    fn get_device_list(&self, user_id: i32) -> Vec<HostBinding> {
+    fn get_device_list(&self, filter: HostDeviceFilter) -> Vec<HostBinding> {
         log_i!("get_device_list start");
-        self.host_bindings.iter().filter(|device_info| device_info.user_info.user_id == user_id).cloned().collect()
+        self.host_bindings.iter().filter(|device_info| filter(device_info)).cloned().collect()
     }
 
     fn remove_devices_by_invalid_users(&mut self, valid_user_ids: &[i32]) -> Vec<i32> {

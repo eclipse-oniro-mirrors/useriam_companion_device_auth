@@ -72,11 +72,13 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceKey_001, TestSize.Level0)
     DeviceStatusEntry entry(physicalStatus_, []() {});
 
     entry.deviceUserId = INT32_100;
+    entry.deviceSubProfileId = 100001;
     DeviceKey deviceKey = entry.BuildDeviceKey();
 
     EXPECT_EQ(deviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(deviceKey.deviceId, "test-device-id");
     EXPECT_EQ(deviceKey.deviceUserId, INT32_100);
+    EXPECT_EQ(deviceKey.deviceSubProfileId, 100001);
 }
 
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
@@ -92,11 +94,15 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
     entry.isSynced = true;
 
     entry.deviceUserId = INT32_100;
+    entry.deviceSubProfileId = 7;
+    entry.deviceSubProfileName = "SubProfile";
     DeviceStatus status = entry.BuildDeviceStatus();
 
     EXPECT_EQ(status.deviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
     EXPECT_EQ(status.deviceKey.deviceId, "test-device-id");
     EXPECT_EQ(status.deviceKey.deviceUserId, INT32_100);
+    EXPECT_EQ(status.deviceKey.deviceSubProfileId, 7);
+    EXPECT_EQ(status.deviceSubProfileName, "SubProfile");
     EXPECT_EQ(status.channelId, ChannelId::SOFTBUS);
     EXPECT_EQ(status.deviceName, "TestDevice");
     EXPECT_EQ(status.deviceModelInfo, "TestModel");
@@ -339,6 +345,126 @@ HWTEST_F(DeviceStatusEntryTest, OnSyncAbort_NoOpWhenIdle, TestSize.Level0)
     RelativeTimer::GetInstance().EnsureAllTaskExecuted();
 
     EXPECT_EQ(*retryCount, 0);
+}
+
+// --- SetPhysicalIsAuthMaintainActive / SetSyncIsAuthMaintainActive ---
+
+// Physical true -> entry.isAuthMaintainActive is true (constructor propagation)
+HWTEST_F(DeviceStatusEntryTest, Constructor_PropagatesIsAuthMaintainActive_True, TestSize.Level0)
+{
+    physicalStatus_.isAuthMaintainActive = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    EXPECT_TRUE(entry.isAuthMaintainActive);
+}
+
+// Physical false -> effective falls back to physical (false) before any sync
+HWTEST_F(DeviceStatusEntryTest, Constructor_PropagatesIsAuthMaintainActive_False, TestSize.Level0)
+{
+    physicalStatus_.isAuthMaintainActive = false;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    EXPECT_FALSE(entry.isAuthMaintainActive);
+}
+
+// SetPhysical changes effective when no sync value is present
+HWTEST_F(DeviceStatusEntryTest, SetPhysicalIsAuthMaintainActive_ChangesEffective, TestSize.Level0)
+{
+    physicalStatus_.isAuthMaintainActive = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    bool changed = entry.SetPhysicalIsAuthMaintainActive(false);
+    EXPECT_TRUE(changed);
+    EXPECT_FALSE(entry.isAuthMaintainActive);
+}
+
+// SetPhysical to same value -> no change reported
+HWTEST_F(DeviceStatusEntryTest, SetPhysicalIsAuthMaintainActive_NoChange, TestSize.Level0)
+{
+    physicalStatus_.isAuthMaintainActive = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    bool changed = entry.SetPhysicalIsAuthMaintainActive(true);
+    EXPECT_FALSE(changed);
+    EXPECT_TRUE(entry.isAuthMaintainActive);
+}
+
+// Sync value takes priority over physical
+HWTEST_F(DeviceStatusEntryTest, SetSyncIsAuthMaintainActive_TakesPriorityOverPhysical, TestSize.Level0)
+{
+    physicalStatus_.isAuthMaintainActive = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    bool changed = entry.SetSyncIsAuthMaintainActive(false);
+    EXPECT_TRUE(changed);
+    EXPECT_FALSE(entry.isAuthMaintainActive);
+}
+
+// Once sync is set, changing physical does not affect effective
+HWTEST_F(DeviceStatusEntryTest, SetPhysicalIgnoredAfterSync, TestSize.Level0)
+{
+    physicalStatus_.isAuthMaintainActive = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    entry.SetSyncIsAuthMaintainActive(false);
+    bool changed = entry.SetPhysicalIsAuthMaintainActive(true);
+    // effective stays false (sync priority), no change
+    EXPECT_FALSE(changed);
+    EXPECT_FALSE(entry.isAuthMaintainActive);
+}
+
+// BuildDeviceStatus reflects effective isAuthMaintainActive after sync
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_ReflectsSyncIsAuthMaintainActive, TestSize.Level0)
+{
+    physicalStatus_.isAuthMaintainActive = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.isSynced = true;
+
+    entry.SetSyncIsAuthMaintainActive(false);
+    DeviceStatus status = entry.BuildDeviceStatus();
+    EXPECT_FALSE(status.isAuthMaintainActive);
+}
+
+// Move constructor preserves isAuthMaintainActive state
+HWTEST_F(DeviceStatusEntryTest, MoveConstructor_PreservesIsAuthMaintainActive, TestSize.Level0)
+{
+    physicalStatus_.isAuthMaintainActive = true;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.SetSyncIsAuthMaintainActive(false);
+    entry.deviceSubProfileId = 42;
+    entry.deviceSubProfileName = "Moved";
+
+    DeviceStatusEntry moved(std::move(entry));
+
+    EXPECT_FALSE(moved.isAuthMaintainActive);
+    EXPECT_EQ(moved.deviceSubProfileId, 42);
+    EXPECT_EQ(moved.deviceSubProfileName, "Moved");
+}
+
+// DeviceKey operator== includes deviceSubProfileId
+HWTEST_F(DeviceStatusEntryTest, DeviceKeyEquality_IncludesSubProfileId, TestSize.Level0)
+{
+    DeviceKey key1;
+    key1.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key1.deviceId = "dev";
+    key1.deviceUserId = 100;
+    key1.deviceSubProfileId = 5;
+
+    DeviceKey key2 = key1;
+    EXPECT_TRUE(key1 == key2);
+
+    key2.deviceSubProfileId = 6;
+    EXPECT_FALSE(key1 == key2);
+    EXPECT_TRUE(key1 < key2);
+}
+
+// DeviceType CAR is recognized
+HWTEST_F(DeviceStatusEntryTest, DeviceType_Car_IsValid, TestSize.Level0)
+{
+    physicalStatus_.deviceType = DeviceType::CAR;
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+
+    EXPECT_EQ(entry.deviceType, DeviceType::CAR);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

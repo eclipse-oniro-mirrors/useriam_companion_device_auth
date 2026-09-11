@@ -107,6 +107,44 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_002, TestSize.Level0)
     EXPECT_FALSE(result);
 }
 
+HWTEST_F(HostTokenAuthRequestTest, OnStart_CarBypass, TestSize.Level0)
+{
+    // CAR devices bypass the isAuthMaintainActive check: even when isAuthMaintainActive is false,
+    // OnStart succeeds for DeviceType::CAR.
+    MockGuard guard;
+
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    CompanionStatus companionStatus;
+    companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    companionStatus.tokenAuthAtl = 20000;
+
+    const DeviceStatus carDeviceStatus = { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = false,
+        .deviceType = DeviceType::CAR };
+
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))
+        .WillOnce(Return(std::make_optional(companionStatus)));
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(carDeviceStatus)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
+        .WillOnce(Return(SecureProtocolId::DEFAULT));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    bool result = request->OnStart(errorGuard);
+
+    EXPECT_TRUE(result);
+}
+
 HWTEST_F(HostTokenAuthRequestTest, OnStart_TokenAuthAtlNull, TestSize.Level0)
 {
     MockGuard guard;

@@ -149,8 +149,12 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
     hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
+    hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
+    auto peerDeviceKey = GetPeerDeviceKey();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
     TokenAuthRequest requestMsg = { .hostDeviceKey = hostDeviceKey,
         .companionUserId = companionUserId_,
+        .companionSubProfileId = peerDeviceKey->deviceSubProfileId,
         .extraInfo = tokenAuthRequest };
     Attributes request = {};
     EncodeTokenAuthRequest(requestMsg, request);
@@ -336,7 +340,7 @@ bool HostTokenAuthRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &de
         IAM_LOGE("%{public}s failed to get device status", GetDescription());
         return false;
     }
-    if (!deviceStatus->isAuthMaintainActive) {
+    if (!deviceStatus->isAuthMaintainActive && deviceStatus->deviceType != DeviceType::CAR) {
         IAM_LOGE("%{public}s device not in auth maintain active state", GetDescription());
         return false;
     }

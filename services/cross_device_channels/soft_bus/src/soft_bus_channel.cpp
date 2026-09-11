@@ -198,7 +198,8 @@ bool SoftBusChannel::CheckOperationIntent(const DeviceKey &deviceKey, uint32_t t
                     [&deviceKey](const DeviceKey &selectedDevice) {
                         return deviceKey.idType == selectedDevice.idType &&
                             deviceKey.deviceId == selectedDevice.deviceId &&
-                            deviceKey.deviceUserId == selectedDevice.deviceUserId;
+                            deviceKey.deviceUserId == selectedDevice.deviceUserId &&
+                            deviceKey.deviceSubProfileId == selectedDevice.deviceSubProfileId;
                     });
                 if (confirmed) {
                     IAM_LOGI("user confirmed operation for device: %{public}s", deviceKey.GetDesc().c_str());

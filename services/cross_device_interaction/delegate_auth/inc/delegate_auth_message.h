@@ -30,6 +30,7 @@ namespace CompanionDeviceAuth {
 struct StartDelegateAuthRequest {
     DeviceKey hostDeviceKey {};
     int32_t companionUserId { INVALID_USER_ID };
+    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
     std::vector<uint8_t> extraInfo;
     std::optional<std::vector<uint8_t>> selectContext;
     std::optional<uint32_t> remoteTokenId;

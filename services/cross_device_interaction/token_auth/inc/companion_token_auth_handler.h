@@ -17,6 +17,7 @@
 #define COMPANION_DEVICE_AUTH_COMPANION_TOKEN_AUTH_HANDLER_H
 
 #include "host_binding_manager.h"
+#include "interaction_desc.h"
 #include "security_agent.h"
 #include "sync_incoming_message_handler.h"
 #include "token_auth_message.h"
@@ -35,6 +36,8 @@ protected:
 private:
     ResultCode ProcessTokenAuth(const TokenAuthRequest &tokenRequest, const HostBindingStatus &hostBindingStatus,
         Attributes &reply);
+    bool CheckLocalDeviceStatus(const std::string &connectionName, int32_t companionUserId,
+        const InteractionDesc &desc);
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

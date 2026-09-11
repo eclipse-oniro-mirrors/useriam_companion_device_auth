@@ -26,7 +26,8 @@
       "SystemCapability.UserIAM.UserAuth.CompanionDeviceAuth"
     ],
     "features":[
-      "companion_device_auth_enable_auth_state_maintain_simulation"
+      "companion_device_auth_enable_auth_state_maintain_simulation",
+      "companion_device_auth_enable_multiple_os_account_sub_profiles"
     ],
     "hisysevent_config": [
       "//base/useriam/companion_device_auth/hisysevent.yaml"

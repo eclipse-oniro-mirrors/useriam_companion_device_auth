@@ -103,8 +103,10 @@ impl DefaultCompanionDeviceDbManager {
             parcel.write_string(&companion_device_info.device_key.device_id);
             parcel.write_i32(companion_device_info.device_key.device_id_type);
             parcel.write_i32(companion_device_info.device_key.user_id);
+            parcel.write_i32(companion_device_info.device_key.sub_profile_id);
             parcel.write_i32(companion_device_info.user_info.user_id);
             parcel.write_i32(companion_device_info.user_info.user_type);
+            parcel.write_i32(companion_device_info.user_info.sub_profile_id);
             parcel.write_u64(companion_device_info.added_time);
             parcel.write_u32(companion_device_info.is_valid as u32);
             parcel.write_i32(companion_device_info.capability_list.len() as i32);
@@ -133,8 +135,10 @@ impl DefaultCompanionDeviceDbManager {
             let device_id = parcel.read_string().map_err(|e| p!(e))?;
             let device_id_type = parcel.read_i32().map_err(|e| p!(e))?;
             let user_id = parcel.read_i32().map_err(|e| p!(e))?;
+            let sub_profile_id = parcel.read_i32().map_err(|e| p!(e))?;
             let user_info_user_id = parcel.read_i32().map_err(|e| p!(e))?;
             let user_info_user_type = parcel.read_i32().map_err(|e| p!(e))?;
+            let user_info_sub_profile_id = parcel.read_i32().map_err(|e| p!(e))?;
             let added_time = parcel.read_u64().map_err(|e| p!(e))?;
             let is_valid_u32 = parcel.read_u32().map_err(|e| p!(e))?;
             let capability_list_len_raw = parcel.read_i32().map_err(|e| p!(e))?;
@@ -151,8 +155,12 @@ impl DefaultCompanionDeviceDbManager {
 
             let companion_device_info = CompanionDevice {
                 template_id,
-                device_key: DeviceKey { device_id, device_id_type, user_id },
-                user_info: UserInfo { user_id: user_info_user_id, user_type: user_info_user_type },
+                device_key: DeviceKey { device_id, device_id_type, user_id, sub_profile_id },
+                user_info: UserInfo {
+                    user_id: user_info_user_id,
+                    user_type: user_info_user_type,
+                    sub_profile_id: user_info_sub_profile_id,
+                },
                 added_time,
                 is_valid: is_valid_u32 != 0,
                 capability_list,
@@ -178,6 +186,7 @@ impl DefaultCompanionDeviceDbManager {
         for &supported_business_id in &base_info.supported_business_ids {
             parcel.write_i32(supported_business_id);
         }
+        parcel.write_string(&base_info.device_sub_profile_name);
     }
 
     fn deserialize_device_profile(parcel: &mut Parcel) -> Result<CompanionDeviceProfile, ErrorCode> {
@@ -216,6 +225,8 @@ impl DefaultCompanionDeviceDbManager {
             supported_business_ids.push(supported_business_id);
         }
 
+        let device_sub_profile_name = parcel.read_string().map_err(|e| p!(e))?;
+
         Ok(CompanionDeviceProfile {
             device_model_info,
             device_name,
@@ -223,6 +234,7 @@ impl DefaultCompanionDeviceDbManager {
             business_ids,
             device_type,
             supported_business_ids,
+            device_sub_profile_name,
         })
     }
 

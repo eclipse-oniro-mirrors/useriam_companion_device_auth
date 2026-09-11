@@ -49,6 +49,7 @@ typedef struct PlaceHolderFfi HostRegisterFinishOutputFfi;
 
 typedef struct HostGetPersistedStatusInputFfi {
     int32_t userId;
+    int32_t subProfileId;
 } HostGetPersistedStatusInputFfi;
 
 typedef struct HostGetPersistedStatusOutputFfi {
@@ -219,6 +220,7 @@ typedef struct HostUpdateCompanionStatusInputFfi {
     struct DataArray256Ffi deviceName;
     struct DataArray256Ffi deviceUserName;
     struct Int32Array64Ffi supportedBusinessIds;
+    struct DataArray256Ffi deviceSubProfileIdName;
 } HostUpdateCompanionStatusInputFfi;
 
 typedef struct PlaceHolderFfi HostUpdateCompanionStatusOutputFfi;
@@ -288,6 +290,7 @@ typedef struct HostProcessObtainTokenInputFfi {
     uint64_t templateId;
     uint16_t secureProtocolId;
     struct DataArray1024Ffi secMessage;
+    int32_t atl;
 } HostProcessObtainTokenInputFfi;
 
 typedef struct HostProcessObtainTokenOutputFfi {
@@ -313,6 +316,7 @@ typedef struct HostRefreshTokenOutputFfi {
 
 typedef struct CompanionGetPersistedStatusInputFfi {
     int32_t userId;
+    int32_t subProfileId;
 } CompanionGetPersistedStatusInputFfi;
 
 typedef struct CompanionGetPersistedStatusOutputFfi {

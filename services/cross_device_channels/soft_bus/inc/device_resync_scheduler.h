@@ -18,6 +18,7 @@
 #include "backoff_retry_timer.h"
 #include "cross_device_common.h"
 #include "soft_bus_device_status_manager.h"
+#include "sub_profile_id_manager.h"
 #include "subscription.h"
 #include "synced_peer_registry.h"
 
@@ -40,6 +41,7 @@ private:
 
     void OnActiveUserIdChanged(UserId userId);
     void OnLocalDeviceNameChanged();
+    void OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType);
     void ResyncOneDevice(const PhysicalDeviceKey &deviceKey, const std::string &reason);
     void DoResyncOneDevice(const PhysicalDeviceKey &deviceKey);
     void EnsureRetryEntry(const PhysicalDeviceKey &deviceKey, const std::string &reason);
@@ -62,6 +64,7 @@ private:
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
     std::unique_ptr<Subscription> deviceNameSubscription_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
+    std::unique_ptr<Subscription> subProfileChangedSubscription_;
 };
 
 } // namespace CompanionDeviceAuth

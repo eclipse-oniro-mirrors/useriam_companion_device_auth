@@ -263,7 +263,8 @@ void Companion::HandleCompanionStatusChange(const DeviceStatus &deviceStatus)
     const auto &oldStatus = status_.companionDeviceStatus;
     if (oldStatus.deviceModelInfo == deviceStatus.deviceModelInfo && oldStatus.deviceName == deviceStatus.deviceName &&
         oldStatus.deviceUserName == deviceStatus.deviceUserName &&
-        oldStatus.supportedBusinessIds == deviceStatus.supportedBusinessIds) {
+        oldStatus.supportedBusinessIds == deviceStatus.supportedBusinessIds &&
+        oldStatus.deviceSubProfileName == deviceStatus.deviceSubProfileName) {
         return;
     }
 
@@ -271,7 +272,8 @@ void Companion::HandleCompanionStatusChange(const DeviceStatus &deviceStatus)
         .companionDeviceModelInfo = deviceStatus.deviceModelInfo,
         .companionDeviceName = deviceStatus.deviceName,
         .companionDeviceUserName = deviceStatus.deviceUserName,
-        .supportedBusinessIds = deviceStatus.supportedBusinessIds };
+        .supportedBusinessIds = deviceStatus.supportedBusinessIds,
+        .companionDeviceSubProfileName = deviceStatus.deviceSubProfileName };
     ResultCode ret = GetSecurityAgent().HostUpdateCompanionStatus(input);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s HostUpdateCompanionStatus failed ret %{public}d", GetDescription(), ret);

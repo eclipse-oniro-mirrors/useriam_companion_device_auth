@@ -41,6 +41,7 @@
 #include "system_settings_manager.h"
 #include "time_keeper.h"
 #include "user_auth_adapter.h"
+#include "sub_profile_id_manager.h"
 #include "user_id_manager.h"
 
 namespace OHOS {
@@ -419,6 +420,42 @@ private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };
 
+class MockSubProfileIdManager : public ISubProfileIdManager {
+public:
+    explicit MockSubProfileIdManager(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
+    {
+    }
+
+    int32_t GetForegroundSubProfileId(UserId userId) const override
+    {
+        (void)userId;
+        return INVALID_SUB_PROFILE_ID;
+    }
+
+    bool IsForegroundSubProfileId(UserId userId, int32_t subProfileId) const override
+    {
+        (void)userId;
+        (void)subProfileId;
+        return false;
+    }
+
+    std::optional<std::string> GetSubProfileName(UserId userId, int32_t subProfileId) const override
+    {
+        (void)userId;
+        (void)subProfileId;
+        return std::nullopt;
+    }
+
+    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
+    {
+        (void)callback;
+        return std::make_unique<Subscription>([] {});
+    }
+
+private:
+    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
+};
+
 class MockTimeKeeper : public ITimeKeeper {
 public:
     MockTimeKeeper() : systemTimeMs_(0), steadyTimeMs_(0)
@@ -501,6 +538,9 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 
     auto userIdMgr = std::make_shared<MockUserIdManager>(fuzzData);
     adapterMgr.SetUserIdManager(userIdMgr);
+
+    auto subProfileIdMgr = std::make_shared<MockSubProfileIdManager>(fuzzData);
+    adapterMgr.SetSubProfileIdManager(subProfileIdMgr);
 
     auto systemSettingsMgr = std::make_shared<MockSystemSettingsManager>(fuzzData);
     adapterMgr.SetSystemSettingsManager(systemSettingsMgr);

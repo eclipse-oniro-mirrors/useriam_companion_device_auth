@@ -34,6 +34,8 @@ idl_gen_interface("companion_device_auth_ipc_interface") {
     "IIpcPasscodeSubmitCallback.idl",
   ]
 
+  inputs = ["idl/CompanionDeviceAuthTypes.idl"]
+
   log_domainid = "0xD002421"
   log_tag = "CDA_IPC"
   subsystem_name = companion_device_auth_subsystem_name

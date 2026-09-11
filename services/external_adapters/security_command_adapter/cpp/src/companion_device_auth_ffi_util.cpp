@@ -28,6 +28,7 @@ bool DecodeDeviceKey(const DeviceKeyFfi &ffi, DeviceKey &key)
 {
     key.idType = static_cast<DeviceIdType>(ffi.deviceIdType);
     key.deviceUserId = ffi.userId;
+    key.deviceSubProfileId = ffi.subProfileId;
     if (!DecodeDataArrayToString(ffi.deviceId, key.deviceId)) {
         return false;
     }
@@ -38,6 +39,7 @@ bool EncodeDeviceKey(const DeviceKey &key, DeviceKeyFfi &ffi)
 {
     ffi.deviceIdType = static_cast<int32_t>(key.idType);
     ffi.userId = key.deviceUserId;
+    ffi.subProfileId = key.deviceSubProfileId;
     return EncodeStringToDataArray(key.deviceId, ffi.deviceId, "device ID");
 }
 
@@ -71,6 +73,9 @@ bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, Pers
     if (!DecodeDataArrayToString(ffi.deviceName, status.deviceName)) {
         return false;
     }
+    if (!DecodeDataArrayToString(ffi.deviceSubProfileIdName, status.deviceSubProfileName)) {
+        return false;
+    }
 
     return true;
 }
@@ -99,7 +104,8 @@ bool EncodePersistedCompanionStatus(const PersistedCompanionStatus &status, Pers
 
     if (!EncodeStringToDataArray(status.deviceModelInfo, ffi.deviceModelInfo, "device model info") ||
         !EncodeStringToDataArray(status.deviceUserName, ffi.deviceUserName, "device user name") ||
-        !EncodeStringToDataArray(status.deviceName, ffi.deviceName, "device name")) {
+        !EncodeStringToDataArray(status.deviceName, ffi.deviceName, "device name") ||
+        !EncodeStringToDataArray(status.deviceSubProfileName, ffi.deviceSubProfileIdName, "device sub profile name")) {
         return false;
     }
 
@@ -111,6 +117,7 @@ bool DecodePersistedHostBindingStatus(const PersistedHostBindingStatusFfi &ffi, 
     status.bindingId = static_cast<uint32_t>(ffi.bindingId);
     status.companionUserId = ffi.companionUserId;
     status.isTokenValid = ffi.isTokenValid;
+    status.companionSubProfileId = ffi.companionSubProfileId;
 
     return DecodeDeviceKey(ffi.hostDeviceKey, status.hostDeviceKey);
 }
@@ -336,7 +343,9 @@ bool EncodeHostUpdateCompanionStatusInput(const HostUpdateCompanionStatusInput &
     if (!EncodeStringToDataArray(input.companionDeviceModelInfo, ffi.deviceModelInfo, "companion device model info") ||
         !EncodeStringToDataArray(input.companionDeviceName, ffi.deviceName, "companion device name") ||
         !EncodeStringToDataArray(input.companionDeviceUserName, ffi.deviceUserName, "companion device user name") ||
-        !VectorToFfiArray(input.supportedBusinessIds, ffi.supportedBusinessIds, "supported business IDs")) {
+        !VectorToFfiArray(input.supportedBusinessIds, ffi.supportedBusinessIds, "supported business IDs") ||
+        !EncodeStringToDataArray(input.companionDeviceSubProfileName, ffi.deviceSubProfileIdName,
+            "companion device sub profile name")) {
         return false;
     }
 
@@ -420,6 +429,7 @@ bool EncodeHostProcessObtainTokenInput(const HostProcessObtainTokenInput &input,
     ffi.requestId = input.requestId;
     ffi.templateId = input.templateId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
+    ffi.atl = input.atl;
 
     return EncodeMessageArray(input.obtainTokenRequest, ffi.secMessage);
 }

@@ -43,6 +43,7 @@ struct RegisterFinishInput {
 
 struct HostGetPersistedCompanionStatusInput {
     UserId userId;
+    int32_t subProfileId;
 };
 
 struct HostGetPersistedCompanionStatusOutput {
@@ -51,6 +52,7 @@ struct HostGetPersistedCompanionStatusOutput {
 
 struct CompanionGetPersistedHostBindingStatusInput {
     UserId userId;
+    int32_t subProfileId;
 };
 
 struct CompanionGetPersistedHostBindingStatusOutput {
@@ -349,6 +351,7 @@ struct HostProcessObtainTokenInput {
     TemplateId templateId;
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> obtainTokenRequest;
+    Atl atl { 0 };
 };
 
 struct HostProcessObtainTokenOutput {
@@ -416,6 +419,7 @@ struct HostUpdateCompanionStatusInput {
     std::string companionDeviceName;
     std::string companionDeviceUserName;
     std::vector<BusinessId> supportedBusinessIds;
+    std::string companionDeviceSubProfileName;
 };
 
 struct HostUpdateCompanionEnabledBusinessIdsInput {

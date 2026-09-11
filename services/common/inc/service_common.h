@@ -81,6 +81,7 @@ enum class SecureProtocolId : uint16_t {
 };
 
 constexpr int32_t INVALID_USER_ID = -1;
+constexpr int32_t INVALID_SUB_PROFILE_ID = -1;
 
 enum class MessageType : uint16_t {
     // Invalid
@@ -131,14 +132,16 @@ enum class DeviceType : int32_t {
     PAD = 2,
     TWO_IN_ONE = 3,
     PC = 4,
-    UNKNOWN = 5,
+    CAR = 5,
+    UNKNOWN = 6,
 };
 
 class DeviceKey {
 public:
     bool operator==(const DeviceKey &other) const
     {
-        return idType == other.idType && deviceId == other.deviceId && deviceUserId == other.deviceUserId;
+        return idType == other.idType && deviceId == other.deviceId &&
+            deviceUserId == other.deviceUserId && deviceSubProfileId == other.deviceSubProfileId;
     }
 
     bool operator!=(const DeviceKey &other) const
@@ -154,14 +157,17 @@ public:
         if (deviceId != other.deviceId) {
             return deviceId < other.deviceId;
         }
-        return deviceUserId < other.deviceUserId;
+        if (deviceUserId != other.deviceUserId) {
+            return deviceUserId < other.deviceUserId;
+        }
+        return deviceSubProfileId < other.deviceSubProfileId;
     }
 
     std::string GetDesc() const
     {
         std::ostringstream oss;
         oss << "(t:" << static_cast<int32_t>(idType) << ", id: " << GetMaskedString(deviceId) << ""
-            << ", user:" << deviceUserId << ")";
+            << ", user:" << deviceUserId << ", sub:" << deviceSubProfileId << ")";
         return oss.str();
     }
 
@@ -182,6 +188,7 @@ public:
     DeviceIdType idType { DeviceIdType::UNKNOWN };
     std::string deviceId {};
     UserId deviceUserId { INVALID_USER_ID };
+    int32_t deviceSubProfileId { INVALID_SUB_PROFILE_ID };
 };
 
 class DeviceStatus {
@@ -195,7 +202,8 @@ public:
             supportedBusinessIds == other.supportedBusinessIds && isOnline == other.isOnline &&
             isAuthMaintainActive == other.isAuthMaintainActive && deviceType == other.deviceType &&
             atlRevokeDelayMs == other.atlRevokeDelayMs && refreshToken == other.refreshToken &&
-            lastSyncTimeMs == other.lastSyncTimeMs;
+            lastSyncTimeMs == other.lastSyncTimeMs &&
+            deviceSubProfileName == other.deviceSubProfileName;
     }
 
     DeviceKey deviceKey {};
@@ -213,6 +221,7 @@ public:
     std::optional<uint32_t> atlRevokeDelayMs;
     bool refreshToken { false };
     SteadyTimeMs lastSyncTimeMs { 0 };
+    std::string deviceSubProfileName {};
 };
 
 struct LocalDeviceProfile {
@@ -243,6 +252,7 @@ struct PersistedCompanionStatus {
     std::string deviceUserName {};
     std::string deviceName {};
     DeviceType deviceType { DeviceType::INVALID };
+    std::string deviceSubProfileName {};
 };
 
 struct CompanionStatus {
@@ -261,6 +271,7 @@ struct CompanionStatus {
         companionDeviceStatus.deviceName = persistedStatus.deviceName;
         companionDeviceStatus.deviceType = persistedStatus.deviceType;
         companionDeviceStatus.supportedBusinessIds = persistedStatus.supportedBusinessIds;
+        companionDeviceStatus.deviceSubProfileName = persistedStatus.deviceSubProfileName;
         tokenAuthAtl = std::nullopt;
         return *this;
     }
@@ -279,6 +290,7 @@ struct CompanionStatus {
         persistedStatus.deviceName = companionDeviceStatus.deviceName;
         persistedStatus.deviceType = companionDeviceStatus.deviceType;
         persistedStatus.supportedBusinessIds = companionDeviceStatus.supportedBusinessIds;
+        persistedStatus.deviceSubProfileName = companionDeviceStatus.deviceSubProfileName;
         return persistedStatus;
     }
 
@@ -304,6 +316,7 @@ struct HostBindingStatus {
     DeviceStatus hostDeviceStatus {};
     bool isTokenValid { false };
     bool localAuthMaintainActive { false };
+    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
 };
 
 struct PersistedHostBindingStatus {
@@ -311,6 +324,7 @@ struct PersistedHostBindingStatus {
     UserId companionUserId { INVALID_USER_ID };
     DeviceKey hostDeviceKey {};
     bool isTokenValid { false };
+    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
 };
 
 struct SecureExecutorInfo {
@@ -327,7 +341,10 @@ struct SyncDeviceStatus {
     SecureProtocolId secureProtocolId;
     std::string deviceUserName {};
     int32_t deviceUserId { INVALID_USER_ID };
+    int32_t deviceSubProfileId { INVALID_SUB_PROFILE_ID };
     std::string deviceName {};
+    std::string deviceSubProfileName {};
+    bool isAuthMaintainActive { false };
 };
 
 struct DeviceCapabilityInfo {

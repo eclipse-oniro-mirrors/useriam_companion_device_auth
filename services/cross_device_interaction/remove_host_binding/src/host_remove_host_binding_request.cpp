@@ -78,9 +78,11 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
     ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKey.has_value());
     hostDeviceKey = localDeviceKey.value();
     hostDeviceKey.deviceUserId = hostUserId_;
+    hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
     RemoveHostBindingRequest requestMsg = {
         .hostDeviceKey = hostDeviceKey,
         .companionUserId = peerDeviceKey->deviceUserId,
+        .companionSubProfileId = peerDeviceKey->deviceSubProfileId,
         .extraInfo = {},
     };
     Attributes request = {};

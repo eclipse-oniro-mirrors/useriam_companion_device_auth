@@ -172,9 +172,10 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionDelegateAuthRequest
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRevokeTokenRequest(UserId companionUserId,
-    const DeviceKey &hostDeviceKey, const std::string &triggerReason)
+    int32_t companionSubProfileId, const DeviceKey &hostDeviceKey, const std::string &triggerReason)
 {
-    auto request = std::make_shared<CompanionRevokeTokenRequest>(companionUserId, hostDeviceKey, triggerReason);
+    auto request = std::make_shared<CompanionRevokeTokenRequest>(companionUserId, companionSubProfileId,
+        hostDeviceKey, triggerReason);
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }
@@ -186,6 +187,7 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRequestResyncReques
     hostDeviceKey.idType = hostPhysicalDeviceKey.idType;
     hostDeviceKey.deviceId = hostPhysicalDeviceKey.deviceId;
     hostDeviceKey.deviceUserId = INVALID_USER_ID;
+    hostDeviceKey.deviceSubProfileId = INVALID_SUB_PROFILE_ID;
     auto request = std::make_shared<CompanionRequestResyncRequest>(hostDeviceKey, std::move(onComplete));
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;

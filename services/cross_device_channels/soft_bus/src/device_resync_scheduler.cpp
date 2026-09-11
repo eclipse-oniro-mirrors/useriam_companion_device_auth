@@ -19,6 +19,7 @@
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "soft_bus_channel_common.h"
+#include "sub_profile_id_manager.h"
 #include "subscription.h"
 
 #define LOG_TAG "CDA_SA"
@@ -74,6 +75,14 @@ bool DeviceResyncScheduler::Start()
         });
     ENSURE_OR_RETURN_VAL(deviceStatusSubscription_ != nullptr, false);
 
+    subProfileChangedSubscription_ = GetSubProfileIdManager().SubscribeSubProfileChanged(
+        [weakSelf = weak_from_this()](UserId userId, int32_t subProfileId, SubProfileEventType eventType) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->OnSubProfileChanged(userId, subProfileId, eventType);
+        });
+    ENSURE_OR_RETURN_VAL(subProfileChangedSubscription_ != nullptr, false);
+
     bool registryStartRet = syncedPeerRegistry_.Start();
     ENSURE_OR_RETURN_VAL(registryStartRet, false);
 
@@ -91,6 +100,13 @@ void DeviceResyncScheduler::OnLocalDeviceNameChanged()
 {
     IAM_LOGI("local display device name changed, resync physical devices");
     ResyncAllPhysicalDevices("device_name_changed");
+}
+
+void DeviceResyncScheduler::OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType)
+{
+    IAM_LOGI("sub profile changed, userId=%{public}d, subProfileId=%{public}d, eventType=%{public}d",
+        userId, subProfileId, static_cast<int32_t>(eventType));
+    ResyncAllPhysicalDevices("sub_profile_changed");
 }
 
 void DeviceResyncScheduler::ResyncAllPhysicalDevices(const std::string &reason)

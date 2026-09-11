@@ -298,6 +298,7 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     ENSURE_OR_RETURN_DESC(GetDescription(), ret);
 
     BeginAddHostBindingRequest beginRequest = { .companionUserId = companionDeviceKey->deviceUserId,
+        .companionSubProfileId = companionDeviceKey->deviceSubProfileId,
         .extraInfo = std::move(addHostBindingRequest) };
     Attributes request = {};
     EncodeBeginAddHostBindingRequest(beginRequest, request);
@@ -402,6 +403,7 @@ std::optional<PersistedCompanionStatus> HostAddCompanionRequest::BuildPersistedC
     companionStatus.deviceUserName = deviceStatus.deviceUserName;
     companionStatus.deviceName = deviceStatus.deviceName;
     companionStatus.deviceType = deviceStatus.deviceType;
+    companionStatus.deviceSubProfileName = deviceStatus.deviceSubProfileName;
     companionStatus.isValid = true;
     return companionStatus;
 }
@@ -483,6 +485,7 @@ bool HostAddCompanionRequest::SendEndAddHostBindingRequest(ResultCode result)
 
     EndAddHostBindingRequest requestMsg = { .hostDeviceKey = hostDeviceKey_,
         .companionUserId = companionDeviceKey->deviceUserId,
+        .companionSubProfileId = companionDeviceKey->deviceSubProfileId,
         .result = result,
         .extraInfo = std::move(pendingTokenData_) }; // Contains encrypted token data (non-empty only when successful)
     pendingTokenData_.clear();
