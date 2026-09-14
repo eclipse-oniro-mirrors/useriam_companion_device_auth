@@ -655,8 +655,9 @@ HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
 
     PersistedCompanionStatusFfi ffi = {};
     EncodePersistedCompanionStatus(originalStatus, ffi);
-    EXPECT_EQ(std::string(reinterpret_cast<const char *>(ffi.deviceSubProfileIdName.data),
-        ffi.deviceSubProfileIdName.len), originalStatus.deviceSubProfileName);
+    EXPECT_EQ(
+        std::string(reinterpret_cast<const char *>(ffi.deviceSubProfileIdName.data), ffi.deviceSubProfileIdName.len),
+        originalStatus.deviceSubProfileName);
 
     PersistedCompanionStatus decodedStatus;
     EXPECT_TRUE(DecodePersistedCompanionStatus(ffi, decodedStatus));
@@ -964,8 +965,9 @@ HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_001, TestSize.Level0)
     EncodeHostUpdateCompanionStatusInput(input, ffi);
     EXPECT_EQ(ffi.templateId, 7777U);
     EXPECT_EQ(ffi.supportedBusinessIds.len, 3U);
-    EXPECT_EQ(std::string(reinterpret_cast<const char *>(ffi.deviceSubProfileIdName.data),
-        ffi.deviceSubProfileIdName.len), input.companionDeviceSubProfileName);
+    EXPECT_EQ(
+        std::string(reinterpret_cast<const char *>(ffi.deviceSubProfileIdName.data), ffi.deviceSubProfileIdName.len),
+        input.companionDeviceSubProfileName);
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostUpdateCompanionStatusInput_002, TestSize.Level0)

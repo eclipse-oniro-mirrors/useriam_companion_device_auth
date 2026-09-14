@@ -71,8 +71,7 @@ bool IpcDeviceStatusEqual(const IpcDeviceStatus &lhs, const IpcDeviceStatus &rhs
         lhs.deviceKey.deviceSubProfileId == rhs.deviceKey.deviceSubProfileId &&
         lhs.deviceUserName == rhs.deviceUserName && lhs.deviceModelInfo == rhs.deviceModelInfo &&
         lhs.deviceName == rhs.deviceName && lhs.isOnline == rhs.isOnline &&
-        lhs.supportedBusinessIds == rhs.supportedBusinessIds &&
-        lhs.deviceSubProfileName == rhs.deviceSubProfileName;
+        lhs.supportedBusinessIds == rhs.supportedBusinessIds && lhs.deviceSubProfileName == rhs.deviceSubProfileName;
 }
 
 bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs, const std::vector<IpcDeviceStatus> &rhs)

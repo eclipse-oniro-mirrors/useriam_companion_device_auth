@@ -84,8 +84,7 @@ void HostBindingManagerImpl::OnActiveUserIdChanged(UserId userId)
         return;
     }
 
-    ReloadBindingsForSubProfile(activeUserId_,
-        GetSubProfileIdManager().GetForegroundSubProfileId(activeUserId_));
+    ReloadBindingsForSubProfile(activeUserId_, GetSubProfileIdManager().GetForegroundSubProfileId(activeUserId_));
 }
 
 void HostBindingManagerImpl::OnSubProfileSwitched(UserId userId, int32_t subProfileId)
@@ -125,14 +124,14 @@ void HostBindingManagerImpl::ReloadBindingsForSubProfile(UserId userId, int32_t 
                 GET_MASKED_NUM_STRING(persistedStatus.bindingId).c_str(), ret);
         }
     }
-    IAM_LOGI("reloaded %{public}zu bindings for user %{public}d, subProfileId=%{public}d",
-        bindings_.size(), userId, subProfileId);
+    IAM_LOGI("reloaded %{public}zu bindings for user %{public}d, subProfileId=%{public}d", bindings_.size(), userId,
+        subProfileId);
 }
 
 void HostBindingManagerImpl::OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType)
 {
-    IAM_LOGI("sub profile changed, userId=%{public}d, subProfileId=%{public}d, eventType=%{public}d",
-        userId, subProfileId, static_cast<int32_t>(eventType));
+    IAM_LOGI("sub profile changed, userId=%{public}d, subProfileId=%{public}d, eventType=%{public}d", userId,
+        subProfileId, static_cast<int32_t>(eventType));
 
     if (eventType == SubProfileEventType::SWITCHED) {
         OnSubProfileSwitched(userId, subProfileId);

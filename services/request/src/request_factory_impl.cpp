@@ -174,8 +174,8 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionDelegateAuthRequest
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRevokeTokenRequest(UserId companionUserId,
     int32_t companionSubProfileId, const DeviceKey &hostDeviceKey, const std::string &triggerReason)
 {
-    auto request = std::make_shared<CompanionRevokeTokenRequest>(companionUserId, companionSubProfileId,
-        hostDeviceKey, triggerReason);
+    auto request = std::make_shared<CompanionRevokeTokenRequest>(companionUserId, companionSubProfileId, hostDeviceKey,
+        triggerReason);
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }

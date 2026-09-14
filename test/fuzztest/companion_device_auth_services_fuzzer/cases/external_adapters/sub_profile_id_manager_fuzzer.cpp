@@ -63,8 +63,8 @@ static void FuzzSubscribeSubProfileChanged(ISubProfileIdManager &manager, Fuzzed
         auto sub = manager.SubscribeSubProfileChanged(nullptr);
         (void)sub;
     } else {
-        auto sub = manager.SubscribeSubProfileChanged(
-            [](UserId userId, int32_t subProfileId, SubProfileEventType eventType) {
+        auto sub =
+            manager.SubscribeSubProfileChanged([](UserId userId, int32_t subProfileId, SubProfileEventType eventType) {
                 (void)userId;
                 (void)subProfileId;
                 (void)eventType;

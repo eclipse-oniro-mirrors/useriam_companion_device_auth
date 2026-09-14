@@ -199,8 +199,8 @@ static void FuzzCreateCompanionRevokeTokenRequest(std::shared_ptr<RequestFactory
     int32_t companionSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     std::string triggerReason = GenerateFuzzString(fuzzData, SIZE_64);
-    auto request = factory->CreateCompanionRevokeTokenRequest(companionUserId, companionSubProfileId,
-        hostDeviceKey, triggerReason);
+    auto request = factory->CreateCompanionRevokeTokenRequest(companionUserId, companionSubProfileId, hostDeviceKey,
+        triggerReason);
     (void)request;
 }
 

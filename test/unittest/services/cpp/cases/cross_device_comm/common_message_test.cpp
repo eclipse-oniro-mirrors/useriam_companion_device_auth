@@ -99,8 +99,7 @@ HWTEST_F(CommonMessageTest, DecodeCompanionDeviceKey_WithSubProfileId, TestSize.
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, companionKey_.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, companionKey_.deviceSubProfileId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(companionKey_.idType));
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(companionKey_.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionKey_.deviceId);
 
     auto result = DecodeCompanionDeviceKey(attributes);
@@ -117,8 +116,7 @@ HWTEST_F(CommonMessageTest, DecodeCompanionDeviceKey_WithoutSubProfileId_Default
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, companionKey_.deviceUserId);
     // ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID intentionally omitted
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(companionKey_.idType));
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(companionKey_.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionKey_.deviceId);
 
     auto result = DecodeCompanionDeviceKey(attributes);
@@ -153,8 +151,7 @@ HWTEST_F(CommonMessageTest, CompanionDeviceKey_RoundTrip_WithSubProfileId, TestS
 {
     Attributes attributes;
     EncodeCompanionDeviceKey(companionKey_, attributes);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(companionKey_.idType));
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(companionKey_.idType));
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionKey_.deviceId);
 
     auto result = DecodeCompanionDeviceKey(attributes);

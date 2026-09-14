@@ -111,8 +111,7 @@ public:
         ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
         ON_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).WillByDefault(Return());
         ON_CALL(mockEventManagerAdapter_, ReportInteractionEvent(_)).WillByDefault(Return());
-        ON_CALL(mockSubProfileIdManager_, GetForegroundSubProfileId(_))
-            .WillByDefault(Return(INVALID_SUB_PROFILE_ID));
+        ON_CALL(mockSubProfileIdManager_, GetForegroundSubProfileId(_)).WillByDefault(Return(INVALID_SUB_PROFILE_ID));
     }
 
     void TearDown() override

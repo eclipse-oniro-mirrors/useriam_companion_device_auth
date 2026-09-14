@@ -244,8 +244,7 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
     const auto &peerKey = PeerDeviceKey();
     const auto &companionKey = obtainTokenRequest.companionDeviceKey;
     if (peerKey.deviceUserId != companionKey.deviceUserId || peerKey.idType != companionKey.idType ||
-        peerKey.deviceId != companionKey.deviceId ||
-        peerKey.deviceSubProfileId != companionKey.deviceSubProfileId) {
+        peerKey.deviceId != companionKey.deviceId || peerKey.deviceSubProfileId != companionKey.deviceSubProfileId) {
         IAM_LOGE("%{public}s device key mismatch", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::INVALID_PARAMETERS);
         return;

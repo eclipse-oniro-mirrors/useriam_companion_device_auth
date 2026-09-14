@@ -140,8 +140,8 @@ class DeviceKey {
 public:
     bool operator==(const DeviceKey &other) const
     {
-        return idType == other.idType && deviceId == other.deviceId &&
-            deviceUserId == other.deviceUserId && deviceSubProfileId == other.deviceSubProfileId;
+        return idType == other.idType && deviceId == other.deviceId && deviceUserId == other.deviceUserId &&
+            deviceSubProfileId == other.deviceSubProfileId;
     }
 
     bool operator!=(const DeviceKey &other) const
@@ -202,8 +202,7 @@ public:
             supportedBusinessIds == other.supportedBusinessIds && isOnline == other.isOnline &&
             isAuthMaintainActive == other.isAuthMaintainActive && deviceType == other.deviceType &&
             atlRevokeDelayMs == other.atlRevokeDelayMs && refreshToken == other.refreshToken &&
-            lastSyncTimeMs == other.lastSyncTimeMs &&
-            deviceSubProfileName == other.deviceSubProfileName;
+            lastSyncTimeMs == other.lastSyncTimeMs && deviceSubProfileName == other.deviceSubProfileName;
     }
 
     DeviceKey deviceKey {};

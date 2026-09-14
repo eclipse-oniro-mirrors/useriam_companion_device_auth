@@ -1341,8 +1341,8 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId,
-        int32_t companionSubProfileId, const DeviceKey &hostDeviceKey, const std::string &triggerReason) override
+    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId, int32_t companionSubProfileId,
+        const DeviceKey &hostDeviceKey, const std::string &triggerReason) override
     {
         (void)companionUserId;
         (void)companionSubProfileId;

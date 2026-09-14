@@ -104,8 +104,8 @@ void DeviceResyncScheduler::OnLocalDeviceNameChanged()
 
 void DeviceResyncScheduler::OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType)
 {
-    IAM_LOGI("sub profile changed, userId=%{public}d, subProfileId=%{public}d, eventType=%{public}d",
-        userId, subProfileId, static_cast<int32_t>(eventType));
+    IAM_LOGI("sub profile changed, userId=%{public}d, subProfileId=%{public}d, eventType=%{public}d", userId,
+        subProfileId, static_cast<int32_t>(eventType));
     ResyncAllPhysicalDevices("sub_profile_changed");
 }
 
