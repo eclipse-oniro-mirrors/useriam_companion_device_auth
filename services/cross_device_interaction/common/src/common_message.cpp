@@ -61,8 +61,8 @@ bool DecodeDeviceKey(const Attributes &attributes, Attributes::AttributeKey user
 std::optional<DeviceKey> DecodeHostDeviceKey(const Attributes &attributes)
 {
     DeviceKey deviceKey = {};
-    if (!DecodeDeviceKey(attributes, Attributes::ATTR_CDA_SA_HOST_USER_ID,
-        Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, deviceKey)) {
+    if (!DecodeDeviceKey(attributes, Attributes::ATTR_CDA_SA_HOST_USER_ID, Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID,
+        deviceKey)) {
         return std::nullopt;
     }
     return deviceKey;

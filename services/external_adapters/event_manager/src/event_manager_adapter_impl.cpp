@@ -77,10 +77,9 @@ void EventManagerAdapterImpl::ReportInteractionEvent(const InteractionEventColle
         STR_REQUEST_TYPE, eventCollector.GetRequestType(), STR_RESULT, resultStr, STR_HOST_USER_ID, hostUserId,
         STR_HOST_DEVICE_KEY, hostDeviceKey, STR_COMPANION_USER_ID, companionUserId, STR_COMPANION_DEVICE_KEY,
         companionDeviceKey, STR_CONNECTION_NAME, connectionName, STR_SCHEDULE_ID, scheduleId, STR_TRIGGER_REASON,
-        triggerReason, STR_TEMPLATE_ID_LIST, templateIdList,
-        STR_TOTAL_TIME, CastUint64ToUint32(eventCollector.GetTotalTime().value_or(0)),
-        STR_LOCAL_TIME, CastUint64ToUint32(eventCollector.GetLocalTime().value_or(0)),
-        STR_EXTRA_INFO, eventCollector.GetExtraInfo());
+        triggerReason, STR_TEMPLATE_ID_LIST, templateIdList, STR_TOTAL_TIME,
+        CastUint64ToUint32(eventCollector.GetTotalTime().value_or(0)), STR_LOCAL_TIME,
+        CastUint64ToUint32(eventCollector.GetLocalTime().value_or(0)), STR_EXTRA_INFO, eventCollector.GetExtraInfo());
     if (ret != 0) {
         IAM_LOGE("hisysevent write failed! ret %{public}d", ret);
     }

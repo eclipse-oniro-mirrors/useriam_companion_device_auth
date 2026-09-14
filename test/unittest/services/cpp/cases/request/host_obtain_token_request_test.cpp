@@ -93,15 +93,11 @@ public:
         ON_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
             .WillByDefault(Return(std::make_optional(SecureProtocolId::DEFAULT)));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, _, _))
-            .WillByDefault(Invoke([](const std::string &, MessageType, OnMessage &&) {
-                return MakeSubscription();
-            }));
+            .WillByDefault(Invoke([](const std::string &, MessageType, OnMessage &&) { return MakeSubscription(); }));
         ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_))
             .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
-            .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) {
-                return MakeSubscription();
-            }));
+            .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
         ON_CALL(mockSecurityAgent_, HostProcessPreObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostProcessObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockEventManagerAdapter_, ReportInteractionEvent(_)).WillByDefault(Return());
@@ -771,9 +767,9 @@ HWTEST_F(HostObtainTokenRequestTest, EnsureCompanionAuthMaintainActive_CarBypass
     EXPECT_TRUE(request->OnStart(errorGuard));
 
     EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_))
-        .WillOnce(Return(std::make_optional(
-            DeviceStatus { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = false,
-                .deviceType = DeviceType::CAR })));
+        .WillOnce(Return(std::make_optional(DeviceStatus { .deviceKey = COMPANION_DEVICE_KEY,
+            .isAuthMaintainActive = false,
+            .deviceType = DeviceType::CAR })));
 
     bool result = request->EnsureCompanionAuthMaintainActive(COMPANION_DEVICE_KEY, errorGuard);
 
@@ -799,7 +795,8 @@ HWTEST_F(HostObtainTokenRequestTest, HandlePeerDeviceStatusChanged_CarBypass, Te
             return true;
         }));
 
-    DeviceStatus status = { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = false,
+    DeviceStatus status = { .deviceKey = COMPANION_DEVICE_KEY,
+        .isAuthMaintainActive = false,
         .deviceType = DeviceType::CAR };
     std::vector<DeviceStatus> deviceStatusList = { status };
 

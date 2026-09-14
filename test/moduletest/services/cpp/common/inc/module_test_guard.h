@@ -34,6 +34,7 @@
 #include "fake_idm_adapter.h"
 #include "fake_misc_manager.h"
 #include "fake_sa_manager_adapter.h"
+#include "fake_sub_profile_id_manager.h"
 #include "fake_system_param_manager.h"
 #include "fake_user_id_manager.h"
 

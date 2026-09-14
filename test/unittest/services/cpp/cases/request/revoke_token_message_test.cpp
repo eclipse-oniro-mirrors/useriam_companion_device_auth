@@ -38,7 +38,8 @@ protected:
 
 HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenRequest_001, TestSize.Level0)
 {
-    RevokeTokenRequest request = { .hostUserId = hostUserId_, .companionDeviceKey = companionDeviceKey_,
+    RevokeTokenRequest request = { .hostUserId = hostUserId_,
+        .companionDeviceKey = companionDeviceKey_,
         .hostSubProfileId = 42 };
 
     Attributes attributes;

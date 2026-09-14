@@ -245,8 +245,7 @@ void DeviceStatusEntry::RecomputeEffectiveIsAuthMaintainActive()
     }
     isAuthMaintainActive = effectiveIsAuthMaintainActive_;
     IAM_LOGI("recompute effective isAuthMaintainActive: physical=%{public}d, sync=%{public}d, effective=%{public}d",
-        physicalIsAuthMaintainActive_, syncIsAuthMaintainActive_.has_value(),
-        effectiveIsAuthMaintainActive_);
+        physicalIsAuthMaintainActive_, syncIsAuthMaintainActive_.has_value(), effectiveIsAuthMaintainActive_);
 }
 
 } // namespace CompanionDeviceAuth

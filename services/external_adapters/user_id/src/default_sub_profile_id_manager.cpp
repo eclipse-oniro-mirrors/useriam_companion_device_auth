@@ -22,8 +22,8 @@
 #include <utility>
 #include <vector>
 
-#include "os_account_subprofile_client.h"
 #include "os_account_sub_profile_subscribe_callback.h"
+#include "os_account_subprofile_client.h"
 #include "system_ability_definition.h"
 
 #include "iam_check.h"
@@ -42,8 +42,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class DefaultSubProfileIdManager final
-    : public std::enable_shared_from_this<DefaultSubProfileIdManager>, public ISubProfileIdManager {
+class DefaultSubProfileIdManager final : public std::enable_shared_from_this<DefaultSubProfileIdManager>,
+                                         public ISubProfileIdManager {
 public:
     DefaultSubProfileIdManager();
     ~DefaultSubProfileIdManager() override;
@@ -129,7 +129,6 @@ bool DefaultSubProfileIdManager::Initialize()
     return true;
 }
 
-
 void DefaultSubProfileIdManager::HandleOsAccountServiceReady()
 {
     IAM_LOGI("start");
@@ -177,11 +176,11 @@ std::optional<std::string> DefaultSubProfileIdManager::GetSubProfileName(UserId 
     }
     AccountSA::OsAccountSubspaceResult subspaceResult;
     AccountSA::OhosAccountInfo distributedInfo;
-    ErrCode errCode = AccountSA::OsAccountSubProfileClient::GetInstance().GetOsAccountSubProfile(
-        userId, subProfileId, subspaceResult, distributedInfo);
+    ErrCode errCode = AccountSA::OsAccountSubProfileClient::GetInstance().GetOsAccountSubProfile(userId, subProfileId,
+        subspaceResult, distributedInfo);
     if (errCode != ERR_OK) {
-        IAM_LOGE("GetOsAccountSubProfile failed %{public}d for userId=%{public}d subProfileId=%{public}d",
-            errCode, userId, subProfileId);
+        IAM_LOGE("GetOsAccountSubProfile failed %{public}d for userId=%{public}d subProfileId=%{public}d", errCode,
+            userId, subProfileId);
         return std::nullopt;
     }
     if (distributedInfo.nickname_.empty()) {
@@ -205,8 +204,8 @@ void DefaultSubProfileIdManager::SubscribeSubProfileEvent()
         AccountSA::OsAccountSubProfileEventType::SWITCHED,
         AccountSA::OsAccountSubProfileEventType::DELETED,
     };
-    ErrCode errCode = AccountSA::OsAccountSubProfileClient::GetInstance().SubscribeOsAccountSubProfileEvents(
-        types, subscriber);
+    ErrCode errCode =
+        AccountSA::OsAccountSubProfileClient::GetInstance().SubscribeOsAccountSubProfileEvents(types, subscriber);
     if (errCode != ERR_OK) {
         IAM_LOGE("SubscribeOsAccountSubProfileEvents failed %{public}d", errCode);
         return;
@@ -223,8 +222,8 @@ void DefaultSubProfileIdManager::UnsubscribeSubProfileEvent()
     auto subscriber = subProfileEventSubscriber_;
     subProfileEventSubscriber_.reset();
 
-    ErrCode errCode = AccountSA::OsAccountSubProfileClient::GetInstance().UnsubscribeOsAccountSubProfileEvents(
-        subscriber);
+    ErrCode errCode =
+        AccountSA::OsAccountSubProfileClient::GetInstance().UnsubscribeOsAccountSubProfileEvents(subscriber);
     if (errCode != ERR_OK) {
         IAM_LOGE("UnsubscribeOsAccountSubProfileEvents failed %{public}d", errCode);
     }

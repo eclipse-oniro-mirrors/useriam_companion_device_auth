@@ -51,8 +51,8 @@ int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
             deviceStatus.deviceKey.deviceIdType, GetMaskedString(deviceStatus.deviceKey.deviceId).c_str(),
             deviceStatus.deviceKey.deviceUserId, deviceStatus.deviceKey.deviceSubProfileId,
             GET_MASKED_STR_CSTR(deviceStatus.deviceUserName), GET_MASKED_STR_CSTR(deviceStatus.deviceModelInfo),
-            GET_MASKED_STR_CSTR(deviceStatus.deviceName),
-            deviceStatus.isOnline, GetVectorString(deviceStatus.supportedBusinessIds).c_str());
+            GET_MASKED_STR_CSTR(deviceStatus.deviceName), deviceStatus.isOnline,
+            GetVectorString(deviceStatus.supportedBusinessIds).c_str());
         ClientDeviceKey clientDeviceKey;
         clientDeviceKey.deviceIdType = deviceStatus.deviceKey.deviceIdType;
         clientDeviceKey.deviceId = deviceStatus.deviceKey.deviceId;

@@ -33,9 +33,9 @@
 #include "message_router.h"
 #include "misc/misc_manager.h"
 #include "singleton_manager.h"
+#include "sub_profile_id_manager.h"
 #include "task_runner_manager.h"
 #include "time_keeper.h"
-#include "sub_profile_id_manager.h"
 #include "user_id_manager.h"
 
 using namespace testing;

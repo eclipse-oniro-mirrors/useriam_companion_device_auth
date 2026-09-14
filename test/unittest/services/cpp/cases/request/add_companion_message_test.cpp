@@ -153,7 +153,8 @@ HWTEST_F(AddCompanionMessageTest, DecodeInitKeyNegotiationReply_002, TestSize.Le
 
 HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_001, TestSize.Level0)
 {
-    BeginAddHostBindingRequest request = { .companionUserId = companionUserId_, .extraInfo = extraInfo_,
+    BeginAddHostBindingRequest request = { .companionUserId = companionUserId_,
+        .extraInfo = extraInfo_,
         .companionSubProfileId = 42 };
 
     Attributes attributes;
@@ -168,7 +169,8 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_001, Te
 
 HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_002, TestSize.Level0)
 {
-    BeginAddHostBindingRequest request = { .companionUserId = companionUserId_, .extraInfo = {},
+    BeginAddHostBindingRequest request = { .companionUserId = companionUserId_,
+        .extraInfo = {},
         .companionSubProfileId = 42 };
 
     Attributes attributes;

@@ -100,8 +100,8 @@ HWTEST_F(ConstantSubProfileIdManagerTest, GetSubProfileName_InvalidId, TestSize.
 // SubscribeSubProfileChanged returns a valid subscription
 HWTEST_F(ConstantSubProfileIdManagerTest, SubscribeSubProfileChanged_ReturnsSubscription, TestSize.Level0)
 {
-    auto subscription = manager_->SubscribeSubProfileChanged(
-        [](UserId userId, int32_t subProfileId, SubProfileEventType eventType) {
+    auto subscription =
+        manager_->SubscribeSubProfileChanged([](UserId userId, int32_t subProfileId, SubProfileEventType eventType) {
             (void)userId;
             (void)subProfileId;
             (void)eventType;
@@ -120,8 +120,7 @@ HWTEST_F(ConstantSubProfileIdManagerTest, SubscribeSubProfileChanged_NullCallbac
 HWTEST_F(ConstantSubProfileIdManagerTest, SubscriptionCleanup_NoCrash, TestSize.Level0)
 {
     {
-        auto subscription = manager_->SubscribeSubProfileChanged(
-            [](UserId, int32_t, SubProfileEventType) {});
+        auto subscription = manager_->SubscribeSubProfileChanged([](UserId, int32_t, SubProfileEventType) {});
         ASSERT_NE(nullptr, subscription);
     }
     // subscription destroyed here, should not crash

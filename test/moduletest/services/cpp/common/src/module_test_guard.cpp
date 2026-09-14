@@ -127,7 +127,7 @@ bool TestServiceInitializer::InitializeUserIdManager()
     userIdManager_ = std::make_shared<FakeUserIdManager>();
     AdapterManager::GetInstance().SetUserIdManager(userIdManager_);
 
-    auto subProfileIdManager = ISubProfileIdManager::Create();
+    auto subProfileIdManager = std::make_shared<FakeSubProfileIdManager>();
     ENSURE_OR_RETURN_VAL(subProfileIdManager != nullptr, false);
     AdapterManager::GetInstance().SetSubProfileIdManager(subProfileIdManager);
     return true;
@@ -731,6 +731,7 @@ void ModuleTestGuard::InjectDefaultSyncReply(const DeviceKey &companionDeviceKey
     syncReply.companionDeviceKey = companionDeviceKey;
     syncReply.companionDeviceKey.deviceUserId = hostUserId;
     syncReply.deviceUserName = "test-user";
+    syncReply.isAuthMaintainActive = true;
     InjectSyncDeviceStatusReply(GetChannel(), syncReply, companionDeviceKey);
     DrainPendingTasks();
 }

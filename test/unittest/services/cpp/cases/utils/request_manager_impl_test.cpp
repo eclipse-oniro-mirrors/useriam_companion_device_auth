@@ -245,10 +245,10 @@ HWTEST_F(RequestManagerImplTest, Start_PreemptsWaitingRequest_WhenShouldCancelRe
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
 
     auto waitingRequest = CreateMockRequest(MockRequestConfig {}
-                                                .WithId(2)
-                                                .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                                .WithMaxConcurrency(1)
-                                                .WithShouldCancel(true));
+            .WithId(2)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithMaxConcurrency(1)
+            .WithShouldCancel(true));
 
     auto newRequest =
         CreateMockRequest(MockRequestConfig {}.WithId(3).WithType(RequestType::HOST_DELEGATE_AUTH_REQUEST));
@@ -265,16 +265,16 @@ HWTEST_F(RequestManagerImplTest, Start_PreemptsWaitingRequest_WhenShouldCancelRe
 HWTEST_F(RequestManagerImplTest, Start_PreemptsMultipleRequests_WhenShouldCancelReturnsTrue, TestSize.Level0)
 {
     auto existingRequest1 = CreateMockRequest(MockRequestConfig {}
-                                                  .WithId(1)
-                                                  .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                                  .WithShouldCancel(true)
-                                                  .WithMaxConcurrency(10));
+            .WithId(1)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithShouldCancel(true)
+            .WithMaxConcurrency(10));
 
     auto existingRequest2 = CreateMockRequest(MockRequestConfig {}
-                                                  .WithId(2)
-                                                  .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                                  .WithShouldCancel(true)
-                                                  .WithMaxConcurrency(10));
+            .WithId(2)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithShouldCancel(true)
+            .WithMaxConcurrency(10));
 
     auto newRequest =
         CreateMockRequest(MockRequestConfig {}.WithId(3).WithType(RequestType::HOST_DELEGATE_AUTH_REQUEST));
@@ -588,16 +588,16 @@ HWTEST_F(RequestManagerImplTest, CancelByScheduleId_NonExistentScheduleId_Return
 HWTEST_F(RequestManagerImplTest, CancelByScheduleId_WaitingRequest_CancelsRequest, TestSize.Level0)
 {
     auto request1 = CreateMockRequest(MockRequestConfig {}
-                                          .WithId(1)
-                                          .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                          .WithScheduleId(111)
-                                          .WithMaxConcurrency(1));
+            .WithId(1)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithScheduleId(111)
+            .WithMaxConcurrency(1));
 
     auto request2 = CreateMockRequest(MockRequestConfig {}
-                                          .WithId(2)
-                                          .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                          .WithScheduleId(222)
-                                          .WithMaxConcurrency(1));
+            .WithId(2)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithScheduleId(222)
+            .WithMaxConcurrency(1));
 
     EXPECT_CALL(*request2, Cancel(_)).Times(1).WillOnce(Return(true));
 
@@ -611,16 +611,16 @@ HWTEST_F(RequestManagerImplTest, CancelByScheduleId_WaitingRequest_CancelsReques
 HWTEST_F(RequestManagerImplTest, CancelByScheduleId_WaitingRequest_NonExistentScheduleId, TestSize.Level0)
 {
     auto request1 = CreateMockRequest(MockRequestConfig {}
-                                          .WithId(1)
-                                          .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                          .WithScheduleId(111)
-                                          .WithMaxConcurrency(1));
+            .WithId(1)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithScheduleId(111)
+            .WithMaxConcurrency(1));
 
     auto request2 = CreateMockRequest(MockRequestConfig {}
-                                          .WithId(2)
-                                          .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                          .WithScheduleId(222)
-                                          .WithMaxConcurrency(1));
+            .WithId(2)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithScheduleId(222)
+            .WithMaxConcurrency(1));
 
     manager_->Start(request1);
     manager_->Start(request2);
@@ -732,22 +732,22 @@ HWTEST_F(RequestManagerImplTest, Create_ReturnsValidManager, TestSize.Level0)
 HWTEST_F(RequestManagerImplTest, ComplexScenario_PreemptionAndConcurrency, TestSize.Level0)
 {
     auto existingToken1 = CreateMockRequest(MockRequestConfig {}
-                                                .WithId(1)
-                                                .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                                .WithMaxConcurrency(2)
-                                                .WithShouldCancel(false));
+            .WithId(1)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithMaxConcurrency(2)
+            .WithShouldCancel(false));
 
     auto existingToken2 = CreateMockRequest(MockRequestConfig {}
-                                                .WithId(2)
-                                                .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                                .WithMaxConcurrency(2)
-                                                .WithShouldCancel(true));
+            .WithId(2)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithMaxConcurrency(2)
+            .WithShouldCancel(true));
 
     auto existingDelegate = CreateMockRequest(MockRequestConfig {}
-                                                  .WithId(3)
-                                                  .WithType(RequestType::HOST_DELEGATE_AUTH_REQUEST)
-                                                  .WithMaxConcurrency(1)
-                                                  .WithShouldCancel(true));
+            .WithId(3)
+            .WithType(RequestType::HOST_DELEGATE_AUTH_REQUEST)
+            .WithMaxConcurrency(1)
+            .WithShouldCancel(true));
 
     auto newToken = CreateMockRequest(
         MockRequestConfig {}.WithId(4).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(2));
@@ -795,10 +795,10 @@ HWTEST_F(RequestManagerImplTest, ComplexScenario_WaitingQueueSchedulingOrder, Te
 HWTEST_F(RequestManagerImplTest, ComplexScenario_PreemptedRequestNotStartedFromWaiting, TestSize.Level0)
 {
     auto running = CreateMockRequest(MockRequestConfig {}
-                                         .WithId(1)
-                                         .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                         .WithMaxConcurrency(1)
-                                         .WithShouldCancel(true));
+            .WithId(1)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithMaxConcurrency(1)
+            .WithShouldCancel(true));
 
     auto waiting = CreateMockRequest(
         MockRequestConfig {}.WithId(2).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(1));
@@ -825,10 +825,10 @@ HWTEST_F(RequestManagerImplTest, MutualExclusion_IssueTokenWaits_WhenTokenAuthRu
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(10));
 
     auto issueToken = CreateMockRequest(MockRequestConfig {}
-                                            .WithId(2)
-                                            .WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST)
-                                            .WithMaxConcurrency(10)
-                                            .WithConflictingType(RequestType::HOST_TOKEN_AUTH_REQUEST));
+            .WithId(2)
+            .WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST)
+            .WithMaxConcurrency(10)
+            .WithConflictingType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     EXPECT_CALL(*tokenAuth, Start()).Times(1);
     EXPECT_CALL(*issueToken, Start()).Times(0);
@@ -847,10 +847,10 @@ HWTEST_F(RequestManagerImplTest, MutualExclusion_TokenAuthWaits_WhenIssueTokenRu
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST).WithMaxConcurrency(10));
 
     auto tokenAuth = CreateMockRequest(MockRequestConfig {}
-                                           .WithId(2)
-                                           .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                           .WithMaxConcurrency(10)
-                                           .WithConflictingType(RequestType::HOST_ISSUE_TOKEN_REQUEST));
+            .WithId(2)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithMaxConcurrency(10)
+            .WithConflictingType(RequestType::HOST_ISSUE_TOKEN_REQUEST));
 
     EXPECT_CALL(*issueToken, Start()).Times(1);
     EXPECT_CALL(*tokenAuth, Start()).Times(0);
@@ -869,10 +869,10 @@ HWTEST_F(RequestManagerImplTest, MutualExclusion_IssueTokenPromoted_WhenTokenAut
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(10));
 
     auto issueToken = CreateMockRequest(MockRequestConfig {}
-                                            .WithId(2)
-                                            .WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST)
-                                            .WithMaxConcurrency(10)
-                                            .WithConflictingType(RequestType::HOST_TOKEN_AUTH_REQUEST));
+            .WithId(2)
+            .WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST)
+            .WithMaxConcurrency(10)
+            .WithConflictingType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     EXPECT_CALL(*tokenAuth, Start()).Times(1);
 
@@ -892,10 +892,10 @@ HWTEST_F(RequestManagerImplTest, MutualExclusion_TokenAuthPromoted_WhenIssueToke
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST).WithMaxConcurrency(10));
 
     auto tokenAuth = CreateMockRequest(MockRequestConfig {}
-                                           .WithId(2)
-                                           .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                           .WithMaxConcurrency(10)
-                                           .WithConflictingType(RequestType::HOST_ISSUE_TOKEN_REQUEST));
+            .WithId(2)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithMaxConcurrency(10)
+            .WithConflictingType(RequestType::HOST_ISSUE_TOKEN_REQUEST));
 
     EXPECT_CALL(*issueToken, Start()).Times(1);
 
@@ -918,10 +918,10 @@ HWTEST_F(RequestManagerImplTest, MutualExclusion_IssueTokenWaitsForAll_TokenAuth
         MockRequestConfig {}.WithId(2).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(10));
 
     auto issueToken = CreateMockRequest(MockRequestConfig {}
-                                            .WithId(3)
-                                            .WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST)
-                                            .WithMaxConcurrency(10)
-                                            .WithConflictingType(RequestType::HOST_TOKEN_AUTH_REQUEST));
+            .WithId(3)
+            .WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST)
+            .WithMaxConcurrency(10)
+            .WithConflictingType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     EXPECT_CALL(*tokenAuth1, Start()).Times(1);
     EXPECT_CALL(*tokenAuth2, Start()).Times(1);
@@ -948,16 +948,16 @@ HWTEST_F(RequestManagerImplTest, MutualExclusion_FIFO_NewTokenAuthWaits_WhenIssu
         MockRequestConfig {}.WithId(1).WithType(RequestType::HOST_TOKEN_AUTH_REQUEST).WithMaxConcurrency(10));
 
     auto issueToken = CreateMockRequest(MockRequestConfig {}
-                                            .WithId(2)
-                                            .WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST)
-                                            .WithMaxConcurrency(10)
-                                            .WithConflictingType(RequestType::HOST_TOKEN_AUTH_REQUEST));
+            .WithId(2)
+            .WithType(RequestType::HOST_ISSUE_TOKEN_REQUEST)
+            .WithMaxConcurrency(10)
+            .WithConflictingType(RequestType::HOST_TOKEN_AUTH_REQUEST));
 
     auto tokenAuth2 = CreateMockRequest(MockRequestConfig {}
-                                            .WithId(3)
-                                            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
-                                            .WithMaxConcurrency(10)
-                                            .WithConflictingType(RequestType::HOST_ISSUE_TOKEN_REQUEST));
+            .WithId(3)
+            .WithType(RequestType::HOST_TOKEN_AUTH_REQUEST)
+            .WithMaxConcurrency(10)
+            .WithConflictingType(RequestType::HOST_ISSUE_TOKEN_REQUEST));
 
     EXPECT_CALL(*tokenAuth1, Start()).Times(1);
 

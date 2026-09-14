@@ -121,7 +121,8 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_CarBypass, TestSize.Level0)
     companionStatus.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
     companionStatus.tokenAuthAtl = 20000;
 
-    const DeviceStatus carDeviceStatus = { .deviceKey = COMPANION_DEVICE_KEY, .isAuthMaintainActive = false,
+    const DeviceStatus carDeviceStatus = { .deviceKey = COMPANION_DEVICE_KEY,
+        .isAuthMaintainActive = false,
         .deviceType = DeviceType::CAR };
 
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_))

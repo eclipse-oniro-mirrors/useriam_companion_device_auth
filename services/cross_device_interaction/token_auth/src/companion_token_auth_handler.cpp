@@ -19,6 +19,7 @@
 #include "iam_log_tracer.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "cross_device_comm_manager.h"
 #include "error_guard.h"
 #include "host_binding_manager.h"
@@ -27,7 +28,6 @@
 #include "security_agent.h"
 #include "singleton_manager.h"
 #include "token_auth_message.h"
-#include "adapter_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_COMPANION_TOKEN_AUTH_HANDLER
@@ -102,8 +102,8 @@ bool CompanionTokenAuthHandler::CheckLocalDeviceStatus(const std::string &connec
     }
     ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(), companionUserId == localDeviceKey->deviceUserId, false);
     ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(),
-        GetSubProfileIdManager().IsForegroundSubProfileId(
-            localDeviceKey->deviceUserId, localDeviceKey->deviceSubProfileId),
+        GetSubProfileIdManager().IsForegroundSubProfileId(localDeviceKey->deviceUserId,
+            localDeviceKey->deviceSubProfileId),
         false);
 
     return true;

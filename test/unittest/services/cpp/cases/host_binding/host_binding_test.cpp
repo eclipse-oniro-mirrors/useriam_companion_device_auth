@@ -752,9 +752,9 @@ HWTEST_F(HostBindingTest, SetTokenValid_003, TestSize.Level0)
 
     EXPECT_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _, _))
         .WillOnce(Invoke([](UserId companionUserId, int32_t companionSubProfileId, const DeviceKey &hostDeviceKey,
-                        const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, companionSubProfileId,
-                hostDeviceKey, triggerReason);
+                             const std::string &triggerReason) {
+            return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, companionSubProfileId, hostDeviceKey,
+                triggerReason);
         }));
     EXPECT_CALL(requestMgr, Start(_)).WillOnce(Return(false));
 
@@ -807,9 +807,9 @@ HWTEST_F(HostBindingTest, SetTokenValid_004, TestSize.Level0)
 
     EXPECT_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _, _))
         .WillOnce(Invoke([](UserId companionUserId, int32_t companionSubProfileId, const DeviceKey &hostDeviceKey,
-                        const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, companionSubProfileId,
-                hostDeviceKey, triggerReason);
+                             const std::string &triggerReason) {
+            return std::make_shared<CompanionRevokeTokenRequest>(companionUserId, companionSubProfileId, hostDeviceKey,
+                triggerReason);
         }));
     EXPECT_CALL(requestMgr, Start(_)).WillOnce(Return(true));
 
@@ -948,8 +948,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_TriggersResync, TestSi
 
     // TriggerResyncToHost calls CreateCompanionRequestResyncRequest; return a non-null mock
     auto resyncRequest = std::make_shared<MockIRequest>();
-    EXPECT_CALL(requestFactory, CreateCompanionRequestResyncRequest(_, _))
-        .WillOnce(Return(resyncRequest));
+    EXPECT_CALL(requestFactory, CreateCompanionRequestResyncRequest(_, _)).WillOnce(Return(resyncRequest));
 
     auto &requestMgr = guard.GetRequestManager();
     EXPECT_CALL(requestMgr, Start(_)).WillOnce(Return(true));
@@ -999,8 +998,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_True_NoResync, TestSiz
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _, _)).WillByDefault(Return(nullptr));
     // Resync is triggered once during Initialize (false->true), but NOT on the subsequent same-state call
     auto resyncRequest = std::make_shared<MockIRequest>();
-    EXPECT_CALL(requestFactory, CreateCompanionRequestResyncRequest(_, _))
-        .WillOnce(Return(resyncRequest));
+    EXPECT_CALL(requestFactory, CreateCompanionRequestResyncRequest(_, _)).WillOnce(Return(resyncRequest));
 
     auto &requestMgr = guard.GetRequestManager();
     EXPECT_CALL(requestMgr, Start(_)).WillOnce(Return(true));
@@ -1060,10 +1058,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_False_TriggersResync, 
         .WillOnce(Return(resyncRequest));
 
     auto &requestMgr = guard.GetRequestManager();
-    EXPECT_CALL(requestMgr, Start(_))
-        .Times(2)
-        .WillOnce(Return(true))
-        .WillOnce(Return(true));
+    EXPECT_CALL(requestMgr, Start(_)).Times(2).WillOnce(Return(true)).WillOnce(Return(true));
 
     auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
     auto binding = HostBinding::Create(persistedStatus);

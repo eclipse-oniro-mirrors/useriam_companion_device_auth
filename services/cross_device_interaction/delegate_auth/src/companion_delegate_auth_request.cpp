@@ -71,8 +71,8 @@ bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionUserId_ == localDeviceKey->deviceUserId, false);
 
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(),
-        GetSubProfileIdManager().IsForegroundSubProfileId(
-            localDeviceKey->deviceUserId, localDeviceKey->deviceSubProfileId),
+        GetSubProfileIdManager().IsForegroundSubProfileId(localDeviceKey->deviceUserId,
+            localDeviceKey->deviceSubProfileId),
         false);
 
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();

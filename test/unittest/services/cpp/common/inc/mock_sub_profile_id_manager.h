@@ -28,8 +28,8 @@ class MockSubProfileIdManager : public ISubProfileIdManager {
 public:
     MOCK_METHOD(int32_t, GetForegroundSubProfileId, (UserId userId), (const, override));
     MOCK_METHOD(bool, IsForegroundSubProfileId, (UserId userId, int32_t subProfileId), (const, override));
-    MOCK_METHOD(std::optional<std::string>, GetSubProfileName,
-        (UserId userId, int32_t subProfileId), (const, override));
+    MOCK_METHOD(std::optional<std::string>, GetSubProfileName, (UserId userId, int32_t subProfileId),
+        (const, override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeSubProfileChanged, (SubProfileChangedCallback && callback),
         (override));
 

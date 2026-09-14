@@ -36,12 +36,12 @@
 #include "service_common.h"
 #include "soft_bus_adapter.h"
 #include "soft_bus_adapter_manager.h"
+#include "sub_profile_id_manager.h"
 #include "subscription.h"
 #include "system_param_manager.h"
 #include "system_settings_manager.h"
 #include "time_keeper.h"
 #include "user_auth_adapter.h"
-#include "sub_profile_id_manager.h"
 #include "user_id_manager.h"
 
 namespace OHOS {

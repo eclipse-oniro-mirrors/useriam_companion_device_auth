@@ -91,8 +91,8 @@ void CompanionObtainTokenRequest::OnConnected()
     auto localDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKeyOpt.has_value());
     ENSURE_OR_RETURN_DESC(GetDescription(),
-        GetSubProfileIdManager().IsForegroundSubProfileId(
-            localDeviceKeyOpt->deviceUserId, localDeviceKeyOpt->deviceSubProfileId));
+        GetSubProfileIdManager().IsForegroundSubProfileId(localDeviceKeyOpt->deviceUserId,
+            localDeviceKeyOpt->deviceSubProfileId));
 
     companionDeviceKey_ = localDeviceKeyOpt.value();
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
