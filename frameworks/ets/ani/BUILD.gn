@@ -33,6 +33,7 @@ ohos_taihe("companion_device_auth_taihe") {
 }
 
 taihe_shared_library("companiondeviceauth_ani") {
+  shlib_type = "ani"
   include_dirs = [
     "inc",
     "${companion_device_auth_path}/common/inc",
