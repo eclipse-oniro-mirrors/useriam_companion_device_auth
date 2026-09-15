@@ -343,7 +343,7 @@ struct SyncDeviceStatus {
     int32_t deviceSubProfileId { INVALID_SUB_PROFILE_ID };
     std::string deviceName {};
     std::string deviceSubProfileName {};
-    bool isAuthMaintainActive { false };
+    std::optional<bool> isAuthMaintainActive;
 };
 
 struct DeviceCapabilityInfo {

@@ -50,7 +50,7 @@ struct SyncDeviceStatusReply {
     std::string deviceName;
     std::vector<uint8_t> companionCheckResponse;
     std::string deviceSubProfileName;
-    bool isAuthMaintainActive { false };
+    std::optional<bool> isAuthMaintainActive;
 };
 
 void EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes);
@@ -60,6 +60,8 @@ std::optional<SyncDeviceStatusRequest> DecodeSyncDeviceStatusRequest(const Attri
 void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes &attributes);
 
 std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attributes &attributes);
+
+bool DecodeSyncDeviceStatusReplyInner(const Attributes &attributes, SyncDeviceStatusReply &reply);
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

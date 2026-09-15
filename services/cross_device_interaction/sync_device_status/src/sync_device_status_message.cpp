@@ -79,7 +79,55 @@ void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_DEVICE_NAME, reply.deviceName);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME, reply.deviceSubProfileName);
-    attributes.SetBoolValue(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, reply.isAuthMaintainActive);
+    if (reply.isAuthMaintainActive.has_value()) {
+        attributes.SetBoolValue(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, reply.isAuthMaintainActive.value());
+    }
+}
+
+bool DecodeSyncDeviceStatusReplyInner(const Attributes &attributes, SyncDeviceStatusReply &reply)
+{
+    std::vector<uint16_t> protocolList;
+    bool getProtocolListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocolList);
+    ENSURE_OR_RETURN_VAL(getProtocolListRet, false);
+    std::vector<uint16_t> capabilityList;
+    bool getCapabilityListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
+    ENSURE_OR_RETURN_VAL(getCapabilityListRet, false);
+    std::vector<int32_t> businessIdList;
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST)) {
+        bool getBusinessIdListRet =
+            attributes.GetInt32ArrayValue(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST, businessIdList);
+        ENSURE_OR_RETURN_VAL(getBusinessIdListRet, false);
+    }
+    auto companionDeviceKey = DecodeCompanionDeviceKey(attributes);
+    ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), false);
+    reply.companionDeviceKey = *companionDeviceKey;
+    uint16_t secureProtocolId = 0;
+    bool getSecureProtocolIdRet =
+        attributes.GetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, secureProtocolId);
+    ENSURE_OR_RETURN_VAL(getSecureProtocolIdRet, false);
+    bool getUserNameRet = attributes.GetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, reply.deviceUserName);
+    ENSURE_OR_RETURN_VAL(getUserNameRet, false);
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_DEVICE_NAME)) {
+        attributes.GetStringValue(Attributes::ATTR_CDA_SA_DEVICE_NAME, reply.deviceName);
+    }
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME)) {
+        attributes.GetStringValue(Attributes::ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME, reply.deviceSubProfileName);
+    }
+    bool getExtraInfoRet =
+        attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
+    ENSURE_OR_RETURN_VAL(getExtraInfoRet, false);
+    reply.protocolIdList = ProtocolIdConverter::FromUnderlyingVec(protocolList);
+    reply.capabilityList = CapabilityConverter::FromUnderlyingVec(capabilityList);
+    reply.businessIdList = BusinessIdConverter::FromUnderlyingVec(businessIdList);
+    reply.secureProtocolId = SecureProtocolIdConverter::FromUnderlying(secureProtocolId);
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN)) {
+        bool isAuthMaintainActive = false;
+        bool getAuthMaintainActive =
+            attributes.GetBoolValue(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, isAuthMaintainActive);
+        ENSURE_OR_RETURN_VAL(getAuthMaintainActive, false);
+        reply.isAuthMaintainActive = isAuthMaintainActive;
+    }
+    return true;
 }
 
 std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attributes &attributes)
@@ -94,43 +142,7 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
         return reply;
     }
 
-    std::vector<uint16_t> protocolList;
-    bool getProtocolListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocolList);
-    ENSURE_OR_RETURN_VAL(getProtocolListRet, std::nullopt);
-    std::vector<uint16_t> capabilityList;
-    bool getCapabilityListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
-    ENSURE_OR_RETURN_VAL(getCapabilityListRet, std::nullopt);
-    std::vector<int32_t> businessIdList;
-    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST)) {
-        bool getBusinessIdListRet =
-            attributes.GetInt32ArrayValue(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST, businessIdList);
-        ENSURE_OR_RETURN_VAL(getBusinessIdListRet, std::nullopt);
-    }
-    auto companionDeviceKey = DecodeCompanionDeviceKey(attributes);
-    ENSURE_OR_RETURN_VAL(companionDeviceKey.has_value(), std::nullopt);
-    reply.companionDeviceKey = *companionDeviceKey;
-    uint16_t secureProtocolId = 0;
-    bool getSecureProtocolIdRet =
-        attributes.GetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, secureProtocolId);
-    ENSURE_OR_RETURN_VAL(getSecureProtocolIdRet, std::nullopt);
-    bool getUserNameRet = attributes.GetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, reply.deviceUserName);
-    ENSURE_OR_RETURN_VAL(getUserNameRet, std::nullopt);
-    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_DEVICE_NAME)) {
-        attributes.GetStringValue(Attributes::ATTR_CDA_SA_DEVICE_NAME, reply.deviceName);
-    }
-    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME)) {
-        attributes.GetStringValue(Attributes::ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME, reply.deviceSubProfileName);
-    }
-    bool getExtraInfoRet =
-        attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
-    ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
-    reply.protocolIdList = ProtocolIdConverter::FromUnderlyingVec(protocolList);
-    reply.capabilityList = CapabilityConverter::FromUnderlyingVec(capabilityList);
-    reply.businessIdList = BusinessIdConverter::FromUnderlyingVec(businessIdList);
-    reply.secureProtocolId = SecureProtocolIdConverter::FromUnderlying(secureProtocolId);
-    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN)) {
-        attributes.GetBoolValue(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, reply.isAuthMaintainActive);
-    }
+    ENSURE_OR_RETURN_VAL(DecodeSyncDeviceStatusReplyInner(attributes, reply), std::nullopt);
     return reply;
 }
 

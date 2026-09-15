@@ -71,16 +71,16 @@ HWTEST_F(ConstantSubProfileIdManagerTest, GetForegroundSubProfileId_DifferentUse
     EXPECT_EQ(manager_->GetForegroundSubProfileId(INT32_MAX), INVALID_SUB_PROFILE_ID);
 }
 
-// IsForegroundSubProfileId always returns false
-HWTEST_F(ConstantSubProfileIdManagerTest, IsForegroundSubProfileId_ReturnsFalse, TestSize.Level0)
+// IsForegroundSubProfileId always returns true
+HWTEST_F(ConstantSubProfileIdManagerTest, IsForegroundSubProfileId_ReturnsTrue, TestSize.Level0)
 {
-    EXPECT_FALSE(manager_->IsForegroundSubProfileId(TEST_USER_ID, TEST_SUB_PROFILE_ID));
+    EXPECT_TRUE(manager_->IsForegroundSubProfileId(TEST_USER_ID, TEST_SUB_PROFILE_ID));
 }
 
-// IsForegroundSubProfileId with invalid sub profile id returns false
+// IsForegroundSubProfileId with invalid sub profile id returns true
 HWTEST_F(ConstantSubProfileIdManagerTest, IsForegroundSubProfileId_InvalidId, TestSize.Level0)
 {
-    EXPECT_FALSE(manager_->IsForegroundSubProfileId(TEST_USER_ID, INVALID_SUB_PROFILE_ID));
+    EXPECT_TRUE(manager_->IsForegroundSubProfileId(TEST_USER_ID, INVALID_SUB_PROFILE_ID));
 }
 
 // GetSubProfileName returns nullopt

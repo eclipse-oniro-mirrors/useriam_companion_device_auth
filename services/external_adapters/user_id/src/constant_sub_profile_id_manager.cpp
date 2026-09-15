@@ -47,7 +47,7 @@ public:
     {
         (void)userId;
         (void)subProfileId;
-        return false;
+        return true;
     }
 
     std::optional<std::string> GetSubProfileName(UserId userId, int32_t subProfileId) const override
