@@ -60,14 +60,14 @@ public:
         (int32_t localUserId, std::vector<IpcTemplateStatus> &templateStatusList, int32_t &resultCode), (override));
     MOCK_METHOD(ErrCode, RegisterDeviceSelectCallback,
         (const sptr<IIpcDeviceSelectCallback> &deviceSelectCallback, int32_t &resultCode), (override));
-    MOCK_METHOD(ErrCode, UnregisterDeviceSelectCallback, (int32_t &resultCode), (override));
+    MOCK_METHOD(ErrCode, UnregisterDeviceSelectCallback, (int32_t & resultCode), (override));
     MOCK_METHOD(ErrCode, UpdateTemplateEnabledBusinessIds,
         (uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds, int32_t &resultCode), (override));
     MOCK_METHOD(ErrCode, CheckLocalUserIdValid, (int32_t localUserId, bool &isUserIdValid, int32_t &resultCode),
         (override));
     MOCK_METHOD(ErrCode, RegisterPasscodePromptCallback,
         (const sptr<IIpcPasscodePromptCallback> &passcodePromptCallback, int32_t &resultCode), (override));
-    MOCK_METHOD(ErrCode, UnregisterPasscodePromptCallback, (int32_t &resultCode), (override));
+    MOCK_METHOD(ErrCode, UnregisterPasscodePromptCallback, (int32_t & resultCode), (override));
 
     // IRemoteBroker interface - stub implementation
     sptr<IRemoteObject> AsObject() override

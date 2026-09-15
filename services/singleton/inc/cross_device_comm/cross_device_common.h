@@ -40,6 +40,14 @@ public:
     PhysicalDeviceKey() = default;
     ~PhysicalDeviceKey() = default;
 
+    static PhysicalDeviceKey FromDeviceKey(const DeviceKey &deviceKey)
+    {
+        PhysicalDeviceKey physicalKey;
+        physicalKey.idType = deviceKey.idType;
+        physicalKey.deviceId = deviceKey.deviceId;
+        return physicalKey;
+    }
+
     bool operator==(const PhysicalDeviceKey &other) const
     {
         return idType == other.idType && deviceId == other.deviceId;
@@ -70,6 +78,7 @@ public:
     bool refreshToken { false };
     std::vector<BusinessId> supportedBusinessIds {};
     bool useSyncDeviceName { false };
+    bool reportUnsynced { false };
 
     bool operator==(const PhysicalDeviceStatus &other) const
     {
@@ -78,7 +87,7 @@ public:
             networkId == other.networkId && isAuthMaintainActive == other.isAuthMaintainActive &&
             deviceType == other.deviceType && atlRevokeDelayMs == other.atlRevokeDelayMs &&
             refreshToken == other.refreshToken && supportedBusinessIds == other.supportedBusinessIds &&
-            useSyncDeviceName == other.useSyncDeviceName;
+            useSyncDeviceName == other.useSyncDeviceName && reportUnsynced == other.reportUnsynced;
     }
 };
 

@@ -1040,6 +1040,36 @@ HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_MultipleSynced, TestSize.Le
     EXPECT_EQ(2u, allDevices.size());
 }
 
+HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_IncludeUnsyncedFollowsReportUnsynced, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+
+    auto syncedStatus = MakePhysicalStatus("device-synced", ChannelId::SOFTBUS, "synced");
+    DeviceStatusEntry syncedEntry(syncedStatus, []() {});
+    syncedEntry.isSynced = true;
+    ctx.manager->deviceStatusMap_.emplace(syncedStatus.physicalDeviceKey, std::move(syncedEntry));
+
+    auto reportedStatus = MakePhysicalStatus("device-unsynced-reported", ChannelId::SOFTBUS, "reported");
+    reportedStatus.reportUnsynced = true;
+    DeviceStatusEntry reportedEntry(reportedStatus, []() {});
+    ctx.manager->deviceStatusMap_.emplace(reportedStatus.physicalDeviceKey, std::move(reportedEntry));
+
+    auto suppressedStatus = MakePhysicalStatus("device-unsynced-suppressed", ChannelId::SOFTBUS, "suppressed");
+    DeviceStatusEntry suppressedEntry(suppressedStatus, []() {});
+    ctx.manager->deviceStatusMap_.emplace(suppressedStatus.physicalDeviceKey, std::move(suppressedEntry));
+
+    auto allDevices = ctx.manager->GetAllDeviceStatus();
+    ASSERT_EQ(1u, allDevices.size());
+    EXPECT_EQ("device-synced", allDevices[0].deviceKey.deviceId);
+
+    auto includingUnsynced = ctx.manager->GetAllDeviceStatus(true);
+    ASSERT_EQ(2u, includingUnsynced.size());
+    EXPECT_EQ("device-synced", includingUnsynced[0].deviceKey.deviceId);
+    EXPECT_EQ("device-unsynced-reported", includingUnsynced[1].deviceKey.deviceId);
+    EXPECT_TRUE(includingUnsynced[0].isOnline);
+    EXPECT_FALSE(includingUnsynced[1].isOnline);
+}
+
 HWTEST_F(DeviceStatusManagerTest, SubscribeDeviceStatus_SpecificDevice_RefreshTriggered, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
@@ -1096,6 +1126,34 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_DetectsRefreshTokenChange, 
     ctx.manager->RefreshDeviceList(false);
     ASSERT_EQ(1u, ctx.manager->deviceStatusMap_.size());
     EXPECT_TRUE(ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey).refreshToken);
+}
+
+HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_DetectsReportUnsyncedChange, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+    ctx.manager->currentMode_ = SUBSCRIBE_MODE_ALL_DEVICES;
+
+    auto physicalStatus = MakePhysicalStatus("device-report-unsynced", ChannelId::SOFTBUS, "Device");
+    physicalStatus.reportUnsynced = false;
+
+    // First add with reportUnsynced=false
+    EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
+        .WillOnce(Return(std::vector<PhysicalDeviceStatus> { physicalStatus }));
+
+    ctx.manager->RefreshDeviceList(false);
+    ASSERT_EQ(1u, ctx.manager->deviceStatusMap_.size());
+    EXPECT_FALSE(ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey).reportUnsynced);
+
+    // Now update with reportUnsynced=true
+    auto updatedStatus = physicalStatus;
+    updatedStatus.reportUnsynced = true;
+
+    EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
+        .WillOnce(Return(std::vector<PhysicalDeviceStatus> { updatedStatus }));
+
+    ctx.manager->RefreshDeviceList(false);
+    ASSERT_EQ(1u, ctx.manager->deviceStatusMap_.size());
+    EXPECT_TRUE(ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey).reportUnsynced);
 }
 
 HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_IncludesRefreshToken, TestSize.Level0)

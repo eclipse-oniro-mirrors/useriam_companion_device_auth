@@ -193,6 +193,157 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncNoTemplateE2E_001, TestSize.Level0)
 }
 
 // ============================================================================
+// Test 1b: Host side — reportUnsynced device is visible before sync completes,
+//          then flips to online when the sync reply arrives.
+// ============================================================================
+//
+// What this tests:
+//   SimulateDeviceOnline(reportUnsynced=true) → map insertion → NotifySubscribers
+//     → AvailableDeviceSubscription re-pulls GetAllDeviceStatus(true)
+//       → callback.OnAvailableDeviceStatusChange with isOnline=false,
+//         deviceUserId=INVALID_USER_ID (pre-sync window)
+//
+//   [Inject SyncDeviceStatusReply SUCCESS] → HandleSyncResult → isSynced=true
+//     → NotifySubscribers → re-pull → callback re-fires with isOnline=true
+//
+// E2E level: HIGH — locks the impl pass-through of includeUnsynced=true and the
+// "subscribers ignore payload and re-pull" contract end to end.
+// ============================================================================
+HWTEST_F(SyncDeviceStatusModuleTest, HostSyncPreSyncWindowAndFlipE2E_001, TestSize.Level0)
+{
+    ModuleTestGuard guard;
+    constexpr UserId HOST_USER = 100;
+    const std::string deviceId = "companion-presync-device-001";
+
+    HostBeginCompanionCheckOutput checkOutput;
+    checkOutput.salt = { 0x01, 0x02, 0x03, 0x04 };
+    checkOutput.challenge = 12345;
+    EXPECT_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _))
+        .WillOnce(DoAll(SetArgReferee<1>(checkOutput), Return(ResultCode::SUCCESS)));
+
+    int callbackCount = 0;
+    std::vector<IpcDeviceStatus> capturedDeviceStatusList;
+    auto callback =
+        sptr<FakeAvailableDeviceStatusCallback>::MakeSptr([&](const std::vector<IpcDeviceStatus> &deviceStatusList) {
+            callbackCount++;
+            capturedDeviceStatusList = deviceStatusList;
+            return 0;
+        });
+    ASSERT_NE(callback, nullptr);
+
+    EXPECT_EQ(guard.GetCore().SubscribeAvailableDeviceStatus(HOST_USER, CallerInfo { .name = FOREGROUND_TEST_BUNDLE },
+                  callback),
+        ResultCode::SUCCESS);
+    DrainPendingTasks();
+
+    // Run: device online with reportUnsynced=true → visible before sync completes.
+    guard.SimulateDeviceOnline(deviceId, true);
+
+    EXPECT_GE(callbackCount, 1);
+    ASSERT_EQ(capturedDeviceStatusList.size(), 1u);
+    EXPECT_EQ(capturedDeviceStatusList[0].deviceKey.deviceId, deviceId);
+    EXPECT_FALSE(capturedDeviceStatusList[0].isOnline);
+    EXPECT_EQ(capturedDeviceStatusList[0].deviceKey.deviceUserId, INVALID_USER_ID);
+
+    // Sync completes → same device re-reported as online.
+    auto connNames = guard.GetChannel().GetAllConnectionNames();
+    ASSERT_FALSE(connNames.empty());
+    const auto &connName = connNames[0];
+    auto msgInfo = guard.CaptureOutboundMessage(connName, MessageType::SYNC_DEVICE_STATUS);
+    ASSERT_TRUE(msgInfo.has_value());
+
+    SyncDeviceStatusReply reply;
+    reply.result = ResultCode::SUCCESS;
+    reply.protocolIdList = { ProtocolId::VERSION_1 };
+    reply.capabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
+    reply.secureProtocolId = SecureProtocolId::DEFAULT;
+    reply.companionDeviceKey = MakeDeviceKey(deviceId, 200);
+    reply.deviceUserName = "CompanionUser";
+    InjectSyncReply(guard, connName, msgInfo->seq, reply);
+    DrainPendingTasks();
+
+    EXPECT_GE(callbackCount, 2);
+    ASSERT_EQ(capturedDeviceStatusList.size(), 1u);
+    EXPECT_EQ(capturedDeviceStatusList[0].deviceKey.deviceId, deviceId);
+    EXPECT_TRUE(capturedDeviceStatusList[0].isOnline);
+}
+
+// ============================================================================
+// Test 1c: Host side — peer service unavailable aborts sync retries, but the
+//          reportUnsynced device stays visible with isOnline=false.
+// ============================================================================
+//
+// What this tests:
+//   [Inject SyncDeviceStatusReply PEER_SERVICE_NOT_AVAILABLE]
+//     → HandleSyncResult failure branch → OnSyncAbort (no retry timer)
+//     → available list keeps the unsynced entry
+//
+// Both callbacks subscribe before the device comes online: every subscribe
+// posts a RefreshDeviceStatus, which must not race an in-flight sync (a
+// request left pending at teardown aborts in the guard destructor when the
+// security agent singleton is already reset).
+// ============================================================================
+HWTEST_F(SyncDeviceStatusModuleTest, HostSyncPeerServiceNotAvailableStaysVisibleE2E_001, TestSize.Level0)
+{
+    ModuleTestGuard guard;
+    constexpr UserId HOST_USER = 100;
+    const std::string deviceId = "companion-abort-device-001";
+
+    HostBeginCompanionCheckOutput checkOutput;
+    checkOutput.salt = { 0x01, 0x02, 0x03, 0x04 };
+    checkOutput.challenge = 12345;
+    ON_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _))
+        .WillByDefault(DoAll(SetArgReferee<1>(checkOutput), Return(ResultCode::SUCCESS)));
+
+    std::vector<IpcDeviceStatus> capturedList1;
+    auto callback1 =
+        sptr<FakeAvailableDeviceStatusCallback>::MakeSptr([&](const std::vector<IpcDeviceStatus> &deviceStatusList) {
+            capturedList1 = deviceStatusList;
+            return 0;
+        });
+    ASSERT_NE(callback1, nullptr);
+    std::vector<IpcDeviceStatus> capturedList2;
+    auto callback2 =
+        sptr<FakeAvailableDeviceStatusCallback>::MakeSptr([&](const std::vector<IpcDeviceStatus> &deviceStatusList) {
+            capturedList2 = deviceStatusList;
+            return 0;
+        });
+    ASSERT_NE(callback2, nullptr);
+
+    EXPECT_EQ(guard.GetCore().SubscribeAvailableDeviceStatus(HOST_USER, CallerInfo { .name = FOREGROUND_TEST_BUNDLE },
+                  callback1),
+        ResultCode::SUCCESS);
+    EXPECT_EQ(guard.GetCore().SubscribeAvailableDeviceStatus(HOST_USER, CallerInfo { .name = FOREGROUND_TEST_BUNDLE },
+                  callback2),
+        ResultCode::SUCCESS);
+    DrainPendingTasks();
+
+    guard.SimulateDeviceOnline(deviceId, true);
+
+    auto connNames = guard.GetChannel().GetAllConnectionNames();
+    ASSERT_FALSE(connNames.empty());
+    const auto &connName = connNames[0];
+    auto msgInfo = guard.CaptureOutboundMessage(connName, MessageType::SYNC_DEVICE_STATUS);
+    ASSERT_TRUE(msgInfo.has_value());
+
+    SyncDeviceStatusReply reply;
+    reply.result = ResultCode::PEER_SERVICE_NOT_AVAILABLE;
+    InjectSyncReply(guard, connName, msgInfo->seq, reply);
+    DrainPendingTasks();
+
+    // Device is not synced: request-path getter stays strict.
+    EXPECT_FALSE(GetCrossDeviceCommManager().GetDeviceStatus(MakeDeviceKey(deviceId, HOST_USER)).has_value());
+
+    // Both subscribers keep the unsynced entry in the last pushed list.
+    ASSERT_EQ(capturedList1.size(), 1u);
+    EXPECT_EQ(capturedList1[0].deviceKey.deviceId, deviceId);
+    EXPECT_FALSE(capturedList1[0].isOnline);
+    ASSERT_EQ(capturedList2.size(), 1u);
+    EXPECT_EQ(capturedList2[0].deviceKey.deviceId, deviceId);
+    EXPECT_FALSE(capturedList2[0].isOnline);
+}
+
+// ============================================================================
 // Test 2: Companion side — receive SYNC_DEVICE_STATUS request →
 //         no host binding → return reply with protocols + user name
 // ============================================================================

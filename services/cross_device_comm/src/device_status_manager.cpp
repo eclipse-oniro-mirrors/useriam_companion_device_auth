@@ -122,12 +122,12 @@ std::optional<ChannelId> DeviceStatusManager::GetChannelIdByDeviceKey(const Devi
     return it->second.channelId;
 }
 
-std::vector<DeviceStatus> DeviceStatusManager::GetAllDeviceStatus()
+std::vector<DeviceStatus> DeviceStatusManager::GetAllDeviceStatus(bool includeUnsynced)
 {
     std::vector<DeviceStatus> result;
 
     for (const auto &pair : deviceStatusMap_) {
-        if (pair.second.isSynced) {
+        if (pair.second.isSynced || (includeUnsynced && pair.second.reportUnsynced)) {
             result.push_back(pair.second.BuildDeviceStatus());
         }
     }
@@ -547,34 +547,38 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 status.channelId);
             TriggerDeviceSync(key);
         } else {
-            DeviceStatusEntry &deviceStatus = it->second;
-            bool effectiveBusinessIdsChanged =
-                deviceStatus.SetPhysicalCompanionBusinessIds(status.supportedBusinessIds);
-            bool effectiveIsAuthMaintainActiveChanged =
-                deviceStatus.SetPhysicalIsAuthMaintainActive(status.isAuthMaintainActive);
-            bool hasChange = deviceStatus.channelId != status.channelId ||
-                deviceStatus.physicalDeviceName != status.deviceName ||
-                deviceStatus.deviceModelInfo != status.deviceModelInfo ||
-                deviceStatus.deviceType != status.deviceType ||
-                deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs ||
-                deviceStatus.refreshToken != status.refreshToken || effectiveBusinessIdsChanged ||
-                effectiveIsAuthMaintainActiveChanged;
-            if (hasChange) {
-                deviceStatus.channelId = status.channelId;
-                deviceStatus.physicalDeviceName = status.deviceName;
-                deviceStatus.deviceModelInfo = status.deviceModelInfo;
-                deviceStatus.deviceType = status.deviceType;
-                deviceStatus.atlRevokeDelayMs = status.atlRevokeDelayMs;
-                deviceStatus.refreshToken = status.refreshToken;
-                deviceChanged = true;
-            }
-            if (resync) {
-                TriggerDeviceSync(key);
-            }
+            deviceChanged = UpdateExistingDevice(key, it->second, status, resync) || deviceChanged;
         }
     }
 
     return deviceChanged;
+}
+
+bool DeviceStatusManager::UpdateExistingDevice(const PhysicalDeviceKey &key, DeviceStatusEntry &deviceStatus,
+    const PhysicalDeviceStatus &status, bool resync)
+{
+    bool effectiveBusinessIdsChanged = deviceStatus.SetPhysicalCompanionBusinessIds(status.supportedBusinessIds);
+    bool effectiveIsAuthMaintainActiveChanged =
+        deviceStatus.SetPhysicalIsAuthMaintainActive(status.isAuthMaintainActive);
+    bool hasChange = deviceStatus.channelId != status.channelId ||
+        deviceStatus.physicalDeviceName != status.deviceName ||
+        deviceStatus.deviceModelInfo != status.deviceModelInfo || deviceStatus.deviceType != status.deviceType ||
+        deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs || deviceStatus.refreshToken != status.refreshToken ||
+        deviceStatus.reportUnsynced != status.reportUnsynced || effectiveBusinessIdsChanged ||
+        effectiveIsAuthMaintainActiveChanged;
+    if (hasChange) {
+        deviceStatus.channelId = status.channelId;
+        deviceStatus.physicalDeviceName = status.deviceName;
+        deviceStatus.deviceModelInfo = status.deviceModelInfo;
+        deviceStatus.deviceType = status.deviceType;
+        deviceStatus.atlRevokeDelayMs = status.atlRevokeDelayMs;
+        deviceStatus.refreshToken = status.refreshToken;
+        deviceStatus.reportUnsynced = status.reportUnsynced;
+    }
+    if (resync) {
+        TriggerDeviceSync(key);
+    }
+    return hasChange;
 }
 
 void DeviceStatusManager::HandleChannelDeviceStatusChange(ChannelId channelId,

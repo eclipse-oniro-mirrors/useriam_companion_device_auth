@@ -53,7 +53,7 @@ public:
 
     std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey);
     std::optional<ChannelId> GetChannelIdByDeviceKey(const DeviceKey &deviceKey);
-    std::vector<DeviceStatus> GetAllDeviceStatus();
+    std::vector<DeviceStatus> GetAllDeviceStatus(bool includeUnsynced = false);
     std::optional<SteadyTimeMs> GetTemplateStatusSubscribeTimeMs() const;
     void SetTemplateStatusSubscribed(bool isActive);
 
@@ -102,6 +102,8 @@ private:
     std::map<PhysicalDeviceKey, PhysicalDeviceStatus> CollectFilteredDevices();
     bool RemoveObsoleteDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap);
     bool AddOrUpdateDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap, bool resync);
+    bool UpdateExistingDevice(const PhysicalDeviceKey &key, DeviceStatusEntry &deviceStatus,
+        const PhysicalDeviceStatus &status, bool resync);
     void NotifySubscribers();
 
     std::map<PhysicalDeviceKey, DeviceStatusEntry> deviceStatusMap_;

@@ -34,7 +34,7 @@ public:
     MOCK_METHOD(LocalDeviceProfile, GetLocalDeviceProfile, (), (override));
 
     MOCK_METHOD(std::optional<DeviceStatus>, GetDeviceStatus, (const DeviceKey &deviceKey), (override));
-    MOCK_METHOD(std::vector<DeviceStatus>, GetAllDeviceStatus, (), (override));
+    MOCK_METHOD(std::vector<DeviceStatus>, GetAllDeviceStatus, (bool), (override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeAllDeviceStatus, (OnDeviceStatusChange && onDeviceStatusChange),
         (override));
 

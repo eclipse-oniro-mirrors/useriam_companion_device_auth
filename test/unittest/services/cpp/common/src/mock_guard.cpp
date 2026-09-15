@@ -222,7 +222,7 @@ void MockGuard::SetupCrossDeviceCommManagerDefaults()
         .WillByDefault(Invoke([](std::function<void(bool)> &&) { return std::make_unique<Subscription>([]() {}); }));
     ON_CALL(*crossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(LocalDeviceProfile {}));
     ON_CALL(*crossDeviceCommManager_, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(*crossDeviceCommManager_, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(*crossDeviceCommManager_, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(*crossDeviceCommManager_, SubscribeAllDeviceStatus(_)).WillByDefault(Invoke([](OnDeviceStatusChange &&) {
         return std::make_unique<Subscription>([]() {});
     }));

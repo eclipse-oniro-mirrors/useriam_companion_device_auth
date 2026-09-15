@@ -85,7 +85,7 @@ HWTEST_F(HostBindingTest, Create_001, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -135,7 +135,7 @@ HWTEST_F(HostBindingTest, Create_002, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -181,7 +181,7 @@ HWTEST_F(HostBindingTest, Create_003, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -228,7 +228,7 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_001, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -278,7 +278,7 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_002, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -329,7 +329,7 @@ HWTEST_F(HostBindingTest, HandleHostDeviceStatusUpdate_001, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -379,7 +379,7 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_001, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -429,7 +429,7 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_002, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -477,7 +477,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_001, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -523,7 +523,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_002, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     LocalDeviceProfile profile;
@@ -578,7 +578,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_003, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -626,7 +626,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_001, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -672,7 +672,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_002, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -721,7 +721,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_003, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -776,7 +776,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_004, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -831,7 +831,7 @@ HWTEST_F(HostBindingTest, SetTokenValid_005, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -879,7 +879,7 @@ HWTEST_F(HostBindingTest, Destructor_001, TestSize.Level0)
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();
@@ -925,7 +925,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_TriggersResync, TestSi
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     // Start with inactive so Initialize does not trigger resync
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(false));
 
@@ -976,7 +976,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_True_NoResync, TestSiz
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     // Initialize with active=true triggers resync once (false->true transition)
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
@@ -1026,7 +1026,7 @@ HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_False_TriggersResync, 
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     // Start with active so Initialize triggers resync (false->true)
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
@@ -1083,7 +1083,7 @@ HWTEST_F(HostBindingTest, Create_PropagatesCompanionSubProfileId, TestSize.Level
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
 
     auto &companionMgr = guard.GetCompanionManager();

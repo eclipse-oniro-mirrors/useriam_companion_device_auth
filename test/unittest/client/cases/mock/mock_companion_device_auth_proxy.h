@@ -57,7 +57,7 @@ public:
 
     // Mock all service interface methods
     MOCK_METHOD(int32_t, RegisterDeviceSelectCallback, (const sptr<IRemoteObject> &callback, int32_t &result));
-    MOCK_METHOD(int32_t, UnregisterDeviceSelectCallback, (int32_t &result));
+    MOCK_METHOD(int32_t, UnregisterDeviceSelectCallback, (int32_t & result));
     MOCK_METHOD(int32_t, UpdateTemplateEnabledBusinessIds,
         (uint64_t templateId, const std::vector<int32_t> &enabledBusinessIds, int32_t &result));
     MOCK_METHOD(int32_t, GetTemplateStatus,

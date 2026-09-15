@@ -872,8 +872,9 @@ public:
         return std::optional<DeviceStatus>();
     }
 
-    std::vector<DeviceStatus> GetAllDeviceStatus() override
+    std::vector<DeviceStatus> GetAllDeviceStatus(bool includeUnsynced) override
     {
+        (void)includeUnsynced;
         return std::vector<DeviceStatus>();
     }
 

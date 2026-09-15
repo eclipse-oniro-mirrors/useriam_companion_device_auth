@@ -120,6 +120,7 @@ private:
     std::shared_ptr<FakeSaManagerAdapter> saManagerAdapter_;
     std::shared_ptr<FakeSystemParamManager> systemParamManager_;
     std::shared_ptr<FakeUserIdManager> userIdManager_;
+    std::shared_ptr<FakeSubProfileIdManager> subProfileIdManager_;
     std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
 
@@ -198,6 +199,9 @@ public:
 
     // Setup helper: Online a companion device (without registration).
     void SimulateDeviceOnline(const std::string &deviceId);
+
+    // Setup helper: Online a device that may be reported before sync completes.
+    void SimulateDeviceOnline(const std::string &deviceId, bool reportUnsynced);
 
     // Setup helper: Register a companion already online.
     bool RegisterCompanion(UserId hostUser, const std::string &deviceId, TemplateId templateId);

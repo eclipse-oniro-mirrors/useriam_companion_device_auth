@@ -122,10 +122,10 @@ std::optional<DeviceStatus> CrossDeviceCommManagerImpl::GetDeviceStatus(const De
     return deviceStatusMgr_->GetDeviceStatus(deviceKey);
 }
 
-std::vector<DeviceStatus> CrossDeviceCommManagerImpl::GetAllDeviceStatus()
+std::vector<DeviceStatus> CrossDeviceCommManagerImpl::GetAllDeviceStatus(bool includeUnsynced)
 {
     ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, (std::vector<DeviceStatus> {}));
-    return deviceStatusMgr_->GetAllDeviceStatus();
+    return deviceStatusMgr_->GetAllDeviceStatus(includeUnsynced);
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeAllDeviceStatus(

@@ -45,7 +45,7 @@ public:
     virtual std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) = 0;
 
     virtual std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey) = 0;
-    virtual std::vector<DeviceStatus> GetAllDeviceStatus() = 0;
+    virtual std::vector<DeviceStatus> GetAllDeviceStatus(bool includeUnsynced = false) = 0;
     virtual std::unique_ptr<Subscription> SubscribeAllDeviceStatus(OnDeviceStatusChange &&onDeviceStatusChange) = 0;
     virtual std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
         OnDeviceStatusChange &&onDeviceStatusChange) = 0;
