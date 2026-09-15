@@ -228,7 +228,7 @@ bool DeviceStatusEntry::SetPhysicalIsAuthMaintainActive(bool physicalIsAuthMaint
     return previousEffective != effectiveIsAuthMaintainActive_;
 }
 
-bool DeviceStatusEntry::SetSyncIsAuthMaintainActive(bool syncIsAuthMaintainActive)
+bool DeviceStatusEntry::SetSyncIsAuthMaintainActive(std::optional<bool> syncIsAuthMaintainActive)
 {
     syncIsAuthMaintainActive_ = syncIsAuthMaintainActive;
     bool previousEffective = effectiveIsAuthMaintainActive_;

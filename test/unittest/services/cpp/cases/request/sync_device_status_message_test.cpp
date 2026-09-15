@@ -395,12 +395,13 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_WithSubProfile
     SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_EQ(decoded.deviceSubProfileName, "SubProfile1");
-    EXPECT_TRUE(decoded.isAuthMaintainActive);
+    ASSERT_TRUE(decoded.isAuthMaintainActive.has_value());
+    EXPECT_TRUE(decoded.isAuthMaintainActive.value());
 }
 
 /**
  * Scenario: DecodeSyncDeviceStatusReply without deviceSubProfileName and isAuthMaintainActive
- * Expected: Fields default to empty string and false respectively
+ * Expected: deviceSubProfileName defaults to empty string; isAuthMaintainActive is nullopt
  */
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MissingSubProfileFields_Defaults, TestSize.Level0)
 {
@@ -426,7 +427,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MissingSubProf
     SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_TRUE(decoded.deviceSubProfileName.empty());
-    EXPECT_FALSE(decoded.isAuthMaintainActive);
+    EXPECT_FALSE(decoded.isAuthMaintainActive.has_value());
 }
 
 /**

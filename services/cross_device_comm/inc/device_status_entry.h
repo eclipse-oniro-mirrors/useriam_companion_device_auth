@@ -51,7 +51,7 @@ public:
     bool SetSyncCompanionBusinessIds(std::vector<BusinessId> syncCompanionBusinessIds);
     const std::vector<BusinessId> &GetSupportedBusinessIds() const;
     bool SetPhysicalIsAuthMaintainActive(bool physicalIsAuthMaintainActive);
-    bool SetSyncIsAuthMaintainActive(bool syncIsAuthMaintainActive);
+    bool SetSyncIsAuthMaintainActive(std::optional<bool> syncIsAuthMaintainActive);
     PhysicalDeviceKey physicalDeviceKey;
     ChannelId channelId { ChannelId::INVALID };
     int32_t deviceUserId { INVALID_USER_ID };
