@@ -69,7 +69,7 @@ void SetupManagerCreationMocks(MockGuard &guard)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -127,7 +127,7 @@ HWTEST_F(HostBindingManagerImplTest, Create_001, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -177,7 +177,7 @@ HWTEST_F(HostBindingManagerImplTest, Initialize_001, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -244,7 +244,7 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusById_002, TestSize.Leve
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -314,7 +314,7 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusByDeviceUser_002, TestS
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -364,7 +364,7 @@ HWTEST_F(HostBindingManagerImplTest, GetAllHostBindingStatus_001, TestSize.Level
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -417,7 +417,7 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_001, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -467,7 +467,7 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_002, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -519,7 +519,7 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_003, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -653,7 +653,7 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_001, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -730,7 +730,7 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_002, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -779,7 +779,7 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_003, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -820,7 +820,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_001, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -870,7 +870,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_002, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -914,7 +914,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_003, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -959,7 +959,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_004, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1003,7 +1003,7 @@ HWTEST_F(HostBindingManagerImplTest, SetHostBindingTokenValid_001, TestSize.Leve
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1072,7 +1072,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_001, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1126,7 +1126,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_002, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1182,7 +1182,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_003, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1236,7 +1236,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_004, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1287,7 +1287,7 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserIdChanged_005, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1325,7 +1325,7 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_001, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1370,7 +1370,7 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_002, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1421,7 +1421,7 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_003, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1499,7 +1499,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveBindingInternal_001, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1544,7 +1544,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveBindingInternal_002, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1597,7 +1597,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_001, TestSize.Leve
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1645,7 +1645,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_002, TestSize.Leve
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1693,7 +1693,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_003, TestSize.Leve
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1748,7 +1748,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_004, TestSize.Leve
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1794,7 +1794,7 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_005, TestSize.Leve
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1840,7 +1840,7 @@ HWTEST_F(HostBindingManagerImplTest, RevokeTokens_001, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));
@@ -1886,7 +1886,7 @@ HWTEST_F(HostBindingManagerImplTest, RevokeTokens_002, TestSize.Level0)
     ON_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
         .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
     ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(crossDeviceMgr, GetAllDeviceStatus()).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_)).WillByDefault(Invoke([](std::function<void(bool)> &&) {
         return MakeSubscription();
     }));

@@ -140,13 +140,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompanionBeginDelegateAuth_001, TestS
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
-    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
-        .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
-    EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _))
-        .WillOnce([](const CompanionDelegateAuthBeginInput &, CompanionDelegateAuthBeginOutput &output) {
-            output.atl = ATL3;
-            return ResultCode::SUCCESS;
-        });
+    // Local device key missing -> CompanionBeginDelegateAuth returns early; binding and security
+    // agent must never be reached.
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).Times(0);
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).Times(0);
@@ -164,6 +159,10 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompanionBeginDelegateAuth_002, TestS
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME, COMPANION_USER_ID, HOST_DEVICE_KEY,
         START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
 
+    // Binding resolves and the security agent succeeds, but the agent output leaves atl invalid
+    // (0) -> CompanionBeginDelegateAuth must fail.
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
         .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));

@@ -59,7 +59,8 @@ HWTEST_F(AvailableDeviceSubscriptionTest, Create_001, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&callback) { return MakeSubscription(); }));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus()).WillOnce(Return(std::vector<DeviceStatus> {}));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
+        .WillOnce(Return(std::vector<DeviceStatus> {}));
     EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(0));
 
     auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
@@ -128,6 +129,142 @@ HWTEST_F(AvailableDeviceSubscriptionTest, OnCallbackAdded_002, TestSize.Level0)
     sptr<MockIIpcAvailableDeviceStatusCallback> callback = nullptr;
 
     subscription->OnCallbackAdded(callback);
+}
+
+DeviceStatus MakeUnsyncedStatus(const std::string &deviceId)
+{
+    DeviceStatus status {};
+    status.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    status.deviceKey.deviceId = deviceId;
+    status.deviceKey.deviceUserId = INVALID_USER_ID;
+    status.deviceName = "name-" + deviceId;
+    status.isOnline = false;
+    return status;
+}
+
+CompanionStatus MakeBoundStatus(UserId hostUserId, const std::string &deviceId, UserId deviceUserId)
+{
+    CompanionStatus status {};
+    status.hostUserId = hostUserId;
+    status.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    status.companionDeviceStatus.deviceKey.deviceId = deviceId;
+    status.companionDeviceStatus.deviceKey.deviceUserId = deviceUserId;
+    return status;
+}
+
+HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_ReportUnsyncedUnboundDevice, TestSize.Level0)
+{
+    MockGuard guard;
+    auto subscriptionManager = SubscriptionManager::Create();
+    UserId userId = 100;
+    OnDeviceStatusChange storedCallback;
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
+        .WillOnce(Invoke([&storedCallback](OnDeviceStatusChange &&callback) {
+            storedCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
+        .WillRepeatedly(Return(std::vector<DeviceStatus> { MakeUnsyncedStatus("device-1") }));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(userId));
+    EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus())
+        .WillRepeatedly(Return(std::vector<CompanionStatus> {}));
+
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
+    ASSERT_NE(subscription, nullptr);
+    ASSERT_TRUE(storedCallback);
+
+    storedCallback({});
+
+    ASSERT_EQ(1u, subscription->cachedAvailableDeviceStatus_.size());
+    EXPECT_EQ("device-1", subscription->cachedAvailableDeviceStatus_[0].deviceKey.deviceId);
+    EXPECT_FALSE(subscription->cachedAvailableDeviceStatus_[0].isOnline);
+    EXPECT_EQ(INVALID_USER_ID, subscription->cachedAvailableDeviceStatus_[0].deviceKey.deviceUserId);
+}
+
+HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_SuppressBoundDeviceBeforeSync, TestSize.Level0)
+{
+    MockGuard guard;
+    auto subscriptionManager = SubscriptionManager::Create();
+    UserId userId = 100;
+    OnDeviceStatusChange storedCallback;
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
+        .WillOnce(Invoke([&storedCallback](OnDeviceStatusChange &&callback) {
+            storedCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
+        .WillRepeatedly(Return(std::vector<DeviceStatus> { MakeUnsyncedStatus("device-1") }));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(userId));
+    EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus())
+        .WillRepeatedly(Return(std::vector<CompanionStatus> { MakeBoundStatus(userId, "device-1", 200) }));
+
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
+    ASSERT_NE(subscription, nullptr);
+    ASSERT_TRUE(storedCallback);
+
+    storedCallback({});
+
+    EXPECT_TRUE(subscription->cachedAvailableDeviceStatus_.empty());
+}
+
+HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_ReportDeviceBoundToOtherHostUser, TestSize.Level0)
+{
+    MockGuard guard;
+    auto subscriptionManager = SubscriptionManager::Create();
+    UserId userId = 100;
+    OnDeviceStatusChange storedCallback;
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
+        .WillOnce(Invoke([&storedCallback](OnDeviceStatusChange &&callback) {
+            storedCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
+        .WillRepeatedly(Return(std::vector<DeviceStatus> { MakeUnsyncedStatus("device-1") }));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(userId));
+    EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus())
+        .WillRepeatedly(Return(std::vector<CompanionStatus> { MakeBoundStatus(999, "device-1", 200) }));
+
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
+    ASSERT_NE(subscription, nullptr);
+    ASSERT_TRUE(storedCallback);
+
+    storedCallback({});
+
+    EXPECT_EQ(1u, subscription->cachedAvailableDeviceStatus_.size());
+}
+
+HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_SuppressSyncedBoundDevice, TestSize.Level0)
+{
+    MockGuard guard;
+    auto subscriptionManager = SubscriptionManager::Create();
+    UserId userId = 100;
+    OnDeviceStatusChange storedCallback;
+
+    DeviceStatus syncedStatus = MakeUnsyncedStatus("device-1");
+    syncedStatus.deviceKey.deviceUserId = 200;
+    syncedStatus.isOnline = true;
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
+        .WillOnce(Invoke([&storedCallback](OnDeviceStatusChange &&callback) {
+            storedCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
+        .WillRepeatedly(Return(std::vector<DeviceStatus> { syncedStatus }));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(userId));
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
+        .WillRepeatedly(Return(MakeBoundStatus(userId, "device-1", 200)));
+
+    auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
+    ASSERT_NE(subscription, nullptr);
+    ASSERT_TRUE(storedCallback);
+
+    storedCallback({});
+
+    EXPECT_TRUE(subscription->cachedAvailableDeviceStatus_.empty());
 }
 
 } // namespace

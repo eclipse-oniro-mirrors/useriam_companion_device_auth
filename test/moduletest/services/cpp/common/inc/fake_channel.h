@@ -167,19 +167,21 @@ public:
 
     // === Test backdoors ===
 
-    void TestSimulateDeviceOnline(const PhysicalDeviceKey &key)
+    void TestSimulateDeviceOnline(const PhysicalDeviceKey &key, bool reportUnsynced = false)
     {
         {
             std::lock_guard<std::mutex> lock(mutex_);
             PhysicalDeviceStatus status;
             status.physicalDeviceKey = key;
             status.isAuthMaintainActive = true;
+            status.reportUnsynced = reportUnsynced;
             onlineDevices_.push_back(status);
         }
         if (physicalDeviceStatusCb_) {
             PhysicalDeviceStatus status;
             status.physicalDeviceKey = key;
             status.isAuthMaintainActive = true;
+            status.reportUnsynced = reportUnsynced;
             physicalDeviceStatusCb_({ status });
         }
     }

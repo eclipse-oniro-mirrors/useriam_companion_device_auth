@@ -57,7 +57,7 @@ public:
     std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) override;
 
     std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey) override;
-    std::vector<DeviceStatus> GetAllDeviceStatus() override;
+    std::vector<DeviceStatus> GetAllDeviceStatus(bool includeUnsynced = false) override;
     std::unique_ptr<Subscription> SubscribeAllDeviceStatus(OnDeviceStatusChange &&onDeviceStatusChange) override;
     std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
         OnDeviceStatusChange &&onDeviceStatusChange) override;

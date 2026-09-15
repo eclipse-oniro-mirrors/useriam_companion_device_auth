@@ -69,6 +69,7 @@ public:
     bool isAuthMaintainActive { false };
     std::optional<uint32_t> atlRevokeDelayMs;
     bool refreshToken { false };
+    bool reportUnsynced { false };
     bool isSynced { false };
     bool isSyncInProgress { false };
     SteadyTimeMs lastSyncTimeMs { 0 };

@@ -114,9 +114,27 @@ void AvailableDeviceSubscription::OnCallbackRemoteDied(const sptr<IIpcAvailableD
     });
 }
 
+bool AvailableDeviceSubscription::MatchesRegisteredCompanion(UserId activeUserId,
+    const DeviceStatus &deviceStatus) const
+{
+    if (deviceStatus.isOnline) {
+        return GetCompanionManager().GetCompanionStatus(activeUserId, deviceStatus.deviceKey).has_value();
+    }
+    const PhysicalDeviceKey physicalKey = PhysicalDeviceKey::FromDeviceKey(deviceStatus.deviceKey);
+    for (const auto &companionStatus : GetCompanionManager().GetAllCompanionStatus()) {
+        if (companionStatus.hostUserId != activeUserId) {
+            continue;
+        }
+        if (PhysicalDeviceKey::FromDeviceKey(companionStatus.companionDeviceStatus.deviceKey) == physicalKey) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void AvailableDeviceSubscription::HandleDeviceStatusChange()
 {
-    auto deviceStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus();
+    auto deviceStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus(true);
     IAM_LOGI("HandleDeviceStatusChange start, total device count:%{public}zu, userId:%{public}d",
         deviceStatusList.size(), userId_);
     int32_t activeUserId = GetUserIdManager().GetUnlockedActiveUserId();
@@ -128,7 +146,7 @@ void AvailableDeviceSubscription::HandleDeviceStatusChange()
     std::vector<IpcDeviceStatus> availableDeviceStatus;
     availableDeviceStatus.reserve(deviceStatusList.size());
     for (const auto &deviceStatus : deviceStatusList) {
-        if (GetCompanionManager().GetCompanionStatus(activeUserId, deviceStatus.deviceKey).has_value()) {
+        if (MatchesRegisteredCompanion(activeUserId, deviceStatus)) {
             continue;
         }
         availableDeviceStatus.push_back(ConvertToIpcDeviceStatus(deviceStatus));

@@ -31,7 +31,6 @@
 #include "request_manager.h"
 #include "service_common.h"
 #include "singleton_manager.h"
-#include "sub_profile_id_manager.h"
 #include "subscription.h"
 #include "subscription_manager.h"
 #include "system_param_manager.h"
@@ -127,9 +126,8 @@ bool TestServiceInitializer::InitializeUserIdManager()
     userIdManager_ = std::make_shared<FakeUserIdManager>();
     AdapterManager::GetInstance().SetUserIdManager(userIdManager_);
 
-    auto subProfileIdManager = std::make_shared<FakeSubProfileIdManager>();
-    ENSURE_OR_RETURN_VAL(subProfileIdManager != nullptr, false);
-    AdapterManager::GetInstance().SetSubProfileIdManager(subProfileIdManager);
+    subProfileIdManager_ = std::make_shared<FakeSubProfileIdManager>();
+    AdapterManager::GetInstance().SetSubProfileIdManager(subProfileIdManager_);
     return true;
 }
 
@@ -372,6 +370,12 @@ void ModuleTestGuard::SetupDefaultValues()
 void ModuleTestGuard::SimulateDeviceOnline(const std::string &deviceId)
 {
     GetChannel().TestSimulateDeviceOnline(MakePhysKey(deviceId));
+    DrainPendingTasks();
+}
+
+void ModuleTestGuard::SimulateDeviceOnline(const std::string &deviceId, bool reportUnsynced)
+{
+    GetChannel().TestSimulateDeviceOnline(MakePhysKey(deviceId), reportUnsynced);
     DrainPendingTasks();
 }
 
@@ -917,6 +921,7 @@ void ModuleTestGuard::SetupHostSideSync(const std::string &companionDeviceId, Us
     syncReply.secureProtocolId = SecureProtocolId::DEFAULT;
     syncReply.companionDeviceKey = MakeDeviceKey(companionDeviceId, hostUserId);
     syncReply.deviceUserName = "TestCompanion";
+    syncReply.isAuthMaintainActive = true;
     InjectSyncDeviceStatusReply(GetChannel(), syncReply, MakeDeviceKey(companionDeviceId, hostUserId));
     DrainPendingTasks();
 }
