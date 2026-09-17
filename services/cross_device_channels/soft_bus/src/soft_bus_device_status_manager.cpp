@@ -12,6 +12,7 @@
 #include <map>
 
 #include "device_manager.h"
+#include "softbus_bus_center.h"
 #include "system_ability_definition.h"
 #include <nlohmann/json.hpp>
 
@@ -20,6 +21,7 @@
 #include "iam_para2str.h"
 
 #include "adapter_manager.h"
+#include "cda_scope_guard.h"
 #include "sa_status_listener.h"
 #include "service_common.h"
 #include "singleton_manager.h"
@@ -35,6 +37,26 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 using namespace DistributedHardware;
 using json = nlohmann::json;
+
+namespace {
+const std::string OS_VERSION_PREFIX = "OpenHarmony-";
+
+bool IsOsVersionSupport(const std::map<std::string, std::string> &osVersionMap, const std::string &networkId)
+{
+    auto it = osVersionMap.find(networkId);
+    if (it == osVersionMap.end()) {
+        IAM_LOGE("no online softbus node, skip device: networkId=%{public}s", GetMaskedString(networkId).c_str());
+        return false;
+    }
+    const std::string &osVersion = it->second;
+    if (osVersion.compare(0, OS_VERSION_PREFIX.size(), OS_VERSION_PREFIX) != 0) {
+        IAM_LOGE("unrecognized peer os version, skip device: networkId=%{public}s, osVersion=%{public}s",
+            GetMaskedString(networkId).c_str(), osVersion.c_str());
+        return false;
+    }
+    return true;
+}
+} // namespace
 
 std::shared_ptr<SoftBusDeviceStatusManager> SoftBusDeviceStatusManager::Create()
 {
@@ -253,14 +275,15 @@ void SoftBusDeviceStatusManager::UnInitDeviceManager()
 void SoftBusDeviceStatusManager::RefreshDeviceStatus()
 {
     IAM_LOGI("refresh device status begin");
-    std::vector<DmDeviceInfo> deviceList;
-    if (!QueryTrustedDevices(deviceList)) {
-        IAM_LOGE("QueryTrustedDevices failed");
+    std::map<std::string, std::string> osVersionMap;
+    if (!QueryNodeOsInfo(osVersionMap)) {
+        IAM_LOGE("QueryNodeOsInfo failed, skip refresh");
         return;
     }
+    std::vector<DmDeviceInfo> deviceList = QueryTrustedDevices(osVersionMap);
 
     std::vector<PhysicalDeviceStatus> statuses;
-    if (!ConvertToPhysicalDevices(deviceList, statuses)) {
+    if (!ConvertToPhysicalDevices(deviceList, osVersionMap, statuses)) {
         IAM_LOGE("ConvertToPhysicalDevices failed");
         return;
     }
@@ -275,14 +298,17 @@ void SoftBusDeviceStatusManager::RefreshDeviceStatus()
     IAM_LOGI("refresh device status success");
 }
 
-bool SoftBusDeviceStatusManager::QueryTrustedDevices(std::vector<DmDeviceInfo> &deviceList)
+std::vector<DmDeviceInfo> SoftBusDeviceStatusManager::QueryTrustedDevices(
+    const std::map<std::string, std::string> &osVersionMap)
 {
+    std::vector<DmDeviceInfo> deviceList;
     if (!GetDeviceManagerAdapter().QueryTrustedDevices(deviceList)) {
         IAM_LOGE("QueryTrustedDevices failed");
-        return false;
+        return {};
     }
 
     IAM_LOGI("trusted devices num: %{public}zu", deviceList.size());
+
     auto it = std::remove_if(deviceList.begin(), deviceList.end(), [](const DmDeviceInfo &device) {
         DmDeviceType deviceTypeId = static_cast<DmDeviceType>(device.deviceTypeId);
         if (!IsDeviceTypeIdSupport(deviceTypeId)) {
@@ -293,10 +319,40 @@ bool SoftBusDeviceStatusManager::QueryTrustedDevices(std::vector<DmDeviceInfo> &
     });
     deviceList.erase(it, deviceList.end());
 
+    auto versionIt = std::remove_if(deviceList.begin(), deviceList.end(), [&osVersionMap](const DmDeviceInfo &device) {
+        std::string networkId(device.networkId, strnlen(device.networkId, DM_MAX_DEVICE_ID_LEN));
+        return !IsOsVersionSupport(osVersionMap, networkId);
+    });
+    deviceList.erase(versionIt, deviceList.end());
+
+    return deviceList;
+}
+
+bool SoftBusDeviceStatusManager::QueryNodeOsInfo(std::map<std::string, std::string> &osVersionMap)
+{
+    NodeBasicInfo *nodeInfoList = nullptr;
+    int32_t nodeNum = 0;
+    if (GetAllNodeDeviceInfo(PKG_NAME, &nodeInfoList, &nodeNum) != 0) {
+        IAM_LOGE("GetAllNodeDeviceInfo failed");
+        return false;
+    }
+    ScopeGuard freeGuard([&nodeInfoList]() { FreeNodeInfo(nodeInfoList); });
+    if (nodeInfoList == nullptr || nodeNum <= 0) {
+        IAM_LOGI("no online softbus node");
+        return true;
+    }
+
+    for (int32_t i = 0; i < nodeNum; ++i) {
+        const NodeBasicInfo &node = nodeInfoList[i];
+        osVersionMap.emplace(std::string(node.networkId, strnlen(node.networkId, NETWORK_ID_BUF_LEN)),
+            std::string(node.osVersion, strnlen(node.osVersion, OS_VERSION_BUF_LEN)));
+    }
+    IAM_LOGI("query node os info success, node num: %{public}d", nodeNum);
     return true;
 }
 
 bool SoftBusDeviceStatusManager::ConvertToPhysicalDevices(const std::vector<DmDeviceInfo> &deviceList,
+    const std::map<std::string, std::string> &osVersionMap,
     std::vector<PhysicalDeviceStatus> &retPhysicalDeviceStatuses)
 {
     retPhysicalDeviceStatuses.reserve(deviceList.size());
@@ -310,17 +366,18 @@ bool SoftBusDeviceStatusManager::ConvertToPhysicalDevices(const std::vector<DmDe
         }
         std::string deviceModelInfo =
             SoftBusDeviceStatusManager::GenerateDeviceModelInfo(static_cast<DmDeviceType>(device.deviceTypeId));
-        IAM_LOGI("Device %{public}s model info: %{public}s", GetMaskedString(deviceIdResult.value()).c_str(),
-            deviceModelInfo.c_str());
 
         DeviceType deviceType = ConvertToDeviceType(static_cast<DmDeviceType>(device.deviceTypeId));
 #ifdef AUTH_STATE_MAINTAIN_SIMULATION
         // Soft bus does not support cross-device isAuthMaintain sync, simulation mode always true
         bool isAuthMaintainActive = true;
-        IAM_LOGI("AUTH_STATE_MAINTAIN_SIMULATION enabled, isAuthMaintainActive=%{public}d", isAuthMaintainActive);
 #else
         bool isAuthMaintainActive = false;
 #endif
+        auto osIt = osVersionMap.find(networkId);
+        ENSURE_OR_CONTINUE_DESC(GetMaskedString(networkId).c_str(), osIt != osVersionMap.end());
+        const std::string &osVersion = osIt->second;
+
         PhysicalDeviceStatus status {
             .physicalDeviceKey = { DeviceIdType::UNIFIED_DEVICE_ID, deviceIdResult.value() },
             .channelId = ChannelId::SOFTBUS,
@@ -333,6 +390,10 @@ bool SoftBusDeviceStatusManager::ConvertToPhysicalDevices(const std::vector<DmDe
             .deviceType = deviceType,
             .useSyncDeviceName = true,
         };
+        IAM_LOGI("physical device status: networkId=%{public}s, udid=%{public}s, modelInfo=%{public}s, "
+                 "osVersion=%{public}s, isAuthMaintainActive=%{public}d",
+            GetMaskedString(networkId).c_str(), GetMaskedString(deviceIdResult.value()).c_str(),
+            deviceModelInfo.c_str(), osVersion.c_str(), isAuthMaintainActive);
         retPhysicalDeviceStatuses.emplace_back(std::move(status));
     }
 

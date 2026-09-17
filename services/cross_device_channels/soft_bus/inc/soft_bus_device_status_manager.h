@@ -64,9 +64,11 @@ private:
     bool RegisterDeviceStatusCallback();
     void UnregisterDeviceStatusCallback();
 
-    bool QueryTrustedDevices(std::vector<DistributedHardware::DmDeviceInfo> &deviceList);
+    bool QueryNodeOsInfo(std::map<std::string, std::string> &osVersionMap);
+    std::vector<DistributedHardware::DmDeviceInfo> QueryTrustedDevices(
+        const std::map<std::string, std::string> &osVersionMap);
     bool ConvertToPhysicalDevices(const std::vector<DistributedHardware::DmDeviceInfo> &deviceList,
-        std::vector<PhysicalDeviceStatus> &statuses);
+        const std::map<std::string, std::string> &osVersionMap, std::vector<PhysicalDeviceStatus> &statuses);
     void NotifyDeviceStatusChange();
     void NotifyAuthMaintainActiveChange();
     void UnsubscribePhysicalDeviceStatus(SubscribeId subscriptionId);
