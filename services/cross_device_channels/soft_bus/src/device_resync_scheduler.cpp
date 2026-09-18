@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <new>
+#include <set>
 #include <utility>
 
 #include "iam_check.h"
@@ -255,13 +256,6 @@ void DeviceResyncScheduler::OnPhysicalDeviceStatusChanged(const std::vector<Phys
         currentOnline.insert(status.physicalDeviceKey);
     }
 
-    for (const auto &key : currentOnline) {
-        if (prevOnlineDevices_.find(key) == prevOnlineDevices_.end() && syncedPeerRegistry_.IsRecentlySynced(key)) {
-            IAM_LOGI("device %{public}s newly online, resync", GET_MASKED_STR_CSTR(key.deviceId));
-            ResyncOneDevice(key, "device_online");
-        }
-    }
-
     for (auto it = scheduledResyncs_.begin(); it != scheduledResyncs_.end();) {
         if (currentOnline.find(it->first) == currentOnline.end()) {
             IAM_LOGI("device %{public}s offline, cancel pending resync retry", GET_MASKED_STR_CSTR(it->first.deviceId));
@@ -270,8 +264,6 @@ void DeviceResyncScheduler::OnPhysicalDeviceStatusChanged(const std::vector<Phys
             ++it;
         }
     }
-
-    prevOnlineDevices_ = std::move(currentOnline);
 }
 
 } // namespace CompanionDeviceAuth

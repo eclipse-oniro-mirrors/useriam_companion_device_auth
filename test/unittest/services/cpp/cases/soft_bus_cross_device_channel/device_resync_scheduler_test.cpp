@@ -240,10 +240,10 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_RemovesOffline
     EXPECT_EQ(scheduler->scheduledResyncs_.count(key), 0u);
 }
 
-// OnPhysicalDeviceStatusChanged: a device already online in a prior snapshot is not resynced again —
-// only newly-online devices trigger a resync. Asserted via factory call count, not a tautological
-// entry count.
-HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DoesNotResyncAlreadyOnlineDevice, TestSize.Level0)
+// OnPhysicalDeviceStatusChanged no longer triggers resyncs: a snapshot delivery — whether the
+// devices are newly online, already online, or a repeated unchanged set — must not reach the
+// request factory. Only the offline-cancel bookkeeping runs (see RemovesOfflineDevice below).
+HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DoesNotResyncDevices, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -257,12 +257,15 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DoesNotResyncA
     ASSERT_NE(scheduler, nullptr);
     ASSERT_TRUE(scheduler->Start());
 
-    PhysicalDeviceKey key;
-    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    key.deviceId = "dev_A";
-    MarkDeviceOnline(*manager, key);
-    PhysicalDeviceStatus status;
-    status.physicalDeviceKey = key;
+    PhysicalDeviceKey keyA;
+    keyA.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    keyA.deviceId = "dev_A";
+    PhysicalDeviceKey keyB;
+    keyB.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    keyB.deviceId = "dev_never_synced";
+    // A recently pulled our status, so under the old contract it was a resync target on coming
+    // online; B never did. Neither may be resynced by a status snapshot now.
+    peerSyncHandler(BuildPeerSyncedEvent(keyA));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -271,53 +274,20 @@ HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DoesNotResyncA
             return std::make_shared<FakeResyncRequest>();
         }));
 
-    // The peer pulled our status before coming online, so it holds a cache of us.
-    peerSyncHandler(BuildPeerSyncedEvent(key));
+    PhysicalDeviceStatus statusA;
+    statusA.physicalDeviceKey = keyA;
+    PhysicalDeviceStatus statusB;
+    statusB.physicalDeviceKey = keyB;
 
-    // First snapshot: device is newly online -> resync launched.
-    scheduler->OnPhysicalDeviceStatusChanged({ status });
+    // First snapshot: both newly online -> no resync launched, no retry entries created.
+    scheduler->OnPhysicalDeviceStatusChanged({ statusA, statusB });
     TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_EQ(*factoryCallCount, 1);
+    EXPECT_EQ(*factoryCallCount, 0);
+    EXPECT_EQ(scheduler->scheduledResyncs_.size(), static_cast<size_t>(0));
 
-    // Second snapshot: device still online (not newly online) -> not resynced again.
-    scheduler->OnPhysicalDeviceStatusChanged({ status });
+    // Repeated unchanged snapshot: still nothing.
+    scheduler->OnPhysicalDeviceStatusChanged({ statusA, statusB });
     TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_EQ(*factoryCallCount, 1);
-}
-
-// A device that never pulled our status holds no cache of us — a newly-online
-// transition must not trigger a resync for it.
-HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_SkipsDeviceNeverSynced, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = SoftBusDeviceStatusManager::Create();
-    ASSERT_NE(manager, nullptr);
-
-    EventDataHandler peerSyncHandler;
-    CapturePeerSyncHandler(guard, peerSyncHandler);
-
-    auto scheduler = DeviceResyncScheduler::Create(manager);
-    ASSERT_NE(scheduler, nullptr);
-    ASSERT_TRUE(scheduler->Start());
-
-    PhysicalDeviceKey key;
-    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    key.deviceId = "dev_never_synced";
-    MarkDeviceOnline(*manager, key);
-    PhysicalDeviceStatus status;
-    status.physicalDeviceKey = key;
-
-    auto factoryCallCount = std::make_shared<int>(0);
-    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
-        .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
-            ++(*factoryCallCount);
-            return std::make_shared<FakeResyncRequest>();
-        }));
-
-    scheduler->OnPhysicalDeviceStatusChanged({ status });
-    TaskRunnerManager::GetInstance().ExecuteAll();
-
     EXPECT_EQ(*factoryCallCount, 0);
 }
 
@@ -1160,285 +1130,6 @@ HWTEST_F(DeviceResyncSchedulerTest, StaleCompletion_DoesNotCorruptRebuiltEntry, 
     callbacks->at(1)(ResultCode::SUCCESS);
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(scheduler->scheduledResyncs_.count(key), 0u);
-}
-
-// First snapshot: prevOnline is empty, so every currently-online recently synced device is treated
-// as newly online and resynced — SA does not distinguish start-up-online from later-online devices.
-HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_FirstSnapshot_ResyncsAllOnline, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = SoftBusDeviceStatusManager::Create();
-    ASSERT_NE(manager, nullptr);
-
-    EventDataHandler peerSyncHandler;
-    CapturePeerSyncHandler(guard, peerSyncHandler);
-
-    auto scheduler = DeviceResyncScheduler::Create(manager);
-    ASSERT_NE(scheduler, nullptr);
-    EXPECT_TRUE(scheduler->Start());
-
-    PhysicalDeviceKey keyA;
-    keyA.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyA.deviceId = "dev_A";
-    PhysicalDeviceKey keyB;
-    keyB.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyB.deviceId = "dev_B";
-    peerSyncHandler(BuildPeerSyncedEvent(keyA));
-    peerSyncHandler(BuildPeerSyncedEvent(keyB));
-
-    auto factoryCallCount = std::make_shared<int>(0);
-    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
-        .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
-            ++(*factoryCallCount);
-            return std::make_shared<FakeResyncRequest>();
-        }));
-
-    PhysicalDeviceStatus statusA;
-    statusA.physicalDeviceKey = keyA;
-    PhysicalDeviceStatus statusB;
-    statusB.physicalDeviceKey = keyB;
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA, statusB });
-    TaskRunnerManager::GetInstance().ExecuteAll();
-
-    EXPECT_EQ(*factoryCallCount, 2);
-    EXPECT_EQ(scheduler->scheduledResyncs_.count(keyA), 1u);
-    EXPECT_EQ(scheduler->scheduledResyncs_.count(keyB), 1u);
-}
-
-// After the first snapshot records the baseline, only a genuinely new device triggers on the next
-// snapshot, and with the "device_online" reason.
-HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_NewDeviceOnline_TriggersResync, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = SoftBusDeviceStatusManager::Create();
-    ASSERT_NE(manager, nullptr);
-
-    EventDataHandler peerSyncHandler;
-    CapturePeerSyncHandler(guard, peerSyncHandler);
-
-    auto scheduler = DeviceResyncScheduler::Create(manager);
-    ASSERT_NE(scheduler, nullptr);
-    EXPECT_TRUE(scheduler->Start());
-
-    PhysicalDeviceKey keyA;
-    keyA.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyA.deviceId = "dev_A";
-    PhysicalDeviceKey keyB;
-    keyB.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyB.deviceId = "dev_B";
-    peerSyncHandler(BuildPeerSyncedEvent(keyA));
-    peerSyncHandler(BuildPeerSyncedEvent(keyB));
-
-    auto factoryCallCount = std::make_shared<int>(0);
-    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
-        .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
-            ++(*factoryCallCount);
-            return std::make_shared<FakeResyncRequest>();
-        }));
-
-    PhysicalDeviceStatus statusA;
-    statusA.physicalDeviceKey = keyA;
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA }); // first snapshot: A
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    ASSERT_EQ(*factoryCallCount, 1);
-
-    PhysicalDeviceStatus statusB;
-    statusB.physicalDeviceKey = keyB;
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA, statusB }); // B newly online
-    TaskRunnerManager::GetInstance().ExecuteAll();
-
-    EXPECT_EQ(*factoryCallCount, 2); // only B this round
-    EXPECT_EQ(scheduler->scheduledResyncs_.count(keyA), 1u);
-    EXPECT_EQ(scheduler->scheduledResyncs_.count(keyB), 1u);
-}
-
-// Every device absent in the previous snapshot triggers its own resync in one round.
-HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_MultipleNewDevices_EachTriggersResync,
-    TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = SoftBusDeviceStatusManager::Create();
-    ASSERT_NE(manager, nullptr);
-
-    EventDataHandler peerSyncHandler;
-    CapturePeerSyncHandler(guard, peerSyncHandler);
-
-    auto scheduler = DeviceResyncScheduler::Create(manager);
-    ASSERT_NE(scheduler, nullptr);
-    EXPECT_TRUE(scheduler->Start());
-
-    PhysicalDeviceKey keyA;
-    keyA.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyA.deviceId = "dev_A";
-    PhysicalDeviceKey keyB;
-    keyB.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyB.deviceId = "dev_B";
-    PhysicalDeviceKey keyC;
-    keyC.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyC.deviceId = "dev_C";
-    peerSyncHandler(BuildPeerSyncedEvent(keyA));
-    peerSyncHandler(BuildPeerSyncedEvent(keyB));
-    peerSyncHandler(BuildPeerSyncedEvent(keyC));
-
-    auto factoryCallCount = std::make_shared<int>(0);
-    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
-        .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
-            ++(*factoryCallCount);
-            return std::make_shared<FakeResyncRequest>();
-        }));
-
-    scheduler->OnPhysicalDeviceStatusChanged({}); // first snapshot empty -> nothing
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    ASSERT_EQ(*factoryCallCount, 0);
-
-    PhysicalDeviceStatus statusA;
-    statusA.physicalDeviceKey = keyA;
-    PhysicalDeviceStatus statusB;
-    statusB.physicalDeviceKey = keyB;
-    PhysicalDeviceStatus statusC;
-    statusC.physicalDeviceKey = keyC;
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA, statusB, statusC });
-    TaskRunnerManager::GetInstance().ExecuteAll();
-
-    EXPECT_EQ(*factoryCallCount, 3);
-}
-
-// Offline erases the entry and drops the device from prevOnline; coming back online rebuilds a
-// fresh entry and re-triggers resync.
-HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_OfflineThenOnline_RetriggersResync, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = SoftBusDeviceStatusManager::Create();
-    ASSERT_NE(manager, nullptr);
-
-    EventDataHandler peerSyncHandler;
-    CapturePeerSyncHandler(guard, peerSyncHandler);
-
-    auto scheduler = DeviceResyncScheduler::Create(manager);
-    ASSERT_NE(scheduler, nullptr);
-    EXPECT_TRUE(scheduler->Start());
-
-    PhysicalDeviceKey keyA;
-    keyA.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyA.deviceId = "dev_A";
-    peerSyncHandler(BuildPeerSyncedEvent(keyA));
-
-    auto factoryCallCount = std::make_shared<int>(0);
-    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
-        .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
-            ++(*factoryCallCount);
-            return std::make_shared<FakeResyncRequest>();
-        }));
-
-    PhysicalDeviceStatus statusA;
-    statusA.physicalDeviceKey = keyA;
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA }); // online
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    ASSERT_EQ(*factoryCallCount, 1);
-    ASSERT_EQ(scheduler->scheduledResyncs_.count(keyA), 1u);
-
-    scheduler->OnPhysicalDeviceStatusChanged({}); // offline: entry erased
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_EQ(scheduler->scheduledResyncs_.count(keyA), 0u);
-
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA }); // back online: re-trigger
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_EQ(*factoryCallCount, 2);
-    EXPECT_EQ(scheduler->scheduledResyncs_.count(keyA), 1u);
-}
-
-// DeviceManager SA restart: unavailable clears the list (all entries dropped), ready repopulates
-// it — every returning device is resynced since, from the host's view, they came back online.
-HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_DmRestart_ReTriggersAllReturningDevices,
-    TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = SoftBusDeviceStatusManager::Create();
-    ASSERT_NE(manager, nullptr);
-
-    EventDataHandler peerSyncHandler;
-    CapturePeerSyncHandler(guard, peerSyncHandler);
-
-    auto scheduler = DeviceResyncScheduler::Create(manager);
-    ASSERT_NE(scheduler, nullptr);
-    EXPECT_TRUE(scheduler->Start());
-
-    PhysicalDeviceKey keyA;
-    keyA.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyA.deviceId = "dev_A";
-    PhysicalDeviceKey keyB;
-    keyB.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyB.deviceId = "dev_B";
-    peerSyncHandler(BuildPeerSyncedEvent(keyA));
-    peerSyncHandler(BuildPeerSyncedEvent(keyB));
-
-    auto factoryCallCount = std::make_shared<int>(0);
-    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
-        .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
-            ++(*factoryCallCount);
-            return std::make_shared<FakeResyncRequest>();
-        }));
-
-    PhysicalDeviceStatus statusA;
-    statusA.physicalDeviceKey = keyA;
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA }); // {A}
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    ASSERT_EQ(*factoryCallCount, 1);
-
-    scheduler->OnPhysicalDeviceStatusChanged({}); // DM unavailable: {}
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_EQ(scheduler->scheduledResyncs_.count(keyA), 0u);
-
-    PhysicalDeviceStatus statusB;
-    statusB.physicalDeviceKey = keyB;
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA, statusB }); // DM ready: {A,B}
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_EQ(*factoryCallCount, 3); // +2 (A and B both re-resynced)
-    EXPECT_EQ(scheduler->scheduledResyncs_.count(keyA), 1u);
-    EXPECT_EQ(scheduler->scheduledResyncs_.count(keyB), 1u);
-}
-
-// A device already present in the previous snapshot must not be re-resynced on an unchanged set.
-HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_AlreadyOnline_NoRetrigger, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto manager = SoftBusDeviceStatusManager::Create();
-    ASSERT_NE(manager, nullptr);
-
-    EventDataHandler peerSyncHandler;
-    CapturePeerSyncHandler(guard, peerSyncHandler);
-
-    auto scheduler = DeviceResyncScheduler::Create(manager);
-    ASSERT_NE(scheduler, nullptr);
-    EXPECT_TRUE(scheduler->Start());
-
-    PhysicalDeviceKey keyA;
-    keyA.idType = DeviceIdType::UNIFIED_DEVICE_ID;
-    keyA.deviceId = "dev_A";
-    peerSyncHandler(BuildPeerSyncedEvent(keyA));
-
-    auto factoryCallCount = std::make_shared<int>(0);
-    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
-        .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
-            ++(*factoryCallCount);
-            return std::make_shared<FakeResyncRequest>();
-        }));
-
-    PhysicalDeviceStatus statusA;
-    statusA.physicalDeviceKey = keyA;
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA }); // first snapshot: A
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    ASSERT_EQ(*factoryCallCount, 1);
-
-    scheduler->OnPhysicalDeviceStatusChanged({ statusA }); // unchanged set, no new device
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_EQ(*factoryCallCount, 1);
 }
 
 } // namespace

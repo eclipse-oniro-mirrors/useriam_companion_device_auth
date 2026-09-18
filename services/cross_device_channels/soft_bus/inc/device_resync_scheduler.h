@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 
 #include "nocopyable.h"
@@ -59,7 +58,6 @@ private:
 
     std::shared_ptr<SoftBusDeviceStatusManager> deviceStatusManager_;
     std::map<PhysicalDeviceKey, ResyncEntry> scheduledResyncs_;
-    std::set<PhysicalDeviceKey> prevOnlineDevices_;
     SyncedPeerRegistry syncedPeerRegistry_;
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
     std::unique_ptr<Subscription> deviceNameSubscription_;

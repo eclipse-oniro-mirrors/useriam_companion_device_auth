@@ -45,8 +45,8 @@ static PhysicalDeviceKey GenerateFuzzPhysicalDeviceKey(FuzzedDataProvider &fuzzD
     return key;
 }
 
-// Push a fuzzed device into the manager's online set, then deliver the snapshot — drives the
-// newly-online diff path (first delivery seeds prevOnline, later ones trigger resync).
+// Push a fuzzed device into the manager's online set, then deliver the snapshot. Status delivery
+// runs only the offline-cancel bookkeeping — coming online no longer triggers a resync.
 static void FuzzOpBringDeviceOnline(std::shared_ptr<DeviceResyncScheduler> &scheduler,
     std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
@@ -75,7 +75,7 @@ static void FuzzOpTakeDeviceOffline(std::shared_ptr<DeviceResyncScheduler> &sche
     scheduler->OnPhysicalDeviceStatusChanged(manager->physicalDeviceStatus_);
 }
 
-// Redeliver the current snapshot unchanged — drives the no-new-devices path.
+// Redeliver the current snapshot unchanged — drives the unchanged-online-set path.
 static void FuzzOpReplaySnapshot(std::shared_ptr<DeviceResyncScheduler> &scheduler,
     std::shared_ptr<SoftBusDeviceStatusManager> &manager, FuzzedDataProvider &fuzzData)
 {
