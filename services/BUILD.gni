@@ -174,6 +174,7 @@ companion_device_auth_service_external_deps = [
   "access_token:libaccesstoken_sdk",
   "access_token:libtokenid_sdk",
   "access_token:libtokensetproc_shared",
+  "bounds_checking_function:libsec_shared",
   "c_utils:utils",
   "common_event_service:cesfwk_innerkits",
   "data_share:datashare_consumer",
