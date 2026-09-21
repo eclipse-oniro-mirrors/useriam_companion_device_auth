@@ -26,6 +26,7 @@
 #include "attributes.h"
 #include "base_service_core.h"
 #include "companion_manager.h"
+#include "user_id_manager.h"
 #include "host_binding_manager.h"
 #include "request_factory.h"
 #include "request_manager.h"
@@ -125,9 +126,6 @@ bool TestServiceInitializer::InitializeUserIdManager()
 {
     userIdManager_ = std::make_shared<FakeUserIdManager>();
     AdapterManager::GetInstance().SetUserIdManager(userIdManager_);
-
-    subProfileIdManager_ = std::make_shared<FakeSubProfileIdManager>();
-    AdapterManager::GetInstance().SetSubProfileIdManager(subProfileIdManager_);
     return true;
 }
 
@@ -492,8 +490,8 @@ bool ModuleTestGuard::AuthenticateTokenAuth(ScheduleId scheduleId, const std::ve
     TemplateId templateId, uint32_t lockStateAuthType, FwkResultCallback &&callback)
 {
     // Create HostTokenAuthRequest (mimics Executor.Authenticate() for TokenAuth)
-    AuthRequestParams params = { scheduleId, fwkMsg, userId, templateId, static_cast<int32_t>(lockStateAuthType),
-        UserAuth::AUTH_SCENE_DEFAULT };
+    AuthRequestParams params = { scheduleId, fwkMsg, UserKey { userId, INVALID_SUB_PROFILE_ID }, templateId,
+        static_cast<int32_t>(lockStateAuthType), UserAuth::AUTH_SCENE_DEFAULT };
     auto request = GetRequestFactory().CreateHostTokenAuthRequest(params, std::move(callback));
     if (request == nullptr) {
         IAM_LOGE("CreateHostTokenAuthRequest failed");
@@ -507,8 +505,8 @@ bool ModuleTestGuard::AuthenticateDelegateAuth(ScheduleId scheduleId, const std:
     TemplateId templateId, uint32_t authIntent, FwkResultCallback &&callback)
 {
     // Create HostDelegateAuthRequest (mimics Executor.Authenticate() for DelegateAuth)
-    AuthRequestParams params = { scheduleId, fwkMsg, userId, templateId, static_cast<int32_t>(authIntent),
-        UserAuth::AUTH_SCENE_DEFAULT };
+    AuthRequestParams params = { scheduleId, fwkMsg, UserKey { userId, INVALID_SUB_PROFILE_ID }, templateId,
+        static_cast<int32_t>(authIntent), UserAuth::AUTH_SCENE_DEFAULT };
     auto request = GetRequestFactory().CreateHostDelegateAuthRequest(params, std::move(callback));
     if (request == nullptr) {
         IAM_LOGE("CreateHostDelegateAuthRequest failed");
@@ -667,7 +665,8 @@ bool ModuleTestGuard::VerifyCompanionPersisted(UserId hostUserId, const DeviceKe
     queryKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     queryKey.deviceId = companionDeviceKey.deviceId;
     queryKey.deviceUserId = hostUserId;
-    auto companionStatus = GetCompanionManager().GetCompanionStatus(hostUserId, queryKey);
+    auto companionStatus =
+        GetCompanionManager().GetCompanionStatus(UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, queryKey);
     if (!companionStatus.has_value()) {
         IAM_LOGE("Companion status not persisted");
         return false;
@@ -735,7 +734,6 @@ void ModuleTestGuard::InjectDefaultSyncReply(const DeviceKey &companionDeviceKey
     syncReply.companionDeviceKey = companionDeviceKey;
     syncReply.companionDeviceKey.deviceUserId = hostUserId;
     syncReply.deviceUserName = "test-user";
-    syncReply.isAuthMaintainActive = true;
     InjectSyncDeviceStatusReply(GetChannel(), syncReply, companionDeviceKey);
     DrainPendingTasks();
 }
@@ -745,7 +743,7 @@ bool ModuleTestGuard::RegisterCompanionDirect(UserId hostUserId, const DeviceKey
 {
     PersistedCompanionStatus companionStatus;
     companionStatus.templateId = templateId;
-    companionStatus.hostUserId = hostUserId;
+    companionStatus.hostUserKey.userId = hostUserId;
     companionStatus.companionDeviceKey = companionDeviceKey;
     companionStatus.deviceUserName = "test-device";
     companionStatus.deviceModelInfo = "test-model";
@@ -800,10 +798,10 @@ bool ModuleTestGuard::RegisterHostBindingDirect(UserId companionUserId, const De
     // Build a PersistedHostBindingStatus for the host binding
     PersistedHostBindingStatus persistedStatus;
     persistedStatus.bindingId = bindingId;
-    persistedStatus.companionUserId = companionUserId;
+    persistedStatus.companionUserKey.userId = companionUserId;
     persistedStatus.hostDeviceKey = hostDeviceKey;
     persistedStatus.isTokenValid = false;
-    persistedStatus.companionSubProfileId = INVALID_SUB_PROFILE_ID;
+    persistedStatus.companionUserKey.subProfileId = INVALID_SUB_PROFILE_ID;
 
     // RemoveHostBinding resolves the binding via CompanionGetPersistedHostBindingStatus
     // (not the in-memory store), so return this persisted status there too.
@@ -822,7 +820,7 @@ bool ModuleTestGuard::RegisterHostBindingDirect(UserId companionUserId, const De
     // Call BeginAddHostBinding through the manager
     BeginAddHostBindingInput input;
     input.requestId = 0;
-    input.companionUserId = companionUserId;
+    input.companionUserKey = UserKey { companionUserId, INVALID_SUB_PROFILE_ID };
     input.secureProtocolId = SecureProtocolId::DEFAULT;
     input.addHostBindingRequest = { 0xAA, 0xBB };
 
@@ -834,7 +832,8 @@ bool ModuleTestGuard::RegisterHostBindingDirect(UserId companionUserId, const De
     }
 
     // Verify binding is queryable
-    auto status = GetHostBindingManager().GetHostBindingStatus(companionUserId, hostDeviceKey);
+    auto status = GetHostBindingManager().GetHostBindingStatus(
+        UserKey { companionUserId, INVALID_SUB_PROFILE_ID }, hostDeviceKey);
     if (!status.has_value()) {
         IAM_LOGE("RegisterHostBindingDirect: GetHostBindingStatus returns nullopt");
         return false;
@@ -921,7 +920,6 @@ void ModuleTestGuard::SetupHostSideSync(const std::string &companionDeviceId, Us
     syncReply.secureProtocolId = SecureProtocolId::DEFAULT;
     syncReply.companionDeviceKey = MakeDeviceKey(companionDeviceId, hostUserId);
     syncReply.deviceUserName = "TestCompanion";
-    syncReply.isAuthMaintainActive = true;
     InjectSyncDeviceStatusReply(GetChannel(), syncReply, MakeDeviceKey(companionDeviceId, hostUserId));
     DrainPendingTasks();
 }

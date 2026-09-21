@@ -37,7 +37,7 @@ HostSingleMixAuthRequest::HostSingleMixAuthRequest(const AuthRequestParams &para
     FwkResultCallback &&requestCallback)
     : BaseRequest(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS, "-"),
       fwkMsg_(params.fwkMsg),
-      hostUserId_(params.hostUserId),
+      hostUserKey_{params.hostUserKey},
       authIntent_(params.authIntent),
       authScene_(params.authScene),
       requestCallback_(std::move(requestCallback)),
@@ -48,7 +48,7 @@ HostSingleMixAuthRequest::HostSingleMixAuthRequest(const AuthRequestParams &para
     templateId_ = params.templateId;
     desc_.SetTemplateId(params.templateId);
     desc_.SetDeviceId(companionDeviceKey);
-    eventCollector_.SetHostUserId(params.hostUserId);
+    eventCollector_.SetHostUserKey(hostUserKey_);
     eventCollector_.SetScheduleId(params.scheduleId);
     eventCollector_.SetTriggerReason("authIntent " + std::to_string(params.authIntent));
     eventCollector_.SetTemplateIdList({ params.templateId });
@@ -70,7 +70,7 @@ void HostSingleMixAuthRequest::Start()
 
     AuthRequestParams tokenAuthParams = { .scheduleId = GetScheduleId(),
         .fwkMsg = fwkMsg_,
-        .hostUserId = hostUserId_,
+        .hostUserKey = hostUserKey_,
         .templateId = *templateId_,
         .authIntent = authIntent_,
         .authScene = authScene_ };
@@ -152,7 +152,7 @@ void HostSingleMixAuthRequest::StartDelegateAuth()
     }
     AuthRequestParams delegateAuthParams = { .scheduleId = GetScheduleId(),
         .fwkMsg = fwkMsg_,
-        .hostUserId = hostUserId_,
+        .hostUserKey = hostUserKey_,
         .templateId = *templateId_,
         .authIntent = authIntent_,
         .authScene = authScene_,

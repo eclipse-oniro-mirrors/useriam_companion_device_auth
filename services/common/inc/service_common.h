@@ -83,6 +83,21 @@ enum class SecureProtocolId : uint16_t {
 constexpr int32_t INVALID_USER_ID = -1;
 constexpr int32_t INVALID_SUB_PROFILE_ID = -1;
 
+struct UserKey {
+    UserId userId { INVALID_USER_ID };
+    int32_t subProfileId { INVALID_SUB_PROFILE_ID };
+
+    bool operator==(const UserKey &other) const
+    {
+        return userId == other.userId && subProfileId == other.subProfileId;
+    }
+
+    bool operator!=(const UserKey &other) const
+    {
+        return !(*this == other);
+    }
+};
+
 enum class MessageType : uint16_t {
     // Invalid
     INVALID = 0x0000,
@@ -215,7 +230,7 @@ public:
     std::vector<Capability> capabilities {};
     std::vector<BusinessId> supportedBusinessIds {};
     bool isOnline { false };
-    bool isAuthMaintainActive { false };
+    std::optional<bool> isAuthMaintainActive;
     DeviceType deviceType { DeviceType::INVALID };
     std::optional<uint32_t> atlRevokeDelayMs;
     bool refreshToken { false };
@@ -241,7 +256,7 @@ struct LocalDeviceAuthState {
 
 struct PersistedCompanionStatus {
     TemplateId templateId { 0 };
-    UserId hostUserId { INVALID_USER_ID };
+    UserKey hostUserKey;
     DeviceKey companionDeviceKey {};
     bool isValid { false };
     std::vector<BusinessId> enabledBusinessIds {};
@@ -260,7 +275,7 @@ struct CompanionStatus {
     CompanionStatus &FromPersisted(const PersistedCompanionStatus &persistedStatus)
     {
         templateId = persistedStatus.templateId;
-        hostUserId = persistedStatus.hostUserId;
+        hostUserKey = persistedStatus.hostUserKey;
         isValid = persistedStatus.isValid;
         enabledBusinessIds = persistedStatus.enabledBusinessIds;
         addedTime = persistedStatus.addedTime;
@@ -279,7 +294,7 @@ struct CompanionStatus {
     {
         PersistedCompanionStatus persistedStatus;
         persistedStatus.templateId = templateId;
-        persistedStatus.hostUserId = hostUserId;
+        persistedStatus.hostUserKey = hostUserKey;
         persistedStatus.isValid = isValid;
         persistedStatus.enabledBusinessIds = enabledBusinessIds;
         persistedStatus.addedTime = addedTime;
@@ -301,7 +316,7 @@ struct CompanionStatus {
     }
 
     TemplateId templateId { 0 };
-    UserId hostUserId { INVALID_USER_ID };
+    UserKey hostUserKey;
     DeviceStatus companionDeviceStatus {};
     bool isValid { true };
     std::optional<Atl> tokenAuthAtl { std::nullopt };
@@ -311,19 +326,17 @@ struct CompanionStatus {
 
 struct HostBindingStatus {
     BindingId bindingId { 0 };
-    UserId companionUserId { INVALID_USER_ID };
+    UserKey companionUserKey;
     DeviceStatus hostDeviceStatus {};
     bool isTokenValid { false };
     bool localAuthMaintainActive { false };
-    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
 };
 
 struct PersistedHostBindingStatus {
     BindingId bindingId { 0 };
-    UserId companionUserId { INVALID_USER_ID };
+    UserKey companionUserKey;
     DeviceKey hostDeviceKey {};
     bool isTokenValid { false };
-    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
 };
 
 struct SecureExecutorInfo {
@@ -339,11 +352,9 @@ struct SyncDeviceStatus {
     std::vector<BusinessId> businessIdList;
     SecureProtocolId secureProtocolId;
     std::string deviceUserName {};
-    int32_t deviceUserId { INVALID_USER_ID };
-    int32_t deviceSubProfileId { INVALID_SUB_PROFILE_ID };
+    UserKey deviceUserKey;
     std::string deviceName {};
     std::string deviceSubProfileName {};
-    std::optional<bool> isAuthMaintainActive;
 };
 
 struct DeviceCapabilityInfo {

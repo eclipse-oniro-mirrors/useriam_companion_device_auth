@@ -55,7 +55,7 @@ private:
     void StartAuthWithTemplateList(const std::vector<TemplateId> &templateList);
 
     std::vector<uint8_t> fwkMsg_;
-    UserId hostUserId_ = INVALID_USER_ID;
+    UserKey hostUserKey_;
     std::vector<TemplateId> templateIdList_;
     std::optional<uint32_t> tokenId_;
     std::optional<BusinessId> businessId_;

@@ -209,7 +209,7 @@ HWTEST_F(ContinuousAuthSubscriptionTest, HandleCompanionStatusChange_002, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
-    status.hostUserId = userId;
+    status.hostUserKey.userId = userId;
     status.templateId = 12345;
     status.isValid = true;
     status.tokenAuthAtl = 2;
@@ -242,7 +242,7 @@ HWTEST_F(ContinuousAuthSubscriptionTest, HandleCompanionStatusChange_003, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
-    status.hostUserId = userId;
+    status.hostUserKey.userId = userId;
     status.templateId = templateId.value();
     status.isValid = true;
     status.tokenAuthAtl = 2;
@@ -275,7 +275,7 @@ HWTEST_F(ContinuousAuthSubscriptionTest, HandleCompanionStatusChange_004, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
-    status.hostUserId = userId;
+    status.hostUserKey.userId = userId;
     status.templateId = 99999;
     status.isValid = true;
     status.tokenAuthAtl = 2;
@@ -307,7 +307,7 @@ HWTEST_F(ContinuousAuthSubscriptionTest, HandleCompanionStatusChange_005, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
-    status.hostUserId = 200;
+    status.hostUserKey.userId = 200;
     status.templateId = 12345;
     status.isValid = true;
     status.tokenAuthAtl = 2;
@@ -339,7 +339,7 @@ HWTEST_F(ContinuousAuthSubscriptionTest, HandleCompanionStatusChange_006, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
-    status.hostUserId = userId;
+    status.hostUserKey.userId = userId;
     status.templateId = 12345;
     status.isValid = false;
     status.tokenAuthAtl = std::nullopt;
@@ -371,13 +371,13 @@ HWTEST_F(ContinuousAuthSubscriptionTest, HandleCompanionStatusChange_007, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status1 {};
-    status1.hostUserId = userId;
+    status1.hostUserKey.userId = userId;
     status1.templateId = 12345;
     status1.isValid = true;
     status1.tokenAuthAtl = 1;
 
     CompanionStatus status2 {};
-    status2.hostUserId = userId;
+    status2.hostUserKey.userId = userId;
     status2.templateId = 67890;
     status2.isValid = true;
     status2.tokenAuthAtl = 3;

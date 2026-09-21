@@ -61,21 +61,22 @@ public:
             CompanionStatus status;
             // Fuzz the CompanionStatus structure
             status.templateId = fuzzData_.ConsumeIntegral<TemplateId>();
-            status.hostUserId = fuzzData_.ConsumeIntegral<UserId>();
+            status.hostUserKey.userId = fuzzData_.ConsumeIntegral<UserId>();
             status.companionDeviceStatus.deviceKey.deviceId = GenerateRandomString(fuzzData_);
             return std::optional<CompanionStatus>(status);
         }
         return std::optional<CompanionStatus>();
     }
 
-    std::optional<CompanionStatus> GetCompanionStatus(UserId hostUserId, const DeviceKey &companionDeviceKey) override
+    std::optional<CompanionStatus> GetCompanionStatus(const UserKey &hostUserKey,
+        const DeviceKey &companionDeviceKey) override
     {
-        (void)hostUserId;
+        (void)hostUserKey;
         (void)companionDeviceKey;
         if (fuzzData_.ConsumeBool()) {
             CompanionStatus status;
             status.templateId = fuzzData_.ConsumeIntegral<TemplateId>();
-            status.hostUserId = fuzzData_.ConsumeIntegral<UserId>();
+            status.hostUserKey.userId = fuzzData_.ConsumeIntegral<UserId>();
             status.companionDeviceStatus.deviceKey.deviceId = GenerateRandomString(fuzzData_);
             return std::optional<CompanionStatus>(status);
         }
@@ -89,7 +90,7 @@ public:
         for (size_t i = 0; i < count; ++i) {
             CompanionStatus status;
             status.templateId = fuzzData_.ConsumeIntegral<TemplateId>();
-            status.hostUserId = fuzzData_.ConsumeIntegral<UserId>();
+            status.hostUserKey.userId = fuzzData_.ConsumeIntegral<UserId>();
             status.companionDeviceStatus.deviceKey.deviceId = GenerateRandomString(fuzzData_);
             statuses.push_back(status);
         }
@@ -211,25 +212,25 @@ public:
         if (fuzzData_.ConsumeBool()) {
             HostBindingStatus status;
             status.bindingId = fuzzData_.ConsumeIntegral<BindingId>();
-            status.companionUserId = fuzzData_.ConsumeIntegral<UserId>();
+            status.companionUserKey.userId = fuzzData_.ConsumeIntegral<UserId>();
             status.hostDeviceStatus.deviceKey.deviceId = GenerateRandomString(fuzzData_);
-            status.companionSubProfileId = INVALID_SUB_PROFILE_ID;
+            status.companionUserKey.subProfileId = INVALID_SUB_PROFILE_ID;
             return std::optional<HostBindingStatus>(status);
         }
         return std::optional<HostBindingStatus>();
     }
 
-    std::optional<HostBindingStatus> GetHostBindingStatus(UserId companionUserId,
+    std::optional<HostBindingStatus> GetHostBindingStatus(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey) override
     {
-        (void)companionUserId;
+        (void)companionUserKey;
         (void)hostDeviceKey;
         if (fuzzData_.ConsumeBool()) {
             HostBindingStatus status;
             status.bindingId = fuzzData_.ConsumeIntegral<BindingId>();
-            status.companionUserId = fuzzData_.ConsumeIntegral<UserId>();
+            status.companionUserKey.userId = fuzzData_.ConsumeIntegral<UserId>();
             status.hostDeviceStatus.deviceKey.deviceId = GenerateRandomString(fuzzData_);
-            status.companionSubProfileId = INVALID_SUB_PROFILE_ID;
+            status.companionUserKey.subProfileId = INVALID_SUB_PROFILE_ID;
             return std::optional<HostBindingStatus>(status);
         }
         return std::optional<HostBindingStatus>();
@@ -251,9 +252,9 @@ public:
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 
-    ResultCode RemoveHostBinding(UserId companionUserId, const DeviceKey &hostDeviceKey) override
+    ResultCode RemoveHostBinding(const UserKey &companionUserKey, const DeviceKey &hostDeviceKey) override
     {
-        (void)companionUserId;
+        (void)companionUserKey;
         (void)hostDeviceKey;
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
@@ -265,10 +266,10 @@ public:
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0;
     }
 
-    void StartObtainTokenRequests(UserId userId, uint32_t lockStateAuthTypeValue,
+    void StartObtainTokenRequests(const UserKey &activeUserKey, uint32_t lockStateAuthTypeValue,
         const std::vector<uint8_t> &fwkUnlockMsg) override
     {
-        (void)userId;
+        (void)activeUserKey;
         (void)lockStateAuthTypeValue;
         (void)fwkUnlockMsg;
     }
@@ -277,6 +278,11 @@ public:
     {
         (void)userId;
         (void)reason;
+    }
+
+    std::vector<HostBindingStatus> GetAllHostBindingStatus() override
+    {
+        return std::vector<HostBindingStatus>();
     }
 
 private:
@@ -414,7 +420,7 @@ public:
         for (size_t i = 0; i < companionCount; ++i) {
             PersistedCompanionStatus status;
             status.templateId = fuzzData_.ConsumeIntegral<TemplateId>();
-            status.hostUserId = fuzzData_.ConsumeIntegral<UserId>();
+            status.hostUserKey.userId = fuzzData_.ConsumeIntegral<UserId>();
             status.companionDeviceKey.deviceId = GenerateRandomString(fuzzData_);
             output.companionStatusList.push_back(status);
         }
@@ -539,10 +545,10 @@ public:
             }
             // hostBindingStatus is PersistedHostBindingStatus, fill its fields directly
             output.hostBindingStatus.bindingId = fuzzData_.ConsumeIntegral<BindingId>();
-            output.hostBindingStatus.companionUserId = fuzzData_.ConsumeIntegral<UserId>();
+            output.hostBindingStatus.companionUserKey.userId = fuzzData_.ConsumeIntegral<UserId>();
             output.hostBindingStatus.hostDeviceKey.deviceId = GenerateRandomString(fuzzData_);
             output.hostBindingStatus.isTokenValid = fuzzData_.ConsumeBool();
-            output.hostBindingStatus.companionSubProfileId = INVALID_SUB_PROFILE_ID;
+            output.hostBindingStatus.companionUserKey.subProfileId = INVALID_SUB_PROFILE_ID;
         }
         return result;
     }
@@ -1236,10 +1242,10 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId,
-        const DeviceKey &companionDeviceKey) override
+    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(const UserKey &hostUserKey,
+        TemplateId templateId, const DeviceKey &companionDeviceKey) override
     {
-        (void)hostUserId;
+        (void)hostUserKey;
         (void)templateId;
         (void)companionDeviceKey;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0
@@ -1247,10 +1253,11 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateHostSyncDeviceStatusRequest(UserId hostUserId, const DeviceKey &companionDeviceKey,
-        const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback) override
+    std::shared_ptr<IRequest> CreateHostSyncDeviceStatusRequest(const UserKey &hostUserKey,
+        const DeviceKey &companionDeviceKey, const std::string &companionDeviceName,
+        SyncDeviceStatusCallback &&callback) override
     {
-        (void)hostUserId;
+        (void)hostUserKey;
         (void)companionDeviceKey;
         (void)companionDeviceName;
         (void)callback;
@@ -1259,10 +1266,10 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateHostIssueTokenRequest(UserId hostUserId, TemplateId templateId,
-        uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) override
+    std::shared_ptr<IRequest> CreateHostIssueTokenRequest(const UserKey &hostUserKey,
+        TemplateId templateId, uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) override
     {
-        (void)hostUserId;
+        (void)hostUserKey;
         (void)templateId;
         (void)lockStateAuthTypeValue;
         (void)fwkUnlockMsg;
@@ -1329,11 +1336,12 @@ public:
     }
 
     std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
-        UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
+        const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
+        const std::vector<uint8_t> &startDelegateAuthRequest,
         const CompanionDelegateAuthParam &delegateAuthParam) override
     {
         (void)connectionName;
-        (void)companionUserId;
+        (void)companionUserKey;
         (void)hostDeviceKey;
         (void)startDelegateAuthRequest;
         (void)delegateAuthParam;
@@ -1342,11 +1350,10 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId, int32_t companionSubProfileId,
+    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey, const std::string &triggerReason) override
     {
-        (void)companionUserId;
-        (void)companionSubProfileId;
+        (void)companionUserKey;
         (void)hostDeviceKey;
         (void)triggerReason;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0

@@ -62,7 +62,8 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -95,7 +96,8 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -113,7 +115,8 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_CarBypass, TestSize.Level0)
     // OnStart succeeds for DeviceType::CAR.
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -150,7 +153,8 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_TokenAuthAtlNull, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -171,7 +175,8 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -198,7 +203,8 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_004, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -233,7 +239,8 @@ HWTEST_F(HostTokenAuthRequestTest, OnConnected_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -273,7 +280,8 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -320,7 +328,8 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -368,7 +377,8 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::GENERAL_ERROR);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -419,7 +429,8 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -465,7 +476,8 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -514,7 +526,8 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_004, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -565,7 +578,8 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_005, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -617,7 +631,8 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_006, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -671,7 +686,8 @@ HWTEST_F(HostTokenAuthRequestTest, CompleteWithError_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -695,7 +711,8 @@ HWTEST_F(HostTokenAuthRequestTest, CompleteWithError_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callback = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
@@ -714,7 +731,8 @@ HWTEST_F(HostTokenAuthRequestTest, CompleteWithSuccess_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::GENERAL_ERROR);
     auto callbackFwkMsg = std::make_shared<std::vector<uint8_t>>();
@@ -740,7 +758,8 @@ HWTEST_F(HostTokenAuthRequestTest, GetWeakPtr_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -752,7 +771,8 @@ HWTEST_F(HostTokenAuthRequestTest, InvokeCallback_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callback = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
@@ -769,7 +789,8 @@ HWTEST_F(HostTokenAuthRequestTest, GetMaxConcurrency_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -780,7 +801,8 @@ HWTEST_F(HostTokenAuthRequestTest, ShouldCancelOnNewRequest_001, TestSize.Level0
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
     request->peerDeviceKey_ = std::nullopt;
@@ -795,7 +817,8 @@ HWTEST_F(HostTokenAuthRequestTest, ShouldCancelOnNewRequest_002, TestSize.Level0
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -808,7 +831,8 @@ HWTEST_F(HostTokenAuthRequestTest, ShouldCancelOnNewRequest_003, TestSize.Level0
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
     request->peerDeviceKey_ = COMPANION_DEVICE_KEY;
@@ -823,7 +847,8 @@ HWTEST_F(HostTokenAuthRequestTest, CanStart_001, TestSize.Level0)
     // No previous requests, CanStart should return true
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -836,7 +861,8 @@ HWTEST_F(HostTokenAuthRequestTest, CanStart_002, TestSize.Level0)
     // HostIssueTokenRequest on same device blocks HostTokenAuthRequest
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -853,7 +879,8 @@ HWTEST_F(HostTokenAuthRequestTest, CanStart_003, TestSize.Level0)
     // HostIssueTokenRequest on different device does NOT block HostTokenAuthRequest
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -870,7 +897,8 @@ HWTEST_F(HostTokenAuthRequestTest, CanStart_004, TestSize.Level0)
     // HostIssueTokenRequest with nullopt peerDeviceKey does NOT block
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -888,7 +916,8 @@ HWTEST_F(HostTokenAuthRequestTest, HandlePeerDeviceStatusChanged_PeerAbsent_NoFa
     // (the old "peer absent => fail" branch was removed). Only another device is present here.
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callback = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
@@ -907,7 +936,8 @@ HWTEST_F(HostTokenAuthRequestTest, HandlePeerDeviceStatusChanged_PeerLeftAuthMai
     // Retained branch: peer explicitly reports it left auth-maintain state => fail the request.
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -933,7 +963,8 @@ HWTEST_F(HostTokenAuthRequestTest, HandlePeerDeviceStatusChanged_AfterFinished_D
     // pass — this isolates the IsFinished() guard in HandlePeerDeviceStatusChanged as the sole defense.
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callback = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
     auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));

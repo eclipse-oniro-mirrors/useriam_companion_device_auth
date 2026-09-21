@@ -759,7 +759,6 @@ HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize02, TestSize.Level0)
     const uint16_t constU16Val = 0x0102;
     const uint8_t constU8Val = 0x01;
     Attributes attrsSerial;
-    attrsSerial.SetBoolValue(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, true);
     attrsSerial.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, false);
     attrsSerial.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, constU16Val);
     attrsSerial.SetUint32ArrayValue(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM,
@@ -771,10 +770,6 @@ HWTEST_F(AttributesTest, AttributesSerializeAndDeserialize02, TestSize.Level0)
     auto buffer = attrsSerial.Serialize();
 
     Attributes attrsDeserial(buffer);
-    bool boolValTrue;
-    EXPECT_TRUE(attrsDeserial.GetBoolValue(Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, boolValTrue));
-    EXPECT_EQ(boolValTrue, true);
-
     bool boolValFalse;
     EXPECT_TRUE(attrsDeserial.GetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, boolValFalse));
     EXPECT_EQ(boolValFalse, false);

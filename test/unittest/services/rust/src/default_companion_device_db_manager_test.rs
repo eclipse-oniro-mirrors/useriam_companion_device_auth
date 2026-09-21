@@ -23,7 +23,7 @@ use crate::traits::companion_device_db_manager::CompanionDeviceDbManager;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::{
     CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
-    DeviceKey, UserInfo,
+    DeviceKey, UserInfo, UserKey,
 };
 use crate::traits::storage_io::{MockStorageIo, StorageIoRegistry};
 use crate::ut_registry_guard;
@@ -36,7 +36,7 @@ fn create_test_companion_device(template_id: u64, device_id: &str, user_id: i32)
     CompanionDevice {
         template_id,
         device_key: DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id, sub_profile_id: 0 },
-        user_info: UserInfo { user_id, user_type: 1, sub_profile_id: 0 },
+        user_info: UserInfo { user_key: UserKey { user_id, sub_profile_id: 0 }, user_type: 1 },
         added_time: 1000,
         is_valid: true,
         capability_list: vec![1, 2, 3],
@@ -254,7 +254,7 @@ fn default_companion_device_db_manager_get_device_list_test_success() {
     let _ = manager.add_device(&device_info1, &base_info, &capability_info, &sk_info);
     let _ = manager.add_device(&device_info2, &base_info, &capability_info, &sk_info);
 
-    let filter = Box::new(|device: &CompanionDevice| device.user_info.user_id == 100);
+    let filter = Box::new(|device: &CompanionDevice| device.user_info.user_key.user_id == 100);
     let devices = manager.get_device_list(filter);
     assert_eq!(devices.len(), 1);
 }

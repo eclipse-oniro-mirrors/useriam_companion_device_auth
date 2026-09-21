@@ -64,7 +64,6 @@ private:
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     BindingId bindingId_ = 0;
     bool needCancelObtainToken_ = false;
-    bool waitingForAuthMaintainActive_ = false;
     std::unique_ptr<Subscription> localDeviceStatusSubscription_;
 };
 } // namespace CompanionDeviceAuth

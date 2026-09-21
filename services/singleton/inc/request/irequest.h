@@ -32,7 +32,6 @@ enum class RequestType : int32_t {
     NONE = 0,
 
     HOST_SYNC_DEVICE_STATUS_REQUEST = 10,
-
     HOST_ADD_COMPANION_REQUEST = 20,
     COMPANION_ADD_COMPANION_REQUEST = 21,
 

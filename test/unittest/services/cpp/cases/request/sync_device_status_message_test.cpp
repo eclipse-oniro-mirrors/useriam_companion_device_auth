@@ -367,8 +367,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MissingDeviceN
 }
 
 /**
- * Scenario: EncodeSyncDeviceStatusReply with deviceSubProfileName and isAuthMaintainActive
- * Expected: Round-trip encode/decode preserves these new fields
+ * Scenario: EncodeSyncDeviceStatusReply with deviceSubProfileName
+ * Expected: Round-trip encode/decode preserves this field
  */
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_WithSubProfileFields, TestSize.Level0)
 {
@@ -380,8 +380,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_WithSubProfile
         .deviceUserName = deviceUserName_,
         .deviceName = "test_device_name",
         .companionCheckResponse = companionCheckResponse_,
-        .deviceSubProfileName = "SubProfile1",
-        .isAuthMaintainActive = true };
+        .deviceSubProfileName = "SubProfile1" };
 
     Attributes attributes;
     EncodeSyncDeviceStatusReply(reply, attributes);
@@ -395,13 +394,11 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_WithSubProfile
     SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_EQ(decoded.deviceSubProfileName, "SubProfile1");
-    ASSERT_TRUE(decoded.isAuthMaintainActive.has_value());
-    EXPECT_TRUE(decoded.isAuthMaintainActive.value());
 }
 
 /**
- * Scenario: DecodeSyncDeviceStatusReply without deviceSubProfileName and isAuthMaintainActive
- * Expected: deviceSubProfileName defaults to empty string; isAuthMaintainActive is nullopt
+ * Scenario: DecodeSyncDeviceStatusReply without deviceSubProfileName
+ * Expected: Field defaults to empty string
  */
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MissingSubProfileFields_Defaults, TestSize.Level0)
 {
@@ -420,14 +417,13 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MissingSubProf
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, deviceUserName_);
     attributes.SetStringValue(Attributes::ATTR_CDA_SA_DEVICE_NAME, "test_device_name");
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, companionCheckResponse_);
-    // ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME and ATTR_CDA_SA_AUTH_STATE_MAINTAIN intentionally omitted
+    // ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME intentionally omitted
 
     auto result = DecodeSyncDeviceStatusReply(attributes);
     ASSERT_TRUE(result.has_value());
     SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_TRUE(decoded.deviceSubProfileName.empty());
-    EXPECT_FALSE(decoded.isAuthMaintainActive.has_value());
 }
 
 /**

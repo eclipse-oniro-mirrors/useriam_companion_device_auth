@@ -58,7 +58,7 @@ PersistedCompanionStatus MakePersistedStatus(TemplateId templateId, UserId hostU
 {
     PersistedCompanionStatus status;
     status.templateId = templateId;
-    status.hostUserId = hostUserId;
+    status.hostUserKey.userId = hostUserId;
     status.companionDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     status.companionDeviceKey.deviceId = deviceId;
     status.companionDeviceKey.deviceUserId = deviceUserId;
@@ -146,7 +146,7 @@ HWTEST_F(CompanionTest, Create_001, TestSize.Level0)
 
     EXPECT_NE(nullptr, companion);
     EXPECT_EQ(TEMPLATE_ID_12345, companion->GetTemplateId());
-    EXPECT_EQ(USER_ID_100, companion->GetHostUserId());
+    EXPECT_EQ(USER_ID_100, companion->GetHostUserKey().userId);
     EXPECT_EQ("test_device_id", companion->GetCompanionDeviceKey().deviceId);
 }
 
@@ -165,7 +165,7 @@ HWTEST_F(CompanionTest, Create_002, TestSize.Level0)
     ASSERT_NE(nullptr, companion);
     auto status = companion->GetStatus();
     EXPECT_TRUE(status.companionDeviceStatus.isOnline);
-    EXPECT_TRUE(status.companionDeviceStatus.isAuthMaintainActive);
+    EXPECT_TRUE(status.companionDeviceStatus.isAuthMaintainActive.value_or(true));
 }
 
 HWTEST_F(CompanionTest, Create_003, TestSize.Level0)
@@ -194,7 +194,7 @@ HWTEST_F(CompanionTest, HandleDeviceStatusChanged_001, TestSize.Level0)
 
     auto status = companion->GetStatus();
     EXPECT_TRUE(status.companionDeviceStatus.isOnline);
-    EXPECT_TRUE(status.companionDeviceStatus.isAuthMaintainActive);
+    EXPECT_TRUE(status.companionDeviceStatus.isAuthMaintainActive.value_or(true));
 }
 
 HWTEST_F(CompanionTest, HandleDeviceStatusChanged_002, TestSize.Level0)
@@ -225,7 +225,7 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_001, TestSize.Level0)
 
     auto status = companion->GetStatus();
     EXPECT_TRUE(status.companionDeviceStatus.isOnline);
-    EXPECT_FALSE(status.companionDeviceStatus.isAuthMaintainActive);
+    EXPECT_FALSE(status.companionDeviceStatus.isAuthMaintainActive.value_or(true));
     EXPECT_FALSE(status.tokenAuthAtl.has_value());
 }
 
@@ -586,7 +586,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayNullopt_NoRevoke, Tes
     // First set authMaintain active (no delay configured yet)
     auto activeStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
-    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive.value_or(true));
 
     // atlRevokeDelayMs = nullopt, authMaintain goes inactive → no revoke
     auto inactiveStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
@@ -608,7 +608,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayZero_ImmediateRevoke,
     // First set authMaintain active with delay=0
     auto activeStatus = MakeDeviceStatus(deviceKey, true, true, 0, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
-    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive.value_or(true));
 
     // atlRevokeDelayMs = 0 → immediate revoke
     EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
@@ -632,7 +632,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_AtlRevokeDelayNonZero_TimerFiresAnd
     auto activeStatus =
         MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
-    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive.value_or(true));
 
     // atlRevokeDelayMs = TEST_ATL_REVOKE_DELAY_MS → timer scheduled
     auto inactiveStatus =
@@ -663,7 +663,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_TimerCancelledOnRecovery, TestSize.
     auto activeStatus =
         MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
-    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive.value_or(true));
 
     // authMaintain goes inactive → timer scheduled
     auto inactiveStatus =
@@ -689,7 +689,7 @@ HWTEST_F(CompanionTest, AuthMaintainInactive_NoAtl_NoRevoke, TestSize.Level0)
     auto activeStatus =
         MakeDeviceStatus(deviceKey, true, true, TEST_ATL_REVOKE_DELAY_MS, { BUSINESS_ID_1, BUSINESS_ID_2 });
     companion->HandleDeviceStatusUpdate(activeStatus);
-    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+    ASSERT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive.value_or(true));
 
     // No ATL set, authMaintain goes inactive with delay → nothing happens
     auto inactiveStatus =
@@ -763,7 +763,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentWorn_NoNotWornTimer, 
 
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
-    EXPECT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+    EXPECT_TRUE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive.value_or(true));
 
     // Set ATL with forEnrollment=true: not-worn timer should NOT be started because device IS worn
     companion->SetCompanionTokenAuthAtl(ATL3, true);
@@ -803,7 +803,7 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_StartsNotWorn
 
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
     ASSERT_NE(nullptr, companion);
-    EXPECT_FALSE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive);
+    EXPECT_FALSE(companion->GetStatus().companionDeviceStatus.isAuthMaintainActive.value_or(true));
 
     // Set ATL with forEnrollment=true + device not worn -> not-worn timer SHOULD be started
     companion->SetCompanionTokenAuthAtl(ATL3, true);

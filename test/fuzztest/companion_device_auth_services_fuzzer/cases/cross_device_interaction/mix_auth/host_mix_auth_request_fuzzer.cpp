@@ -138,7 +138,7 @@ void FuzzHostMixAuthRequest(FuzzedDataProvider &fuzzData)
     HostMixAuthParams params;
     params.scheduleId = scheduleId;
     params.fwkMsg = fwkMsg;
-    params.hostUserId = hostUserId;
+    params.hostUserKey.userId = hostUserId;
     params.templateIdList = templateIdList;
     params.tokenId = optionalTokenId;
     params.businessId = std::nullopt;

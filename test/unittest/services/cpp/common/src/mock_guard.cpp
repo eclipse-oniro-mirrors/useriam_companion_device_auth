@@ -42,7 +42,6 @@
 #include "mock_sa_manager_adapter.h"
 #include "mock_security_agent.h"
 #include "mock_soft_bus_adapter.h"
-#include "mock_sub_profile_id_manager.h"
 #include "mock_system_param_manager.h"
 #include "mock_time_keeper.h"
 #include "mock_user_auth_adapter.h"
@@ -88,9 +87,6 @@ void MockGuard::CreateMocks()
 
     userIdManager_ = std::make_shared<MockUserIdManager>();
     AdapterManager::GetInstance().SetUserIdManager(userIdManager_);
-
-    subProfileIdManager_ = std::make_shared<MockSubProfileIdManager>();
-    AdapterManager::GetInstance().SetSubProfileIdManager(subProfileIdManager_);
 
     eventManagerAdapter_ = std::make_shared<MockEventManagerAdapter>();
     AdapterManager::GetInstance().SetEventManagerAdapter(eventManagerAdapter_);
@@ -141,7 +137,6 @@ void MockGuard::SetupDefaultBehaviors()
 {
     SetupMiscManagerDefaults();
     SetupUserIdManagerDefaults();
-    SetupSubProfileIdManagerDefaults();
     SetupCrossDeviceCommManagerDefaults();
     SetupCompanionManagerDefaults();
     SetupRequestManagerDefaults();
@@ -189,19 +184,19 @@ void MockGuard::SetupUserIdManagerDefaults()
     ON_CALL(*userIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return std::make_unique<Subscription>([]() {});
     }));
-    ON_CALL(*userIdManager_, GetUnlockedActiveUserId()).WillByDefault(Return(0));
-    ON_CALL(*userIdManager_, SubscribeUnlockedActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
-        return std::make_unique<Subscription>([]() {});
-    }));
+    ON_CALL(*userIdManager_, GetUnlockedActiveUserkey())
+        .WillByDefault(Return(UserKey { 0, INVALID_SUB_PROFILE_ID }));
+    ON_CALL(*userIdManager_, SubscribeUnlockedActiveUserKey(_))
+        .WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+            return std::make_unique<Subscription>([]() {});
+        }));
     ON_CALL(*userIdManager_, GetActiveUserTypeName()).WillByDefault(Return("normal"));
-}
 
-void MockGuard::SetupSubProfileIdManagerDefaults()
-{
-    ON_CALL(*subProfileIdManager_, GetForegroundSubProfileId(_)).WillByDefault(Return(INVALID_SUB_PROFILE_ID));
-    ON_CALL(*subProfileIdManager_, IsForegroundSubProfileId(_, _)).WillByDefault(Return(false));
-    ON_CALL(*subProfileIdManager_, GetSubProfileName(_, _)).WillByDefault(Return(std::nullopt));
-    ON_CALL(*subProfileIdManager_, SubscribeSubProfileChanged(_))
+    // Sub profile ID management defaults (merged from SetupSubProfileIdManagerDefaults)
+    ON_CALL(*userIdManager_, GetForegroundSubProfileId(_)).WillByDefault(Return(INVALID_SUB_PROFILE_ID));
+    ON_CALL(*userIdManager_, IsForegroundSubProfileId(_)).WillByDefault(Return(false));
+    ON_CALL(*userIdManager_, GetSubProfileName(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(*userIdManager_, SubscribeSubProfileChanged(_))
         .WillByDefault(Invoke([](SubProfileChangedCallback &&) { return std::make_unique<Subscription>([]() {}); }));
 }
 
@@ -279,7 +274,7 @@ void MockGuard::SetupRequestManagerDefaults()
 
 void MockGuard::SetupRequestFactoryDefaults()
 {
-    ON_CALL(*requestFactory_, CreateCompanionRevokeTokenRequest(_, _, _, _)).WillByDefault(Return(nullptr));
+    ON_CALL(*requestFactory_, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
     ON_CALL(*requestFactory_, CreateHostSyncDeviceStatusRequest(_, _, _, _)).WillByDefault(Return(nullptr));
     ON_CALL(*requestFactory_, CreateCompanionRequestResyncRequest(_, _)).WillByDefault(Return(nullptr));
 }
@@ -302,6 +297,8 @@ void MockGuard::SetupHostBindingManagerDefaults()
     ON_CALL(*hostBindingManager_, SetHostBindingTokenValid(_, _)).WillByDefault(Return(true));
     ON_CALL(*hostBindingManager_, StartObtainTokenRequests(_, _, _)).WillByDefault(Return());
     ON_CALL(*hostBindingManager_, RevokeTokens(_, _)).WillByDefault(Return());
+    ON_CALL(*hostBindingManager_, GetAllHostBindingStatus())
+        .WillByDefault(Return(std::vector<HostBindingStatus> {}));
 }
 
 void MockGuard::SetupSecurityAgentDefaults()
@@ -382,7 +379,6 @@ MockGuard::~MockGuard()
     Mock::VerifyAndClearExpectations(saManagerAdapter_.get());
     Mock::VerifyAndClearExpectations(systemParamManager_.get());
     Mock::VerifyAndClearExpectations(userIdManager_.get());
-    Mock::VerifyAndClearExpectations(subProfileIdManager_.get());
     Mock::VerifyAndClearExpectations(eventManagerAdapter_.get());
     Mock::VerifyAndClearExpectations(systemSettingsManager_.get());
     Mock::VerifyAndClearExpectations(appForegroundStateAdapter_.get());
@@ -395,7 +391,6 @@ MockGuard::~MockGuard()
     AdapterManager::GetInstance().SetSaManagerAdapter(nullptr);
     AdapterManager::GetInstance().SetSystemParamManager(nullptr);
     AdapterManager::GetInstance().SetUserIdManager(nullptr);
-    AdapterManager::GetInstance().SetSubProfileIdManager(nullptr);
     AdapterManager::GetInstance().SetEventManagerAdapter(nullptr);
     AdapterManager::GetInstance().SetSystemSettingsManager(nullptr);
     AdapterManager::GetInstance().SetAppForegroundStateAdapter(nullptr);
@@ -437,11 +432,6 @@ MockSystemParamManager &MockGuard::GetSystemParamManager()
 MockUserIdManager &MockGuard::GetUserIdManager()
 {
     return *userIdManager_;
-}
-
-MockSubProfileIdManager &MockGuard::GetSubProfileIdManager()
-{
-    return *subProfileIdManager_;
 }
 
 MockEventManagerAdapter &MockGuard::GetEventManagerAdapter()

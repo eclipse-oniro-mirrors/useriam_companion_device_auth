@@ -20,7 +20,7 @@ use crate::common::constants::*;
 use crate::impls::default_host_binding_db_manager::{DefaultHostBindingDbManager, MAX_DEVICE_NUM_PER_USER};
 use crate::log_i;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManager, HostDeviceFilter};
 use crate::traits::storage_io::{MockStorageIo, StorageIoRegistry};
 use crate::ut_registry_guard;
@@ -31,9 +31,30 @@ fn create_test_host_binding(binding_id: i32, device_id: &str, user_id: i32) -> H
     HostBinding {
         device_key: DeviceKey { device_id: device_id.to_string(), device_id_type: 1, user_id, sub_profile_id: 0 },
         binding_id,
-        user_info: UserInfo { user_id, user_type: 1, sub_profile_id: 0 },
+        user_info: UserInfo { user_key: UserKey { user_id, sub_profile_id: 0 }, user_type: 1 },
         binding_time: 1000,
         last_used_time: 2000,
+    }
+}
+
+fn create_test_host_binding_with_profile(
+    binding_id: i32,
+    device_id: &str,
+    user_id: i32,
+    sub_profile_id: i32,
+    last_used_time: u64,
+) -> HostBinding {
+    HostBinding {
+        device_key: DeviceKey {
+            device_id: device_id.to_string(),
+            device_id_type: 1,
+            user_id,
+            sub_profile_id,
+        },
+        binding_id,
+        user_info: UserInfo { user_key: UserKey { user_id, sub_profile_id }, user_type: 1 },
+        binding_time: 1000,
+        last_used_time,
     }
 }
 
@@ -47,7 +68,7 @@ fn create_test_token_info() -> HostBindingToken {
 
 fn filter_by_user_and_profile(user_id: i32, sub_profile_id: i32) -> HostDeviceFilter {
     Box::new(move |device: &HostBinding| {
-        device.user_info.user_id == user_id && device.user_info.sub_profile_id == sub_profile_id
+        device.user_info.user_key.user_id == user_id && device.user_info.user_key.sub_profile_id == sub_profile_id
     })
 }
 
@@ -166,6 +187,64 @@ fn default_host_binding_db_manager_add_device_test_max_devices_per_user() {
 }
 
 #[test]
+fn default_host_binding_db_manager_add_device_test_evict_oldest_in_same_scope() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_host_binding_db_manager_add_device_test_evict_oldest_in_same_scope start");
+
+    mock_set_storage_io_success();
+
+    let mut manager = DefaultHostBindingDbManager::new();
+    let user_id = 100;
+    let sub_profile_id = 0;
+    let sk_info = create_test_sk_info(vec![1u8, 2, 3]);
+
+    // Pre-fill the user scope up to the limit with the oldest device first.
+    let old_device =
+        create_test_host_binding_with_profile(100, "old_device", user_id, sub_profile_id, 1000);
+    let _ = manager.add_device(&old_device, &sk_info);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(user_id, sub_profile_id)).len(), 1);
+
+    // Adding a new device in the same scope should evict the oldest unused one (binding_id 100).
+    let new_device =
+        create_test_host_binding_with_profile(200, "new_device", user_id, sub_profile_id, 3000);
+    let result = manager.add_device(&new_device, &sk_info);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Some(100));
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(user_id, sub_profile_id)).len(), 1);
+    assert!(manager.get_device_by_binding_id(200).is_ok());
+    assert!(manager.get_device_by_binding_id(100).is_err());
+}
+
+#[test]
+fn default_host_binding_db_manager_add_device_test_evict_from_other_scope_when_self_empty() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_host_binding_db_manager_add_device_test_evict_from_other_scope_when_self_empty start");
+
+    mock_set_storage_io_success();
+
+    let mut manager = DefaultHostBindingDbManager::new();
+    let user_id = 100;
+    let sk_info = create_test_sk_info(vec![1u8, 2, 3]);
+
+    // Device under (user_id=100, sub_profile_id=0), which is the oldest.
+    let existing_device = create_test_host_binding_with_profile(100, "existing", user_id, 0, 1000);
+    let _ = manager.add_device(&existing_device, &sk_info);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(user_id, 0)).len(), 1);
+
+    // New device under the same user_id but a different sub_profile_id. The user_id scope is full
+    // (MAX_DEVICE_NUM_PER_USER=1) and the new (user_id, sub_profile_id) scope is empty, so the
+    // oldest unused device from the other scope (binding_id 100) should be evicted.
+    let new_device = create_test_host_binding_with_profile(200, "new_device", user_id, 1, 3000);
+    let result = manager.add_device(&new_device, &sk_info);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Some(100));
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(user_id, 0)).len(), 0);
+    assert_eq!(manager.get_device_list(filter_by_user_and_profile(user_id, 1)).len(), 1);
+    assert!(manager.get_device_by_binding_id(200).is_ok());
+    assert!(manager.get_device_by_binding_id(100).is_err());
+}
+
+#[test]
 fn default_host_binding_db_manager_add_device_test_write_db_fail() {
     let _guard = ut_registry_guard!();
     log_i!("default_host_binding_db_manager_add_device_test_write_db_fail start");
@@ -236,7 +315,7 @@ fn default_host_binding_db_manager_get_device_by_device_key_test_success() {
 
     let device_key = DeviceKey { device_id: "device1".to_string(), device_id_type: 1, user_id: 100, sub_profile_id: 0 };
 
-    let result = manager.get_device_by_device_key(100, &device_key);
+    let result = manager.get_device_by_device_key(UserKey { user_id: 100, sub_profile_id: 0 }, &device_key);
     assert!(result.is_ok());
     let retrieved_device = result.unwrap();
     assert_eq!(retrieved_device.binding_id, 123);
@@ -256,7 +335,7 @@ fn default_host_binding_db_manager_get_device_by_device_key_test_not_found() {
         sub_profile_id: 0,
     };
 
-    let result = manager.get_device_by_device_key(100, &device_key);
+    let result = manager.get_device_by_device_key(UserKey { user_id: 100, sub_profile_id: 0 }, &device_key);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
 

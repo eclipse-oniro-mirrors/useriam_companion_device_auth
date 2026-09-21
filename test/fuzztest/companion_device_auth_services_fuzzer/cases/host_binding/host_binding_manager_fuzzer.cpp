@@ -41,9 +41,10 @@ static void FuzzGetHostBindingStatusById(std::shared_ptr<HostBindingManagerImpl>
 static void FuzzGetHostBindingStatusByDeviceUser(std::shared_ptr<HostBindingManagerImpl> &manager,
     FuzzedDataProvider &fuzzData)
 {
-    UserId companionUserId = fuzzData.ConsumeIntegral<UserId>();
+    UserKey companionUserKey { .userId = fuzzData.ConsumeIntegral<UserId>(),
+        .subProfileId = fuzzData.ConsumeIntegral<int32_t>() };
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto status = manager->GetHostBindingStatus(companionUserId, hostDeviceKey);
+    auto status = manager->GetHostBindingStatus(companionUserKey, hostDeviceKey);
     (void)status;
 }
 
@@ -51,7 +52,7 @@ static void FuzzBeginAddHostBinding(std::shared_ptr<HostBindingManagerImpl> &man
 {
     BeginAddHostBindingInput input = {};
     input.requestId = fuzzData.ConsumeIntegral<RequestId>();
-    input.companionUserId = fuzzData.ConsumeIntegral<UserId>();
+    input.companionUserKey = UserKey { fuzzData.ConsumeIntegral<UserId>(), fuzzData.ConsumeIntegral<int32_t>() };
     input.secureProtocolId = GenerateFuzzSecureProtocolId(fuzzData);
     input.addHostBindingRequest =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
@@ -77,9 +78,10 @@ static void FuzzEndAddHostBinding(std::shared_ptr<HostBindingManagerImpl> &manag
 
 static void FuzzRemoveHostBinding(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
-    UserId companionUserId = fuzzData.ConsumeIntegral<UserId>();
+    UserKey companionUserKey { .userId = fuzzData.ConsumeIntegral<UserId>(),
+        .subProfileId = fuzzData.ConsumeIntegral<int32_t>() };
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto result = manager->RemoveHostBinding(companionUserId, hostDeviceKey);
+    auto result = manager->RemoveHostBinding(companionUserKey, hostDeviceKey);
     (void)result;
 }
 
@@ -93,11 +95,13 @@ static void FuzzSetHostBindingTokenValid(std::shared_ptr<HostBindingManagerImpl>
 
 static void FuzzStartObtainTokenRequests(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
-    UserId userId = fuzzData.ConsumeIntegral<UserId>();
+    UserKey activeUserKey;
+    activeUserKey.userId = fuzzData.ConsumeIntegral<UserId>();
+    activeUserKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t lockStateAuthTypeValue = fuzzData.ConsumeIntegral<uint32_t>();
     std::vector<uint8_t> fwkUnlockMsg =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
-    manager->StartObtainTokenRequests(userId, lockStateAuthTypeValue, fwkUnlockMsg);
+    manager->StartObtainTokenRequests(activeUserKey, lockStateAuthTypeValue, fwkUnlockMsg);
 }
 
 static void FuzzRevokeTokens(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
@@ -124,7 +128,7 @@ static void FuzzFindBindingByDeviceUser(std::shared_ptr<HostBindingManagerImpl> 
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto binding = manager->FindBindingByDeviceUser(userId, deviceKey);
+    auto binding = manager->FindBindingByDeviceUser(UserKey{userId, INVALID_SUB_PROFILE_ID}, deviceKey);
     (void)binding;
 }
 
@@ -132,10 +136,10 @@ static void FuzzAddBindingInternal(std::shared_ptr<HostBindingManagerImpl> &mana
 {
     PersistedHostBindingStatus persistedStatus;
     persistedStatus.bindingId = fuzzData.ConsumeIntegral<BindingId>();
-    persistedStatus.companionUserId = fuzzData.ConsumeIntegral<UserId>();
+    persistedStatus.companionUserKey.userId = fuzzData.ConsumeIntegral<UserId>();
     persistedStatus.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     persistedStatus.isTokenValid = fuzzData.ConsumeBool();
-    persistedStatus.companionSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
+    persistedStatus.companionUserKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
     auto binding = HostBinding::Create(persistedStatus);
     if (binding) {
         (void)manager->AddBindingInternal(binding);

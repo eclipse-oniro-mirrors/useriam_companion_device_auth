@@ -175,7 +175,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationTrue, TestSize.
         PersistedCompanionStatusFfi ffi = {};
 
         ffi.templateId = INT32_123;
-        ffi.hostUserId = INT32_456;
+        ffi.hostUserKey.userId = INT32_456;
         ffi.enabledBusinessIds.len = 2;
         ffi.enabledBusinessIds.data[0] = 1;
         ffi.enabledBusinessIds.data[1] = 2;
@@ -198,7 +198,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationFalse, TestSize
         PersistedCompanionStatusFfi ffi = {};
 
         ffi.templateId = 1;
-        ffi.hostUserId = 1;
+        ffi.hostUserKey.userId = 1;
         ffi.enabledBusinessIds.len = sizeof(ffi.enabledBusinessIds.data) / sizeof(ffi.enabledBusinessIds.data[0]) + 1;
         ffi.supportedBusinessIds.len =
             sizeof(ffi.supportedBusinessIds.data) / sizeof(ffi.supportedBusinessIds.data[0]) + 1;
@@ -213,7 +213,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationFalse, TestSize
         PersistedCompanionStatusFfi ffi = {};
 
         ffi.templateId = 1;
-        ffi.hostUserId = 1;
+        ffi.hostUserKey.userId = 1;
         ffi.enabledBusinessIds.len = 0;
         ffi.companionDeviceKey.deviceId.len = 0;
         ffi.deviceModelInfo.len = MAX_DATA_LEN_1024 + 1;
@@ -227,7 +227,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationFalse, TestSize
         PersistedCompanionStatusFfi ffi = {};
 
         ffi.templateId = 1;
-        ffi.hostUserId = 1;
+        ffi.hostUserKey.userId = 1;
         ffi.enabledBusinessIds.len = 0;
         ffi.companionDeviceKey.deviceId.len = 0;
         ffi.deviceModelInfo.len = 0;
@@ -242,7 +242,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationFalse, TestSize
         PersistedCompanionStatusFfi ffi = {};
 
         ffi.templateId = 1;
-        ffi.hostUserId = 1;
+        ffi.hostUserKey.userId = 1;
         ffi.enabledBusinessIds.len = 0;
         ffi.companionDeviceKey.deviceId.len = 0;
         ffi.deviceModelInfo.len = 0;
@@ -265,7 +265,7 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
     {
         PersistedCompanionStatus status;
         status.templateId = INT32_999;
-        status.hostUserId = INT32_321;
+        status.hostUserKey.userId = INT32_321;
         status.isValid = true;
         status.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(3),
             static_cast<BusinessId>(5) };
@@ -283,7 +283,7 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
     {
         PersistedCompanionStatus status;
         status.templateId = 1;
-        status.hostUserId = 1;
+        status.hostUserKey.userId = 1;
 
         for (int i = 0; i < 100; ++i) {
             status.enabledBusinessIds.push_back(static_cast<BusinessId>(i));
@@ -298,7 +298,7 @@ HWTEST_F(FfiUtilTest, EncodePersistedCompanionStatusLenValidation, TestSize.Leve
     {
         PersistedCompanionStatus status;
         status.templateId = 1;
-        status.hostUserId = 1;
+        status.hostUserKey.userId = 1;
         status.deviceModelInfo = std::string(MAX_DATA_LEN_1024 + 1, 'A');
 
         PersistedCompanionStatusFfi ffi = {};
@@ -317,9 +317,9 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusValid, TestSize.Level1)
     PersistedHostBindingStatusFfi ffi = {};
 
     ffi.bindingId = INT32_555;
-    ffi.companionUserId = 888;
+    ffi.companionUserKey.userId = 888;
     ffi.isTokenValid = 1;
-    ffi.companionSubProfileId = INT32_42;
+    ffi.companionUserKey.subProfileId = INT32_42;
     ffi.hostDeviceKey.deviceIdType = 1;
     ffi.hostDeviceKey.userId = 111;
     ffi.hostDeviceKey.deviceId.len = 0;
@@ -327,7 +327,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusValid, TestSize.Level1)
     PersistedHostBindingStatus status;
     EXPECT_TRUE(DecodePersistedHostBindingStatus(ffi, status));
     EXPECT_EQ(status.bindingId, 555U);
-    EXPECT_EQ(status.companionSubProfileId, INT32_42);
+    EXPECT_EQ(status.companionUserKey.subProfileId, INT32_42);
 }
 
 // ============================================================================
@@ -637,7 +637,7 @@ HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
     MockGuard guard;
     PersistedCompanionStatus originalStatus;
     originalStatus.templateId = INT32_555;
-    originalStatus.hostUserId = 10;
+    originalStatus.hostUserKey.userId = 10;
     originalStatus.addedTime = 1000;
     originalStatus.isValid = true;
     originalStatus.enabledBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2) };
@@ -663,7 +663,7 @@ HWTEST_F(FfiUtilTest, RoundTripCompanionStatus, TestSize.Level1)
     EXPECT_TRUE(DecodePersistedCompanionStatus(ffi, decodedStatus));
 
     EXPECT_EQ(decodedStatus.templateId, originalStatus.templateId);
-    EXPECT_EQ(decodedStatus.hostUserId, originalStatus.hostUserId);
+    EXPECT_EQ(decodedStatus.hostUserKey.userId, originalStatus.hostUserKey.userId);
     EXPECT_EQ(decodedStatus.isValid, originalStatus.isValid);
     EXPECT_EQ(decodedStatus.enabledBusinessIds.size(), originalStatus.enabledBusinessIds.size());
     EXPECT_EQ(decodedStatus.supportedBusinessIds.size(), originalStatus.supportedBusinessIds.size());
@@ -786,7 +786,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
     input.requestId = INT32_444;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
     input.companionStatus.templateId = INT32_555;
-    input.companionStatus.hostUserId = INT32_666;
+    input.companionStatus.hostUserKey.userId = INT32_666;
     input.supportedBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2) };
     input.addHostBindingReply = { UINT8_0X55, UINT8_0X66 };
 
@@ -1191,12 +1191,12 @@ HWTEST_F(FfiUtilTest, DecodeCompanionBeginAddHostBindingOutput_001, TestSize.Lev
     CompanionBeginAddHostBindingOutputFfi ffi = {};
     ffi.replacedBindingId = INT32_123;
     ffi.bindingStatus.bindingId = INT32_123;
-    ffi.bindingStatus.companionUserId = INT32_456;
+    ffi.bindingStatus.companionUserKey.userId = INT32_456;
     ffi.bindingStatus.isTokenValid = 1;
     ffi.bindingStatus.hostDeviceKey.deviceIdType = 1;
     ffi.bindingStatus.hostDeviceKey.userId = INT32_999;
     ffi.bindingStatus.hostDeviceKey.deviceId.len = 0;
-    ffi.bindingStatus.companionSubProfileId = -1;
+    ffi.bindingStatus.companionUserKey.subProfileId = -1;
     ffi.secMessage.len = 2;
     ffi.secMessage.data[0] = UINT8_0X33;
     ffi.secMessage.data[1] = UINT8_0X44;
@@ -1214,12 +1214,12 @@ HWTEST_F(FfiUtilTest, DecodeCompanionBeginAddHostBindingOutput_002, TestSize.Lev
     CompanionBeginAddHostBindingOutputFfi ffi = {};
     ffi.replacedBindingId = 0;
     ffi.bindingStatus.bindingId = INT32_555;
-    ffi.bindingStatus.companionUserId = INT32_666;
+    ffi.bindingStatus.companionUserKey.userId = INT32_666;
     ffi.bindingStatus.isTokenValid = 0;
     ffi.bindingStatus.hostDeviceKey.deviceIdType = 1;
     ffi.bindingStatus.hostDeviceKey.userId = 777;
     ffi.bindingStatus.hostDeviceKey.deviceId.len = 0;
-    ffi.bindingStatus.companionSubProfileId = -1;
+    ffi.bindingStatus.companionUserKey.subProfileId = -1;
     ffi.secMessage.len = 0;
 
     CompanionBeginAddHostBindingOutput output;
@@ -1429,7 +1429,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusList_001, TestSize.Level0)
     ffi.len = 2;
 
     ffi.data[0].templateId = 111;
-    ffi.data[0].hostUserId = INT32_222;
+    ffi.data[0].hostUserKey.userId = INT32_222;
     ffi.data[0].enabledBusinessIds.len = 0;
     ffi.data[0].companionDeviceKey.deviceId.len = 0;
     ffi.data[0].deviceModelInfo.len = 0;
@@ -1437,7 +1437,7 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusList_001, TestSize.Level0)
     ffi.data[0].deviceName.len = 0;
 
     ffi.data[1].templateId = INT32_333;
-    ffi.data[1].hostUserId = INT32_444;
+    ffi.data[1].hostUserKey.userId = INT32_444;
     ffi.data[1].enabledBusinessIds.len = 0;
     ffi.data[1].companionDeviceKey.deviceId.len = 0;
     ffi.data[1].deviceModelInfo.len = 0;
@@ -1458,20 +1458,20 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusList_001, TestSize.Level0)
     ffi.len = 2;
 
     ffi.data[0].bindingId = INT32_555;
-    ffi.data[0].companionUserId = INT32_666;
+    ffi.data[0].companionUserKey.userId = INT32_666;
     ffi.data[0].isTokenValid = 1;
     ffi.data[0].hostDeviceKey.deviceIdType = 1;
     ffi.data[0].hostDeviceKey.userId = 777;
     ffi.data[0].hostDeviceKey.deviceId.len = 0;
-    ffi.data[0].companionSubProfileId = -1;
+    ffi.data[0].companionUserKey.subProfileId = -1;
 
     ffi.data[1].bindingId = 888;
-    ffi.data[1].companionUserId = 999;
+    ffi.data[1].companionUserKey.userId = 999;
     ffi.data[1].isTokenValid = 0;
     ffi.data[1].hostDeviceKey.deviceIdType = 1;
     ffi.data[1].hostDeviceKey.userId = 1000;
     ffi.data[1].hostDeviceKey.deviceId.len = 0;
-    ffi.data[1].companionSubProfileId = -1;
+    ffi.data[1].companionUserKey.subProfileId = -1;
 
     std::vector<PersistedHostBindingStatus> list;
     EXPECT_TRUE(DecodePersistedHostBindingStatusList(ffi, list));

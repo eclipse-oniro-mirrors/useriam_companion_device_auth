@@ -15,7 +15,7 @@
 
 use crate::common::constants::{AuthTrustLevel, ErrorCode, SECURE_RANDOM_MAX_ATTEMPTS, SHARE_KEY_LEN, TOKEN_KEY_LEN};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManager, HostDeviceFilter};
 use crate::traits::log_trace::RustFileId;
 use crate::traits::storage_io::StorageIoRegistry;
@@ -49,8 +49,8 @@ impl DefaultHostBindingDbManager {
         self.host_bindings.iter().position(|info| info.binding_id == binding_id)
     }
 
-    fn get_index_by_device_key(&self, user_id: i32, device_key: &DeviceKey) -> Option<usize> {
-        self.host_bindings.iter().position(|info| device_key == &info.device_key && user_id == info.user_info.user_id)
+    fn get_index_by_device_key(&self, user_key: UserKey, device_key: &DeviceKey) -> Option<usize> {
+        self.host_bindings.iter().position(|info| device_key == &info.device_key && user_key == info.user_info.user_key)
     }
 
     fn generate_unique_id<'a, T, F, G>(&'a self, collection: F, id_extractor: G) -> Result<i32, ErrorCode>
@@ -92,9 +92,9 @@ impl DefaultHostBindingDbManager {
             parcel.write_i32(host_binding.device_key.user_id);
             parcel.write_i32(host_binding.device_key.sub_profile_id);
             parcel.write_i32(host_binding.binding_id);
-            parcel.write_i32(host_binding.user_info.user_id);
+            parcel.write_i32(host_binding.user_info.user_key.user_id);
             parcel.write_i32(host_binding.user_info.user_type);
-            parcel.write_i32(host_binding.user_info.sub_profile_id);
+            parcel.write_i32(host_binding.user_info.user_key.sub_profile_id);
             parcel.write_u64(host_binding.binding_time);
             parcel.write_u64(host_binding.last_used_time);
         }
@@ -130,9 +130,11 @@ impl DefaultHostBindingDbManager {
                 device_key: DeviceKey { device_id, device_id_type, user_id, sub_profile_id },
                 binding_id,
                 user_info: UserInfo {
-                    user_id: user_info_user_id,
+                    user_key: UserKey {
+                        user_id: user_info_user_id,
+                        sub_profile_id: user_info_sub_profile_id,
+                    },
                     user_type: user_info_user_type,
-                    sub_profile_id: user_info_sub_profile_id,
                 },
                 binding_time,
                 last_used_time,
@@ -199,26 +201,43 @@ impl DefaultHostBindingDbManager {
         Ok(())
     }
 
-    fn get_device_num_by_user_id(&self, user_id: i32, sub_profile_id: i32) -> usize {
-        self.host_bindings
-            .iter()
-            .filter(|device| device.user_info.user_id == user_id && device.user_info.sub_profile_id == sub_profile_id)
-            .count()
+    fn get_device_num_by_user_id(&self, user_id: i32) -> usize {
+        self.host_bindings.iter().filter(|device| device.user_info.user_key.user_id == user_id).count()
     }
 
     fn remove_oldest_unused_device(&mut self, user_id: i32, sub_profile_id: i32) -> Result<Option<i32>, ErrorCode> {
-        let user_devices: Vec<&HostBinding> = self
+        let same_scope_devices: Vec<&HostBinding> = self
             .host_bindings
             .iter()
-            .filter(|info| info.user_info.user_id == user_id && info.user_info.sub_profile_id == sub_profile_id)
+            .filter(|info| info.user_info.user_key.user_id == user_id && info.user_info.user_key.sub_profile_id == sub_profile_id)
             .collect();
 
-        if user_devices.is_empty() {
-            log_i!("No devices found for user_id: {}, sub_profile_id: {}", user_id, sub_profile_id);
-            return Ok(None);
+        if !same_scope_devices.is_empty() {
+            if let Some(oldest_device) = same_scope_devices.iter().min_by_key(|info| info.last_used_time) {
+                let evicted_binding_id = oldest_device.binding_id;
+                log_i!(
+                    "evict oldest unused device in same scope, binding_id:{:04x}, user_id:{}, sub_profile_id:{}",
+                    evicted_binding_id as u16,
+                    user_id,
+                    sub_profile_id
+                );
+                self.remove_device(evicted_binding_id)?;
+                return Ok(Some(evicted_binding_id));
+            }
         }
 
-        if let Some(oldest_device) = user_devices.iter().min_by_key(|info| info.last_used_time) {
+        log_i!(
+            "no devices in same scope, evict from other sub_profile_id under user_id:{}, sub_profile_id:{}",
+            user_id,
+            sub_profile_id
+        );
+        let other_scope_devices: Vec<&HostBinding> = self
+            .host_bindings
+            .iter()
+            .filter(|info| info.user_info.user_key.user_id == user_id && info.user_info.user_key.sub_profile_id != sub_profile_id)
+            .collect();
+
+        if let Some(oldest_device) = other_scope_devices.iter().min_by_key(|info| info.last_used_time) {
             let evicted_binding_id = oldest_device.binding_id;
             self.remove_device(evicted_binding_id)?;
             return Ok(Some(evicted_binding_id));
@@ -236,19 +255,18 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
             return Err(ErrorCode::BadParam);
         }
 
-        if self.get_index_by_device_key(device_info.user_info.user_id, &device_info.device_key).is_some() {
+        if self.get_index_by_device_key(device_info.user_info.user_key, &device_info.device_key).is_some() {
             log_e!("device key already exists");
             return Err(ErrorCode::BadParam);
         }
 
         let mut evicted_binding_id = None;
-        let device_num = self.get_device_num_by_user_id(
-            device_info.user_info.user_id,
-            device_info.user_info.sub_profile_id,
-        );
+        let device_num = self.get_device_num_by_user_id(device_info.user_info.user_key.user_id);
         if device_num >= MAX_DEVICE_NUM_PER_USER {
-            evicted_binding_id =
-                self.remove_oldest_unused_device(device_info.user_info.user_id, device_info.user_info.sub_profile_id)?;
+            evicted_binding_id = self.remove_oldest_unused_device(
+                device_info.user_info.user_key.user_id,
+                device_info.user_info.user_key.sub_profile_id,
+            )?;
         }
 
         if self.get_index_by_binding_id(device_info.binding_id).is_some() {
@@ -278,9 +296,9 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         })
     }
 
-    fn get_device_by_device_key(&self, user_id: i32, device_key: &DeviceKey) -> Result<HostBinding, ErrorCode> {
+    fn get_device_by_device_key(&self, user_key: UserKey, device_key: &DeviceKey) -> Result<HostBinding, ErrorCode> {
         log_i!("get_device_by_device_key start");
-        self.get_index_by_device_key(user_id, device_key).map(|index| self.host_bindings[index].clone()).ok_or_else(
+        self.get_index_by_device_key(user_key, device_key).map(|index| self.host_bindings[index].clone()).ok_or_else(
             || {
                 log_e!("No device matching filter found");
                 ErrorCode::NotFound
@@ -317,7 +335,7 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
             ErrorCode::NotFound
         })?;
         let index2 =
-            self.get_index_by_device_key(device_info.user_info.user_id, &device_info.device_key).ok_or_else(|| {
+            self.get_index_by_device_key(device_info.user_info.user_key, &device_info.device_key).ok_or_else(|| {
                 log_e!("No device key matching");
                 ErrorCode::NotFound
             })?;
@@ -445,24 +463,30 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         self.host_bindings.iter().filter(|device_info| filter(device_info)).cloned().collect()
     }
 
-    fn remove_devices_by_invalid_users(&mut self, valid_user_ids: &[i32]) -> Vec<i32> {
-        log_i!("remove_devices_by_invalid_users start, valid user count:{}", valid_user_ids.len());
-        if valid_user_ids.is_empty() {
+    fn remove_devices_by_invalid_users(&mut self, valid_user_keys: &[UserKey]) -> Vec<i32> {
+        log_i!("remove_devices_by_invalid_users start, valid user count:{}", valid_user_keys.len());
+        if valid_user_keys.is_empty() {
             log_i!("valid user id list empty, skip cleanup to protect existing bindings");
             return Vec::new();
         }
         let orphan_binding_ids: Vec<i32> = self
             .host_bindings
             .iter()
-            .filter(|info| !valid_user_ids.contains(&info.user_info.user_id))
+            .filter(|info| {
+                !valid_user_keys.iter().any(|valid| {
+                    valid.user_id == info.user_info.user_key.user_id
+                        && valid.sub_profile_id == info.user_info.user_key.sub_profile_id
+                })
+            })
             .map(|info| info.binding_id)
             .collect();
         for &binding_id in orphan_binding_ids.iter().rev() {
             match self.remove_device(binding_id) {
                 Ok(device) => log_i!(
-                    "removed orphan host binding, binding_id:{:04x}, user_id:{}",
+                    "removed orphan host binding, binding_id:{:04x}, user_id:{}, sub_profile_id:{}",
                     device.binding_id as u16,
-                    device.user_info.user_id
+                    device.user_info.user_key.user_id,
+                    device.user_info.user_key.sub_profile_id
                 ),
                 Err(err) => log_e!("failed to remove orphan binding:{:04x}, error:{:?}", binding_id as u16, err),
             }

@@ -31,7 +31,7 @@ namespace CompanionDeviceAuth {
 class CompanionDelegateAuthRequest : public std::enable_shared_from_this<CompanionDelegateAuthRequest>,
                                      public InboundRequest {
 public:
-    CompanionDelegateAuthRequest(const std::string &connectionName, int32_t companionUserId,
+    CompanionDelegateAuthRequest(const std::string &connectionName, const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
         const CompanionDelegateAuthParam &delegateAuthParam);
     ~CompanionDelegateAuthRequest() override;
@@ -58,7 +58,7 @@ private:
     bool SendDelegateAuthResult(ResultCode resultCode, const std::vector<uint8_t> &delegateAuthResult);
     void HandleSendDelegateAuthResultReply(const Attributes &message);
 
-    int32_t companionUserId_ = 0;
+    UserKey companionUserKey_;
     std::vector<uint8_t> startDelegateAuthRequest_;
     CompanionDelegateAuthParam delegateAuthParam_;
     std::optional<uint64_t> contextId_ = std::nullopt;

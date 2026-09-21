@@ -61,14 +61,17 @@ void CompanionRemoveHostBindingHandler::HandleRequest(const Attributes &request,
     }
     const auto &requestMsg = *requestMsgOpt;
 
-    auto hostBindingStatus =
-        GetHostBindingManager().GetHostBindingStatus(requestMsg.companionUserId, requestMsg.hostDeviceKey);
+    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(
+        requestMsg.companionUserKey,
+        requestMsg.hostDeviceKey);
     if (hostBindingStatus.has_value()) {
         desc.SetBindingId(hostBindingStatus->bindingId);
         eventCollector.SetBindingId(hostBindingStatus->bindingId);
     }
 
-    ResultCode ret = GetHostBindingManager().RemoveHostBinding(requestMsg.companionUserId, requestMsg.hostDeviceKey);
+    ResultCode ret = GetHostBindingManager().RemoveHostBinding(
+        requestMsg.companionUserKey,
+        requestMsg.hostDeviceKey);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s RemoveHostBinding failed ret=%{public}d", desc.GetCStr(), ret);
         errorGuard.UpdateErrorCode(ret);

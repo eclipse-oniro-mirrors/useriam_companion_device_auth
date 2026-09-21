@@ -153,34 +153,32 @@ HWTEST_F(AddCompanionMessageTest, DecodeInitKeyNegotiationReply_002, TestSize.Le
 
 HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_001, TestSize.Level0)
 {
-    BeginAddHostBindingRequest request = { .companionUserId = companionUserId_,
-        .extraInfo = extraInfo_,
-        .companionSubProfileId = 42 };
+    BeginAddHostBindingRequest request = { .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = extraInfo_};
 
     Attributes attributes;
     EncodeBeginAddHostBindingRequest(request, attributes);
 
     auto decoded = DecodeBeginAddHostBindingRequest(attributes);
     EXPECT_TRUE(decoded.has_value());
-    EXPECT_EQ(decoded->companionUserId, request.companionUserId);
+    EXPECT_EQ(decoded->companionUserKey.userId, request.companionUserKey.userId);
     EXPECT_EQ(decoded->extraInfo, request.extraInfo);
-    EXPECT_EQ(decoded->companionSubProfileId, request.companionSubProfileId);
+    EXPECT_EQ(decoded->companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
 HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_002, TestSize.Level0)
 {
-    BeginAddHostBindingRequest request = { .companionUserId = companionUserId_,
-        .extraInfo = {},
-        .companionSubProfileId = 42 };
+    BeginAddHostBindingRequest request = { .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = {}};
 
     Attributes attributes;
     EncodeBeginAddHostBindingRequest(request, attributes);
 
     auto decoded = DecodeBeginAddHostBindingRequest(attributes);
     EXPECT_TRUE(decoded.has_value());
-    EXPECT_EQ(decoded->companionUserId, request.companionUserId);
+    EXPECT_EQ(decoded->companionUserKey.userId, request.companionUserKey.userId);
     EXPECT_TRUE(decoded->extraInfo.empty());
-    EXPECT_EQ(decoded->companionSubProfileId, request.companionSubProfileId);
+    EXPECT_EQ(decoded->companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
 HWTEST_F(AddCompanionMessageTest, DecodeBeginAddHostBindingRequest_001, TestSize.Level0)
@@ -261,9 +259,8 @@ HWTEST_F(AddCompanionMessageTest, DecodeBeginAddHostBindingReply_002, TestSize.L
 HWTEST_F(AddCompanionMessageTest, EncodeDecodeEndAddHostBindingRequest_001, TestSize.Level0)
 {
     EndAddHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
-        .result = ResultCode::SUCCESS,
-        .companionSubProfileId = 42 };
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .result = ResultCode::SUCCESS};
 
     Attributes attributes;
     EncodeEndAddHostBindingRequest(request, attributes);
@@ -277,17 +274,16 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeEndAddHostBindingRequest_001, Test
     EXPECT_EQ(decoded->hostDeviceKey.idType, request.hostDeviceKey.idType);
     EXPECT_EQ(decoded->hostDeviceKey.deviceId, request.hostDeviceKey.deviceId);
     EXPECT_EQ(decoded->hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
-    EXPECT_EQ(decoded->companionUserId, request.companionUserId);
+    EXPECT_EQ(decoded->companionUserKey.userId, request.companionUserKey.userId);
     EXPECT_EQ(decoded->result, request.result);
-    EXPECT_EQ(decoded->companionSubProfileId, request.companionSubProfileId);
+    EXPECT_EQ(decoded->companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
 HWTEST_F(AddCompanionMessageTest, EncodeDecodeEndAddHostBindingRequest_002, TestSize.Level0)
 {
     EndAddHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
-        .result = ResultCode::GENERAL_ERROR,
-        .companionSubProfileId = 42 };
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .result = ResultCode::GENERAL_ERROR};
 
     Attributes attributes;
     EncodeEndAddHostBindingRequest(request, attributes);
@@ -299,7 +295,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeEndAddHostBindingRequest_002, Test
     auto decoded = DecodeEndAddHostBindingRequest(attributes);
     EXPECT_TRUE(decoded.has_value());
     EXPECT_EQ(decoded->result, ResultCode::GENERAL_ERROR);
-    EXPECT_EQ(decoded->companionSubProfileId, request.companionSubProfileId);
+    EXPECT_EQ(decoded->companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
 HWTEST_F(AddCompanionMessageTest, DecodeEndAddHostBindingRequest_001, TestSize.Level0)

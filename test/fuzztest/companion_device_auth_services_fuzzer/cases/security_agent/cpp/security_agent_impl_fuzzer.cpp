@@ -40,7 +40,8 @@ using SecurityAgentFuzzFunction = void (*)(std::shared_ptr<ISecurityAgent> &agen
 static void FuzzSetActiveUser(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     SetActiveUserInput input;
-    input.userId = fuzzData.ConsumeIntegral<int32_t>();
+    input.userKey.userId = fuzzData.ConsumeIntegral<int32_t>();
+    input.userKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
     agent->SetActiveUser(input);
 }
 
@@ -68,7 +69,8 @@ static void FuzzHostOnRegisterFinish(std::shared_ptr<ISecurityAgent> &agent, Fuz
 static void FuzzHostGetPersistedCompanionStatus(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     HostGetPersistedCompanionStatusInput input;
-    input.userId = fuzzData.ConsumeIntegral<int32_t>();
+    input.userKey.userId = fuzzData.ConsumeIntegral<int32_t>();
+    input.userKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
     HostGetPersistedCompanionStatusOutput output;
     agent->HostGetPersistedCompanionStatus(input, output);
 }
@@ -77,7 +79,8 @@ static void FuzzCompanionGetPersistedHostBindingStatus(std::shared_ptr<ISecurity
     FuzzedDataProvider &fuzzData)
 {
     CompanionGetPersistedHostBindingStatusInput input;
-    input.userId = fuzzData.ConsumeIntegral<int32_t>();
+    input.userKey.userId = fuzzData.ConsumeIntegral<int32_t>();
+    input.userKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
     CompanionGetPersistedHostBindingStatusOutput output;
     agent->CompanionGetPersistedHostBindingStatus(input, output);
 }
@@ -156,7 +159,7 @@ static void FuzzHostEndAddCompanion(std::shared_ptr<ISecurityAgent> &agent, Fuzz
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.companionStatus.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-    input.companionStatus.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
+    input.companionStatus.hostUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t supportedBusinessIdsSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, 64);
     for (uint32_t i = 0; i < supportedBusinessIdsSize; ++i) {
         input.supportedBusinessIds.push_back(static_cast<BusinessId>(fuzzData.ConsumeIntegral<int32_t>()));

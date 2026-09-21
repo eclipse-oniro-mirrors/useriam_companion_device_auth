@@ -56,17 +56,35 @@ std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 bool SecurityAgentImpl::Initialize()
 {
     auto &userIdManager = GetUserIdManager();
-    unlockedActiveUserSubscription_ = userIdManager.SubscribeUnlockedActiveUserId([this](UserId userId) {
-        auto result = SetActiveUser(SetActiveUserInput { userId, CollectValidUserIds() });
-        if (result != SUCCESS) {
-            IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
-        }
-    });
+    unlockedActiveUserSubscription_ =
+        userIdManager.SubscribeUnlockedActiveUserKey([this](const UserKey &userKey) {
+            auto result = SetActiveUser(SetActiveUserInput { userKey, CollectValidUserKeys() });
+            if (result != SUCCESS) {
+                IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
+            }
+        });
     if (unlockedActiveUserSubscription_ == nullptr) {
         return false;
     }
 
-    auto result = SetActiveUser(SetActiveUserInput { userIdManager.GetUnlockedActiveUserId(), CollectValidUserIds() });
+    subProfileChangedSubscription_ = userIdManager.SubscribeSubProfileChanged(
+        [this](const UserKey &userKey, SubProfileEventType eventType) {
+            UserKey activeUser = userKey;
+            if (eventType == SubProfileEventType::DELETED) {
+                activeUser = GetUserIdManager().GetUnlockedActiveUserkey();
+            }
+            auto result = SetActiveUser(SetActiveUserInput { activeUser, CollectValidUserKeys() });
+            if (result != SUCCESS) {
+                IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
+            }
+        });
+    if (subProfileChangedSubscription_ == nullptr) {
+        return false;
+    }
+
+    auto unlockedActiveUser = userIdManager.GetUnlockedActiveUserkey();
+    auto result =
+        SetActiveUser(SetActiveUserInput { unlockedActiveUser, CollectValidUserKeys() });
     if (result != SUCCESS) {
         return false;
     }
@@ -74,26 +92,34 @@ bool SecurityAgentImpl::Initialize()
     return true;
 }
 
-std::vector<UserId> SecurityAgentImpl::CollectValidUserIds()
+std::vector<UserKey> SecurityAgentImpl::CollectValidUserKeys()
 {
-    auto validUserIds = GetUserIdManager().GetAllValidUserIds();
+    auto validUserIds = GetUserIdManager().GetAllValidUserKeys();
     if (!validUserIds.has_value()) {
-        IAM_LOGW("GetAllValidUserIds failed, proceeding with empty valid user id list");
+        IAM_LOGW("GetAllValidUserKeys failed, proceeding with empty valid user id list");
         return {};
     }
-    return std::move(*validUserIds);
+    return *validUserIds;
 }
 
 ResultCode SecurityAgentImpl::SetActiveUser(const SetActiveUserInput &input)
 {
-    IAM_LOGI("SetActiveUser invoked, userId %{public}d", input.userId);
+    IAM_LOGI("SetActiveUser invoked, userId %{public}d, subProfileId %{public}d", input.userKey.userId,
+        input.userKey.subProfileId);
 
     auto ffiInput = std::make_unique<SetActiveUserInputFfi>();
     ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
-    ffiInput->userId = input.userId;
+    ffiInput->userKey = { input.userKey.userId, input.userKey.subProfileId };
     ffiInput->validUserIds = {};
-    if (!VectorToFfiArray(input.validUserIds, ffiInput->validUserIds, "valid user ids")) {
-        IAM_LOGE("encode valid user ids failed, cleanup skipped this round");
+    constexpr size_t maxValidUserCount = sizeof(ffiInput->validUserIds.data) / sizeof(ffiInput->validUserIds.data[0]);
+    if (input.validUserIds.size() > maxValidUserCount) {
+        IAM_LOGE("valid user ids size exceeds maximum: %{public}zu > %{public}zu", input.validUserIds.size(),
+            maxValidUserCount);
+    } else {
+        ffiInput->validUserIds.len = static_cast<uint32_t>(input.validUserIds.size());
+        for (size_t i = 0; i < input.validUserIds.size(); ++i) {
+            ffiInput->validUserIds.data[i] = { input.validUserIds[i].userId, input.validUserIds[i].subProfileId };
+        }
     }
 
     auto ffiOutput = std::make_unique<SetActiveUserOutputFfi>();
@@ -152,8 +178,7 @@ ResultCode SecurityAgentImpl::HostGetPersistedCompanionStatus(const HostGetPersi
 {
     auto ffiInput = std::make_unique<HostGetPersistedStatusInputFfi>();
     ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
-    ffiInput->userId = input.userId;
-    ffiInput->subProfileId = input.subProfileId;
+    ffiInput->userKey = { input.userKey.userId, input.userKey.subProfileId };
 
     auto ffiOutput = std::make_unique<HostGetPersistedStatusOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
@@ -175,8 +200,7 @@ ResultCode SecurityAgentImpl::CompanionGetPersistedHostBindingStatus(
 {
     auto ffiInput = std::make_unique<CompanionGetPersistedStatusInputFfi>();
     ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
-    ffiInput->userId = input.userId;
-    ffiInput->subProfileId = input.subProfileId;
+    ffiInput->userKey = { input.userKey.userId, input.userKey.subProfileId };
 
     auto ffiOutput = std::make_unique<CompanionGetPersistedStatusOutputFfi>();
     ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);

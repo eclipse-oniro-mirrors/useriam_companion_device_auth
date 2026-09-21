@@ -48,13 +48,13 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_001, TestSize.Level0)
     MockGuard guard;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillByDefault(Return(std::make_optional(localDeviceKey_)));
-    ON_CALL(guard.GetSubProfileIdManager(), IsForegroundSubProfileId(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
 
     handler_ = std::make_unique<CompanionTokenAuthHandler>();
 
     Attributes request;
     TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
+        .companionUserKey = UserKey { companionUserId_ },
         .extraInfo = extraInfo_ };
     EncodeTokenAuthRequest(tokenAuthRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
@@ -96,13 +96,13 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_003, TestSize.Level0)
     MockGuard guard;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillByDefault(Return(std::make_optional(localDeviceKey_)));
-    ON_CALL(guard.GetSubProfileIdManager(), IsForegroundSubProfileId(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
 
     handler_ = std::make_unique<CompanionTokenAuthHandler>();
 
     Attributes request;
     TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
+        .companionUserKey = UserKey { companionUserId_ },
         .extraInfo = extraInfo_ };
     EncodeTokenAuthRequest(tokenAuthRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
@@ -125,13 +125,13 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_004, TestSize.Level0)
     MockGuard guard;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillByDefault(Return(std::make_optional(localDeviceKey_)));
-    ON_CALL(guard.GetSubProfileIdManager(), IsForegroundSubProfileId(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
 
     handler_ = std::make_unique<CompanionTokenAuthHandler>();
 
     Attributes request;
     TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
+        .companionUserKey = UserKey { companionUserId_ },
         .extraInfo = extraInfo_ };
     EncodeTokenAuthRequest(tokenAuthRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
@@ -164,7 +164,7 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_005, TestSize.Level0)
     Attributes request;
     int32_t mismatchCompanionUserId = companionUserId_ + 1;
     TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = mismatchCompanionUserId,
+        .companionUserKey = UserKey { mismatchCompanionUserId },
         .extraInfo = extraInfo_ };
     EncodeTokenAuthRequest(tokenAuthRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
@@ -193,7 +193,7 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_006, TestSize.Level0)
 
     Attributes request;
     TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
+        .companionUserKey = UserKey { companionUserId_ },
         .extraInfo = extraInfo_ };
     EncodeTokenAuthRequest(tokenAuthRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,

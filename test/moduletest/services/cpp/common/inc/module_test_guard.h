@@ -34,7 +34,6 @@
 #include "fake_idm_adapter.h"
 #include "fake_misc_manager.h"
 #include "fake_sa_manager_adapter.h"
-#include "fake_sub_profile_id_manager.h"
 #include "fake_system_param_manager.h"
 #include "fake_user_id_manager.h"
 
@@ -120,7 +119,6 @@ private:
     std::shared_ptr<FakeSaManagerAdapter> saManagerAdapter_;
     std::shared_ptr<FakeSystemParamManager> systemParamManager_;
     std::shared_ptr<FakeUserIdManager> userIdManager_;
-    std::shared_ptr<FakeSubProfileIdManager> subProfileIdManager_;
     std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
 

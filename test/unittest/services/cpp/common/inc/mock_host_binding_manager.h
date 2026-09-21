@@ -28,16 +28,19 @@ class MockHostBindingManager : public IHostBindingManager {
 public:
     MOCK_METHOD(std::optional<HostBindingStatus>, GetHostBindingStatus, (BindingId bindingId), (override));
     MOCK_METHOD(std::optional<HostBindingStatus>, GetHostBindingStatus,
-        (UserId companionUserId, const DeviceKey &hostDeviceKey), (override));
+        (const UserKey &companionUserKey, const DeviceKey &hostDeviceKey), (override));
     MOCK_METHOD(ResultCode, BeginAddHostBinding,
         (const BeginAddHostBindingInput &input, BeginAddHostBindingOutput &output), (override));
     MOCK_METHOD(ResultCode, EndAddHostBinding, (const EndAddHostBindingInput &input, EndAddHostBindingOutput &output),
         (override));
-    MOCK_METHOD(ResultCode, RemoveHostBinding, (UserId companionUserId, const DeviceKey &hostDeviceKey), (override));
+    MOCK_METHOD(ResultCode, RemoveHostBinding,
+        (const UserKey &companionUserKey, const DeviceKey &hostDeviceKey), (override));
     MOCK_METHOD(bool, SetHostBindingTokenValid, (BindingId bindingId, bool isTokenValid), (override));
     MOCK_METHOD(void, StartObtainTokenRequests,
-        (UserId userId, uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg), (override));
+        (const UserKey &activeUserKey, uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg),
+        (override));
     MOCK_METHOD(void, RevokeTokens, (UserId userId, const std::string &reason), (override));
+    MOCK_METHOD(std::vector<HostBindingStatus>, GetAllHostBindingStatus, (), (override));
 
 private:
     MOCK_METHOD(bool, Initialize, (), ());

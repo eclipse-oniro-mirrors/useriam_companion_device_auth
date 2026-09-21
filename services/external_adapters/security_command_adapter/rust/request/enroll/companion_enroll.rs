@@ -18,7 +18,7 @@ use crate::common::constants::{
     HKDF_SALT_SIZE, SUPPORTED_PROTOCOL_VERSIONS,
 };
 use crate::entry::companion_device_auth_ffi::{
-    CompanionInitKeyNegotiationInputFfi, DeviceKeyFfi, PersistedHostBindingStatusFfi,
+    CompanionInitKeyNegotiationInputFfi, DeviceKeyFfi, PersistedHostBindingStatusFfi, UserKeyFfi,
 };
 use crate::jobs::host_binding_db_helper;
 use crate::jobs::message_crypto;
@@ -27,7 +27,7 @@ use crate::request::enroll::enroll_message::{
 };
 use crate::request::jobs::common_message::SecIssueToken;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
 use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
@@ -167,9 +167,11 @@ impl CompanionDeviceEnrollRequest {
             binding_id,
             device_key: self.key_nego_param.host_device_key.clone(),
             user_info: UserInfo {
-                user_id: self.key_nego_param.companion_device_key.user_id,
+                user_key: UserKey {
+                    user_id: self.key_nego_param.companion_device_key.user_id,
+                    sub_profile_id: self.key_nego_param.companion_device_key.sub_profile_id,
+                },
                 user_type: 0,
-                sub_profile_id: self.key_nego_param.companion_device_key.sub_profile_id,
             },
             binding_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             last_used_time: 0,
@@ -331,10 +333,12 @@ impl Request for CompanionDeviceEnrollRequest {
         ffi_output.replaced_binding_id = replaced_binding_id.unwrap_or(0);
         ffi_output.binding_status = PersistedHostBindingStatusFfi {
             binding_id: device_info.binding_id,
-            companion_user_id: device_info.user_info.user_id,
+            companion_user_key: UserKeyFfi {
+                user_id: device_info.user_info.user_key.user_id,
+                sub_profile_id: device_info.user_info.user_key.sub_profile_id,
+            },
             host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
             is_token_valid: false,
-            companion_sub_profile_id: device_info.user_info.sub_profile_id,
         };
         Ok(())
     }

@@ -45,11 +45,10 @@ HostBindingStatus BuildHostBindingStatus(const PersistedHostBindingStatus &persi
 {
     HostBindingStatus status = {};
     status.bindingId = persistedStatus.bindingId;
-    status.companionUserId = persistedStatus.companionUserId;
+    status.companionUserKey = persistedStatus.companionUserKey;
     status.hostDeviceStatus.deviceKey = persistedStatus.hostDeviceKey;
     status.hostDeviceStatus.atlRevokeDelayMs = 0;
     status.isTokenValid = persistedStatus.isTokenValid;
-    status.companionSubProfileId = persistedStatus.companionSubProfileId;
     return status;
 }
 } // namespace
@@ -165,8 +164,6 @@ void HostBinding::HandleAuthMaintainActiveChanged(bool isActive)
     status_.localAuthMaintainActive = isActive;
     IAM_LOGI("%{public}s local auth maintain active -> %{public}d", GetDescription(), isActive);
 
-    TriggerResyncToHost("auth maintain active changed");
-
     if (isActive) {
         authMaintainInactiveTimer_.reset();
         return;
@@ -215,8 +212,9 @@ void HostBinding::SetTokenValid(bool isTokenValid, const std::string &triggerRea
         }
 
         const DeviceKey &hostDeviceKey = status_.hostDeviceStatus.deviceKey;
-        auto request = GetRequestFactory().CreateCompanionRevokeTokenRequest(status_.companionUserId,
-            status_.companionSubProfileId, hostDeviceKey, triggerReason);
+        auto request = GetRequestFactory().CreateCompanionRevokeTokenRequest(
+            status_.companionUserKey,
+            hostDeviceKey, triggerReason);
         ENSURE_OR_RETURN_DESC(GetDescription(), request != nullptr);
 
         bool result = GetRequestManager().Start(request);
@@ -227,27 +225,6 @@ void HostBinding::SetTokenValid(bool isTokenValid, const std::string &triggerRea
 
         IAM_LOGI("%{public}s successfully started CompanionRevokeTokenRequest", GetDescription());
     }
-}
-
-void HostBinding::TriggerResyncToHost(const std::string &reason)
-{
-    const DeviceKey &hostDeviceKey = status_.hostDeviceStatus.deviceKey;
-    PhysicalDeviceKey physicalKey {};
-    physicalKey.idType = hostDeviceKey.idType;
-    physicalKey.deviceId = hostDeviceKey.deviceId;
-    auto request = GetRequestFactory().CreateCompanionRequestResyncRequest(physicalKey, nullptr);
-    if (request == nullptr) {
-        IAM_LOGE("%{public}s failed to create CompanionRequestResyncRequest", GetDescription());
-        return;
-    }
-
-    bool result = GetRequestManager().Start(request);
-    if (!result) {
-        IAM_LOGE("%{public}s failed to start CompanionRequestResyncRequest", GetDescription());
-        return;
-    }
-
-    IAM_LOGI("%{public}s started CompanionRequestResyncRequest, reason=%{public}s", GetDescription(), reason.c_str());
 }
 
 } // namespace CompanionDeviceAuth

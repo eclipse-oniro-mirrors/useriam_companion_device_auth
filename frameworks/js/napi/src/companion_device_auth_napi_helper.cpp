@@ -279,10 +279,13 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertDeviceStatusToNapiValue(napi_en
         return nullptr;
     }
 
-    status = SetStringPropertyUtf8(env, deviceStatusValue, "deviceSubProfileName", deviceStatus.deviceSubProfileName);
-    if (status != napi_ok) {
-        IAM_LOGE("SetStringPropertyUtf8 fail ret:%{public}d", status);
-        return nullptr;
+    if (!deviceStatus.deviceSubProfileName.empty()) {
+        status = SetStringPropertyUtf8(env, deviceStatusValue, "deviceSubProfileName",
+            deviceStatus.deviceSubProfileName);
+        if (status != napi_ok) {
+            IAM_LOGE("SetStringPropertyUtf8 fail ret:%{public}d", status);
+            return nullptr;
+        }
     }
 
     return deviceStatusValue;
@@ -506,11 +509,17 @@ napi_status CompanionDeviceAuthNapiHelper::ConvertNapiValueToDeviceKey(napi_env 
 
     napi_value deviceSubProfileIdValue =
         CompanionDeviceAuthNapiHelper::GetNamedProperty(env, deviceKey, "deviceSubProfileId");
-    if (deviceSubProfileIdValue != nullptr &&
-        CompanionDeviceAuthNapiHelper::CheckNapiType(env, deviceSubProfileIdValue, napi_number) == napi_ok) {
-        CompanionDeviceAuthNapiHelper::GetInt32Value(env, deviceSubProfileIdValue, clientDeviceKey.deviceSubProfileId);
-    } else {
-        clientDeviceKey.deviceSubProfileId = -1;
+    if (deviceSubProfileIdValue != nullptr) {
+        if (CompanionDeviceAuthNapiHelper::CheckNapiType(env, deviceSubProfileIdValue, napi_number) != napi_ok) {
+            IAM_LOGE("deviceSubProfileId is not a number");
+            return napi_invalid_arg;
+        }
+        napi_status subProfileRet = CompanionDeviceAuthNapiHelper::GetInt32Value(env, deviceSubProfileIdValue,
+            clientDeviceKey.deviceSubProfileId);
+        if (subProfileRet != napi_ok) {
+            IAM_LOGE("get deviceSubProfileId fail ret:%{public}d", subProfileRet);
+            return subProfileRet;
+        }
     }
 
     return ret;

@@ -24,13 +24,14 @@
 #include "nocopyable.h"
 
 #include "service_common.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 struct BeginAddHostBindingInput {
     RequestId requestId = 0;
-    UserId companionUserId = INVALID_USER_ID;
+    UserKey companionUserKey;
     SecureProtocolId secureProtocolId = SecureProtocolId::INVALID;
     std::vector<uint8_t> addHostBindingRequest;
 };
@@ -57,18 +58,20 @@ public:
     virtual ~IHostBindingManager() = default;
 
     virtual std::optional<HostBindingStatus> GetHostBindingStatus(BindingId bindingId) = 0;
-    virtual std::optional<HostBindingStatus> GetHostBindingStatus(UserId companionUserId,
+    virtual std::optional<HostBindingStatus> GetHostBindingStatus(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey) = 0;
 
     virtual ResultCode BeginAddHostBinding(const BeginAddHostBindingInput &input,
         BeginAddHostBindingOutput &output) = 0;
     virtual ResultCode EndAddHostBinding(const EndAddHostBindingInput &input, EndAddHostBindingOutput &output) = 0;
-    virtual ResultCode RemoveHostBinding(UserId companionUserId, const DeviceKey &hostDeviceKey) = 0;
+    virtual ResultCode RemoveHostBinding(const UserKey &companionUserKey, const DeviceKey &hostDeviceKey) = 0;
     virtual bool SetHostBindingTokenValid(BindingId bindingId, bool isTokenValid) = 0;
 
-    virtual void StartObtainTokenRequests(UserId userId, uint32_t lockStateAuthTypeValue,
+    virtual void StartObtainTokenRequests(const UserKey &activeUserKey, uint32_t lockStateAuthTypeValue,
         const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual void RevokeTokens(UserId userId, const std::string &reason = "") = 0;
+
+    virtual std::vector<HostBindingStatus> GetAllHostBindingStatus() = 0;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

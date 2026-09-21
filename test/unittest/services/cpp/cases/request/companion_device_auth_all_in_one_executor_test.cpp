@@ -27,7 +27,6 @@
 #include "fwk_common.h"
 #include "host_add_companion_request.h"
 #include "host_mix_auth_request.h"
-#include "sub_profile_id_manager.h"
 #include "user_id_manager.h"
 
 using namespace testing;
@@ -78,14 +77,15 @@ public:
         return std::make_unique<Subscription>([]() {});
     }
 
-    int32_t GetUnlockedActiveUserId() const override
+    UserKey GetUnlockedActiveUserkey() const override
     {
-        return GetActiveUserId();
+        return UserKey { GetActiveUserId(), INVALID_SUB_PROFILE_ID };
     }
 
-    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override
+    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) override
     {
-        return SubscribeActiveUserId(std::move(callback));
+        unlockedActiveUserIdCallback_ = std::move(callback);
+        return std::make_unique<Subscription>([]() {});
     }
 
     bool IsUserIdValid(int32_t userId) override
@@ -93,32 +93,33 @@ public:
         return userId == activeUserId_;
     }
 
-    std::optional<std::vector<UserId>> GetAllValidUserIds() const override
+    std::optional<std::vector<UserKey>> GetAllValidUserKeys() const override
     {
-        return std::vector<UserId> { activeUserId_ };
+        return std::vector<UserKey> { { activeUserId_, INVALID_SUB_PROFILE_ID } };
     }
 
-private:
-    int32_t activeUserId_ { INT32_100 };
-    ActiveUserIdCallback activeUserIdCallback_ {};
-};
-
-class FakeSubProfileIdManager : public ISubProfileIdManager {
-public:
+    // Sub profile ID management
     int32_t GetForegroundSubProfileId(UserId userId) const override
     {
+        (void)userId;
         return INVALID_SUB_PROFILE_ID;
     }
 
-    bool IsForegroundSubProfileId(UserId userId, int32_t subProfileId) const override
+    bool IsForegroundSubProfileId(const UserKey &userKey) const override
     {
-        (void)userId;
-        (void)subProfileId;
+        (void)userKey;
         return false;
     }
 
-    std::optional<std::string> GetSubProfileName(UserId userId, int32_t subProfileId) const override
+    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
     {
+        (void)userId;
+        return std::nullopt;
+    }
+
+    std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
+    {
+        (void)userKey;
         return std::nullopt;
     }
 
@@ -127,6 +128,11 @@ public:
         (void)callback;
         return std::make_unique<Subscription>(nullptr);
     }
+
+private:
+    int32_t activeUserId_ { INT32_100 };
+    ActiveUserIdCallback activeUserIdCallback_ {};
+    UnlockedActiveUserKeyCallback unlockedActiveUserIdCallback_ {};
 };
 
 class MockFwkExecuteCallback : public FwkIExecuteCallback {
@@ -1051,7 +1057,9 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_007
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
     EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(false)).Times(1);
-    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+        .WillOnce(Return(UserKey { INT32_100, INVALID_SUB_PROFILE_ID }));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _, _)).Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), StartObtainTokenRequests(_, _, _)).Times(1);
 
@@ -1125,7 +1133,9 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_009
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
     EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(false)).Times(1);
-    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+        .WillOnce(Return(UserKey { INT32_100, INVALID_SUB_PROFILE_ID }));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _, _)).Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), StartObtainTokenRequests(_, _, _)).Times(1);
 

@@ -126,7 +126,7 @@ void CaptureVerifyBeginAndReply(ModuleTestGuard &guard, const std::string &connN
     ASSERT_TRUE(captured.has_value());
     auto beginReq = DecodeBeginAddHostBindingRequest(captured->payload);
     ASSERT_TRUE(beginReq.has_value());
-    EXPECT_EQ(beginReq->companionUserId, expectedUserId);
+    EXPECT_EQ(beginReq->companionUserKey.userId, expectedUserId);
     EXPECT_EQ(beginReq->extraInfo, expectedExtraInfo);
     BuildAndInjectReply(guard, connName, *captured, params);
 }
@@ -156,7 +156,7 @@ Attributes BuildInitKeyNegotiationPayload(const std::string &hostDeviceId, UserI
 Attributes BuildBeginAddHostBindingPayload(UserId companionUserId, const std::vector<uint8_t> &extraInfo)
 {
     BeginAddHostBindingRequest req;
-    req.companionUserId = companionUserId;
+    req.companionUserKey.userId = companionUserId;
     req.extraInfo = extraInfo;
     Attributes payload;
     EncodeBeginAddHostBindingRequest(req, payload);
@@ -168,7 +168,7 @@ Attributes BuildEndAddHostBindingPayload(const std::string &hostDeviceId, UserId
 {
     EndAddHostBindingRequest req;
     req.hostDeviceKey = MakeDeviceKey(hostDeviceId, hostUserId);
-    req.companionUserId = companionUserId;
+    req.companionUserKey.userId = companionUserId;
     req.result = result;
     req.extraInfo = extraInfo;
     Attributes payload;
@@ -418,7 +418,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionFullE2E_001, TestSize.Level0)
     guard.GetIdmAdapter().TestSimulateTemplateChange(HOST_USER_ID, { endCompOutput.templateId });
     DrainPendingTasks();
     ASSERT_TRUE(
-        GetCompanionManager().GetCompanionStatus(HOST_USER_ID, MakeDeviceKey(deviceId, HOST_USER_ID)).has_value());
+        GetCompanionManager().GetCompanionStatus(
+            UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, MakeDeviceKey(deviceId, HOST_USER_ID)).has_value());
 }
 
 // ============================================================================
@@ -464,7 +465,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionBeginAddCompanionFailedE2E_006,
     EXPECT_TRUE(cbCapture.invoked);
     EXPECT_EQ(cbCapture.result, ResultCode::GENERAL_ERROR);
     EXPECT_FALSE(
-        GetCompanionManager().GetCompanionStatus(HOST_USER_ID, MakeDeviceKey(deviceId, HOST_USER_ID)).has_value());
+        GetCompanionManager().GetCompanionStatus(
+            UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, MakeDeviceKey(deviceId, HOST_USER_ID)).has_value());
 }
 
 // ============================================================================
@@ -524,7 +526,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionEndAddCompanionFailedE2E_007, T
     EXPECT_TRUE(cbCapture.invoked);
     EXPECT_EQ(cbCapture.result, ResultCode::GENERAL_ERROR);
     EXPECT_FALSE(
-        GetCompanionManager().GetCompanionStatus(HOST_USER_ID, MakeDeviceKey(deviceId, HOST_USER_ID)).has_value());
+        GetCompanionManager().GetCompanionStatus(
+            UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, MakeDeviceKey(deviceId, HOST_USER_ID)).has_value());
 }
 
 } // namespace

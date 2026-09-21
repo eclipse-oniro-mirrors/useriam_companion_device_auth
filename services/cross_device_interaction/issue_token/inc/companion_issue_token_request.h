@@ -61,7 +61,7 @@ private:
     bool SecurityAgentPreIssueToken(std::vector<uint8_t> &preIssueTokenReply);
 
     Attributes request_;
-    int32_t companionUserId_ = 0;
+    UserKey companionUserKey_;
     std::vector<uint8_t> preIssueTokenRequest_;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     BindingId bindingId_ = 0;

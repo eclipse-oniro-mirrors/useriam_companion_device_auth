@@ -50,7 +50,7 @@ private:
     AvailableDeviceSubscription(UserId userId, std::weak_ptr<SubscriptionManager> subscriptionManager);
     bool Initialize();
     void HandleDeviceStatusChange();
-    bool MatchesRegisteredCompanion(UserId activeUserId, const DeviceStatus &deviceStatus) const;
+    bool MatchesRegisteredCompanion(const UserKey &activeUserKey, const DeviceStatus &deviceStatus) const;
 
     UserId userId_;
     std::weak_ptr<SubscriptionManager> subscriptionManager_;

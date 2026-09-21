@@ -16,7 +16,7 @@
 use crate::common::constants::{Capability, ErrorCode, ProcessorType};
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::CompanionDevice;
+use crate::traits::db_manager::{CompanionDevice, UserKey};
 use crate::traits::log_trace::RustFileId;
 use crate::{log_e, log_i, p, Box, String, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::CompanionDeviceDbHelper as u16;
@@ -51,12 +51,10 @@ pub fn update_companion_device_valid_flag(template_id: u64, is_valid: bool) -> R
     Ok(())
 }
 
-pub fn get_companion_device_by_user_id(
-    user_id: i32,
-    sub_profile_id: i32,
-) -> Result<Vec<CompanionDevice>, ErrorCode> {
+pub fn get_companion_device_by_user_key(user_key: UserKey) -> Result<Vec<CompanionDevice>, ErrorCode> {
     let filter = Box::new(move |device_info: &CompanionDevice| {
-        device_info.user_info.user_id == user_id && device_info.user_info.sub_profile_id == sub_profile_id
+        device_info.user_info.user_key.user_id == user_key.user_id
+            && device_info.user_info.user_key.sub_profile_id == user_key.sub_profile_id
     });
     let device_info = CompanionDeviceDbManagerRegistry::get_mut().get_device_list(filter);
     Ok(device_info)

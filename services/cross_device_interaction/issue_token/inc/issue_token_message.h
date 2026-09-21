@@ -28,8 +28,7 @@ namespace CompanionDeviceAuth {
 // Host -> Companion
 struct PreIssueTokenRequest {
     DeviceKey hostDeviceKey {};
-    int32_t companionUserId { INVALID_USER_ID };
-    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
+    UserKey companionUserKey;
     std::vector<uint8_t> extraInfo;
 };
 
@@ -42,8 +41,7 @@ struct PreIssueTokenReply {
 // Host -> Companion
 struct IssueTokenRequest {
     DeviceKey hostDeviceKey {};
-    int32_t companionUserId { INVALID_USER_ID };
-    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
+    UserKey companionUserKey;
     std::vector<uint8_t> extraInfo;
 };
 

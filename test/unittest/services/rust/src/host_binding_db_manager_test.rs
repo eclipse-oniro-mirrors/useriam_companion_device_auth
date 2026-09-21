@@ -18,7 +18,7 @@ const FILE_ID: u16 = TestFileId::HostBindingDbManagerTest as u16;
 
 use crate::common::constants::*;
 use crate::log_i;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{DummyHostBindingDbManager, HostBindingDbManager, HostDeviceFilter};
 use crate::ut_registry_guard;
 use std::boxed::Box;
@@ -32,7 +32,7 @@ fn dummy_host_binding_db_manager_test() {
     let device_info = HostBinding {
         device_key: DeviceKey::default(),
         binding_id: 0,
-        user_info: UserInfo { user_id: 0, user_type: 0, sub_profile_id: 0 },
+        user_info: UserInfo { user_key: UserKey { user_id: 0, sub_profile_id: 0 }, user_type: 0 },
         binding_time: 0,
         last_used_time: 0,
     };
@@ -41,7 +41,9 @@ fn dummy_host_binding_db_manager_test() {
 
     assert_eq!(dummy_host_binding_db_manager.add_device(&device_info, &sk_info), Err(ErrorCode::GeneralError));
     assert!(dummy_host_binding_db_manager.get_device_by_binding_id(0).is_err());
-    assert!(dummy_host_binding_db_manager.get_device_by_device_key(100, &DeviceKey::default()).is_err());
+    assert!(dummy_host_binding_db_manager
+        .get_device_by_device_key(UserKey { user_id: 100, sub_profile_id: 0 }, &DeviceKey::default())
+        .is_err());
     assert!(dummy_host_binding_db_manager.remove_device(0).is_err());
     assert!(dummy_host_binding_db_manager.update_device(&device_info).is_err());
     assert!(dummy_host_binding_db_manager.generate_unique_binding_id().is_err());

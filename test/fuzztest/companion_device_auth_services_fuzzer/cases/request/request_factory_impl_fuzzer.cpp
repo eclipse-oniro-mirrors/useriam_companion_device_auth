@@ -67,7 +67,7 @@ static void FuzzCreateHostTokenAuthRequest(std::shared_ptr<RequestFactoryImpl> &
     };
     AuthRequestParams params = { .scheduleId = scheduleId,
         .fwkMsg = fwkMsg,
-        .hostUserId = hostUserId,
+        .hostUserKey = UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
         .templateId = templateId,
         .authIntent = authIntent };
     auto request = factory->CreateHostTokenAuthRequest(params, std::move(callback));
@@ -80,7 +80,8 @@ static void FuzzCreateHostRemoveHostBindingRequest(std::shared_ptr<RequestFactor
     UserId hostUserId = fuzzData.ConsumeIntegral<UserId>();
     TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto request = factory->CreateHostRemoveHostBindingRequest(hostUserId, templateId, companionDeviceKey);
+    auto request = factory->CreateHostRemoveHostBindingRequest(
+        UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, templateId, companionDeviceKey);
     (void)request;
 }
 
@@ -94,8 +95,9 @@ static void FuzzCreateHostSyncDeviceStatusRequest(std::shared_ptr<RequestFactory
         (void)result;
         (void)status;
     };
-    auto request =
-        factory->CreateHostSyncDeviceStatusRequest(hostUserId, companionDeviceKey, deviceName, std::move(callback));
+    auto request = factory->CreateHostSyncDeviceStatusRequest(
+        UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, companionDeviceKey, deviceName,
+        std::move(callback));
     (void)request;
 }
 
@@ -107,7 +109,8 @@ static void FuzzCreateHostIssueTokenRequest(std::shared_ptr<RequestFactoryImpl> 
     uint32_t lockStateAuthTypeValue = fuzzData.ConsumeIntegral<uint32_t>();
     std::vector<uint8_t> msg =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
-    auto request = factory->CreateHostIssueTokenRequest(hostUserId, templateId, lockStateAuthTypeValue, msg);
+    auto request = factory->CreateHostIssueTokenRequest(
+        UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, templateId, lockStateAuthTypeValue, msg);
     (void)request;
 }
 
@@ -126,7 +129,7 @@ static void FuzzCreateHostDelegateAuthRequest(std::shared_ptr<RequestFactoryImpl
     };
     AuthRequestParams params = { .scheduleId = scheduleId,
         .fwkMsg = fwkMsg,
-        .hostUserId = hostUserId,
+        .hostUserKey = UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
         .templateId = templateId,
         .authIntent = authIntent };
     auto request = factory->CreateHostDelegateAuthRequest(params, std::move(callback));
@@ -187,7 +190,8 @@ static void FuzzCreateCompanionDelegateAuthRequest(std::shared_ptr<RequestFactor
     std::vector<uint8_t> startDelegateAuthRequest =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = fuzzData.ConsumeIntegral<uint32_t>() };
-    auto request = factory->CreateCompanionDelegateAuthRequest(connectionName, companionUserId, hostDeviceKey,
+    auto request = factory->CreateCompanionDelegateAuthRequest(connectionName,
+        UserKey { companionUserId, INVALID_SUB_PROFILE_ID }, hostDeviceKey,
         startDelegateAuthRequest, delegateAuthParam);
     (void)request;
 }
@@ -199,8 +203,8 @@ static void FuzzCreateCompanionRevokeTokenRequest(std::shared_ptr<RequestFactory
     int32_t companionSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     std::string triggerReason = GenerateFuzzString(fuzzData, SIZE_64);
-    auto request = factory->CreateCompanionRevokeTokenRequest(companionUserId, companionSubProfileId, hostDeviceKey,
-        triggerReason);
+    auto request = factory->CreateCompanionRevokeTokenRequest(
+        UserKey { companionUserId, companionSubProfileId }, hostDeviceKey, triggerReason);
     (void)request;
 }
 
@@ -237,8 +241,8 @@ static void FuzzCreateHostMixAuthRequest(std::shared_ptr<RequestFactoryImpl> &fa
     };
     int32_t authScene = fuzzData.ConsumeIntegral<int32_t>();
     std::string title = fuzzData.ConsumeRandomLengthString(FUZZ_MAX_MESSAGE_LENGTH);
-    HostMixAuthParams params = { scheduleId, fwkMsg, hostUserId, templateIdList, optionalTokenId, std::nullopt,
-        authIntent, static_cast<UserAuth::AuthScene>(authScene), title };
+    HostMixAuthParams params = { scheduleId, fwkMsg, UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, templateIdList,
+        optionalTokenId, std::nullopt, authIntent, static_cast<UserAuth::AuthScene>(authScene), title };
     auto request = factory->CreateHostMixAuthRequest(params, std::move(callback));
     (void)request;
 }
@@ -258,7 +262,7 @@ static void FuzzCreateHostSingleMixAuthRequest(std::shared_ptr<RequestFactoryImp
     };
     AuthRequestParams params = { .scheduleId = scheduleId,
         .fwkMsg = fwkMsg,
-        .hostUserId = hostUserId,
+        .hostUserKey = UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
         .templateId = templateId,
         .authIntent = authIntent };
     DeviceKey companionDeviceKey = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,

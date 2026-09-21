@@ -32,6 +32,7 @@ pub const TOKEN_REFRESH_THRESHOLD: u64 = 60 * 60 * 1000; // 1 hour in ms
 pub const FWK_MSG_MAX_AGE_MS: u64 = 10_000; // 10 seconds in ms
 pub const MAX_EVENT_NUM: usize = 20;
 pub const INVALID_USER_ID: i32 = -1;
+pub const INVALID_SUB_PROFILE_ID: i32 = -1;
 pub const ABANDON_PIN_VALID_PERIOD: u64 = 96 * 3600 * 1000;
 pub const SECURE_RANDOM_MAX_ATTEMPTS: usize = 100;
 

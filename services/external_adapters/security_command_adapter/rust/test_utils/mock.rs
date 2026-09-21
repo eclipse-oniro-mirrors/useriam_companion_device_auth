@@ -1210,7 +1210,7 @@ impl crate::traits::host_binding_db_manager::HostBindingDbManager for MockHostBi
     }
     fn get_device_by_device_key(
         &self,
-        _user_id: i32,
+        _user_key: crate::traits::db_manager::UserKey,
         _device_key: &crate::traits::db_manager::DeviceKey,
     ) -> Result<crate::traits::db_manager::HostBinding, ErrorCode> {
         self.get_device_by_device_key.call()
@@ -1262,7 +1262,10 @@ impl crate::traits::host_binding_db_manager::HostBindingDbManager for MockHostBi
     ) -> Vec<crate::traits::db_manager::HostBinding> {
         self.get_device_list.call()
     }
-    fn remove_devices_by_invalid_users(&mut self, _valid_user_ids: &[i32]) -> Vec<i32> {
+    fn remove_devices_by_invalid_users(
+        &mut self,
+        _valid_user_keys: &[crate::traits::db_manager::UserKey],
+    ) -> Vec<i32> {
         self.remove_devices_by_invalid_users.call()
     }
 }

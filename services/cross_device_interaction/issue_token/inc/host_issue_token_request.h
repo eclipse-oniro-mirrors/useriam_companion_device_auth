@@ -30,8 +30,9 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class HostIssueTokenRequest : public std::enable_shared_from_this<HostIssueTokenRequest>, public OutboundRequest {
 public:
-    HostIssueTokenRequest(UserId hostUserId, TemplateId templateId, uint32_t lockStateAuthTypeValue,
-        const std::vector<uint8_t> &fwkUnlockMsg, const DeviceKey &companionDeviceKey);
+    HostIssueTokenRequest(const UserKey &hostUserKey, TemplateId templateId,
+        uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg,
+        const DeviceKey &companionDeviceKey);
     ~HostIssueTokenRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
@@ -57,8 +58,7 @@ private:
     void HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
     void CompleteWithSuccess(ResultCode result = ResultCode::SUCCESS);
 
-    UserId hostUserId_ = INVALID_USER_ID;
-    UserId companionUserId_ = INVALID_USER_ID;
+    UserKey hostUserKey_;
     std::vector<uint8_t> fwkUnlockMsg_;
     bool needCancelIssueToken_ = false;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::DEFAULT;

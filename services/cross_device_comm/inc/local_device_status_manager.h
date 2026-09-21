@@ -62,10 +62,11 @@ private:
     std::map<int32_t, std::function<void(bool)>> statusSubscribers_;
     std::unique_ptr<Subscription> authMaintainSubscription_;
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
+    std::unique_ptr<Subscription> subProfileChangedSubscription_;
 
     void NotifyStatusChange();
     void Unsubscribe(SubscribeId subscriptionId);
-    void OnActiveUserIdChanged(UserId userId);
+    void OnActiveUserKeyChanged(const UserKey &userKey);
 };
 
 } // namespace CompanionDeviceAuth

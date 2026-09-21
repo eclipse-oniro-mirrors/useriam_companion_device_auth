@@ -68,7 +68,6 @@ const FuzzAttrSpec g_fuzzAttrSpecs[] = {
     { Attributes::ATTR_CDA_SA_CHALLENGE, FUZZ_ATTR_UINT64 },
     { Attributes::ATTR_CDA_SA_TEMPLATE_ID, FUZZ_ATTR_UINT64 },
     { Attributes::ATTR_CDA_SA_MSG_ACK, FUZZ_ATTR_BOOL },
-    { Attributes::ATTR_CDA_SA_AUTH_STATE_MAINTAIN, FUZZ_ATTR_BOOL },
     { Attributes::ATTR_CDA_SA_MSG_TYPE, FUZZ_ATTR_UINT16 },
     { Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, FUZZ_ATTR_UINT16 },
     { Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, FUZZ_ATTR_UINT32 },
@@ -289,9 +288,11 @@ DeviceStatus GenerateFuzzDeviceStatus(FuzzedDataProvider &fuzzData)
     status.protocolId = GenerateFuzzProtocolId(fuzzData);
     status.secureProtocolId = GenerateFuzzSecureProtocolId(fuzzData);
     status.isOnline = fuzzData.ConsumeBool();
-    status.isAuthMaintainActive = fuzzData.ConsumeBool();
-    status.deviceType =
-        static_cast<DeviceType>(fuzzData.ConsumeIntegralInRange<int32_t>(0, static_cast<int32_t>(DeviceType::UNKNOWN)));
+    if (fuzzData.ConsumeBool()) {
+        status.isAuthMaintainActive = fuzzData.ConsumeBool();
+    }
+    status.deviceType = static_cast<DeviceType>(fuzzData.ConsumeIntegralInRange<int32_t>(
+        0, static_cast<int32_t>(DeviceType::UNKNOWN)));
     status.deviceSubProfileName = GenerateFuzzString(fuzzData, FUZZ_MAX_STRING_SIZE);
 
     const uint8_t capabilitiesVal = 2;
@@ -316,10 +317,10 @@ PersistedHostBindingStatus GenerateFuzzPersistedHostBindingStatus(FuzzedDataProv
 {
     PersistedHostBindingStatus status;
     status.bindingId = fuzzData.ConsumeIntegral<uint32_t>();
-    status.companionUserId = fuzzData.ConsumeIntegral<int32_t>();
+    status.companionUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     status.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     status.isTokenValid = fuzzData.ConsumeBool();
-    status.companionSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
+    status.companionUserKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
     return status;
 }
 
@@ -327,11 +328,11 @@ HostBindingStatus GenerateFuzzHostBindingStatus(FuzzedDataProvider &fuzzData)
 {
     HostBindingStatus status;
     status.bindingId = fuzzData.ConsumeIntegral<uint32_t>();
-    status.companionUserId = fuzzData.ConsumeIntegral<int32_t>();
+    status.companionUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     status.hostDeviceStatus = GenerateFuzzDeviceStatus(fuzzData);
     status.isTokenValid = fuzzData.ConsumeBool();
     status.localAuthMaintainActive = fuzzData.ConsumeBool();
-    status.companionSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
+    status.companionUserKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
     return status;
 }
 
@@ -339,7 +340,7 @@ CompanionStatus GenerateFuzzCompanionStatus(FuzzedDataProvider &fuzzData)
 {
     CompanionStatus status;
     status.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-    status.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
+    status.hostUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     status.companionDeviceStatus = GenerateFuzzDeviceStatus(fuzzData);
     status.isValid = fuzzData.ConsumeBool();
     status.addedTime = fuzzData.ConsumeIntegral<int64_t>();

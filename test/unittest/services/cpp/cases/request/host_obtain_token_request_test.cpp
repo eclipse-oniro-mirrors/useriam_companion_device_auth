@@ -124,7 +124,7 @@ public:
 
     Attributes MakePreObtainTokenRequest()
     {
-        PreObtainTokenRequest preRequest = { .hostUserId = 100,
+        PreObtainTokenRequest preRequest = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
             .companionDeviceKey = COMPANION_DEVICE_KEY,
             .extraInfo = { 1, 2, 3 } };
         Attributes preObtainTokenRequest;
@@ -362,7 +362,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_001, TestSize.Leve
     EXPECT_TRUE(request->OnStart(errorGuard));
 
     Attributes req;
-    ObtainTokenRequest obtainTokenRequest = { .hostUserId = 100,
+    ObtainTokenRequest obtainTokenRequest = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = COMPANION_DEVICE_KEY };
     EncodeObtainTokenRequest(obtainTokenRequest, req);
@@ -435,7 +435,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_004, TestSize.Leve
     EXPECT_TRUE(request->OnStart(errorGuard));
 
     Attributes req;
-    ObtainTokenRequest obtainTokenRequest = { .hostUserId = 101,
+    ObtainTokenRequest obtainTokenRequest = { .hostUserKey = UserKey { 101, INVALID_SUB_PROFILE_ID },
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = COMPANION_DEVICE_KEY };
     EncodeObtainTokenRequest(obtainTokenRequest, req);
@@ -468,7 +468,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_005, TestSize.Leve
     EXPECT_TRUE(request->OnStart(errorGuard));
 
     Attributes req;
-    ObtainTokenRequest obtainTokenRequest = { .hostUserId = 100,
+    ObtainTokenRequest obtainTokenRequest = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = COMPANION_DEVICE_KEY };
     obtainTokenRequest.companionDeviceKey.deviceId = "mismatch_device_id";
@@ -503,7 +503,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_006, TestSize.Leve
     request->peerDeviceKey_ = DeviceKey {};
 
     Attributes req;
-    ObtainTokenRequest obtainTokenRequest = { .hostUserId = 100,
+    ObtainTokenRequest obtainTokenRequest = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = COMPANION_DEVICE_KEY };
     EncodeObtainTokenRequest(obtainTokenRequest, req);
@@ -536,7 +536,7 @@ HWTEST_F(HostObtainTokenRequestTest, HandleObtainTokenMessage_007, TestSize.Leve
     EXPECT_TRUE(request->OnStart(errorGuard));
 
     Attributes req;
-    ObtainTokenRequest obtainTokenRequest = { .hostUserId = 100,
+    ObtainTokenRequest obtainTokenRequest = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
         .extraInfo = { 1, 2, 3 },
         .companionDeviceKey = COMPANION_DEVICE_KEY };
     EncodeObtainTokenRequest(obtainTokenRequest, req);
@@ -604,7 +604,8 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_001, TestSize.
     auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
-    ObtainTokenRequest req = { .hostUserId = 100, .extraInfo = {}, .companionDeviceKey = COMPANION_DEVICE_KEY };
+    ObtainTokenRequest req = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID }, .extraInfo = {},
+        .companionDeviceKey = COMPANION_DEVICE_KEY };
     std::vector<uint8_t> obtainTokenReply;
 
     ResultCode result = request->HandleHostProcessObtainToken(req, obtainTokenReply);
@@ -619,7 +620,8 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_002, TestSize.
     auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
-    ObtainTokenRequest req = { .hostUserId = 100, .extraInfo = {}, .companionDeviceKey = COMPANION_DEVICE_KEY };
+    ObtainTokenRequest req = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID }, .extraInfo = {},
+        .companionDeviceKey = COMPANION_DEVICE_KEY };
     std::vector<uint8_t> obtainTokenReply;
 
     request->templateId_ = TEST_TEMPLATE_ID;

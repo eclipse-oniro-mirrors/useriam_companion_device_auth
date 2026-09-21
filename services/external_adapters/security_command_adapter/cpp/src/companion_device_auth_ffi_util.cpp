@@ -46,7 +46,8 @@ bool EncodeDeviceKey(const DeviceKey &key, DeviceKeyFfi &ffi)
 bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, PersistedCompanionStatus &status)
 {
     status.templateId = ffi.templateId;
-    status.hostUserId = ffi.hostUserId;
+    status.hostUserKey.userId = ffi.hostUserKey.userId;
+    status.hostUserKey.subProfileId = ffi.hostUserKey.subProfileId;
 
     if (!DecodeDeviceKey(ffi.companionDeviceKey, status.companionDeviceKey)) {
         return false;
@@ -83,7 +84,8 @@ bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, Pers
 bool EncodePersistedCompanionStatus(const PersistedCompanionStatus &status, PersistedCompanionStatusFfi &ffi)
 {
     ffi.templateId = status.templateId;
-    ffi.hostUserId = status.hostUserId;
+    ffi.hostUserKey.userId = status.hostUserKey.userId;
+    ffi.hostUserKey.subProfileId = status.hostUserKey.subProfileId;
 
     if (!EncodeDeviceKey(status.companionDeviceKey, ffi.companionDeviceKey)) {
         return false;
@@ -115,9 +117,9 @@ bool EncodePersistedCompanionStatus(const PersistedCompanionStatus &status, Pers
 bool DecodePersistedHostBindingStatus(const PersistedHostBindingStatusFfi &ffi, PersistedHostBindingStatus &status)
 {
     status.bindingId = static_cast<uint32_t>(ffi.bindingId);
-    status.companionUserId = ffi.companionUserId;
+    status.companionUserKey.userId = ffi.companionUserKey.userId;
+    status.companionUserKey.subProfileId = ffi.companionUserKey.subProfileId;
     status.isTokenValid = ffi.isTokenValid;
-    status.companionSubProfileId = ffi.companionSubProfileId;
 
     return DecodeDeviceKey(ffi.hostDeviceKey, status.hostDeviceKey);
 }

@@ -212,9 +212,14 @@ typedef struct Uint16Array64Ffi {
     uint32_t len;
 } Uint16Array64Ffi;
 
+typedef struct UserKeyFfi {
+    int32_t userId;
+    int32_t subProfileId;
+} UserKeyFfi;
+
 typedef struct PersistedCompanionStatusFfi {
     uint64_t templateId;
-    int32_t hostUserId;
+    struct UserKeyFfi hostUserKey;
     struct DeviceKeyFfi companionDeviceKey;
     int32_t deviceType;
     uint8_t isValid;
@@ -229,10 +234,9 @@ typedef struct PersistedCompanionStatusFfi {
 
 typedef struct PersistedHostBindingStatusFfi {
     int32_t bindingId;
-    int32_t companionUserId;
+    struct UserKeyFfi companionUserKey;
     struct DeviceKeyFfi hostDeviceKey;
     bool isTokenValid;
-    int32_t companionSubProfileId;
 } PersistedHostBindingStatusFfi;
 
 typedef struct CompanionStatusArrayFfi {
@@ -244,6 +248,12 @@ typedef struct HostBindingStatusArrayFfi {
     struct PersistedHostBindingStatusFfi data[MAX_TEMPLATE_ID_NUM_PER_USER_FFI];
     uint32_t len;
 } HostBindingStatusArrayFfi;
+
+typedef struct UserKeyArray64Ffi {
+    struct UserKeyFfi data[MAX_DATA_LEN_64];
+    uint32_t len;
+} UserKeyArray64Ffi;
+
 
 #ifdef __cplusplus
 }

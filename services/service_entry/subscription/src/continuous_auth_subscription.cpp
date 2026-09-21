@@ -136,7 +136,7 @@ void ContinuousAuthSubscription::HandleCompanionStatusChange(const std::vector<C
     std::optional<Atl> authTrustLevel = std::nullopt;
 
     for (const auto &status : companionStatusList) {
-        if (status.hostUserId != userId_) {
+        if (status.hostUserKey.userId != userId_) {
             continue;
         }
 

@@ -35,7 +35,7 @@ using ObtainTokenMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 static void FuzzEncodePreObtainTokenRequest(FuzzedDataProvider &fuzzData)
 {
     PreObtainTokenRequest request;
-    request.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
+    request.hostUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     request.companionDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     request.companionDeviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     request.companionDeviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
@@ -74,7 +74,7 @@ static void FuzzDecodePreObtainTokenReply(FuzzedDataProvider &fuzzData)
 static void FuzzEncodeObtainTokenRequest(FuzzedDataProvider &fuzzData)
 {
     ObtainTokenRequest request;
-    request.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
+    request.hostUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     request.companionDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     request.companionDeviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     request.companionDeviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();

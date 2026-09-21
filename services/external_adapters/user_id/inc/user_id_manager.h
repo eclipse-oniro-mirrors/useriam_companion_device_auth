@@ -33,6 +33,15 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 using ActiveUserIdCallback = std::function<void(UserId userId)>;
+using UnlockedActiveUserKeyCallback = std::function<void(const UserKey &userKey)>;
+
+enum class SubProfileEventType : int32_t {
+    DELETED = 1,
+    SWITCHED = 3,
+};
+
+using SubProfileChangedCallback =
+    std::function<void(const UserKey &userKey, SubProfileEventType eventType)>;
 
 class IUserIdManager : public NoCopyable {
 public:
@@ -40,14 +49,22 @@ public:
 
     static std::shared_ptr<IUserIdManager> Create();
 
+    // User ID management
     virtual std::optional<std::string> GetActiveUserName() const = 0;
     virtual std::string GetActiveUserTypeName() const = 0;
     virtual UserId GetActiveUserId() const = 0;
     virtual std::unique_ptr<Subscription> SubscribeActiveUserId(ActiveUserIdCallback &&callback) = 0;
-    virtual UserId GetUnlockedActiveUserId() const = 0;
-    virtual std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) = 0;
+    virtual UserKey GetUnlockedActiveUserkey() const = 0;
+    virtual std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) = 0;
     virtual bool IsUserIdValid(int32_t userId) = 0;
-    virtual std::optional<std::vector<UserId>> GetAllValidUserIds() const = 0;
+    virtual std::optional<std::vector<UserKey>> GetAllValidUserKeys() const = 0;
+
+    // Sub profile ID management
+    virtual int32_t GetForegroundSubProfileId(UserId userId) const = 0;
+    virtual bool IsForegroundSubProfileId(const UserKey &userKey) const = 0;
+    virtual std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const = 0;
+    virtual std::optional<std::string> GetSubProfileName(const UserKey &userKey) const = 0;
+    virtual std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) = 0;
 
 protected:
     IUserIdManager() = default;

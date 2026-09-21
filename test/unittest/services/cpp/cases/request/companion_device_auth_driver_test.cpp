@@ -24,7 +24,6 @@
 #include "adapter_manager.h"
 #include "companion_device_auth_driver.h"
 #include "fwk_common.h"
-#include "sub_profile_id_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -63,14 +62,15 @@ public:
         return std::make_unique<Subscription>([]() {});
     }
 
-    int32_t GetUnlockedActiveUserId() const override
+    UserKey GetUnlockedActiveUserkey() const override
     {
-        return GetActiveUserId();
+        return UserKey { GetActiveUserId(), INVALID_SUB_PROFILE_ID };
     }
 
-    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override
+    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) override
     {
-        return SubscribeActiveUserId(std::move(callback));
+        unlockedActiveUserIdCallback_ = std::move(callback);
+        return std::make_unique<Subscription>([]() {});
     }
 
     bool IsUserIdValid(int32_t userId) override
@@ -78,32 +78,33 @@ public:
         return userId == activeUserId_;
     }
 
-    std::optional<std::vector<UserId>> GetAllValidUserIds() const override
+    std::optional<std::vector<UserKey>> GetAllValidUserKeys() const override
     {
-        return std::vector<UserId> { activeUserId_ };
+        return std::vector<UserKey> { { activeUserId_, INVALID_SUB_PROFILE_ID } };
     }
 
-private:
-    int32_t activeUserId_ { 100 };
-    ActiveUserIdCallback activeUserIdCallback_ {};
-};
-
-class FakeSubProfileIdManager : public ISubProfileIdManager {
-public:
+    // Sub profile ID management
     int32_t GetForegroundSubProfileId(UserId userId) const override
     {
+        (void)userId;
         return INVALID_SUB_PROFILE_ID;
     }
 
-    bool IsForegroundSubProfileId(UserId userId, int32_t subProfileId) const override
+    bool IsForegroundSubProfileId(const UserKey &userKey) const override
     {
-        (void)userId;
-        (void)subProfileId;
+        (void)userKey;
         return false;
     }
 
-    std::optional<std::string> GetSubProfileName(UserId userId, int32_t subProfileId) const override
+    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
     {
+        (void)userId;
+        return std::nullopt;
+    }
+
+    std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
+    {
+        (void)userKey;
         return std::nullopt;
     }
 
@@ -112,6 +113,11 @@ public:
         (void)callback;
         return std::make_unique<Subscription>(nullptr);
     }
+
+private:
+    int32_t activeUserId_ { 100 };
+    ActiveUserIdCallback activeUserIdCallback_ {};
+    UnlockedActiveUserKeyCallback unlockedActiveUserIdCallback_ {};
 };
 } // namespace
 

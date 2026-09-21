@@ -31,32 +31,60 @@ public:
     MOCK_METHOD(std::optional<std::string>, GetActiveUserName, (), (const, override));
     MOCK_METHOD(std::string, GetActiveUserTypeName, (), (const, override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeActiveUserId, (ActiveUserIdCallback && callback), (override));
-    MOCK_METHOD(int32_t, GetUnlockedActiveUserId, (), (const, override));
-    MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeUnlockedActiveUserId, (ActiveUserIdCallback && callback),
-        (override));
+    MOCK_METHOD(UserKey, GetUnlockedActiveUserkey, (), (const, override));
+    MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeUnlockedActiveUserKey,
+        (UnlockedActiveUserKeyCallback && callback), (override));
     MOCK_METHOD(bool, IsUserIdValid, (int32_t userId), (override));
-    MOCK_METHOD(std::optional<std::vector<UserId>>, GetAllValidUserIds, (), (const, override));
+    MOCK_METHOD(std::optional<std::vector<UserKey>>, GetAllValidUserKeys, (), (const, override));
+
+    // Sub profile ID management
+    MOCK_METHOD(int32_t, GetForegroundSubProfileId, (UserId userId), (const, override));
+    MOCK_METHOD(bool, IsForegroundSubProfileId, (const UserKey &userKey), (const, override));
+    MOCK_METHOD(std::optional<std::vector<int32_t>>, GetOsAccountSubProfileIds, (UserId userId), (const, override));
+    MOCK_METHOD(std::optional<std::string>, GetSubProfileName, (const UserKey &userKey), (const, override));
+    MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeSubProfileChanged, (SubProfileChangedCallback && callback),
+        (override));
 
     // Helper method to trigger the unlocked active user ID change callback in tests
-    void NotifyUnlockedActiveUserIdChanged(UserId userId)
+    void NotifyUnlockedActiveUserKeyChanged(
+        const UserKey &userKey = UserKey { INVALID_USER_ID, INVALID_SUB_PROFILE_ID })
     {
         if (unlockedUserIdCallback_) {
-            unlockedUserIdCallback_(userId);
+            unlockedUserIdCallback_(userKey);
         }
     }
 
     // Helper method to set up mock to store the callback for later invocation
     void SetupStoreUnlockedUserIdCallback()
     {
-        ON_CALL(*this, SubscribeUnlockedActiveUserId(testing::_))
-            .WillByDefault(testing::Invoke([this](ActiveUserIdCallback &&callback) {
+        ON_CALL(*this, SubscribeUnlockedActiveUserKey(testing::_))
+            .WillByDefault(testing::Invoke([this](UnlockedActiveUserKeyCallback &&callback) {
                 unlockedUserIdCallback_ = std::move(callback);
                 return std::make_unique<Subscription>([]() {});
             }));
     }
 
+    // Helper method to set up mock to store the sub profile changed callback for later invocation
+    void SetupStoreSubProfileChangedCallback()
+    {
+        ON_CALL(*this, SubscribeSubProfileChanged(testing::_))
+            .WillByDefault(testing::Invoke([this](SubProfileChangedCallback &&callback) {
+                subProfileChangedCallback_ = std::move(callback);
+                return std::make_unique<Subscription>([]() {});
+            }));
+    }
+
+    // Helper method to trigger the sub profile changed callback in tests
+    void NotifySubProfileChanged(const UserKey &userKey, SubProfileEventType eventType)
+    {
+        if (subProfileChangedCallback_) {
+            subProfileChangedCallback_(userKey, eventType);
+        }
+    }
+
 private:
-    ActiveUserIdCallback unlockedUserIdCallback_;
+    UnlockedActiveUserKeyCallback unlockedUserIdCallback_;
+    SubProfileChangedCallback subProfileChangedCallback_;
 };
 
 } // namespace CompanionDeviceAuth

@@ -17,7 +17,6 @@
 #include "backoff_retry_timer.h"
 #include "cross_device_common.h"
 #include "soft_bus_device_status_manager.h"
-#include "sub_profile_id_manager.h"
 #include "subscription.h"
 #include "synced_peer_registry.h"
 
@@ -38,9 +37,8 @@ public:
 private:
     explicit DeviceResyncScheduler(std::shared_ptr<SoftBusDeviceStatusManager> deviceStatusManager);
 
-    void OnActiveUserIdChanged(UserId userId);
+    void OnActiveUserKeyChanged(const UserKey &userKey);
     void OnLocalDeviceNameChanged();
-    void OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType);
     void ResyncOneDevice(const PhysicalDeviceKey &deviceKey, const std::string &reason);
     void DoResyncOneDevice(const PhysicalDeviceKey &deviceKey);
     void EnsureRetryEntry(const PhysicalDeviceKey &deviceKey, const std::string &reason);

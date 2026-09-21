@@ -27,7 +27,7 @@ use crate::request::token_issue::host_issue_token::HostDeviceIssueTokenRequest;
 use crate::request::token_issue::token_issue_message::SecIssueTokenReply;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceSk, DeviceKey, UserInfo};
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceSk, DeviceKey, UserInfo, UserKey};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
@@ -117,7 +117,7 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
             user_id: 100,
             sub_profile_id: 0,
         },
-        user_info: UserInfo { user_id: 100, user_type: 0, sub_profile_id: 0 },
+        user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         added_time: 123456,
         is_valid: true,
         capability_list: vec![1, 2, 3], // Includes both DelegateAuth(1) and TokenAuth(2)

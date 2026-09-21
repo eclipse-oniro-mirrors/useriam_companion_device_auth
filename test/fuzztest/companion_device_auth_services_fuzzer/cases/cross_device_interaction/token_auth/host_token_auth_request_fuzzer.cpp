@@ -25,6 +25,7 @@
 #include "fuzz_mock_request.h"
 #include "fuzz_registry.h"
 #include "host_token_auth_request.h"
+#include "service_common.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -154,7 +155,7 @@ void FuzzHostTokenAuthRequest(FuzzedDataProvider &fuzzData)
 
     AuthRequestParams params = { .scheduleId = scheduleId,
         .fwkMsg = fwkMsg,
-        .hostUserId = hostUserId,
+        .hostUserKey = UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
         .templateId = templateId,
         .authIntent = authIntent };
     auto request = std::make_shared<HostTokenAuthRequest>(params, companionDeviceKey, std::move(callback));

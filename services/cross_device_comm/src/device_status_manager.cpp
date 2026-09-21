@@ -26,6 +26,7 @@
 #include "adapter_manager.h"
 #include "cda_scope_guard.h"
 #include "channel_manager.h"
+#include "companion_manager.h"
 #include "connection_manager.h"
 #include "host_sync_device_status_request.h"
 #include "service_common.h"
@@ -215,12 +216,10 @@ void DeviceStatusManager::ApplySyncResult(DeviceStatusEntry &deviceStatus, const
 {
     deviceStatus.deviceUserName = syncDeviceStatus.deviceUserName;
     deviceStatus.syncDeviceName = syncDeviceStatus.deviceName;
-    deviceStatus.deviceUserId = syncDeviceStatus.deviceUserId;
-    deviceStatus.deviceSubProfileId = syncDeviceStatus.deviceSubProfileId;
+    deviceStatus.deviceUserKey = syncDeviceStatus.deviceUserKey;
     deviceStatus.deviceSubProfileName = syncDeviceStatus.deviceSubProfileName;
     deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
     deviceStatus.capabilities = syncDeviceStatus.capabilityList;
-    deviceStatus.SetSyncIsAuthMaintainActive(syncDeviceStatus.isAuthMaintainActive);
     deviceStatus.SetSyncCompanionBusinessIds(syncDeviceStatus.businessIdList);
 }
 
@@ -360,8 +359,8 @@ void DeviceStatusManager::DoTriggerDeviceSync(const PhysicalDeviceKey &physicalK
         self->HandleSyncResult(companionDeviceKey, attemptId, result, syncDeviceStatus);
     };
 
-    UserId activeUserId = GetUserIdManager().GetUnlockedActiveUserId();
-    auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(activeUserId, companionDeviceKey,
+    auto activeUserKey = GetUserIdManager().GetUnlockedActiveUserkey();
+    auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(activeUserKey, companionDeviceKey,
         entry.GetDeviceName(), std::move(callback));
     ENSURE_OR_RETURN(request != nullptr);
 
@@ -558,14 +557,11 @@ bool DeviceStatusManager::UpdateExistingDevice(const PhysicalDeviceKey &key, Dev
     const PhysicalDeviceStatus &status, bool resync)
 {
     bool effectiveBusinessIdsChanged = deviceStatus.SetPhysicalCompanionBusinessIds(status.supportedBusinessIds);
-    bool effectiveIsAuthMaintainActiveChanged =
-        deviceStatus.SetPhysicalIsAuthMaintainActive(status.isAuthMaintainActive);
     bool hasChange = deviceStatus.channelId != status.channelId ||
         deviceStatus.physicalDeviceName != status.deviceName ||
         deviceStatus.deviceModelInfo != status.deviceModelInfo || deviceStatus.deviceType != status.deviceType ||
         deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs || deviceStatus.refreshToken != status.refreshToken ||
-        deviceStatus.reportUnsynced != status.reportUnsynced || effectiveBusinessIdsChanged ||
-        effectiveIsAuthMaintainActiveChanged;
+        deviceStatus.reportUnsynced != status.reportUnsynced || effectiveBusinessIdsChanged;
     if (hasChange) {
         deviceStatus.channelId = status.channelId;
         deviceStatus.physicalDeviceName = status.deviceName;

@@ -91,7 +91,6 @@ static void FuzzEncodeSyncDeviceStatusReply(FuzzedDataProvider &fuzzData)
     reply.companionCheckResponse =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
     reply.deviceSubProfileName = GenerateFuzzString(fuzzData, TEST_VAL64);
-    reply.isAuthMaintainActive = fuzzData.ConsumeBool();
 
     Attributes attr;
     EncodeSyncDeviceStatusReply(reply, attr);

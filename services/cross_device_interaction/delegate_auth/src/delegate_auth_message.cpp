@@ -30,8 +30,8 @@ void EncodeStartDelegateAuthRequest(const StartDelegateAuthRequest &request, Att
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostDeviceKey.deviceSubProfileId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionSubProfileId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserKey.userId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionUserKey.subProfileId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
     if (request.remoteTokenId.has_value()) {
         attributes.SetUint32Value(Attributes::ATTR_CDA_SA_REMOTE_TOKEN_ID, request.remoteTokenId.value());
@@ -49,9 +49,9 @@ std::optional<StartDelegateAuthRequest> DecodeStartDelegateAuthRequest(const Att
     ENSURE_OR_RETURN_VAL(hostKeyOpt.has_value(), std::nullopt);
     request.hostDeviceKey = *hostKeyOpt;
     bool getCompanionUserIdRet =
-        attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserId);
+        attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserKey.userId);
     ENSURE_OR_RETURN_VAL(getCompanionUserIdRet, std::nullopt);
-    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionSubProfileId);
+    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionUserKey.subProfileId);
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
     uint32_t remoteTokenId = 0;

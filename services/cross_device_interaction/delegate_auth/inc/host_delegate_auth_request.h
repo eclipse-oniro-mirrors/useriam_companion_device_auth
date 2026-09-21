@@ -62,7 +62,7 @@ private:
     std::optional<uint32_t> GetRemoteTokenId(const DeviceKey &deviceKey);
 
     std::vector<uint8_t> fwkMsg_;
-    UserId hostUserId_ = INVALID_USER_ID;
+    UserKey hostUserKey_;
     FwkResultCallback requestCallback_;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::DEFAULT;
     std::unique_ptr<Subscription> delegateResultSubscription_;

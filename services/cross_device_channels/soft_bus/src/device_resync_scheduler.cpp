@@ -20,7 +20,7 @@
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "soft_bus_channel_common.h"
-#include "sub_profile_id_manager.h"
+#include "user_id_manager.h"
 #include "subscription.h"
 
 #define LOG_TAG "CDA_SA"
@@ -53,10 +53,10 @@ DeviceResyncScheduler::DeviceResyncScheduler(std::shared_ptr<SoftBusDeviceStatus
 bool DeviceResyncScheduler::Start()
 {
     unlockedActiveUserIdSubscription_ =
-        GetUserIdManager().SubscribeUnlockedActiveUserId([weakSelf = weak_from_this()](UserId userId) {
+        GetUserIdManager().SubscribeUnlockedActiveUserKey([weakSelf = weak_from_this()](const UserKey &userKey) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->OnActiveUserIdChanged(userId);
+            self->OnActiveUserKeyChanged(userKey);
         });
     ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
 
@@ -76,11 +76,14 @@ bool DeviceResyncScheduler::Start()
         });
     ENSURE_OR_RETURN_VAL(deviceStatusSubscription_ != nullptr, false);
 
-    subProfileChangedSubscription_ = GetSubProfileIdManager().SubscribeSubProfileChanged(
-        [weakSelf = weak_from_this()](UserId userId, int32_t subProfileId, SubProfileEventType eventType) {
+    subProfileChangedSubscription_ = GetUserIdManager().SubscribeSubProfileChanged(
+        [weakSelf = weak_from_this()](const UserKey &userKey, SubProfileEventType eventType) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->OnSubProfileChanged(userId, subProfileId, eventType);
+            if (eventType == SubProfileEventType::SWITCHED) {
+                self->OnActiveUserKeyChanged(userKey);
+                return;
+            }
         });
     ENSURE_OR_RETURN_VAL(subProfileChangedSubscription_ != nullptr, false);
 
@@ -91,9 +94,10 @@ bool DeviceResyncScheduler::Start()
     return true;
 }
 
-void DeviceResyncScheduler::OnActiveUserIdChanged(UserId userId)
+void DeviceResyncScheduler::OnActiveUserKeyChanged(const UserKey &userKey)
 {
-    IAM_LOGI("active user id changed to %{public}d, resync physical devices", userId);
+    IAM_LOGI("active user id changed to %{public}d, subProfileId=%{public}d, resync physical devices", userKey.userId,
+        userKey.subProfileId);
     ResyncAllPhysicalDevices("active_user_changed");
 }
 
@@ -103,19 +107,21 @@ void DeviceResyncScheduler::OnLocalDeviceNameChanged()
     ResyncAllPhysicalDevices("device_name_changed");
 }
 
-void DeviceResyncScheduler::OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType)
-{
-    IAM_LOGI("sub profile changed, userId=%{public}d, subProfileId=%{public}d, eventType=%{public}d", userId,
-        subProfileId, static_cast<int32_t>(eventType));
-    ResyncAllPhysicalDevices("sub_profile_changed");
-}
-
 void DeviceResyncScheduler::ResyncAllPhysicalDevices(const std::string &reason)
 {
     ENSURE_OR_RETURN(deviceStatusManager_ != nullptr);
     auto devices = deviceStatusManager_->GetAllPhysicalDevices();
+    std::set<PhysicalDeviceKey> reloadDevices;
+    for (const auto &status : GetCrossDeviceCommManager().GetAllDeviceStatus(true)) {
+        reloadDevices.insert(PhysicalDeviceKey::FromDeviceKey(status.deviceKey));
+    }
     std::vector<PhysicalDeviceKey> recentlySyncedDevices;
     for (const auto &device : devices) {
+        if (!reloadDevices.count(device.physicalDeviceKey)) {
+            IAM_LOGI("skip resync for device %{public}s, not load by hostbinding, reason %{public}s",
+                GET_MASKED_STR_CSTR(device.physicalDeviceKey.deviceId), reason.c_str());
+            continue;
+        }
         if (syncedPeerRegistry_.IsRecentlySynced(device.physicalDeviceKey)) {
             recentlySyncedDevices.push_back(device.physicalDeviceKey);
         }

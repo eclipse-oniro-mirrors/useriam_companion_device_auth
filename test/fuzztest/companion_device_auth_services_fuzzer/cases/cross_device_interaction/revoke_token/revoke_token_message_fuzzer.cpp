@@ -33,7 +33,7 @@ using RevokeTokenMessageFuzzFunction = void (*)(FuzzedDataProvider &fuzzData);
 static void FuzzEncodeRevokeTokenRequest(FuzzedDataProvider &fuzzData)
 {
     RevokeTokenRequest request;
-    request.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
+    request.hostUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     request.companionDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     uint32_t testVal64 = TEST_VAL64;
     request.companionDeviceKey.deviceId = GenerateFuzzString(fuzzData, testVal64);

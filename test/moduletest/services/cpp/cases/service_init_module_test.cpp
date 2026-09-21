@@ -73,11 +73,11 @@ HWTEST_F(ServiceInitModuleTest, ServiceInitSucceedsE2E_001, TestSize.Level0)
 //
 // What this tests:
 //   FakeUserIdManager.TestSetActiveUser(100)
-//     → CompanionManagerImpl::OnActiveUserIdChanged(100)     [production]
+//     → CompanionManagerImpl::OnActiveUserKeyChanged(100)     [production]
 //       → FakeIdmAdapter.GetUserTemplates(100)               [Fake]
 //       → SecurityAgent.HostGetPersistedCompanionStatus      [Mock → returns 1 companion]
 //       → CompanionManagerImpl.Reload(companions, templates) [production]
-//     → HostBindingManagerImpl::OnActiveUserIdChanged(100)   [production]
+//     → HostBindingManagerImpl::OnActiveUserKeyChanged(100)   [production]
 //       → SecurityAgent.CompanionGetPersistedHostBindingStatus [Mock → returns 1 binding]
 //       → HostBinding::Create × N                            [production]
 //       → HostBindingManagerImpl.AddBindingInternal          [production]
@@ -101,14 +101,14 @@ HWTEST_F(ServiceInitModuleTest, LoadPersistedDataAfterUserSwitchE2E_001, TestSiz
     constexpr BindingId BINDING_1 = 5001;
 
     // Setup: reset to invalid user first. ModuleTestGuard::SetupDefaultValues() sets user
-    // to 100 which already triggered OnActiveUserIdChanged(100) with empty data. Reset to 0
+    // to 100 which already triggered OnActiveUserKeyChanged(100) with empty data. Reset to 0
     // to allow re-trigger with the mock data below.
     guard.GetUserIdManager().TestSetActiveUser(0);
     guard.GetIdmAdapter().TestSetUserTemplates(HOST_USER, { TEMPLATE_A });
 
     PersistedCompanionStatus persistedCompanion;
     persistedCompanion.templateId = TEMPLATE_A;
-    persistedCompanion.hostUserId = HOST_USER;
+    persistedCompanion.hostUserKey.userId = HOST_USER;
     persistedCompanion.companionDeviceKey = MakeDeviceKey("companion-001", COMPANION_USER);
     persistedCompanion.isValid = true;
     persistedCompanion.enabledBusinessIds = { BusinessId::DEFAULT };
@@ -117,15 +117,14 @@ HWTEST_F(ServiceInitModuleTest, LoadPersistedDataAfterUserSwitchE2E_001, TestSiz
     // SecurityAgent returns 1 persisted companion. Using WillRepeatedly because production
     // code may invoke HostGetPersistedCompanionStatus multiple times during a single user
     // switch cycle (e.g., for different data categories).
-    HostGetPersistedCompanionStatusOutput companionOutput;
-    companionOutput.companionStatusList = { persistedCompanion };
+    HostGetPersistedCompanionStatusOutput companionOutput = { .companionStatusList = { persistedCompanion } };
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetPersistedCompanionStatus(_, _))
         .Times(testing::AnyNumber())
         .WillRepeatedly(DoAll(SetArgReferee<1>(companionOutput), Return(ResultCode::SUCCESS)));
 
     PersistedHostBindingStatus persistedBinding;
     persistedBinding.bindingId = BINDING_1;
-    persistedBinding.companionUserId = COMPANION_USER;
+    persistedBinding.companionUserKey.userId = COMPANION_USER;
     persistedBinding.hostDeviceKey = MakeDeviceKey("host-001", HOST_USER);
     persistedBinding.isTokenValid = true;
 
@@ -143,16 +142,18 @@ HWTEST_F(ServiceInitModuleTest, LoadPersistedDataAfterUserSwitchE2E_001, TestSiz
     auto companion = GetCompanionManager().GetCompanionStatus(TEMPLATE_A);
     ASSERT_TRUE(companion.has_value());
     EXPECT_EQ(companion->templateId, TEMPLATE_A);
-    EXPECT_EQ(companion->hostUserId, HOST_USER);
+    EXPECT_EQ(companion->hostUserKey.userId, HOST_USER);
     EXPECT_EQ(companion->companionDeviceStatus.deviceKey.deviceId, "companion-001");
     EXPECT_EQ(companion->enabledBusinessIds.size(), 1u);
-    ASSERT_TRUE(GetCompanionManager().GetCompanionStatus(HOST_USER, persistedCompanion.companionDeviceKey).has_value());
+    ASSERT_TRUE(GetCompanionManager().GetCompanionStatus(
+        UserKey { HOST_USER, INVALID_SUB_PROFILE_ID }, persistedCompanion.companionDeviceKey).has_value());
     EXPECT_EQ(GetCompanionManager().GetAllCompanionStatus().size(), 1u);
 
     auto binding = GetHostBindingManager().GetHostBindingStatus(BINDING_1);
     ASSERT_TRUE(binding.has_value());
     EXPECT_EQ(binding->bindingId, BINDING_1);
-    auto bindingByDevice = GetHostBindingManager().GetHostBindingStatus(COMPANION_USER, persistedBinding.hostDeviceKey);
+    auto bindingByDevice = GetHostBindingManager().GetHostBindingStatus(
+        UserKey { COMPANION_USER, INVALID_SUB_PROFILE_ID }, persistedBinding.hostDeviceKey);
     ASSERT_TRUE(bindingByDevice.has_value());
     EXPECT_EQ(bindingByDevice->bindingId, BINDING_1);
 }

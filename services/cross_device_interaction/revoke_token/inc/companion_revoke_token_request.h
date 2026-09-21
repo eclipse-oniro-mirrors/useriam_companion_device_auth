@@ -20,6 +20,7 @@
 #include <string>
 
 #include "outbound_request.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -27,7 +28,7 @@ namespace CompanionDeviceAuth {
 class CompanionRevokeTokenRequest : public std::enable_shared_from_this<CompanionRevokeTokenRequest>,
                                     public OutboundRequest {
 public:
-    CompanionRevokeTokenRequest(int32_t companionUserId, int32_t companionSubProfileId, const DeviceKey &hostDeviceKey,
+    CompanionRevokeTokenRequest(const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
         const std::string &triggerReason);
     ~CompanionRevokeTokenRequest() override = default;
 
@@ -46,8 +47,7 @@ private:
 
     void CompleteWithSuccess();
 
-    int32_t companionUserId_ = INVALID_USER_ID;
-    int32_t companionSubProfileId_ = INVALID_SUB_PROFILE_ID;
+    UserKey companionUserKey_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

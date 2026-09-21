@@ -38,13 +38,14 @@ protected:
 private:
     bool CompanionProcessCheck(const HostBindingStatus &hostBindingStatus, const SyncDeviceStatusRequest &syncRequest,
         std::vector<uint8_t> &outCompanionCheckResponse, const InteractionDesc &desc);
-    std::optional<SyncDeviceStatusReply> BuildSyncDeviceStatusReply(UserId companionUserId,
+    std::optional<SyncDeviceStatusReply> BuildSyncDeviceStatusReply(const UserKey &companionUserKey,
         const InteractionDesc &desc);
-    void SetCompanionDeviceKeyUserId(SyncDeviceStatusReply &syncReply, UserId companionUserId);
+    void SetCompanionDeviceKeyUserId(SyncDeviceStatusReply &syncReply, const UserKey &companionUserKey);
     CompanionProcessCheckInput BuildCompanionProcessCheckInput(const HostBindingStatus &hostBindingStatus,
         const SyncDeviceStatusRequest &syncRequest, SecureProtocolId secureProtocolId);
-    UserId QueryActiveUserId();
-    std::optional<HostBindingStatus> QueryHostBindingStatus(UserId companionUserId, const DeviceKey &hostDeviceKey);
+    UserKey QueryActiveUserKey();
+    std::optional<HostBindingStatus> QueryHostBindingStatus(const UserKey &companionUserKey,
+        const DeviceKey &hostDeviceKey);
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

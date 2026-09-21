@@ -26,6 +26,7 @@
 #include "iam_log_tracer.h"
 #include "service_common.h"
 #include "timing_tracer.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -38,9 +39,9 @@ public:
     }
     ~InteractionEventCollector() = default;
 
-    void SetHostUserId(UserId hostUserId);
+    void SetHostUserKey(const UserKey &hostUserKey);
     void SetHostDeviceKey(const DeviceKey &hostDeviceKey);
-    void SetCompanionUserId(UserId companionUserId);
+    void SetCompanionUserKey(const UserKey &companionUserKey);
     void SetCompanionDeviceKey(const DeviceKey &companionDeviceKey);
     void SetConnectionName(const std::string &connectionName);
     void SetDisconnectReason(const std::string &reason);
@@ -79,17 +80,17 @@ public:
     {
         return result_;
     }
-    const std::optional<UserId> &GetHostUserId() const
+    const std::optional<UserKey> &GetHostUserKey() const
     {
-        return hostUserId_;
+        return hostUserKey_;
     }
     const std::optional<DeviceKey> &GetHostDeviceKey() const
     {
         return hostDeviceKey_;
     }
-    const std::optional<UserId> &GetCompanionUserId() const
+    const std::optional<UserKey> &GetCompanionUserKey() const
     {
-        return companionUserId_;
+        return companionUserKey_;
     }
     const std::optional<DeviceKey> &GetCompanionDeviceKey() const
     {
@@ -122,9 +123,9 @@ private:
     std::string requestType_;
     ResultCode result_ = ResultCode::SUCCESS;
     bool reported_ = false;
-    std::optional<UserId> hostUserId_;
+    std::optional<UserKey> hostUserKey_;
     std::optional<DeviceKey> hostDeviceKey_;
-    std::optional<UserId> companionUserId_;
+    std::optional<UserKey> companionUserKey_;
     std::optional<DeviceKey> companionDeviceKey_;
     std::optional<std::string> connectionName_;
     std::optional<ScheduleId> scheduleId_;

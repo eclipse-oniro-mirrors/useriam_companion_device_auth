@@ -35,12 +35,13 @@ public:
         uint32_t tokenId, const std::string &additionalInfo, FwkResultCallback &&requestCallback) override;
     std::shared_ptr<IRequest> CreateHostTokenAuthRequest(const AuthRequestParams &params,
         FwkResultCallback &&requestCallback) override;
-    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId,
-        const DeviceKey &companionDeviceKey) override;
-    std::shared_ptr<IRequest> CreateHostSyncDeviceStatusRequest(UserId hostUserId, const DeviceKey &companionDeviceKey,
-        const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback) override;
-    std::shared_ptr<IRequest> CreateHostIssueTokenRequest(UserId hostUserId, TemplateId templateId,
-        uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) override;
+    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(const UserKey &hostUserKey,
+        TemplateId templateId, const DeviceKey &companionDeviceKey) override;
+    std::shared_ptr<IRequest> CreateHostSyncDeviceStatusRequest(const UserKey &hostUserKey,
+        const DeviceKey &companionDeviceKey, const std::string &companionDeviceName,
+        SyncDeviceStatusCallback &&callback) override;
+    std::shared_ptr<IRequest> CreateHostIssueTokenRequest(const UserKey &hostUserKey,
+        TemplateId templateId, uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) override;
     std::shared_ptr<IRequest> CreateHostDelegateAuthRequest(const AuthRequestParams &params,
         FwkResultCallback &&requestCallback) override;
     std::shared_ptr<IRequest> CreateCompanionAddCompanionRequest(const std::string &connectionName,
@@ -52,9 +53,10 @@ public:
     std::shared_ptr<IRequest> CreateCompanionObtainTokenRequest(const DeviceKey &hostDeviceKey,
         uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) override;
     std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
-        UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
+        const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
+        const std::vector<uint8_t> &startDelegateAuthRequest,
         const CompanionDelegateAuthParam &delegateAuthParam) override;
-    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(UserId companionUserId, int32_t companionSubProfileId,
+    std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey, const std::string &triggerReason) override;
     std::shared_ptr<IRequest> CreateCompanionRequestResyncRequest(const PhysicalDeviceKey &hostPhysicalDeviceKey,
         ResultCodeCallback onComplete) override;

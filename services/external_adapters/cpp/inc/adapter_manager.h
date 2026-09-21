@@ -29,7 +29,6 @@
 #include "security_command_adapter.h"
 #include "user_auth_adapter.h"
 
-#include "sub_profile_id_manager.h"
 #include "system_param_manager.h"
 #include "system_settings_manager.h"
 #include "time_keeper.h"
@@ -73,9 +72,6 @@ public:
     IUserIdManager &GetUserIdManager();
     void SetUserIdManager(std::shared_ptr<IUserIdManager> adapter);
 
-    ISubProfileIdManager &GetSubProfileIdManager();
-    void SetSubProfileIdManager(std::shared_ptr<ISubProfileIdManager> adapter);
-
     ISystemSettingsManager &GetSystemSettingsManager();
     void SetSystemSettingsManager(std::shared_ptr<ISystemSettingsManager> adapter);
 
@@ -98,7 +94,6 @@ private:
     std::shared_ptr<ITimeKeeper> timeKeeperAdapter_;
     std::shared_ptr<ISystemParamManager> systemParamManager_;
     std::shared_ptr<IUserIdManager> userIdManager_;
-    std::shared_ptr<ISubProfileIdManager> subProfileIdManager_;
     std::shared_ptr<ISystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<IAppForegroundStateAdapter> appForegroundStateAdapter_;
 };
@@ -151,11 +146,6 @@ inline ISystemParamManager &GetSystemParamManager()
 inline IUserIdManager &GetUserIdManager()
 {
     return AdapterManager::GetInstance().GetUserIdManager();
-}
-
-inline ISubProfileIdManager &GetSubProfileIdManager()
-{
-    return AdapterManager::GetInstance().GetSubProfileIdManager();
 }
 
 inline ISystemSettingsManager &GetSystemSettingsManager()

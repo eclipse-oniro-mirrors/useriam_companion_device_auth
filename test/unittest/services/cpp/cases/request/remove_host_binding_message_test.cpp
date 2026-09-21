@@ -40,9 +40,8 @@ protected:
 HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_001, TestSize.Level0)
 {
     RemoveHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
-        .extraInfo = extraInfo_,
-        .companionSubProfileId = 42 };
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = extraInfo_};
 
     Attributes attributes;
     EncodeRemoveHostBindingRequest(request, attributes);
@@ -56,17 +55,16 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_001,
     EXPECT_EQ(decoded->hostDeviceKey.idType, request.hostDeviceKey.idType);
     EXPECT_EQ(decoded->hostDeviceKey.deviceId, request.hostDeviceKey.deviceId);
     EXPECT_EQ(decoded->hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
-    EXPECT_EQ(decoded->companionUserId, request.companionUserId);
+    EXPECT_EQ(decoded->companionUserKey.userId, request.companionUserKey.userId);
     EXPECT_EQ(decoded->extraInfo, request.extraInfo);
-    EXPECT_EQ(decoded->companionSubProfileId, request.companionSubProfileId);
+    EXPECT_EQ(decoded->companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
 HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_002, TestSize.Level0)
 {
     RemoveHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
-        .extraInfo = {},
-        .companionSubProfileId = 42 };
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = {}};
 
     Attributes attributes;
     EncodeRemoveHostBindingRequest(request, attributes);
@@ -78,7 +76,7 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_002,
     auto decoded = DecodeRemoveHostBindingRequest(attributes);
     EXPECT_TRUE(decoded.has_value());
     EXPECT_TRUE(decoded->extraInfo.empty());
-    EXPECT_EQ(decoded->companionSubProfileId, request.companionSubProfileId);
+    EXPECT_EQ(decoded->companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
 HWTEST_F(RemoveHostBindingMessageTest, DecodeRemoveHostBindingRequest_001, TestSize.Level0)

@@ -28,6 +28,7 @@
 #include "service_common.h"
 #include "singleton.h"
 #include "singleton_manager.h"
+#include "user_id_manager.h"
 #include "subscription.h"
 
 namespace OHOS {
@@ -41,7 +42,8 @@ public:
     ~CompanionManagerImpl() override;
 
     std::optional<CompanionStatus> GetCompanionStatus(TemplateId templateId) override;
-    std::optional<CompanionStatus> GetCompanionStatus(UserId hostUserId, const DeviceKey &companionDeviceKey) override;
+    std::optional<CompanionStatus> GetCompanionStatus(const UserKey &hostUserKey,
+        const DeviceKey &companionDeviceKey) override;
     std::vector<CompanionStatus> GetAllCompanionStatus() override;
 
     std::unique_ptr<Subscription> SubscribeCompanionDeviceStatusChange(
@@ -70,7 +72,7 @@ public:
 private:
     CompanionManagerImpl();
     bool Initialize();
-    void OnActiveUserIdChanged(UserId userId);
+    void OnActiveUserKeyChanged(const UserKey &activeUserKey);
     void OnTemplateListChanged(UserId userId, const std::vector<TemplateId> &templateIds);
     void Reload(const std::vector<PersistedCompanionStatus> &persistedCompanionList,
         const std::vector<TemplateId> &activeUserTemplateIds);
@@ -78,7 +80,7 @@ private:
         const std::vector<TemplateId> &activeUserTemplateIds, uint64_t nowMs);
 
     std::shared_ptr<Companion> FindCompanionByTemplateId(TemplateId templateId);
-    std::shared_ptr<Companion> FindCompanionByDeviceUser(UserId hostUserId, const DeviceKey &deviceKey);
+    std::shared_ptr<Companion> FindCompanionByDeviceUser(const UserKey &hostUserKey, const DeviceKey &deviceKey);
 
     ResultCode AddCompanionInternal(const std::shared_ptr<Companion> &companion);
     ResultCode RemoveCompanionInternal(TemplateId templateId);
@@ -91,10 +93,11 @@ private:
     void ProcessEndAddCompanionOutput(const HostEndAddCompanionOutput &secOutput, EndAddCompanionOutput &output);
     ResultCode InvokeHostEndAddCompanion(const HostEndAddCompanionInput &input, HostEndAddCompanionOutput &output);
 
-    UserId hostUserId_ { INVALID_USER_ID };
+    UserKey hostUserKey_;
     std::vector<std::shared_ptr<Companion>> companions_;
     std::map<SubscribeId, OnCompanionDeviceStatusChange> statusSubscribers_;
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
+    std::unique_ptr<Subscription> subProfileChangedSubscription_;
     std::unique_ptr<Subscription> templateChangeSubscription_;
 };
 

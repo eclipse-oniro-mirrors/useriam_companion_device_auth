@@ -45,7 +45,7 @@ public:
     }
     int32_t GetCompanionUserId() const
     {
-        return status_.companionUserId;
+        return status_.companionUserKey.userId;
     }
     const DeviceKey &GetHostDeviceKey() const
     {
@@ -53,7 +53,7 @@ public:
     }
     int32_t GetCompanionSubProfileId() const
     {
-        return status_.companionSubProfileId;
+        return status_.companionUserKey.subProfileId;
     }
     const HostBindingStatus &GetStatus() const
     {
@@ -73,7 +73,6 @@ private:
     void HandleHostDeviceOffline();
     void HandleAuthMaintainActiveChanged(bool isActive);
     bool ShouldRevokeTokenOnInactive() const;
-    void TriggerResyncToHost(const std::string &reason);
 
     HostBindingStatus status_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;

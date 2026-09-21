@@ -28,6 +28,7 @@
 #include "request_stages.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
+#include "user_id_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_HOST_OBTAIN_TOKEN_REQUEST
@@ -54,14 +55,15 @@ bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
     }
     const auto &preRequest = *preRequestOpt;
 
-    hostUserId_ = preRequest.hostUserId;
-    companionUserId_ = preRequest.companionDeviceKey.deviceUserId;
+    hostUserKey_ = preRequest.hostUserKey;
+    companionUserKey_ =
+        UserKey { preRequest.companionDeviceKey.deviceUserId, preRequest.companionDeviceKey.deviceSubProfileId };
     if (preRequest.companionDeviceKey != PeerDeviceKey()) {
         IAM_LOGE("%{public}s companion device key mismatch", GetDescription());
         return false;
     }
 
-    auto companionStatus = GetCompanionManager().GetCompanionStatus(hostUserId_, preRequest.companionDeviceKey);
+    auto companionStatus = GetCompanionManager().GetCompanionStatus(hostUserKey_, preRequest.companionDeviceKey);
     if (!companionStatus.has_value()) {
         IAM_LOGE("%{public}s companion status not found", GetDescription());
         return false;
@@ -84,7 +86,7 @@ bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
         return false;
     }
     secureProtocolId_ = secureProtocolOpt.value();
-    eventCollector_.SetHostUserId(hostUserId_);
+    eventCollector_.SetHostUserKey(hostUserKey_);
     eventCollector_.SetTemplateIdList({ companionStatus->templateId });
     return true;
 }
@@ -103,8 +105,8 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
 
-    if (hostUserId_ != GetUserIdManager().GetActiveUserId()) {
-        IAM_LOGE("%{public}s hostUserId %{public}d mismatch active %{public}d", GetDescription(), hostUserId_,
+    if (hostUserKey_.userId != GetUserIdManager().GetActiveUserId()) {
+        IAM_LOGE("%{public}s hostUserId %{public}d mismatch active %{public}d", GetDescription(), hostUserKey_.userId,
             GetUserIdManager().GetActiveUserId());
         return false;
     }
@@ -160,9 +162,9 @@ bool HostObtainTokenRequest::SubscribeCancellationEvents()
         GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId activeUserId) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            if (self->hostUserId_ != activeUserId) {
+            if (self->hostUserKey_.userId != activeUserId) {
                 IAM_LOGI("%{public}s host user %{public}d no longer active (%{public}d), cancel",
-                    self->GetDescription(), self->hostUserId_, activeUserId);
+                    self->GetDescription(), self->hostUserKey_.userId, activeUserId);
                 self->Cancel(ResultCode::GENERAL_ERROR);
             }
         });
@@ -235,18 +237,9 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
     }
     const auto &obtainTokenRequest = *obtainTokenRequestOpt;
 
-    if (obtainTokenRequest.hostUserId != hostUserId_ ||
-        obtainTokenRequest.companionDeviceKey.deviceUserId != companionUserId_) {
-        IAM_LOGE("%{public}s user id mismatch", GetDescription());
-        errorGuard.UpdateErrorCode(ResultCode::INVALID_PARAMETERS);
-        return;
-    }
-    const auto &peerKey = PeerDeviceKey();
-    const auto &companionKey = obtainTokenRequest.companionDeviceKey;
-    if (peerKey.deviceUserId != companionKey.deviceUserId || peerKey.idType != companionKey.idType ||
-        peerKey.deviceId != companionKey.deviceId || peerKey.deviceSubProfileId != companionKey.deviceSubProfileId) {
-        IAM_LOGE("%{public}s device key mismatch", GetDescription());
-        errorGuard.UpdateErrorCode(ResultCode::INVALID_PARAMETERS);
+    ResultCode validRet = ValidateObtainTokenRequest(obtainTokenRequest);
+    if (validRet != ResultCode::SUCCESS) {
+        errorGuard.UpdateErrorCode(validRet);
         return;
     }
 
@@ -268,6 +261,27 @@ void HostObtainTokenRequest::HandleObtainTokenMessage(const Attributes &request,
     currentReply_ = nullptr;
     errorGuard.Cancel();
     CompleteWithSuccess();
+}
+
+ResultCode HostObtainTokenRequest::ValidateObtainTokenRequest(const ObtainTokenRequest &obtainTokenRequest)
+{
+    if (obtainTokenRequest.hostUserKey != hostUserKey_ ||
+        obtainTokenRequest.companionDeviceKey.deviceUserId != companionUserKey_.userId ||
+        obtainTokenRequest.companionDeviceKey.deviceSubProfileId != companionUserKey_.subProfileId) {
+        IAM_LOGE("%{public}s host user key mismatch, expected userId %{public}d subProfileId %{public}d, "
+                 "actual userId %{public}d subProfileId %{public}d", GetDescription(),
+            hostUserKey_.userId, hostUserKey_.subProfileId,
+            obtainTokenRequest.hostUserKey.userId, obtainTokenRequest.hostUserKey.subProfileId);
+        return ResultCode::INVALID_PARAMETERS;
+    }
+    const auto &peerKey = PeerDeviceKey();
+    const auto &companionKey = obtainTokenRequest.companionDeviceKey;
+    if (peerKey.deviceUserId != companionKey.deviceUserId || peerKey.idType != companionKey.idType ||
+        peerKey.deviceId != companionKey.deviceId || peerKey.deviceSubProfileId != companionKey.deviceSubProfileId) {
+        IAM_LOGE("%{public}s device key mismatch", GetDescription());
+        return ResultCode::INVALID_PARAMETERS;
+    }
+    return ResultCode::SUCCESS;
 }
 
 HostProcessObtainTokenInput HostObtainTokenRequest::BuildHostProcessObtainTokenInput(
@@ -387,7 +401,7 @@ bool HostObtainTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &
         IAM_LOGE("%{public}s failed to get device status", GetDescription());
         return false;
     }
-    if (!deviceStatus->isAuthMaintainActive && deviceStatus->deviceType != DeviceType::CAR) {
+    if (!deviceStatus->isAuthMaintainActive.value_or(true) && deviceStatus->deviceType != DeviceType::CAR) {
         IAM_LOGE("%{public}s device not in auth maintain active state", GetDescription());
         return false;
     }
@@ -412,7 +426,7 @@ void HostObtainTokenRequest::HandlePeerDeviceStatusChanged(const std::vector<Dev
         if (status.deviceKey != peerDeviceKey) {
             continue;
         }
-        if (!status.isAuthMaintainActive && status.deviceType != DeviceType::CAR) {
+        if (!status.isAuthMaintainActive.value_or(true) && status.deviceType != DeviceType::CAR) {
             IAM_LOGE("%{public}s companion device left auth maintain state", GetDescription());
             // companion may already hold PreObtainTokenReply(SUCCESS) and be waiting for OBTAIN_TOKEN; a bare
             // CompleteWithError sends nothing to the companion (InboundRequest does not own the connection), so it

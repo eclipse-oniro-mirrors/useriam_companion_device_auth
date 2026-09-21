@@ -39,16 +39,16 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-CompanionDelegateAuthRequest::CompanionDelegateAuthRequest(const std::string &connectionName, int32_t companionUserId,
-    const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
-    const CompanionDelegateAuthParam &delegateAuthParam)
+CompanionDelegateAuthRequest::CompanionDelegateAuthRequest(const std::string &connectionName,
+    const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
+    const std::vector<uint8_t> &startDelegateAuthRequest, const CompanionDelegateAuthParam &delegateAuthParam)
     : InboundRequest(RequestType::COMPANION_DELEGATE_AUTH_REQUEST, connectionName, hostDeviceKey),
-      companionUserId_(companionUserId),
+      companionUserKey_(companionUserKey),
       startDelegateAuthRequest_(startDelegateAuthRequest),
       delegateAuthParam_(delegateAuthParam)
 {
     eventCollector_.SetHostDeviceKey(PeerDeviceKey());
-    eventCollector_.SetCompanionUserId(companionUserId_);
+    eventCollector_.SetCompanionUserKey(companionUserKey_);
     eventCollector_.SetConnectionName(GetConnectionName());
 }
 
@@ -68,12 +68,14 @@ bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionUserId_ == localDeviceKey->deviceUserId, false);
-
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionUserKey_.userId == localDeviceKey->deviceUserId, false);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(),
-        GetSubProfileIdManager().IsForegroundSubProfileId(localDeviceKey->deviceUserId,
-            localDeviceKey->deviceSubProfileId),
-        false);
+        companionUserKey_.subProfileId == localDeviceKey->deviceSubProfileId, false);
+
+    bool isForegroundSubProfileId =
+        GetUserIdManager().IsForegroundSubProfileId(
+            UserKey { companionUserKey_.userId, companionUserKey_.subProfileId });
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), isForegroundSubProfileId, false);
 
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), secureProtocolId_ != SecureProtocolId::INVALID, false);
@@ -140,7 +142,8 @@ CompanionDelegateAuthBeginInput CompanionDelegateAuthRequest::BuildCompanionDele
 
 std::optional<BindingId> CompanionDelegateAuthRequest::QueryBindingIdFromHostBinding()
 {
-    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(companionUserId_, PeerDeviceKey());
+    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(
+        companionUserKey_, PeerDeviceKey());
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), hostBindingStatus.has_value(), std::nullopt);
     return hostBindingStatus->bindingId;
 }

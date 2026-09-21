@@ -33,15 +33,15 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-HostRemoveHostBindingRequest::HostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId,
-    const DeviceKey &companionDeviceKey)
+HostRemoveHostBindingRequest::HostRemoveHostBindingRequest(const UserKey &hostUserKey,
+    TemplateId templateId, const DeviceKey &companionDeviceKey)
     : OutboundRequest(RequestType::HOST_REMOVE_HOST_BINDING_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
-      hostUserId_(hostUserId),
+      hostUserKey_(hostUserKey),
       companionDeviceKey_(companionDeviceKey)
 {
     templateId_ = templateId;
     SetPeerDeviceKey(companionDeviceKey_);
-    eventCollector_.SetHostUserId(hostUserId);
+    eventCollector_.SetHostUserKey(hostUserKey_);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
     eventCollector_.SetTemplateIdList({ templateId });
 }
@@ -77,12 +77,11 @@ void HostRemoveHostBindingRequest::SendRemoveHostBindingRequest()
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKey.has_value());
     hostDeviceKey = localDeviceKey.value();
-    hostDeviceKey.deviceUserId = hostUserId_;
-    hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
+    hostDeviceKey.deviceUserId = hostUserKey_.userId;
+    hostDeviceKey.deviceSubProfileId = hostUserKey_.subProfileId;
     RemoveHostBindingRequest requestMsg = {
         .hostDeviceKey = hostDeviceKey,
-        .companionUserId = peerDeviceKey->deviceUserId,
-        .companionSubProfileId = peerDeviceKey->deviceSubProfileId,
+        .companionUserKey = UserKey { peerDeviceKey->deviceUserId, peerDeviceKey->deviceSubProfileId },
         .extraInfo = {},
     };
     Attributes request = {};

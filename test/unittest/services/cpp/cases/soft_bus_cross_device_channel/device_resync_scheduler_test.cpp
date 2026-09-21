@@ -317,6 +317,13 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_OnlyNotifiesSyncedD
     unsyncedKey.deviceId = "dev_unsynced";
     MarkDeviceOnline(*manager, unsyncedKey);
 
+    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
+    DeviceStatus syncedDeviceStatus;
+    syncedDeviceStatus.deviceKey.idType = syncedKey.idType;
+    syncedDeviceStatus.deviceKey.deviceId = syncedKey.deviceId;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
+        .WillByDefault(Return(std::vector<DeviceStatus> { syncedDeviceStatus }));
+
     auto factoryCallCount = std::make_shared<int>(0);
     auto lastFactoryKey = std::make_shared<PhysicalDeviceKey>();
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -354,6 +361,13 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_LaunchFailureArmsRe
     key.deviceId = "dev_A";
     MarkDeviceOnline(*manager, key);
     peerSyncHandler(BuildPeerSyncedEvent(key));
+
+    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey.idType = key.idType;
+    deviceStatus.deviceKey.deviceId = key.deviceId;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
+        .WillByDefault(Return(std::vector<DeviceStatus> { deviceStatus }));
 
     // Launch failure (factory returns nullptr) arms a retry instead of erasing.
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _)).WillByDefault(Return(nullptr));
@@ -616,7 +630,7 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncOneDevice_StartFailureArmsRetry, TestS
 }
 
 // E2E-1: Start() wires the active-user-id subscription end-to-end. Firing the captured callback
-// routes through OnActiveUserIdChanged -> ResyncAllPhysicalDevices and reaches the request factory,
+// routes through OnActiveUserKeyChanged -> ResyncAllPhysicalDevices and reaches the request factory,
 // proving the active-user-switch trigger is live rather than a dead subscription.
 HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, TestSize.Level0)
 {
@@ -632,9 +646,9 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
     ASSERT_NE(scheduler, nullptr);
 
     // Capture the subscription callback; the default mock discards it.
-    ActiveUserIdCallback capturedCb;
-    ON_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserId(_))
-        .WillByDefault(Invoke([&capturedCb](ActiveUserIdCallback &&cb) {
+    UnlockedActiveUserKeyCallback capturedCb;
+    ON_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserKey(_))
+        .WillByDefault(Invoke([&capturedCb](UnlockedActiveUserKeyCallback &&cb) {
             capturedCb = std::move(cb);
             return std::make_unique<Subscription>([]() {});
         }));
@@ -648,6 +662,13 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
     MarkDeviceOnline(*manager, key);
     peerSyncHandler(BuildPeerSyncedEvent(key));
 
+    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey.idType = key.idType;
+    deviceStatus.deviceKey.deviceId = key.deviceId;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
+        .WillByDefault(Return(std::vector<DeviceStatus> { deviceStatus }));
+
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
         .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
@@ -655,7 +676,7 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
             return nullptr;
         }));
 
-    capturedCb(1); // active user changed
+    capturedCb(UserKey { 1, INVALID_SUB_PROFILE_ID }); // active user changed
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     // The trigger reached the factory instead of being silently dropped.
@@ -693,6 +714,13 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesDeviceNameChangeToFactory, TestS
     key.deviceId = "dev_A";
     MarkDeviceOnline(*manager, key);
     peerSyncHandler(BuildPeerSyncedEvent(key));
+
+    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey.idType = key.idType;
+    deviceStatus.deviceKey.deviceId = key.deviceId;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
+        .WillByDefault(Return(std::vector<DeviceStatus> { deviceStatus }));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -737,6 +765,19 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_CoversAllDevices, T
     peerSyncHandler(BuildPeerSyncedEvent(keyA));
     peerSyncHandler(BuildPeerSyncedEvent(keyB));
     peerSyncHandler(BuildPeerSyncedEvent(keyC));
+
+    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
+    DeviceStatus statusA;
+    statusA.deviceKey.idType = keyA.idType;
+    statusA.deviceKey.deviceId = keyA.deviceId;
+    DeviceStatus statusB;
+    statusB.deviceKey.idType = keyB.idType;
+    statusB.deviceKey.deviceId = keyB.deviceId;
+    DeviceStatus statusC;
+    statusC.deviceKey.idType = keyC.idType;
+    statusC.deviceKey.deviceId = keyC.deviceId;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
+        .WillByDefault(Return(std::vector<DeviceStatus> { statusA, statusB, statusC }));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))

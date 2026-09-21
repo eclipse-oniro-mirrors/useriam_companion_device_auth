@@ -61,7 +61,7 @@ HWTEST_F(DeviceStatusEntryTest, Constructor_001, TestSize.Level0)
     EXPECT_EQ(entry.deviceModelInfo, "TestModel");
     EXPECT_EQ(entry.physicalDeviceName, "TestDevice");
     EXPECT_TRUE(entry.syncDeviceName.empty());
-    EXPECT_TRUE(entry.isAuthMaintainActive);
+    EXPECT_TRUE(entry.isAuthMaintainActive.value_or(true));
     EXPECT_FALSE(entry.isSynced);
     EXPECT_FALSE(entry.isSyncInProgress);
     EXPECT_TRUE(entry.useSyncDeviceName);
@@ -71,8 +71,7 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceKey_001, TestSize.Level0)
 {
     DeviceStatusEntry entry(physicalStatus_, []() {});
 
-    entry.deviceUserId = INT32_100;
-    entry.deviceSubProfileId = 100001;
+    entry.deviceUserKey = UserKey { INT32_100, 100001 };
     DeviceKey deviceKey = entry.BuildDeviceKey();
 
     EXPECT_EQ(deviceKey.idType, DeviceIdType::UNIFIED_DEVICE_ID);
@@ -93,8 +92,7 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
     entry.SetSyncCompanionBusinessIds(hostBusinessIds);
     entry.isSynced = true;
 
-    entry.deviceUserId = INT32_100;
-    entry.deviceSubProfileId = 7;
+    entry.deviceUserKey = UserKey { INT32_100, 7 };
     entry.deviceSubProfileName = "SubProfile";
     DeviceStatus status = entry.BuildDeviceStatus();
 
@@ -347,82 +345,48 @@ HWTEST_F(DeviceStatusEntryTest, OnSyncAbort_NoOpWhenIdle, TestSize.Level0)
     EXPECT_EQ(*retryCount, 0);
 }
 
-// --- SetPhysicalIsAuthMaintainActive / SetSyncIsAuthMaintainActive ---
+// --- isAuthMaintainActive (optional<bool>) ---
 
-// Physical true -> entry.isAuthMaintainActive is true (constructor propagation)
+// Physical true -> entry carries the value true (constructor propagation)
 HWTEST_F(DeviceStatusEntryTest, Constructor_PropagatesIsAuthMaintainActive_True, TestSize.Level0)
 {
     physicalStatus_.isAuthMaintainActive = true;
     DeviceStatusEntry entry(physicalStatus_, []() {});
 
-    EXPECT_TRUE(entry.isAuthMaintainActive);
+    ASSERT_TRUE(entry.isAuthMaintainActive.has_value());
+    EXPECT_TRUE(entry.isAuthMaintainActive.value());
 }
 
-// Physical false -> effective falls back to physical (false) before any sync
+// Physical false -> entry carries the value false
 HWTEST_F(DeviceStatusEntryTest, Constructor_PropagatesIsAuthMaintainActive_False, TestSize.Level0)
 {
     physicalStatus_.isAuthMaintainActive = false;
     DeviceStatusEntry entry(physicalStatus_, []() {});
 
-    EXPECT_FALSE(entry.isAuthMaintainActive);
+    ASSERT_TRUE(entry.isAuthMaintainActive.has_value());
+    EXPECT_FALSE(entry.isAuthMaintainActive.value());
 }
 
-// SetPhysical changes effective when no sync value is present
-HWTEST_F(DeviceStatusEntryTest, SetPhysicalIsAuthMaintainActive_ChangesEffective, TestSize.Level0)
+// nullopt (SoftBus default) is carried through as nullopt
+HWTEST_F(DeviceStatusEntryTest, Constructor_PropagatesIsAuthMaintainActive_Nullopt, TestSize.Level0)
 {
-    physicalStatus_.isAuthMaintainActive = true;
+    physicalStatus_.isAuthMaintainActive = std::nullopt;
     DeviceStatusEntry entry(physicalStatus_, []() {});
 
-    bool changed = entry.SetPhysicalIsAuthMaintainActive(false);
-    EXPECT_TRUE(changed);
-    EXPECT_FALSE(entry.isAuthMaintainActive);
+    EXPECT_FALSE(entry.isAuthMaintainActive.has_value());
 }
 
-// SetPhysical to same value -> no change reported
-HWTEST_F(DeviceStatusEntryTest, SetPhysicalIsAuthMaintainActive_NoChange, TestSize.Level0)
-{
-    physicalStatus_.isAuthMaintainActive = true;
-    DeviceStatusEntry entry(physicalStatus_, []() {});
-
-    bool changed = entry.SetPhysicalIsAuthMaintainActive(true);
-    EXPECT_FALSE(changed);
-    EXPECT_TRUE(entry.isAuthMaintainActive);
-}
-
-// Sync value takes priority over physical
-HWTEST_F(DeviceStatusEntryTest, SetSyncIsAuthMaintainActive_TakesPriorityOverPhysical, TestSize.Level0)
-{
-    physicalStatus_.isAuthMaintainActive = true;
-    DeviceStatusEntry entry(physicalStatus_, []() {});
-
-    bool changed = entry.SetSyncIsAuthMaintainActive(false);
-    EXPECT_TRUE(changed);
-    EXPECT_FALSE(entry.isAuthMaintainActive);
-}
-
-// Once sync is set, changing physical does not affect effective
-HWTEST_F(DeviceStatusEntryTest, SetPhysicalIgnoredAfterSync, TestSize.Level0)
-{
-    physicalStatus_.isAuthMaintainActive = true;
-    DeviceStatusEntry entry(physicalStatus_, []() {});
-
-    entry.SetSyncIsAuthMaintainActive(false);
-    bool changed = entry.SetPhysicalIsAuthMaintainActive(true);
-    // effective stays false (sync priority), no change
-    EXPECT_FALSE(changed);
-    EXPECT_FALSE(entry.isAuthMaintainActive);
-}
-
-// BuildDeviceStatus reflects effective isAuthMaintainActive after sync
-HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_ReflectsSyncIsAuthMaintainActive, TestSize.Level0)
+// BuildDeviceStatus reflects isAuthMaintainActive (optional propagated as-is)
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_ReflectsIsAuthMaintainActive, TestSize.Level0)
 {
     physicalStatus_.isAuthMaintainActive = true;
     DeviceStatusEntry entry(physicalStatus_, []() {});
     entry.isSynced = true;
 
-    entry.SetSyncIsAuthMaintainActive(false);
+    entry.isAuthMaintainActive = false;
     DeviceStatus status = entry.BuildDeviceStatus();
-    EXPECT_FALSE(status.isAuthMaintainActive);
+    ASSERT_TRUE(status.isAuthMaintainActive.has_value());
+    EXPECT_FALSE(status.isAuthMaintainActive.value());
 }
 
 // Move constructor preserves isAuthMaintainActive state
@@ -430,14 +394,15 @@ HWTEST_F(DeviceStatusEntryTest, MoveConstructor_PreservesIsAuthMaintainActive, T
 {
     physicalStatus_.isAuthMaintainActive = true;
     DeviceStatusEntry entry(physicalStatus_, []() {});
-    entry.SetSyncIsAuthMaintainActive(false);
-    entry.deviceSubProfileId = 42;
+    entry.isAuthMaintainActive = false;
+    entry.deviceUserKey = UserKey { INVALID_USER_ID, 42 };
     entry.deviceSubProfileName = "Moved";
 
     DeviceStatusEntry moved(std::move(entry));
 
-    EXPECT_FALSE(moved.isAuthMaintainActive);
-    EXPECT_EQ(moved.deviceSubProfileId, 42);
+    ASSERT_TRUE(moved.isAuthMaintainActive.has_value());
+    EXPECT_FALSE(moved.isAuthMaintainActive.value());
+    EXPECT_EQ(moved.deviceUserKey.subProfileId, 42);
     EXPECT_EQ(moved.deviceSubProfileName, "Moved");
 }
 

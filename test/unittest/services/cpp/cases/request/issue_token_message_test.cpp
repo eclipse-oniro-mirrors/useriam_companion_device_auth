@@ -41,9 +41,8 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenRequest_001, TestSize.L
 {
     MockGuard guard;
     PreIssueTokenRequest request = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
-        .extraInfo = extraInfo_,
-        .companionSubProfileId = 42 };
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = extraInfo_};
 
     Attributes attributes;
     EncodePreIssueTokenRequest(request, attributes);
@@ -57,9 +56,9 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenRequest_001, TestSize.L
     PreIssueTokenRequest decoded = result.value();
 
     EXPECT_EQ(decoded.hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
-    EXPECT_EQ(decoded.companionUserId, request.companionUserId);
+    EXPECT_EQ(decoded.companionUserKey.userId, request.companionUserKey.userId);
     EXPECT_EQ(decoded.extraInfo, request.extraInfo);
-    EXPECT_EQ(decoded.companionSubProfileId, request.companionSubProfileId);
+    EXPECT_EQ(decoded.companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_001, TestSize.Level0)
@@ -151,9 +150,8 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_001, TestSize.Leve
 {
     MockGuard guard;
     IssueTokenRequest request = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
-        .extraInfo = extraInfo_,
-        .companionSubProfileId = 42 };
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = extraInfo_};
 
     Attributes attributes;
     EncodeIssueTokenRequest(request, attributes);
@@ -167,9 +165,9 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_001, TestSize.Leve
     IssueTokenRequest decoded = result.value();
 
     EXPECT_EQ(decoded.hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
-    EXPECT_EQ(decoded.companionUserId, request.companionUserId);
+    EXPECT_EQ(decoded.companionUserKey.userId, request.companionUserKey.userId);
     EXPECT_EQ(decoded.extraInfo, request.extraInfo);
-    EXPECT_EQ(decoded.companionSubProfileId, request.companionSubProfileId);
+    EXPECT_EQ(decoded.companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_001, TestSize.Level0)

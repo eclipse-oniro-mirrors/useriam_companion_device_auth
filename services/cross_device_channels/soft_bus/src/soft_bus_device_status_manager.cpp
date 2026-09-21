@@ -235,8 +235,7 @@ bool SoftBusDeviceStatusManager::Start()
         GetSystemParamManager().GetParam(CDA_IS_AUTH_MAINTAIN_ACTIVE_KEY, FALSE_STR) == TRUE_STR;
     HandleLocalIsAuthMaintainActiveChange(initialIsLocalAuthMaintainActive);
 #else
-    bool isAuthMaintainActive = GetAuthMaintainActive();
-    HandleLocalIsAuthMaintainActiveChange(isAuthMaintainActive);
+    HandleLocalIsAuthMaintainActiveChange(false);
 #endif
 
     started_ = true;
@@ -368,12 +367,6 @@ bool SoftBusDeviceStatusManager::ConvertToPhysicalDevices(const std::vector<DmDe
             SoftBusDeviceStatusManager::GenerateDeviceModelInfo(static_cast<DmDeviceType>(device.deviceTypeId));
 
         DeviceType deviceType = ConvertToDeviceType(static_cast<DmDeviceType>(device.deviceTypeId));
-#ifdef AUTH_STATE_MAINTAIN_SIMULATION
-        // Soft bus does not support cross-device isAuthMaintain sync, simulation mode always true
-        bool isAuthMaintainActive = true;
-#else
-        bool isAuthMaintainActive = false;
-#endif
         auto osIt = osVersionMap.find(networkId);
         ENSURE_OR_CONTINUE_DESC(GetMaskedString(networkId).c_str(), osIt != osVersionMap.end());
         const std::string &osVersion = osIt->second;
@@ -386,14 +379,15 @@ bool SoftBusDeviceStatusManager::ConvertToPhysicalDevices(const std::vector<DmDe
             .deviceName = "",
             .deviceModelInfo = deviceModelInfo,
             .networkId = networkId,
-            .isAuthMaintainActive = isAuthMaintainActive,
             .deviceType = deviceType,
             .useSyncDeviceName = true,
         };
         IAM_LOGI("physical device status: networkId=%{public}s, udid=%{public}s, modelInfo=%{public}s, "
-                 "osVersion=%{public}s, isAuthMaintainActive=%{public}d",
+                 "osVersion=%{public}s, isAuthMaintainActive=%{public}s",
             GetMaskedString(networkId).c_str(), GetMaskedString(deviceIdResult.value()).c_str(),
-            deviceModelInfo.c_str(), osVersion.c_str(), isAuthMaintainActive);
+            deviceModelInfo.c_str(), osVersion.c_str(),
+            status.isAuthMaintainActive.has_value() ? (status.isAuthMaintainActive.value() ? "true" : "false")
+                                                    : "nullopt");
         retPhysicalDeviceStatuses.emplace_back(std::move(status));
     }
 
