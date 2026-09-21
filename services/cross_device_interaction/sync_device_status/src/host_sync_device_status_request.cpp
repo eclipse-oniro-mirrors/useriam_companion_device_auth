@@ -37,17 +37,17 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-HostSyncDeviceStatusRequest::HostSyncDeviceStatusRequest(int32_t hostUserId, const DeviceKey &companionDeviceKey,
-    const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback)
+HostSyncDeviceStatusRequest::HostSyncDeviceStatusRequest(const UserKey &hostUserKey,
+    const DeviceKey &companionDeviceKey, const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback)
     : OutboundRequest(RequestType::HOST_SYNC_DEVICE_STATUS_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
-      hostUserId_(hostUserId),
+      hostUserKey_(hostUserKey),
       companionDeviceKey_(companionDeviceKey),
       companionDeviceName_(companionDeviceName),
       callback_(std::move(callback))
 {
     SetPeerDeviceKey(companionDeviceKey_);
     desc_.SetDeviceId(companionDeviceKey_);
-    eventCollector_.SetHostUserId(hostUserId);
+    eventCollector_.SetHostUserKey(hostUserKey_);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
 }
 
@@ -106,7 +106,7 @@ void HostSyncDeviceStatusRequest::BeginCompanionCheck()
 {
     ErrorGuard errorGuard([this](ResultCode resultCode) { CompleteWithError(resultCode); });
 
-    HostBeginCompanionCheckInput input { GetRequestId(), hostUserId_ };
+    HostBeginCompanionCheckInput input { GetRequestId(), hostUserKey_.userId };
     HostBeginCompanionCheckOutput output {};
     ResultCode ret = GetSecurityAgent().HostBeginCompanionCheck(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -144,8 +144,8 @@ SyncDeviceStatusRequest HostSyncDeviceStatusRequest::BuildSyncDeviceStatusReques
     SyncDeviceStatusRequest request = {};
     request.protocolIdList = profile.protocols;
     request.capabilityList = profile.hostCapabilities;
-    request.hostDeviceKey.deviceUserId = hostUserId_;
-    request.hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
+    request.hostDeviceKey.deviceUserId = hostUserKey_.userId;
+    request.hostDeviceKey.deviceSubProfileId = hostUserKey_.subProfileId;
     request.salt = salt;
     request.challenge = challenge;
     return request;
@@ -213,8 +213,8 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
         return;
     }
 
-    UpdateCompanionUserIdAndSubProfileId(replyData.companionDeviceKey.deviceUserId,
-        replyData.companionDeviceKey.deviceSubProfileId);
+    UpdateCompanionUserIdAndSubProfileId(UserKey { replyData.companionDeviceKey.deviceUserId,
+        replyData.companionDeviceKey.deviceSubProfileId });
 
     bool handleRet = EndCompanionCheck(replyData);
     ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
@@ -227,10 +227,9 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     syncDeviceStatus.secureProtocolId = replyData.secureProtocolId;
     syncDeviceStatus.deviceUserName = replyData.deviceUserName;
     syncDeviceStatus.deviceName = replyData.deviceName;
-    syncDeviceStatus.deviceUserId = replyData.companionDeviceKey.deviceUserId;
-    syncDeviceStatus.deviceSubProfileId = replyData.companionDeviceKey.deviceSubProfileId;
+    syncDeviceStatus.deviceUserKey = UserKey { replyData.companionDeviceKey.deviceUserId,
+        replyData.companionDeviceKey.deviceSubProfileId };
     syncDeviceStatus.deviceSubProfileName = replyData.deviceSubProfileName;
-    syncDeviceStatus.isAuthMaintainActive = replyData.isAuthMaintainActive;
 
     eventCollector_.SetSelectedProtocolIdList(ProtocolIdConverter::ToUnderlyingVec(syncDeviceStatus.protocolIdList));
     eventCollector_.SetSecureProtocolId(static_cast<uint16_t>(syncDeviceStatus.secureProtocolId));
@@ -264,7 +263,7 @@ bool HostSyncDeviceStatusRequest::EndCompanionCheck(const SyncDeviceStatusReply 
 
 std::optional<CompanionStatus> HostSyncDeviceStatusRequest::QueryCompanionStatus()
 {
-    return GetCompanionManager().GetCompanionStatus(hostUserId_, companionDeviceKey_);
+    return GetCompanionManager().GetCompanionStatus(hostUserKey_, companionDeviceKey_);
 }
 
 ResultCode HostSyncDeviceStatusRequest::HostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply)
@@ -310,12 +309,12 @@ bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest([[maybe_unused]] cons
     return false;
 }
 
-void HostSyncDeviceStatusRequest::UpdateCompanionUserIdAndSubProfileId(int32_t companionUserId,
-    int32_t companionSubProfileId)
+void HostSyncDeviceStatusRequest::UpdateCompanionUserIdAndSubProfileId(const UserKey &companionUserKey)
 {
-    IAM_LOGI("companionUserId: %{public}d, companionSubProfileId: %{public}d", companionUserId, companionSubProfileId);
-    companionDeviceKey_.deviceUserId = companionUserId;
-    companionDeviceKey_.deviceSubProfileId = companionSubProfileId;
+    IAM_LOGI("companionUserId: %{public}d, companionSubProfileId: %{public}d",
+        companionUserKey.userId, companionUserKey.subProfileId);
+    companionDeviceKey_.deviceUserId = companionUserKey.userId;
+    companionDeviceKey_.deviceSubProfileId = companionUserKey.subProfileId;
     SetPeerDeviceKey(companionDeviceKey_);
     desc_.SetDeviceId(companionDeviceKey_);
 }

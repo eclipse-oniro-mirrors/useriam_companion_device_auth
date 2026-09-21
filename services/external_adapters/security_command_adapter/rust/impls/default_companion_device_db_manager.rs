@@ -20,7 +20,7 @@ use crate::traits::companion_device_db_manager::{CompanionDeviceDbManager, Compa
 use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::db_manager::{
     CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
-    DeviceKey, UserInfo,
+    DeviceKey, UserInfo, UserKey,
 };
 use crate::traits::log_trace::RustFileId;
 use crate::traits::storage_io::StorageIoRegistry;
@@ -104,9 +104,9 @@ impl DefaultCompanionDeviceDbManager {
             parcel.write_i32(companion_device_info.device_key.device_id_type);
             parcel.write_i32(companion_device_info.device_key.user_id);
             parcel.write_i32(companion_device_info.device_key.sub_profile_id);
-            parcel.write_i32(companion_device_info.user_info.user_id);
+            parcel.write_i32(companion_device_info.user_info.user_key.user_id);
             parcel.write_i32(companion_device_info.user_info.user_type);
-            parcel.write_i32(companion_device_info.user_info.sub_profile_id);
+            parcel.write_i32(companion_device_info.user_info.user_key.sub_profile_id);
             parcel.write_u64(companion_device_info.added_time);
             parcel.write_u32(companion_device_info.is_valid as u32);
             parcel.write_i32(companion_device_info.capability_list.len() as i32);
@@ -157,9 +157,11 @@ impl DefaultCompanionDeviceDbManager {
                 template_id,
                 device_key: DeviceKey { device_id, device_id_type, user_id, sub_profile_id },
                 user_info: UserInfo {
-                    user_id: user_info_user_id,
+                    user_key: UserKey {
+                        user_id: user_info_user_id,
+                        sub_profile_id: user_info_sub_profile_id,
+                    },
                     user_type: user_info_user_type,
-                    sub_profile_id: user_info_sub_profile_id,
                 },
                 added_time,
                 is_valid: is_valid_u32 != 0,

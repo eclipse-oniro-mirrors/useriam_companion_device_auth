@@ -48,7 +48,7 @@ HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params
     FwkResultCallback &&requestCallback)
     : OutboundRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(params.fwkMsg),
-      hostUserId_(params.hostUserId),
+      hostUserKey_{params.hostUserKey},
       requestCallback_(std::move(requestCallback)),
       selectContext_(params.selectContext),
       widgetAuthParam_(params.widgetAuthParam)
@@ -57,7 +57,7 @@ HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params
     SetPeerDeviceKey(companionDeviceKey);
     desc_.SetTemplateId(params.templateId);
     desc_.SetDeviceId(companionDeviceKey);
-    eventCollector_.SetHostUserId(params.hostUserId);
+    eventCollector_.SetHostUserKey(hostUserKey_);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
     eventCollector_.SetScheduleId(params.scheduleId);
     eventCollector_.SetTriggerReason("authIntent " + std::to_string(params.authIntent));
@@ -169,15 +169,14 @@ std::optional<StartDelegateAuthRequest> HostDelegateAuthRequest::BuildStartDeleg
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_VAL(localDeviceKey.has_value(), std::nullopt);
     hostDeviceKey = localDeviceKey.value();
-    hostDeviceKey.deviceUserId = hostUserId_;
-    hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
+    hostDeviceKey.deviceUserId = hostUserKey_.userId;
+    hostDeviceKey.deviceSubProfileId = hostUserKey_.subProfileId;
     std::vector<int32_t> authTypes;
     for (auto type : widgetAuthParam_.authTypes) {
         authTypes.push_back(static_cast<int32_t>(type));
     }
     return StartDelegateAuthRequest { .hostDeviceKey = hostDeviceKey,
-        .companionUserId = peerDeviceKey->deviceUserId,
-        .companionSubProfileId = peerDeviceKey->deviceSubProfileId,
+        .companionUserKey = UserKey { peerDeviceKey->deviceUserId, peerDeviceKey->deviceSubProfileId },
         .extraInfo = output.startDelegateAuthRequest,
         .selectContext = selectContext_,
         .remoteTokenId = GetRemoteTokenId(*peerDeviceKey),

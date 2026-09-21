@@ -56,8 +56,7 @@ private:
     void HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
 
     std::vector<uint8_t> fwkMsg_;
-    UserId hostUserId_ = INVALID_USER_ID;
-    UserId companionUserId_ = INVALID_USER_ID;
+    UserKey hostUserKey_;
     FwkResultCallback requestCallback_;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::DEFAULT;
     bool needEndTokenAuth_ = false;

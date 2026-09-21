@@ -30,8 +30,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 // Companion -> Host
 struct PreObtainTokenRequest {
-    UserId hostUserId { INVALID_USER_ID };
-    int32_t hostSubProfileId { INVALID_SUB_PROFILE_ID };
+    UserKey hostUserKey;
     DeviceKey companionDeviceKey;
     std::vector<uint8_t> extraInfo;
 };
@@ -44,8 +43,7 @@ struct PreObtainTokenReply {
 
 // Companion -> Host
 struct ObtainTokenRequest {
-    UserId hostUserId;
-    int32_t hostSubProfileId { INVALID_SUB_PROFILE_ID };
+    UserKey hostUserKey;
     std::vector<uint8_t> extraInfo;
     DeviceKey companionDeviceKey;
     Atl atl { 0 };

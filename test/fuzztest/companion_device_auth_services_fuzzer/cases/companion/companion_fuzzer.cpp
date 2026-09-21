@@ -67,7 +67,7 @@ static void FuzzGetters(std::shared_ptr<Companion> &companion, FuzzedDataProvide
 {
     (void)fuzzData;
     (void)companion->GetTemplateId();
-    (void)companion->GetHostUserId();
+    (void)companion->GetHostUserKey();
     (void)companion->GetCompanionDeviceKey();
     (void)companion->GetStatus();
     (void)companion->GetDescription();
@@ -88,7 +88,9 @@ static void FuzzDeviceStatusHandling(std::shared_ptr<Companion> &companion, Fuzz
         status.protocolId = GenerateFuzzProtocolId(fuzzData);
         status.secureProtocolId = GenerateFuzzSecureProtocolId(fuzzData);
         status.isOnline = fuzzData.ConsumeBool();
-        status.isAuthMaintainActive = fuzzData.ConsumeBool();
+        if (fuzzData.ConsumeBool()) {
+            status.isAuthMaintainActive = fuzzData.ConsumeBool();
+        }
         statusList.push_back(status);
     }
 }
@@ -108,7 +110,7 @@ void FuzzCompanion(FuzzedDataProvider &fuzzData)
 {
     PersistedCompanionStatus persistedStatus;
     persistedStatus.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-    persistedStatus.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
+    persistedStatus.hostUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     persistedStatus.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     persistedStatus.isValid = fuzzData.ConsumeBool();
 

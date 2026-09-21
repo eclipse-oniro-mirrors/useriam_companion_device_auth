@@ -51,7 +51,7 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_001, TestSize.Leve
     handler_ = std::make_unique<CompanionStartDelegateAuthHandler>();
 
     StartDelegateAuthRequest startRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
+        .companionUserKey = UserKey { companionUserId_ },
         .extraInfo = extraInfo_ };
     Attributes request;
     EncodeStartDelegateAuthRequest(startRequest, request);
@@ -61,11 +61,11 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_001, TestSize.Leve
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, startRequest.hostDeviceKey.deviceId);
 
     EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionDelegateAuthRequest(_, _, _, _, _))
-        .WillOnce(Invoke([](const std::string &connectionName, int32_t companionUserId, const DeviceKey &hostDeviceKey,
-                             const std::vector<uint8_t> &startDelegateAuthRequest,
+        .WillOnce(Invoke([](const std::string &connectionName, const UserKey &companionUserKey,
+                             const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
                              const CompanionDelegateAuthParam &delegateAuthParam) {
-            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserId, hostDeviceKey,
-                startDelegateAuthRequest, delegateAuthParam);
+            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserKey,
+                hostDeviceKey, startDelegateAuthRequest, delegateAuthParam);
         }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
@@ -100,7 +100,7 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_003, TestSize.Leve
     handler_ = std::make_unique<CompanionStartDelegateAuthHandler>();
 
     StartDelegateAuthRequest startRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
+        .companionUserKey = UserKey { companionUserId_ },
         .extraInfo = extraInfo_ };
     Attributes request;
     EncodeStartDelegateAuthRequest(startRequest, request);
@@ -126,7 +126,7 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_004, TestSize.Leve
     handler_ = std::make_unique<CompanionStartDelegateAuthHandler>();
 
     StartDelegateAuthRequest startRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
+        .companionUserKey = UserKey { companionUserId_ },
         .extraInfo = extraInfo_ };
     Attributes request;
     EncodeStartDelegateAuthRequest(startRequest, request);
@@ -136,11 +136,11 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_004, TestSize.Leve
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, startRequest.hostDeviceKey.deviceId);
 
     EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionDelegateAuthRequest(_, _, _, _, _))
-        .WillOnce(Invoke([](const std::string &connectionName, int32_t companionUserId, const DeviceKey &hostDeviceKey,
-                             const std::vector<uint8_t> &startDelegateAuthRequest,
+        .WillOnce(Invoke([](const std::string &connectionName, const UserKey &companionUserKey,
+                             const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
                              const CompanionDelegateAuthParam &delegateAuthParam) {
-            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserId, hostDeviceKey,
-                startDelegateAuthRequest, delegateAuthParam);
+            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserKey,
+                hostDeviceKey, startDelegateAuthRequest, delegateAuthParam);
         }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(false));
 

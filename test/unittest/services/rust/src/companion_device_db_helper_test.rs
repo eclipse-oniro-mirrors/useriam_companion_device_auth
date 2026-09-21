@@ -22,7 +22,7 @@ use crate::jobs::companion_device_db_helper::{
 };
 use crate::log_i;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceProfile, DeviceKey, UserInfo};
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceProfile, DeviceKey, UserInfo, UserKey};
 use crate::ut_registry_guard;
 
 fn create_mock_companion_device_profile() -> CompanionDeviceProfile {
@@ -46,7 +46,7 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
             user_id: 100,
             sub_profile_id: 0,
         },
-        user_info: UserInfo { user_id: 100, user_type: 0, sub_profile_id: 0 },
+        user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         added_time: 123456,
         is_valid: true,
         capability_list: vec![1, 2, 3],

@@ -49,7 +49,7 @@ private:
     void HandleDelegateAuthResult(ResultCode result, const std::vector<uint8_t> &extraInfo);
 
     std::vector<uint8_t> fwkMsg_;
-    UserId hostUserId_ = INVALID_USER_ID;
+    UserKey hostUserKey_;
     int32_t authIntent_ = 0;
     UserAuth::AuthScene authScene_ { UserAuth::AUTH_SCENE_DEFAULT };
     FwkResultCallback requestCallback_;

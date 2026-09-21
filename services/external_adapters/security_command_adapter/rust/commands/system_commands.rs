@@ -51,7 +51,7 @@ use crate::entry::companion_device_auth_ffi::{
     HostSetCompanionInvalidInputFfi, HostSetCompanionInvalidOutputFfi, HostUpdateCompanionEnabledBusinessIdsInputFfi,
     HostUpdateCompanionEnabledBusinessIdsOutputFfi, HostUpdateCompanionStatusInputFfi,
     HostUpdateCompanionStatusOutputFfi, InitInputFfi, InitOutputFfi, Int32Array64Ffi, PersistedCompanionStatusFfi,
-    PersistedHostBindingStatusFfi, SetActiveUserInputFfi, SetActiveUserOutputFfi,
+    PersistedHostBindingStatusFfi, SetActiveUserInputFfi, SetActiveUserOutputFfi, UserKeyFfi,
 };
 use crate::jobs::companion_device_db_helper;
 use crate::request::delegate_auth::companion_delegate_auth::CompanionDelegateAuthRequest;
@@ -69,7 +69,7 @@ use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainT
 use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenRequest;
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::HostBinding;
+use crate::traits::db_manager::{HostBinding, UserKey};
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
 use crate::traits::log_trace::RustFileId;
 use crate::traits::misc_manager::MiscManagerRegistry;
@@ -107,14 +107,18 @@ pub fn set_active_user_id(
     input: &SetActiveUserInputFfi,
     _output: &mut SetActiveUserOutputFfi,
 ) -> Result<(), ErrorCode> {
-    let len = core::cmp::min(input.valid_user_ids.len as usize, input.valid_user_ids.data.len());
-    let valid_user_ids: Vec<i32> = input.valid_user_ids.data[..len].to_vec();
+    let len = core::cmp::min(input.valid_user_keys.len as usize, input.valid_user_keys.data.len());
+    let valid_user_keys: Vec<UserKey> = input.valid_user_keys.data[..len]
+        .iter()
+        .map(|entry| UserKey { user_id: entry.user_id, sub_profile_id: entry.sub_profile_id })
+        .collect();
     log_i!(
-        "set_active_user_id, active user:{}, valid user count:{}",
-        input.user_id,
-        valid_user_ids.len()
+        "set_active_user_id, active user:{}, subProfileId:{}, valid user count:{}",
+        input.user_key.user_id,
+        input.user_key.sub_profile_id,
+        valid_user_keys.len()
     );
-    let removed = HostBindingDbManagerRegistry::get_mut().remove_devices_by_invalid_users(&valid_user_ids);
+    let removed = HostBindingDbManagerRegistry::get_mut().remove_devices_by_invalid_users(&valid_user_keys);
     if !removed.is_empty() {
         log_i!("cleaned {} orphan host binding(s) on set active user", removed.len());
     }
@@ -137,7 +141,10 @@ pub fn host_get_persisted_status(
     output: &mut HostGetPersistedStatusOutputFfi,
 ) -> Result<(), ErrorCode> {
     let mut companion_status_list: Vec<PersistedCompanionStatusFfi> = Vec::new();
-    match companion_device_db_helper::get_companion_device_by_user_id(input.user_id, input.sub_profile_id) {
+    match companion_device_db_helper::get_companion_device_by_user_key(UserKey {
+        user_id: input.user_key.user_id,
+        sub_profile_id: input.user_key.sub_profile_id,
+    }) {
         Ok(device_list) => {
             for device_info in device_list {
                 let device_profile =
@@ -145,7 +152,10 @@ pub fn host_get_persisted_status(
 
                 let companion_status = PersistedCompanionStatusFfi {
                     template_id: device_info.template_id,
-                    host_user_id: device_info.user_info.user_id,
+                    host_user_key: UserKeyFfi {
+                        user_id: device_info.user_info.user_key.user_id,
+                        sub_profile_id: device_info.user_info.user_key.sub_profile_id,
+                    },
                     companion_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
                     device_type: device_profile.device_type,
                     is_valid: device_info.is_valid as u8,
@@ -164,7 +174,7 @@ pub fn host_get_persisted_status(
             Ok(())
         },
         Err(ErrorCode::NotFound) => {
-            log_i!("No devices found for user {}", input.user_id);
+            log_i!("No devices found for user {}", input.user_key.user_id);
             companion_status_vec_to_ffi(companion_status_list, &mut output.companion_status_list)?;
             Ok(())
         },
@@ -251,7 +261,7 @@ pub fn host_remove_companion(
     output: &mut HostRemoveCompanionOutputFfi,
 ) -> Result<(), ErrorCode> {
     let device_info = CompanionDeviceDbManagerRegistry::get().get_device(input.template_id)?;
-    let user_id = device_info.user_info.user_id;
+    let user_id = device_info.user_info.user_key.user_id;
     let companion_device_key = DeviceKeyFfi::try_from(device_info.device_key)?;
     CompanionDeviceDbManagerRegistry::get_mut().remove_device(input.template_id)?;
     output.user_id = user_id;
@@ -520,20 +530,23 @@ pub fn companion_get_persisted_status(
     output: &mut CompanionGetPersistedStatusOutputFfi,
 ) -> Result<(), ErrorCode> {
     let mut binding_status_list: Vec<PersistedHostBindingStatusFfi> = Vec::new();
-    let user_id = input.user_id;
-    let sub_profile_id = input.sub_profile_id;
+    let user_id = input.user_key.user_id;
+    let sub_profile_id = input.user_key.sub_profile_id;
     let device_info_list = HostBindingDbManagerRegistry::get().get_device_list(Box::new(
         move |device_info: &HostBinding| {
-            device_info.user_info.user_id == user_id && device_info.user_info.sub_profile_id == sub_profile_id
+            device_info.user_info.user_key.user_id == user_id
+                && device_info.user_info.user_key.sub_profile_id == sub_profile_id
         },
     ));
     for device_info in device_info_list {
         let binding_status = PersistedHostBindingStatusFfi {
             binding_id: device_info.binding_id,
-            companion_user_id: device_info.user_info.user_id,
+            companion_user_key: UserKeyFfi {
+                user_id: device_info.user_info.user_key.user_id,
+                sub_profile_id: device_info.user_info.user_key.sub_profile_id,
+            },
             host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
             is_token_valid: HostBindingDbManagerRegistry::get().is_device_token_valid(device_info.binding_id)?,
-            companion_sub_profile_id: device_info.user_info.sub_profile_id,
         };
         binding_status_list.push(binding_status);
     }

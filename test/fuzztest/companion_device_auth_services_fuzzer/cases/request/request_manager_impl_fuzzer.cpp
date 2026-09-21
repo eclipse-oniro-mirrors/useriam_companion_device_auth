@@ -47,7 +47,7 @@ static void FuzzStartHostTokenAuth(std::shared_ptr<RequestManagerImpl> &mgr,
     };
     AuthRequestParams params = { .scheduleId = scheduleId,
         .fwkMsg = fwkMsg,
-        .hostUserId = hostUserId,
+        .hostUserKey = UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
         .templateId = templateId,
         .authIntent = authIntent };
     auto request = factory->CreateHostTokenAuthRequest(params, std::move(callback));
@@ -90,7 +90,7 @@ static void FuzzStartHostDelegateAuth(std::shared_ptr<RequestManagerImpl> &mgr,
     };
     AuthRequestParams params = { .scheduleId = scheduleId,
         .fwkMsg = fwkMsg,
-        .hostUserId = hostUserId,
+        .hostUserKey = UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
         .templateId = templateId,
         .authIntent = authIntent };
     auto request = factory->CreateHostDelegateAuthRequest(params, std::move(callback));

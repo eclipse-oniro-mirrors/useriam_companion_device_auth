@@ -52,12 +52,12 @@ private:
 
     CompanionInitKeyNegotiationInput BuildCompanionInitKeyNegotiationInput(const LocalDeviceProfile &profile,
         const std::vector<uint8_t> &initKeyNegotiationRequest);
-    BeginAddHostBindingInput BuildBeginAddHostBindingInput(int32_t companionUserId,
+    BeginAddHostBindingInput BuildBeginAddHostBindingInput(const UserKey &companionUserKey,
         const std::vector<uint8_t> &addHostBindingRequest) const;
     void ProcessCompanionInitKeyNegotiationOutput(const CompanionInitKeyNegotiationOutput &output,
         std::vector<uint8_t> &initKeyNegotiationReply);
 
-    ResultCode BeginAddHostBinding(int32_t companionUserId, const std::vector<uint8_t> &extraInfo,
+    ResultCode BeginAddHostBinding(const UserKey &companionUserKey, const std::vector<uint8_t> &extraInfo,
         BeginAddHostBindingOutput &beginOutput);
 
     void HandleBeginAddHostBinding(const Attributes &attrInput, OnMessageReply &onMessageReply);

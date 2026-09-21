@@ -227,14 +227,14 @@ HWTEST_F(InteractionEventCollectorTest, EmptyExtraInfo_Initially, TestSize.Level
 HWTEST_F(InteractionEventCollectorTest, UpdateMethods_StoreValues, TestSize.Level0)
 {
     InteractionEventCollector collector("test");
-    collector.SetHostUserId(100);
+    collector.SetHostUserKey(UserKey { 100, INVALID_SUB_PROFILE_ID });
     collector.SetConnectionName("conn1");
     collector.SetScheduleId(0xABCD);
     collector.SetTemplateIdList({ 1, 2, 3 });
     collector.SetTriggerReason("test reason");
 
-    EXPECT_TRUE(collector.GetHostUserId().has_value());
-    EXPECT_EQ(collector.GetHostUserId().value(), 100);
+    EXPECT_TRUE(collector.GetHostUserKey().has_value());
+    EXPECT_EQ(collector.GetHostUserKey().value().userId, 100);
     EXPECT_TRUE(collector.GetConnectionName().has_value());
     EXPECT_EQ(collector.GetConnectionName().value(), "conn1");
     EXPECT_TRUE(collector.GetScheduleId().has_value());
@@ -316,7 +316,7 @@ HWTEST_F(InteractionEventCollectorTest, Report_SetsResultAndCallsAdapter, TestSi
     auto &mockAdapter = mockGuard.GetEventManagerAdapter();
 
     InteractionEventCollector collector("test_request");
-    collector.SetHostUserId(100);
+    collector.SetHostUserKey(UserKey { 100, INVALID_SUB_PROFILE_ID });
     collector.SetConnectionName("conn1");
 
     EXPECT_CALL(mockAdapter, ReportInteractionEvent(::testing::_)).Times(1);
@@ -332,7 +332,7 @@ HWTEST_F(InteractionEventCollectorTest, Report_SetsResultFail, TestSize.Level0)
     auto &mockAdapter = mockGuard.GetEventManagerAdapter();
 
     InteractionEventCollector collector("test_request");
-    collector.SetHostUserId(200);
+    collector.SetHostUserKey(UserKey { 200, INVALID_SUB_PROFILE_ID });
 
     EXPECT_CALL(mockAdapter, ReportInteractionEvent(::testing::_)).Times(1);
 
@@ -368,8 +368,8 @@ HWTEST_F(InteractionEventCollectorTest, Report_EmptyCollector, TestSize.Level0)
     collector.Report(ResultCode::SUCCESS);
 
     EXPECT_EQ(collector.GetResult(), ResultCode::SUCCESS);
-    EXPECT_FALSE(collector.GetHostUserId().has_value());
-    EXPECT_FALSE(collector.GetCompanionUserId().has_value());
+    EXPECT_FALSE(collector.GetHostUserKey().has_value());
+    EXPECT_FALSE(collector.GetCompanionUserKey().has_value());
     EXPECT_FALSE(collector.GetConnectionName().has_value());
     EXPECT_FALSE(collector.GetScheduleId().has_value());
 }
@@ -398,7 +398,7 @@ HWTEST_F(InteractionEventCollectorTest, Report_FirstTerminalReportWins_Subsequen
     auto &mockAdapter = mockGuard.GetEventManagerAdapter();
 
     InteractionEventCollector collector("test_request");
-    collector.SetHostUserId(100);
+    collector.SetHostUserKey(UserKey { 100, INVALID_SUB_PROFILE_ID });
     collector.SetScheduleId(0xABCD);
 
     // Idempotent Report: the FIRST terminal Report wins. The two later calls must neither
@@ -417,8 +417,8 @@ HWTEST_F(InteractionEventCollectorTest, Report_FirstTerminalReportWins_Subsequen
     EXPECT_EQ(collector.GetResult(), ResultCode::SUCCESS); // first result preserved
 
     // Previously set fields remain intact after the suppressed Reports.
-    EXPECT_TRUE(collector.GetHostUserId().has_value());
-    EXPECT_EQ(collector.GetHostUserId().value(), 100);
+    EXPECT_TRUE(collector.GetHostUserKey().has_value());
+    EXPECT_EQ(collector.GetHostUserKey().value().userId, 100);
     EXPECT_TRUE(collector.GetScheduleId().has_value());
     EXPECT_EQ(collector.GetScheduleId().value(), 0xABCD);
 }
@@ -429,8 +429,8 @@ HWTEST_F(InteractionEventCollectorTest, Report_WithAllFieldsSet, TestSize.Level0
     auto &mockAdapter = mockGuard.GetEventManagerAdapter();
 
     InteractionEventCollector collector("full_test");
-    collector.SetHostUserId(100);
-    collector.SetCompanionUserId(200);
+    collector.SetHostUserKey(UserKey { 100, INVALID_SUB_PROFILE_ID });
+    collector.SetCompanionUserKey(UserKey { 200, INVALID_SUB_PROFILE_ID });
     collector.SetConnectionName("conn_full");
     collector.SetScheduleId(0xBEEF);
     collector.SetTriggerReason("auto");
@@ -455,10 +455,10 @@ HWTEST_F(InteractionEventCollectorTest, Report_WithAllFieldsSet, TestSize.Level0
 
     EXPECT_EQ(collector.GetResult(), ResultCode::SUCCESS);
     // Verify all fields are still accessible after Report
-    EXPECT_TRUE(collector.GetHostUserId().has_value());
-    EXPECT_EQ(collector.GetHostUserId().value(), 100);
-    EXPECT_TRUE(collector.GetCompanionUserId().has_value());
-    EXPECT_EQ(collector.GetCompanionUserId().value(), 200);
+    EXPECT_TRUE(collector.GetHostUserKey().has_value());
+    EXPECT_EQ(collector.GetHostUserKey().value().userId, 100);
+    EXPECT_TRUE(collector.GetCompanionUserKey().has_value());
+    EXPECT_EQ(collector.GetCompanionUserKey().value().userId, 200);
     EXPECT_TRUE(collector.GetConnectionName().has_value());
     EXPECT_EQ(collector.GetConnectionName().value(), "conn_full");
     EXPECT_FALSE(collector.GetExtraInfo().empty());

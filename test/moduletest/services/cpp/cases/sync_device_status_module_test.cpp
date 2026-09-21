@@ -23,6 +23,7 @@
 #include "module_test_helpers.h"
 
 #include "companion_manager.h"
+#include "user_id_manager.h"
 #include "cross_device_comm_manager.h"
 #include "host_binding_manager.h"
 #include "iam_logger.h"
@@ -351,7 +352,7 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncPeerServiceNotAvailableStaysVisible
 // What this tests:
 //   Incoming SYNC_DEVICE_STATUS request → MessageRouter → CompanionSyncDeviceStatusHandler
 //     → DecodeSyncDeviceStatusRequest
-//     → GetUnlockedActiveUserId/Name → BuildSyncDeviceStatusReply
+//     → GetUnlockedActiveUserkey/Name → BuildSyncDeviceStatusReply
 //     → GetHostBindingStatus = nullopt → skip CompanionProcessCheck
 //     → EncodeSyncDeviceStatusReply → SendReply → FakeChannel
 //
@@ -487,7 +488,8 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckSuccessE2E_001, Te
     // 3. Verify companion was registered correctly
     DeviceKey queryKey = MakeDeviceKey(companionDeviceId, HOST_USER);
 
-    auto companionStatus = GetCompanionManager().GetCompanionStatus(HOST_USER, queryKey);
+    auto companionStatus =
+        GetCompanionManager().GetCompanionStatus(UserKey { HOST_USER, INVALID_SUB_PROFILE_ID }, queryKey);
     ASSERT_TRUE(companionStatus.has_value()) << "Companion should be registered";
     EXPECT_EQ(companionStatus->templateId, TEMPLATE_ID);
 
@@ -540,7 +542,8 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckFailureE2E_001, Te
     // 3. Verify companion was registered correctly despite HostEndCompanionCheck failure
     DeviceKey queryKey = MakeDeviceKey(companionDeviceId, HOST_USER);
 
-    auto companionStatus = GetCompanionManager().GetCompanionStatus(HOST_USER, queryKey);
+    auto companionStatus =
+        GetCompanionManager().GetCompanionStatus(UserKey { HOST_USER, INVALID_SUB_PROFILE_ID }, queryKey);
     ASSERT_TRUE(companionStatus.has_value()) << "Companion should be registered";
     EXPECT_EQ(companionStatus->templateId, TEMPLATE_ID);
 

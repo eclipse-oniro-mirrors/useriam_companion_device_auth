@@ -65,7 +65,8 @@ void CompanionStartDelegateAuthHandler::HandleRequest(const Attributes &request,
     };
     // clang-format off
     auto delegateAuthRequest = GetRequestFactory().CreateCompanionDelegateAuthRequest(connectionName,
-        startRequestOpt->companionUserId, startRequestOpt->hostDeviceKey, startRequestOpt->extraInfo,
+        startRequestOpt->companionUserKey,
+        startRequestOpt->hostDeviceKey, startRequestOpt->extraInfo,
         delegateAuthParam);
     // clang-format on
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), delegateAuthRequest != nullptr);

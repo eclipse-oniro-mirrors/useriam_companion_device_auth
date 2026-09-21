@@ -18,6 +18,7 @@
 #include "attributes.h"
 #include "common_message.h"
 #include "obtain_token_message.h"
+#include "service_common.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -40,10 +41,9 @@ protected:
 
 HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_001, TestSize.Level0)
 {
-    PreObtainTokenRequest request = { .hostUserId = hostUserId_,
+    PreObtainTokenRequest request = { .hostUserKey = UserKey { hostUserId_, 42 },
         .companionDeviceKey = companionDeviceKey_,
-        .extraInfo = extraInfo_,
-        .hostSubProfileId = 42 };
+        .extraInfo = extraInfo_ };
 
     Attributes attributes;
     EncodePreObtainTokenRequest(request, attributes);
@@ -56,20 +56,19 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_001, TestSize
     ASSERT_TRUE(result.has_value());
     PreObtainTokenRequest decoded = result.value();
 
-    EXPECT_EQ(decoded.hostUserId, request.hostUserId);
+    EXPECT_EQ(decoded.hostUserKey.userId, request.hostUserKey.userId);
     EXPECT_EQ(decoded.companionDeviceKey.idType, request.companionDeviceKey.idType);
     EXPECT_EQ(decoded.companionDeviceKey.deviceId, request.companionDeviceKey.deviceId);
     EXPECT_EQ(decoded.companionDeviceKey.deviceUserId, request.companionDeviceKey.deviceUserId);
     EXPECT_EQ(decoded.extraInfo, request.extraInfo);
-    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
+    EXPECT_EQ(decoded.hostUserKey.subProfileId, request.hostUserKey.subProfileId);
 }
 
 HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_002, TestSize.Level0)
 {
-    PreObtainTokenRequest request = { .hostUserId = hostUserId_,
+    PreObtainTokenRequest request = { .hostUserKey = UserKey { hostUserId_, 42 },
         .companionDeviceKey = companionDeviceKey_,
-        .extraInfo = {},
-        .hostSubProfileId = 42 };
+        .extraInfo = {} };
 
     Attributes attributes;
     EncodePreObtainTokenRequest(request, attributes);
@@ -82,9 +81,9 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodePreObtainTokenRequest_002, TestSize
     ASSERT_TRUE(result.has_value());
     PreObtainTokenRequest decoded = result.value();
 
-    EXPECT_EQ(decoded.hostUserId, request.hostUserId);
+    EXPECT_EQ(decoded.hostUserKey.userId, request.hostUserKey.userId);
     EXPECT_TRUE(decoded.extraInfo.empty());
-    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
+    EXPECT_EQ(decoded.hostUserKey.subProfileId, request.hostUserKey.subProfileId);
 }
 
 HWTEST_F(ObtainTokenMessageTest, DecodePreObtainTokenRequest_001, TestSize.Level0)
@@ -173,10 +172,9 @@ HWTEST_F(ObtainTokenMessageTest, DecodePreObtainTokenReply_003, TestSize.Level0)
 
 HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_001, TestSize.Level0)
 {
-    ObtainTokenRequest request = { .hostUserId = hostUserId_,
+    ObtainTokenRequest request = { .hostUserKey = UserKey { hostUserId_, 42 },
         .extraInfo = extraInfo_,
-        .companionDeviceKey = companionDeviceKey_,
-        .hostSubProfileId = 42 };
+        .companionDeviceKey = companionDeviceKey_ };
 
     Attributes attributes;
     EncodeObtainTokenRequest(request, attributes);
@@ -189,20 +187,19 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_001, TestSize.Le
     ASSERT_TRUE(result.has_value());
     ObtainTokenRequest decoded = result.value();
 
-    EXPECT_EQ(decoded.hostUserId, request.hostUserId);
+    EXPECT_EQ(decoded.hostUserKey.userId, request.hostUserKey.userId);
     EXPECT_EQ(decoded.extraInfo, request.extraInfo);
     EXPECT_EQ(decoded.companionDeviceKey.idType, request.companionDeviceKey.idType);
     EXPECT_EQ(decoded.companionDeviceKey.deviceId, request.companionDeviceKey.deviceId);
     EXPECT_EQ(decoded.companionDeviceKey.deviceUserId, request.companionDeviceKey.deviceUserId);
-    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
+    EXPECT_EQ(decoded.hostUserKey.subProfileId, request.hostUserKey.subProfileId);
 }
 
 HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_002, TestSize.Level0)
 {
-    ObtainTokenRequest request = { .hostUserId = hostUserId_,
+    ObtainTokenRequest request = { .hostUserKey = UserKey { hostUserId_, 42 },
         .extraInfo = {},
-        .companionDeviceKey = companionDeviceKey_,
-        .hostSubProfileId = 42 };
+        .companionDeviceKey = companionDeviceKey_ };
 
     Attributes attributes;
     EncodeObtainTokenRequest(request, attributes);
@@ -216,7 +213,7 @@ HWTEST_F(ObtainTokenMessageTest, EncodeDecodeObtainTokenRequest_002, TestSize.Le
     ObtainTokenRequest decoded = result.value();
 
     EXPECT_TRUE(decoded.extraInfo.empty());
-    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
+    EXPECT_EQ(decoded.hostUserKey.subProfileId, request.hostUserKey.subProfileId);
 }
 
 HWTEST_F(ObtainTokenMessageTest, DecodeObtainTokenRequest_001, TestSize.Level0)

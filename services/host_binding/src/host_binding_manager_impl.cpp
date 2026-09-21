@@ -25,7 +25,6 @@
 #include "adapter_manager.h"
 #include "host_binding.h"
 #include "singleton_manager.h"
-#include "sub_profile_id_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_HOST_BINDING_MANAGER_IMPL
@@ -50,18 +49,21 @@ bool HostBindingManagerImpl::Initialize()
     IAM_LOGI("begin");
 
     unlockedActiveUserIdSubscription_ =
-        GetUserIdManager().SubscribeUnlockedActiveUserId([weakSelf = weak_from_this()](UserId userId) {
+        GetUserIdManager().SubscribeUnlockedActiveUserKey([weakSelf = weak_from_this()](const UserKey &userKey) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->OnActiveUserIdChanged(userId);
+            self->OnActiveUserKeyChanged(userKey);
         });
     ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
 
-    subProfileChangedSubscription_ = GetSubProfileIdManager().SubscribeSubProfileChanged(
-        [weakSelf = weak_from_this()](UserId userId, int32_t subProfileId, SubProfileEventType eventType) {
+    subProfileChangedSubscription_ = GetUserIdManager().SubscribeSubProfileChanged(
+        [weakSelf = weak_from_this()](const UserKey &userKey, SubProfileEventType eventType) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->OnSubProfileChanged(userId, subProfileId, eventType);
+            if (eventType == SubProfileEventType::SWITCHED) {
+                self->OnActiveUserKeyChanged(userKey);
+                return;
+            }
         });
     ENSURE_OR_RETURN_VAL(subProfileChangedSubscription_ != nullptr, false);
 
@@ -69,40 +71,29 @@ bool HostBindingManagerImpl::Initialize()
     return true;
 }
 
-void HostBindingManagerImpl::OnActiveUserIdChanged(UserId userId)
+void HostBindingManagerImpl::OnActiveUserKeyChanged(const UserKey &activeUserKey)
 {
-    if (userId == activeUserId_) {
-        IAM_LOGI("active user id unchanged");
+    if (activeUserKey == activeUserKey_) {
+        IAM_LOGI("active user key unchanged");
         return;
     }
 
-    IAM_LOGI("active user id changed from %{public}d to %{public}d", activeUserId_, userId);
+    IAM_LOGI("active user key changed from userId %{public}d subProfileId %{public}d to userId %{public}d "
+             "subProfileId %{public}d",
+        activeUserKey_.userId, activeUserKey_.subProfileId, activeUserKey.userId, activeUserKey.subProfileId);
     bindings_.clear();
-    activeUserId_ = userId;
+    activeUserKey_ = activeUserKey;
 
-    if (activeUserId_ == INVALID_USER_ID) {
+    if (activeUserKey_.userId == INVALID_USER_ID) {
         return;
     }
 
-    ReloadBindingsForSubProfile(activeUserId_, GetSubProfileIdManager().GetForegroundSubProfileId(activeUserId_));
+    ReloadBindingsForSubProfile(activeUserKey_);
 }
 
-void HostBindingManagerImpl::OnSubProfileSwitched(UserId userId, int32_t subProfileId)
+void HostBindingManagerImpl::ReloadBindingsForSubProfile(const UserKey &activeUserKey)
 {
-    IAM_LOGI("sub profile switched, userId=%{public}d, subProfileId=%{public}d", userId, subProfileId);
-
-    if (userId != activeUserId_) {
-        IAM_LOGI("userId %{public}d mismatch with active user id %{public}d, skip", userId, activeUserId_);
-        return;
-    }
-
-    bindings_.clear();
-    ReloadBindingsForSubProfile(userId, subProfileId);
-}
-
-void HostBindingManagerImpl::ReloadBindingsForSubProfile(UserId userId, int32_t subProfileId)
-{
-    CompanionGetPersistedHostBindingStatusInput input { userId, subProfileId };
+    CompanionGetPersistedHostBindingStatusInput input { activeUserKey };
     CompanionGetPersistedHostBindingStatusOutput output {};
     ResultCode ret = GetSecurityAgent().CompanionGetPersistedHostBindingStatus(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -124,41 +115,8 @@ void HostBindingManagerImpl::ReloadBindingsForSubProfile(UserId userId, int32_t 
                 GET_MASKED_NUM_STRING(persistedStatus.bindingId).c_str(), ret);
         }
     }
-    IAM_LOGI("reloaded %{public}zu bindings for user %{public}d, subProfileId=%{public}d", bindings_.size(), userId,
-        subProfileId);
-}
-
-void HostBindingManagerImpl::OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType)
-{
-    IAM_LOGI("sub profile changed, userId=%{public}d, subProfileId=%{public}d, eventType=%{public}d", userId,
-        subProfileId, static_cast<int32_t>(eventType));
-
-    if (eventType == SubProfileEventType::SWITCHED) {
-        OnSubProfileSwitched(userId, subProfileId);
-        return;
-    }
-
-    if (eventType != SubProfileEventType::DELETED) {
-        IAM_LOGI("not a DELETED or SWITCHED event, ignore");
-        return;
-    }
-
-    CompanionGetPersistedHostBindingStatusInput input { userId, subProfileId };
-    CompanionGetPersistedHostBindingStatusOutput output {};
-    ResultCode ret = GetSecurityAgent().CompanionGetPersistedHostBindingStatus(input, output);
-    if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("failed to get persisted host binding status for deleted sub profile, ret=%{public}d", ret);
-        return;
-    }
-
-    for (const auto &status : output.hostBindingStatusList) {
-        IAM_LOGI("removing host binding for deleted sub profile, bindingId=%{public}s",
-            GET_MASKED_NUM_STRING(status.bindingId).c_str());
-        ret = RemoveHostBindingById(status.bindingId);
-        if (ret != ResultCode::SUCCESS) {
-            IAM_LOGE("failed to remove host binding for deleted sub profile, ret=%{public}d", ret);
-        }
-    }
+    IAM_LOGI("reloaded %{public}zu bindings for user %{public}d, subProfileId=%{public}d", bindings_.size(),
+        activeUserKey.userId, activeUserKey.subProfileId);
 }
 
 std::optional<HostBindingStatus> HostBindingManagerImpl::GetHostBindingStatus(BindingId bindingId)
@@ -172,13 +130,13 @@ std::optional<HostBindingStatus> HostBindingManagerImpl::GetHostBindingStatus(Bi
     return binding->GetStatus();
 }
 
-std::optional<HostBindingStatus> HostBindingManagerImpl::GetHostBindingStatus(UserId companionUserId,
+std::optional<HostBindingStatus> HostBindingManagerImpl::GetHostBindingStatus(const UserKey &companionUserKey,
     const DeviceKey &hostDeviceKey)
 {
-    auto binding = FindBindingByDeviceUser(companionUserId, hostDeviceKey);
+    auto binding = FindBindingByDeviceUser(companionUserKey, hostDeviceKey);
     if (binding == nullptr) {
         IAM_LOGI("binding not found for device-user combination, companionUserId %{public}d, hostDeviceKey %{public}s",
-            companionUserId, hostDeviceKey.GetDesc().c_str());
+            companionUserKey.userId, hostDeviceKey.GetDesc().c_str());
         return std::nullopt;
     }
 
@@ -205,7 +163,7 @@ ResultCode HostBindingManagerImpl::BeginAddHostBinding(const BeginAddHostBinding
 {
     IAM_LOGI("begin add host binding, request id 0x%{public}08X", in.requestId);
 
-    ENSURE_OR_RETURN_VAL(in.companionUserId == activeUserId_, ResultCode::GENERAL_ERROR);
+    ENSURE_OR_RETURN_VAL(in.companionUserKey == activeUserKey_, ResultCode::GENERAL_ERROR);
 
     CompanionBeginAddHostBindingInput input { .requestId = in.requestId,
         .secureProtocolId = in.secureProtocolId,
@@ -303,11 +261,11 @@ ResultCode HostBindingManagerImpl::EndAddHostBinding(const EndAddHostBindingInpu
     return ResultCode::SUCCESS;
 }
 
-ResultCode HostBindingManagerImpl::RemoveHostBinding(UserId companionUserId, const DeviceKey &hostDeviceKey)
+ResultCode HostBindingManagerImpl::RemoveHostBinding(const UserKey &companionUserKey, const DeviceKey &hostDeviceKey)
 {
-    auto persistedId = FindPersistedBindingId(companionUserId, hostDeviceKey);
+    auto persistedId = FindPersistedBindingId(companionUserKey, hostDeviceKey);
     if (!persistedId.has_value()) {
-        IAM_LOGE("binding not found for user %{public}d", companionUserId);
+        IAM_LOGE("binding not found for user %{public}d", companionUserKey.userId);
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -339,15 +297,15 @@ ResultCode HostBindingManagerImpl::RemoveHostBindingById(BindingId bindingId)
     return ResultCode::SUCCESS;
 }
 
-std::optional<BindingId> HostBindingManagerImpl::FindPersistedBindingId(UserId companionUserId,
+std::optional<BindingId> HostBindingManagerImpl::FindPersistedBindingId(const UserKey &companionUserKey,
     const DeviceKey &hostDeviceKey)
 {
-    CompanionGetPersistedHostBindingStatusInput input { companionUserId,
-        GetSubProfileIdManager().GetForegroundSubProfileId(companionUserId) };
+    CompanionGetPersistedHostBindingStatusInput input { companionUserKey };
     CompanionGetPersistedHostBindingStatusOutput output {};
     ResultCode ret = GetSecurityAgent().CompanionGetPersistedHostBindingStatus(input, output);
     if (ret != ResultCode::SUCCESS) {
-        IAM_LOGE("failed to get persisted host binding status, ret %{public}d, user %{public}d", ret, companionUserId);
+        IAM_LOGE("failed to get persisted host binding status, ret %{public}d, user %{public}d", ret,
+            companionUserKey.userId);
         return std::nullopt;
     }
 
@@ -369,13 +327,14 @@ std::shared_ptr<HostBinding> HostBindingManagerImpl::FindBindingById(BindingId b
     return (it != bindings_.end()) ? *it : nullptr;
 }
 
-std::shared_ptr<HostBinding> HostBindingManagerImpl::FindBindingByDeviceUser(UserId userId, const DeviceKey &deviceKey)
+std::shared_ptr<HostBinding> HostBindingManagerImpl::FindBindingByDeviceUser(const UserKey &userKey,
+    const DeviceKey &deviceKey)
 {
     auto it = std::find_if(bindings_.begin(), bindings_.end(),
-        [userId, &deviceKey](const std::shared_ptr<HostBinding> &binding) {
+        [userKey, &deviceKey](const std::shared_ptr<HostBinding> &binding) {
             ENSURE_OR_RETURN_VAL(binding != nullptr, false);
             const auto &key = binding->GetHostDeviceKey();
-            return binding->GetCompanionUserId() == userId && key == deviceKey;
+            return binding->GetCompanionUserId() == userKey.userId && key == deviceKey;
         });
 
     return (it != bindings_.end()) ? *it : nullptr;
@@ -392,7 +351,7 @@ ResultCode HostBindingManagerImpl::AddBindingInternal(const std::shared_ptr<Host
     ENSURE_OR_RETURN_VAL(binding != nullptr, ResultCode::GENERAL_ERROR);
 
     BindingId bindingId = binding->GetBindingId();
-    UserId userId = binding->GetCompanionUserId();
+    UserKey userKey { binding->GetCompanionUserId(), binding->GetCompanionSubProfileId() };
     const DeviceKey &deviceKey = binding->GetHostDeviceKey();
 
     if (FindBindingById(bindingId) != nullptr) {
@@ -400,9 +359,9 @@ ResultCode HostBindingManagerImpl::AddBindingInternal(const std::shared_ptr<Host
         return ResultCode::GENERAL_ERROR;
     }
 
-    auto duplicatedBinding = FindBindingByDeviceUser(userId, deviceKey);
+    auto duplicatedBinding = FindBindingByDeviceUser(userKey, deviceKey);
     if (duplicatedBinding != nullptr) {
-        IAM_LOGI("user %{public}d already bound, replace %{public}s -> %{public}s", userId,
+        IAM_LOGI("user %{public}d already bound, replace %{public}s -> %{public}s", userKey.userId,
             GET_MASKED_NUM_STRING(duplicatedBinding->GetBindingId()).c_str(), GET_MASKED_NUM_STRING(bindingId).c_str());
         RemoveBindingInternal(duplicatedBinding->GetBindingId());
     }
@@ -410,7 +369,7 @@ ResultCode HostBindingManagerImpl::AddBindingInternal(const std::shared_ptr<Host
     bindings_.push_back(binding);
 
     IAM_LOGI("added binding id %{public}s, hostDeviceKey %{public}s, companion user %{public}d",
-        GET_MASKED_NUM_STRING(bindingId).c_str(), deviceKey.GetDesc().c_str(), userId);
+        GET_MASKED_NUM_STRING(bindingId).c_str(), deviceKey.GetDesc().c_str(), userKey.userId);
     return ResultCode::SUCCESS;
 }
 
@@ -444,13 +403,16 @@ bool HostBindingManagerImpl::SetHostBindingTokenValid(BindingId bindingId, bool 
     return true;
 }
 
-void HostBindingManagerImpl::StartObtainTokenRequests(UserId userId, uint32_t lockStateAuthTypeValue,
+void HostBindingManagerImpl::StartObtainTokenRequests(const UserKey &activeUserKey, uint32_t lockStateAuthTypeValue,
     const std::vector<uint8_t> &fwkUnlockMsg)
 {
-    IAM_LOGI("start, userId=%{public}d", userId);
+    IAM_LOGI("start, userId=%{public}d, subProfileId=%{public}d", activeUserKey.userId, activeUserKey.subProfileId);
 
-    if (activeUserId_ != userId) {
-        IAM_LOGI("user id %{public}d mismatch with active user id %{public}d, skip", userId, activeUserId_);
+    if (activeUserKey_ != activeUserKey) {
+        IAM_LOGI("userKey mismatch: requested userId %{public}d subProfileId %{public}d, "
+                 "active userId %{public}d subProfileId %{public}d, skip",
+            activeUserKey.userId, activeUserKey.subProfileId, activeUserKey_.userId,
+            activeUserKey_.subProfileId);
         return;
     }
 
@@ -485,8 +447,8 @@ void HostBindingManagerImpl::RevokeTokens(UserId userId, const std::string &reas
 {
     IAM_LOGI("start, userId=%{public}d, reason=%{public}s", userId, reason.c_str());
 
-    if (activeUserId_ != userId) {
-        IAM_LOGI("user id %{public}d mismatch with active user id %{public}d, skip", userId, activeUserId_);
+    if (activeUserKey_.userId != userId) {
+        IAM_LOGI("user id %{public}d mismatch with active user id %{public}d, skip", userId, activeUserKey_.userId);
         return;
     }
 

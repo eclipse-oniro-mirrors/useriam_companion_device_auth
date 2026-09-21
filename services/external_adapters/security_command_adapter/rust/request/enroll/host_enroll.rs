@@ -29,7 +29,7 @@ use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
 use crate::traits::db_manager::{
     CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
-    DeviceKey, UserInfo,
+    DeviceKey, UserInfo, UserKey,
 };
 use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
@@ -407,9 +407,11 @@ impl HostDeviceEnrollRequest {
             template_id,
             device_key: self.enroll_param.companion_device_key.clone(),
             user_info: UserInfo {
-                user_id: self.enroll_param.host_device_key.user_id,
+                user_key: UserKey {
+                    user_id: self.enroll_param.host_device_key.user_id,
+                    sub_profile_id: self.enroll_param.host_device_key.sub_profile_id,
+                },
                 user_type: 0,
-                sub_profile_id: self.enroll_param.host_device_key.sub_profile_id,
             },
             added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             is_valid: true,

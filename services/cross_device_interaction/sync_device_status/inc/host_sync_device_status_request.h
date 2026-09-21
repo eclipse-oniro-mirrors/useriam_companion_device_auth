@@ -24,6 +24,7 @@
 #include "outbound_request.h"
 #include "security_agent.h"
 #include "sync_device_status_message.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -34,7 +35,7 @@ using SyncDeviceStatusCallback = std::function<void(ResultCode result, const Syn
 class HostSyncDeviceStatusRequest : public std::enable_shared_from_this<HostSyncDeviceStatusRequest>,
                                     public OutboundRequest {
 public:
-    HostSyncDeviceStatusRequest(int32_t hostUserId, const DeviceKey &companionDeviceKey,
+    HostSyncDeviceStatusRequest(const UserKey &hostUserKey, const DeviceKey &companionDeviceKey,
         const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback);
     ~HostSyncDeviceStatusRequest() override = default;
 
@@ -64,9 +65,9 @@ private:
     HostEndCompanionCheckInput BuildHostEndCompanionCheckInput(TemplateId templateId,
         const SyncDeviceStatusReply &reply) const;
     void CollectSyncDeviceStatusEventInfo(const LocalDeviceProfile &profile);
-    void UpdateCompanionUserIdAndSubProfileId(int32_t companionUserId, int32_t companionSubProfileId);
+    void UpdateCompanionUserIdAndSubProfileId(const UserKey &companionUserKey);
 
-    int32_t hostUserId_ = INVALID_USER_ID;
+    UserKey hostUserKey_;
     std::unique_ptr<ScopeGuard> cancelCompanionCheckGuard_;
     DeviceKey companionDeviceKey_;
     std::string companionDeviceName_;

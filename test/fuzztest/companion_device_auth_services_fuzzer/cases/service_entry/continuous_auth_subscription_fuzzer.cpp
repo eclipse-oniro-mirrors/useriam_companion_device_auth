@@ -100,7 +100,7 @@ static void FuzzHandleCompanionStatusChange(std::shared_ptr<ContinuousAuthSubscr
     for (uint8_t i = 0; i < count; ++i) {
         CompanionStatus status;
         status.templateId = fuzzData.ConsumeIntegral<uint64_t>();
-        status.hostUserId = fuzzData.ConsumeIntegral<int32_t>();
+        status.hostUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
         status.addedTime = fuzzData.ConsumeIntegral<uint64_t>();
         status.companionDeviceStatus.secureProtocolId =
             static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());

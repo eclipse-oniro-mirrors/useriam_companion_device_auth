@@ -26,9 +26,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-void InteractionEventCollector::SetHostUserId(UserId hostUserId)
+void InteractionEventCollector::SetHostUserKey(const UserKey &hostUserKey)
 {
-    hostUserId_ = hostUserId;
+    hostUserKey_ = hostUserKey;
 }
 
 void InteractionEventCollector::SetHostDeviceKey(const DeviceKey &hostDeviceKey)
@@ -36,9 +36,9 @@ void InteractionEventCollector::SetHostDeviceKey(const DeviceKey &hostDeviceKey)
     hostDeviceKey_ = hostDeviceKey;
 }
 
-void InteractionEventCollector::SetCompanionUserId(UserId companionUserId)
+void InteractionEventCollector::SetCompanionUserKey(const UserKey &companionUserKey)
 {
-    companionUserId_ = companionUserId;
+    companionUserKey_ = companionUserKey;
 }
 
 void InteractionEventCollector::SetCompanionDeviceKey(const DeviceKey &companionDeviceKey)

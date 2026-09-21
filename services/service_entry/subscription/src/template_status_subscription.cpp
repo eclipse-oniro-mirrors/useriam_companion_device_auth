@@ -125,7 +125,7 @@ void TemplateStatusSubscription::HandleCompanionStatusChange(const std::vector<C
     templateStatusList.reserve(companionStatusList.size());
 
     for (const auto &status : companionStatusList) {
-        if (status.hostUserId != userId_) {
+        if (status.hostUserKey.userId != userId_) {
             continue;
         }
         templateStatusList.push_back(ConvertToIpcTemplateStatus(status, subscribeTimeMs));

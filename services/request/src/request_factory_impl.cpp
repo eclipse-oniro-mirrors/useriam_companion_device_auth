@@ -78,25 +78,27 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostTokenAuthRequest(const A
     return request;
 }
 
-std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostRemoveHostBindingRequest(UserId hostUserId,
+std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostRemoveHostBindingRequest(const UserKey &hostUserKey,
     TemplateId templateId, const DeviceKey &companionDeviceKey)
 {
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(hostUserId, templateId, companionDeviceKey);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId,
+        companionDeviceKey);
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }
 
-std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostSyncDeviceStatusRequest(UserId hostUserId,
-    const DeviceKey &companionDeviceKey, const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback)
+std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostSyncDeviceStatusRequest(const UserKey &hostUserKey,
+    const DeviceKey &companionDeviceKey, const std::string &companionDeviceName,
+    SyncDeviceStatusCallback &&callback)
 {
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, companionDeviceKey, companionDeviceName,
-        std::move(callback));
+    auto request = std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, companionDeviceKey,
+        companionDeviceName, std::move(callback));
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }
 
-std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostIssueTokenRequest(UserId hostUserId, TemplateId templateId,
-    uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg)
+std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostIssueTokenRequest(const UserKey &hostUserKey,
+    TemplateId templateId, uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg)
 {
     auto companionStatus = GetCompanionManager().GetCompanionStatus(templateId);
     if (!companionStatus.has_value()) {
@@ -105,8 +107,8 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostIssueTokenRequest(UserId
     }
     const DeviceKey &companionDeviceKey = companionStatus->companionDeviceStatus.deviceKey;
 
-    auto request = std::make_shared<HostIssueTokenRequest>(hostUserId, templateId, lockStateAuthTypeValue, fwkUnlockMsg,
-        companionDeviceKey);
+    auto request = std::make_shared<HostIssueTokenRequest>(hostUserKey, templateId,
+        lockStateAuthTypeValue, fwkUnlockMsg, companionDeviceKey);
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }
@@ -162,19 +164,19 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionObtainTokenRequest(
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionDelegateAuthRequest(const std::string &connectionName,
-    UserId companionUserId, const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
-    const CompanionDelegateAuthParam &delegateAuthParam)
+    const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
+    const std::vector<uint8_t> &startDelegateAuthRequest, const CompanionDelegateAuthParam &delegateAuthParam)
 {
-    auto request = std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserId, hostDeviceKey,
+    auto request = std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserKey, hostDeviceKey,
         startDelegateAuthRequest, delegateAuthParam);
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }
 
-std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRevokeTokenRequest(UserId companionUserId,
-    int32_t companionSubProfileId, const DeviceKey &hostDeviceKey, const std::string &triggerReason)
+std::shared_ptr<IRequest> RequestFactoryImpl::CreateCompanionRevokeTokenRequest(const UserKey &companionUserKey,
+    const DeviceKey &hostDeviceKey, const std::string &triggerReason)
 {
-    auto request = std::make_shared<CompanionRevokeTokenRequest>(companionUserId, companionSubProfileId, hostDeviceKey,
+    auto request = std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
         triggerReason);
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;

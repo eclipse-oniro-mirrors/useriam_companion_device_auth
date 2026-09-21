@@ -146,15 +146,16 @@ void Companion::HandleDeviceOffline()
 
 void Companion::HandleAuthMaintainActiveChanged(const DeviceStatus &deviceStatus)
 {
-    bool oldActive = status_.companionDeviceStatus.isAuthMaintainActive;
-    if (oldActive == deviceStatus.isAuthMaintainActive) {
+    bool oldActive = status_.companionDeviceStatus.isAuthMaintainActive.value_or(true);
+    bool newActive = deviceStatus.isAuthMaintainActive.value_or(true);
+    if (oldActive == newActive) {
         return;
     }
 
     IAM_LOGI("%{public}s isAuthMaintainActive changed: %{public}d -> %{public}d", GetDescription(), oldActive,
-        deviceStatus.isAuthMaintainActive);
+        newActive);
 
-    if (deviceStatus.isAuthMaintainActive) {
+    if (newActive) {
         authMaintainInactiveTimer_.reset();
         return;
     }
@@ -239,7 +240,7 @@ void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl, bool f
         ENSURE_OR_RETURN_DESC(GetDescription(), tokenTimeoutSubscription_ != nullptr);
         IAM_LOGI("%{public}s registered token timeout timer", GetDescription());
 
-        if (forEnrollment && !status_.companionDeviceStatus.isAuthMaintainActive) {
+        if (forEnrollment && !status_.companionDeviceStatus.isAuthMaintainActive.value_or(true)) {
             IAM_LOGI("%{public}s device not worn when enroll, start %{public}u ms timer", GetDescription(),
                 TOKEN_ENROLL_NOT_WORN_TIMEOUT_MS);
             authMaintainInactiveTimer_ = RelativeTimer::GetInstance().Register(

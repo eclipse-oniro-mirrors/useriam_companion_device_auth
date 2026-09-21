@@ -176,7 +176,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_002, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
-    status.hostUserId = userId;
+    status.hostUserKey.userId = userId;
 
     std::vector<CompanionStatus> companionStatusList = { status };
 
@@ -204,7 +204,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_003, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
-    status.hostUserId = 200;
+    status.hostUserKey.userId = 200;
 
     std::vector<CompanionStatus> companionStatusList = { status };
 
@@ -233,7 +233,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_004, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
-    status.hostUserId = userId;
+    status.hostUserKey.userId = userId;
 
     if (storedCallback) {
         storedCallback({ status });
@@ -268,7 +268,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_005, TestSi
     ASSERT_NE(subscription, nullptr);
 
     CompanionStatus status {};
-    status.hostUserId = userId;
+    status.hostUserKey.userId = userId;
     status.tokenAuthAtl = TEST_ATL2;
 
     if (storedCallback) {

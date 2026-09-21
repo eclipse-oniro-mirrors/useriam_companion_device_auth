@@ -38,7 +38,7 @@ static void FuzzEncodePreIssueTokenRequest(FuzzedDataProvider &fuzzData)
     request.hostDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     request.hostDeviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     request.hostDeviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
-    request.companionUserId = fuzzData.ConsumeIntegral<int32_t>();
+    request.companionUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     request.extraInfo =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
 
@@ -78,7 +78,7 @@ static void FuzzEncodeIssueTokenRequest(FuzzedDataProvider &fuzzData)
     request.hostDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     request.hostDeviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     request.hostDeviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
-    request.companionUserId = fuzzData.ConsumeIntegral<int32_t>();
+    request.companionUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     request.extraInfo =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
 

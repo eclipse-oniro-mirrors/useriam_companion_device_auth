@@ -41,9 +41,10 @@ static void FuzzGetHostBindingStatusById(std::shared_ptr<HostBindingManagerImpl>
 static void FuzzGetHostBindingStatusByUserDevice(std::shared_ptr<HostBindingManagerImpl> &manager,
     FuzzedDataProvider &fuzzData)
 {
-    UserId companionUserId = fuzzData.ConsumeIntegral<UserId>();
+    UserKey companionUserKey { .userId = fuzzData.ConsumeIntegral<UserId>(),
+        .subProfileId = fuzzData.ConsumeIntegral<int32_t>() };
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto status = manager->GetHostBindingStatus(companionUserId, hostDeviceKey);
+    auto status = manager->GetHostBindingStatus(companionUserKey, hostDeviceKey);
     (void)status;
 }
 
@@ -51,7 +52,7 @@ static void FuzzBeginAddHostBinding(std::shared_ptr<HostBindingManagerImpl> &man
 {
     BeginAddHostBindingInput input = {};
     input.requestId = fuzzData.ConsumeIntegral<RequestId>();
-    input.companionUserId = fuzzData.ConsumeIntegral<UserId>();
+    input.companionUserKey = UserKey { fuzzData.ConsumeIntegral<UserId>(), fuzzData.ConsumeIntegral<int32_t>() };
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     uint32_t requestSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH);
     input.addHostBindingRequest = fuzzData.ConsumeBytes<uint8_t>(requestSize);
@@ -76,9 +77,10 @@ static void FuzzEndAddHostBinding(std::shared_ptr<HostBindingManagerImpl> &manag
 
 static void FuzzRemoveHostBinding(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
-    UserId companionUserId = fuzzData.ConsumeIntegral<UserId>();
+    UserKey companionUserKey { .userId = fuzzData.ConsumeIntegral<UserId>(),
+        .subProfileId = fuzzData.ConsumeIntegral<int32_t>() };
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    ResultCode result = manager->RemoveHostBinding(companionUserId, hostDeviceKey);
+    ResultCode result = manager->RemoveHostBinding(companionUserKey, hostDeviceKey);
     (void)result;
 }
 
@@ -92,11 +94,13 @@ static void FuzzSetHostBindingTokenValid(std::shared_ptr<HostBindingManagerImpl>
 
 static void FuzzStartObtainTokenRequests(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
-    UserId userId = fuzzData.ConsumeIntegral<UserId>();
+    UserKey activeUserKey;
+    activeUserKey.userId = fuzzData.ConsumeIntegral<UserId>();
+    activeUserKey.subProfileId = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t lockStateAuthTypeValue = fuzzData.ConsumeIntegral<uint32_t>();
     uint32_t msgSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_FWK_MESSAGE_LENGTH);
     std::vector<uint8_t> fwkUnlockMsg = fuzzData.ConsumeBytes<uint8_t>(msgSize);
-    manager->StartObtainTokenRequests(userId, lockStateAuthTypeValue, fwkUnlockMsg);
+    manager->StartObtainTokenRequests(activeUserKey, lockStateAuthTypeValue, fwkUnlockMsg);
 }
 
 static void FuzzRevokeTokens(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
@@ -118,10 +122,11 @@ static void FuzzInitialize(std::shared_ptr<HostBindingManagerImpl> &manager, Fuz
     manager->Initialize();
 }
 
-static void FuzzOnActiveUserIdChanged(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+static void FuzzOnActiveUserKeyChanged(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
-    manager->OnActiveUserIdChanged(userId);
+    int32_t subProfileId = fuzzData.ConsumeIntegral<int32_t>();
+    manager->OnActiveUserKeyChanged(UserKey{userId, subProfileId});
 }
 
 static void FuzzCreate(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
@@ -143,7 +148,7 @@ static void FuzzFindBindingByDeviceUser(std::shared_ptr<HostBindingManagerImpl> 
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto binding = manager->FindBindingByDeviceUser(userId, deviceKey);
+    auto binding = manager->FindBindingByDeviceUser(UserKey{userId, INVALID_SUB_PROFILE_ID}, deviceKey);
     (void)binding;
 }
 
@@ -162,15 +167,6 @@ static void FuzzRemoveBindingInternal(std::shared_ptr<HostBindingManagerImpl> &m
     manager->RemoveBindingInternal(bindingId);
 }
 
-static void FuzzOnSubProfileChanged(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
-{
-    UserId userId = fuzzData.ConsumeIntegral<UserId>();
-    int32_t subProfileId = fuzzData.ConsumeIntegral<int32_t>();
-    int32_t eventTypeRaw = fuzzData.ConsumeIntegralInRange<int32_t>(0, 1);
-    SubProfileEventType eventType = (eventTypeRaw == 0) ? SubProfileEventType::SWITCHED : SubProfileEventType::DELETED;
-    manager->OnSubProfileChanged(userId, subProfileId, eventType);
-}
-
 static const HostBindingManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzGetHostBindingStatusById,
     FuzzGetHostBindingStatusByUserDevice,
@@ -182,13 +178,12 @@ static const HostBindingManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzRevokeTokens,
     FuzzGetAllHostBindingStatus,
     FuzzInitialize,
-    FuzzOnActiveUserIdChanged,
+    FuzzOnActiveUserKeyChanged,
     FuzzCreate,
     FuzzFindBindingById,
     FuzzFindBindingByDeviceUser,
     FuzzAddBindingInternal,
     FuzzRemoveBindingInternal,
-    FuzzOnSubProfileChanged,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostBindingManagerImplFuzzFunction);

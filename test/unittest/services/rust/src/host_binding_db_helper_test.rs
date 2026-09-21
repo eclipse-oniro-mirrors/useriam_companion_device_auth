@@ -19,7 +19,7 @@ const FILE_ID: u16 = TestFileId::HostBindingDbHelperTest as u16;
 use crate::common::constants::*;
 use crate::jobs::host_binding_db_helper::{add_host_binding, update_host_binding_last_used_time};
 use crate::log_i;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, UserInfo};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
@@ -33,7 +33,7 @@ fn create_mock_host_binding(binding_id: i32) -> HostBinding {
             sub_profile_id: 0,
         },
         binding_id,
-        user_info: UserInfo { user_id: 100, user_type: 0, sub_profile_id: 0 },
+        user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         binding_time: 123456,
         last_used_time: 123456,
     }

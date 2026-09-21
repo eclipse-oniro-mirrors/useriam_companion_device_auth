@@ -39,14 +39,14 @@ HostTokenAuthRequest::HostTokenAuthRequest(const AuthRequestParams &params, cons
     FwkResultCallback &&requestCallback)
     : OutboundRequest(RequestType::HOST_TOKEN_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(params.fwkMsg),
-      hostUserId_(params.hostUserId),
+      hostUserKey_{params.hostUserKey},
       requestCallback_(std::move(requestCallback))
 {
     templateId_ = params.templateId;
     SetPeerDeviceKey(companionDeviceKey);
     desc_.SetTemplateId(params.templateId);
     desc_.SetDeviceId(companionDeviceKey);
-    eventCollector_.SetHostUserId(params.hostUserId);
+    eventCollector_.SetHostUserKey(hostUserKey_);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
     eventCollector_.SetScheduleId(params.scheduleId);
     eventCollector_.SetTriggerReason("authIntent " + std::to_string(params.authIntent));
@@ -87,7 +87,6 @@ bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
 
-    companionUserId_ = companionStatus->companionDeviceStatus.deviceKey.deviceUserId;
     auto secureProtocolOpt = GetCrossDeviceCommManager().HostGetSecureProtocolId(companionDeviceKey);
     if (!secureProtocolOpt.has_value()) {
         return false;
@@ -148,13 +147,12 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
     hostDeviceKey = localDeviceKey.value();
-    hostDeviceKey.deviceUserId = hostUserId_;
-    hostDeviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_);
+    hostDeviceKey.deviceUserId = hostUserKey_.userId;
+    hostDeviceKey.deviceSubProfileId = hostUserKey_.subProfileId;
     auto peerDeviceKey = GetPeerDeviceKey();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
     TokenAuthRequest requestMsg = { .hostDeviceKey = hostDeviceKey,
-        .companionUserId = companionUserId_,
-        .companionSubProfileId = peerDeviceKey->deviceSubProfileId,
+        .companionUserKey = UserKey { peerDeviceKey->deviceUserId, peerDeviceKey->deviceSubProfileId },
         .extraInfo = tokenAuthRequest };
     Attributes request = {};
     EncodeTokenAuthRequest(requestMsg, request);
@@ -340,7 +338,7 @@ bool HostTokenAuthRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &de
         IAM_LOGE("%{public}s failed to get device status", GetDescription());
         return false;
     }
-    if (!deviceStatus->isAuthMaintainActive && deviceStatus->deviceType != DeviceType::CAR) {
+    if (!deviceStatus->isAuthMaintainActive.value_or(true) && deviceStatus->deviceType != DeviceType::CAR) {
         IAM_LOGE("%{public}s device not in auth maintain active state", GetDescription());
         return false;
     }
@@ -369,7 +367,7 @@ void HostTokenAuthRequest::HandlePeerDeviceStatusChanged(const std::vector<Devic
         if (status.deviceKey != *peerDeviceKey) {
             continue;
         }
-        if (!status.isAuthMaintainActive) {
+        if (!status.isAuthMaintainActive.value_or(true)) {
             IAM_LOGE("%{public}s companion device left auth maintain state", GetDescription());
             CompleteWithError(ResultCode::GENERAL_ERROR);
         }

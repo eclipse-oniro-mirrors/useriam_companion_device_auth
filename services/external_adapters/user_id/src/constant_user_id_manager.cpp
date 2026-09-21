@@ -73,14 +73,22 @@ public:
         return std::make_unique<Subscription>(nullptr);
     }
 
-    int32_t GetUnlockedActiveUserId() const override
+    UserKey GetUnlockedActiveUserkey() const override
     {
-        return DEFAULT_USER_ID;
+        return UserKey { DEFAULT_USER_ID, INVALID_SUB_PROFILE_ID };
     }
 
-    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override
+    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) override
     {
-        return SubscribeActiveUserId(std::move(callback));
+        ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
+
+        TaskRunnerManager::GetInstance().PostTaskOnResident([cb = std::move(callback)]() mutable {
+            if (cb) {
+                cb(UserKey { DEFAULT_USER_ID, INVALID_SUB_PROFILE_ID });
+            }
+        });
+
+        return std::make_unique<Subscription>(nullptr);
     }
 
     bool IsUserIdValid(int32_t userId) override
@@ -88,9 +96,37 @@ public:
         return userId == DEFAULT_USER_ID;
     }
 
-    std::optional<std::vector<UserId>> GetAllValidUserIds() const override
+    std::optional<std::vector<UserKey>> GetAllValidUserKeys() const override
     {
-        return std::vector<UserId> { DEFAULT_USER_ID };
+        return std::vector<UserKey> { { DEFAULT_USER_ID, INVALID_SUB_PROFILE_ID } };
+    }
+
+    int32_t GetForegroundSubProfileId(UserId userId) const override
+    {
+        return INVALID_SUB_PROFILE_ID;
+    }
+
+    bool IsForegroundSubProfileId(const UserKey &userKey) const override
+    {
+        (void)userKey;
+        return true;
+    }
+
+    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
+    {
+        (void)userId;
+        return std::vector<int32_t> { INVALID_SUB_PROFILE_ID };
+    }
+
+    std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
+    {
+        return std::nullopt;
+    }
+
+    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
+    {
+        (void)callback;
+        return std::make_unique<Subscription>(nullptr);
     }
 };
 

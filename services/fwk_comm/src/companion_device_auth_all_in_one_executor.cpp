@@ -37,6 +37,7 @@
 #include "host_remove_host_binding_request.h"
 #include "host_token_auth_request.h"
 #include "pending_issue_token_manager.h"
+#include "pending_obtain_token_manager.h"
 #include "request_factory.h"
 #include "request_manager.h"
 #include "security_agent.h"
@@ -78,6 +79,8 @@ public:
         IAM_LOGI("start");
         pendingIssueTokenManager_ = std::make_shared<PendingIssueTokenManager>();
         ENSURE_OR_RETURN(pendingIssueTokenManager_ != nullptr);
+        pendingObtainTokenManager_ = std::make_shared<PendingObtainTokenManager>();
+        ENSURE_OR_RETURN(pendingObtainTokenManager_ != nullptr);
     }
 
     ~CompanionDeviceAuthAllInOneExecutorInner() = default;
@@ -102,8 +105,11 @@ public:
 
 private:
     std::optional<FreezeCommand> DecodeFreezeCommand(const std::vector<uint8_t> &dataTlv);
+    void HandleFreeze(const FreezeCommand &freezeCommand);
+    void HandleUnfreeze(const FreezeCommand &freezeCommand, const std::vector<uint8_t> &extraInfo);
 
     std::shared_ptr<PendingIssueTokenManager> pendingIssueTokenManager_;
+    std::shared_ptr<PendingObtainTokenManager> pendingObtainTokenManager_;
     std::shared_ptr<BlockedStateSyncScheduler> blockedSyncScheduler_;
 };
 
@@ -226,7 +232,9 @@ FwkResultCode Inner::Authenticate(uint64_t scheduleId, const FwkAuthenticatePara
         (*callback)(result, extraInfo);
     };
 
-    HostMixAuthParams params = { scheduleId, fwkParam.extraInfo, fwkParam.userId, fwkParam.templateIdList,
+    HostMixAuthParams params = { scheduleId, fwkParam.extraInfo,
+        UserKey { fwkParam.userId, GetUserIdManager().GetForegroundSubProfileId(fwkParam.userId) },
+        fwkParam.templateIdList,
         cdaParam.tokenId, cdaParam.businessId, fwkParam.authIntent, fwkParam.authScene, fwkParam.title,
         cdaParam.delegateAuthParam };
     auto request = GetRequestFactory().CreateHostMixAuthRequest(params, std::move(requestCallback));
@@ -420,28 +428,46 @@ void Inner::HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vec
         commandId, freezeCommand.lockStateAuthTypeValue, freezeCommand.templateIdList.size(), freezeCommand.userId);
 
     ENSURE_OR_RETURN(pendingIssueTokenManager_ != nullptr);
+    ENSURE_OR_RETURN(pendingObtainTokenManager_ != nullptr);
     if (commandId == FwkPropertyMode::PROPERTY_MODE_FREEZE && lockStateAuthType == AuthType::PIN) {
-        if (GetUserIdManager().GetActiveUserId() == freezeCommand.userId) {
-            GetMiscManager().SetCompanionAuthBlocked(true);
-        }
-        pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
-        for (const auto &templateId : freezeCommand.templateIdList) {
-            GetCompanionManager().SetCompanionTokenAuthAtl(templateId, std::nullopt);
-        }
-        GetHostBindingManager().RevokeTokens(freezeCommand.userId);
+        HandleFreeze(freezeCommand);
     } else if (commandId == FwkPropertyMode::PROPERTY_MODE_UNFREEZE) {
-        if (GetUserIdManager().GetUnlockedActiveUserId() == freezeCommand.userId) {
-            GetMiscManager().SetCompanionAuthBlocked(false);
-            pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
-            GetCompanionManager().StartIssueTokenRequests(freezeCommand.templateIdList,
+        HandleUnfreeze(freezeCommand, extraInfo);
+    }
+}
+
+void Inner::HandleFreeze(const FreezeCommand &freezeCommand)
+{
+    if (GetUserIdManager().GetActiveUserId() == freezeCommand.userId) {
+        GetMiscManager().SetCompanionAuthBlocked(true);
+    }
+    pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
+    pendingObtainTokenManager_->CancelByUserId(freezeCommand.userId);
+    for (const auto &templateId : freezeCommand.templateIdList) {
+        GetCompanionManager().SetCompanionTokenAuthAtl(templateId, std::nullopt);
+    }
+    GetHostBindingManager().RevokeTokens(freezeCommand.userId);
+}
+
+void Inner::HandleUnfreeze(const FreezeCommand &freezeCommand, const std::vector<uint8_t> &extraInfo)
+{
+    auto unlockedActiveUserKey = GetUserIdManager().GetUnlockedActiveUserkey();
+    if (unlockedActiveUserKey.userId == freezeCommand.userId) {
+        GetMiscManager().SetCompanionAuthBlocked(false);
+        pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
+        GetCompanionManager().StartIssueTokenRequests(freezeCommand.templateIdList,
+            freezeCommand.lockStateAuthTypeValue, extraInfo);
+        if (GetCrossDeviceCommManager().IsAuthMaintainActive()) {
+            GetHostBindingManager().StartObtainTokenRequests(unlockedActiveUserKey,
                 freezeCommand.lockStateAuthTypeValue, extraInfo);
-            GetHostBindingManager().StartObtainTokenRequests(freezeCommand.userId, freezeCommand.lockStateAuthTypeValue,
-                extraInfo);
         } else {
-            IAM_LOGI("userId %{public}d mismatch active=%{public}d, deferring", freezeCommand.userId,
-                GetUserIdManager().GetUnlockedActiveUserId());
-            pendingIssueTokenManager_->Defer(freezeCommand, extraInfo);
+            IAM_LOGI("auth maintain inactive, deferring obtain token for userId=%{public}d", freezeCommand.userId);
+            pendingObtainTokenManager_->Defer(freezeCommand.userId, freezeCommand.lockStateAuthTypeValue, extraInfo);
         }
+    } else {
+        IAM_LOGI("userId %{public}d mismatch active=%{public}d, deferring", freezeCommand.userId,
+            unlockedActiveUserKey.userId);
+        pendingIssueTokenManager_->Defer(freezeCommand, extraInfo);
     }
 }
 

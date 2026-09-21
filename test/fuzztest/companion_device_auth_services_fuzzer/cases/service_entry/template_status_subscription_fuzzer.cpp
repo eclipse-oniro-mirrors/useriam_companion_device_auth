@@ -62,7 +62,7 @@ static void FuzzHandleCompanionStatusChange(std::shared_ptr<TemplateStatusSubscr
     for (uint8_t i = 0; i < count; ++i) {
         CompanionStatus status;
         status.templateId = fuzzData.ConsumeIntegral<TemplateId>();
-        status.hostUserId = fuzzData.ConsumeIntegral<UserId>();
+        status.hostUserKey.userId = fuzzData.ConsumeIntegral<UserId>();
         status.companionDeviceStatus.deviceKey.idType =
             static_cast<DeviceIdType>(fuzzData.ConsumeIntegralInRange<uint8_t>(leftRange, rightRange));
         status.companionDeviceStatus.deviceKey.deviceId = GenerateFuzzString(fuzzData, testVal64);

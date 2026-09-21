@@ -143,7 +143,7 @@ void FuzzHostDelegateAuthRequest(FuzzedDataProvider &fuzzData)
 
     AuthRequestParams params = { .scheduleId = scheduleId,
         .fwkMsg = fwkMsg,
-        .hostUserId = hostUserId,
+        .hostUserKey = UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
         .templateId = templateId,
         .authIntent = authIntent };
     auto request = std::make_shared<HostDelegateAuthRequest>(params, companionDeviceKey, std::move(callback));

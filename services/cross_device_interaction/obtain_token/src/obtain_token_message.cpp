@@ -30,8 +30,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 void EncodePreObtainTokenRequest(const PreObtainTokenRequest &request, Attributes &attributes)
 {
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostSubProfileId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserKey.userId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostUserKey.subProfileId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID,
         request.companionDeviceKey.deviceSubProfileId);
@@ -41,9 +41,9 @@ void EncodePreObtainTokenRequest(const PreObtainTokenRequest &request, Attribute
 std::optional<PreObtainTokenRequest> DecodePreObtainTokenRequest(const Attributes &attributes)
 {
     PreObtainTokenRequest request {};
-    bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
+    bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserKey.userId);
     ENSURE_OR_RETURN_VAL(getHostUserIdRet, std::nullopt);
-    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostSubProfileId);
+    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostUserKey.subProfileId);
     auto companionDeviceKeyOpt = DecodeCompanionDeviceKey(attributes);
     ENSURE_OR_RETURN_VAL(companionDeviceKeyOpt.has_value(), std::nullopt);
     request.companionDeviceKey = *companionDeviceKeyOpt;
@@ -73,8 +73,8 @@ std::optional<PreObtainTokenReply> DecodePreObtainTokenReply(const Attributes &a
 
 void EncodeObtainTokenRequest(const ObtainTokenRequest &request, Attributes &attributes)
 {
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostSubProfileId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserKey.userId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostUserKey.subProfileId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID,
         request.companionDeviceKey.deviceSubProfileId);
@@ -85,9 +85,9 @@ void EncodeObtainTokenRequest(const ObtainTokenRequest &request, Attributes &att
 std::optional<ObtainTokenRequest> DecodeObtainTokenRequest(const Attributes &attributes)
 {
     ObtainTokenRequest request {};
-    bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
+    bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserKey.userId);
     ENSURE_OR_RETURN_VAL(getHostUserIdRet, std::nullopt);
-    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostSubProfileId);
+    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostUserKey.subProfileId);
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
     auto companionDeviceKeyOpt = DecodeCompanionDeviceKey(attributes);

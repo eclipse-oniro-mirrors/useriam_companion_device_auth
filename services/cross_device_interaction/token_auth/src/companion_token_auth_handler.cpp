@@ -65,12 +65,13 @@ void CompanionTokenAuthHandler::HandleRequest(const Attributes &request, Attribu
     }
     const auto &tokenRequest = *tokenRequestOpt;
 
-    if (!CheckLocalDeviceStatus(connectionName, tokenRequest.companionUserId, desc)) {
+    if (!CheckLocalDeviceStatus(connectionName, tokenRequest.companionUserKey.userId, desc)) {
         return;
     }
 
-    auto hostBindingStatus =
-        GetHostBindingManager().GetHostBindingStatus(tokenRequest.companionUserId, tokenRequest.hostDeviceKey);
+    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(
+        tokenRequest.companionUserKey,
+        tokenRequest.hostDeviceKey);
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), hostBindingStatus.has_value());
     desc.SetBindingId(hostBindingStatus->bindingId);
     eventCollector.SetBindingId(hostBindingStatus->bindingId);
@@ -101,10 +102,10 @@ bool CompanionTokenAuthHandler::CheckLocalDeviceStatus(const std::string &connec
         return false;
     }
     ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(), companionUserId == localDeviceKey->deviceUserId, false);
-    ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(),
-        GetSubProfileIdManager().IsForegroundSubProfileId(localDeviceKey->deviceUserId,
-            localDeviceKey->deviceSubProfileId),
-        false);
+    bool isForegroundSubProfileId =
+        GetUserIdManager().IsForegroundSubProfileId(
+            UserKey { localDeviceKey->deviceUserId, localDeviceKey->deviceSubProfileId });
+    ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(), isForegroundSubProfileId, false);
 
     return true;
 }

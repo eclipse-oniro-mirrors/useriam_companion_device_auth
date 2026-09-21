@@ -48,8 +48,7 @@ typedef struct HostRegisterFinishInputFfi {
 typedef struct PlaceHolderFfi HostRegisterFinishOutputFfi;
 
 typedef struct HostGetPersistedStatusInputFfi {
-    int32_t userId;
-    int32_t subProfileId;
+    struct UserKeyFfi userKey;
 } HostGetPersistedStatusInputFfi;
 
 typedef struct HostGetPersistedStatusOutputFfi {
@@ -57,8 +56,8 @@ typedef struct HostGetPersistedStatusOutputFfi {
 } HostGetPersistedStatusOutputFfi;
 
 typedef struct SetActiveUserInputFfi {
-    int32_t userId;
-    struct Int32Array64Ffi validUserIds;
+    struct UserKeyFfi userKey;
+    struct UserKeyArray64Ffi validUserIds;
 } SetActiveUserInputFfi;
 
 typedef struct PlaceHolderFfi SetActiveUserOutputFfi;
@@ -315,8 +314,7 @@ typedef struct HostRefreshTokenOutputFfi {
 } HostRefreshTokenOutputFfi;
 
 typedef struct CompanionGetPersistedStatusInputFfi {
-    int32_t userId;
-    int32_t subProfileId;
+    struct UserKeyFfi userKey;
 } CompanionGetPersistedStatusInputFfi;
 
 typedef struct CompanionGetPersistedStatusOutputFfi {

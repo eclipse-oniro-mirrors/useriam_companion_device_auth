@@ -54,14 +54,15 @@ public:
         return std::make_unique<Subscription>([this]() { callbacks_.clear(); });
     }
 
-    UserId GetUnlockedActiveUserId() const override
+    UserKey GetUnlockedActiveUserkey() const override
     {
-        return GetActiveUserId();
+        return UserKey { GetActiveUserId(), INVALID_SUB_PROFILE_ID };
     }
 
-    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override
+    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) override
     {
-        return SubscribeActiveUserId(std::move(callback));
+        unlockedCallbacks_.push_back(std::move(callback));
+        return std::make_unique<Subscription>([this]() { unlockedCallbacks_.clear(); });
     }
 
     bool IsUserIdValid(int32_t userId) override
@@ -69,9 +70,44 @@ public:
         return userId > 0;
     }
 
-    std::optional<std::vector<UserId>> GetAllValidUserIds() const override
+    std::optional<std::vector<UserKey>> GetAllValidUserKeys() const override
     {
-        return std::vector<UserId> { userId_ };
+        return std::vector<UserKey> { { userId_, INVALID_SUB_PROFILE_ID } };
+    }
+
+    // Sub profile ID management
+    // The production ConstantSubProfileIdManager always returns INVALID_SUB_PROFILE_ID / false,
+    // which causes companion-side IsForegroundSubProfileId checks to reject all requests.
+    // This fake treats every sub profile as foreground, so companion-side handlers proceed
+    // through the normal code path.
+    int32_t GetForegroundSubProfileId(UserId userId) const override
+    {
+        (void)userId;
+        return DEFAULT_SUB_PROFILE_ID;
+    }
+
+    bool IsForegroundSubProfileId(const UserKey &userKey) const override
+    {
+        (void)userKey;
+        return true;
+    }
+
+    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
+    {
+        (void)userId;
+        return std::vector<int32_t> { INVALID_SUB_PROFILE_ID };
+    }
+
+    std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
+    {
+        (void)userKey;
+        return "test-sub-profile";
+    }
+
+    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
+    {
+        (void)callback;
+        return std::make_unique<Subscription>([]() {});
     }
 
     // Test backdoor: set user and auto-notify all subscribers
@@ -83,13 +119,19 @@ public:
         for (auto &cb : callbacks_) {
             cb(userId);
         }
+        for (auto &cb : unlockedCallbacks_) {
+            cb(UserKey { userId, INVALID_SUB_PROFILE_ID });
+        }
     }
 
 private:
+    static constexpr int32_t DEFAULT_SUB_PROFILE_ID = 0;
+
     UserId userId_ = 0;
     std::string userName_;
     std::string userTypeName_ { "normal" };
     std::vector<ActiveUserIdCallback> callbacks_;
+    std::vector<UnlockedActiveUserKeyCallback> unlockedCallbacks_;
 };
 
 } // namespace CompanionDeviceAuth

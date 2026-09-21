@@ -18,6 +18,7 @@
 #include "attributes.h"
 #include "common_message.h"
 #include "revoke_token_message.h"
+#include "service_common.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -38,9 +39,8 @@ protected:
 
 HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenRequest_001, TestSize.Level0)
 {
-    RevokeTokenRequest request = { .hostUserId = hostUserId_,
-        .companionDeviceKey = companionDeviceKey_,
-        .hostSubProfileId = 42 };
+    RevokeTokenRequest request = { .hostUserKey = UserKey { hostUserId_, 42 },
+        .companionDeviceKey = companionDeviceKey_ };
 
     Attributes attributes;
     EncodeRevokeTokenRequest(request, attributes);
@@ -53,11 +53,11 @@ HWTEST_F(RevokeTokenMessageTest, EncodeDecodeRevokeTokenRequest_001, TestSize.Le
     ASSERT_TRUE(result.has_value());
     RevokeTokenRequest decoded = result.value();
 
-    EXPECT_EQ(decoded.hostUserId, request.hostUserId);
+    EXPECT_EQ(decoded.hostUserKey.userId, request.hostUserKey.userId);
     EXPECT_EQ(decoded.companionDeviceKey.idType, request.companionDeviceKey.idType);
     EXPECT_EQ(decoded.companionDeviceKey.deviceId, request.companionDeviceKey.deviceId);
     EXPECT_EQ(decoded.companionDeviceKey.deviceUserId, request.companionDeviceKey.deviceUserId);
-    EXPECT_EQ(decoded.hostSubProfileId, request.hostSubProfileId);
+    EXPECT_EQ(decoded.hostUserKey.subProfileId, request.hostUserKey.subProfileId);
 }
 
 HWTEST_F(RevokeTokenMessageTest, DecodeRevokeTokenRequest_001, TestSize.Level0)

@@ -193,7 +193,7 @@ void HostAddCompanionRequest::OnConnected()
     ENSURE_OR_RETURN_DESC(GetDescription(), secureProtocolIdOpt.has_value());
     secureProtocolId_ = *secureProtocolIdOpt;
 
-    eventCollector_.SetHostUserId(hostDeviceKey_.deviceUserId);
+    eventCollector_.SetHostUserKey(UserKey { hostDeviceKey_.deviceUserId, hostDeviceKey_.deviceSubProfileId });
     eventCollector_.SetCompanionDeviceKey(*peerDeviceKeyOpt);
     eventCollector_.SetConnectionName(GetConnectionName());
     eventCollector_.SetScheduleId(GetScheduleId());
@@ -297,8 +297,8 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     bool ret = BeginAddCompanion(initReply, addHostBindingRequest, errorGuard);
     ENSURE_OR_RETURN_DESC(GetDescription(), ret);
 
-    BeginAddHostBindingRequest beginRequest = { .companionUserId = companionDeviceKey->deviceUserId,
-        .companionSubProfileId = companionDeviceKey->deviceSubProfileId,
+    BeginAddHostBindingRequest beginRequest = { .companionUserKey = UserKey { companionDeviceKey->deviceUserId,
+        companionDeviceKey->deviceSubProfileId },
         .extraInfo = std::move(addHostBindingRequest) };
     Attributes request = {};
     EncodeBeginAddHostBindingRequest(beginRequest, request);
@@ -397,7 +397,7 @@ std::optional<PersistedCompanionStatus> HostAddCompanionRequest::BuildPersistedC
     }
 
     PersistedCompanionStatus companionStatus = {};
-    companionStatus.hostUserId = hostDeviceKey_.deviceUserId;
+    companionStatus.hostUserKey.userId = hostDeviceKey_.deviceUserId;
     companionStatus.companionDeviceKey = *companionDeviceKey;
     companionStatus.deviceModelInfo = deviceStatus.deviceModelInfo;
     companionStatus.deviceUserName = deviceStatus.deviceUserName;
@@ -484,8 +484,7 @@ bool HostAddCompanionRequest::SendEndAddHostBindingRequest(ResultCode result)
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionDeviceKey.has_value(), false);
 
     EndAddHostBindingRequest requestMsg = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionDeviceKey->deviceUserId,
-        .companionSubProfileId = companionDeviceKey->deviceSubProfileId,
+        .companionUserKey = UserKey { companionDeviceKey->deviceUserId, companionDeviceKey->deviceSubProfileId },
         .result = result,
         .extraInfo = std::move(pendingTokenData_) }; // Contains encrypted token data (non-empty only when successful)
     pendingTokenData_.clear();

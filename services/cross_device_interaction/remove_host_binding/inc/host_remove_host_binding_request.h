@@ -20,6 +20,7 @@
 
 #include "outbound_request.h"
 #include "service_common.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -27,7 +28,8 @@ namespace CompanionDeviceAuth {
 class HostRemoveHostBindingRequest : public std::enable_shared_from_this<HostRemoveHostBindingRequest>,
                                      public OutboundRequest {
 public:
-    HostRemoveHostBindingRequest(UserId hostUserId, TemplateId templateId, const DeviceKey &companionDeviceKey);
+    HostRemoveHostBindingRequest(const UserKey &hostUserKey, TemplateId templateId,
+        const DeviceKey &companionDeviceKey);
     ~HostRemoveHostBindingRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;
@@ -45,7 +47,7 @@ private:
     void HandleRemoveHostBindingReply(const Attributes &message);
     void CompleteWithSuccess();
 
-    UserId hostUserId_ = INVALID_USER_ID;
+    UserKey hostUserKey_;
     DeviceKey companionDeviceKey_;
 };
 } // namespace CompanionDeviceAuth

@@ -85,13 +85,25 @@ bool LocalDeviceStatusManager::Initialize()
     profile_.companionSecureProtocolId = primaryChannel->GetCompanionSecureProtocolId();
 
     unlockedActiveUserIdSubscription_ =
-        GetUserIdManager().SubscribeUnlockedActiveUserId([weakSelf = weak_from_this()](UserId userId) {
+        GetUserIdManager().SubscribeUnlockedActiveUserKey([weakSelf = weak_from_this()](const UserKey &userKey) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->OnActiveUserIdChanged(userId);
+            self->OnActiveUserKeyChanged(userKey);
         });
     ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
-    OnActiveUserIdChanged(GetUserIdManager().GetUnlockedActiveUserId());
+    auto unlockedActiveUser = GetUserIdManager().GetUnlockedActiveUserkey();
+    OnActiveUserKeyChanged(unlockedActiveUser);
+
+    subProfileChangedSubscription_ = GetUserIdManager().SubscribeSubProfileChanged(
+        [weakSelf = weak_from_this()](const UserKey &userKey, SubProfileEventType eventType) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            if (eventType == SubProfileEventType::SWITCHED) {
+                self->OnActiveUserKeyChanged(userKey);
+                return;
+            }
+        });
+    ENSURE_OR_RETURN_VAL(subProfileChangedSubscription_ != nullptr, false);
 
     return true;
 }
@@ -142,8 +154,9 @@ std::optional<DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKey(ChannelId c
     DeviceKey deviceKey {};
     deviceKey.idType = physicalKey.idType;
     deviceKey.deviceId = physicalKey.deviceId;
-    deviceKey.deviceUserId = GetUserIdManager().GetUnlockedActiveUserId();
-    deviceKey.deviceSubProfileId = GetSubProfileIdManager().GetForegroundSubProfileId(deviceKey.deviceUserId);
+    auto unlockedActiveUser = GetUserIdManager().GetUnlockedActiveUserkey();
+    deviceKey.deviceUserId = unlockedActiveUser.userId;
+    deviceKey.deviceSubProfileId = unlockedActiveUser.subProfileId;
 
     return deviceKey;
 }
@@ -189,12 +202,12 @@ void LocalDeviceStatusManager::NotifyStatusChange()
     });
 }
 
-void LocalDeviceStatusManager::OnActiveUserIdChanged(UserId userId)
+void LocalDeviceStatusManager::OnActiveUserKeyChanged(const UserKey &userKey)
 {
-    IAM_LOGI("active user id changed: userId=%{public}d", userId);
+    IAM_LOGI("active user key changed: userId=%{public}d, subProfileId=%{public}d",
+        userKey.userId, userKey.subProfileId);
     NotifyStatusChange();
 }
-
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

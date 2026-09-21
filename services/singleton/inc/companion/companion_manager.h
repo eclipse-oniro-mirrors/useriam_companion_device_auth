@@ -27,6 +27,7 @@
 
 #include "service_common.h"
 #include "subscription.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -66,7 +67,7 @@ public:
     virtual ~ICompanionManager() = default;
 
     virtual std::optional<CompanionStatus> GetCompanionStatus(TemplateId templateId) = 0;
-    virtual std::optional<CompanionStatus> GetCompanionStatus(UserId hostUserId,
+    virtual std::optional<CompanionStatus> GetCompanionStatus(const UserKey &hostUserKey,
         const DeviceKey &companionDeviceKey) = 0;
     virtual std::vector<CompanionStatus> GetAllCompanionStatus() = 0;
 

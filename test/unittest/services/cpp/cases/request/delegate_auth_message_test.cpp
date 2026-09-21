@@ -44,9 +44,8 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_001, Test
     MockGuard guard;
 
     StartDelegateAuthRequest request = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = companionUserId_,
-        .extraInfo = extraInfo_,
-        .companionSubProfileId = 42 };
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = extraInfo_};
 
     Attributes attributes;
     EncodeStartDelegateAuthRequest(request, attributes);
@@ -60,9 +59,9 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_001, Test
     EXPECT_EQ(decodedRequest->hostDeviceKey.idType, request.hostDeviceKey.idType);
     EXPECT_EQ(decodedRequest->hostDeviceKey.deviceId, request.hostDeviceKey.deviceId);
     EXPECT_EQ(decodedRequest->hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
-    EXPECT_EQ(decodedRequest->companionUserId, request.companionUserId);
+    EXPECT_EQ(decodedRequest->companionUserKey.userId, request.companionUserKey.userId);
     EXPECT_EQ(decodedRequest->extraInfo, request.extraInfo);
-    EXPECT_EQ(decodedRequest->companionSubProfileId, request.companionSubProfileId);
+    EXPECT_EQ(decodedRequest->companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_002, TestSize.Level0)

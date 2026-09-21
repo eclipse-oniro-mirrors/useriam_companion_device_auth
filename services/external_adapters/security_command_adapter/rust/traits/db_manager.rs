@@ -45,8 +45,13 @@ impl TryFrom<&DeviceKeyFfi> for DeviceKey {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "test-utils", derive(PartialEq))]
 pub struct UserInfo {
-    pub user_id: i32,
+    pub user_key: UserKey,
     pub user_type: i32,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+pub struct UserKey {
+    pub user_id: i32,
     pub sub_profile_id: i32,
 }
 

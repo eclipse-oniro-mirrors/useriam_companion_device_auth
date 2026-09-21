@@ -55,7 +55,7 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_001, TestSize.Leve
 
     Attributes request;
     RemoveHostBindingRequest removeHostBindingRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = INT32_200,
+        .companionUserKey = UserKey { INT32_200 },
         .extraInfo = { 1, 2, 3 } };
     EncodeRemoveHostBindingRequest(removeHostBindingRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
@@ -103,7 +103,7 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_003, TestSize.Leve
 
     Attributes request;
     RemoveHostBindingRequest removeHostBindingRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = INT32_200,
+        .companionUserKey = UserKey { INT32_200 },
         .extraInfo = { 1, 2, 3 } };
     EncodeRemoveHostBindingRequest(removeHostBindingRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
@@ -136,7 +136,7 @@ HWTEST_F(CompanionRemoveHostBindingHandlerTest, HandleRequest_004, TestSize.Leve
 
     Attributes request;
     RemoveHostBindingRequest removeHostBindingRequest = { .hostDeviceKey = hostDeviceKey_,
-        .companionUserId = INT32_200,
+        .companionUserKey = UserKey { INT32_200 },
         .extraInfo = { 1, 2, 3 } };
     EncodeRemoveHostBindingRequest(removeHostBindingRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,

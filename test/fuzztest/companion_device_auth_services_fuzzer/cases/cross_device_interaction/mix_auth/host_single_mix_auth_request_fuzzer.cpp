@@ -148,7 +148,7 @@ void FuzzHostSingleMixAuthRequest(FuzzedDataProvider &fuzzData)
     int32_t authScene = fuzzData.ConsumeIntegral<int32_t>();
     AuthRequestParams params = { .scheduleId = scheduleId,
         .fwkMsg = fwkMsg,
-        .hostUserId = hostUserId,
+        .hostUserKey = UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
         .templateId = templateId,
         .authIntent = authIntent,
         .authScene = static_cast<UserAuth::AuthScene>(authScene) };

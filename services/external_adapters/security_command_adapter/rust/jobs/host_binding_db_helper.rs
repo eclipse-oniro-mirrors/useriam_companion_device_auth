@@ -24,7 +24,7 @@ pub(crate) const FILE_ID: u16 = RustFileId::HostBindingDbHelper as u16;
 pub fn add_host_binding(device_info: &HostBinding, sk_info: &HostBindingSk) -> Result<Option<i32>, ErrorCode> {
     let mut same_device_replaced_binding_id = None;
     if let Ok(info) = HostBindingDbManagerRegistry::get()
-        .get_device_by_device_key(device_info.user_info.user_id, &device_info.device_key)
+        .get_device_by_device_key(device_info.user_info.user_key, &device_info.device_key)
     {
         if HostBindingDbManagerRegistry::get_mut().remove_device(info.binding_id).is_ok() {
             same_device_replaced_binding_id = Some(info.binding_id);

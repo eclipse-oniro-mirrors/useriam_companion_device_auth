@@ -72,7 +72,7 @@ public:
     std::string deviceName;
     std::string deviceModelInfo;
     std::string networkId {};
-    bool isAuthMaintainActive { false };
+    std::optional<bool> isAuthMaintainActive;
     DeviceType deviceType { DeviceType::INVALID };
     std::optional<uint32_t> atlRevokeDelayMs;
     bool refreshToken { false };

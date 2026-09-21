@@ -75,7 +75,8 @@ protected:
         ctx.channelMgr = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
             std::static_pointer_cast<ICrossDeviceChannel>(ctx.mockChannel) });
 
-        ON_CALL(ctx.guard->GetUserIdManager(), GetUnlockedActiveUserId).WillByDefault(Return(activeUserId_));
+        ON_CALL(ctx.guard->GetUserIdManager(), GetUnlockedActiveUserkey)
+            .WillByDefault(Return(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }));
 
         DeviceCapabilityInfo deviceCapabilityInfo = { {},
             { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
@@ -107,9 +108,10 @@ protected:
         ctx.channelMgr = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
             std::static_pointer_cast<ICrossDeviceChannel>(ctx.mockChannel) });
 
-        ON_CALL(ctx.guard->GetUserIdManager(), SubscribeUnlockedActiveUserId)
-            .WillByDefault(Invoke([](ActiveUserIdCallback &&) { return MakeSubscription(); }));
-        ON_CALL(ctx.guard->GetUserIdManager(), GetUnlockedActiveUserId).WillByDefault(Return(activeUserId_));
+        ON_CALL(ctx.guard->GetUserIdManager(), SubscribeUnlockedActiveUserKey)
+            .WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) { return MakeSubscription(); }));
+        ON_CALL(ctx.guard->GetUserIdManager(), GetUnlockedActiveUserkey)
+            .WillByDefault(Return(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }));
 
         DeviceCapabilityInfo deviceCapabilityInfo = { {},
             { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
@@ -334,10 +336,10 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncFailsWhenRequestStartFails, T
     (void)subscription;
 
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](UserId hostUserId, const DeviceKey &key, const std::string &deviceName,
-                             SyncDeviceStatusCallback &&callback) {
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
+                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
             (void)callback;
-            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, key, deviceName,
+            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
                 SyncDeviceStatusCallback {});
         }));
     EXPECT_CALL(ctx.guard->GetRequestManager(), Start).WillOnce(Return(false));
@@ -479,11 +481,12 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallba
     (void)subscription;
 
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](UserId hostUserId, const DeviceKey &key, const std::string &deviceName,
-                             SyncDeviceStatusCallback &&callback) {
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
+                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
             (void)callback;
             auto request =
-                std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, key, deviceName, SyncDeviceStatusCallback {});
+                std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
+                    SyncDeviceStatusCallback {});
             return request;
         }));
 
@@ -591,7 +594,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_IgnoresDeviceUserId, TestSize
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     // HandleSyncResult no longer filters by deviceUserId. The device's userId comes from the
-    // sync response (syncDeviceStatus.deviceUserId), not from the active user.
+    // sync response (syncDeviceStatus.deviceUserKey), not from the active user.
     DeviceKey keyWithDifferentUser = MakeDeviceKey(physicalStatus.physicalDeviceKey);
     keyWithDifferentUser.deviceUserId = activeUserId_ + 1;
 
@@ -601,13 +604,13 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_IgnoresDeviceUserId, TestSize
     syncStatus.capabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
-    syncStatus.deviceUserId = reportedDeviceUserId;
+    syncStatus.deviceUserKey = UserKey { reportedDeviceUserId, INVALID_SUB_PROFILE_ID };
 
     ASSERT_NO_THROW(ctx.manager->HandleSyncResult(keyWithDifferentUser, 0, SUCCESS, syncStatus));
 
     const auto &syncedEntry = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
     EXPECT_TRUE(syncedEntry.isSynced);
-    EXPECT_EQ(reportedDeviceUserId, syncedEntry.deviceUserId);
+    EXPECT_EQ(reportedDeviceUserId, syncedEntry.deviceUserKey.userId);
 }
 
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_DeviceNotInCache, TestSize.Level0)
@@ -978,9 +981,9 @@ HWTEST_F(DeviceStatusManagerTest, RefreshDeviceList_WithResync, TestSize.Level0)
         .WillOnce(Return(std::vector<PhysicalDeviceStatus> { statusA }));
 
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](UserId hostUserId, const DeviceKey &key, const std::string &deviceName,
-                             SyncDeviceStatusCallback &&callback) {
-            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, key, deviceName,
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
+                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
+            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
                 SyncDeviceStatusCallback {});
         }));
     EXPECT_CALL(ctx.guard->GetRequestManager(), Start).WillOnce(Return(true));
@@ -1210,9 +1213,9 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_ComputesEffective
     EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
         .WillOnce(Return(std::vector<PhysicalDeviceStatus> { physicalStatus }));
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](UserId hostUserId, const DeviceKey &key, const std::string &deviceName,
-                             SyncDeviceStatusCallback &&callback) {
-            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, key, deviceName,
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
+                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
+            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
                 SyncDeviceStatusCallback {});
         }));
     EXPECT_CALL(ctx.guard->GetRequestManager(), Start).WillOnce(Return(true));
@@ -1236,9 +1239,9 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_EmptyDeviceIds, T
     EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
         .WillOnce(Return(std::vector<PhysicalDeviceStatus> { physicalStatus }));
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](UserId hostUserId, const DeviceKey &key, const std::string &deviceName,
-                             SyncDeviceStatusCallback &&callback) {
-            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserId, key, deviceName,
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
+                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
+            return std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
                 SyncDeviceStatusCallback {});
         }));
     EXPECT_CALL(ctx.guard->GetRequestManager(), Start).WillOnce(Return(true));

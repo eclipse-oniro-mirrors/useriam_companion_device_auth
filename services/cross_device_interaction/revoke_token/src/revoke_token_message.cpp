@@ -30,8 +30,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 void EncodeRevokeTokenRequest(const RevokeTokenRequest &request, Attributes &attributes)
 {
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostSubProfileId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserKey.userId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostUserKey.subProfileId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID,
         request.companionDeviceKey.deviceSubProfileId);
@@ -40,9 +40,9 @@ void EncodeRevokeTokenRequest(const RevokeTokenRequest &request, Attributes &att
 std::optional<RevokeTokenRequest> DecodeRevokeTokenRequest(const Attributes &attributes)
 {
     RevokeTokenRequest request {};
-    bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserId);
+    bool getHostUserIdRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostUserKey.userId);
     ENSURE_OR_RETURN_VAL(getHostUserIdRet, std::nullopt);
-    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostSubProfileId);
+    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostUserKey.subProfileId);
     auto companionKeyOpt = DecodeCompanionDeviceKey(attributes);
     ENSURE_OR_RETURN_VAL(companionKeyOpt.has_value(), std::nullopt);
     request.companionDeviceKey = *companionKeyOpt;

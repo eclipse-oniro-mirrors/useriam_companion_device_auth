@@ -114,15 +114,15 @@ void AvailableDeviceSubscription::OnCallbackRemoteDied(const sptr<IIpcAvailableD
     });
 }
 
-bool AvailableDeviceSubscription::MatchesRegisteredCompanion(UserId activeUserId,
+bool AvailableDeviceSubscription::MatchesRegisteredCompanion(const UserKey &activeUserKey,
     const DeviceStatus &deviceStatus) const
 {
     if (deviceStatus.isOnline) {
-        return GetCompanionManager().GetCompanionStatus(activeUserId, deviceStatus.deviceKey).has_value();
+        return GetCompanionManager().GetCompanionStatus(activeUserKey, deviceStatus.deviceKey).has_value();
     }
     const PhysicalDeviceKey physicalKey = PhysicalDeviceKey::FromDeviceKey(deviceStatus.deviceKey);
     for (const auto &companionStatus : GetCompanionManager().GetAllCompanionStatus()) {
-        if (companionStatus.hostUserId != activeUserId) {
+        if (companionStatus.hostUserKey != activeUserKey) {
             continue;
         }
         if (PhysicalDeviceKey::FromDeviceKey(companionStatus.companionDeviceStatus.deviceKey) == physicalKey) {
@@ -137,16 +137,16 @@ void AvailableDeviceSubscription::HandleDeviceStatusChange()
     auto deviceStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus(true);
     IAM_LOGI("HandleDeviceStatusChange start, total device count:%{public}zu, userId:%{public}d",
         deviceStatusList.size(), userId_);
-    int32_t activeUserId = GetUserIdManager().GetUnlockedActiveUserId();
-    if (activeUserId != userId_) {
-        IAM_LOGE("userId not match, activeUserId = %{public}d, userId_ = %{public}d", activeUserId, userId_);
+    UserKey activeUserKey = GetUserIdManager().GetUnlockedActiveUserkey();
+    if (activeUserKey.userId != userId_) {
+        IAM_LOGE("userId not match, activeUserId = %{public}d, userId_ = %{public}d", activeUserKey.userId, userId_);
         return;
     }
 
     std::vector<IpcDeviceStatus> availableDeviceStatus;
     availableDeviceStatus.reserve(deviceStatusList.size());
     for (const auto &deviceStatus : deviceStatusList) {
-        if (MatchesRegisteredCompanion(activeUserId, deviceStatus)) {
+        if (MatchesRegisteredCompanion(activeUserKey, deviceStatus)) {
             continue;
         }
         availableDeviceStatus.push_back(ConvertToIpcDeviceStatus(deviceStatus));

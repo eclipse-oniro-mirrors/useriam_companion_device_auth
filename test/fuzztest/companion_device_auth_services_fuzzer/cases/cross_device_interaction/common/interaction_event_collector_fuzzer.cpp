@@ -31,14 +31,14 @@ namespace CompanionDeviceAuth {
 
 using CollectorFuzzFunction = void (*)(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData);
 
-static void FuzzSetHostUserId(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
+static void FuzzSetHostUserKey(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
 {
-    collector.SetHostUserId(fuzzData.ConsumeIntegral<UserId>());
+    collector.SetHostUserKey(UserKey { fuzzData.ConsumeIntegral<UserId>(), INVALID_SUB_PROFILE_ID });
 }
 
-static void FuzzSetCompanionUserId(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
+static void FuzzSetCompanionUserKey(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
 {
-    collector.SetCompanionUserId(fuzzData.ConsumeIntegral<UserId>());
+    collector.SetCompanionUserKey(UserKey { fuzzData.ConsumeIntegral<UserId>(), INVALID_SUB_PROFILE_ID });
 }
 
 static void FuzzSetConnectionName(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
@@ -153,8 +153,8 @@ static void FuzzReport(InteractionEventCollector &collector, FuzzedDataProvider 
 }
 
 static const CollectorFuzzFunction g_fuzzFuncs[] = {
-    FuzzSetHostUserId,
-    FuzzSetCompanionUserId,
+    FuzzSetHostUserKey,
+    FuzzSetCompanionUserKey,
     FuzzSetConnectionName,
     FuzzSetScheduleId,
     FuzzSetTriggerReason,

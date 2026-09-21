@@ -232,12 +232,37 @@ pub struct CommonOutputFfi {
 }
 assert_max_size!(CommonOutputFfi);
 
+
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct UserKeyFfi {
+    pub user_id: i32,
+    pub sub_profile_id: i32,
+}
+assert_max_size!(UserKeyFfi);
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct UserKeyArray64Ffi {
+    pub data: [UserKeyFfi; MAX_DATA_LEN_64],
+    pub len: u32,
+}
+assert_max_size!(UserKeyArray64Ffi);
+
+impl Default for UserKeyArray64Ffi {
+    fn default() -> Self {
+        UserKeyArray64Ffi { data: [UserKeyFfi::default(); MAX_DATA_LEN_64], len: 0 }
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct PersistedCompanionStatusFfi {
     pub template_id: u64,
-    pub host_user_id: i32,
+    pub host_user_key: UserKeyFfi,
     pub companion_device_key: DeviceKeyFfi,
     pub device_type: i32,
     pub is_valid: u8,
@@ -256,10 +281,9 @@ assert_max_size!(PersistedCompanionStatusFfi);
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct PersistedHostBindingStatusFfi {
     pub binding_id: i32,
-    pub companion_user_id: i32,
+    pub companion_user_key: UserKeyFfi,
     pub host_device_key: DeviceKeyFfi,
     pub is_token_valid: bool,
-    pub companion_sub_profile_id: i32,
 }
 assert_max_size!(PersistedHostBindingStatusFfi);
 
@@ -344,8 +368,7 @@ pub type HostRegisterFinishOutputFfi = PlaceHolderFfi;
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostGetPersistedStatusInputFfi {
-    pub user_id: i32,
-    pub sub_profile_id: i32,
+    pub user_key: UserKeyFfi,
 }
 assert_max_size!(HostGetPersistedStatusInputFfi);
 
@@ -361,8 +384,8 @@ assert_max_size!(HostGetPersistedStatusOutputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct SetActiveUserInputFfi {
-    pub user_id: i32,
-    pub valid_user_ids: Int32Array64Ffi,
+    pub user_key: UserKeyFfi,
+    pub valid_user_keys: UserKeyArray64Ffi,
 }
 assert_max_size!(SetActiveUserInputFfi);
 
@@ -822,8 +845,7 @@ assert_max_size!(HostRefreshTokenOutputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionGetPersistedStatusInputFfi {
-    pub user_id: i32,
-    pub sub_profile_id: i32,
+    pub user_key: UserKeyFfi,
 }
 assert_max_size!(CompanionGetPersistedStatusInputFfi);
 

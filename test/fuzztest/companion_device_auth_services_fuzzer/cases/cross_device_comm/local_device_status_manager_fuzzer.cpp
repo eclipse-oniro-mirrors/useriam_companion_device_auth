@@ -87,10 +87,11 @@ static void FuzzUnsubscribe(std::shared_ptr<LocalDeviceStatusManager> &mgr, Fuzz
     mgr->Unsubscribe(subscriptionId);
 }
 
-static void FuzzOnActiveUserIdChanged(std::shared_ptr<LocalDeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
+static void FuzzOnActiveUserKeyChanged(std::shared_ptr<LocalDeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
-    mgr->OnActiveUserIdChanged(userId);
+    int32_t subProfileId = fuzzData.ConsumeIntegral<int32_t>();
+    mgr->OnActiveUserKeyChanged(UserKey { userId, subProfileId });
 }
 
 static const LocalDeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
@@ -102,7 +103,7 @@ static const LocalDeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzInitialize,
     FuzzNotifyStatusChange,
     FuzzUnsubscribe,
-    FuzzOnActiveUserIdChanged,
+    FuzzOnActiveUserKeyChanged,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(LocalDeviceStatusManagerFuzzFunction);

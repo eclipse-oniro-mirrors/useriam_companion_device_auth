@@ -23,6 +23,7 @@
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
 #include "fuzz_registry.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -38,7 +39,7 @@ static void FuzzReload(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDat
     for (uint8_t i = 0; i < count; ++i) {
         PersistedCompanionStatus status;
         status.templateId = fuzzData.ConsumeIntegral<TemplateId>();
-        status.hostUserId = fuzzData.ConsumeIntegral<UserId>();
+        status.hostUserKey.userId = fuzzData.ConsumeIntegral<UserId>();
         status.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
         status.isValid = fuzzData.ConsumeBool();
         companionList.push_back(status);
@@ -58,9 +59,9 @@ static void FuzzGetCompanionStatusByTemplate(std::shared_ptr<CompanionManagerImp
 static void FuzzGetCompanionStatusByUserAndDevice(std::shared_ptr<CompanionManagerImpl> &manager,
     FuzzedDataProvider &fuzzData)
 {
-    UserId hostUserId = fuzzData.ConsumeIntegral<UserId>();
+    UserKey hostUserKey { fuzzData.ConsumeIntegral<UserId>(), INVALID_SUB_PROFILE_ID };
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto status = manager->GetCompanionStatus(hostUserId, companionDeviceKey);
+    auto status = manager->GetCompanionStatus(hostUserKey, companionDeviceKey);
     (void)status;
 }
 
@@ -140,9 +141,9 @@ static void FuzzFindCompanionByTemplateId(std::shared_ptr<CompanionManagerImpl> 
 
 static void FuzzFindCompanionByDeviceUser(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
-    UserId userId = fuzzData.ConsumeIntegral<UserId>();
+    UserKey userKey { fuzzData.ConsumeIntegral<UserId>(), INVALID_SUB_PROFILE_ID };
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto companion = manager->FindCompanionByDeviceUser(userId, deviceKey);
+    auto companion = manager->FindCompanionByDeviceUser(userKey, deviceKey);
     (void)companion;
 }
 
@@ -168,7 +169,7 @@ static void FuzzEndAddCompanion(std::shared_ptr<CompanionManagerImpl> &manager, 
     EndAddCompanionInput input;
     input.requestId = fuzzData.ConsumeIntegral<RequestId>();
     input.companionStatus.templateId = fuzzData.ConsumeIntegral<TemplateId>();
-    input.companionStatus.hostUserId = fuzzData.ConsumeIntegral<UserId>();
+    input.companionStatus.hostUserKey.userId = fuzzData.ConsumeIntegral<UserId>();
     input.companionStatus.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     input.companionStatus.isValid = fuzzData.ConsumeBool();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint8_t>());
@@ -188,10 +189,11 @@ static void FuzzRemoveCompanion(std::shared_ptr<CompanionManagerImpl> &manager, 
     manager->RemoveCompanion(templateId, true);
 }
 
-static void FuzzOnActiveUserIdChanged(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
+static void FuzzOnActiveUserKeyChanged(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
-    manager->OnActiveUserIdChanged(userId);
+    int32_t subProfileId = fuzzData.ConsumeIntegral<int32_t>();
+    manager->OnActiveUserKeyChanged(UserKey{userId, subProfileId});
 }
 
 static void FuzzInitialize(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
@@ -236,7 +238,7 @@ static void FuzzReloadSingleCompanion(std::shared_ptr<CompanionManagerImpl> &man
 {
     PersistedCompanionStatus persistedStatus;
     persistedStatus.templateId = fuzzData.ConsumeIntegral<TemplateId>();
-    persistedStatus.hostUserId = fuzzData.ConsumeIntegral<UserId>();
+    persistedStatus.hostUserKey.userId = fuzzData.ConsumeIntegral<UserId>();
     persistedStatus.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     persistedStatus.isValid = fuzzData.ConsumeBool();
 
@@ -292,7 +294,7 @@ static const CompanionManagerImplFuzzFunction g_fuzzFuncs[] = {
     FuzzBeginAddCompanion,
     FuzzEndAddCompanion,
     FuzzRemoveCompanion,
-    FuzzOnActiveUserIdChanged,
+    FuzzOnActiveUserKeyChanged,
     FuzzInitialize,
     FuzzNotifyCompanionStatusChange,
     FuzzHandleRemoveHostBindingComplete,

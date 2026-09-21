@@ -36,7 +36,6 @@
 #include "service_common.h"
 #include "soft_bus_adapter.h"
 #include "soft_bus_adapter_manager.h"
-#include "sub_profile_id_manager.h"
 #include "subscription.h"
 #include "system_param_manager.h"
 #include "system_settings_manager.h"
@@ -337,6 +336,7 @@ namespace {
 // previous GetActiveUserId() behavior for fuzzers that never fire a change.
 int32_t g_fuzzActiveUserId = 0;
 ActiveUserIdCallback g_fuzzActiveUserCb;
+UnlockedActiveUserKeyCallback g_fuzzUnlockedActiveUserCb;
 } // namespace
 
 class MockUserIdManager : public IUserIdManager {
@@ -371,14 +371,15 @@ public:
         return std::make_unique<Subscription>([] {});
     }
 
-    UserId GetUnlockedActiveUserId() const override
+    UserKey GetUnlockedActiveUserkey() const override
     {
-        return GetActiveUserId();
+        return UserKey { GetActiveUserId(), INVALID_SUB_PROFILE_ID };
     }
 
-    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserId(ActiveUserIdCallback &&callback) override
+    std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) override
     {
-        return SubscribeActiveUserId(std::move(callback));
+        g_fuzzUnlockedActiveUserCb = std::move(callback);
+        return std::make_unique<Subscription>([] {});
     }
 
     bool IsUserIdValid(int32_t userId) override
@@ -387,9 +388,40 @@ public:
         return fuzzData_.ConsumeBool();
     }
 
-    std::optional<std::vector<UserId>> GetAllValidUserIds() const override
+    std::optional<std::vector<UserKey>> GetAllValidUserKeys() const override
     {
-        return std::vector<UserId> {};
+        return std::vector<UserKey> {};
+    }
+
+    // Sub profile ID management (merged from MockSubProfileIdManager)
+    int32_t GetForegroundSubProfileId(UserId userId) const override
+    {
+        (void)userId;
+        return INVALID_SUB_PROFILE_ID;
+    }
+
+    bool IsForegroundSubProfileId(const UserKey &userKey) const override
+    {
+        (void)userKey;
+        return false;
+    }
+
+    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
+    {
+        (void)userId;
+        return std::vector<int32_t> { INVALID_SUB_PROFILE_ID };
+    }
+
+    std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
+    {
+        (void)userKey;
+        return std::nullopt;
+    }
+
+    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
+    {
+        (void)callback;
+        return std::make_unique<Subscription>([] {});
     }
 
 private:
@@ -412,42 +444,6 @@ public:
         SettingsChangeCallback &&callback) override
     {
         (void)settingKey;
-        (void)callback;
-        return std::make_unique<Subscription>([] {});
-    }
-
-private:
-    FuzzedDataProvider &fuzzData_ [[maybe_unused]];
-};
-
-class MockSubProfileIdManager : public ISubProfileIdManager {
-public:
-    explicit MockSubProfileIdManager(FuzzedDataProvider &fuzzData) : fuzzData_(fuzzData)
-    {
-    }
-
-    int32_t GetForegroundSubProfileId(UserId userId) const override
-    {
-        (void)userId;
-        return INVALID_SUB_PROFILE_ID;
-    }
-
-    bool IsForegroundSubProfileId(UserId userId, int32_t subProfileId) const override
-    {
-        (void)userId;
-        (void)subProfileId;
-        return false;
-    }
-
-    std::optional<std::string> GetSubProfileName(UserId userId, int32_t subProfileId) const override
-    {
-        (void)userId;
-        (void)subProfileId;
-        return std::nullopt;
-    }
-
-    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
-    {
         (void)callback;
         return std::make_unique<Subscription>([] {});
     }
@@ -539,9 +535,6 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
     auto userIdMgr = std::make_shared<MockUserIdManager>(fuzzData);
     adapterMgr.SetUserIdManager(userIdMgr);
 
-    auto subProfileIdMgr = std::make_shared<MockSubProfileIdManager>(fuzzData);
-    adapterMgr.SetSubProfileIdManager(subProfileIdMgr);
-
     auto systemSettingsMgr = std::make_shared<MockSystemSettingsManager>(fuzzData);
     adapterMgr.SetSystemSettingsManager(systemSettingsMgr);
 
@@ -554,6 +547,9 @@ void FireFuzzActiveUserIdChange(int32_t userId)
     if (g_fuzzActiveUserCb) {
         g_fuzzActiveUserCb(userId);
     }
+    if (g_fuzzUnlockedActiveUserCb) {
+        g_fuzzUnlockedActiveUserCb(UserKey { userId, INVALID_SUB_PROFILE_ID });
+    }
 }
 
 void CleanupAdapterManager()
@@ -562,6 +558,7 @@ void CleanupAdapterManager()
     SoftBusChannelAdapterManager::GetInstance().Reset();
     g_fuzzActiveUserId = 0;
     g_fuzzActiveUserCb = nullptr;
+    g_fuzzUnlockedActiveUserCb = nullptr;
 }
 
 } // namespace CompanionDeviceAuth

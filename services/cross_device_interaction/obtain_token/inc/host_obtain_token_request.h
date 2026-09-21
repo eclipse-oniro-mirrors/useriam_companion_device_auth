@@ -52,6 +52,7 @@ private:
     void SendPreObtainTokenReply(ResultCode result, const std::vector<uint8_t> &preObtainTokenReply);
     void SendErrorReply(ResultCode result);
     void HandleObtainTokenMessage(const Attributes &request, OnMessageReply &onMessageReply);
+    ResultCode ValidateObtainTokenRequest(const ObtainTokenRequest &obtainTokenRequest);
     ResultCode HandleHostProcessObtainToken(const ObtainTokenRequest &request, std::vector<uint8_t> &obtainTokenReply);
     bool EnsureCompanionAuthMaintainActive(const DeviceKey &deviceKey, ErrorGuard &errorGuard);
     void HandlePeerDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
@@ -67,8 +68,8 @@ private:
     std::unique_ptr<Subscription> lockEventSubscription_;
     std::unique_ptr<Subscription> activeUserSubscription_;
 
-    UserId hostUserId_ = INVALID_USER_ID;
-    UserId companionUserId_ = INVALID_USER_ID;
+    UserKey hostUserKey_;
+    UserKey companionUserKey_;
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     bool needCancelObtainToken_ = false;
 };

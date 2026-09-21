@@ -58,7 +58,8 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -81,7 +82,8 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_002, TestSize.Level0)
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -100,7 +102,8 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -119,7 +122,8 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -150,7 +154,8 @@ HWTEST_F(HostDelegateAuthRequestTest, OnConnected_001, TestSize.Level0)
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -184,7 +189,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_001, TestSize.Level0
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -224,7 +230,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_002, TestSize.Level0
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -265,7 +272,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_003, TestSize.Level0
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -306,7 +314,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_001, TestSize
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callback = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
@@ -342,7 +351,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_002, TestSize
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -382,7 +392,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_003, TestSize
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -420,7 +431,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_001, TestSize
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -458,7 +470,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_002, TestSize
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -489,7 +502,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_003, TestSize
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -526,7 +540,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_004, TestSize
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -565,7 +580,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResultMessage_001, T
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -609,7 +625,8 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResultMessage_002, T
     MockGuard guard;
     EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -648,7 +665,8 @@ HWTEST_F(HostDelegateAuthRequestTest, CompleteWithError_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
     auto callback = [&callbackCalled, &callbackResult](ResultCode result, const std::vector<uint8_t> &) {
@@ -672,7 +690,8 @@ HWTEST_F(HostDelegateAuthRequestTest, CompleteWithError_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callback = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
@@ -691,7 +710,8 @@ HWTEST_F(HostDelegateAuthRequestTest, CompleteWithError_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
     request->needCancelDelegateAuth_ = true;
@@ -705,7 +725,8 @@ HWTEST_F(HostDelegateAuthRequestTest, CompleteWithSuccess_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callbackResult = std::make_shared<ResultCode>(ResultCode::GENERAL_ERROR);
     auto callbackFwkMsg = std::make_shared<std::vector<uint8_t>>();
@@ -731,7 +752,8 @@ HWTEST_F(HostDelegateAuthRequestTest, GetWeakPtr_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -743,7 +765,8 @@ HWTEST_F(HostDelegateAuthRequestTest, InvokeCallback_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callbackCalled = std::make_shared<bool>(false);
     auto callback = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
@@ -760,7 +783,8 @@ HWTEST_F(HostDelegateAuthRequestTest, GetMaxConcurrency_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -771,7 +795,8 @@ HWTEST_F(HostDelegateAuthRequestTest, ShouldCancelOnNewRequest_001, TestSize.Lev
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -784,7 +809,8 @@ HWTEST_F(HostDelegateAuthRequestTest, ShouldCancelOnNewRequest_002, TestSize.Lev
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 
@@ -804,7 +830,8 @@ HWTEST_F(HostDelegateAuthRequestTest, ShouldCancelOnNewRequest_003, TestSize.Lev
 {
     MockGuard guard;
 
-    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, HOST_USER_ID, TEMPLATE_ID, AUTH_INTENTION };
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
     auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
     auto request = std::make_shared<HostDelegateAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
 

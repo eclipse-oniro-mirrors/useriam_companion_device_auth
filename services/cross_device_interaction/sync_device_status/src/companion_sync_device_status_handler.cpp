@@ -39,15 +39,14 @@ CompanionSyncDeviceStatusHandler::CompanionSyncDeviceStatusHandler()
 }
 
 void CompanionSyncDeviceStatusHandler::SetCompanionDeviceKeyUserId(SyncDeviceStatusReply &syncReply,
-    UserId companionUserId)
+    const UserKey &companionUserKey)
 {
-    syncReply.companionDeviceKey.deviceUserId = companionUserId;
-    syncReply.companionDeviceKey.deviceSubProfileId =
-        GetSubProfileIdManager().GetForegroundSubProfileId(companionUserId);
+    syncReply.companionDeviceKey.deviceUserId = companionUserKey.userId;
+    syncReply.companionDeviceKey.deviceSubProfileId = companionUserKey.subProfileId;
 }
 
 std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSyncDeviceStatusReply(
-    UserId companionUserId, const InteractionDesc &desc)
+    const UserKey &companionUserKey, const InteractionDesc &desc)
 {
     auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
     auto userNameOpt = GetUserIdManager().GetActiveUserName();
@@ -62,7 +61,7 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
     syncReply.capabilityList = profile.companionCapabilities;
     syncReply.businessIdList = profile.companionSupportedBusinessIds;
     syncReply.secureProtocolId = profile.companionSecureProtocolId;
-    SetCompanionDeviceKeyUserId(syncReply, companionUserId);
+    SetCompanionDeviceKeyUserId(syncReply, companionUserKey);
     syncReply.deviceUserName = GetUserIdManager().GetActiveUserTypeName() + ":" + userNameOpt.value();
     syncReply.deviceName = GetSystemSettingsManager().GetSettingsValue(SettingKey::DisplayDeviceName);
     // The per-user display name may be unset before first configuration; fall back to the device model
@@ -70,12 +69,11 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
     if (syncReply.deviceName.empty()) {
         syncReply.deviceName = GetSystemParamManager().GetParam("const.product.name", "");
     }
-    auto subProfileNameOpt =
-        GetSubProfileIdManager().GetSubProfileName(companionUserId, syncReply.companionDeviceKey.deviceSubProfileId);
+    auto subProfileNameOpt = GetUserIdManager().GetSubProfileName(
+        UserKey { companionUserKey.userId, syncReply.companionDeviceKey.deviceSubProfileId });
     if (subProfileNameOpt.has_value()) {
         syncReply.deviceSubProfileName = subProfileNameOpt.value();
     }
-    syncReply.isAuthMaintainActive = GetCrossDeviceCommManager().IsAuthMaintainActive();
     return syncReply;
 }
 
@@ -104,17 +102,17 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
     }
     const auto &syncRequest = *syncRequestOpt;
 
-    auto companionUserId = QueryActiveUserId();
-    if (companionUserId == INVALID_USER_ID) {
-        IAM_LOGE("%{public}s GetUnlockedActiveUserId failed", desc.GetCStr());
+    auto companionUserKey = QueryActiveUserKey();
+    if (companionUserKey.userId == INVALID_USER_ID) {
+        IAM_LOGE("%{public}s GetUnlockedActiveUserkey failed", desc.GetCStr());
         return;
     }
 
-    auto syncReplyOpt = BuildSyncDeviceStatusReply(companionUserId, desc);
+    auto syncReplyOpt = BuildSyncDeviceStatusReply(companionUserKey, desc);
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), syncReplyOpt.has_value());
     SyncDeviceStatusReply syncReply = std::move(*syncReplyOpt);
 
-    auto hostBindingStatus = QueryHostBindingStatus(companionUserId, syncRequest.hostDeviceKey);
+    auto hostBindingStatus = QueryHostBindingStatus(companionUserKey, syncRequest.hostDeviceKey);
     if (hostBindingStatus.has_value()) {
         desc.SetBindingId(hostBindingStatus->bindingId);
         eventCollector.SetBindingId(hostBindingStatus->bindingId);
@@ -169,15 +167,16 @@ bool CompanionSyncDeviceStatusHandler::CompanionProcessCheck(const HostBindingSt
     outCompanionCheckResponse.swap(output.companionCheckResponse);
     return true;
 }
-UserId CompanionSyncDeviceStatusHandler::QueryActiveUserId()
+
+UserKey CompanionSyncDeviceStatusHandler::QueryActiveUserKey()
 {
-    return GetUserIdManager().GetUnlockedActiveUserId();
+    return GetUserIdManager().GetUnlockedActiveUserkey();
 }
 
-std::optional<HostBindingStatus> CompanionSyncDeviceStatusHandler::QueryHostBindingStatus(UserId companionUserId,
-    const DeviceKey &hostDeviceKey)
+std::optional<HostBindingStatus> CompanionSyncDeviceStatusHandler::QueryHostBindingStatus(
+    const UserKey &companionUserKey, const DeviceKey &hostDeviceKey)
 {
-    return GetHostBindingManager().GetHostBindingStatus(companionUserId, hostDeviceKey);
+    return GetHostBindingManager().GetHostBindingStatus(companionUserKey, hostDeviceKey);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -38,7 +38,7 @@ namespace CompanionDeviceAuth {
 HostMixAuthRequest::HostMixAuthRequest(const HostMixAuthParams &params, FwkResultCallback &&requestCallback)
     : BaseRequest(RequestType::HOST_MIX_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS, "-"),
       fwkMsg_(params.fwkMsg),
-      hostUserId_(params.hostUserId),
+      hostUserKey_{params.hostUserKey},
       templateIdList_(params.templateIdList),
       tokenId_(params.tokenId),
       businessId_(params.businessId),
@@ -50,7 +50,7 @@ HostMixAuthRequest::HostMixAuthRequest(const HostMixAuthParams &params, FwkResul
 {
     desc_.SetTemplateIdList(templateIdList_);
     desc_.SetScheduleId(params.scheduleId);
-    eventCollector_.SetHostUserId(params.hostUserId);
+    eventCollector_.SetHostUserKey(hostUserKey_);
     eventCollector_.SetScheduleId(params.scheduleId);
     eventCollector_.SetTriggerReason("authIntent " + std::to_string(params.authIntent));
     eventCollector_.SetTemplateIdList(params.templateIdList);
@@ -108,7 +108,7 @@ std::vector<TemplateId> HostMixAuthRequest::GetFilteredTemplateList(const std::v
     std::vector<TemplateId> result;
 
     for (const auto &deviceKey : selectedDevices) {
-        auto companionStatus = GetCompanionManager().GetCompanionStatus(hostUserId_, deviceKey);
+        auto companionStatus = GetCompanionManager().GetCompanionStatus(hostUserKey_, deviceKey);
         if (!companionStatus.has_value()) {
             IAM_LOGE("%{public}s companion status not found for device", GetDescription());
             continue;
@@ -154,7 +154,7 @@ void HostMixAuthRequest::StartAuthWithTemplateList(const std::vector<TemplateId>
         const DeviceKey &companionDeviceKey = companionStatus->companionDeviceStatus.deviceKey;
         AuthRequestParams authParams = { .scheduleId = GetScheduleId(),
             .fwkMsg = fwkMsg_,
-            .hostUserId = hostUserId_,
+            .hostUserKey = hostUserKey_,
             .templateId = templateId,
             .authIntent = authIntent_,
             .authScene = authScene_,
@@ -255,9 +255,9 @@ bool HostMixAuthRequest::SubscribeCancellationEvents()
         GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId activeUserId) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            if (self->hostUserId_ != activeUserId) {
+            if (self->hostUserKey_.userId != activeUserId) {
                 IAM_LOGI("%{public}s host user %{public}d no longer active (%{public}d), error", self->GetDescription(),
-                    self->hostUserId_, activeUserId);
+                    self->hostUserKey_.userId, activeUserId);
                 self->Cancel(ResultCode::GENERAL_ERROR);
             }
         });
@@ -296,7 +296,7 @@ void HostMixAuthRequest::HandleAuthResult(TemplateId templateId, ResultCode resu
         ResultCode reject = ResultCode::SUCCESS;
         if (GetMiscManager().IsCompanionAuthBlocked()) {
             reject = ResultCode::LOCKED;
-        } else if (GetUserIdManager().GetActiveUserId() != hostUserId_) {
+        } else if (GetUserIdManager().GetActiveUserId() != hostUserKey_.userId) {
             reject = ResultCode::GENERAL_ERROR;
         }
         if (reject != ResultCode::SUCCESS) {
@@ -378,7 +378,7 @@ void HostMixAuthRequest::CompleteWithSuccess(TemplateId templateId, const std::v
     IAM_LOGI("%{public}s complete with success", GetDescription());
     Attributes attributes;
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_AUTH_INTENT, authIntent_);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostUserId_);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostUserKey_.userId);
     attributes.SetUint64Value(Attributes::ATTR_CDA_SA_TEMPLATE_ID, templateId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_AUTH_SCENE, static_cast<int32_t>(authScene_));
     if (!title_.empty()) {

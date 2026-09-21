@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "service_common.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -27,8 +28,8 @@ namespace CompanionDeviceAuth {
 
 // Framework interaction input/output structs
 struct SetActiveUserInput {
-    UserId userId;
-    std::vector<UserId> validUserIds;
+    UserKey userKey;
+    std::vector<UserKey> validUserIds;
 };
 
 struct HostGetExecutorInfoOutput {
@@ -42,8 +43,7 @@ struct RegisterFinishInput {
 };
 
 struct HostGetPersistedCompanionStatusInput {
-    UserId userId;
-    int32_t subProfileId;
+    UserKey userKey;
 };
 
 struct HostGetPersistedCompanionStatusOutput {
@@ -51,8 +51,7 @@ struct HostGetPersistedCompanionStatusOutput {
 };
 
 struct CompanionGetPersistedHostBindingStatusInput {
-    UserId userId;
-    int32_t subProfileId;
+    UserKey userKey;
 };
 
 struct CompanionGetPersistedHostBindingStatusOutput {

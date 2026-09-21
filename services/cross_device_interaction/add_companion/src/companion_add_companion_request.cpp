@@ -54,7 +54,8 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
     companionDeviceKey_ = *companionKeyOpt;
 
     eventCollector_.SetHostDeviceKey(PeerDeviceKey());
-    eventCollector_.SetCompanionUserId(companionDeviceKey_.deviceUserId);
+    eventCollector_.SetCompanionUserKey(
+        UserKey { companionDeviceKey_.deviceUserId, companionDeviceKey_.deviceSubProfileId });
     eventCollector_.SetConnectionName(GetConnectionName());
 
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
@@ -118,12 +119,12 @@ CompanionInitKeyNegotiationInput CompanionAddCompanionRequest::BuildCompanionIni
     return input;
 }
 
-BeginAddHostBindingInput CompanionAddCompanionRequest::BuildBeginAddHostBindingInput(int32_t companionUserId,
+BeginAddHostBindingInput CompanionAddCompanionRequest::BuildBeginAddHostBindingInput(const UserKey &companionUserKey,
     const std::vector<uint8_t> &addHostBindingRequest) const
 {
     BeginAddHostBindingInput input = {};
     input.requestId = GetRequestId();
-    input.companionUserId = companionUserId;
+    input.companionUserKey = companionUserKey;
     input.secureProtocolId = secureProtocolId_;
     input.addHostBindingRequest = addHostBindingRequest;
     return input;
@@ -173,10 +174,10 @@ bool CompanionAddCompanionRequest::SendInitKeyNegotiationReply(ResultCode result
     return true;
 }
 
-ResultCode CompanionAddCompanionRequest::BeginAddHostBinding(int32_t companionUserId,
+ResultCode CompanionAddCompanionRequest::BeginAddHostBinding(const UserKey &companionUserKey,
     const std::vector<uint8_t> &extraInfo, BeginAddHostBindingOutput &beginOutput)
 {
-    BeginAddHostBindingInput beginInput = BuildBeginAddHostBindingInput(companionUserId, extraInfo);
+    BeginAddHostBindingInput beginInput = BuildBeginAddHostBindingInput(companionUserKey, extraInfo);
     return GetHostBindingManager().BeginAddHostBinding(beginInput, beginOutput);
 }
 
@@ -198,10 +199,12 @@ void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &a
 
     auto requestOpt = DecodeBeginAddHostBindingRequest(attrInput);
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt.has_value());
-    ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt->companionUserId == companionDeviceKey_.deviceUserId);
+    ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt->companionUserKey.userId == companionDeviceKey_.deviceUserId);
+    ENSURE_OR_RETURN_DESC(GetDescription(),
+        requestOpt->companionUserKey.subProfileId == companionDeviceKey_.deviceSubProfileId);
 
     BeginAddHostBindingOutput beginOutput = {};
-    ResultCode ret = BeginAddHostBinding(requestOpt->companionUserId, requestOpt->extraInfo, beginOutput);
+    ResultCode ret = BeginAddHostBinding(requestOpt->companionUserKey, requestOpt->extraInfo, beginOutput);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s BeginAddHostBinding failed ret=%{public}d", GetDescription(), ret);
         errorGuard.UpdateErrorCode(ret);
@@ -243,7 +246,7 @@ void CompanionAddCompanionRequest::HandleEndAddHostBinding(const Attributes &att
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt->hostDeviceKey == PeerDeviceKey());
 
     IAM_LOGI("%{public}s Get resultCode %{public}d hostUserId %{public}d companionUserId %{public}d", GetDescription(),
-        requestOpt->result, requestOpt->hostDeviceKey.deviceUserId, requestOpt->companionUserId);
+        requestOpt->result, requestOpt->hostDeviceKey.deviceUserId, requestOpt->companionUserKey.userId);
 
     // Extract Token data if binding was successful
     std::vector<uint8_t> tokenData;

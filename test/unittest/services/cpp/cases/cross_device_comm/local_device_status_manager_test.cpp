@@ -185,7 +185,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, SubscribeIsAuthMaintainActive_002, TestSi
     EXPECT_TRUE(manager->IsAuthMaintainActive());
 }
 
-HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_001, TestSize.Level0)
+HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserKeyChanged_001, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -208,7 +208,7 @@ HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_001, TestSize.Level
     TaskRunnerManager::GetInstance().ExecuteAll();
 }
 
-HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserIdChanged_002, TestSize.Level0)
+HWTEST_F(LocalDeviceStatusManagerTest, OnActiveUserKeyChanged_002, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -276,7 +276,8 @@ HWTEST_F(LocalDeviceStatusManagerTest, AuthMaintainCallback_001, TestSize.Level0
 HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_001, TestSize.Level0)
 {
     MockGuard guard;
-    ON_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillByDefault(Return(INT32_100));
+    ON_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+        .WillByDefault(Return(UserKey { INT32_100, INVALID_SUB_PROFILE_ID }));
 
     auto mockChannel = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
 

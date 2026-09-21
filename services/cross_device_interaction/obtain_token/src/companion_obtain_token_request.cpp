@@ -59,12 +59,6 @@ bool CompanionObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
 
-    if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
-        IAM_LOGI("%{public}s local auth maintain inactive, waiting for active", GetDescription());
-        waitingForAuthMaintainActive_ = true;
-        return true;
-    }
-
     if (!ProceedWithConnection()) {
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
         return false;
@@ -90,13 +84,15 @@ void CompanionObtainTokenRequest::OnConnected()
 
     auto localDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKeyOpt.has_value());
-    ENSURE_OR_RETURN_DESC(GetDescription(),
-        GetSubProfileIdManager().IsForegroundSubProfileId(localDeviceKeyOpt->deviceUserId,
-            localDeviceKeyOpt->deviceSubProfileId));
+    bool isForegroundSubProfileId =
+        GetUserIdManager().IsForegroundSubProfileId(
+            UserKey { localDeviceKeyOpt->deviceUserId, localDeviceKeyOpt->deviceSubProfileId });
+    ENSURE_OR_RETURN_DESC(GetDescription(), isForegroundSubProfileId);
 
     companionDeviceKey_ = localDeviceKeyOpt.value();
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
-    eventCollector_.SetCompanionUserId(companionDeviceKey_.deviceUserId);
+    eventCollector_.SetCompanionUserKey(
+        UserKey { companionDeviceKey_.deviceUserId, companionDeviceKey_.deviceSubProfileId });
 
     bool ret = SendPreObtainTokenRequest();
     if (!ret) {
@@ -113,8 +109,7 @@ bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
     Attributes request = {};
     PreObtainTokenRequest preObtainTokenRequest = {
-        .hostUserId = peerDeviceKey.value().deviceUserId,
-        .hostSubProfileId = peerDeviceKey.value().deviceSubProfileId,
+        .hostUserKey = UserKey { peerDeviceKey.value().deviceUserId, peerDeviceKey.value().deviceSubProfileId },
         .companionDeviceKey = companionDeviceKey_,
         .extraInfo = {},
     };
@@ -169,8 +164,9 @@ std::optional<BindingId> CompanionObtainTokenRequest::QueryBindingIdFromHostBind
 {
     auto peerDeviceKey = GetPeerDeviceKey();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), std::nullopt);
-    auto hostBindingStatus =
-        GetHostBindingManager().GetHostBindingStatus(companionDeviceKey_.deviceUserId, peerDeviceKey.value());
+    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(
+        UserKey { companionDeviceKey_.deviceUserId, companionDeviceKey_.deviceSubProfileId },
+        peerDeviceKey.value());
     if (!hostBindingStatus.has_value()) {
         IAM_LOGE("%{public}s GetHostBindingStatus failed", GetDescription());
         return std::nullopt;
@@ -229,8 +225,7 @@ bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), false);
     Attributes request = {};
     ObtainTokenRequest obtainRequest = {
-        .hostUserId = peerDeviceKey.value().deviceUserId,
-        .hostSubProfileId = peerDeviceKey.value().deviceSubProfileId,
+        .hostUserKey = UserKey { peerDeviceKey.value().deviceUserId, peerDeviceKey.value().deviceSubProfileId },
         .extraInfo = obtainTokenRequest,
         .companionDeviceKey = companionDeviceKey_,
         .atl = atl,
@@ -359,22 +354,6 @@ std::weak_ptr<OutboundRequest> CompanionObtainTokenRequest::GetWeakPtr()
 void CompanionObtainTokenRequest::HandleAuthMaintainActiveChanged(bool isActive)
 {
     LogTraceGuard guard;
-    if (waitingForAuthMaintainActive_) {
-        if (!isActive) {
-            IAM_LOGI("%{public}s local auth maintain still inactive while waiting, keep waiting", GetDescription());
-            return;
-        }
-        waitingForAuthMaintainActive_ = false;
-        IAM_LOGI("%{public}s local auth maintain became active, proceed with connection", GetDescription());
-        if (IsFinished()) {
-            IAM_LOGI("%{public}s already cancelled/completed, skip", GetDescription());
-            return;
-        }
-        if (!ProceedWithConnection()) {
-            CompleteWithError(ResultCode::COMMUNICATION_ERROR);
-        }
-        return;
-    }
 
     if (isActive) {
         return;

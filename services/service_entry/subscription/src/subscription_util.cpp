@@ -51,7 +51,7 @@ IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionSta
     ipcStatus.isConfirmed = templateConfirmSinceMs.has_value() &&
         (companionStatus.companionDeviceStatus.lastSyncTimeMs >= static_cast<uint64_t>(templateConfirmSinceMs.value()));
     ipcStatus.isValid = companionStatus.isValid;
-    ipcStatus.localUserId = companionStatus.hostUserId;
+    ipcStatus.localUserId = companionStatus.hostUserKey.userId;
     ipcStatus.addedTime = companionStatus.addedTime;
     // Convert BusinessId vector to int vector for IPC
     ipcStatus.enabledBusinessIds.reserve(companionStatus.enabledBusinessIds.size());

@@ -39,8 +39,7 @@ struct InitKeyNegotiationReply {
 
 // Host -> Companion
 struct BeginAddHostBindingRequest {
-    int32_t companionUserId { INVALID_USER_ID };
-    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
+    UserKey companionUserKey;
     std::vector<uint8_t> extraInfo;
 };
 
@@ -53,8 +52,7 @@ struct BeginAddHostBindingReply {
 // Host -> Companion
 struct EndAddHostBindingRequest {
     DeviceKey hostDeviceKey {};
-    int32_t companionUserId { INVALID_USER_ID };
-    int32_t companionSubProfileId { INVALID_SUB_PROFILE_ID };
+    UserKey companionUserKey;
     ResultCode result { ResultCode::GENERAL_ERROR };
     std::vector<uint8_t>
         extraInfo; // Contains encrypted token data when binding is successful (Challenge + Token + ATL)

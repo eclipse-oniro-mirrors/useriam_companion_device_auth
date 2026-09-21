@@ -14,7 +14,7 @@
  */
 
 use crate::common::constants::ErrorCode;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserKey};
 use crate::traits::log_trace::RustFileId;
 use crate::{log_e, singleton_registry, Box, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::HostBindingDbManager as u16;
@@ -24,7 +24,7 @@ pub type HostDeviceFilter = Box<dyn Fn(&HostBinding) -> bool>;
 pub trait HostBindingDbManager {
     fn add_device(&mut self, device_info: &HostBinding, sk_info: &HostBindingSk) -> Result<Option<i32>, ErrorCode>;
     fn get_device_by_binding_id(&self, binding_id: i32) -> Result<HostBinding, ErrorCode>;
-    fn get_device_by_device_key(&self, user_id: i32, device_key: &DeviceKey) -> Result<HostBinding, ErrorCode>;
+    fn get_device_by_device_key(&self, user_key: UserKey, device_key: &DeviceKey) -> Result<HostBinding, ErrorCode>;
     fn remove_device(&mut self, binding_id: i32) -> Result<HostBinding, ErrorCode>;
     fn update_device(&mut self, device_info: &HostBinding) -> Result<(), ErrorCode>;
 
@@ -42,7 +42,7 @@ pub trait HostBindingDbManager {
     fn delete_device_sk(&self, binding_id: i32) -> Result<(), ErrorCode>;
 
     fn get_device_list(&self, filter: HostDeviceFilter) -> Vec<HostBinding>;
-    fn remove_devices_by_invalid_users(&mut self, valid_user_ids: &[i32]) -> Vec<i32>;
+    fn remove_devices_by_invalid_users(&mut self, valid_user_keys: &[UserKey]) -> Vec<i32>;
 }
 
 pub struct DummyHostBindingDbManager;
@@ -56,7 +56,7 @@ impl HostBindingDbManager for DummyHostBindingDbManager {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
-    fn get_device_by_device_key(&self, _user_id: i32, _device_key: &DeviceKey) -> Result<HostBinding, ErrorCode> {
+    fn get_device_by_device_key(&self, _user_key: UserKey, _device_key: &DeviceKey) -> Result<HostBinding, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
@@ -114,7 +114,7 @@ impl HostBindingDbManager for DummyHostBindingDbManager {
         Vec::new()
     }
 
-    fn remove_devices_by_invalid_users(&mut self, _valid_user_ids: &[i32]) -> Vec<i32> {
+    fn remove_devices_by_invalid_users(&mut self, _valid_user_keys: &[UserKey]) -> Vec<i32> {
         log_e!("not implemented");
         Vec::new()
     }

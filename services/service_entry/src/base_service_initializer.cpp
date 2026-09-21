@@ -217,10 +217,6 @@ bool BaseServiceInitializer::InitializeUserIdManager()
     auto userIdManager = IUserIdManager::Create();
     ENSURE_OR_RETURN_VAL(userIdManager != nullptr, false);
     adapterManager.SetUserIdManager(userIdManager);
-
-    auto subProfileIdManager = ISubProfileIdManager::Create();
-    ENSURE_OR_RETURN_VAL(subProfileIdManager != nullptr, false);
-    adapterManager.SetSubProfileIdManager(subProfileIdManager);
     return true;
 }
 

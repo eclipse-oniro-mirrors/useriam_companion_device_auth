@@ -44,15 +44,16 @@ HWTEST_F(ConstantUserIdManagerTest, CreateUserIdManager_001, TestSize.Level0)
     EXPECT_NE(nullptr, manager);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, GetUnlockedActiveUserId_001, TestSize.Level0)
+HWTEST_F(ConstantUserIdManagerTest, GetUnlockedActiveUserkey_001, TestSize.Level0)
 {
     MockGuard guard;
 
     auto manager = IUserIdManager::Create();
     ASSERT_NE(nullptr, manager);
 
-    int32_t userId = manager->GetUnlockedActiveUserId();
-    EXPECT_EQ(100, userId);
+    auto result = manager->GetUnlockedActiveUserkey();
+    EXPECT_EQ(100, result.userId);
+    EXPECT_EQ(INVALID_SUB_PROFILE_ID, result.subProfileId);
 }
 
 HWTEST_F(ConstantUserIdManagerTest, GetActiveUserId_001, TestSize.Level0)
@@ -77,7 +78,7 @@ HWTEST_F(ConstantUserIdManagerTest, GetActiveUserName_001, TestSize.Level0)
     EXPECT_EQ(std::nullopt, userNameOpt);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserId_001, TestSize.Level0)
+HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserKey_001, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -87,10 +88,11 @@ HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserId_001, TestSize.
     bool callbackCalled = false;
     int32_t receivedUserId = 0;
 
-    auto subscription = manager->SubscribeUnlockedActiveUserId([&callbackCalled, &receivedUserId](UserId userId) {
-        callbackCalled = true;
-        receivedUserId = userId;
-    });
+    auto subscription = manager->SubscribeUnlockedActiveUserKey(
+        [&callbackCalled, &receivedUserId](const UserKey &userKey) {
+            callbackCalled = true;
+            receivedUserId = userKey.userId;
+        });
 
     EXPECT_NE(nullptr, subscription);
 
@@ -100,14 +102,14 @@ HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserId_001, TestSize.
     EXPECT_EQ(100, receivedUserId);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserId_002, TestSize.Level0)
+HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserKey_002, TestSize.Level0)
 {
     MockGuard guard;
 
     auto manager = IUserIdManager::Create();
     ASSERT_NE(nullptr, manager);
 
-    auto subscription = manager->SubscribeUnlockedActiveUserId(nullptr);
+    auto subscription = manager->SubscribeUnlockedActiveUserKey(nullptr);
 
     EXPECT_EQ(nullptr, subscription);
 }

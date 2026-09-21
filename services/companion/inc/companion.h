@@ -51,9 +51,9 @@ public:
         return status_.templateId;
     }
 
-    int32_t GetHostUserId() const
+    const UserKey &GetHostUserKey() const
     {
-        return status_.hostUserId;
+        return status_.hostUserKey;
     }
 
     const DeviceKey &GetCompanionDeviceKey() const

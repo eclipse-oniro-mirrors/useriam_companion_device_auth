@@ -315,7 +315,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddHostBinding_001, TestSi
     request->OnStart(errorGuard);
 
     BeginAddHostBindingRequest beginRequest;
-    beginRequest.companionUserId = COMPANION_DEVICE_KEY.deviceUserId;
+    beginRequest.companionUserKey.userId = COMPANION_DEVICE_KEY.deviceUserId;
     beginRequest.extraInfo = { 13, 14, 15, 16 };
     Attributes attrInput;
     EncodeBeginAddHostBindingRequest(beginRequest, attrInput);
@@ -357,7 +357,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddHostBinding_002, TestSi
     request->OnStart(errorGuard);
 
     BeginAddHostBindingRequest beginRequest;
-    beginRequest.companionUserId = COMPANION_DEVICE_KEY.deviceUserId;
+    beginRequest.companionUserKey.userId = COMPANION_DEVICE_KEY.deviceUserId;
     beginRequest.extraInfo = { 13, 14, 15, 16 };
     Attributes attrInput;
     EncodeBeginAddHostBindingRequest(beginRequest, attrInput);
@@ -411,7 +411,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddHostBinding_004, TestSi
     request->OnStart(errorGuard);
 
     BeginAddHostBindingRequest beginRequest;
-    beginRequest.companionUserId = COMPANION_DEVICE_KEY.deviceUserId;
+    beginRequest.companionUserKey.userId = COMPANION_DEVICE_KEY.deviceUserId;
     beginRequest.extraInfo = { 13, 14, 15, 16 };
     Attributes attrInput;
     EncodeBeginAddHostBindingRequest(beginRequest, attrInput);
@@ -447,7 +447,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_001, TestSize
 
     EndAddHostBindingRequest endRequest;
     endRequest.hostDeviceKey = HOST_DEVICE_KEY;
-    endRequest.companionUserId = COMPANION_DEVICE_KEY.deviceUserId;
+    endRequest.companionUserKey.userId = COMPANION_DEVICE_KEY.deviceUserId;
     endRequest.result = ResultCode::SUCCESS;
     Attributes attrInput;
     EncodeEndAddHostBindingRequest(endRequest, attrInput);
@@ -487,7 +487,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_002, TestSize
 
     EndAddHostBindingRequest endRequest;
     endRequest.hostDeviceKey = HOST_DEVICE_KEY;
-    endRequest.companionUserId = COMPANION_DEVICE_KEY.deviceUserId;
+    endRequest.companionUserKey.userId = COMPANION_DEVICE_KEY.deviceUserId;
     endRequest.result = ResultCode::SUCCESS;
     Attributes attrInput;
     EncodeEndAddHostBindingRequest(endRequest, attrInput);
@@ -543,7 +543,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_004, TestSize
 
     EndAddHostBindingRequest endRequest;
     endRequest.hostDeviceKey = HOST_DEVICE_KEY;
-    endRequest.companionUserId = COMPANION_DEVICE_KEY.deviceUserId;
+    endRequest.companionUserKey.userId = COMPANION_DEVICE_KEY.deviceUserId;
     endRequest.result = ResultCode::SUCCESS;
     Attributes attrInput;
     EncodeEndAddHostBindingRequest(endRequest, attrInput);
@@ -674,7 +674,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleBeginAddHostBinding_005, TestSi
     request->OnStart(errorGuard);
 
     BeginAddHostBindingRequest beginRequest;
-    beginRequest.companionUserId = COMPANION_DEVICE_KEY.deviceUserId;
+    beginRequest.companionUserKey.userId = COMPANION_DEVICE_KEY.deviceUserId;
     beginRequest.extraInfo = { 13, 14, 15, 16 };
     Attributes attrInput;
     EncodeBeginAddHostBindingRequest(beginRequest, attrInput);
@@ -708,7 +708,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_005, TestSize
 
     EndAddHostBindingRequest endRequest;
     endRequest.hostDeviceKey = { .deviceId = "wrong_host_id", .deviceUserId = 999 };
-    endRequest.companionUserId = COMPANION_DEVICE_KEY.deviceUserId;
+    endRequest.companionUserKey.userId = COMPANION_DEVICE_KEY.deviceUserId;
     endRequest.result = ResultCode::SUCCESS;
     Attributes attrInput;
     EncodeEndAddHostBindingRequest(endRequest, attrInput);

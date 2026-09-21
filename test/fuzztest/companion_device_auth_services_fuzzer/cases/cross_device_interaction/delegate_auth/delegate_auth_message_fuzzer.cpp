@@ -34,7 +34,7 @@ static void FuzzEncodeStartDelegateAuthRequest(FuzzedDataProvider &fuzzData)
 {
     StartDelegateAuthRequest request;
     request.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    request.companionUserId = fuzzData.ConsumeIntegral<int32_t>();
+    request.companionUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     request.extraInfo =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
     Attributes attr;

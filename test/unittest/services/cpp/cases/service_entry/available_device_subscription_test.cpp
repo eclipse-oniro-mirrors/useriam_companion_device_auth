@@ -59,9 +59,10 @@ HWTEST_F(AvailableDeviceSubscriptionTest, Create_001, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&callback) { return MakeSubscription(); }));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
         .WillOnce(Return(std::vector<DeviceStatus> {}));
-    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillOnce(Return(0));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+        .WillOnce(Return(UserKey { 0, INVALID_SUB_PROFILE_ID }));
 
     auto subscription = AvailableDeviceSubscription::Create(userId, subscriptionManager);
 
@@ -145,7 +146,7 @@ DeviceStatus MakeUnsyncedStatus(const std::string &deviceId)
 CompanionStatus MakeBoundStatus(UserId hostUserId, const std::string &deviceId, UserId deviceUserId)
 {
     CompanionStatus status {};
-    status.hostUserId = hostUserId;
+    status.hostUserKey.userId = hostUserId;
     status.companionDeviceStatus.deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     status.companionDeviceStatus.deviceKey.deviceId = deviceId;
     status.companionDeviceStatus.deviceKey.deviceUserId = deviceUserId;
@@ -166,7 +167,8 @@ HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_ReportUnsynce
         }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
         .WillRepeatedly(Return(std::vector<DeviceStatus> { MakeUnsyncedStatus("device-1") }));
-    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(userId));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+        .WillRepeatedly(Return(UserKey { userId, INVALID_SUB_PROFILE_ID }));
     EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus())
         .WillRepeatedly(Return(std::vector<CompanionStatus> {}));
 
@@ -196,7 +198,8 @@ HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_SuppressBound
         }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
         .WillRepeatedly(Return(std::vector<DeviceStatus> { MakeUnsyncedStatus("device-1") }));
-    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(userId));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+        .WillRepeatedly(Return(UserKey { userId, INVALID_SUB_PROFILE_ID }));
     EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus())
         .WillRepeatedly(Return(std::vector<CompanionStatus> { MakeBoundStatus(userId, "device-1", 200) }));
 
@@ -223,7 +226,8 @@ HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_ReportDeviceB
         }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
         .WillRepeatedly(Return(std::vector<DeviceStatus> { MakeUnsyncedStatus("device-1") }));
-    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(userId));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+        .WillRepeatedly(Return(UserKey { userId, INVALID_SUB_PROFILE_ID }));
     EXPECT_CALL(guard.GetCompanionManager(), GetAllCompanionStatus())
         .WillRepeatedly(Return(std::vector<CompanionStatus> { MakeBoundStatus(999, "device-1", 200) }));
 
@@ -254,7 +258,8 @@ HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_SuppressSynce
         }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
         .WillRepeatedly(Return(std::vector<DeviceStatus> { syncedStatus }));
-    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserId()).WillRepeatedly(Return(userId));
+    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+        .WillRepeatedly(Return(UserKey { userId, INVALID_SUB_PROFILE_ID }));
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
         .WillRepeatedly(Return(MakeBoundStatus(userId, "device-1", 200)));
 

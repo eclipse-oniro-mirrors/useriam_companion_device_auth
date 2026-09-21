@@ -62,7 +62,7 @@ Attributes BuildPreIssueTokenPayload(const std::string &hostDeviceId, UserId hos
 {
     PreIssueTokenRequest req;
     req.hostDeviceKey = MakeDeviceKey(hostDeviceId, hostUserId);
-    req.companionUserId = companionUserId;
+    req.companionUserKey.userId = companionUserId;
     req.extraInfo = extraInfo;
     Attributes payload;
     EncodePreIssueTokenRequest(req, payload);
@@ -75,7 +75,7 @@ Attributes BuildIssueTokenPayload(const std::string &hostDeviceId, UserId hostUs
 {
     IssueTokenRequest req;
     req.hostDeviceKey = MakeDeviceKey(hostDeviceId, hostUserId);
-    req.companionUserId = companionUserId;
+    req.companionUserKey.userId = companionUserId;
     req.extraInfo = extraInfo;
     Attributes payload;
     EncodeIssueTokenRequest(req, payload);
@@ -327,8 +327,9 @@ HWTEST_F(AuthModuleTest, HostIssueTokenFullE2E_001, TestSize.Level0)
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndIssueToken(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(endIssueOutput), Return(ResultCode::SUCCESS)));
 
-    auto request = GetRequestFactory().CreateHostIssueTokenRequest(HOST_USER_ID, TEST_TEMPLATE_ID, lockStateAuthType,
-        { 0xAA, 0xBB });
+    auto request = GetRequestFactory().CreateHostIssueTokenRequest(
+        UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEST_TEMPLATE_ID,
+        lockStateAuthType, { 0xAA, 0xBB });
     ASSERT_NE(request, nullptr);
     ASSERT_TRUE(GetRequestManager().Start(request));
     DrainPendingTasks();
@@ -458,8 +459,9 @@ HWTEST_F(AuthModuleTest, HostIssueTokenPreIssueFailedE2E_003, TestSize.Level0)
 
     // 4. Create and start HostIssueTokenRequest
     std::vector<uint8_t> fwkUnlockMsg = { 0xAA };
-    auto request = GetRequestFactory().CreateHostIssueTokenRequest(HOST_USER_ID, TEST_TEMPLATE_ID, lockStateAuthType,
-        fwkUnlockMsg);
+    auto request = GetRequestFactory().CreateHostIssueTokenRequest(
+        UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEST_TEMPLATE_ID,
+        lockStateAuthType, fwkUnlockMsg);
     ASSERT_NE(request, nullptr);
 
     bool startRet = GetRequestManager().Start(request);
@@ -522,7 +524,7 @@ HWTEST_F(AuthModuleTest, CompanionObtainTokenFullE2E_001, TestSize.Level0)
     DrainPendingTasks();
 
     PreObtainTokenRequest preReq;
-    preReq.hostUserId = HOST_USER_ID;
+    preReq.hostUserKey.userId = HOST_USER_ID;
     preReq.companionDeviceKey = MakeDeviceKey(deviceId, HOST_USER_ID);
     preReq.extraInfo = { 0xAA, 0xBB };
     Attributes prePayload;
@@ -538,7 +540,7 @@ HWTEST_F(AuthModuleTest, CompanionObtainTokenFullE2E_001, TestSize.Level0)
     EXPECT_EQ(preReply->extraInfo, preObtainOutput.preObtainTokenReply);
 
     ObtainTokenRequest obtainReq;
-    obtainReq.hostUserId = HOST_USER_ID;
+    obtainReq.hostUserKey.userId = HOST_USER_ID;
     obtainReq.companionDeviceKey = MakeDeviceKey(deviceId, HOST_USER_ID);
     obtainReq.extraInfo = { 0xCC, 0xDD };
     Attributes obtainPayload;
@@ -580,7 +582,7 @@ HWTEST_F(AuthModuleTest, HostProcessObtainTokenE2E_002, TestSize.Level0)
     ASSERT_TRUE(guard.RegisterCompanionDirect(HOST_USER_ID, MakeDeviceKey(deviceId, HOST_USER_ID), 54331));
 
     PreObtainTokenRequest preReq;
-    preReq.hostUserId = HOST_USER_ID;
+    preReq.hostUserKey.userId = HOST_USER_ID;
     preReq.companionDeviceKey = MakeDeviceKey(deviceId, HOST_USER_ID);
     preReq.extraInfo = { 0xAA };
     Attributes prePayload;
@@ -596,7 +598,7 @@ HWTEST_F(AuthModuleTest, HostProcessObtainTokenE2E_002, TestSize.Level0)
     EXPECT_EQ(preReply->extraInfo, preObtainOutput.preObtainTokenReply);
 
     ObtainTokenRequest obtainReq;
-    obtainReq.hostUserId = HOST_USER_ID;
+    obtainReq.hostUserKey.userId = HOST_USER_ID;
     obtainReq.companionDeviceKey = MakeDeviceKey(deviceId, HOST_USER_ID);
     obtainReq.extraInfo = { 0xBB };
     Attributes obtainPayload;
@@ -650,7 +652,7 @@ HWTEST_F(AuthModuleTest, HostProcessPreObtainTokenFailedE2E_003, TestSize.Level0
     // 3. Send PRE_OBTAIN_TOKEN request
     // companionDeviceKey.deviceUserId must be HOST_USER_ID to match the registered companion.
     PreObtainTokenRequest preRequest;
-    preRequest.hostUserId = HOST_USER_ID;
+    preRequest.hostUserKey.userId = HOST_USER_ID;
     preRequest.companionDeviceKey = MakeDeviceKey("companion-test-device-host-obtain-fail-001", HOST_USER_ID);
     preRequest.extraInfo = { 0xAA };
 
@@ -708,7 +710,8 @@ HWTEST_F(AuthModuleTest, HostRemoveCompanionFullE2E_001, TestSize.Level0)
     // companionDeviceKey.deviceUserId must be HOST_USER_ID to match registered companion.
     // OutboundRequest::OpenConnection calls GetChannelIdByDeviceKey which looks up the
     // registered companion's device key.
-    auto request = GetRequestFactory().CreateHostRemoveHostBindingRequest(HOST_USER_ID, TEST_TEMPLATE_ID,
+    auto request = GetRequestFactory().CreateHostRemoveHostBindingRequest(
+        UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEST_TEMPLATE_ID,
         MakeDeviceKey("companion-test-device-remove-001", HOST_USER_ID));
     ASSERT_NE(request, nullptr) << "Failed to create HostRemoveHostBindingRequest";
 
@@ -790,7 +793,7 @@ HWTEST_F(AuthModuleTest, CompanionRemoveHostBindingE2E_002, TestSize.Level0)
     // 4. Send REMOVE_HOST_BINDING request
     RemoveHostBindingRequest removeRequest;
     removeRequest.hostDeviceKey = MakeDeviceKey("host-test-device-companion-remove-001", HOST_USER_ID);
-    removeRequest.companionUserId = HOST_USER_ID;
+    removeRequest.companionUserKey.userId = HOST_USER_ID;
     removeRequest.extraInfo = { 0xAA, 0xBB };
 
     Attributes removePayload;
@@ -852,7 +855,7 @@ HWTEST_F(AuthModuleTest, CompanionRemoveHostBindingFailedE2E_003, TestSize.Level
     // 4. Send REMOVE_HOST_BINDING request
     RemoveHostBindingRequest removeRequest;
     removeRequest.hostDeviceKey = MakeDeviceKey("host-test-device-companion-remove-fail-001", HOST_USER_ID);
-    removeRequest.companionUserId = HOST_USER_ID;
+    removeRequest.companionUserKey.userId = HOST_USER_ID;
     removeRequest.extraInfo = { 0xAA };
 
     Attributes removePayload;
@@ -1051,7 +1054,7 @@ HWTEST_F(AuthModuleTest, CompanionProcessTokenAuthSuccessE2E_001, TestSize.Level
     // 4. Build TokenAuth request from host
     TokenAuthRequest request;
     request.hostDeviceKey = MakeDeviceKey("host-token-auth-001", HOST_USER_ID);
-    request.companionUserId = HOST_USER_ID;
+    request.companionUserKey.userId = HOST_USER_ID;
     request.extraInfo = { 0x01, 0x02, 0x03 };
 
     Attributes requestPayload;
@@ -1107,7 +1110,7 @@ HWTEST_F(AuthModuleTest, CompanionProcessTokenAuthNoTokenE2E_001, TestSize.Level
     // 4. Build TokenAuth request
     TokenAuthRequest request;
     request.hostDeviceKey = MakeDeviceKey("host-request-001", HOST_USER_ID);
-    request.companionUserId = HOST_USER_ID;
+    request.companionUserKey.userId = HOST_USER_ID;
 
     Attributes requestPayload;
     EncodeTokenAuthRequest(request, requestPayload);
@@ -1229,7 +1232,7 @@ HWTEST_F(AuthModuleTest, CompanionDelegateAuthFullE2E_001, TestSize.Level0)
     // 4. Build StartDelegateAuth request from host
     StartDelegateAuthRequest request;
     request.hostDeviceKey = MakeDeviceKey("host-delegate-001", HOST_USER_ID);
-    request.companionUserId = HOST_USER_ID;
+    request.companionUserKey.userId = HOST_USER_ID;
     request.extraInfo = { 0x01 };
 
     Attributes requestPayload;
@@ -1362,7 +1365,7 @@ HWTEST_F(AuthModuleTest, CompanionRevokeTokenE2E_001, TestSize.Level0)
 
     // 4. Build RevokeToken request from companion
     RevokeTokenRequest request;
-    request.hostUserId = HOST_USER_ID;
+    request.hostUserKey.userId = HOST_USER_ID;
     request.companionDeviceKey = MakeDeviceKey("companion-revoke-001", HOST_USER_ID);
 
     Attributes requestPayload;
@@ -1552,7 +1555,7 @@ HWTEST_F(AuthModuleTest, CompanionDelegateAuthFullFlowE2E_001, TestSize.Level0)
 
     StartDelegateAuthRequest req;
     req.hostDeviceKey = MakeDeviceKey("host-delegate-full-002", HOST_USER_ID);
-    req.companionUserId = HOST_USER_ID;
+    req.companionUserKey.userId = HOST_USER_ID;
     req.extraInfo = { 0x01, 0x02 };
     Attributes reqPayload;
     EncodeStartDelegateAuthRequest(req, reqPayload);
@@ -1581,14 +1584,14 @@ HWTEST_F(AuthModuleTest, CompanionDelegateAuthFullFlowE2E_001, TestSize.Level0)
 //
 // What this tests:
 //   When TestSetActiveUser is called with a different user ID, it triggers
-//   OnActiveUserIdChanged in CompanionManagerImpl, which clears companions.
+//   OnActiveUserKeyChanged in CompanionManagerImpl, which clears companions.
 //   The pending request (waiting for reply from companion) should be cancelled
 //   because the companion it was talking to is no longer associated with the
 //   new active user.
 //
 // E2E level: HIGH
 //   - Entry: AuthenticateTokenAuth + TestSetActiveUser(999) via FakeUserIdManager
-//   - Production path: UserIdManager → OnActiveUserIdChanged → companion cleanup
+//   - Production path: UserIdManager → OnActiveUserKeyChanged → companion cleanup
 //   - Verification: callback invoked with error result
 // ============================================================================
 HWTEST_F(AuthModuleTest, UserSwitchCancelsRequestE2E_001, TestSize.Level0)
@@ -1642,7 +1645,7 @@ HWTEST_F(AuthModuleTest, UserSwitchCancelsRequestE2E_001, TestSize.Level0)
     DrainPendingTasks();
 
     // 7. Verify: callback was NOT invoked
-    //    The user switch triggers OnActiveUserIdChanged which clears the companion list
+    //    The user switch triggers OnActiveUserKeyChanged which clears the companion list
     //    and DeviceStatusManager::HandleUserIdChange which updates activeUserId_ to 999.
     //    However, neither path explicitly cancels in-progress requests or closes connections.
     //    The OutboundRequest remains alive, waiting for a reply on its connection.

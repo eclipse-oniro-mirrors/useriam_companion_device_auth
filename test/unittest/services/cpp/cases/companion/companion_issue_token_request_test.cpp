@@ -56,7 +56,7 @@ Attributes MakePreIssueTokenRequest()
     attrs.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(HOST_DEVICE_KEY.idType));
     attrs.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, HOST_DEVICE_KEY.deviceId);
     PreIssueTokenRequest preIssueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
-        .companionUserId = COMPANION_USER_ID,
+        .companionUserKey = UserKey { COMPANION_USER_ID },
         .extraInfo = { 1, 2, 3 } };
     EncodePreIssueTokenRequest(preIssueRequest, attrs);
     return attrs;
@@ -311,7 +311,7 @@ HWTEST_F(CompanionIssueTokenRequestTest, CompanionPreIssueToken_002, TestSize.Le
     // Populate preIssueTokenRequest with valid data (with HOST_DEVICE_KEY, not differentDeviceKey)
     Attributes attrs;
     PreIssueTokenRequest preIssueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
-        .companionUserId = COMPANION_USER_ID,
+        .companionUserKey = UserKey { COMPANION_USER_ID },
         .extraInfo = { 1, 2, 3 } };
     EncodePreIssueTokenRequest(preIssueRequest, attrs);
     auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, attrs, std::move(replyCallback),
@@ -447,7 +447,7 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_001, TestSize.L
     EXPECT_TRUE(request->OnStart(errorGuard));
 
     IssueTokenRequest issueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
-        .companionUserId = COMPANION_USER_ID,
+        .companionUserKey = UserKey { COMPANION_USER_ID },
         .extraInfo = { 1, 2, 3 } };
     Attributes attrs;
     EncodeIssueTokenRequest(issueRequest, attrs);
@@ -538,7 +538,7 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_003, TestSize.L
     EXPECT_TRUE(request->OnStart(errorGuard));
 
     IssueTokenRequest issueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
-        .companionUserId = COMPANION_USER_ID,
+        .companionUserKey = UserKey { COMPANION_USER_ID },
         .extraInfo = { 1, 2, 3 } };
     Attributes attrs;
     EncodeIssueTokenRequest(issueRequest, attrs);
@@ -590,7 +590,7 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_004, TestSize.L
     EXPECT_TRUE(request->OnStart(errorGuard));
 
     IssueTokenRequest issueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
-        .companionUserId = COMPANION_USER_ID,
+        .companionUserKey = UserKey { COMPANION_USER_ID },
         .extraInfo = { 1, 2, 3 } };
     Attributes attrs;
     EncodeIssueTokenRequest(issueRequest, attrs);

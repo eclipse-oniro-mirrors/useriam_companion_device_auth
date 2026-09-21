@@ -26,7 +26,6 @@
 #include "security_agent.h"
 #include "service_common.h"
 #include "singleton.h"
-#include "sub_profile_id_manager.h"
 #include "subscription.h"
 #include "user_id_manager.h"
 
@@ -41,34 +40,32 @@ public:
     ~HostBindingManagerImpl() override = default;
 
     std::optional<HostBindingStatus> GetHostBindingStatus(BindingId bindingId) override;
-    std::optional<HostBindingStatus> GetHostBindingStatus(UserId companionUserId,
+    std::optional<HostBindingStatus> GetHostBindingStatus(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey) override;
 
     ResultCode BeginAddHostBinding(const BeginAddHostBindingInput &input, BeginAddHostBindingOutput &output) override;
 
     ResultCode EndAddHostBinding(const EndAddHostBindingInput &input, EndAddHostBindingOutput &output) override;
 
-    ResultCode RemoveHostBinding(UserId companionUserId, const DeviceKey &hostDeviceKey) override;
+    ResultCode RemoveHostBinding(const UserKey &companionUserKey, const DeviceKey &hostDeviceKey) override;
 
     bool SetHostBindingTokenValid(BindingId bindingId, bool isTokenValid) override;
 
-    void StartObtainTokenRequests(UserId userId, uint32_t lockStateAuthTypeValue,
+    void StartObtainTokenRequests(const UserKey &activeUserKey, uint32_t lockStateAuthTypeValue,
         const std::vector<uint8_t> &fwkUnlockMsg) override;
     void RevokeTokens(UserId userId, const std::string &reason = "") override;
+
+    std::vector<HostBindingStatus> GetAllHostBindingStatus() override;
 
 private:
     HostBindingManagerImpl() = default;
     bool Initialize();
-    void OnActiveUserIdChanged(UserId userId);
-    void OnSubProfileChanged(UserId userId, int32_t subProfileId, SubProfileEventType eventType);
-    void OnSubProfileSwitched(UserId userId, int32_t subProfileId);
-    void ReloadBindingsForSubProfile(UserId userId, int32_t subProfileId);
-
-    std::vector<HostBindingStatus> GetAllHostBindingStatus();
+    void OnActiveUserKeyChanged(const UserKey &activeUserKey);
+    void ReloadBindingsForSubProfile(const UserKey &activeUserKey);
 
     std::shared_ptr<HostBinding> FindBindingById(BindingId bindingId);
-    std::shared_ptr<HostBinding> FindBindingByDeviceUser(UserId userId, const DeviceKey &deviceKey);
-    std::optional<BindingId> FindPersistedBindingId(UserId companionUserId, const DeviceKey &hostDeviceKey);
+    std::shared_ptr<HostBinding> FindBindingByDeviceUser(const UserKey &userKey, const DeviceKey &deviceKey);
+    std::optional<BindingId> FindPersistedBindingId(const UserKey &companionUserKey, const DeviceKey &hostDeviceKey);
 
     ResultCode BeginAddHostBindingWithSecurityAgent(const CompanionBeginAddHostBindingInput &input,
         CompanionBeginAddHostBindingOutput &output);
@@ -80,7 +77,7 @@ private:
     void FillEndAddHostBindingOutput(const CompanionEndAddHostBindingOutput &ffiOutput,
         EndAddHostBindingOutput &output);
 
-    UserId activeUserId_ { INVALID_USER_ID };
+    UserKey activeUserKey_;
     std::vector<std::shared_ptr<HostBinding>> bindings_;
 
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;

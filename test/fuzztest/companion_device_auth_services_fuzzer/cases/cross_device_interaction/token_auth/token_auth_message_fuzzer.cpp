@@ -37,7 +37,7 @@ static void FuzzEncodeTokenAuthRequest(FuzzedDataProvider &fuzzData)
     uint32_t testVal64 = TEST_VAL64;
     request.hostDeviceKey.deviceId = GenerateFuzzString(fuzzData, testVal64);
     request.hostDeviceKey.deviceUserId = fuzzData.ConsumeIntegral<int32_t>();
-    request.companionUserId = fuzzData.ConsumeIntegral<int32_t>();
+    request.companionUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     request.extraInfo =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
 

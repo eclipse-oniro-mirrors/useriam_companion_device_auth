@@ -69,12 +69,23 @@ bool CompanionManagerImpl::Initialize()
     IAM_LOGI("initialize companion manager begin");
 
     unlockedActiveUserIdSubscription_ =
-        GetUserIdManager().SubscribeUnlockedActiveUserId([weakSelf = weak_from_this()](UserId userId) {
+        GetUserIdManager().SubscribeUnlockedActiveUserKey([weakSelf = weak_from_this()](const UserKey &userKey) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->OnActiveUserIdChanged(userId);
+            self->OnActiveUserKeyChanged(userKey);
         });
     ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
+
+    subProfileChangedSubscription_ = GetUserIdManager().SubscribeSubProfileChanged(
+        [weakSelf = weak_from_this()](const UserKey &userKey, SubProfileEventType eventType) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            if (eventType == SubProfileEventType::SWITCHED) {
+                self->OnActiveUserKeyChanged(userKey);
+                return;
+            }
+        });
+    ENSURE_OR_RETURN_VAL(subProfileChangedSubscription_ != nullptr, false);
 
     IAM_LOGI("initialize companion manager success");
     return true;
@@ -88,7 +99,7 @@ void CompanionManagerImpl::Reload(const std::vector<PersistedCompanionStatus> &p
     for (const auto &persistedStatus : persistedCompanionList) {
         ReloadSingleCompanion(persistedStatus, activeUserTemplateIds, nowMs.value());
     }
-    IAM_LOGI("reloaded %{public}zu companions for user %{public}d", companions_.size(), hostUserId_);
+    IAM_LOGI("reloaded %{public}zu companions for user %{public}d", companions_.size(), hostUserKey_.userId);
 }
 
 void CompanionManagerImpl::ReloadSingleCompanion(const PersistedCompanionStatus &persistedStatus,
@@ -121,13 +132,13 @@ std::optional<CompanionStatus> CompanionManagerImpl::GetCompanionStatus(Template
     return companion->GetStatus();
 }
 
-std::optional<CompanionStatus> CompanionManagerImpl::GetCompanionStatus(UserId hostUserId,
+std::optional<CompanionStatus> CompanionManagerImpl::GetCompanionStatus(const UserKey &hostUserKey,
     const DeviceKey &companionDeviceKey)
 {
-    auto companion = FindCompanionByDeviceUser(hostUserId, companionDeviceKey);
+    auto companion = FindCompanionByDeviceUser(hostUserKey, companionDeviceKey);
     if (companion == nullptr) {
-        IAM_LOGI("companion not found for device-user combination, userId %{public}d, deviceKey %{public}s", hostUserId,
-            companionDeviceKey.GetDesc().c_str());
+        IAM_LOGI("companion not found for device-user combination, userId %{public}d, deviceKey %{public}s",
+            hostUserKey.userId, companionDeviceKey.GetDesc().c_str());
         return std::nullopt;
     }
 
@@ -204,13 +215,13 @@ ResultCode CompanionManagerImpl::BeginAddCompanion(const BeginAddCompanionParams
 {
     IAM_LOGI("begin add companion, request id 0x%{public}08X", params.requestId);
 
-    if (hostUserId_ == INVALID_USER_ID) {
+    if (hostUserKey_.userId == INVALID_USER_ID) {
         IAM_LOGE("no active user");
         return ResultCode::GENERAL_ERROR;
     }
 
-    if (hostUserId_ != params.hostDeviceKey.deviceUserId) {
-        IAM_LOGE("host user id mismatch, expected %{public}d, actual %{public}d", hostUserId_,
+    if (hostUserKey_.userId != params.hostDeviceKey.deviceUserId) {
+        IAM_LOGE("host user id mismatch, expected %{public}d, actual %{public}d", hostUserKey_.userId,
             params.hostDeviceKey.deviceUserId);
         return ResultCode::GENERAL_ERROR;
     }
@@ -267,13 +278,12 @@ ResultCode CompanionManagerImpl::InvokeHostEndAddCompanion(const HostEndAddCompa
 void CompanionManagerImpl::ReconcileWithSecurityAgent()
 {
     IAM_LOGI("start");
-    if (hostUserId_ == INVALID_USER_ID) {
+    if (hostUserKey_.userId == INVALID_USER_ID) {
         IAM_LOGE("no active user");
         return;
     }
 
-    HostGetPersistedCompanionStatusInput input { hostUserId_,
-        GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_) };
+    HostGetPersistedCompanionStatusInput input { hostUserKey_ };
     HostGetPersistedCompanionStatusOutput output {};
     ResultCode ret = GetSecurityAgent().HostGetPersistedCompanionStatus(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -300,7 +310,7 @@ void CompanionManagerImpl::ReconcileWithSecurityAgent()
     }
 
     // add
-    auto activeUserTemplateIds = AdapterManager::GetInstance().GetIdmAdapter().GetUserTemplates(hostUserId_);
+    auto activeUserTemplateIds = AdapterManager::GetInstance().GetIdmAdapter().GetUserTemplates(hostUserKey_.userId);
     auto nowMs = GetTimeKeeper().GetSystemTimeMs();
     ENSURE_OR_RETURN(nowMs.has_value());
 
@@ -321,14 +331,16 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
 {
     IAM_LOGI("end add companion, request id 0x%{public}08X", input.requestId);
 
-    if (hostUserId_ == INVALID_USER_ID) {
+    if (hostUserKey_.userId == INVALID_USER_ID) {
         IAM_LOGE("no active user");
         return ResultCode::GENERAL_ERROR;
     }
 
-    if (hostUserId_ != input.companionStatus.hostUserId) {
-        IAM_LOGE("host user id mismatch, expected %{public}d, actual %{public}d", hostUserId_,
-            input.companionStatus.hostUserId);
+    if (hostUserKey_ != input.companionStatus.hostUserKey) {
+        IAM_LOGE("host user key mismatch, expected userId %{public}d subProfileId %{public}d, "
+                 "actual userId %{public}d subProfileId %{public}d",
+            hostUserKey_.userId, hostUserKey_.subProfileId,
+            input.companionStatus.hostUserKey.userId, input.companionStatus.hostUserKey.subProfileId);
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -409,7 +421,8 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId, bool rem
     NotifyCompanionStatusChange();
     ScopeGuard guard([this, templateId]() { HandleRemoveHostBindingComplete(templateId); });
     auto request =
-        GetRequestFactory().CreateHostRemoveHostBindingRequest(output.userId, templateId, output.companionDeviceKey);
+        GetRequestFactory().CreateHostRemoveHostBindingRequest({ output.userId, hostUserKey_.subProfileId },
+            templateId, output.companionDeviceKey);
     if (request == nullptr) {
         IAM_LOGE("CreateHostRemoveHostBindingRequest failed for templateId %{public}s",
             GET_MASKED_NUM_CSTR(templateId));
@@ -485,35 +498,37 @@ bool CompanionManagerImpl::IsCapabilitySupported(TemplateId templateId, Capabili
     return true;
 }
 
-void CompanionManagerImpl::OnActiveUserIdChanged(UserId userId)
+void CompanionManagerImpl::OnActiveUserKeyChanged(const UserKey &activeUserKey)
 {
-    if (userId == hostUserId_) {
-        IAM_LOGI("active user id is the same as the host user id");
+    if (activeUserKey == hostUserKey_) {
+        IAM_LOGI("host user key unchanged");
         return;
     }
 
-    IAM_LOGI("active user id changed from %{public}d to %{public}d", hostUserId_, userId);
+    IAM_LOGI("active user key changed from userId %{public}d subProfileId %{public}d "
+             "to userId %{public}d subProfileId %{public}d",
+        hostUserKey_.userId, hostUserKey_.subProfileId, activeUserKey.userId, activeUserKey.subProfileId);
     companions_.clear();
-    hostUserId_ = userId;
+    hostUserKey_ = activeUserKey;
     templateChangeSubscription_.reset();
 
-    if (hostUserId_ == INVALID_USER_ID) {
+    if (hostUserKey_.userId == INVALID_USER_ID) {
         return;
     }
 
-    templateChangeSubscription_ = AdapterManager::GetInstance().GetIdmAdapter().SubscribeUserTemplateChange(hostUserId_,
-        [weakSelf = weak_from_this()](UserId changedUserId, const std::vector<TemplateId> &templateIds) {
+    templateChangeSubscription_ = AdapterManager::GetInstance().GetIdmAdapter()
+        .SubscribeUserTemplateChange(hostUserKey_.userId,
+            [weakSelf = weak_from_this()](UserId changedUserId, const std::vector<TemplateId> &templateIds) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->OnTemplateListChanged(changedUserId, templateIds);
         });
     ENSURE_OR_RETURN(templateChangeSubscription_ != nullptr);
 
-    auto activeUserTemplateIds = AdapterManager::GetInstance().GetIdmAdapter().GetUserTemplates(hostUserId_);
-    IAM_LOGI("Got %{public}zu templates for user %{public}d", activeUserTemplateIds.size(), hostUserId_);
+    auto activeUserTemplateIds = AdapterManager::GetInstance().GetIdmAdapter().GetUserTemplates(hostUserKey_.userId);
+    IAM_LOGI("Got %{public}zu templates for user %{public}d", activeUserTemplateIds.size(), hostUserKey_.userId);
 
-    HostGetPersistedCompanionStatusInput input { hostUserId_,
-        GetSubProfileIdManager().GetForegroundSubProfileId(hostUserId_) };
+    HostGetPersistedCompanionStatusInput input { hostUserKey_ };
     HostGetPersistedCompanionStatusOutput output {};
     ResultCode ret = GetSecurityAgent().HostGetPersistedCompanionStatus(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -526,9 +541,9 @@ void CompanionManagerImpl::OnActiveUserIdChanged(UserId userId)
 
 void CompanionManagerImpl::OnTemplateListChanged(UserId userId, const std::vector<TemplateId> &templateIds)
 {
-    if (userId != hostUserId_) {
+    if (userId != hostUserKey_.userId) {
         IAM_LOGI("template list changed for non-host user %{public}d (current host: %{public}d), ignoring", userId,
-            hostUserId_);
+            hostUserKey_.userId);
         return;
     }
 
@@ -582,12 +597,12 @@ std::shared_ptr<Companion> CompanionManagerImpl::FindCompanionByTemplateId(Templ
     return (it != companions_.end()) ? *it : nullptr;
 }
 
-std::shared_ptr<Companion> CompanionManagerImpl::FindCompanionByDeviceUser(UserId hostUserId,
+std::shared_ptr<Companion> CompanionManagerImpl::FindCompanionByDeviceUser(const UserKey &hostUserKey,
     const DeviceKey &deviceKey)
 {
     auto it = std::find_if(companions_.begin(), companions_.end(),
-        [hostUserId, &deviceKey](const std::shared_ptr<Companion> &companion) {
-            return companion != nullptr && companion->GetHostUserId() == hostUserId &&
+        [hostUserKey, &deviceKey](const std::shared_ptr<Companion> &companion) {
+            return companion != nullptr && companion->GetHostUserKey() == hostUserKey &&
                 companion->GetCompanionDeviceKey() == deviceKey;
         });
 
@@ -599,7 +614,7 @@ ResultCode CompanionManagerImpl::AddCompanionInternal(const std::shared_ptr<Comp
     ENSURE_OR_RETURN_VAL(companion != nullptr, ResultCode::GENERAL_ERROR);
 
     TemplateId templateId = companion->GetTemplateId();
-    UserId userId = companion->GetHostUserId();
+    const UserKey &hostUserKey = companion->GetHostUserKey();
     const DeviceKey &deviceKey = companion->GetCompanionDeviceKey();
 
     if (FindCompanionByTemplateId(templateId) != nullptr) {
@@ -607,9 +622,9 @@ ResultCode CompanionManagerImpl::AddCompanionInternal(const std::shared_ptr<Comp
         return ResultCode::GENERAL_ERROR;
     }
 
-    auto oldCompanion = FindCompanionByDeviceUser(userId, deviceKey);
+    auto oldCompanion = FindCompanionByDeviceUser(hostUserKey, deviceKey);
     if (oldCompanion != nullptr) {
-        IAM_LOGI("user %{public}d, device %{public}s already exists, removing old companion", userId,
+        IAM_LOGI("user %{public}d, device %{public}s already exists, removing old companion", hostUserKey.userId,
             deviceKey.GetDesc().c_str());
         RemoveCompanion(oldCompanion->GetTemplateId(), false);
     }
@@ -617,7 +632,7 @@ ResultCode CompanionManagerImpl::AddCompanionInternal(const std::shared_ptr<Comp
     companions_.push_back(companion);
 
     IAM_LOGI("added companion template id %{public}s, companionDeviceKey %{public}s, host user %{public}d",
-        GET_MASKED_NUM_CSTR(templateId), deviceKey.GetDesc().c_str(), userId);
+        GET_MASKED_NUM_CSTR(templateId), deviceKey.GetDesc().c_str(), hostUserKey.userId);
     return ResultCode::SUCCESS;
 }
 
@@ -662,15 +677,15 @@ void CompanionManagerImpl::StartIssueTokenRequests(const std::vector<uint64_t> &
             continue;
         }
 
-        if (!companionStatus.companionDeviceStatus.isAuthMaintainActive) {
+        if (!companionStatus.companionDeviceStatus.isAuthMaintainActive.value_or(true)) {
             IAM_LOGI("companion %{public}s is not auth maintain active, skip", companion->GetDescription());
             continue;
         }
 
         IAM_LOGI("companion %{public}s creating HostIssueTokenRequest, userId=%{public}d", companion->GetDescription(),
-            companionStatus.hostUserId);
+            companionStatus.hostUserKey.userId);
 
-        auto request = GetRequestFactory().CreateHostIssueTokenRequest(companionStatus.hostUserId,
+        auto request = GetRequestFactory().CreateHostIssueTokenRequest(companionStatus.hostUserKey,
             companionStatus.templateId, lockStateAuthTypeValue, fwkUnlockMsg);
         if (request == nullptr) {
             IAM_LOGE("companion %{public}s failed to create HostIssueTokenRequest", companion->GetDescription());

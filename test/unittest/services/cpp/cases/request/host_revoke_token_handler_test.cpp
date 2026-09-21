@@ -51,7 +51,8 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_001, TestSize.Level0)
     MockGuard guard;
     CreateDefaultHandler();
     Attributes request;
-    RevokeTokenRequest revokeTokenRequest = { .hostUserId = 100, .companionDeviceKey = companionDeviceKey_ };
+    RevokeTokenRequest revokeTokenRequest = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
+        .companionDeviceKey = companionDeviceKey_ };
     EncodeRevokeTokenRequest(revokeTokenRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(revokeTokenRequest.companionDeviceKey.idType));
@@ -91,7 +92,8 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_003, TestSize.Level0)
     MockGuard guard;
     CreateDefaultHandler();
     Attributes request;
-    RevokeTokenRequest revokeTokenRequest = { .hostUserId = 100, .companionDeviceKey = companionDeviceKey_ };
+    RevokeTokenRequest revokeTokenRequest = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
+        .companionDeviceKey = companionDeviceKey_ };
     EncodeRevokeTokenRequest(revokeTokenRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(revokeTokenRequest.companionDeviceKey.idType));
@@ -115,7 +117,8 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_004, TestSize.Level0)
     MockGuard guard;
     CreateDefaultHandler();
     Attributes request;
-    RevokeTokenRequest revokeTokenRequest = { .hostUserId = 100, .companionDeviceKey = companionDeviceKey_ };
+    RevokeTokenRequest revokeTokenRequest = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
+        .companionDeviceKey = companionDeviceKey_ };
     EncodeRevokeTokenRequest(revokeTokenRequest, request);
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(revokeTokenRequest.companionDeviceKey.idType));

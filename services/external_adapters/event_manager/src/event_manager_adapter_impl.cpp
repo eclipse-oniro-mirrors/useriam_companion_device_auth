@@ -58,10 +58,10 @@ void EventManagerAdapterImpl::ReportSystemFault(std::string faultType, std::stri
 void EventManagerAdapterImpl::ReportInteractionEvent(const InteractionEventCollector &eventCollector)
 {
     std::string resultStr = std::to_string(static_cast<int32_t>(eventCollector.GetResult()));
-    int32_t hostUserId = eventCollector.GetHostUserId().value_or(0);
+    int32_t hostUserId = eventCollector.GetHostUserKey().value_or(UserKey {}).userId;
     std::string hostDeviceKey =
         eventCollector.GetHostDeviceKey().has_value() ? eventCollector.GetHostDeviceKey()->GetDesc() : "";
-    int32_t companionUserId = eventCollector.GetCompanionUserId().value_or(0);
+    int32_t companionUserId = eventCollector.GetCompanionUserKey().value_or(UserKey {}).userId;
     std::string companionDeviceKey =
         eventCollector.GetCompanionDeviceKey().has_value() ? eventCollector.GetCompanionDeviceKey()->GetDesc() : "";
     std::string connectionName = eventCollector.GetConnectionName().value_or("");
