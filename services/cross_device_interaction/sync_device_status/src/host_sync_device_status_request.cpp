@@ -213,8 +213,8 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
         return;
     }
 
-    UpdateCompanionUserIdAndSubProfileId(UserKey { replyData.companionDeviceKey.deviceUserId,
-        replyData.companionDeviceKey.deviceSubProfileId });
+    UpdateCompanionUserIdAndSubProfileId(
+        UserKey { replyData.companionDeviceKey.deviceUserId, replyData.companionDeviceKey.deviceSubProfileId });
 
     bool handleRet = EndCompanionCheck(replyData);
     ENSURE_OR_RETURN_DESC(GetDescription(), handleRet);
@@ -227,8 +227,8 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     syncDeviceStatus.secureProtocolId = replyData.secureProtocolId;
     syncDeviceStatus.deviceUserName = replyData.deviceUserName;
     syncDeviceStatus.deviceName = replyData.deviceName;
-    syncDeviceStatus.deviceUserKey = UserKey { replyData.companionDeviceKey.deviceUserId,
-        replyData.companionDeviceKey.deviceSubProfileId };
+    syncDeviceStatus.deviceUserKey =
+        UserKey { replyData.companionDeviceKey.deviceUserId, replyData.companionDeviceKey.deviceSubProfileId };
     syncDeviceStatus.deviceSubProfileName = replyData.deviceSubProfileName;
 
     eventCollector_.SetSelectedProtocolIdList(ProtocolIdConverter::ToUnderlyingVec(syncDeviceStatus.protocolIdList));
@@ -311,8 +311,8 @@ bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest([[maybe_unused]] cons
 
 void HostSyncDeviceStatusRequest::UpdateCompanionUserIdAndSubProfileId(const UserKey &companionUserKey)
 {
-    IAM_LOGI("companionUserId: %{public}d, companionSubProfileId: %{public}d",
-        companionUserKey.userId, companionUserKey.subProfileId);
+    IAM_LOGI("companionUserId: %{public}d, companionSubProfileId: %{public}d", companionUserKey.userId,
+        companionUserKey.subProfileId);
     companionDeviceKey_.deviceUserId = companionUserKey.userId;
     companionDeviceKey_.deviceSubProfileId = companionUserKey.subProfileId;
     SetPeerDeviceKey(companionDeviceKey_);

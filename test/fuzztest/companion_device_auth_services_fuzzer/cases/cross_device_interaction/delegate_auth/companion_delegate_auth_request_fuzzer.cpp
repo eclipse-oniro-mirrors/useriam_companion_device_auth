@@ -131,8 +131,8 @@ void FuzzCompanionDelegateAuthRequest(FuzzedDataProvider &fuzzData)
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = fuzzData.ConsumeIntegral<uint32_t>() };
     auto delegateAuthRequest = std::make_shared<CompanionDelegateAuthRequest>(connectionName,
-        UserKey{companionUserId, INVALID_SUB_PROFILE_ID},
-        hostDeviceKey, startDelegateAuthRequest, delegateAuthParam);
+        UserKey { companionUserId, INVALID_SUB_PROFILE_ID }, hostDeviceKey, startDelegateAuthRequest,
+        delegateAuthParam);
     if (!delegateAuthRequest) {
         return;
     }

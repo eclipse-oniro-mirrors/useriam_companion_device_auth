@@ -100,8 +100,8 @@ void PendingObtainTokenManager::EnsureSubscription()
     }
 
     if (!authMaintainSubscription_) {
-        authMaintainSubscription_ = GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive(
-            [weakSelf = weak_from_this()](bool isActive) {
+        authMaintainSubscription_ =
+            GetCrossDeviceCommManager().SubscribeIsAuthMaintainActive([weakSelf = weak_from_this()](bool isActive) {
                 auto self = weakSelf.lock();
                 ENSURE_OR_RETURN(self != nullptr);
                 self->OnAuthMaintainActiveChanged(isActive);

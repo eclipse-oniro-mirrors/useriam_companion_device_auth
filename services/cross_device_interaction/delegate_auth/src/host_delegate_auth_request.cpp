@@ -48,7 +48,7 @@ HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params
     FwkResultCallback &&requestCallback)
     : OutboundRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(params.fwkMsg),
-      hostUserKey_{params.hostUserKey},
+      hostUserKey_ { params.hostUserKey },
       requestCallback_(std::move(requestCallback)),
       selectContext_(params.selectContext),
       widgetAuthParam_(params.widgetAuthParam)

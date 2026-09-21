@@ -40,8 +40,7 @@ enum class SubProfileEventType : int32_t {
     SWITCHED = 3,
 };
 
-using SubProfileChangedCallback =
-    std::function<void(const UserKey &userKey, SubProfileEventType eventType)>;
+using SubProfileChangedCallback = std::function<void(const UserKey &userKey, SubProfileEventType eventType)>;
 
 class IUserIdManager : public NoCopyable {
 public:

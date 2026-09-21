@@ -38,7 +38,7 @@ namespace CompanionDeviceAuth {
 HostMixAuthRequest::HostMixAuthRequest(const HostMixAuthParams &params, FwkResultCallback &&requestCallback)
     : BaseRequest(RequestType::HOST_MIX_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS, "-"),
       fwkMsg_(params.fwkMsg),
-      hostUserKey_{params.hostUserKey},
+      hostUserKey_ { params.hostUserKey },
       templateIdList_(params.templateIdList),
       tokenId_(params.tokenId),
       businessId_(params.businessId),

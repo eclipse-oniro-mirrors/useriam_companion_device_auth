@@ -751,11 +751,10 @@ HWTEST_F(HostBindingTest, SetTokenValid_003, TestSize.Level0)
     ASSERT_NE(nullptr, binding);
 
     EXPECT_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillOnce(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                             const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillOnce(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     EXPECT_CALL(requestMgr, Start(_)).WillOnce(Return(false));
 
     binding->status_.isTokenValid = true;
@@ -806,11 +805,10 @@ HWTEST_F(HostBindingTest, SetTokenValid_004, TestSize.Level0)
     ASSERT_NE(nullptr, binding);
 
     EXPECT_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillOnce(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                             const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillOnce(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     EXPECT_CALL(requestMgr, Start(_)).WillOnce(Return(true));
 
     binding->status_.isTokenValid = true;

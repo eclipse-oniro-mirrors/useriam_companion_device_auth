@@ -37,7 +37,7 @@ HostSingleMixAuthRequest::HostSingleMixAuthRequest(const AuthRequestParams &para
     FwkResultCallback &&requestCallback)
     : BaseRequest(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS, "-"),
       fwkMsg_(params.fwkMsg),
-      hostUserKey_{params.hostUserKey},
+      hostUserKey_ { params.hostUserKey },
       authIntent_(params.authIntent),
       authScene_(params.authScene),
       requestCallback_(std::move(requestCallback)),

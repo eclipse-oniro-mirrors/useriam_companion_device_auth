@@ -184,8 +184,7 @@ void MockGuard::SetupUserIdManagerDefaults()
     ON_CALL(*userIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
         return std::make_unique<Subscription>([]() {});
     }));
-    ON_CALL(*userIdManager_, GetUnlockedActiveUserkey())
-        .WillByDefault(Return(UserKey { 0, INVALID_SUB_PROFILE_ID }));
+    ON_CALL(*userIdManager_, GetUnlockedActiveUserkey()).WillByDefault(Return(UserKey { 0, INVALID_SUB_PROFILE_ID }));
     ON_CALL(*userIdManager_, SubscribeUnlockedActiveUserKey(_))
         .WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
             return std::make_unique<Subscription>([]() {});
@@ -196,8 +195,9 @@ void MockGuard::SetupUserIdManagerDefaults()
     ON_CALL(*userIdManager_, GetForegroundSubProfileId(_)).WillByDefault(Return(INVALID_SUB_PROFILE_ID));
     ON_CALL(*userIdManager_, IsForegroundSubProfileId(_)).WillByDefault(Return(false));
     ON_CALL(*userIdManager_, GetSubProfileName(_)).WillByDefault(Return(std::nullopt));
-    ON_CALL(*userIdManager_, SubscribeSubProfileChanged(_))
-        .WillByDefault(Invoke([](SubProfileChangedCallback &&) { return std::make_unique<Subscription>([]() {}); }));
+    ON_CALL(*userIdManager_, SubscribeSubProfileChanged(_)).WillByDefault(Invoke([](SubProfileChangedCallback &&) {
+        return std::make_unique<Subscription>([]() {});
+    }));
 }
 
 void MockGuard::SetupSystemSettingsManagerDefaults()
@@ -297,8 +297,7 @@ void MockGuard::SetupHostBindingManagerDefaults()
     ON_CALL(*hostBindingManager_, SetHostBindingTokenValid(_, _)).WillByDefault(Return(true));
     ON_CALL(*hostBindingManager_, StartObtainTokenRequests(_, _, _)).WillByDefault(Return());
     ON_CALL(*hostBindingManager_, RevokeTokens(_, _)).WillByDefault(Return());
-    ON_CALL(*hostBindingManager_, GetAllHostBindingStatus())
-        .WillByDefault(Return(std::vector<HostBindingStatus> {}));
+    ON_CALL(*hostBindingManager_, GetAllHostBindingStatus()).WillByDefault(Return(std::vector<HostBindingStatus> {}));
 }
 
 void MockGuard::SetupSecurityAgentDefaults()

@@ -339,8 +339,8 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
     if (hostUserKey_ != input.companionStatus.hostUserKey) {
         IAM_LOGE("host user key mismatch, expected userId %{public}d subProfileId %{public}d, "
                  "actual userId %{public}d subProfileId %{public}d",
-            hostUserKey_.userId, hostUserKey_.subProfileId,
-            input.companionStatus.hostUserKey.userId, input.companionStatus.hostUserKey.subProfileId);
+            hostUserKey_.userId, hostUserKey_.subProfileId, input.companionStatus.hostUserKey.userId,
+            input.companionStatus.hostUserKey.subProfileId);
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -420,9 +420,8 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId, bool rem
     companion->SetAddedToIdm(false);
     NotifyCompanionStatusChange();
     ScopeGuard guard([this, templateId]() { HandleRemoveHostBindingComplete(templateId); });
-    auto request =
-        GetRequestFactory().CreateHostRemoveHostBindingRequest({ output.userId, hostUserKey_.subProfileId },
-            templateId, output.companionDeviceKey);
+    auto request = GetRequestFactory().CreateHostRemoveHostBindingRequest({ output.userId, hostUserKey_.subProfileId },
+        templateId, output.companionDeviceKey);
     if (request == nullptr) {
         IAM_LOGE("CreateHostRemoveHostBindingRequest failed for templateId %{public}s",
             GET_MASKED_NUM_CSTR(templateId));
@@ -516,13 +515,13 @@ void CompanionManagerImpl::OnActiveUserKeyChanged(const UserKey &activeUserKey)
         return;
     }
 
-    templateChangeSubscription_ = AdapterManager::GetInstance().GetIdmAdapter()
-        .SubscribeUserTemplateChange(hostUserKey_.userId,
+    templateChangeSubscription_ =
+        AdapterManager::GetInstance().GetIdmAdapter().SubscribeUserTemplateChange(hostUserKey_.userId,
             [weakSelf = weak_from_this()](UserId changedUserId, const std::vector<TemplateId> &templateIds) {
-            auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            self->OnTemplateListChanged(changedUserId, templateIds);
-        });
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->OnTemplateListChanged(changedUserId, templateIds);
+            });
     ENSURE_OR_RETURN(templateChangeSubscription_ != nullptr);
 
     auto activeUserTemplateIds = AdapterManager::GetInstance().GetIdmAdapter().GetUserTemplates(hostUserKey_.userId);

@@ -56,19 +56,18 @@ std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 bool SecurityAgentImpl::Initialize()
 {
     auto &userIdManager = GetUserIdManager();
-    unlockedActiveUserSubscription_ =
-        userIdManager.SubscribeUnlockedActiveUserKey([this](const UserKey &userKey) {
-            auto result = SetActiveUser(SetActiveUserInput { userKey, CollectValidUserKeys() });
-            if (result != SUCCESS) {
-                IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
-            }
-        });
+    unlockedActiveUserSubscription_ = userIdManager.SubscribeUnlockedActiveUserKey([this](const UserKey &userKey) {
+        auto result = SetActiveUser(SetActiveUserInput { userKey, CollectValidUserKeys() });
+        if (result != SUCCESS) {
+            IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
+        }
+    });
     if (unlockedActiveUserSubscription_ == nullptr) {
         return false;
     }
 
-    subProfileChangedSubscription_ = userIdManager.SubscribeSubProfileChanged(
-        [this](const UserKey &userKey, SubProfileEventType eventType) {
+    subProfileChangedSubscription_ =
+        userIdManager.SubscribeSubProfileChanged([this](const UserKey &userKey, SubProfileEventType eventType) {
             UserKey activeUser = userKey;
             if (eventType == SubProfileEventType::DELETED) {
                 activeUser = GetUserIdManager().GetUnlockedActiveUserkey();
@@ -83,8 +82,7 @@ bool SecurityAgentImpl::Initialize()
     }
 
     auto unlockedActiveUser = userIdManager.GetUnlockedActiveUserkey();
-    auto result =
-        SetActiveUser(SetActiveUserInput { unlockedActiveUser, CollectValidUserKeys() });
+    auto result = SetActiveUser(SetActiveUserInput { unlockedActiveUser, CollectValidUserKeys() });
     if (result != SUCCESS) {
         return false;
     }

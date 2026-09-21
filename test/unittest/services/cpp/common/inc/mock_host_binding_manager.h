@@ -33,8 +33,8 @@ public:
         (const BeginAddHostBindingInput &input, BeginAddHostBindingOutput &output), (override));
     MOCK_METHOD(ResultCode, EndAddHostBinding, (const EndAddHostBindingInput &input, EndAddHostBindingOutput &output),
         (override));
-    MOCK_METHOD(ResultCode, RemoveHostBinding,
-        (const UserKey &companionUserKey, const DeviceKey &hostDeviceKey), (override));
+    MOCK_METHOD(ResultCode, RemoveHostBinding, (const UserKey &companionUserKey, const DeviceKey &hostDeviceKey),
+        (override));
     MOCK_METHOD(bool, SetHostBindingTokenValid, (BindingId bindingId, bool isTokenValid), (override));
     MOCK_METHOD(void, StartObtainTokenRequests,
         (const UserKey &activeUserKey, uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg),

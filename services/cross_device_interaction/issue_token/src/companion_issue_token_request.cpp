@@ -104,8 +104,8 @@ bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &pr
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionUserKey_.userId == localDeviceKey->deviceUserId, false);
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(),
-        companionUserKey_.subProfileId == localDeviceKey->deviceSubProfileId, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionUserKey_.subProfileId == localDeviceKey->deviceSubProfileId,
+        false);
 
     preIssueTokenRequest_ = preIssueRequest.extraInfo;
 
@@ -133,8 +133,7 @@ SecureProtocolId CompanionIssueTokenRequest::QuerySecureProtocolId()
 
 std::optional<BindingId> CompanionIssueTokenRequest::QueryBindingIdFromHostBinding()
 {
-    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(
-        companionUserKey_, PeerDeviceKey());
+    auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(companionUserKey_, PeerDeviceKey());
     if (!hostBindingStatus.has_value()) {
         IAM_LOGE("%{public}s GetHostBindingStatus failed", GetDescription());
         return std::nullopt;

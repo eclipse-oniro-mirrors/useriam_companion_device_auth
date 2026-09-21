@@ -212,9 +212,8 @@ void HostBinding::SetTokenValid(bool isTokenValid, const std::string &triggerRea
         }
 
         const DeviceKey &hostDeviceKey = status_.hostDeviceStatus.deviceKey;
-        auto request = GetRequestFactory().CreateCompanionRevokeTokenRequest(
-            status_.companionUserKey,
-            hostDeviceKey, triggerReason);
+        auto request = GetRequestFactory().CreateCompanionRevokeTokenRequest(status_.companionUserKey, hostDeviceKey,
+            triggerReason);
         ENSURE_OR_RETURN_DESC(GetDescription(), request != nullptr);
 
         bool result = GetRequestManager().Start(request);

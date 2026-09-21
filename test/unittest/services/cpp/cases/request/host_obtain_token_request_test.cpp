@@ -604,7 +604,8 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_001, TestSize.
     auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
-    ObtainTokenRequest req = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID }, .extraInfo = {},
+    ObtainTokenRequest req = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
+        .extraInfo = {},
         .companionDeviceKey = COMPANION_DEVICE_KEY };
     std::vector<uint8_t> obtainTokenReply;
 
@@ -620,7 +621,8 @@ HWTEST_F(HostObtainTokenRequestTest, HandleHostProcessObtainToken_002, TestSize.
     auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
         OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
 
-    ObtainTokenRequest req = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID }, .extraInfo = {},
+    ObtainTokenRequest req = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
+        .extraInfo = {},
         .companionDeviceKey = COMPANION_DEVICE_KEY };
     std::vector<uint8_t> obtainTokenReply;
 

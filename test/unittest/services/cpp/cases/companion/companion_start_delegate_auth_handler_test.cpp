@@ -64,8 +64,8 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_001, TestSize.Leve
         .WillOnce(Invoke([](const std::string &connectionName, const UserKey &companionUserKey,
                              const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
                              const CompanionDelegateAuthParam &delegateAuthParam) {
-            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserKey,
-                hostDeviceKey, startDelegateAuthRequest, delegateAuthParam);
+            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserKey, hostDeviceKey,
+                startDelegateAuthRequest, delegateAuthParam);
         }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
@@ -139,8 +139,8 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_004, TestSize.Leve
         .WillOnce(Invoke([](const std::string &connectionName, const UserKey &companionUserKey,
                              const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
                              const CompanionDelegateAuthParam &delegateAuthParam) {
-            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserKey,
-                hostDeviceKey, startDelegateAuthRequest, delegateAuthParam);
+            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserKey, hostDeviceKey,
+                startDelegateAuthRequest, delegateAuthParam);
         }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(false));
 

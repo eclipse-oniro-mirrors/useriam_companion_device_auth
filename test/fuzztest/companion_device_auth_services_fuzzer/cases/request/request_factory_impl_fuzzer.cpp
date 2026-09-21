@@ -80,8 +80,8 @@ static void FuzzCreateHostRemoveHostBindingRequest(std::shared_ptr<RequestFactor
     UserId hostUserId = fuzzData.ConsumeIntegral<UserId>();
     TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto request = factory->CreateHostRemoveHostBindingRequest(
-        UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, templateId, companionDeviceKey);
+    auto request = factory->CreateHostRemoveHostBindingRequest(UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
+        templateId, companionDeviceKey);
     (void)request;
 }
 
@@ -95,9 +95,8 @@ static void FuzzCreateHostSyncDeviceStatusRequest(std::shared_ptr<RequestFactory
         (void)result;
         (void)status;
     };
-    auto request = factory->CreateHostSyncDeviceStatusRequest(
-        UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, companionDeviceKey, deviceName,
-        std::move(callback));
+    auto request = factory->CreateHostSyncDeviceStatusRequest(UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
+        companionDeviceKey, deviceName, std::move(callback));
     (void)request;
 }
 
@@ -109,8 +108,8 @@ static void FuzzCreateHostIssueTokenRequest(std::shared_ptr<RequestFactoryImpl> 
     uint32_t lockStateAuthTypeValue = fuzzData.ConsumeIntegral<uint32_t>();
     std::vector<uint8_t> msg =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
-    auto request = factory->CreateHostIssueTokenRequest(
-        UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, templateId, lockStateAuthTypeValue, msg);
+    auto request = factory->CreateHostIssueTokenRequest(UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, templateId,
+        lockStateAuthTypeValue, msg);
     (void)request;
 }
 
@@ -190,9 +189,9 @@ static void FuzzCreateCompanionDelegateAuthRequest(std::shared_ptr<RequestFactor
     std::vector<uint8_t> startDelegateAuthRequest =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = fuzzData.ConsumeIntegral<uint32_t>() };
-    auto request = factory->CreateCompanionDelegateAuthRequest(connectionName,
-        UserKey { companionUserId, INVALID_SUB_PROFILE_ID }, hostDeviceKey,
-        startDelegateAuthRequest, delegateAuthParam);
+    auto request =
+        factory->CreateCompanionDelegateAuthRequest(connectionName, UserKey { companionUserId, INVALID_SUB_PROFILE_ID },
+            hostDeviceKey, startDelegateAuthRequest, delegateAuthParam);
     (void)request;
 }
 
@@ -203,8 +202,8 @@ static void FuzzCreateCompanionRevokeTokenRequest(std::shared_ptr<RequestFactory
     int32_t companionSubProfileId = fuzzData.ConsumeIntegral<int32_t>();
     DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     std::string triggerReason = GenerateFuzzString(fuzzData, SIZE_64);
-    auto request = factory->CreateCompanionRevokeTokenRequest(
-        UserKey { companionUserId, companionSubProfileId }, hostDeviceKey, triggerReason);
+    auto request = factory->CreateCompanionRevokeTokenRequest(UserKey { companionUserId, companionSubProfileId },
+        hostDeviceKey, triggerReason);
     (void)request;
 }
 

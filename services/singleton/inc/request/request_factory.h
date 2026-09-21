@@ -86,8 +86,8 @@ public:
     virtual std::shared_ptr<IRequest> CreateHostSyncDeviceStatusRequest(const UserKey &hostUserKey,
         const DeviceKey &companionDeviceKey, const std::string &companionDeviceName,
         SyncDeviceStatusCallback &&callback) = 0;
-    virtual std::shared_ptr<IRequest> CreateHostIssueTokenRequest(const UserKey &hostUserKey,
-        TemplateId templateId, uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) = 0;
+    virtual std::shared_ptr<IRequest> CreateHostIssueTokenRequest(const UserKey &hostUserKey, TemplateId templateId,
+        uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual std::shared_ptr<IRequest> CreateHostDelegateAuthRequest(const AuthRequestParams &params,
         FwkResultCallback &&requestCallback) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionAddCompanionRequest(const std::string &connectionName,
@@ -100,8 +100,7 @@ public:
         uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
         const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-        const std::vector<uint8_t> &startDelegateAuthRequest,
-        const CompanionDelegateAuthParam &delegateAuthParam) = 0;
+        const std::vector<uint8_t> &startDelegateAuthRequest, const CompanionDelegateAuthParam &delegateAuthParam) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey, const std::string &triggerReason) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRequestResyncRequest(

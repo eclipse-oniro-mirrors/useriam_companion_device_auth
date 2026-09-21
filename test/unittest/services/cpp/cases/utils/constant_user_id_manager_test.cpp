@@ -88,8 +88,8 @@ HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserKey_001, TestSize
     bool callbackCalled = false;
     int32_t receivedUserId = 0;
 
-    auto subscription = manager->SubscribeUnlockedActiveUserKey(
-        [&callbackCalled, &receivedUserId](const UserKey &userKey) {
+    auto subscription =
+        manager->SubscribeUnlockedActiveUserKey([&callbackCalled, &receivedUserId](const UserKey &userKey) {
             callbackCalled = true;
             receivedUserId = userKey.userId;
         });

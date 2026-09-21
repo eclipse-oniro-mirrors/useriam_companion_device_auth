@@ -411,8 +411,7 @@ void HostBindingManagerImpl::StartObtainTokenRequests(const UserKey &activeUserK
     if (activeUserKey_ != activeUserKey) {
         IAM_LOGI("userKey mismatch: requested userId %{public}d subProfileId %{public}d, "
                  "active userId %{public}d subProfileId %{public}d, skip",
-            activeUserKey.userId, activeUserKey.subProfileId, activeUserKey_.userId,
-            activeUserKey_.subProfileId);
+            activeUserKey.userId, activeUserKey.subProfileId, activeUserKey_.userId, activeUserKey_.subProfileId);
         return;
     }
 

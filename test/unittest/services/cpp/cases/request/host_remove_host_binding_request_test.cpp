@@ -56,9 +56,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
@@ -74,9 +73,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(false));
 
@@ -90,9 +88,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, OnStart_003, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
@@ -109,9 +106,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, OnConnected_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
     request->SetPeerDeviceKey(HOST_DEVICE_KEY);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -125,9 +121,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, SendRemoveHostBindingRequest_001, Tes
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
     ASSERT_NO_THROW(request->SendRemoveHostBindingRequest());
 }
 
@@ -135,9 +130,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, SendRemoveHostBindingRequest_002, Tes
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
     request->SetPeerDeviceKey(HOST_DEVICE_KEY);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
@@ -150,9 +144,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, HandleRemoveHostBindingReply_001, Tes
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
     Attributes message;
     RemoveHostBindingReply reply = { .result = ResultCode::SUCCESS };
@@ -165,9 +158,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, HandleRemoveHostBindingReply_002, Tes
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
     Attributes message;
     ASSERT_NO_THROW(request->HandleRemoveHostBindingReply(message));
@@ -177,9 +169,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, HandleRemoveHostBindingReply_003, Tes
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
     Attributes message;
     RemoveHostBindingReply reply = { .result = ResultCode::GENERAL_ERROR };
@@ -192,9 +183,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, GetMaxConcurrency_001, TestSize.Level
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
     EXPECT_EQ(request->GetMaxConcurrency(), 10);
 }
@@ -203,9 +193,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, ShouldCancelOnNewRequest_001, TestSiz
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
     auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_REMOVE_HOST_BINDING_REQUEST);
     bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
@@ -216,9 +205,8 @@ HWTEST_F(HostRemoveHostBindingRequestTest, ShouldCancelOnNewRequest_002, TestSiz
 {
     MockGuard guard;
 
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey{HOST_USER_ID, INVALID_SUB_PROFILE_ID},
-        TEMPLATE_ID,
-        COMPANION_DEVICE_KEY);
+    auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, COMPANION_DEVICE_KEY);
 
     auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ADD_COMPANION_REQUEST);
     bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);

@@ -204,8 +204,8 @@ void LocalDeviceStatusManager::NotifyStatusChange()
 
 void LocalDeviceStatusManager::OnActiveUserKeyChanged(const UserKey &userKey)
 {
-    IAM_LOGI("active user key changed: userId=%{public}d, subProfileId=%{public}d",
-        userKey.userId, userKey.subProfileId);
+    IAM_LOGI("active user key changed: userId=%{public}d, subProfileId=%{public}d", userKey.userId,
+        userKey.subProfileId);
     NotifyStatusChange();
 }
 } // namespace CompanionDeviceAuth

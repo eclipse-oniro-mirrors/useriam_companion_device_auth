@@ -41,7 +41,7 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_001,
 {
     RemoveHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserKey = UserKey { companionUserId_, 42 },
-        .extraInfo = extraInfo_};
+        .extraInfo = extraInfo_ };
 
     Attributes attributes;
     EncodeRemoveHostBindingRequest(request, attributes);
@@ -64,7 +64,7 @@ HWTEST_F(RemoveHostBindingMessageTest, EncodeDecodeRemoveHostBindingRequest_002,
 {
     RemoveHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserKey = UserKey { companionUserId_, 42 },
-        .extraInfo = {}};
+        .extraInfo = {} };
 
     Attributes attributes;
     EncodeRemoveHostBindingRequest(request, attributes);

@@ -84,9 +84,8 @@ void CompanionObtainTokenRequest::OnConnected()
 
     auto localDeviceKeyOpt = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC(GetDescription(), localDeviceKeyOpt.has_value());
-    bool isForegroundSubProfileId =
-        GetUserIdManager().IsForegroundSubProfileId(
-            UserKey { localDeviceKeyOpt->deviceUserId, localDeviceKeyOpt->deviceSubProfileId });
+    bool isForegroundSubProfileId = GetUserIdManager().IsForegroundSubProfileId(
+        UserKey { localDeviceKeyOpt->deviceUserId, localDeviceKeyOpt->deviceSubProfileId });
     ENSURE_OR_RETURN_DESC(GetDescription(), isForegroundSubProfileId);
 
     companionDeviceKey_ = localDeviceKeyOpt.value();
@@ -165,8 +164,7 @@ std::optional<BindingId> CompanionObtainTokenRequest::QueryBindingIdFromHostBind
     auto peerDeviceKey = GetPeerDeviceKey();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey.has_value(), std::nullopt);
     auto hostBindingStatus = GetHostBindingManager().GetHostBindingStatus(
-        UserKey { companionDeviceKey_.deviceUserId, companionDeviceKey_.deviceSubProfileId },
-        peerDeviceKey.value());
+        UserKey { companionDeviceKey_.deviceUserId, companionDeviceKey_.deviceSubProfileId }, peerDeviceKey.value());
     if (!hostBindingStatus.has_value()) {
         IAM_LOGE("%{public}s GetHostBindingStatus failed", GetDescription());
         return std::nullopt;

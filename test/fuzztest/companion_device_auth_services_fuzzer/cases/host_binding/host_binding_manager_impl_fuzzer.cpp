@@ -126,7 +126,7 @@ static void FuzzOnActiveUserKeyChanged(std::shared_ptr<HostBindingManagerImpl> &
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
     int32_t subProfileId = fuzzData.ConsumeIntegral<int32_t>();
-    manager->OnActiveUserKeyChanged(UserKey{userId, subProfileId});
+    manager->OnActiveUserKeyChanged(UserKey { userId, subProfileId });
 }
 
 static void FuzzCreate(std::shared_ptr<HostBindingManagerImpl> &manager, FuzzedDataProvider &fuzzData)
@@ -148,7 +148,7 @@ static void FuzzFindBindingByDeviceUser(std::shared_ptr<HostBindingManagerImpl> 
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto binding = manager->FindBindingByDeviceUser(UserKey{userId, INVALID_SUB_PROFILE_ID}, deviceKey);
+    auto binding = manager->FindBindingByDeviceUser(UserKey { userId, INVALID_SUB_PROFILE_ID }, deviceKey);
     (void)binding;
 }
 

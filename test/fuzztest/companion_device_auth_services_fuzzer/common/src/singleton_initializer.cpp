@@ -1242,8 +1242,8 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(const UserKey &hostUserKey,
-        TemplateId templateId, const DeviceKey &companionDeviceKey) override
+    std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(const UserKey &hostUserKey, TemplateId templateId,
+        const DeviceKey &companionDeviceKey) override
     {
         (void)hostUserKey;
         (void)templateId;
@@ -1266,8 +1266,8 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateHostIssueTokenRequest(const UserKey &hostUserKey,
-        TemplateId templateId, uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) override
+    std::shared_ptr<IRequest> CreateHostIssueTokenRequest(const UserKey &hostUserKey, TemplateId templateId,
+        uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) override
     {
         (void)hostUserKey;
         (void)templateId;

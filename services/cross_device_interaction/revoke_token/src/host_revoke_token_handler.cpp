@@ -62,8 +62,7 @@ void HostRevokeTokenHandler::HandleRequest(const Attributes &request, Attributes
     const auto &requestMsg = *requestMsgOpt;
 
     auto companionStatus =
-        GetCompanionManager().GetCompanionStatus(requestMsg.hostUserKey,
-            requestMsg.companionDeviceKey);
+        GetCompanionManager().GetCompanionStatus(requestMsg.hostUserKey, requestMsg.companionDeviceKey);
     if (!companionStatus) {
         IAM_LOGE("%{public}s GetCompanionStatus failed", desc.GetCStr());
         return;

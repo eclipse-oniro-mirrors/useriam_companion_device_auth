@@ -39,7 +39,7 @@ HostTokenAuthRequest::HostTokenAuthRequest(const AuthRequestParams &params, cons
     FwkResultCallback &&requestCallback)
     : OutboundRequest(RequestType::HOST_TOKEN_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(params.fwkMsg),
-      hostUserKey_{params.hostUserKey},
+      hostUserKey_ { params.hostUserKey },
       requestCallback_(std::move(requestCallback))
 {
     templateId_ = params.templateId;

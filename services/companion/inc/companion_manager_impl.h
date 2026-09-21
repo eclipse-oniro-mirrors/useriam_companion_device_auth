@@ -28,8 +28,8 @@
 #include "service_common.h"
 #include "singleton.h"
 #include "singleton_manager.h"
-#include "user_id_manager.h"
 #include "subscription.h"
+#include "user_id_manager.h"
 
 namespace OHOS {
 namespace UserIam {
