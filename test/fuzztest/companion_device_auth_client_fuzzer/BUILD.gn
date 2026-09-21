@@ -51,6 +51,7 @@ ohos_fuzztest("CompanionDeviceAuthClientFuzzer") {
   deps = companion_device_auth_client_deps
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "dsoftbus:softbus_client",
     "hilog:libhilog",
