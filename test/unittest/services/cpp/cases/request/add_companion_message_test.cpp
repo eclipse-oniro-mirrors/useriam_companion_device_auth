@@ -154,7 +154,7 @@ HWTEST_F(AddCompanionMessageTest, DecodeInitKeyNegotiationReply_002, TestSize.Le
 HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_001, TestSize.Level0)
 {
     BeginAddHostBindingRequest request = { .companionUserKey = UserKey { companionUserId_, 42 },
-        .extraInfo = extraInfo_};
+        .extraInfo = extraInfo_ };
 
     Attributes attributes;
     EncodeBeginAddHostBindingRequest(request, attributes);
@@ -168,8 +168,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_001, Te
 
 HWTEST_F(AddCompanionMessageTest, EncodeDecodeBeginAddHostBindingRequest_002, TestSize.Level0)
 {
-    BeginAddHostBindingRequest request = { .companionUserKey = UserKey { companionUserId_, 42 },
-        .extraInfo = {}};
+    BeginAddHostBindingRequest request = { .companionUserKey = UserKey { companionUserId_, 42 }, .extraInfo = {} };
 
     Attributes attributes;
     EncodeBeginAddHostBindingRequest(request, attributes);
@@ -260,7 +259,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeEndAddHostBindingRequest_001, Test
 {
     EndAddHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserKey = UserKey { companionUserId_, 42 },
-        .result = ResultCode::SUCCESS};
+        .result = ResultCode::SUCCESS };
 
     Attributes attributes;
     EncodeEndAddHostBindingRequest(request, attributes);
@@ -283,7 +282,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeEndAddHostBindingRequest_002, Test
 {
     EndAddHostBindingRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserKey = UserKey { companionUserId_, 42 },
-        .result = ResultCode::GENERAL_ERROR};
+        .result = ResultCode::GENERAL_ERROR };
 
     Attributes attributes;
     EncodeEndAddHostBindingRequest(request, attributes);

@@ -89,11 +89,10 @@ void SetupManagerCreationMocks(MockGuard &guard)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
 
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
@@ -145,11 +144,10 @@ HWTEST_F(HostBindingManagerImplTest, Create_001, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto &subProfileIdMgr = guard.GetUserIdManager();
@@ -195,11 +193,10 @@ HWTEST_F(HostBindingManagerImplTest, Initialize_001, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -262,11 +259,10 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusById_002, TestSize.Leve
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -296,8 +292,7 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusByDeviceUser_001, TestS
     deviceKey.deviceId = "device-1";
     deviceKey.deviceUserId = 200;
 
-    auto status = manager->GetHostBindingStatus(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        deviceKey);
+    auto status = manager->GetHostBindingStatus(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, deviceKey);
     ASSERT_TRUE(status.has_value());
     EXPECT_EQ(12345, status->bindingId);
 }
@@ -333,11 +328,10 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusByDeviceUser_002, TestS
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -348,8 +342,7 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusByDeviceUser_002, TestS
     deviceKey.deviceId = "device-1";
     deviceKey.deviceUserId = 200;
 
-    auto status = manager->GetHostBindingStatus(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        deviceKey);
+    auto status = manager->GetHostBindingStatus(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, deviceKey);
     EXPECT_FALSE(status.has_value());
 }
 
@@ -384,11 +377,10 @@ HWTEST_F(HostBindingManagerImplTest, GetAllHostBindingStatus_001, TestSize.Level
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -437,11 +429,10 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_001, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -451,8 +442,8 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_001, TestSize.Level0)
 
     std::vector<uint8_t> request;
     BeginAddHostBindingOutput output;
-    ResultCode ret = manager->BeginAddHostBinding({ 1, UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        SecureProtocolId::DEFAULT, request }, output);
+    ResultCode ret = manager->BeginAddHostBinding(
+        { 1, UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, SecureProtocolId::DEFAULT, request }, output);
 
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
 }
@@ -488,11 +479,10 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_002, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -504,8 +494,8 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_002, TestSize.Level0)
 
     std::vector<uint8_t> request;
     BeginAddHostBindingOutput output;
-    ResultCode ret = manager->BeginAddHostBinding({ 1, UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        SecureProtocolId::DEFAULT, request }, output);
+    ResultCode ret = manager->BeginAddHostBinding(
+        { 1, UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, SecureProtocolId::DEFAULT, request }, output);
 
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
 }
@@ -543,8 +533,8 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_003, TestSize.Level0)
 
     std::vector<uint8_t> request;
     BeginAddHostBindingOutput output;
-    ResultCode ret = manager->BeginAddHostBinding({ 1, UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        SecureProtocolId::DEFAULT, request }, output);
+    ResultCode ret = manager->BeginAddHostBinding(
+        { 1, UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, SecureProtocolId::DEFAULT, request }, output);
 
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
 }
@@ -572,8 +562,8 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_004, TestSize.Level0)
 
     std::vector<uint8_t> request;
     BeginAddHostBindingOutput output;
-    ResultCode ret = manager->BeginAddHostBinding({ 1, UserKey { activeUserId, INVALID_SUB_PROFILE_ID },
-        SecureProtocolId::DEFAULT, request }, output);
+    ResultCode ret = manager->BeginAddHostBinding(
+        { 1, UserKey { activeUserId, INVALID_SUB_PROFILE_ID }, SecureProtocolId::DEFAULT, request }, output);
 
     EXPECT_EQ(ResultCode::SUCCESS, ret);
     EXPECT_EQ(4u, output.addHostBindingReply.size());
@@ -608,8 +598,8 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_005, TestSize.Level0)
 
     std::vector<uint8_t> request;
     BeginAddHostBindingOutput output;
-    ResultCode ret = manager->BeginAddHostBinding({ 1, UserKey { activeUserId, INVALID_SUB_PROFILE_ID },
-        SecureProtocolId::DEFAULT, request }, output);
+    ResultCode ret = manager->BeginAddHostBinding(
+        { 1, UserKey { activeUserId, INVALID_SUB_PROFILE_ID }, SecureProtocolId::DEFAULT, request }, output);
 
     EXPECT_EQ(ResultCode::SUCCESS, ret);
     EXPECT_FALSE(manager->GetHostBindingStatus(12346).has_value());
@@ -642,8 +632,8 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_006, TestSize.Level0)
 
     std::vector<uint8_t> request = { 1, 2, 3 };
     BeginAddHostBindingOutput output;
-    ResultCode ret = manager->BeginAddHostBinding({ 1, UserKey { activeUserId, INVALID_SUB_PROFILE_ID },
-        SecureProtocolId::DEFAULT, request }, output);
+    ResultCode ret = manager->BeginAddHostBinding(
+        { 1, UserKey { activeUserId, INVALID_SUB_PROFILE_ID }, SecureProtocolId::DEFAULT, request }, output);
 
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
 }
@@ -679,11 +669,10 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_001, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -756,11 +745,10 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_002, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -846,11 +834,10 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_001, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -861,8 +848,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_001, TestSize.Level0)
     deviceKey.deviceId = "device-1";
     deviceKey.deviceUserId = 200;
 
-    ResultCode ret = manager->RemoveHostBinding(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        deviceKey);
+    ResultCode ret = manager->RemoveHostBinding(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, deviceKey);
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
 }
 
@@ -906,8 +892,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_002, TestSize.Level0)
         }));
     EXPECT_CALL(securityAgent, CompanionRemoveHostBinding(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
-    ResultCode ret = manager->RemoveHostBinding(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        deviceKey);
+    ResultCode ret = manager->RemoveHostBinding(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, deviceKey);
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
 }
 
@@ -951,8 +936,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_003, TestSize.Level0)
         }));
     EXPECT_CALL(securityAgent, CompanionRemoveHostBinding(_)).WillOnce(Return(ResultCode::SUCCESS));
 
-    ResultCode ret = manager->RemoveHostBinding(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        deviceKey);
+    ResultCode ret = manager->RemoveHostBinding(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, deviceKey);
     EXPECT_EQ(ResultCode::SUCCESS, ret);
     EXPECT_FALSE(manager->GetHostBindingStatus(12345).has_value());
 }
@@ -996,8 +980,7 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_004, TestSize.Level0)
     deviceKey.deviceId = "device-1";
     deviceKey.deviceUserId = 200;
 
-    ResultCode ret = manager->RemoveHostBinding(UserKey { nonActiveUserId, INVALID_SUB_PROFILE_ID },
-        deviceKey);
+    ResultCode ret = manager->RemoveHostBinding(UserKey { nonActiveUserId, INVALID_SUB_PROFILE_ID }, deviceKey);
     EXPECT_EQ(ResultCode::SUCCESS, ret);
     EXPECT_FALSE(manager->GetHostBindingStatus(nonActiveBindingId).has_value());
 }
@@ -1033,11 +1016,10 @@ HWTEST_F(HostBindingManagerImplTest, SetHostBindingTokenValid_001, TestSize.Leve
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1102,11 +1084,10 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserKeyChanged_001, TestSize.Level0
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1156,11 +1137,10 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserKeyChanged_002, TestSize.Level0
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1212,11 +1192,10 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserKeyChanged_003, TestSize.Level0
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1266,11 +1245,10 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserKeyChanged_004, TestSize.Level0
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1355,11 +1333,10 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_001, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1400,11 +1377,10 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_002, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1451,11 +1427,10 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_003, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1529,11 +1504,10 @@ HWTEST_F(HostBindingManagerImplTest, RemoveBindingInternal_001, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1574,11 +1548,10 @@ HWTEST_F(HostBindingManagerImplTest, RemoveBindingInternal_002, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1627,11 +1600,10 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_001, TestSize.Leve
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1641,8 +1613,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_001, TestSize.Leve
 
     uint32_t lockStateAuthTypeValue = 1;
     std::vector<uint8_t> fwkMsg;
-    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        lockStateAuthTypeValue, fwkMsg);
+    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, lockStateAuthTypeValue,
+        fwkMsg);
 }
 
 HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_002, TestSize.Level0)
@@ -1676,11 +1648,10 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_002, TestSize.Leve
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1690,8 +1661,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_002, TestSize.Leve
 
     uint32_t lockStateAuthTypeValue = 1;
     std::vector<uint8_t> fwkMsg;
-    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        lockStateAuthTypeValue, fwkMsg);
+    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, lockStateAuthTypeValue,
+        fwkMsg);
 }
 
 HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_003, TestSize.Level0)
@@ -1725,11 +1696,10 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_003, TestSize.Leve
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1746,8 +1716,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_003, TestSize.Leve
 
     uint32_t lockStateAuthTypeValue = 1;
     std::vector<uint8_t> fwkMsg;
-    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        lockStateAuthTypeValue, fwkMsg);
+    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, lockStateAuthTypeValue,
+        fwkMsg);
 }
 
 HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_004, TestSize.Level0)
@@ -1793,8 +1763,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_004, TestSize.Leve
 
     uint32_t lockStateAuthTypeValue = 1;
     std::vector<uint8_t> fwkMsg;
-    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        lockStateAuthTypeValue, fwkMsg);
+    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, lockStateAuthTypeValue,
+        fwkMsg);
 }
 
 HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_005, TestSize.Level0)
@@ -1840,8 +1810,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_005, TestSize.Leve
 
     uint32_t lockStateAuthTypeValue = 1;
     std::vector<uint8_t> fwkMsg;
-    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID },
-        lockStateAuthTypeValue, fwkMsg);
+    manager->StartObtainTokenRequests(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, lockStateAuthTypeValue,
+        fwkMsg);
 }
 
 HWTEST_F(HostBindingManagerImplTest, RevokeTokens_001, TestSize.Level0)
@@ -1875,11 +1845,10 @@ HWTEST_F(HostBindingManagerImplTest, RevokeTokens_001, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();
@@ -1921,11 +1890,10 @@ HWTEST_F(HostBindingManagerImplTest, RevokeTokens_002, TestSize.Level0)
             return std::make_shared<CompanionObtainTokenRequest>(hostDeviceKey, lockStateAuthTypeValue, fwkUnlockMsg);
         }));
     ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _))
-        .WillByDefault(Invoke([](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-                                  const std::string &triggerReason) {
-            return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey,
-                triggerReason);
-        }));
+        .WillByDefault(Invoke(
+            [](const UserKey &companionUserKey, const DeviceKey &hostDeviceKey, const std::string &triggerReason) {
+                return std::make_shared<CompanionRevokeTokenRequest>(companionUserKey, hostDeviceKey, triggerReason);
+            }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
     auto manager = HostBindingManagerImpl::Create();

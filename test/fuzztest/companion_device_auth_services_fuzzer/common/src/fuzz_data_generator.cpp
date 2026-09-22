@@ -291,8 +291,8 @@ DeviceStatus GenerateFuzzDeviceStatus(FuzzedDataProvider &fuzzData)
     if (fuzzData.ConsumeBool()) {
         status.isAuthMaintainActive = fuzzData.ConsumeBool();
     }
-    status.deviceType = static_cast<DeviceType>(fuzzData.ConsumeIntegralInRange<int32_t>(
-        0, static_cast<int32_t>(DeviceType::UNKNOWN)));
+    status.deviceType =
+        static_cast<DeviceType>(fuzzData.ConsumeIntegralInRange<int32_t>(0, static_cast<int32_t>(DeviceType::UNKNOWN)));
     status.deviceSubProfileName = GenerateFuzzString(fuzzData, FUZZ_MAX_STRING_SIZE);
 
     const uint8_t capabilitiesVal = 2;

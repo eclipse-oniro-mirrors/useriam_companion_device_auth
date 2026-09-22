@@ -26,7 +26,6 @@
 #include "attributes.h"
 #include "base_service_core.h"
 #include "companion_manager.h"
-#include "user_id_manager.h"
 #include "host_binding_manager.h"
 #include "request_factory.h"
 #include "request_manager.h"
@@ -36,6 +35,7 @@
 #include "subscription_manager.h"
 #include "system_param_manager.h"
 #include "system_settings_manager.h"
+#include "user_id_manager.h"
 
 // For RegisterCompanionViaMessageFlow E2E message flow
 #include "add_companion_message.h"
@@ -832,8 +832,8 @@ bool ModuleTestGuard::RegisterHostBindingDirect(UserId companionUserId, const De
     }
 
     // Verify binding is queryable
-    auto status = GetHostBindingManager().GetHostBindingStatus(
-        UserKey { companionUserId, INVALID_SUB_PROFILE_ID }, hostDeviceKey);
+    auto status = GetHostBindingManager().GetHostBindingStatus(UserKey { companionUserId, INVALID_SUB_PROFILE_ID },
+        hostDeviceKey);
     if (!status.has_value()) {
         IAM_LOGE("RegisterHostBindingDirect: GetHostBindingStatus returns nullopt");
         return false;

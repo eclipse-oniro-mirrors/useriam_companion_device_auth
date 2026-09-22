@@ -43,7 +43,7 @@ HWTEST_F(TokenAuthMessageTest, EncodeDecodeTokenAuthRequest_001, TestSize.Level0
     MockGuard guard;
     TokenAuthRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserKey = UserKey { companionUserId_, 42 },
-        .extraInfo = extraInfo_};
+        .extraInfo = extraInfo_ };
 
     Attributes attributes;
     EncodeTokenAuthRequest(request, attributes);

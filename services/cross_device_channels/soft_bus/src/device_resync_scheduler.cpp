@@ -20,8 +20,8 @@
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "soft_bus_channel_common.h"
-#include "user_id_manager.h"
 #include "subscription.h"
+#include "user_id_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_DEVICE_RESYNC_SCHEDULER

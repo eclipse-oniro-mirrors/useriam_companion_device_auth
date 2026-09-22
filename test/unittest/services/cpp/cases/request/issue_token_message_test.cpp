@@ -42,7 +42,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenRequest_001, TestSize.L
     MockGuard guard;
     PreIssueTokenRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserKey = UserKey { companionUserId_, 42 },
-        .extraInfo = extraInfo_};
+        .extraInfo = extraInfo_ };
 
     Attributes attributes;
     EncodePreIssueTokenRequest(request, attributes);
@@ -151,7 +151,7 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_001, TestSize.Leve
     MockGuard guard;
     IssueTokenRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserKey = UserKey { companionUserId_, 42 },
-        .extraInfo = extraInfo_};
+        .extraInfo = extraInfo_ };
 
     Attributes attributes;
     EncodeIssueTokenRequest(request, attributes);

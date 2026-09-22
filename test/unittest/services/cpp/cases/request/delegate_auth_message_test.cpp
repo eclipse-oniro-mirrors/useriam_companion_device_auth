@@ -45,7 +45,7 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_001, Test
 
     StartDelegateAuthRequest request = { .hostDeviceKey = hostDeviceKey_,
         .companionUserKey = UserKey { companionUserId_, 42 },
-        .extraInfo = extraInfo_};
+        .extraInfo = extraInfo_ };
 
     Attributes attributes;
     EncodeStartDelegateAuthRequest(request, attributes);

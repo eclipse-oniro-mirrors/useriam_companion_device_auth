@@ -25,9 +25,9 @@
 #include "os_account_info.h"
 #include "os_account_manager.h"
 #include "os_account_sub_profile_subscribe_callback.h"
-#include "os_account_subscriber.h"
-#include "os_account_subscribe_info.h"
 #include "os_account_subprofile_client.h"
+#include "os_account_subscribe_info.h"
+#include "os_account_subscriber.h"
 #include "system_ability_definition.h"
 
 #include "iam_check.h"
@@ -299,14 +299,13 @@ int32_t DefaultUserIdManager::GetForegroundSubProfileId(UserId userId) const
     if (errCode != ERR_OK) {
         IAM_LOGE("GetOsAccountForegroundSubProfileId failed, err:%{public}d", errCode);
         if (unlockedUserId_ == userId) {
-            IAM_LOGI("GetForegroundSubProfileId success, userId:%{public}d, subProfileId:%{public}d",
-                userId, subProfileId);
+            IAM_LOGI("GetForegroundSubProfileId success, userId:%{public}d, subProfileId:%{public}d", userId,
+                subProfileId);
             return foregroundSubProfileId_;
         }
         return INVALID_SUB_PROFILE_ID;
     }
-    IAM_LOGI("GetForegroundSubProfileId success, userId:%{public}d, subProfileId:%{public}d",
-        userId, subProfileId);
+    IAM_LOGI("GetForegroundSubProfileId success, userId:%{public}d, subProfileId:%{public}d", userId, subProfileId);
     return subProfileId;
 #else
     (void)userId;
@@ -529,22 +528,20 @@ void DefaultUserIdManager::OnSubProfileChanged(const AccountSA::SubProfileEventD
     }
 }
 
-void DefaultUserIdManager::NotifySubProfileChangedSubscribers(const UserKey &userKey,
-    SubProfileEventType eventType)
+void DefaultUserIdManager::NotifySubProfileChangedSubscribers(const UserKey &userKey, SubProfileEventType eventType)
 {
     std::vector<SubProfileChangedCallback> callbacks;
     for (const auto &entry : subProfileChangedSubscribers_) {
         callbacks.emplace_back(entry.second);
     }
 
-    TaskRunnerManager::GetInstance().PostTaskOnResident(
-        [callbacks = std::move(callbacks), userKey, eventType]() {
-            for (const auto &callback : callbacks) {
-                if (callback != nullptr) {
-                    callback(userKey, eventType);
-                }
+    TaskRunnerManager::GetInstance().PostTaskOnResident([callbacks = std::move(callbacks), userKey, eventType]() {
+        for (const auto &callback : callbacks) {
+            if (callback != nullptr) {
+                callback(userKey, eventType);
             }
-        });
+        }
+    });
 }
 
 void DefaultUserIdManager::SyncUserIds()
@@ -605,14 +602,13 @@ void DefaultUserIdManager::NotifyUnlockedUserIdSubscribers(const UserKey &userKe
         callbacks.emplace_back(entry.second);
     }
 
-    TaskRunnerManager::GetInstance().PostTaskOnResident(
-        [callbacks = std::move(callbacks), userKey]() {
-            for (const auto &callback : callbacks) {
-                if (callback != nullptr) {
-                    callback(userKey);
-                }
+    TaskRunnerManager::GetInstance().PostTaskOnResident([callbacks = std::move(callbacks), userKey]() {
+        for (const auto &callback : callbacks) {
+            if (callback != nullptr) {
+                callback(userKey);
             }
-        });
+        }
+    });
 }
 
 void DefaultUserIdManager::QueryActiveAndUnlockedFromSystem(UserId &active, UserId &unlocked) const

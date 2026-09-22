@@ -68,8 +68,8 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
     companionDeviceKey = localDeviceKey.value();
     companionDeviceKey.deviceUserId = companionUserKey_.userId;
     companionDeviceKey.deviceSubProfileId = companionUserKey_.subProfileId;
-    RevokeTokenRequest requestMsg = {
-        .hostUserKey = UserKey { peerDeviceKey->deviceUserId, peerDeviceKey->deviceSubProfileId },
+    RevokeTokenRequest requestMsg = { .hostUserKey =
+                                          UserKey { peerDeviceKey->deviceUserId, peerDeviceKey->deviceSubProfileId },
         .companionDeviceKey = companionDeviceKey };
     Attributes request = {};
     EncodeRevokeTokenRequest(requestMsg, request);

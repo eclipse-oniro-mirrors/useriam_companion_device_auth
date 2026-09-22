@@ -336,8 +336,8 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncFailsWhenRequestStartFails, T
     (void)subscription;
 
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
-                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key, const std::string &deviceName,
+                             SyncDeviceStatusCallback &&callback) {
             (void)callback;
             return std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
                 SyncDeviceStatusCallback {});
@@ -481,12 +481,11 @@ HWTEST_F(DeviceStatusManagerTest, TriggerDeviceSyncStartsRequestAndHandlesCallba
     (void)subscription;
 
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
-                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key, const std::string &deviceName,
+                             SyncDeviceStatusCallback &&callback) {
             (void)callback;
-            auto request =
-                std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
-                    SyncDeviceStatusCallback {});
+            auto request = std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
+                SyncDeviceStatusCallback {});
             return request;
         }));
 
@@ -981,8 +980,8 @@ HWTEST_F(DeviceStatusManagerTest, RefreshDeviceList_WithResync, TestSize.Level0)
         .WillOnce(Return(std::vector<PhysicalDeviceStatus> { statusA }));
 
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
-                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key, const std::string &deviceName,
+                             SyncDeviceStatusCallback &&callback) {
             return std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
                 SyncDeviceStatusCallback {});
         }));
@@ -1213,8 +1212,8 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_ComputesEffective
     EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
         .WillOnce(Return(std::vector<PhysicalDeviceStatus> { physicalStatus }));
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
-                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key, const std::string &deviceName,
+                             SyncDeviceStatusCallback &&callback) {
             return std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
                 SyncDeviceStatusCallback {});
         }));
@@ -1239,8 +1238,8 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_NewDevice_EmptyDeviceIds, T
     EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
         .WillOnce(Return(std::vector<PhysicalDeviceStatus> { physicalStatus }));
     EXPECT_CALL(ctx.guard->GetRequestFactory(), CreateHostSyncDeviceStatusRequest(_, _, _, _))
-        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key,
-                             const std::string &deviceName, SyncDeviceStatusCallback &&callback) {
+        .WillOnce(Invoke([&](const UserKey &hostUserKey, const DeviceKey &key, const std::string &deviceName,
+                             SyncDeviceStatusCallback &&callback) {
             return std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, key, deviceName,
                 SyncDeviceStatusCallback {});
         }));

@@ -269,9 +269,9 @@ ResultCode HostObtainTokenRequest::ValidateObtainTokenRequest(const ObtainTokenR
         obtainTokenRequest.companionDeviceKey.deviceUserId != companionUserKey_.userId ||
         obtainTokenRequest.companionDeviceKey.deviceSubProfileId != companionUserKey_.subProfileId) {
         IAM_LOGE("%{public}s host user key mismatch, expected userId %{public}d subProfileId %{public}d, "
-                 "actual userId %{public}d subProfileId %{public}d", GetDescription(),
-            hostUserKey_.userId, hostUserKey_.subProfileId,
-            obtainTokenRequest.hostUserKey.userId, obtainTokenRequest.hostUserKey.subProfileId);
+                 "actual userId %{public}d subProfileId %{public}d",
+            GetDescription(), hostUserKey_.userId, hostUserKey_.subProfileId, obtainTokenRequest.hostUserKey.userId,
+            obtainTokenRequest.hostUserKey.subProfileId);
         return ResultCode::INVALID_PARAMETERS;
     }
     const auto &peerKey = PeerDeviceKey();

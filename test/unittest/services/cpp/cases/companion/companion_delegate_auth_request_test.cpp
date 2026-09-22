@@ -52,8 +52,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -81,8 +81,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_002, TestSize.Level0)
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillRepeatedly(Return(std::nullopt));
@@ -99,8 +99,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -120,8 +120,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -142,8 +142,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompanionBeginDelegateAuth_001, TestS
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     // Local device key missing -> CompanionBeginDelegateAuth returns early; binding and security
     // agent must never be reached.
@@ -162,8 +162,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompanionBeginDelegateAuth_002, TestS
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     // Binding resolves and the security agent succeeds, but the agent output leaves atl invalid
     // (0) -> CompanionBeginDelegateAuth must fail.
@@ -184,8 +184,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, SecurityAgentBeginDelegateAuth_001, T
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionBeginDelegateAuth(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
@@ -202,8 +202,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_001, TestSiz
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     Attributes extraInfoAttrs;
     std::vector<uint8_t> authToken = { 1, 2, 3 };
@@ -229,8 +229,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_002, TestSiz
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     std::vector<uint8_t> badExtraInfo = { 1, 2, 3 };
 
@@ -243,8 +243,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_003, TestSiz
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     Attributes extraInfoAttrs;
     std::vector<uint8_t> authToken = { 1, 2, 3 };
@@ -262,8 +262,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleDelegateAuthResult_004, TestSiz
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     Attributes extraInfoAttrs;
     std::vector<uint8_t> authToken = { 1, 2, 3 };
@@ -288,8 +288,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleSendDelegateAuthResultReply_001
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     SendDelegateAuthResultReply reply = { .result = ResultCode::SUCCESS };
     Attributes message;
@@ -304,8 +304,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleSendDelegateAuthResultReply_002
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     SendDelegateAuthResultReply reply = { .result = ResultCode::GENERAL_ERROR };
     Attributes message;
@@ -320,8 +320,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, HandleSendDelegateAuthResultReply_003
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     Attributes badMessage;
 
@@ -334,8 +334,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_001, TestSize.Level
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
     request->contextId_ = 12345;
 
     ASSERT_NO_THROW(request->CompleteWithError(ResultCode::GENERAL_ERROR));
@@ -347,8 +347,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_002, TestSize.Level
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
     request->contextId_ = std::nullopt;
 
     ASSERT_NO_THROW(request->CompleteWithError(ResultCode::GENERAL_ERROR));
@@ -362,8 +362,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_003, TestSize.Level
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
     request->needEndDelegateAuth_ = true;
 
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionEndDelegateAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
@@ -379,8 +379,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_004, TestSize.Level
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
     request->contextId_ = 12345;
     request->needEndDelegateAuth_ = true;
 
@@ -398,8 +398,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_005, TestSize.Level
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
     request->needEndDelegateAuth_ = true;
 
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionEndDelegateAuth(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
@@ -417,8 +417,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_AbortsHostWhenResul
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     bool abortedSent = false;
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::REQUEST_ABORTED, _, _))
@@ -439,8 +439,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithError_DoesNotAbortAfterRe
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     int abortCount = 0;
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _))
@@ -468,8 +468,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, Cancel_AbortsHostExactlyOnce, TestSiz
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     int abortCount = 0;
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::REQUEST_ABORTED, _, _))
@@ -491,8 +491,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, Cancel_DoesNotAbortAfterCompletion, T
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     int abortCount = 0;
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _))
@@ -519,8 +519,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, CompleteWithSuccess_001, TestSize.Lev
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     ASSERT_NO_THROW(request->CompleteWithSuccess());
 }
@@ -531,8 +531,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, GetWeakPtr_001, TestSize.Level0)
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     auto weakPtr = request->GetWeakPtr();
     EXPECT_FALSE(weakPtr.expired());
@@ -544,8 +544,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, GetMaxConcurrency_001, TestSize.Level
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     EXPECT_EQ(request->GetMaxConcurrency(), 1);
 }
@@ -556,8 +556,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, ShouldCancelOnNewRequest_001, TestSiz
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     // Different device (nullopt) should not preempt
     auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_DELEGATE_AUTH_REQUEST);
@@ -577,8 +577,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, ShouldCancelOnNewRequest_002, TestSiz
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     auto newRequest = std::make_shared<MockIRequest>(RequestType::COMPANION_ADD_COMPANION_REQUEST);
     bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
@@ -591,8 +591,8 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_005, TestSize.Level0)
 
     CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
     auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
-        UserKey{COMPANION_USER_ID, INVALID_SUB_PROFILE_ID}, HOST_DEVICE_KEY,
-        START_DELEGATE_AUTH_REQUEST, delegateAuthParam);
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
 
     DeviceKey wrongDeviceKey = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = "wrong_device_id",

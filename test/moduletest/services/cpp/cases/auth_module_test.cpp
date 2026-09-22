@@ -327,9 +327,8 @@ HWTEST_F(AuthModuleTest, HostIssueTokenFullE2E_001, TestSize.Level0)
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndIssueToken(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(endIssueOutput), Return(ResultCode::SUCCESS)));
 
-    auto request = GetRequestFactory().CreateHostIssueTokenRequest(
-        UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEST_TEMPLATE_ID,
-        lockStateAuthType, { 0xAA, 0xBB });
+    auto request = GetRequestFactory().CreateHostIssueTokenRequest(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEST_TEMPLATE_ID, lockStateAuthType, { 0xAA, 0xBB });
     ASSERT_NE(request, nullptr);
     ASSERT_TRUE(GetRequestManager().Start(request));
     DrainPendingTasks();
@@ -459,9 +458,8 @@ HWTEST_F(AuthModuleTest, HostIssueTokenPreIssueFailedE2E_003, TestSize.Level0)
 
     // 4. Create and start HostIssueTokenRequest
     std::vector<uint8_t> fwkUnlockMsg = { 0xAA };
-    auto request = GetRequestFactory().CreateHostIssueTokenRequest(
-        UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEST_TEMPLATE_ID,
-        lockStateAuthType, fwkUnlockMsg);
+    auto request = GetRequestFactory().CreateHostIssueTokenRequest(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEST_TEMPLATE_ID, lockStateAuthType, fwkUnlockMsg);
     ASSERT_NE(request, nullptr);
 
     bool startRet = GetRequestManager().Start(request);
@@ -710,9 +708,9 @@ HWTEST_F(AuthModuleTest, HostRemoveCompanionFullE2E_001, TestSize.Level0)
     // companionDeviceKey.deviceUserId must be HOST_USER_ID to match registered companion.
     // OutboundRequest::OpenConnection calls GetChannelIdByDeviceKey which looks up the
     // registered companion's device key.
-    auto request = GetRequestFactory().CreateHostRemoveHostBindingRequest(
-        UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEST_TEMPLATE_ID,
-        MakeDeviceKey("companion-test-device-remove-001", HOST_USER_ID));
+    auto request =
+        GetRequestFactory().CreateHostRemoveHostBindingRequest(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+            TEST_TEMPLATE_ID, MakeDeviceKey("companion-test-device-remove-001", HOST_USER_ID));
     ASSERT_NE(request, nullptr) << "Failed to create HostRemoveHostBindingRequest";
 
     // 4. Start the request

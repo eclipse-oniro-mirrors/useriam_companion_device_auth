@@ -254,7 +254,6 @@ typedef struct UserKeyArray64Ffi {
     uint32_t len;
 } UserKeyArray64Ffi;
 
-
 #ifdef __cplusplus
 }
 #endif

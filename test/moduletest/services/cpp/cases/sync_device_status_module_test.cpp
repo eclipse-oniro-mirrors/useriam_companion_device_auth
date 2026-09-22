@@ -23,12 +23,12 @@
 #include "module_test_helpers.h"
 
 #include "companion_manager.h"
-#include "user_id_manager.h"
 #include "cross_device_comm_manager.h"
 #include "host_binding_manager.h"
 #include "iam_logger.h"
 #include "singleton_manager.h"
 #include "sync_device_status_message.h"
+#include "user_id_manager.h"
 
 #define LOG_TAG "CDA_SA_MODULE_TEST"
 

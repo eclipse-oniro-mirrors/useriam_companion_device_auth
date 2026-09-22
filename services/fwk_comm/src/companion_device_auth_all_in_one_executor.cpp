@@ -234,9 +234,8 @@ FwkResultCode Inner::Authenticate(uint64_t scheduleId, const FwkAuthenticatePara
 
     HostMixAuthParams params = { scheduleId, fwkParam.extraInfo,
         UserKey { fwkParam.userId, GetUserIdManager().GetForegroundSubProfileId(fwkParam.userId) },
-        fwkParam.templateIdList,
-        cdaParam.tokenId, cdaParam.businessId, fwkParam.authIntent, fwkParam.authScene, fwkParam.title,
-        cdaParam.delegateAuthParam };
+        fwkParam.templateIdList, cdaParam.tokenId, cdaParam.businessId, fwkParam.authIntent, fwkParam.authScene,
+        fwkParam.title, cdaParam.delegateAuthParam };
     auto request = GetRequestFactory().CreateHostMixAuthRequest(params, std::move(requestCallback));
     if (request == nullptr) {
         IAM_LOGE("CreateHostMixAuthRequest failed");

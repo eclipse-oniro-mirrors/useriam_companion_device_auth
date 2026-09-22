@@ -193,7 +193,7 @@ static void FuzzOnActiveUserKeyChanged(std::shared_ptr<CompanionManagerImpl> &ma
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
     int32_t subProfileId = fuzzData.ConsumeIntegral<int32_t>();
-    manager->OnActiveUserKeyChanged(UserKey{userId, subProfileId});
+    manager->OnActiveUserKeyChanged(UserKey { userId, subProfileId });
 }
 
 static void FuzzInitialize(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)

@@ -110,9 +110,9 @@ HWTEST_F(TimeoutModuleTest, SyncDeviceStatusTimeoutE2E_001, TestSize.Level0)
     IAM_LOGI("[Phase] Run — create SyncDeviceStatus request, send, NO reply, drain all");
     // 4. Create HostSyncDeviceStatusRequest via RequestFactory
     auto companionDeviceKey = MakeDeviceKey(companionDeviceId, HOST_USER_ID);
-    auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(
-        UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        companionDeviceKey, "companion-timeout-sync-001", std::move(syncCallback));
+    auto request =
+        GetRequestFactory().CreateHostSyncDeviceStatusRequest(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+            companionDeviceKey, "companion-timeout-sync-001", std::move(syncCallback));
     ASSERT_NE(request, nullptr) << "Failed to create HostSyncDeviceStatusRequest";
 
     // 5. Start the request
@@ -330,8 +330,8 @@ HWTEST_F(TimeoutModuleTest, IssueTokenTimeoutE2E_001, TestSize.Level0)
     IAM_LOGI("[Phase] Run — create IssueToken request, send, NO reply, drain all");
     // 3. Create HostIssueTokenRequest via RequestFactory
     std::vector<uint8_t> fwkUnlockMsg = { 0xAA, 0xBB };
-    auto request = GetRequestFactory().CreateHostIssueTokenRequest(
-        UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEST_TEMPLATE_ID, lockStateAuthType, fwkUnlockMsg);
+    auto request = GetRequestFactory().CreateHostIssueTokenRequest(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEST_TEMPLATE_ID, lockStateAuthType, fwkUnlockMsg);
     ASSERT_NE(request, nullptr) << "Failed to create HostIssueTokenRequest";
 
     // 4. Start the request

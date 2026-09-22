@@ -280,8 +280,8 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertDeviceStatusToNapiValue(napi_en
     }
 
     if (!deviceStatus.deviceSubProfileName.empty()) {
-        status = SetStringPropertyUtf8(env, deviceStatusValue, "deviceSubProfileName",
-            deviceStatus.deviceSubProfileName);
+        status =
+            SetStringPropertyUtf8(env, deviceStatusValue, "deviceSubProfileName", deviceStatus.deviceSubProfileName);
         if (status != napi_ok) {
             IAM_LOGE("SetStringPropertyUtf8 fail ret:%{public}d", status);
             return nullptr;

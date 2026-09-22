@@ -128,7 +128,7 @@ static void FuzzFindBindingByDeviceUser(std::shared_ptr<HostBindingManagerImpl> 
 {
     UserId userId = fuzzData.ConsumeIntegral<UserId>();
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
-    auto binding = manager->FindBindingByDeviceUser(UserKey{userId, INVALID_SUB_PROFILE_ID}, deviceKey);
+    auto binding = manager->FindBindingByDeviceUser(UserKey { userId, INVALID_SUB_PROFILE_ID }, deviceKey);
     (void)binding;
 }
 

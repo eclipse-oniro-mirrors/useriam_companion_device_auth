@@ -130,7 +130,7 @@ void FuzzHostSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
     std::string companionDeviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
 
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey{hostUserId, INVALID_SUB_PROFILE_ID},
+    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
         companionDeviceKey, companionDeviceName, std::move(callback));
     if (!request) {
         return;

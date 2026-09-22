@@ -33,8 +33,8 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-HostRemoveHostBindingRequest::HostRemoveHostBindingRequest(const UserKey &hostUserKey,
-    TemplateId templateId, const DeviceKey &companionDeviceKey)
+HostRemoveHostBindingRequest::HostRemoveHostBindingRequest(const UserKey &hostUserKey, TemplateId templateId,
+    const DeviceKey &companionDeviceKey)
     : OutboundRequest(RequestType::HOST_REMOVE_HOST_BINDING_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
       hostUserKey_(hostUserKey),
       companionDeviceKey_(companionDeviceKey)
