@@ -8,6 +8,16 @@
 
 两种角色运行同一套代码；行为根据设备持有的是主机绑定还是伴随注册而有所区别。
 
+## 知识索引（改动前按场景先读）
+
+| 场景 | 先读 |
+| --- | --- |
+| 新增/修改对外 API | `interface/` → `frameworks/native/client/` → `frameworks/native/ipc/idl/` → `services/service_entry/`（四层贯通） |
+| 改请求生命周期/超时/取消 | 下方「请求与订阅生命周期」（含 double free 崩溃栈与两条硬规则） |
+| 跨线程调用/阻塞操作 | 下方「线程模型（仅 services/）」 |
+| 定位跨设备交互 | `services/cross_device_interaction/<type>/` + `services/cross_device_comm/` |
+| 安全/加密/存储 | `services/security_agent/` → `services/external_adapters/security_command_adapter/`（C++ + Rust） |
+
 ## 构建系统
 
 本项目为基于 GN/Ninja 的 OpenHarmony 组件。使用 `oh-build` 技能进行构建：
@@ -56,6 +66,18 @@
 - 测试使用 `-Dprivate=public -Dprotected=public` 编译以访问私有成员
 - 使用 `oh-test` 技能指定具体测试名称运行单个测试
 
+### 最小验证命令（从 OH 源码根执行）
+
+- 构建服务：`./build.sh --product-name <product_name> --build-target companion_device_auth_service_group --ccache`
+- 构建单测：`./build.sh --product-name <product_name> --build-target companion_device_auth_services_cpp_test --ccache`
+- 运行单测：使用 `oh-test` 技能指定用例名（或执行 out 目录下对应测试二进制）
+
+### 验证取证（必做）
+
+- 能执行：实际运行最小编译/测试，并把 `status`/`command`/`message` 写入 `build_result.json` / `test_result.json`。
+- 环境不可用：写 `status: skipped` + 具体原因（如"无 OH 全量源码/设备"）；**禁止** `not_run`，**禁止**谎报 `passed: true`。
+- 理解/定位类：至少在答案中给出「最小验证方式 + 通过判据」。
+
 ## 架构
 
 ### 层次结构
@@ -95,11 +117,17 @@ services/            → 核心服务实现
 
 **消息路由**：`cross_device_comm/` 提供通道抽象。`MessageRouter` 将入站消息分发到已注册的处理器。`ConnectionManager` 和 `DeviceStatusManager` 处理传输层生命周期。
 
-**线程模型**：常驻线程上的单线程事件循环。所有 adapter/singleton 访问必须在常驻线程上进行。IPC 回调使用 `PostTask` 委派到常驻线程。阻塞操作在临时线程上运行，然后通过 `PostTask` 返回。完整线程规则参见 `services/AGENTS.md`。
+**线程模型**：常驻线程上的单线程事件循环。所有 adapter/singleton 访问必须在常驻线程上进行。IPC 回调使用 `PostTask` 委派到常驻线程。阻塞操作在临时线程上运行，然后通过 `PostTask` 返回。
 
 **安全代理**：通过 cxx 桥接到 C++ 的 Rust 实现。处理加密操作和安全命令处理。位于 `services/security_agent/`，Rust 源码在 `services/external_adapters/security_command_adapter/`。
 
 **执行器集成**：`fwk_comm/` 使用 `AllInOneExecutor` 模式将伴随设备认证注册为 UserIAM 框架的执行器，支持注册/认证/删除操作。
+
+**链路汇聚点（跨设备链路还原时勿漏）**
+- `services/singleton/inc/singleton_manager.h` — `SingletonManager`，所有 manager 的统一获取入口。
+- `services/singleton/inc/cross_device_interaction/incoming_message_handler_registry.h` — `IncomingMessageHandlerRegistry`，所有入站 handler 的集中注册表。
+
+**专家经验（改动前必读）**：线程边界（adapter/singleton 仅常驻线程访问，跨线程用 `PostTask`）与请求/订阅生命周期（`Destroy()` 先释放 `Subscription`，cleanup 只做本地 erase）是本仓最易踩坑的两处，详见下方「线程模型」「请求与订阅生命周期」。
 
 ## 代码风格规则（来自 AGENTS.md）
 
