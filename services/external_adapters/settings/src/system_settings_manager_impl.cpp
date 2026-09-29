@@ -34,6 +34,7 @@
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+#include "user_key_manager.h"
 #include "xcollie_helper.h"
 
 #define LOG_TAG "CDA_SA"
@@ -149,15 +150,15 @@ bool SystemSettingsManagerImpl::Initialize()
         states_.push_back(std::move(s));
     }
     unlockedActiveUserIdSubscription_ =
-        GetUserIdManager().SubscribeUnlockedActiveUserKey([weakSelf](const UserKey &userKey) {
-            TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf, userKey]() {
-                auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
+        GetUserKeyManager().SubscribeUnlockedActiveUserKey([weakSelf](const UserKey &userKey, UserKeyEventType) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            TaskRunnerManager::GetInstance().PostTaskOnResident([self, userKey]() {
                 self->OnActiveUserChanged(userKey.userId >= 0 ? std::optional<int32_t>(userKey.userId) : std::nullopt);
             });
         });
     ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
-    UserId activeUserId = GetUserIdManager().GetUnlockedActiveUserkey().userId;
+    UserId activeUserId = GetUserKeyManager().GetUnlockedActiveUserkey().userId;
     OnActiveUserChanged(activeUserId >= 0 ? std::optional<int32_t>(activeUserId) : std::nullopt);
 
     cesStatusListener_ = SaStatusListener::Create(

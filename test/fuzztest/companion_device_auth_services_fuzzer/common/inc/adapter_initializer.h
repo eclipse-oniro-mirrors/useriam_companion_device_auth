@@ -27,7 +27,7 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData);
 void CleanupAdapterManager();
 
 // Drives an active-user change into the last SubscribeActiveUserId callback captured by the fuzz
-// UserIdManager mock (and updates GetActiveUserId() to match), exercising OnActiveUserChanged paths.
+// UserKeyManager mock (and updates GetActiveUserId() to match), exercising OnActiveUserChanged paths.
 void FireFuzzActiveUserIdChange(int32_t userId);
 
 } // namespace CompanionDeviceAuth

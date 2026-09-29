@@ -27,7 +27,7 @@
 #include "fwk_common.h"
 #include "host_add_companion_request.h"
 #include "host_mix_auth_request.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -49,7 +49,7 @@ constexpr uint64_t UINT64_456 = 456;
 constexpr uint64_t UINT64_12345 = 12345;
 constexpr int32_t COMMAND_ID_SET_COMPANION_INVALID = 10001;
 
-class FakeUserIdManager : public IUserIdManager {
+class FakeUserKeyManager : public IUserKeyManager {
 public:
     bool Initialize()
     {
@@ -84,7 +84,7 @@ public:
 
     std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) override
     {
-        unlockedActiveUserIdCallback_ = std::move(callback);
+        activeUserKeyChangeCallback_ = std::move(callback);
         return std::make_unique<Subscription>([]() {});
     }
 
@@ -105,34 +105,16 @@ public:
         return INVALID_SUB_PROFILE_ID;
     }
 
-    bool IsForegroundSubProfileId(const UserKey &userKey) const override
-    {
-        (void)userKey;
-        return false;
-    }
-
-    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
-    {
-        (void)userId;
-        return std::nullopt;
-    }
-
     std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
     {
         (void)userKey;
         return std::nullopt;
     }
 
-    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
-    {
-        (void)callback;
-        return std::make_unique<Subscription>(nullptr);
-    }
-
 private:
     int32_t activeUserId_ { INT32_100 };
     ActiveUserIdCallback activeUserIdCallback_ {};
-    UnlockedActiveUserKeyCallback unlockedActiveUserIdCallback_ {};
+    UnlockedActiveUserKeyCallback activeUserKeyChangeCallback_ {};
 };
 
 class MockFwkExecuteCallback : public FwkIExecuteCallback {
@@ -977,7 +959,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_006
     EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(UINT64_456, testing::Eq(std::optional<Atl>()), _))
         .Times(1);
     EXPECT_CALL(guard.GetHostBindingManager(), RevokeTokens(_, _)).Times(1);
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillOnce(Return(INT32_100));
     EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(true)).Times(1);
 
     FwkResultCode ret = executor->SendCommand(commandId, extraInfo, callback);
@@ -1014,7 +996,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_011
     std::vector<uint8_t> extraInfo = info.Serialize();
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillOnce(Return(INT32_100 + 1));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillOnce(Return(INT32_100 + 1));
     EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(UINT64_123, testing::Eq(std::optional<Atl>()), _))
         .Times(1);
     EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(UINT64_456, testing::Eq(std::optional<Atl>()), _))
@@ -1057,7 +1039,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_007
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
     EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(false)).Times(1);
-    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+    EXPECT_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillOnce(Return(UserKey { INT32_100, INVALID_SUB_PROFILE_ID }));
     ON_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _, _)).Times(1);
@@ -1133,7 +1115,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, HandleFreezeRelatedCommand_009
 
     EXPECT_CALL(*callback, OnResult(FwkResultCode::SUCCESS, _)).Times(1);
     EXPECT_CALL(guard.GetMiscManager(), SetCompanionAuthBlocked(false)).Times(1);
-    EXPECT_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+    EXPECT_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillOnce(Return(UserKey { INT32_100, INVALID_SUB_PROFILE_ID }));
     ON_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _, _)).Times(1);

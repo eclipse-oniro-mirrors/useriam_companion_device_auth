@@ -44,7 +44,7 @@
 #include "service_common.h"
 #include "task_runner.h"
 #include "task_runner_manager.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_CDA_ALL_IN_ONE_EXECUTOR
@@ -233,7 +233,7 @@ FwkResultCode Inner::Authenticate(uint64_t scheduleId, const FwkAuthenticatePara
     };
 
     HostMixAuthParams params = { scheduleId, fwkParam.extraInfo,
-        UserKey { fwkParam.userId, GetUserIdManager().GetForegroundSubProfileId(fwkParam.userId) },
+        UserKey { fwkParam.userId, GetUserKeyManager().GetForegroundSubProfileId(fwkParam.userId) },
         fwkParam.templateIdList, cdaParam.tokenId, cdaParam.businessId, fwkParam.authIntent, fwkParam.authScene,
         fwkParam.title, cdaParam.delegateAuthParam };
     auto request = GetRequestFactory().CreateHostMixAuthRequest(params, std::move(requestCallback));
@@ -437,7 +437,7 @@ void Inner::HandleFreezeRelatedCommand(FwkPropertyMode commandId, const std::vec
 
 void Inner::HandleFreeze(const FreezeCommand &freezeCommand)
 {
-    if (GetUserIdManager().GetActiveUserId() == freezeCommand.userId) {
+    if (GetUserKeyManager().GetActiveUserId() == freezeCommand.userId) {
         GetMiscManager().SetCompanionAuthBlocked(true);
     }
     pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);
@@ -450,7 +450,7 @@ void Inner::HandleFreeze(const FreezeCommand &freezeCommand)
 
 void Inner::HandleUnfreeze(const FreezeCommand &freezeCommand, const std::vector<uint8_t> &extraInfo)
 {
-    auto unlockedActiveUserKey = GetUserIdManager().GetUnlockedActiveUserkey();
+    auto unlockedActiveUserKey = GetUserKeyManager().GetUnlockedActiveUserkey();
     if (unlockedActiveUserKey.userId == freezeCommand.userId) {
         GetMiscManager().SetCompanionAuthBlocked(false);
         pendingIssueTokenManager_->CancelByUserId(freezeCommand.userId);

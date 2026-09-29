@@ -37,20 +37,20 @@
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 #include "xcollie_helper.h"
 
 #define LOG_TAG "CDA_SA"
-#define LOG_FILE_ID LOG_FILE_DEFAULT_USER_ID_MANAGER
+#define LOG_FILE_ID LOG_FILE_DEFAULT_USER_KEY_MANAGER
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class DefaultUserIdManager final : public std::enable_shared_from_this<DefaultUserIdManager>, public IUserIdManager {
+class DefaultUserKeyManager final : public std::enable_shared_from_this<DefaultUserKeyManager>, public IUserKeyManager {
 public:
-    DefaultUserIdManager();
-    ~DefaultUserIdManager() override;
+    DefaultUserKeyManager();
+    ~DefaultUserKeyManager() override;
 
     // User ID management
     UserId GetActiveUserId() const override;
@@ -64,36 +64,33 @@ public:
 
     // Sub profile ID management
     int32_t GetForegroundSubProfileId(UserId userId) const override;
-    bool IsForegroundSubProfileId(const UserKey &userKey) const override;
-    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override;
     std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override;
-    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override;
 
 private:
     class ActiveUserOsAccountSubscriber final : public AccountSA::OsAccountSubscriber {
     public:
         ActiveUserOsAccountSubscriber(const AccountSA::OsAccountSubscribeInfo &subscribeInfo,
-            std::weak_ptr<DefaultUserIdManager> impl);
+            std::weak_ptr<DefaultUserKeyManager> impl);
         ~ActiveUserOsAccountSubscriber() override = default;
 
         void OnStateChanged(const AccountSA::OsAccountStateData &data) override;
 
     private:
-        std::weak_ptr<DefaultUserIdManager> impl_;
+        std::weak_ptr<DefaultUserKeyManager> impl_;
     };
 
     class SubProfileEventSubscriber final : public AccountSA::OsAccountSubProfileSubscribeCallback {
     public:
-        explicit SubProfileEventSubscriber(std::weak_ptr<DefaultUserIdManager> impl);
+        explicit SubProfileEventSubscriber(std::weak_ptr<DefaultUserKeyManager> impl);
         ~SubProfileEventSubscriber() override = default;
 
         void OnSubProfileChanged(const AccountSA::SubProfileEventData &eventData) override;
 
     private:
-        std::weak_ptr<DefaultUserIdManager> impl_;
+        std::weak_ptr<DefaultUserKeyManager> impl_;
     };
 
-    friend class IUserIdManager;
+    friend class IUserKeyManager;
 
     bool Initialize();
     void HandleOsAccountServiceReady();
@@ -106,6 +103,7 @@ private:
     void UpdateUnlockedUserId(UserId userId);
     void NotifyActiveUserIdSubscribers(UserId userId);
     void NotifyUnlockedUserIdSubscribers(const UserKey &userKey);
+    void NotifySubProfileChangedSubscribers(const UserKey &userKey, UserKeyEventType eventType);
     void QueryActiveAndUnlockedFromSystem(UserId &active, UserId &unlocked) const;
     void UnsubscribeActiveUserId(const SubscribeId &subscribeId);
     void UnsubscribeUnlockedActiveUserKey(const SubscribeId &subscribeId);
@@ -115,8 +113,6 @@ private:
     void SubscribeSubProfileEvent();
     void UnsubscribeSubProfileEvent();
     void OnSubProfileChanged(const AccountSA::SubProfileEventData &eventData);
-    void NotifySubProfileChangedSubscribers(const UserKey &userKey, SubProfileEventType eventType);
-    void UnsubscribeSubProfileChanged(const SubscribeId &subscribeId);
 
     bool initialized_ = false;
     std::unique_ptr<SaStatusListener> saStatusListener_;
@@ -130,20 +126,20 @@ private:
     std::shared_ptr<ActiveUserOsAccountSubscriber> osAccountSubscriber_;
 
     std::shared_ptr<SubProfileEventSubscriber> subProfileEventSubscriber_;
-    std::map<SubscribeId, SubProfileChangedCallback> subProfileChangedSubscribers_;
+    std::map<SubscribeId, UnlockedActiveUserKeyCallback> subProfileChangedSubscribers_;
 };
 
-DefaultUserIdManager::DefaultUserIdManager()
+DefaultUserKeyManager::DefaultUserKeyManager()
 {
 }
 
-DefaultUserIdManager::~DefaultUserIdManager()
+DefaultUserKeyManager::~DefaultUserKeyManager()
 {
     UnsubscribeOsAccount();
     UnsubscribeSubProfileEvent();
 }
 
-bool DefaultUserIdManager::Initialize()
+bool DefaultUserKeyManager::Initialize()
 {
     constexpr const char *osAccountSaName = "OsAccountService";
     {
@@ -152,7 +148,7 @@ bool DefaultUserIdManager::Initialize()
             return true;
         }
 
-        std::weak_ptr<DefaultUserIdManager> weakImpl = weak_from_this();
+        std::weak_ptr<DefaultUserKeyManager> weakImpl = weak_from_this();
 
         saStatusListener_ = SaStatusListener::Create(
             osAccountSaName, SUBSYS_ACCOUNT_SYS_ABILITY_ID_BEGIN,
@@ -181,12 +177,12 @@ bool DefaultUserIdManager::Initialize()
     return true;
 }
 
-UserId DefaultUserIdManager::GetActiveUserId() const
+UserId DefaultUserKeyManager::GetActiveUserId() const
 {
     return activeUserId_;
 }
 
-std::optional<std::string> DefaultUserIdManager::GetActiveUserName() const
+std::optional<std::string> DefaultUserKeyManager::GetActiveUserName() const
 {
     if (activeUserId_ == INVALID_USER_ID) {
         IAM_LOGE("active user id is invalid");
@@ -194,7 +190,7 @@ std::optional<std::string> DefaultUserIdManager::GetActiveUserName() const
     }
 
     std::string userName;
-    XCollieHelper xcollie("DefaultUserIdManager-GetActiveUserName", API_CALL_TIMEOUT);
+    XCollieHelper xcollie("DefaultUserKeyManager-GetActiveUserName", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::GetOsAccountNameById(activeUserId_, userName);
     if (errCode != ERR_OK) {
         IAM_LOGE("GetOsAccountNameById failed %{public}d for %{public}d", errCode, activeUserId_);
@@ -203,12 +199,12 @@ std::optional<std::string> DefaultUserIdManager::GetActiveUserName() const
     return userName;
 }
 
-std::string DefaultUserIdManager::GetActiveUserTypeName() const
+std::string DefaultUserKeyManager::GetActiveUserTypeName() const
 {
     return activeUserTypeName_;
 }
 
-std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeActiveUserId(ActiveUserIdCallback &&callback)
+std::unique_ptr<Subscription> DefaultUserKeyManager::SubscribeActiveUserId(ActiveUserIdCallback &&callback)
 {
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
     SubscribeId subscribeId = GetMiscManager().GetNextGlobalId();
@@ -221,17 +217,18 @@ std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeActiveUserId(Active
     });
 }
 
-UserKey DefaultUserIdManager::GetUnlockedActiveUserkey() const
+UserKey DefaultUserKeyManager::GetUnlockedActiveUserkey() const
 {
     return UserKey { unlockedUserId_, foregroundSubProfileId_ };
 }
 
-std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeUnlockedActiveUserKey(
+std::unique_ptr<Subscription> DefaultUserKeyManager::SubscribeUnlockedActiveUserKey(
     UnlockedActiveUserKeyCallback &&callback)
 {
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
     SubscribeId subscribeId = GetMiscManager().GetNextGlobalId();
-    unlockedSubscribers_[subscribeId] = std::move(callback);
+    unlockedSubscribers_[subscribeId] = callback;
+    subProfileChangedSubscribers_[subscribeId] = std::move(callback);
 
     return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscribeId]() {
         auto self = weakSelf.lock();
@@ -240,24 +237,25 @@ std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeUnlockedActiveUserK
     });
 }
 
-void DefaultUserIdManager::UnsubscribeActiveUserId(const SubscribeId &subscribeId)
+void DefaultUserKeyManager::UnsubscribeActiveUserId(const SubscribeId &subscribeId)
 {
     activeSubscribers_.erase(subscribeId);
 }
 
-void DefaultUserIdManager::UnsubscribeUnlockedActiveUserKey(const SubscribeId &subscribeId)
+void DefaultUserKeyManager::UnsubscribeUnlockedActiveUserKey(const SubscribeId &subscribeId)
 {
     unlockedSubscribers_.erase(subscribeId);
+    subProfileChangedSubscribers_.erase(subscribeId);
 }
 
-bool DefaultUserIdManager::IsUserIdValid(int32_t userId)
+bool DefaultUserKeyManager::IsUserIdValid(int32_t userId)
 {
     if (userId < 0) {
         IAM_LOGE("user id is invalid: %{public}d", userId);
         return false;
     }
     bool exists = false;
-    XCollieHelper xcollie("DefaultUserIdManager-IsUserIdValid", API_CALL_TIMEOUT);
+    XCollieHelper xcollie("DefaultUserKeyManager-IsUserIdValid", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::IsOsAccountExists(userId, exists);
     if (errCode != ERR_OK) {
         IAM_LOGE("IsOsAccountExists failed %{public}d for %{public}d", errCode, userId);
@@ -266,10 +264,10 @@ bool DefaultUserIdManager::IsUserIdValid(int32_t userId)
     return exists;
 }
 
-std::optional<std::vector<UserKey>> DefaultUserIdManager::GetAllValidUserKeys() const
+std::optional<std::vector<UserKey>> DefaultUserKeyManager::GetAllValidUserKeys() const
 {
     std::vector<AccountSA::OsAccountInfo> osAccountInfos;
-    XCollieHelper xcollie("DefaultUserIdManager-GetAllValidUserKeys", API_CALL_TIMEOUT);
+    XCollieHelper xcollie("DefaultUserKeyManager-GetAllValidUserKeys", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::QueryAllCreatedOsAccounts(osAccountInfos);
     if (errCode != ERR_OK) {
         IAM_LOGE("QueryAllCreatedOsAccounts failed %{public}d", errCode);
@@ -278,19 +276,26 @@ std::optional<std::vector<UserKey>> DefaultUserIdManager::GetAllValidUserKeys() 
     std::vector<UserKey> userIds;
     for (const auto &info : osAccountInfos) {
         UserId userId = info.GetLocalId();
-        auto subProfileIds = GetOsAccountSubProfileIds(userId);
-        if (!subProfileIds.has_value() || subProfileIds->empty()) {
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
+        std::vector<int32_t> subProfileIds;
+        XCollieHelper xcollieSub("DefaultUserKeyManager-GetOsAccountSubProfileIds", API_CALL_TIMEOUT);
+        ErrCode errCodeSub =
+            AccountSA::OsAccountSubProfileClient::GetInstance().GetOsAccountSubProfileIds(userId, subProfileIds);
+        if (errCodeSub != ERR_OK || subProfileIds.empty()) {
             userIds.push_back(UserKey { userId, INVALID_SUB_PROFILE_ID });
             continue;
         }
-        for (int32_t subProfileId : *subProfileIds) {
+        for (int32_t subProfileId : subProfileIds) {
             userIds.push_back(UserKey { userId, subProfileId });
         }
+#else
+        userIds.push_back(UserKey { userId, INVALID_SUB_PROFILE_ID });
+#endif
     }
     return userIds;
 }
 
-int32_t DefaultUserIdManager::GetForegroundSubProfileId(UserId userId) const
+int32_t DefaultUserKeyManager::GetForegroundSubProfileId(UserId userId) const
 {
 #ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     int32_t subProfileId = INVALID_SUB_PROFILE_ID;
@@ -313,45 +318,7 @@ int32_t DefaultUserIdManager::GetForegroundSubProfileId(UserId userId) const
 #endif
 }
 
-bool DefaultUserIdManager::IsForegroundSubProfileId(const UserKey &userKey) const
-{
-#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
-    if (userKey.subProfileId == INVALID_SUB_PROFILE_ID) {
-        IAM_LOGE("sub profile id is invalid");
-        return false;
-    }
-    int32_t foregroundSubProfileId = GetForegroundSubProfileId(userKey.userId);
-    if (foregroundSubProfileId == INVALID_SUB_PROFILE_ID) {
-        IAM_LOGE("failed to get foreground sub profile id for userId=%{public}d", userKey.userId);
-        return false;
-    }
-    return userKey.subProfileId == foregroundSubProfileId;
-#else
-    (void)userKey;
-    return true;
-#endif
-}
-
-std::optional<std::vector<int32_t>> DefaultUserIdManager::GetOsAccountSubProfileIds(UserId userId) const
-{
-#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
-    std::vector<int32_t> subProfileIds;
-    XCollieHelper xcollie("DefaultUserIdManager-GetOsAccountSubProfileIds", API_CALL_TIMEOUT);
-    ErrCode errCode =
-        AccountSA::OsAccountSubProfileClient::GetInstance().GetOsAccountSubProfileIds(userId, subProfileIds);
-    if (errCode != ERR_OK) {
-        IAM_LOGE("GetOsAccountSubProfileIds failed %{public}d for userId=%{public}d", errCode, userId);
-        return std::nullopt;
-    }
-    IAM_LOGI("GetOsAccountSubProfileIds success, userId=%{public}d, count=%{public}zu", userId, subProfileIds.size());
-    return subProfileIds;
-#else
-    (void)userId;
-    return std::vector<int32_t> { INVALID_SUB_PROFILE_ID };
-#endif
-}
-
-std::optional<std::string> DefaultUserIdManager::GetSubProfileName(const UserKey &userKey) const
+std::optional<std::string> DefaultUserKeyManager::GetSubProfileName(const UserKey &userKey) const
 {
 #ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     if (userKey.subProfileId == INVALID_SUB_PROFILE_ID) {
@@ -379,32 +346,14 @@ std::optional<std::string> DefaultUserIdManager::GetSubProfileName(const UserKey
 #endif
 }
 
-std::unique_ptr<Subscription> DefaultUserIdManager::SubscribeSubProfileChanged(SubProfileChangedCallback &&callback)
-{
-    ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
-    SubscribeId subscribeId = GetMiscManager().GetNextGlobalId();
-    subProfileChangedSubscribers_[subscribeId] = std::move(callback);
-
-    return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscribeId]() {
-        auto self = weakSelf.lock();
-        ENSURE_OR_RETURN(self != nullptr);
-        self->UnsubscribeSubProfileChanged(subscribeId);
-    });
-}
-
-void DefaultUserIdManager::UnsubscribeSubProfileChanged(const SubscribeId &subscribeId)
-{
-    subProfileChangedSubscribers_.erase(subscribeId);
-}
-
-void DefaultUserIdManager::HandleOsAccountServiceReady()
+void DefaultUserKeyManager::HandleOsAccountServiceReady()
 {
     SubscribeOsAccount();
     SubscribeSubProfileEvent();
     SyncUserIds();
 }
 
-void DefaultUserIdManager::HandleOsAccountServiceUnavailable()
+void DefaultUserKeyManager::HandleOsAccountServiceUnavailable()
 {
     UpdateActiveUserId(INVALID_USER_ID);
     UpdateUnlockedUserId(INVALID_USER_ID);
@@ -412,14 +361,14 @@ void DefaultUserIdManager::HandleOsAccountServiceUnavailable()
     UnsubscribeSubProfileEvent();
 }
 
-void DefaultUserIdManager::OnOsAccountStateChange(const AccountSA::OsAccountStateData &data)
+void DefaultUserKeyManager::OnOsAccountStateChange(const AccountSA::OsAccountStateData &data)
 {
     IAM_LOGI("os account state %{public}d from %{public}d to %{public}d", data.state, data.fromId, data.toId);
 
     SyncUserIds();
 }
 
-void DefaultUserIdManager::SubscribeOsAccount()
+void DefaultUserKeyManager::SubscribeOsAccount()
 {
     if (osAccountSubscriber_ != nullptr) {
         IAM_LOGI("already subscribed to os account");
@@ -435,7 +384,7 @@ void DefaultUserIdManager::SubscribeOsAccount()
     auto subscriber = std::make_shared<ActiveUserOsAccountSubscriber>(subscribeInfo, weak_from_this());
     ENSURE_OR_RETURN(subscriber != nullptr);
 
-    XCollieHelper xcollie("DefaultUserIdManager-SubscribeOsAccount", API_CALL_TIMEOUT);
+    XCollieHelper xcollie("DefaultUserKeyManager-SubscribeOsAccount", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::SubscribeOsAccount(subscriber);
     if (errCode != ERR_OK) {
         IAM_LOGE("SubscribeOsAccount failed %{public}d", errCode);
@@ -445,7 +394,7 @@ void DefaultUserIdManager::SubscribeOsAccount()
     IAM_LOGI("SubscribeOsAccount success");
 }
 
-void DefaultUserIdManager::UnsubscribeOsAccount()
+void DefaultUserKeyManager::UnsubscribeOsAccount()
 {
     if (osAccountSubscriber_ == nullptr) {
         return;
@@ -453,14 +402,14 @@ void DefaultUserIdManager::UnsubscribeOsAccount()
     auto subscriber = osAccountSubscriber_;
     osAccountSubscriber_.reset();
 
-    XCollieHelper xcollie("DefaultUserIdManager-UnsubscribeOsAccount", API_CALL_TIMEOUT);
+    XCollieHelper xcollie("DefaultUserKeyManager-UnsubscribeOsAccount", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::UnsubscribeOsAccount(subscriber);
     if (errCode != ERR_OK) {
         IAM_LOGE("UnsubscribeOsAccount failed %{public}d", errCode);
     }
 }
 
-void DefaultUserIdManager::SubscribeSubProfileEvent()
+void DefaultUserKeyManager::SubscribeSubProfileEvent()
 {
 #ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     if (subProfileEventSubscriber_ != nullptr) {
@@ -486,7 +435,7 @@ void DefaultUserIdManager::SubscribeSubProfileEvent()
 #endif
 }
 
-void DefaultUserIdManager::UnsubscribeSubProfileEvent()
+void DefaultUserKeyManager::UnsubscribeSubProfileEvent()
 {
 #ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     if (subProfileEventSubscriber_ == nullptr) {
@@ -503,34 +452,38 @@ void DefaultUserIdManager::UnsubscribeSubProfileEvent()
 #endif
 }
 
-void DefaultUserIdManager::OnSubProfileChanged(const AccountSA::SubProfileEventData &eventData)
+void DefaultUserKeyManager::OnSubProfileChanged(const AccountSA::SubProfileEventData &eventData)
 {
     IAM_LOGI("sub profile changed, type=%{public}d, osAccountId=%{public}d, subProfileId=%{public}d, "
              "previousSubProfileId=%{public}d",
         static_cast<int32_t>(eventData.type_), eventData.osAccountId_, eventData.subProfileId_,
         eventData.previousSubProfileId_);
 
+    if (eventData.osAccountId_ != unlockedUserId_) {
+        IAM_LOGI("ignore subprofile change, osAccountId_=%{public}d, unlockedUserId_=%{public}d",
+            eventData.osAccountId_, unlockedUserId_);
+        return;
+    }
+
     if (eventData.type_ == AccountSA::OsAccountSubProfileEventType::DELETED) {
         NotifySubProfileChangedSubscribers(UserKey { eventData.osAccountId_, eventData.subProfileId_ },
-            SubProfileEventType::DELETED);
+            UserKeyEventType::SUB_PROFILE_ID_DELETED);
         return;
     } else if (eventData.type_ == AccountSA::OsAccountSubProfileEventType::SWITCHED) {
-        if (eventData.osAccountId_ == unlockedUserId_ && eventData.subProfileId_ == foregroundSubProfileId_) {
+        if (eventData.subProfileId_ == foregroundSubProfileId_) {
             IAM_LOGI("sub profile not changed, skip notification");
             return;
         }
 
-        if (eventData.osAccountId_ == unlockedUserId_) {
-            foregroundSubProfileId_ = eventData.subProfileId_;
-        }
+        foregroundSubProfileId_ = eventData.subProfileId_;
         NotifySubProfileChangedSubscribers(UserKey { eventData.osAccountId_, eventData.subProfileId_ },
-            SubProfileEventType::SWITCHED);
+            UserKeyEventType::SUB_PROFILE_ID_SWITCHED);
     }
 }
 
-void DefaultUserIdManager::NotifySubProfileChangedSubscribers(const UserKey &userKey, SubProfileEventType eventType)
+void DefaultUserKeyManager::NotifySubProfileChangedSubscribers(const UserKey &userKey, UserKeyEventType eventType)
 {
-    std::vector<SubProfileChangedCallback> callbacks;
+    std::vector<UnlockedActiveUserKeyCallback> callbacks;
     for (const auto &entry : subProfileChangedSubscribers_) {
         callbacks.emplace_back(entry.second);
     }
@@ -544,7 +497,7 @@ void DefaultUserIdManager::NotifySubProfileChangedSubscribers(const UserKey &use
     });
 }
 
-void DefaultUserIdManager::SyncUserIds()
+void DefaultUserKeyManager::SyncUserIds()
 {
     UserId active = INVALID_USER_ID;
     UserId unlocked = INVALID_USER_ID;
@@ -553,7 +506,7 @@ void DefaultUserIdManager::SyncUserIds()
     UpdateUnlockedUserId(unlocked);
 }
 
-void DefaultUserIdManager::UpdateActiveUserId(UserId userId)
+void DefaultUserKeyManager::UpdateActiveUserId(UserId userId)
 {
     if (activeUserId_ != userId) {
         IAM_LOGI("active user id %{public}d -> %{public}d", activeUserId_, userId);
@@ -563,7 +516,7 @@ void DefaultUserIdManager::UpdateActiveUserId(UserId userId)
     }
 }
 
-void DefaultUserIdManager::UpdateUnlockedUserId(UserId userId)
+void DefaultUserKeyManager::UpdateUnlockedUserId(UserId userId)
 {
     int32_t subProfileId = INVALID_SUB_PROFILE_ID;
     if (userId != INVALID_USER_ID) {
@@ -579,7 +532,7 @@ void DefaultUserIdManager::UpdateUnlockedUserId(UserId userId)
     NotifyUnlockedUserIdSubscribers(UserKey { userId, subProfileId });
 }
 
-void DefaultUserIdManager::NotifyActiveUserIdSubscribers(UserId userId)
+void DefaultUserKeyManager::NotifyActiveUserIdSubscribers(UserId userId)
 {
     std::vector<ActiveUserIdCallback> callbacks;
     for (const auto &entry : activeSubscribers_) {
@@ -595,7 +548,7 @@ void DefaultUserIdManager::NotifyActiveUserIdSubscribers(UserId userId)
     });
 }
 
-void DefaultUserIdManager::NotifyUnlockedUserIdSubscribers(const UserKey &userKey)
+void DefaultUserKeyManager::NotifyUnlockedUserIdSubscribers(const UserKey &userKey)
 {
     std::vector<UnlockedActiveUserKeyCallback> callbacks;
     for (const auto &entry : unlockedSubscribers_) {
@@ -605,19 +558,19 @@ void DefaultUserIdManager::NotifyUnlockedUserIdSubscribers(const UserKey &userKe
     TaskRunnerManager::GetInstance().PostTaskOnResident([callbacks = std::move(callbacks), userKey]() {
         for (const auto &callback : callbacks) {
             if (callback != nullptr) {
-                callback(userKey);
+                callback(userKey, UserKeyEventType::USER_ID_SWITCHED);
             }
         }
     });
 }
 
-void DefaultUserIdManager::QueryActiveAndUnlockedFromSystem(UserId &active, UserId &unlocked) const
+void DefaultUserKeyManager::QueryActiveAndUnlockedFromSystem(UserId &active, UserId &unlocked) const
 {
     active = INVALID_USER_ID;
     unlocked = INVALID_USER_ID;
 
     std::vector<int32_t> ids;
-    XCollieHelper xcollie("DefaultUserIdManager-QueryActiveOsAccountIds", API_CALL_TIMEOUT);
+    XCollieHelper xcollie("DefaultUserKeyManager-QueryActiveOsAccountIds", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::QueryActiveOsAccountIds(ids);
     if (errCode != ERR_OK) {
         IAM_LOGE("QueryActiveOsAccountIds failed %{public}d", errCode);
@@ -631,7 +584,7 @@ void DefaultUserIdManager::QueryActiveAndUnlockedFromSystem(UserId &active, User
     active = ids.front();
 
     bool isVerified = false;
-    XCollieHelper xcollieVerify("DefaultUserIdManager-IsOsAccountVerified", API_CALL_TIMEOUT);
+    XCollieHelper xcollieVerify("DefaultUserKeyManager-IsOsAccountVerified", API_CALL_TIMEOUT);
     errCode = AccountSA::OsAccountManager::IsOsAccountVerified(active, isVerified);
     if (errCode != ERR_OK) {
         IAM_LOGE("IsOsAccountVerified failed %{public}d for %{public}d", errCode, active);
@@ -645,14 +598,14 @@ void DefaultUserIdManager::QueryActiveAndUnlockedFromSystem(UserId &active, User
     IAM_LOGI("active user id: %{public}d (verified)", active);
 }
 
-std::string DefaultUserIdManager::QueryUserTypeNameById(UserId userId)
+std::string DefaultUserKeyManager::QueryUserTypeNameById(UserId userId)
 {
     if (userId == INVALID_USER_ID) {
         return "unknown";
     }
 
     AccountSA::OsAccountInfo info;
-    XCollieHelper xcollie("DefaultUserIdManager-QueryUserTypeNameById", API_CALL_TIMEOUT);
+    XCollieHelper xcollie("DefaultUserKeyManager-QueryUserTypeNameById", API_CALL_TIMEOUT);
     ErrCode errCode = AccountSA::OsAccountManager::QueryOsAccountById(userId, info);
     if (errCode != ERR_OK) {
         IAM_LOGE("QueryOsAccountById failed %{public}d for %{public}d", errCode, userId);
@@ -675,14 +628,14 @@ std::string DefaultUserIdManager::QueryUserTypeNameById(UserId userId)
     }
 }
 
-DefaultUserIdManager::ActiveUserOsAccountSubscriber::ActiveUserOsAccountSubscriber(
-    const AccountSA::OsAccountSubscribeInfo &subscribeInfo, std::weak_ptr<DefaultUserIdManager> impl)
+DefaultUserKeyManager::ActiveUserOsAccountSubscriber::ActiveUserOsAccountSubscriber(
+    const AccountSA::OsAccountSubscribeInfo &subscribeInfo, std::weak_ptr<DefaultUserKeyManager> impl)
     : AccountSA::OsAccountSubscriber(subscribeInfo),
       impl_(std::move(impl))
 {
 }
 
-void DefaultUserIdManager::ActiveUserOsAccountSubscriber::OnStateChanged(const AccountSA::OsAccountStateData &data)
+void DefaultUserKeyManager::ActiveUserOsAccountSubscriber::OnStateChanged(const AccountSA::OsAccountStateData &data)
 {
     TaskRunnerManager::GetInstance().PostTaskOnResident([weakImpl = impl_, data]() {
         auto impl = weakImpl.lock();
@@ -694,12 +647,12 @@ void DefaultUserIdManager::ActiveUserOsAccountSubscriber::OnStateChanged(const A
     });
 }
 
-DefaultUserIdManager::SubProfileEventSubscriber::SubProfileEventSubscriber(std::weak_ptr<DefaultUserIdManager> impl)
+DefaultUserKeyManager::SubProfileEventSubscriber::SubProfileEventSubscriber(std::weak_ptr<DefaultUserKeyManager> impl)
     : impl_(std::move(impl))
 {
 }
 
-void DefaultUserIdManager::SubProfileEventSubscriber::OnSubProfileChanged(
+void DefaultUserKeyManager::SubProfileEventSubscriber::OnSubProfileChanged(
     const AccountSA::SubProfileEventData &eventData)
 {
     TaskRunnerManager::GetInstance().PostTaskOnResident([weakImpl = impl_, eventData]() {
@@ -713,9 +666,9 @@ void DefaultUserIdManager::SubProfileEventSubscriber::OnSubProfileChanged(
 }
 
 #ifndef ENABLE_TEST
-std::shared_ptr<IUserIdManager> IUserIdManager::Create()
+std::shared_ptr<IUserKeyManager> IUserKeyManager::Create()
 {
-    auto manager = std::make_shared<DefaultUserIdManager>();
+    auto manager = std::make_shared<DefaultUserKeyManager>();
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
     if (manager->Initialize() == false) {
         IAM_LOGE("failed to init default user id manager");

@@ -24,7 +24,7 @@
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
 #include "mock_time_keeper.h"
-#include "mock_user_id_manager.h"
+#include "mock_user_key_manager.h"
 
 #include "adapter_manager.h"
 #include "host_obtain_token_request.h"
@@ -75,8 +75,8 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
-        auto userIdMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
-        AdapterManager::GetInstance().SetUserIdManager(userIdMgr);
+        auto userKeyMgr = std::shared_ptr<IUserKeyManager>(&mockUserKeyManager_, [](IUserKeyManager *) {});
+        AdapterManager::GetInstance().SetUserKeyManager(userKeyMgr);
 
         auto timeKeeper = std::make_shared<MockTimeKeeper>();
         AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
@@ -102,12 +102,12 @@ public:
         ON_CALL(mockSecurityAgent_, HostProcessObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockEventManagerAdapter_, ReportInteractionEvent(_)).WillByDefault(Return());
         // The active user is the request's host user (100) so OnStart's active-user guard passes.
-        ON_CALL(mockUserIdManager_, GetActiveUserId()).WillByDefault(Return(100));
+        ON_CALL(mockUserKeyManager_, GetActiveUserId()).WillByDefault(Return(100));
         // SubscribeCancellationEvents subscribes to companion-auth-blocked and active-user changes;
         // provide valid defaults so OnStart reaches its success path instead of aborting on nullptr.
         ON_CALL(mockMiscManager_, SubscribeCompanionAuthBlockedChange(_))
             .WillByDefault(Invoke([](CompanionAuthBlockedCallback &&) { return MakeSubscription(); }));
-        ON_CALL(mockUserIdManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
+        ON_CALL(mockUserKeyManager_, SubscribeActiveUserId(_)).WillByDefault(Invoke([](ActiveUserIdCallback &&) {
             return MakeSubscription();
         }));
     }
@@ -142,7 +142,7 @@ protected:
     NiceMock<MockCompanionManager> mockCompanionManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
     NiceMock<MockMiscManager> mockMiscManager_;
-    NiceMock<MockUserIdManager> mockUserIdManager_;
+    NiceMock<MockUserKeyManager> mockUserKeyManager_;
     NiceMock<MockEventManagerAdapter> mockEventManagerAdapter_;
 };
 

@@ -28,7 +28,7 @@
 #include "cross_device_common.h"
 #include "service_common.h"
 #include "subscription.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -62,7 +62,6 @@ private:
     std::map<int32_t, std::function<void(bool)>> statusSubscribers_;
     std::unique_ptr<Subscription> authMaintainSubscription_;
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
-    std::unique_ptr<Subscription> subProfileChangedSubscription_;
 
     void NotifyStatusChange();
     void Unsubscribe(SubscribeId subscriptionId);

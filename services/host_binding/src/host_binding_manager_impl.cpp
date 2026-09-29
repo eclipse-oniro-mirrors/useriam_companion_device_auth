@@ -48,24 +48,16 @@ bool HostBindingManagerImpl::Initialize()
 {
     IAM_LOGI("begin");
 
-    unlockedActiveUserIdSubscription_ =
-        GetUserIdManager().SubscribeUnlockedActiveUserKey([weakSelf = weak_from_this()](const UserKey &userKey) {
+    unlockedActiveUserIdSubscription_ = GetUserKeyManager().SubscribeUnlockedActiveUserKey(
+        [weakSelf = weak_from_this()](const UserKey &userKey, UserKeyEventType eventType) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->OnActiveUserKeyChanged(userKey);
-        });
-    ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
-
-    subProfileChangedSubscription_ = GetUserIdManager().SubscribeSubProfileChanged(
-        [weakSelf = weak_from_this()](const UserKey &userKey, SubProfileEventType eventType) {
-            auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            if (eventType == SubProfileEventType::SWITCHED) {
+            if (eventType == UserKeyEventType::USER_ID_SWITCHED ||
+                eventType == UserKeyEventType::SUB_PROFILE_ID_SWITCHED) {
                 self->OnActiveUserKeyChanged(userKey);
-                return;
             }
         });
-    ENSURE_OR_RETURN_VAL(subProfileChangedSubscription_ != nullptr, false);
+    ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
 
     IAM_LOGI("success");
     return true;

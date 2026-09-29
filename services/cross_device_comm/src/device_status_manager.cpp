@@ -34,7 +34,7 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 #include "time_keeper.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_DEVICE_STATUS_MANAGER
@@ -359,7 +359,7 @@ void DeviceStatusManager::DoTriggerDeviceSync(const PhysicalDeviceKey &physicalK
         self->HandleSyncResult(companionDeviceKey, attemptId, result, syncDeviceStatus);
     };
 
-    auto activeUserKey = GetUserIdManager().GetUnlockedActiveUserkey();
+    auto activeUserKey = GetUserKeyManager().GetUnlockedActiveUserkey();
     auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(activeUserKey, companionDeviceKey,
         entry.GetDeviceName(), std::move(callback));
     ENSURE_OR_RETURN(request != nullptr);

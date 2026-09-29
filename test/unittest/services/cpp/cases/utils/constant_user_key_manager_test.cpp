@@ -20,7 +20,7 @@
 #include "mock_guard.h"
 
 #include "task_runner_manager.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -32,23 +32,23 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class ConstantUserIdManagerTest : public Test {
+class ConstantUserKeyManagerTest : public Test {
     // No SetUp/TearDown — MockGuard handles it.
 };
 
-HWTEST_F(ConstantUserIdManagerTest, CreateUserIdManager_001, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, CreateUserKeyManager_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     EXPECT_NE(nullptr, manager);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, GetUnlockedActiveUserkey_001, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, GetUnlockedActiveUserkey_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     ASSERT_NE(nullptr, manager);
 
     auto result = manager->GetUnlockedActiveUserkey();
@@ -56,40 +56,40 @@ HWTEST_F(ConstantUserIdManagerTest, GetUnlockedActiveUserkey_001, TestSize.Level
     EXPECT_EQ(INVALID_SUB_PROFILE_ID, result.subProfileId);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, GetActiveUserId_001, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, GetActiveUserId_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     ASSERT_NE(nullptr, manager);
 
     int32_t activeUserId = manager->GetActiveUserId();
     EXPECT_EQ(100, activeUserId);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, GetActiveUserName_001, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, GetActiveUserName_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     ASSERT_NE(nullptr, manager);
 
     auto userNameOpt = manager->GetActiveUserName();
     EXPECT_EQ(std::nullopt, userNameOpt);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserKey_001, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, SubscribeUnlockedActiveUserKey_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     ASSERT_NE(nullptr, manager);
 
     bool callbackCalled = false;
     int32_t receivedUserId = 0;
 
-    auto subscription =
-        manager->SubscribeUnlockedActiveUserKey([&callbackCalled, &receivedUserId](const UserKey &userKey) {
+    auto subscription = manager->SubscribeUnlockedActiveUserKey(
+        [&callbackCalled, &receivedUserId](const UserKey &userKey, UserKeyEventType) {
             callbackCalled = true;
             receivedUserId = userKey.userId;
         });
@@ -102,11 +102,11 @@ HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserKey_001, TestSize
     EXPECT_EQ(100, receivedUserId);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserKey_002, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, SubscribeUnlockedActiveUserKey_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     ASSERT_NE(nullptr, manager);
 
     auto subscription = manager->SubscribeUnlockedActiveUserKey(nullptr);
@@ -114,11 +114,11 @@ HWTEST_F(ConstantUserIdManagerTest, SubscribeUnlockedActiveUserKey_002, TestSize
     EXPECT_EQ(nullptr, subscription);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, SubscribeActiveUserId_001, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, SubscribeActiveUserId_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     ASSERT_NE(nullptr, manager);
 
     bool callbackCalled = false;
@@ -137,11 +137,11 @@ HWTEST_F(ConstantUserIdManagerTest, SubscribeActiveUserId_001, TestSize.Level0)
     EXPECT_EQ(100, receivedUserId);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, SubscribeActiveUserId_002, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, SubscribeActiveUserId_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     ASSERT_NE(nullptr, manager);
 
     auto subscription = manager->SubscribeActiveUserId(nullptr);
@@ -149,22 +149,22 @@ HWTEST_F(ConstantUserIdManagerTest, SubscribeActiveUserId_002, TestSize.Level0)
     EXPECT_EQ(nullptr, subscription);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, IsUserIdValid_001, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, IsUserIdValid_001, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     ASSERT_NE(nullptr, manager);
 
     bool isValid = manager->IsUserIdValid(100);
     EXPECT_TRUE(isValid);
 }
 
-HWTEST_F(ConstantUserIdManagerTest, IsUserIdValid_002, TestSize.Level0)
+HWTEST_F(ConstantUserKeyManagerTest, IsUserIdValid_002, TestSize.Level0)
 {
     MockGuard guard;
 
-    auto manager = IUserIdManager::Create();
+    auto manager = IUserKeyManager::Create();
     ASSERT_NE(nullptr, manager);
 
     bool isValid = manager->IsUserIdValid(50);

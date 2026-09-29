@@ -29,7 +29,9 @@ extern "C" {
 
 typedef struct PlaceHolderFfi InitInputFfi;
 
-typedef struct PlaceHolderFfi InitOutputFfi;
+typedef struct InitOutputFfi {
+    uint8_t isDbUpgrade;
+} InitOutputFfi;
 
 typedef struct PlaceHolderFfi GetExecutorInfoInputFfi;
 

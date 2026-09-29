@@ -52,7 +52,7 @@
 #include "system_param_manager_impl.h"
 #include "task_runner_manager.h"
 #include "tokenid_kit.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 #include "xcollie_helper.h"
 
 #include "driver_manager_adapter_impl.h"

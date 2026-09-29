@@ -335,7 +335,12 @@ pub struct DeviceKeyFfi {
 
 // Init
 pub type InitInputFfi = PlaceHolderFfi;
-pub type InitOutputFfi = PlaceHolderFfi;
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+pub struct InitOutputFfi {
+    pub is_db_upgrade: u8,
+}
+assert_max_size!(InitOutputFfi);
 
 // GetExecutorInfo
 pub type GetExecutorInfoInputFfi = PlaceHolderFfi;

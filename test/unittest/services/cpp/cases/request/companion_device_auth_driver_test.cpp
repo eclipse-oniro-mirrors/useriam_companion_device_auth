@@ -34,7 +34,7 @@ namespace CompanionDeviceAuth {
 
 namespace {
 
-class FakeUserIdManager : public IUserIdManager {
+class FakeUserKeyManager : public IUserKeyManager {
 public:
     bool Initialize()
     {
@@ -69,7 +69,7 @@ public:
 
     std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) override
     {
-        unlockedActiveUserIdCallback_ = std::move(callback);
+        activeUserKeyChangeCallback_ = std::move(callback);
         return std::make_unique<Subscription>([]() {});
     }
 
@@ -90,34 +90,16 @@ public:
         return INVALID_SUB_PROFILE_ID;
     }
 
-    bool IsForegroundSubProfileId(const UserKey &userKey) const override
-    {
-        (void)userKey;
-        return false;
-    }
-
-    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
-    {
-        (void)userId;
-        return std::nullopt;
-    }
-
     std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
     {
         (void)userKey;
         return std::nullopt;
     }
 
-    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
-    {
-        (void)callback;
-        return std::make_unique<Subscription>(nullptr);
-    }
-
 private:
     int32_t activeUserId_ { 100 };
     ActiveUserIdCallback activeUserIdCallback_ {};
-    UnlockedActiveUserKeyCallback unlockedActiveUserIdCallback_ {};
+    UnlockedActiveUserKeyCallback activeUserKeyChangeCallback_ {};
 };
 } // namespace
 

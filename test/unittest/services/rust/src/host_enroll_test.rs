@@ -27,7 +27,7 @@ use crate::request::enroll::enroll_message::{SecBindingReply, SecBindingReplyInf
 use crate::request::enroll::host_enroll::{HostDeviceEnrollRequest, KeyNegotialParam};
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{CompanionDeviceSk, DeviceKey};
+use crate::traits::db_manager::{CompanionDeviceSk, DeviceKey, UserKey};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
@@ -63,8 +63,7 @@ fn create_valid_binding_reply(
 ) -> Vec<u8> {
     let reply_info = SecBindingReplyInfo {
         device_id: device_id.to_string(),
-        user_id,
-        sub_profile_id: 0,
+        user_key: UserKey { user_id, sub_profile_id: 0 },
         esl,
         track_ability_level: 0,
         challenge: 0,

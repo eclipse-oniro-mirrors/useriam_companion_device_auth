@@ -21,6 +21,7 @@
 #include "iam_log_tracer.h"
 #include "iam_logger.h"
 
+#include "adapter_manager.h"
 #include "common_defines.h"
 #include "companion_device_auth_ffi.h"
 #include "companion_device_auth_ffi_util.h"

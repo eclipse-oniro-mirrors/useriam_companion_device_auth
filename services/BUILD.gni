@@ -40,7 +40,7 @@ companion_device_auth_service_include_dirs = [
   "external_adapters/samgr/inc",
   "external_adapters/time_keeper/inc",
   "external_adapters/user_auth/inc",
-  "external_adapters/user_id/inc",
+  "external_adapters/user_key/inc",
   "external_adapters/settings/inc",
   "external_adapters/system_param/inc",
   "external_adapters/util/inc",
@@ -222,7 +222,7 @@ if (companion_device_auth_has_soft_bus_channel) {
 
 if (companion_device_auth_has_account_os_account) {
   companion_device_auth_service_static_sources +=
-      [ "external_adapters/user_id/src/default_user_id_manager.cpp" ]
+      [ "external_adapters/user_key/src/default_user_key_manager.cpp" ]
   companion_device_auth_service_external_deps +=
       [ "os_account:os_account_innerkits" ]
   if (companion_device_auth_enable_multiple_os_account_sub_profiles) {
@@ -230,7 +230,7 @@ if (companion_device_auth_has_account_os_account) {
   }
 } else {
   companion_device_auth_service_static_sources +=
-      [ "external_adapters/user_id/src/constant_user_id_manager.cpp" ]
+      [ "external_adapters/user_key/src/constant_user_key_manager.cpp" ]
 }
 
 companion_device_auth_service_local_sources =
@@ -250,9 +250,9 @@ companion_device_auth_service_sources_for_test = companion_device_auth_service_s
                                                    "${companion_device_auth_path}/services/utils/src/task_runner_manager.cpp",
                                                  ]
 
-# Tests always use constant_user_id_manager instead of os_account-dependent default_user_id_manager
-companion_device_auth_service_sources_for_test -= [ "${companion_device_auth_path}/services/external_adapters/user_id/src/default_user_id_manager.cpp" ]
-companion_device_auth_service_sources_for_test += [ "${companion_device_auth_path}/services/external_adapters/user_id/src/constant_user_id_manager.cpp" ]
+# Tests always use constant_user_key_manager instead of os_account-dependent default_user_key_manager
+companion_device_auth_service_sources_for_test -= [ "${companion_device_auth_path}/services/external_adapters/user_key/src/default_user_key_manager.cpp" ]
+companion_device_auth_service_sources_for_test += [ "${companion_device_auth_path}/services/external_adapters/user_key/src/constant_user_key_manager.cpp" ]
 
 companion_device_auth_test_include_dirs = []
 foreach(dir, companion_device_auth_service_include_dirs) {

@@ -21,7 +21,7 @@
 #include "singleton_manager.h"
 #include "soft_bus_channel_common.h"
 #include "subscription.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_DEVICE_RESYNC_SCHEDULER
@@ -52,11 +52,14 @@ DeviceResyncScheduler::DeviceResyncScheduler(std::shared_ptr<SoftBusDeviceStatus
 
 bool DeviceResyncScheduler::Start()
 {
-    unlockedActiveUserIdSubscription_ =
-        GetUserIdManager().SubscribeUnlockedActiveUserKey([weakSelf = weak_from_this()](const UserKey &userKey) {
+    unlockedActiveUserIdSubscription_ = GetUserKeyManager().SubscribeUnlockedActiveUserKey(
+        [weakSelf = weak_from_this()](const UserKey &userKey, UserKeyEventType eventType) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->OnActiveUserKeyChanged(userKey);
+            if (eventType == UserKeyEventType::USER_ID_SWITCHED ||
+                eventType == UserKeyEventType::SUB_PROFILE_ID_SWITCHED) {
+                self->OnActiveUserKeyChanged(userKey);
+            }
         });
     ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
 
@@ -75,17 +78,6 @@ bool DeviceResyncScheduler::Start()
             self->OnPhysicalDeviceStatusChanged(deviceStatusList);
         });
     ENSURE_OR_RETURN_VAL(deviceStatusSubscription_ != nullptr, false);
-
-    subProfileChangedSubscription_ = GetUserIdManager().SubscribeSubProfileChanged(
-        [weakSelf = weak_from_this()](const UserKey &userKey, SubProfileEventType eventType) {
-            auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            if (eventType == SubProfileEventType::SWITCHED) {
-                self->OnActiveUserKeyChanged(userKey);
-                return;
-            }
-        });
-    ENSURE_OR_RETURN_VAL(subProfileChangedSubscription_ != nullptr, false);
 
     bool registryStartRet = syncedPeerRegistry_.Start();
     ENSURE_OR_RETURN_VAL(registryStartRet, false);

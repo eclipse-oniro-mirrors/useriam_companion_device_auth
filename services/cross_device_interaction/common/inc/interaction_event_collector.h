@@ -26,7 +26,7 @@
 #include "iam_log_tracer.h"
 #include "service_common.h"
 #include "timing_tracer.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {

@@ -55,7 +55,6 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
         UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
         delegateAuthParam);
 
-    ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
@@ -102,7 +101,6 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
         UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
         delegateAuthParam);
 
-    ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
@@ -123,7 +121,6 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
         UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
         delegateAuthParam);
 
-    ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillRepeatedly(Return(std::make_optional(COMPANION_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())

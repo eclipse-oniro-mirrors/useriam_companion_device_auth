@@ -29,7 +29,7 @@
 #include "singleton.h"
 #include "singleton_manager.h"
 #include "subscription.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -97,7 +97,6 @@ private:
     std::vector<std::shared_ptr<Companion>> companions_;
     std::map<SubscribeId, OnCompanionDeviceStatusChange> statusSubscribers_;
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
-    std::unique_ptr<Subscription> subProfileChangedSubscription_;
     std::unique_ptr<Subscription> templateChangeSubscription_;
 };
 

@@ -252,7 +252,7 @@ bool HostMixAuthRequest::SubscribeCancellationEvents()
         });
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), lockEventSubscription_ != nullptr, false);
     activeUserSubscription_ =
-        GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId activeUserId) {
+        GetUserKeyManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId activeUserId) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             if (self->hostUserKey_.userId != activeUserId) {
@@ -296,7 +296,7 @@ void HostMixAuthRequest::HandleAuthResult(TemplateId templateId, ResultCode resu
         ResultCode reject = ResultCode::SUCCESS;
         if (GetMiscManager().IsCompanionAuthBlocked()) {
             reject = ResultCode::LOCKED;
-        } else if (GetUserIdManager().GetActiveUserId() != hostUserKey_.userId) {
+        } else if (GetUserKeyManager().GetActiveUserId() != hostUserKey_.userId) {
             reject = ResultCode::GENERAL_ERROR;
         }
         if (reject != ResultCode::SUCCESS) {

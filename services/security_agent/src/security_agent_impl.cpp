@@ -55,33 +55,23 @@ std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 
 bool SecurityAgentImpl::Initialize()
 {
-    auto &userIdManager = GetUserIdManager();
-    unlockedActiveUserSubscription_ = userIdManager.SubscribeUnlockedActiveUserKey([this](const UserKey &userKey) {
-        auto result = SetActiveUser(SetActiveUserInput { userKey, CollectValidUserKeys() });
-        if (result != SUCCESS) {
-            IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
-        }
-    });
-    if (unlockedActiveUserSubscription_ == nullptr) {
-        return false;
-    }
-
-    subProfileChangedSubscription_ =
-        userIdManager.SubscribeSubProfileChanged([this](const UserKey &userKey, SubProfileEventType eventType) {
+    auto &userKeyManager = GetUserKeyManager();
+    unlockedActiveUserIdSubscription_ =
+        userKeyManager.SubscribeUnlockedActiveUserKey([this](const UserKey &userKey, UserKeyEventType eventType) {
             UserKey activeUser = userKey;
-            if (eventType == SubProfileEventType::DELETED) {
-                activeUser = GetUserIdManager().GetUnlockedActiveUserkey();
+            if (eventType == UserKeyEventType::SUB_PROFILE_ID_DELETED) {
+                activeUser = GetUserKeyManager().GetUnlockedActiveUserkey();
             }
             auto result = SetActiveUser(SetActiveUserInput { activeUser, CollectValidUserKeys() });
             if (result != SUCCESS) {
                 IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
             }
         });
-    if (subProfileChangedSubscription_ == nullptr) {
+    if (unlockedActiveUserIdSubscription_ == nullptr) {
         return false;
     }
 
-    auto unlockedActiveUser = userIdManager.GetUnlockedActiveUserkey();
+    auto unlockedActiveUser = userKeyManager.GetUnlockedActiveUserkey();
     auto result = SetActiveUser(SetActiveUserInput { unlockedActiveUser, CollectValidUserKeys() });
     if (result != SUCCESS) {
         return false;
@@ -92,7 +82,7 @@ bool SecurityAgentImpl::Initialize()
 
 std::vector<UserKey> SecurityAgentImpl::CollectValidUserKeys()
 {
-    auto validUserIds = GetUserIdManager().GetAllValidUserKeys();
+    auto validUserIds = GetUserKeyManager().GetAllValidUserKeys();
     if (!validUserIds.has_value()) {
         IAM_LOGW("GetAllValidUserKeys failed, proceeding with empty valid user id list");
         return {};

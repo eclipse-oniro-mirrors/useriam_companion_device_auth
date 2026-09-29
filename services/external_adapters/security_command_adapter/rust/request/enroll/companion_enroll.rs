@@ -240,8 +240,10 @@ impl CompanionDeviceEnrollRequest {
     fn encode_sec_binding_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let reply_info = Box::new(SecBindingReplyInfo {
             device_id: self.key_nego_param.companion_device_key.device_id.clone(),
-            user_id: self.key_nego_param.companion_device_key.user_id,
-            sub_profile_id: self.key_nego_param.companion_device_key.sub_profile_id,
+            user_key: UserKey {
+                user_id: self.key_nego_param.companion_device_key.user_id,
+                sub_profile_id: self.key_nego_param.companion_device_key.sub_profile_id,
+            },
             esl: ExecutorSecurityLevel::Esl3 as i32,
             track_ability_level: TrackAbilityLevel::Tal4 as i32,
             challenge: self.binding_param.host_challenge,

@@ -26,10 +26,10 @@
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
-#define LOG_FILE_ID LOG_FILE_CONSTANT_USER_ID_MANAGER
+#define LOG_FILE_ID LOG_FILE_CONSTANT_USER_KEY_MANAGER
 
 namespace OHOS {
 namespace UserIam {
@@ -38,12 +38,12 @@ namespace {
 constexpr int32_t DEFAULT_USER_ID = 100;
 } // namespace
 
-class ConstantUserIdManager final : public IUserIdManager {
+class ConstantUserKeyManager final : public IUserKeyManager {
 public:
-    ConstantUserIdManager()
+    ConstantUserKeyManager()
     {
     }
-    ~ConstantUserIdManager() override = default;
+    ~ConstantUserKeyManager() override = default;
 
     int32_t GetActiveUserId() const override
     {
@@ -84,7 +84,7 @@ public:
 
         TaskRunnerManager::GetInstance().PostTaskOnResident([cb = std::move(callback)]() mutable {
             if (cb) {
-                cb(UserKey { DEFAULT_USER_ID, INVALID_SUB_PROFILE_ID });
+                cb(UserKey { DEFAULT_USER_ID, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_ID_SWITCHED);
             }
         });
 
@@ -106,33 +106,15 @@ public:
         return INVALID_SUB_PROFILE_ID;
     }
 
-    bool IsForegroundSubProfileId(const UserKey &userKey) const override
-    {
-        (void)userKey;
-        return true;
-    }
-
-    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
-    {
-        (void)userId;
-        return std::vector<int32_t> { INVALID_SUB_PROFILE_ID };
-    }
-
     std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
     {
         return std::nullopt;
     }
-
-    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
-    {
-        (void)callback;
-        return std::make_unique<Subscription>(nullptr);
-    }
 };
 
-std::shared_ptr<IUserIdManager> IUserIdManager::Create()
+std::shared_ptr<IUserKeyManager> IUserKeyManager::Create()
 {
-    auto manager = std::make_shared<ConstantUserIdManager>();
+    auto manager = std::make_shared<ConstantUserKeyManager>();
     ENSURE_OR_RETURN_VAL(manager != nullptr, nullptr);
     return manager;
 }

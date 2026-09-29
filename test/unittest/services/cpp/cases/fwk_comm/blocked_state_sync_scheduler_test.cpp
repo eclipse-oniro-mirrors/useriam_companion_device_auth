@@ -58,7 +58,7 @@ protected:
         LinkTimerToTimeKeeper(guard_->GetTimeKeeper());
         // No active user during Create(): Init() skips OnActiveUserChanged, so construction has no query
         // side effects and each test drives state explicitly.
-        ON_CALL(guard_->GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(INVALID_USER_ID));
+        ON_CALL(guard_->GetUserKeyManager(), GetActiveUserId()).WillByDefault(Return(INVALID_USER_ID));
         // Provide an explicit no-op action: relying on gmock's built-in PerformDefaultAction trips a
         // CFI indirect-call check on this device and aborts the whole test binary.
         ON_CALL(guard_->GetMiscManager(), SetCompanionAuthBlocked(_)).WillByDefault(Invoke([](bool) {}));
@@ -71,7 +71,7 @@ protected:
 
     void SetActiveUser(int32_t userId)
     {
-        ON_CALL(guard_->GetUserIdManager(), GetActiveUserId()).WillByDefault(Return(userId));
+        ON_CALL(guard_->GetUserKeyManager(), GetActiveUserId()).WillByDefault(Return(userId));
     }
 
     std::unique_ptr<MockGuard> guard_;
@@ -192,7 +192,7 @@ HWTEST_F(BlockedStateSyncSchedulerTest, PinUnavailable_DefersUntilBack, TestSize
 HWTEST_F(BlockedStateSyncSchedulerTest, ActiveUserChange_TriggersQueryForNewUser, TestSize.Level0)
 {
     ActiveUserIdCallback userCb;
-    EXPECT_CALL(guard_->GetUserIdManager(), SubscribeActiveUserId(_))
+    EXPECT_CALL(guard_->GetUserKeyManager(), SubscribeActiveUserId(_))
         .WillOnce(DoAll(SaveArg<0>(&userCb),
             Invoke([](ActiveUserIdCallback &&) { return std::make_unique<Subscription>([] {}); })));
 

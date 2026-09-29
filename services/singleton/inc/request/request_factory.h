@@ -30,7 +30,7 @@
 #include "cross_device_common.h"
 #include "irequest.h"
 #include "service_common.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {

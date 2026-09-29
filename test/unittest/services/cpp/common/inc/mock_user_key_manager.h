@@ -13,18 +13,18 @@
  * limitations under the License.
  */
 
-#ifndef COMPANION_DEVICE_AUTH_TEST_UNITTEST_SERVICES_MOCK_ACTIVE_USER_ID_MANAGER_H
-#define COMPANION_DEVICE_AUTH_TEST_UNITTEST_SERVICES_MOCK_ACTIVE_USER_ID_MANAGER_H
+#ifndef COMPANION_DEVICE_AUTH_TEST_UNITTEST_SERVICES_MOCK_ACTIVE_USER_KEY_MANAGER_H
+#define COMPANION_DEVICE_AUTH_TEST_UNITTEST_SERVICES_MOCK_ACTIVE_USER_KEY_MANAGER_H
 
 #include <gmock/gmock.h>
 
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class MockUserIdManager : public IUserIdManager {
+class MockUserKeyManager : public IUserKeyManager {
 public:
     MOCK_METHOD(bool, Initialize, (), ());
     MOCK_METHOD(int32_t, GetActiveUserId, (), (const, override));
@@ -39,56 +39,32 @@ public:
 
     // Sub profile ID management
     MOCK_METHOD(int32_t, GetForegroundSubProfileId, (UserId userId), (const, override));
-    MOCK_METHOD(bool, IsForegroundSubProfileId, (const UserKey &userKey), (const, override));
-    MOCK_METHOD(std::optional<std::vector<int32_t>>, GetOsAccountSubProfileIds, (UserId userId), (const, override));
     MOCK_METHOD(std::optional<std::string>, GetSubProfileName, (const UserKey &userKey), (const, override));
-    MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeSubProfileChanged, (SubProfileChangedCallback && callback),
-        (override));
 
-    // Helper method to trigger the unlocked active user ID change callback in tests
-    void NotifyUnlockedActiveUserKeyChanged(
-        const UserKey &userKey = UserKey { INVALID_USER_ID, INVALID_SUB_PROFILE_ID })
-    {
-        if (unlockedUserIdCallback_) {
-            unlockedUserIdCallback_(userKey);
-        }
-    }
-
-    // Helper method to set up mock to store the callback for later invocation
-    void SetupStoreUnlockedUserIdCallback()
+    // Helper method to set up mock to store the active user key change callback for later invocation
+    void SetupStoreActiveUserKeyChangeCallback()
     {
         ON_CALL(*this, SubscribeUnlockedActiveUserKey(testing::_))
             .WillByDefault(testing::Invoke([this](UnlockedActiveUserKeyCallback &&callback) {
-                unlockedUserIdCallback_ = std::move(callback);
+                activeUserKeyChangeCallback_ = std::move(callback);
                 return std::make_unique<Subscription>([]() {});
             }));
     }
 
-    // Helper method to set up mock to store the sub profile changed callback for later invocation
-    void SetupStoreSubProfileChangedCallback()
+    // Helper method to trigger the active user key change callback in tests
+    void NotifyActiveUserKeyChanged(const UserKey &userKey, UserKeyEventType eventType)
     {
-        ON_CALL(*this, SubscribeSubProfileChanged(testing::_))
-            .WillByDefault(testing::Invoke([this](SubProfileChangedCallback &&callback) {
-                subProfileChangedCallback_ = std::move(callback);
-                return std::make_unique<Subscription>([]() {});
-            }));
-    }
-
-    // Helper method to trigger the sub profile changed callback in tests
-    void NotifySubProfileChanged(const UserKey &userKey, SubProfileEventType eventType)
-    {
-        if (subProfileChangedCallback_) {
-            subProfileChangedCallback_(userKey, eventType);
+        if (activeUserKeyChangeCallback_) {
+            activeUserKeyChangeCallback_(userKey, eventType);
         }
     }
 
 private:
-    UnlockedActiveUserKeyCallback unlockedUserIdCallback_;
-    SubProfileChangedCallback subProfileChangedCallback_;
+    UnlockedActiveUserKeyCallback activeUserKeyChangeCallback_;
 };
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
 
-#endif // COMPANION_DEVICE_AUTH_TEST_UNITTEST_SERVICES_MOCK_ACTIVE_USER_ID_MANAGER_H
+#endif // COMPANION_DEVICE_AUTH_TEST_UNITTEST_SERVICES_MOCK_ACTIVE_USER_KEY_MANAGER_H

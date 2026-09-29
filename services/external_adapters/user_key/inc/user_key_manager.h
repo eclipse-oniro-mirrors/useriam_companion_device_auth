@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef COMPANION_DEVICE_AUTH_USER_ID_MANAGER_H
-#define COMPANION_DEVICE_AUTH_USER_ID_MANAGER_H
+#ifndef COMPANION_DEVICE_AUTH_USER_KEY_MANAGER_H
+#define COMPANION_DEVICE_AUTH_USER_KEY_MANAGER_H
 
 #include <cstdint>
 #include <functional>
@@ -33,20 +33,20 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 using ActiveUserIdCallback = std::function<void(UserId userId)>;
-using UnlockedActiveUserKeyCallback = std::function<void(const UserKey &userKey)>;
 
-enum class SubProfileEventType : int32_t {
-    DELETED = 1,
-    SWITCHED = 3,
+enum class UserKeyEventType : int32_t {
+    USER_ID_SWITCHED = 1,
+    SUB_PROFILE_ID_DELETED = 2,
+    SUB_PROFILE_ID_SWITCHED = 3,
 };
 
-using SubProfileChangedCallback = std::function<void(const UserKey &userKey, SubProfileEventType eventType)>;
+using UnlockedActiveUserKeyCallback = std::function<void(const UserKey &userKey, UserKeyEventType eventType)>;
 
-class IUserIdManager : public NoCopyable {
+class IUserKeyManager : public NoCopyable {
 public:
-    virtual ~IUserIdManager() = default;
+    virtual ~IUserKeyManager() = default;
 
-    static std::shared_ptr<IUserIdManager> Create();
+    static std::shared_ptr<IUserKeyManager> Create();
 
     // User ID management
     virtual std::optional<std::string> GetActiveUserName() const = 0;
@@ -60,17 +60,14 @@ public:
 
     // Sub profile ID management
     virtual int32_t GetForegroundSubProfileId(UserId userId) const = 0;
-    virtual bool IsForegroundSubProfileId(const UserKey &userKey) const = 0;
-    virtual std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const = 0;
     virtual std::optional<std::string> GetSubProfileName(const UserKey &userKey) const = 0;
-    virtual std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) = 0;
 
 protected:
-    IUserIdManager() = default;
+    IUserKeyManager() = default;
 };
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
 
-#endif // COMPANION_DEVICE_AUTH_USER_ID_MANAGER_H
+#endif // COMPANION_DEVICE_AUTH_USER_KEY_MANAGER_H

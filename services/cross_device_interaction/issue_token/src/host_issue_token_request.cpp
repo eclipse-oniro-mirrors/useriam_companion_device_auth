@@ -52,9 +52,9 @@ HostIssueTokenRequest::HostIssueTokenRequest(const UserKey &hostUserKey, Templat
 
 bool HostIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
-    if (hostUserKey_.userId != GetUserIdManager().GetActiveUserId()) {
+    if (hostUserKey_.userId != GetUserKeyManager().GetActiveUserId()) {
         IAM_LOGE("%{public}s hostUserId %{public}d mismatch active %{public}d", GetDescription(), hostUserKey_.userId,
-            GetUserIdManager().GetActiveUserId());
+            GetUserKeyManager().GetActiveUserId());
         return false;
     }
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);

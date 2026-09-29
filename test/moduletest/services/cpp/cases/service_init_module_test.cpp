@@ -72,7 +72,7 @@ HWTEST_F(ServiceInitModuleTest, ServiceInitSucceedsE2E_001, TestSize.Level0)
 // ============================================================================
 //
 // What this tests:
-//   FakeUserIdManager.TestSetActiveUser(100)
+//   FakeUserKeyManager.TestSetActiveUser(100)
 //     → CompanionManagerImpl::OnActiveUserKeyChanged(100)     [production]
 //       → FakeIdmAdapter.GetUserTemplates(100)               [Fake]
 //       → SecurityAgent.HostGetPersistedCompanionStatus      [Mock → returns 1 companion]
@@ -111,7 +111,7 @@ PersistedSwitchData SetupPersistedUserSwitchMocks(ModuleTestGuard &guard)
     // Reset to invalid user first. ModuleTestGuard::SetupDefaultValues() sets user
     // to 100 which already triggered OnActiveUserKeyChanged(100) with empty data. Reset to 0
     // to allow re-trigger with the mock data below.
-    guard.GetUserIdManager().TestSetActiveUser(0);
+    guard.GetUserKeyManager().TestSetActiveUser(0);
     guard.GetIdmAdapter().TestSetUserTemplates(data.hostUser, { data.templateId });
 
     data.persistedCompanion.templateId = data.templateId;
@@ -148,8 +148,8 @@ HWTEST_F(ServiceInitModuleTest, LoadPersistedDataAfterUserSwitchE2E_001, TestSiz
     ModuleTestGuard guard;
     PersistedSwitchData data = SetupPersistedUserSwitchMocks(guard);
 
-    guard.GetUserIdManager().TestSetActiveUser(101);
-    guard.GetUserIdManager().TestSetActiveUser(data.hostUser);
+    guard.GetUserKeyManager().TestSetActiveUser(101);
+    guard.GetUserKeyManager().TestSetActiveUser(data.hostUser);
     TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
     RelativeTimer::GetInstance().DrainExpiredTasks();
 

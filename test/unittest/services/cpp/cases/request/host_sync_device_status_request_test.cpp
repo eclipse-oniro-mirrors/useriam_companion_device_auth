@@ -24,7 +24,7 @@
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
 #include "mock_time_keeper.h"
-#include "mock_user_id_manager.h"
+#include "mock_user_key_manager.h"
 
 #include "adapter_manager.h"
 #include "host_sync_device_status_request.h"
@@ -87,8 +87,8 @@ public:
         auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
         SingletonManager::GetInstance().SetMiscManager(miscMgr);
 
-        auto userIdMgr = std::shared_ptr<IUserIdManager>(&mockUserIdManager_, [](IUserIdManager *) {});
-        AdapterManager::GetInstance().SetUserIdManager(userIdMgr);
+        auto userKeyMgr = std::shared_ptr<IUserKeyManager>(&mockUserKeyManager_, [](IUserKeyManager *) {});
+        AdapterManager::GetInstance().SetUserKeyManager(userKeyMgr);
 
         auto timeKeeper = std::make_shared<MockTimeKeeper>();
         AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
@@ -106,7 +106,7 @@ public:
         ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
         ON_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).WillByDefault(Return());
         ON_CALL(mockEventManagerAdapter_, ReportInteractionEvent(_)).WillByDefault(Return());
-        ON_CALL(mockUserIdManager_, GetForegroundSubProfileId(_)).WillByDefault(Return(INVALID_SUB_PROFILE_ID));
+        ON_CALL(mockUserKeyManager_, GetForegroundSubProfileId(_)).WillByDefault(Return(INVALID_SUB_PROFILE_ID));
     }
 
     void TearDown() override
@@ -125,7 +125,7 @@ protected:
     NiceMock<MockCompanionManager> mockCompanionManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
     NiceMock<MockMiscManager> mockMiscManager_;
-    NiceMock<MockUserIdManager> mockUserIdManager_;
+    NiceMock<MockUserKeyManager> mockUserKeyManager_;
     NiceMock<MockEventManagerAdapter> mockEventManagerAdapter_;
 };
 

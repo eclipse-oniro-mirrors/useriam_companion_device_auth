@@ -55,13 +55,8 @@ PersistedHostBindingStatus MakePersistedStatus(BindingId bindingId, UserId compa
 
 void SetupManagerCreationMocks(MockGuard &guard)
 {
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
-        return MakeSubscription();
-    }));
-
-    auto &subProfileIdMgr = guard.GetUserIdManager();
-    ON_CALL(subProfileIdMgr, SubscribeSubProfileChanged(_)).WillByDefault(Invoke([](SubProfileChangedCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
 
@@ -118,8 +113,8 @@ HWTEST_F(HostBindingManagerImplTest, Create_001, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -150,11 +145,7 @@ HWTEST_F(HostBindingManagerImplTest, Create_001, TestSize.Level0)
             }));
     auto &requestMgr = guard.GetRequestManager();
     ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
-    auto &subProfileIdMgr = guard.GetUserIdManager();
-    EXPECT_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillOnce(Invoke([](UnlockedActiveUserKeyCallback &&) {
-        return MakeSubscription();
-    }));
-    EXPECT_CALL(subProfileIdMgr, SubscribeSubProfileChanged(_)).WillOnce(Invoke([](SubProfileChangedCallback &&) {
+    EXPECT_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillOnce(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
 
@@ -167,8 +158,8 @@ HWTEST_F(HostBindingManagerImplTest, Initialize_001, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -233,8 +224,8 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusById_002, TestSize.Leve
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -302,8 +293,8 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusByDeviceUser_002, TestS
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -351,8 +342,8 @@ HWTEST_F(HostBindingManagerImplTest, GetAllHostBindingStatus_001, TestSize.Level
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -403,8 +394,8 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_001, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -453,8 +444,8 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_002, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -505,8 +496,8 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_003, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -643,8 +634,8 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_001, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -719,8 +710,8 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_002, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -767,8 +758,8 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_003, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -808,8 +799,8 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_001, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -857,8 +848,8 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_002, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -901,8 +892,8 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_003, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -946,8 +937,8 @@ HWTEST_F(HostBindingManagerImplTest, RemoveHostBinding_004, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -990,8 +981,8 @@ HWTEST_F(HostBindingManagerImplTest, SetHostBindingTokenValid_001, TestSize.Leve
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1058,8 +1049,8 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserKeyChanged_001, TestSize.Level0
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1111,8 +1102,8 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserKeyChanged_002, TestSize.Level0
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1166,8 +1157,8 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserKeyChanged_003, TestSize.Level0
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1219,8 +1210,8 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserKeyChanged_004, TestSize.Level0
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1269,8 +1260,8 @@ HWTEST_F(HostBindingManagerImplTest, OnActiveUserKeyChanged_005, TestSize.Level0
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1307,8 +1298,8 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_001, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1351,8 +1342,8 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_002, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1401,8 +1392,8 @@ HWTEST_F(HostBindingManagerImplTest, AddBindingInternal_003, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1478,8 +1469,8 @@ HWTEST_F(HostBindingManagerImplTest, RemoveBindingInternal_001, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1522,8 +1513,8 @@ HWTEST_F(HostBindingManagerImplTest, RemoveBindingInternal_002, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1574,8 +1565,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_001, TestSize.Leve
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1622,8 +1613,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_002, TestSize.Leve
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1670,8 +1661,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_003, TestSize.Leve
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1725,8 +1716,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_004, TestSize.Leve
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1772,8 +1763,8 @@ HWTEST_F(HostBindingManagerImplTest, StartObtainTokenRequests_005, TestSize.Leve
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1819,8 +1810,8 @@ HWTEST_F(HostBindingManagerImplTest, RevokeTokens_001, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
@@ -1864,8 +1855,8 @@ HWTEST_F(HostBindingManagerImplTest, RevokeTokens_002, TestSize.Level0)
     MockGuard guard;
     int32_t activeUserId_ = 100;
     (void)activeUserId_;
-    auto &userIdMgr = guard.GetUserIdManager();
-    ON_CALL(userIdMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
+    auto &userKeyMgr = guard.GetUserKeyManager();
+    ON_CALL(userKeyMgr, SubscribeUnlockedActiveUserKey(_)).WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
         return MakeSubscription();
     }));
     auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
