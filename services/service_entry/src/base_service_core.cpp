@@ -72,9 +72,9 @@ ResultCode BaseServiceCore::SubscribeAvailableDeviceStatus(int32_t localUserId, 
     ENSURE_OR_RETURN_VAL(deviceStatusCallback != nullptr, ResultCode::INVALID_PARAMETERS);
     ENSURE_OR_RETURN_VAL(subscriptionManager_ != nullptr, ResultCode::GENERAL_ERROR);
 
-    if (localUserId != GetUserIdManager().GetUnlockedActiveUserkey().userId) {
+    if (localUserId != GetUserKeyManager().GetUnlockedActiveUserkey().userId) {
         IAM_LOGE("userId %{public}d is not the active user id %{public}d", localUserId,
-            GetUserIdManager().GetUnlockedActiveUserkey().userId);
+            GetUserKeyManager().GetUnlockedActiveUserkey().userId);
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -108,9 +108,9 @@ ResultCode BaseServiceCore::SubscribeTemplateStatusChange(int32_t localUserId, C
     ENSURE_OR_RETURN_VAL(templateStatusCallback != nullptr, ResultCode::INVALID_PARAMETERS);
     ENSURE_OR_RETURN_VAL(subscriptionManager_ != nullptr, ResultCode::GENERAL_ERROR);
 
-    if (localUserId != GetUserIdManager().GetUnlockedActiveUserkey().userId) {
+    if (localUserId != GetUserKeyManager().GetUnlockedActiveUserkey().userId) {
         IAM_LOGE("userId %{public}d is not the active user id %{public}d", localUserId,
-            GetUserIdManager().GetUnlockedActiveUserkey().userId);
+            GetUserKeyManager().GetUnlockedActiveUserkey().userId);
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -144,9 +144,9 @@ ResultCode BaseServiceCore::SubscribeContinuousAuthStatusChange(
     ENSURE_OR_RETURN_VAL(continuousAuthStatusCallback != nullptr, ResultCode::INVALID_PARAMETERS);
     ENSURE_OR_RETURN_VAL(subscriptionManager_ != nullptr, ResultCode::GENERAL_ERROR);
 
-    if (subscribeContinuousAuthStatusParam.localUserId != GetUserIdManager().GetUnlockedActiveUserkey().userId) {
+    if (subscribeContinuousAuthStatusParam.localUserId != GetUserKeyManager().GetUnlockedActiveUserkey().userId) {
         IAM_LOGE("userId %{public}d is not the active user id %{public}d",
-            subscribeContinuousAuthStatusParam.localUserId, GetUserIdManager().GetUnlockedActiveUserkey().userId);
+            subscribeContinuousAuthStatusParam.localUserId, GetUserKeyManager().GetUnlockedActiveUserkey().userId);
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -231,9 +231,9 @@ ResultCode BaseServiceCore::GetTemplateStatus(int32_t localUserId, std::vector<I
 {
     IAM_LOGI("Start");
 
-    if (localUserId != GetUserIdManager().GetUnlockedActiveUserkey().userId) {
+    if (localUserId != GetUserKeyManager().GetUnlockedActiveUserkey().userId) {
         IAM_LOGE("userId %{public}d is not the active user id %{public}d", localUserId,
-            GetUserIdManager().GetUnlockedActiveUserkey().userId);
+            GetUserKeyManager().GetUnlockedActiveUserkey().userId);
         return ResultCode::GENERAL_ERROR;
     }
 
@@ -332,7 +332,7 @@ ResultCode BaseServiceCore::UnregisterPasscodePromptCallback(uint32_t tokenId)
 bool BaseServiceCore::CheckLocalUserIdValid(int32_t localUserId)
 {
     IAM_LOGI("Start");
-    bool isUserIdValid = GetUserIdManager().IsUserIdValid(localUserId);
+    bool isUserIdValid = GetUserKeyManager().IsUserIdValid(localUserId);
     IAM_LOGI("End, isUserIdValid=%{public}d", isUserIdValid);
     return isUserIdValid;
 }

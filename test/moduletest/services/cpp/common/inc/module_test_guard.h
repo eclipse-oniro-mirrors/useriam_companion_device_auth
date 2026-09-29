@@ -35,7 +35,7 @@
 #include "fake_misc_manager.h"
 #include "fake_sa_manager_adapter.h"
 #include "fake_system_param_manager.h"
-#include "fake_user_id_manager.h"
+#include "fake_user_key_manager.h"
 
 // Mocks (gmock for return value control)
 #include "mock_event_manager_adapter.h"
@@ -69,7 +69,7 @@ public:
     FakeChannel &GetChannel();
     FakeAppForegroundStateAdapter &GetAppForegroundStateAdapter();
     MockTimeKeeper &GetTimeKeeper();
-    FakeUserIdManager &GetUserIdManager();
+    FakeUserKeyManager &GetUserKeyManager();
     FakeSystemParamManager &GetSystemParamManager();
     FakeMiscManager &GetMiscManager();
     FakeIdmAdapter &GetIdmAdapter();
@@ -95,7 +95,7 @@ protected:
     bool InitializeSaManagerAdapter() override;
     bool InitializeSecurityCommandAdapter() override;
     bool InitializeSystemParamManager() override;
-    bool InitializeUserIdManager() override;
+    bool InitializeUserKeyManager() override;
     bool InitializeSystemSettingsManager() override;
     bool InitializeUserAuthFramework() override;
 
@@ -118,7 +118,7 @@ private:
     std::shared_ptr<FakeDriverManagerAdapter> driverManagerAdapter_;
     std::shared_ptr<FakeSaManagerAdapter> saManagerAdapter_;
     std::shared_ptr<FakeSystemParamManager> systemParamManager_;
-    std::shared_ptr<FakeUserIdManager> userIdManager_;
+    std::shared_ptr<FakeUserKeyManager> userKeyManager_;
     std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
 
@@ -148,7 +148,7 @@ public:
     FakeChannel &GetChannel();
     FakeAppForegroundStateAdapter &GetAppForegroundStateAdapter();
     MockTimeKeeper &GetTimeKeeper();
-    FakeUserIdManager &GetUserIdManager();
+    FakeUserKeyManager &GetUserKeyManager();
     FakeSystemParamManager &GetSystemParamManager();
     FakeMiscManager &GetMiscManager();
     FakeIdmAdapter &GetIdmAdapter();

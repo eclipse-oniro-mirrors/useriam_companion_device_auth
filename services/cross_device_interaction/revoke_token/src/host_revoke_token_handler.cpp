@@ -26,7 +26,7 @@
 #include "revoke_token_message.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_HOST_REVOKE_TOKEN_HANDLER

@@ -39,7 +39,7 @@
 #include "mock_system_settings_manager.h"
 #include "mock_time_keeper.h"
 #include "mock_user_auth_adapter.h"
-#include "mock_user_id_manager.h"
+#include "mock_user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -63,7 +63,7 @@ public:
     MockDriverManagerAdapter &GetDriverManagerAdapter();
     MockSAManagerAdapter &GetSaManagerAdapter();
     MockSystemParamManager &GetSystemParamManager();
-    MockUserIdManager &GetUserIdManager();
+    MockUserKeyManager &GetUserKeyManager();
     MockEventManagerAdapter &GetEventManagerAdapter();
     MockSystemSettingsManager &GetSystemSettingsManager();
     MockAppForegroundStateAdapter &GetAppForegroundStateAdapter();
@@ -89,7 +89,7 @@ private:
     void CreateMocks();
     void SetupDefaultBehaviors();
     void SetupMiscManagerDefaults();
-    void SetupUserIdManagerDefaults();
+    void SetupUserKeyManagerDefaults();
     void SetupCrossDeviceCommManagerDefaults();
     void SetupCompanionManagerDefaults();
     void SetupRequestManagerDefaults();
@@ -110,7 +110,7 @@ private:
     std::shared_ptr<MockDriverManagerAdapter> driverManagerAdapter_;
     std::shared_ptr<MockSAManagerAdapter> saManagerAdapter_;
     std::shared_ptr<MockSystemParamManager> systemParamManager_;
-    std::shared_ptr<MockUserIdManager> userIdManager_;
+    std::shared_ptr<MockUserKeyManager> userKeyManager_;
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
     std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<MockAppForegroundStateAdapter> appForegroundStateAdapter_;

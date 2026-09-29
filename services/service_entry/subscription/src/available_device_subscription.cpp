@@ -26,7 +26,7 @@
 #include "subscription_manager.h"
 #include "subscription_util.h"
 #include "task_runner_manager.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_AVAILABLE_DEVICE_SUBSCRIPTION
@@ -137,7 +137,7 @@ void AvailableDeviceSubscription::HandleDeviceStatusChange()
     auto deviceStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus(true);
     IAM_LOGI("HandleDeviceStatusChange start, total device count:%{public}zu, userId:%{public}d",
         deviceStatusList.size(), userId_);
-    UserKey activeUserKey = GetUserIdManager().GetUnlockedActiveUserkey();
+    UserKey activeUserKey = GetUserKeyManager().GetUnlockedActiveUserkey();
     if (activeUserKey.userId != userId_) {
         IAM_LOGE("userId not match, activeUserId = %{public}d, userId_ = %{public}d", activeUserKey.userId, userId_);
         return;

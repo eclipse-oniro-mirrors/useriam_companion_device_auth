@@ -38,7 +38,7 @@
    │  ┌── Fake（有状态 + 有回调订阅） ──────────────────┐  │
    │  │ FakeChannel     捕获发送 + 模拟接收 + 设备状态   │  │
    │  │ FakeTimeKeeper  可控时间推进                     │  │
-   │  │ FakeUserIdManager 用户状态 + 切换回调            │  │
+   │  │ FakeUserKeyManager 用户状态 + 切换回调            │  │
    │  │ FakeSystemParamManager 参数 Get/Set/Watch 联动   │  │
    │  │ FakeMiscManager  ID生成 + 设备选择回调           │  │
    │  │ FakeIdmAdapter   模板状态 + 变更回调             │  │
@@ -102,7 +102,7 @@
 | 组件 | 策略 | 理由 |
 |------|------|------|
 | ITimeKeeper | **Fake** | `GetSystemTimeMs()` / `GetSteadyTimeMs()` 需可控时间。提供 `TestAdvanceSystemTime(ms)` |
-| IUserIdManager | **Fake** | `GetUnlockedActiveUserkey()` + `SubscribeUnlockedActiveUserKey(callback)`。Fake 提供 `TestSetActiveUser()` 自动更新状态并通告订阅者 |
+| IUserKeyManager | **Fake** | `GetUnlockedActiveUserkey()` + `SubscribeUnlockedActiveUserKey(callback)`。Fake 提供 `TestSetActiveUser()` 自动更新状态并通告订阅者 |
 | ISystemParamManager | **Fake** | `Get/Set/WatchParam` 有状态联动。Set 自动触发 Watcher |
 | IIdmAdapter | **Fake** | `GetUserTemplates()` 有状态查询 + `SubscribeUserTemplateChange()` 回调订阅。Fake 提供 `TestSimulateTemplateChange()` |
 | ISaManagerAdapter | **Fake** | `SubscribeSystemAbility()` 捕获 listener stub。Fake 提供 `TestSimulateSaOnline/Offline()` |
@@ -153,7 +153,7 @@ ModuleTestGuard()
       → InitializeSaManagerAdapter()        → FakeSaManagerAdapter
       → InitializeChannels()                → FakeChannel（替代 SoftBus）
       → InitializeSystemParamManager()      → FakeSystemParamManager
-      → InitializeUserIdManager()           → FakeUserIdManager
+      → InitializeUserKeyManager()           → FakeUserKeyManager
       → InitializeUserAuthFramework()       → MockUserAuthAdapter + FakeIdmAdapter + FakeDriverManagerAdapter
       → InitializeMiscManager()             → FakeMiscManager
       → InitializeSecurityAgent()           → MockSecurityAgent（绕过 Rust FFI）
@@ -420,7 +420,7 @@ guard.InjectRawMessage(connName, sent)
   → FakeChannel.TestSimulateIncomingMessage()
   → 消息路由::HandleRawMessage()
     → 伴随同步处理器::HandleIncomingMessage
-      → FakeUserIdManager::GetUnlockedActiveUserkey() 返回预设值
+      → FakeUserKeyManager::GetUnlockedActiveUserkey() 返回预设值
       → EncodeSyncDeviceStatusReply
     → onReply → 消息路由::SendReply
       → FakeChannel::SendMessage() → 捕获伴随的回复

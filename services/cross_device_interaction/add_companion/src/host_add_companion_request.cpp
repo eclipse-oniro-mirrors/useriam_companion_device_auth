@@ -297,9 +297,10 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     bool ret = BeginAddCompanion(initReply, addHostBindingRequest, errorGuard);
     ENSURE_OR_RETURN_DESC(GetDescription(), ret);
 
-    BeginAddHostBindingRequest beginRequest = { .companionUserKey = UserKey { companionDeviceKey->deviceUserId,
-        companionDeviceKey->deviceSubProfileId },
-        .extraInfo = std::move(addHostBindingRequest) };
+    BeginAddHostBindingRequest beginRequest = {
+        .companionUserKey = UserKey { companionDeviceKey->deviceUserId, companionDeviceKey->deviceSubProfileId },
+        .extraInfo = std::move(addHostBindingRequest)
+    };
     Attributes request = {};
     EncodeBeginAddHostBindingRequest(beginRequest, request);
     eventCollector_.EnterWait(HostAddCompanionStages::WAIT_BEGIN_ADD_BINDING_REPLY);

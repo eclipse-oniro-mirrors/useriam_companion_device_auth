@@ -35,7 +35,7 @@
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 #include "time_keeper.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -134,7 +134,7 @@ private:
     uint64_t nextGlobalId_ { UINT64_INITIAL_GLOBAL_ID };
 };
 
-class FakeUserIdManager : public IUserIdManager {
+class FakeUserKeyManager : public IUserKeyManager {
 public:
     bool Initialize()
     {
@@ -169,7 +169,7 @@ public:
 
     std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) override
     {
-        unlockedActiveUserIdCallback_ = std::move(callback);
+        activeUserKeyChangeCallback_ = std::move(callback);
         return std::make_unique<Subscription>([]() {});
     }
 
@@ -190,34 +190,16 @@ public:
         return INVALID_SUB_PROFILE_ID;
     }
 
-    bool IsForegroundSubProfileId(const UserKey &userKey) const override
-    {
-        (void)userKey;
-        return false;
-    }
-
-    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
-    {
-        (void)userId;
-        return std::nullopt;
-    }
-
     std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
     {
         (void)userKey;
         return std::nullopt;
     }
 
-    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
-    {
-        (void)callback;
-        return std::make_unique<Subscription>(nullptr);
-    }
-
 private:
     int32_t activeUserId_ { INT32_TEST_ACTIVE_USER_ID };
     ActiveUserIdCallback activeUserIdCallback_ {};
-    UnlockedActiveUserKeyCallback unlockedActiveUserIdCallback_ {};
+    UnlockedActiveUserKeyCallback activeUserKeyChangeCallback_ {};
 };
 
 class FakeCrossDeviceChannel : public ICrossDeviceChannel {
@@ -364,7 +346,7 @@ public:
         staticTimeKeeper = std::make_shared<MockTimeKeeper>();
         AdapterManager::GetInstance().SetTimeKeeper(staticTimeKeeper);
 
-        AdapterManager::GetInstance().SetUserIdManager(std::make_shared<FakeUserIdManager>());
+        AdapterManager::GetInstance().SetUserKeyManager(std::make_shared<FakeUserKeyManager>());
     }
 
     static void TearDownTestCase()

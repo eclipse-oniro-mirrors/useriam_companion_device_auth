@@ -23,7 +23,7 @@
 #include "obtain_token_message.h"
 #include "security_agent.h"
 #include "service_common.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {

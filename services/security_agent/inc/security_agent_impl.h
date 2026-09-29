@@ -134,8 +134,7 @@ private:
     SecurityAgentImpl();
     bool Initialize();
     std::vector<UserKey> CollectValidUserKeys();
-    std::unique_ptr<Subscription> unlockedActiveUserSubscription_;
-    std::unique_ptr<Subscription> subProfileChangedSubscription_;
+    std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

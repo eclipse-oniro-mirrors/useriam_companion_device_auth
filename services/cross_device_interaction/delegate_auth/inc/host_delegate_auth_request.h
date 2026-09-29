@@ -26,7 +26,7 @@
 #include "outbound_request.h"
 #include "request_factory.h"
 #include "security_agent.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {

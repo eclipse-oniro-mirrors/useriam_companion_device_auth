@@ -113,7 +113,7 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
     "cases/utils/backoff_retry_timer_test.cpp",
     "cases/utils/call_stack_test.cpp",
     "cases/utils/cda_json_helper_test.cpp",
-    "cases/utils/constant_user_id_manager_test.cpp",
+    "cases/utils/constant_user_key_manager_test.cpp",
     "cases/utils/request_manager_impl_test.cpp",
     "cases/utils/system_param_manager_impl_test.cpp",
     "cases/utils/task_runner_manager_test.cpp",

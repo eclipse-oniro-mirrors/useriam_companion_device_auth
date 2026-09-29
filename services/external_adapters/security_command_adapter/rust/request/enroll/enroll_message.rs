@@ -14,6 +14,7 @@
  */
 
 use crate::common::constants::{ErrorCode, ProcessorType, AES_GCM_IV_SIZE, AES_GCM_TAG_SIZE, HKDF_SALT_SIZE};
+use crate::traits::db_manager::UserKey;
 use crate::traits::log_trace::RustFileId;
 use crate::traits::misc_manager::MiscManagerRegistry;
 use crate::utils::message_codec::MessageCodec;
@@ -239,8 +240,7 @@ impl SecBindingReply {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SecBindingReplyInfo {
     pub device_id: String,
-    pub user_id: i32,
-    pub sub_profile_id: i32,
+    pub user_key: UserKey,
     pub esl: i32,
     pub track_ability_level: i32,
     pub challenge: u64,
@@ -252,8 +252,8 @@ impl SecBindingReplyInfo {
     pub fn encode(&self) -> Result<Vec<u8>, ErrorCode> {
         let mut attribute = Attribute::new();
         attribute.set_string(AttributeKey::AttrDeviceId, self.device_id.clone());
-        attribute.set_i32(AttributeKey::AttrUserId, self.user_id);
-        attribute.set_i32(AttributeKey::AttrSubProfileId, self.sub_profile_id);
+        attribute.set_i32(AttributeKey::AttrUserId, self.user_key.user_id);
+        attribute.set_i32(AttributeKey::AttrSubProfileId, self.user_key.sub_profile_id);
         attribute.set_i32(AttributeKey::AttrEsl, self.esl);
         attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, self.track_ability_level);
         attribute.set_u64(AttributeKey::AttrHostChallenge, self.challenge);
@@ -275,8 +275,7 @@ impl SecBindingReplyInfo {
 
         Ok(Box::new(Self {
             device_id,
-            user_id,
-            sub_profile_id,
+            user_key: UserKey { user_id, sub_profile_id },
             esl,
             track_ability_level,
             challenge,

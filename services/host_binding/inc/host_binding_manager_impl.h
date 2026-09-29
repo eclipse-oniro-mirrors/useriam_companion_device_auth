@@ -27,7 +27,7 @@
 #include "service_common.h"
 #include "singleton.h"
 #include "subscription.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -81,7 +81,6 @@ private:
     std::vector<std::shared_ptr<HostBinding>> bindings_;
 
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
-    std::unique_ptr<Subscription> subProfileChangedSubscription_;
 };
 
 } // namespace CompanionDeviceAuth

@@ -24,7 +24,7 @@
 #include "channel_manager.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_LOCAL_DEVICE_STATUS_MANAGER
@@ -84,26 +84,18 @@ bool LocalDeviceStatusManager::Initialize()
 
     profile_.companionSecureProtocolId = primaryChannel->GetCompanionSecureProtocolId();
 
-    unlockedActiveUserIdSubscription_ =
-        GetUserIdManager().SubscribeUnlockedActiveUserKey([weakSelf = weak_from_this()](const UserKey &userKey) {
+    unlockedActiveUserIdSubscription_ = GetUserKeyManager().SubscribeUnlockedActiveUserKey(
+        [weakSelf = weak_from_this()](const UserKey &userKey, UserKeyEventType eventType) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->OnActiveUserKeyChanged(userKey);
-        });
-    ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
-    auto unlockedActiveUser = GetUserIdManager().GetUnlockedActiveUserkey();
-    OnActiveUserKeyChanged(unlockedActiveUser);
-
-    subProfileChangedSubscription_ = GetUserIdManager().SubscribeSubProfileChanged(
-        [weakSelf = weak_from_this()](const UserKey &userKey, SubProfileEventType eventType) {
-            auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            if (eventType == SubProfileEventType::SWITCHED) {
+            if (eventType == UserKeyEventType::USER_ID_SWITCHED ||
+                eventType == UserKeyEventType::SUB_PROFILE_ID_SWITCHED) {
                 self->OnActiveUserKeyChanged(userKey);
-                return;
             }
         });
-    ENSURE_OR_RETURN_VAL(subProfileChangedSubscription_ != nullptr, false);
+    ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
+    auto unlockedActiveUser = GetUserKeyManager().GetUnlockedActiveUserkey();
+    OnActiveUserKeyChanged(unlockedActiveUser);
 
     return true;
 }
@@ -154,7 +146,7 @@ std::optional<DeviceKey> LocalDeviceStatusManager::GetLocalDeviceKey(ChannelId c
     DeviceKey deviceKey {};
     deviceKey.idType = physicalKey.idType;
     deviceKey.deviceId = physicalKey.deviceId;
-    auto unlockedActiveUser = GetUserIdManager().GetUnlockedActiveUserkey();
+    auto unlockedActiveUser = GetUserKeyManager().GetUnlockedActiveUserkey();
     deviceKey.deviceUserId = unlockedActiveUser.userId;
     deviceKey.deviceSubProfileId = unlockedActiveUser.subProfileId;
 

@@ -56,7 +56,7 @@ protected:
     virtual bool InitializeSaManagerAdapter();
     virtual bool InitializeSecurityCommandAdapter();
     virtual bool InitializeSystemParamManager();
-    virtual bool InitializeUserIdManager();
+    virtual bool InitializeUserKeyManager();
     virtual bool InitializeSystemSettingsManager();
     virtual bool InitializeUserAuthFramework();
     virtual bool InitializeRequestManager();

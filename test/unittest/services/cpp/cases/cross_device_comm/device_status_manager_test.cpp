@@ -75,7 +75,7 @@ protected:
         ctx.channelMgr = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
             std::static_pointer_cast<ICrossDeviceChannel>(ctx.mockChannel) });
 
-        ON_CALL(ctx.guard->GetUserIdManager(), GetUnlockedActiveUserkey)
+        ON_CALL(ctx.guard->GetUserKeyManager(), GetUnlockedActiveUserkey)
             .WillByDefault(Return(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }));
 
         DeviceCapabilityInfo deviceCapabilityInfo = { {},
@@ -108,9 +108,9 @@ protected:
         ctx.channelMgr = std::make_shared<ChannelManager>(std::vector<std::shared_ptr<ICrossDeviceChannel>> {
             std::static_pointer_cast<ICrossDeviceChannel>(ctx.mockChannel) });
 
-        ON_CALL(ctx.guard->GetUserIdManager(), SubscribeUnlockedActiveUserKey)
+        ON_CALL(ctx.guard->GetUserKeyManager(), SubscribeUnlockedActiveUserKey)
             .WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) { return MakeSubscription(); }));
-        ON_CALL(ctx.guard->GetUserIdManager(), GetUnlockedActiveUserkey)
+        ON_CALL(ctx.guard->GetUserKeyManager(), GetUnlockedActiveUserkey)
             .WillByDefault(Return(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }));
 
         DeviceCapabilityInfo deviceCapabilityInfo = { {},

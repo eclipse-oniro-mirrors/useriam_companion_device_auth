@@ -84,10 +84,10 @@ HWTEST_F(CompanionManagerImplTest, Create_001, TestSize.Level0)
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
 
-    EXPECT_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserKey(_))
+    EXPECT_CALL(guard.GetUserKeyManager(), SubscribeUnlockedActiveUserKey(_))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+    ON_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillByDefault(Return(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
         .Times(AtMost(1))
@@ -117,7 +117,7 @@ HWTEST_F(CompanionManagerImplTest, Create_001, TestSize.Level0)
         }));
     ON_CALL(guard.GetRequestManager(), Start(_)).WillByDefault(Return(true));
 
-    EXPECT_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserKey(_))
+    EXPECT_CALL(guard.GetUserKeyManager(), SubscribeUnlockedActiveUserKey(_))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
     auto manager = CompanionManagerImpl::Create();
@@ -130,10 +130,10 @@ HWTEST_F(CompanionManagerImplTest, Reload_001, TestSize.Level0)
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
 
-    EXPECT_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserKey(_))
+    EXPECT_CALL(guard.GetUserKeyManager(), SubscribeUnlockedActiveUserKey(_))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+    ON_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillByDefault(Return(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
         .Times(AtMost(1))
@@ -179,10 +179,10 @@ HWTEST_F(CompanionManagerImplTest, Reload_002, TestSize.Level0)
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
 
-    EXPECT_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserKey(_))
+    EXPECT_CALL(guard.GetUserKeyManager(), SubscribeUnlockedActiveUserKey(_))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+    ON_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillByDefault(Return(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
         .Times(AtMost(1))
@@ -229,10 +229,10 @@ HWTEST_F(CompanionManagerImplTest, Reload_003, TestSize.Level0)
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
 
-    EXPECT_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserKey(_))
+    EXPECT_CALL(guard.GetUserKeyManager(), SubscribeUnlockedActiveUserKey(_))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetUserIdManager(), GetUnlockedActiveUserkey())
+    ON_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillByDefault(Return(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
         .Times(AtMost(1))

@@ -49,7 +49,7 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
     const UserKey &companionUserKey, const InteractionDesc &desc)
 {
     auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
-    auto userNameOpt = GetUserIdManager().GetActiveUserName();
+    auto userNameOpt = GetUserKeyManager().GetActiveUserName();
     if (!userNameOpt.has_value()) {
         IAM_LOGE("%{public}s GetActiveUserName failed", desc.GetCStr());
         return std::nullopt;
@@ -62,14 +62,14 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
     syncReply.businessIdList = profile.companionSupportedBusinessIds;
     syncReply.secureProtocolId = profile.companionSecureProtocolId;
     SetCompanionDeviceKeyUserId(syncReply, companionUserKey);
-    syncReply.deviceUserName = GetUserIdManager().GetActiveUserTypeName() + ":" + userNameOpt.value();
+    syncReply.deviceUserName = GetUserKeyManager().GetActiveUserTypeName() + ":" + userNameOpt.value();
     syncReply.deviceName = GetSystemSettingsManager().GetSettingsValue(SettingKey::DisplayDeviceName);
     // The per-user display name may be unset before first configuration; fall back to the device model
     // sysparam so the name is never empty on the wire.
     if (syncReply.deviceName.empty()) {
         syncReply.deviceName = GetSystemParamManager().GetParam("const.product.name", "");
     }
-    auto subProfileNameOpt = GetUserIdManager().GetSubProfileName(
+    auto subProfileNameOpt = GetUserKeyManager().GetSubProfileName(
         UserKey { companionUserKey.userId, syncReply.companionDeviceKey.deviceSubProfileId });
     if (subProfileNameOpt.has_value()) {
         syncReply.deviceSubProfileName = subProfileNameOpt.value();
@@ -170,7 +170,7 @@ bool CompanionSyncDeviceStatusHandler::CompanionProcessCheck(const HostBindingSt
 
 UserKey CompanionSyncDeviceStatusHandler::QueryActiveUserKey()
 {
-    return GetUserIdManager().GetUnlockedActiveUserkey();
+    return GetUserKeyManager().GetUnlockedActiveUserkey();
 }
 
 std::optional<HostBindingStatus> CompanionSyncDeviceStatusHandler::QueryHostBindingStatus(

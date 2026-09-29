@@ -32,7 +32,7 @@
 #include "system_param_manager.h"
 #include "system_settings_manager.h"
 #include "time_keeper.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -69,8 +69,8 @@ public:
     ISystemParamManager &GetSystemParamManager();
     void SetSystemParamManager(std::shared_ptr<ISystemParamManager> adapter);
 
-    IUserIdManager &GetUserIdManager();
-    void SetUserIdManager(std::shared_ptr<IUserIdManager> adapter);
+    IUserKeyManager &GetUserKeyManager();
+    void SetUserKeyManager(std::shared_ptr<IUserKeyManager> adapter);
 
     ISystemSettingsManager &GetSystemSettingsManager();
     void SetSystemSettingsManager(std::shared_ptr<ISystemSettingsManager> adapter);
@@ -93,7 +93,7 @@ private:
     std::shared_ptr<IEventManagerAdapter> eventManagerAdapter_;
     std::shared_ptr<ITimeKeeper> timeKeeperAdapter_;
     std::shared_ptr<ISystemParamManager> systemParamManager_;
-    std::shared_ptr<IUserIdManager> userIdManager_;
+    std::shared_ptr<IUserKeyManager> userKeyManager_;
     std::shared_ptr<ISystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<IAppForegroundStateAdapter> appForegroundStateAdapter_;
 };
@@ -143,9 +143,9 @@ inline ISystemParamManager &GetSystemParamManager()
     return AdapterManager::GetInstance().GetSystemParamManager();
 }
 
-inline IUserIdManager &GetUserIdManager()
+inline IUserKeyManager &GetUserKeyManager()
 {
-    return AdapterManager::GetInstance().GetUserIdManager();
+    return AdapterManager::GetInstance().GetUserKeyManager();
 }
 
 inline ISystemSettingsManager &GetSystemSettingsManager()

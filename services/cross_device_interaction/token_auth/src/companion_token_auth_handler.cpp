@@ -101,9 +101,8 @@ bool CompanionTokenAuthHandler::CheckLocalDeviceStatus(const std::string &connec
         return false;
     }
     ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(), companionUserId == localDeviceKey->deviceUserId, false);
-    bool isForegroundSubProfileId = GetUserIdManager().IsForegroundSubProfileId(
-        UserKey { localDeviceKey->deviceUserId, localDeviceKey->deviceSubProfileId });
-    ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(), isForegroundSubProfileId, false);
+    int32_t foregroundSubProfileId = GetUserKeyManager().GetForegroundSubProfileId(localDeviceKey->deviceUserId);
+    ENSURE_OR_RETURN_DESC_VAL(desc.GetCStr(), localDeviceKey->deviceSubProfileId == foregroundSubProfileId, false);
 
     return true;
 }

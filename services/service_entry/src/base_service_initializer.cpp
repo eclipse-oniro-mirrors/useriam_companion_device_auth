@@ -47,7 +47,7 @@
 #include "system_settings_manager_impl.h"
 #include "time_keeper_impl.h"
 #include "user_auth_adapter_impl.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_BASE_SERVICE_INITIALIZER
@@ -211,12 +211,12 @@ bool BaseServiceInitializer::InitializeSystemParamManager()
     return true;
 }
 
-bool BaseServiceInitializer::InitializeUserIdManager()
+bool BaseServiceInitializer::InitializeUserKeyManager()
 {
     auto &adapterManager = AdapterManager::GetInstance();
-    auto userIdManager = IUserIdManager::Create();
-    ENSURE_OR_RETURN_VAL(userIdManager != nullptr, false);
-    adapterManager.SetUserIdManager(userIdManager);
+    auto userKeyManager = IUserKeyManager::Create();
+    ENSURE_OR_RETURN_VAL(userKeyManager != nullptr, false);
+    adapterManager.SetUserKeyManager(userKeyManager);
     return true;
 }
 
@@ -377,9 +377,9 @@ const BaseServiceInitializer::BasicInitStep BaseServiceInitializer::BASIC_INIT_T
     { &BaseServiceInitializer::InitializeMiscManager, "InitializeMiscManager" },
     { &BaseServiceInitializer::InitializeEventManagerAdapter, "InitializeEventManagerAdapter" },
     { &BaseServiceInitializer::InitializeSaManagerAdapter, "InitializeSaManagerAdapter" },
-    { &BaseServiceInitializer::InitializeSecurityCommandAdapter, "InitializeSecurityCommandAdapter" },
     { &BaseServiceInitializer::InitializeSystemParamManager, "InitializeSystemParamManager" },
-    { &BaseServiceInitializer::InitializeUserIdManager, "InitializeUserIdManager" },
+    { &BaseServiceInitializer::InitializeSecurityCommandAdapter, "InitializeSecurityCommandAdapter" },
+    { &BaseServiceInitializer::InitializeUserKeyManager, "InitializeUserKeyManager" },
     { &BaseServiceInitializer::InitializeSystemSettingsManager, "InitializeSystemSettingsManager" },
     { &BaseServiceInitializer::InitializeUserAuthFramework, "InitializeUserAuthFramework" },
     { &BaseServiceInitializer::InitializeRequestManager, "InitializeRequestManager" },

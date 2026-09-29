@@ -290,20 +290,20 @@ impl HostDeviceEnrollRequest {
             return Err(ErrorCode::GeneralError);
         }
 
-        if self.enroll_param.companion_device_key.user_id != reply_info.user_id {
+        if self.enroll_param.companion_device_key.user_id != reply_info.user_key.user_id {
             log_e!(
                 "user_id check fail, expected: {}, got: {}",
                 self.enroll_param.companion_device_key.user_id,
-                reply_info.user_id
+                reply_info.user_key.user_id
             );
             return Err(ErrorCode::GeneralError);
         }
 
-        if self.enroll_param.companion_device_key.sub_profile_id != reply_info.sub_profile_id {
+        if self.enroll_param.companion_device_key.sub_profile_id != reply_info.user_key.sub_profile_id {
             log_e!(
                 "sub_profile_id check fail, expected: {}, got: {}",
                 self.enroll_param.companion_device_key.sub_profile_id,
-                reply_info.sub_profile_id
+                reply_info.user_key.sub_profile_id
             );
             return Err(ErrorCode::GeneralError);
         }

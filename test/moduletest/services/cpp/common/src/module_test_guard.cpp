@@ -35,7 +35,7 @@
 #include "subscription_manager.h"
 #include "system_param_manager.h"
 #include "system_settings_manager.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 // For RegisterCompanionViaMessageFlow E2E message flow
 #include "add_companion_message.h"
@@ -122,10 +122,10 @@ bool TestServiceInitializer::InitializeSystemParamManager()
     return true;
 }
 
-bool TestServiceInitializer::InitializeUserIdManager()
+bool TestServiceInitializer::InitializeUserKeyManager()
 {
-    userIdManager_ = std::make_shared<FakeUserIdManager>();
-    AdapterManager::GetInstance().SetUserIdManager(userIdManager_);
+    userKeyManager_ = std::make_shared<FakeUserKeyManager>();
+    AdapterManager::GetInstance().SetUserKeyManager(userKeyManager_);
     return true;
 }
 
@@ -216,9 +216,9 @@ MockTimeKeeper &TestServiceInitializer::GetTimeKeeper()
 {
     return *timeKeeper_;
 }
-FakeUserIdManager &TestServiceInitializer::GetUserIdManager()
+FakeUserKeyManager &TestServiceInitializer::GetUserKeyManager()
 {
-    return *userIdManager_;
+    return *userKeyManager_;
 }
 FakeSystemParamManager &TestServiceInitializer::GetSystemParamManager()
 {
@@ -346,11 +346,11 @@ ModuleTestGuard::~ModuleTestGuard()
 
 void ModuleTestGuard::SetupDefaultValues()
 {
-    // FakeUserIdManager: set default active user
-    // Production: UserIdManager subscribes to active user changes via SA framework
+    // FakeUserKeyManager: set default active user
+    // Production: UserKeyManager subscribes to active user changes via SA framework
     static constexpr UserId DEFAULT_ACTIVE_USER_ID = 100;
     static constexpr int64_t DEFAULT_TIME_ADVANCE_MS = 5000;
-    initializer_->GetUserIdManager().TestSetActiveUser(DEFAULT_ACTIVE_USER_ID, "TestUser");
+    initializer_->GetUserKeyManager().TestSetActiveUser(DEFAULT_ACTIVE_USER_ID, "TestUser");
 
     // MockTimeKeeper: advance to a reasonable time
     initializer_->GetTimeKeeper().AdvanceSystemTime(DEFAULT_TIME_ADVANCE_MS);
@@ -403,9 +403,9 @@ MockTimeKeeper &ModuleTestGuard::GetTimeKeeper()
 {
     return initializer_->GetTimeKeeper();
 }
-FakeUserIdManager &ModuleTestGuard::GetUserIdManager()
+FakeUserKeyManager &ModuleTestGuard::GetUserKeyManager()
 {
-    return initializer_->GetUserIdManager();
+    return initializer_->GetUserKeyManager();
 }
 FakeSystemParamManager &ModuleTestGuard::GetSystemParamManager()
 {

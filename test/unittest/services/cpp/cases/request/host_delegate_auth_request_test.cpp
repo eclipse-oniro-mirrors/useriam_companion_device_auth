@@ -56,7 +56,7 @@ protected:
 HWTEST_F(HostDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -80,7 +80,7 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
 HWTEST_F(HostDelegateAuthRequestTest, OnStart_002, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -100,7 +100,7 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_002, TestSize.Level0)
 HWTEST_F(HostDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -120,7 +120,7 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_003, TestSize.Level0)
 HWTEST_F(HostDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -152,7 +152,7 @@ HWTEST_F(HostDelegateAuthRequestTest, OnStart_004, TestSize.Level0)
 HWTEST_F(HostDelegateAuthRequestTest, OnConnected_001, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -187,7 +187,7 @@ HWTEST_F(HostDelegateAuthRequestTest, OnConnected_001, TestSize.Level0)
 HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_001, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -228,7 +228,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_001, TestSize.Level0
 HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_002, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -270,7 +270,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_002, TestSize.Level0
 HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_003, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -312,7 +312,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HostBeginDelegateAuth_003, TestSize.Level0
 HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_001, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -349,7 +349,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_001, TestSize
 HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_002, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -390,7 +390,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_002, TestSize
 HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_003, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -429,7 +429,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleStartDelegateAuthReply_003, TestSize
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_001, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -468,7 +468,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_001, TestSize
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_002, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -500,7 +500,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_002, TestSize
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_003, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -538,7 +538,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_003, TestSize
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_004, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -578,7 +578,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResult_004, TestSize
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResultMessage_001, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };
@@ -623,7 +623,7 @@ HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResultMessage_001, T
 HWTEST_F(HostDelegateAuthRequestTest, HandleSendDelegateAuthResultMessage_002, TestSize.Level0)
 {
     MockGuard guard;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
 
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
         AUTH_INTENTION };

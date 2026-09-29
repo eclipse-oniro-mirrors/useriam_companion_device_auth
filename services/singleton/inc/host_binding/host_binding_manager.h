@@ -24,7 +24,7 @@
 #include "nocopyable.h"
 
 #include "service_common.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {

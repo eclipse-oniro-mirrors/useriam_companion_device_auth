@@ -21,7 +21,7 @@
 #include "security_agent.h"
 #include "sync_device_status_message.h"
 #include "sync_incoming_message_handler.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {

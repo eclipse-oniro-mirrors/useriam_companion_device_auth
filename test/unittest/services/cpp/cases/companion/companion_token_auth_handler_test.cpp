@@ -48,7 +48,6 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_001, TestSize.Level0)
     MockGuard guard;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillByDefault(Return(std::make_optional(localDeviceKey_)));
-    ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
 
     handler_ = std::make_unique<CompanionTokenAuthHandler>();
 
@@ -96,7 +95,6 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_003, TestSize.Level0)
     MockGuard guard;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillByDefault(Return(std::make_optional(localDeviceKey_)));
-    ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
 
     handler_ = std::make_unique<CompanionTokenAuthHandler>();
 
@@ -125,7 +123,6 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_004, TestSize.Level0)
     MockGuard guard;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillByDefault(Return(std::make_optional(localDeviceKey_)));
-    ON_CALL(guard.GetUserIdManager(), IsForegroundSubProfileId(_)).WillByDefault(Return(true));
 
     handler_ = std::make_unique<CompanionTokenAuthHandler>();
 

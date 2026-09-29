@@ -647,7 +647,7 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
 
     // Capture the subscription callback; the default mock discards it.
     UnlockedActiveUserKeyCallback capturedCb;
-    ON_CALL(guard.GetUserIdManager(), SubscribeUnlockedActiveUserKey(_))
+    ON_CALL(guard.GetUserKeyManager(), SubscribeUnlockedActiveUserKey(_))
         .WillByDefault(Invoke([&capturedCb](UnlockedActiveUserKeyCallback &&cb) {
             capturedCb = std::move(cb);
             return std::make_unique<Subscription>([]() {});
@@ -676,7 +676,7 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
             return nullptr;
         }));
 
-    capturedCb(UserKey { 1, INVALID_SUB_PROFILE_ID }); // active user changed
+    capturedCb(UserKey { 1, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_ID_SWITCHED); // active user changed
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     // The trigger reached the factory instead of being silently dropped.

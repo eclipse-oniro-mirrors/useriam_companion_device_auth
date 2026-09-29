@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef COMPANION_DEVICE_AUTH_FAKE_USER_ID_MANAGER_H
-#define COMPANION_DEVICE_AUTH_FAKE_USER_ID_MANAGER_H
+#ifndef COMPANION_DEVICE_AUTH_FAKE_USER_KEY_MANAGER_H
+#define COMPANION_DEVICE_AUTH_FAKE_USER_KEY_MANAGER_H
 
 #include <cstdint>
 #include <functional>
@@ -24,16 +24,16 @@
 #include <vector>
 
 #include "subscription.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class FakeUserIdManager : public IUserIdManager {
+class FakeUserKeyManager : public IUserKeyManager {
 public:
-    FakeUserIdManager() = default;
-    ~FakeUserIdManager() override = default;
+    FakeUserKeyManager() = default;
+    ~FakeUserKeyManager() override = default;
 
     UserId GetActiveUserId() const override
     {
@@ -61,8 +61,8 @@ public:
 
     std::unique_ptr<Subscription> SubscribeUnlockedActiveUserKey(UnlockedActiveUserKeyCallback &&callback) override
     {
-        unlockedCallbacks_.push_back(std::move(callback));
-        return std::make_unique<Subscription>([this]() { unlockedCallbacks_.clear(); });
+        activeUserKeyChangeCallbacks_.push_back(std::move(callback));
+        return std::make_unique<Subscription>([this]() { activeUserKeyChangeCallbacks_.clear(); });
     }
 
     bool IsUserIdValid(int32_t userId) override
@@ -83,31 +83,13 @@ public:
     int32_t GetForegroundSubProfileId(UserId userId) const override
     {
         (void)userId;
-        return DEFAULT_SUB_PROFILE_ID;
-    }
-
-    bool IsForegroundSubProfileId(const UserKey &userKey) const override
-    {
-        (void)userKey;
-        return true;
-    }
-
-    std::optional<std::vector<int32_t>> GetOsAccountSubProfileIds(UserId userId) const override
-    {
-        (void)userId;
-        return std::vector<int32_t> { INVALID_SUB_PROFILE_ID };
+        return INVALID_SUB_PROFILE_ID;
     }
 
     std::optional<std::string> GetSubProfileName(const UserKey &userKey) const override
     {
         (void)userKey;
         return "test-sub-profile";
-    }
-
-    std::unique_ptr<Subscription> SubscribeSubProfileChanged(SubProfileChangedCallback &&callback) override
-    {
-        (void)callback;
-        return std::make_unique<Subscription>([]() {});
     }
 
     // Test backdoor: set user and auto-notify all subscribers
@@ -119,23 +101,21 @@ public:
         for (auto &cb : callbacks_) {
             cb(userId);
         }
-        for (auto &cb : unlockedCallbacks_) {
-            cb(UserKey { userId, INVALID_SUB_PROFILE_ID });
+        for (auto &cb : activeUserKeyChangeCallbacks_) {
+            cb(UserKey { userId, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_ID_SWITCHED);
         }
     }
 
 private:
-    static constexpr int32_t DEFAULT_SUB_PROFILE_ID = 0;
-
     UserId userId_ = 0;
     std::string userName_;
     std::string userTypeName_ { "normal" };
     std::vector<ActiveUserIdCallback> callbacks_;
-    std::vector<UnlockedActiveUserKeyCallback> unlockedCallbacks_;
+    std::vector<UnlockedActiveUserKeyCallback> activeUserKeyChangeCallbacks_;
 };
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS
 
-#endif // COMPANION_DEVICE_AUTH_FAKE_USER_ID_MANAGER_H
+#endif // COMPANION_DEVICE_AUTH_FAKE_USER_KEY_MANAGER_H

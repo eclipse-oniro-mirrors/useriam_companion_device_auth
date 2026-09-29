@@ -91,7 +91,7 @@ HWTEST_F(PendingIssueTokenManagerTest, StatusChange_TriggersMatchingTemplate, Te
     std::vector<uint8_t> extraInfo;
 
     OnCompanionDeviceStatusChange capturedCallback;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(USER_200));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(USER_200));
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([&capturedCallback](OnCompanionDeviceStatusChange &&callback) {
             capturedCallback = std::move(callback);
@@ -125,7 +125,7 @@ HWTEST_F(PendingIssueTokenManagerTest, StatusChange_AllTemplatesTriggered, TestS
     std::vector<uint8_t> extraInfo;
 
     OnCompanionDeviceStatusChange capturedCallback;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(USER_200));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(USER_200));
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([&capturedCallback](OnCompanionDeviceStatusChange &&callback) {
             capturedCallback = std::move(callback);
@@ -169,7 +169,7 @@ HWTEST_F(PendingIssueTokenManagerTest, StatusChange_BothTemplatesReadyAtOnce, Te
     std::vector<uint8_t> extraInfo;
 
     OnCompanionDeviceStatusChange capturedCallback;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(USER_200));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(USER_200));
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([&capturedCallback](OnCompanionDeviceStatusChange &&callback) {
             capturedCallback = std::move(callback);
@@ -277,7 +277,7 @@ HWTEST_F(PendingIssueTokenManagerTest, Defer_ReplacesOldEntries_SameTemplateId, 
     cmd2.templateIdList = { TID_123 };
 
     // Subscription NOT re-created (already exists)
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(USER_300));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(USER_300));
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_)).Times(0);
 
     mgr->Defer(cmd2, extraInfo);
@@ -304,7 +304,7 @@ HWTEST_F(PendingIssueTokenManagerTest, StatusChange_OfflineSkipsIssueToken, Test
     std::vector<uint8_t> extraInfo;
 
     OnCompanionDeviceStatusChange capturedCallback;
-    EXPECT_CALL(guard.GetUserIdManager(), GetActiveUserId()).WillRepeatedly(Return(USER_200));
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(USER_200));
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_))
         .WillOnce(Invoke([&capturedCallback](OnCompanionDeviceStatusChange &&callback) {
             capturedCallback = std::move(callback);

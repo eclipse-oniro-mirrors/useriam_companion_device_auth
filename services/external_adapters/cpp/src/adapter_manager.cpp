@@ -196,20 +196,20 @@ void AdapterManager::SetSystemParamManager(std::shared_ptr<ISystemParamManager> 
     systemParamManager_ = adapter;
 }
 
-IUserIdManager &AdapterManager::GetUserIdManager()
+IUserKeyManager &AdapterManager::GetUserKeyManager()
 {
     CHECK_RUNNING_ON_RESIDENT_THREAD();
-    if (userIdManager_ == nullptr) {
-        IAM_LOGE("UserIdManager is not initialized");
-        AbortIfAdapterUninitialized("UserIdManager");
+    if (userKeyManager_ == nullptr) {
+        IAM_LOGE("UserKeyManager is not initialized");
+        AbortIfAdapterUninitialized("UserKeyManager");
     }
-    return *userIdManager_;
+    return *userKeyManager_;
 }
 
-void AdapterManager::SetUserIdManager(std::shared_ptr<IUserIdManager> adapter)
+void AdapterManager::SetUserKeyManager(std::shared_ptr<IUserKeyManager> adapter)
 {
     CHECK_RUNNING_ON_RESIDENT_THREAD();
-    userIdManager_ = adapter;
+    userKeyManager_ = adapter;
 }
 
 ISystemSettingsManager &AdapterManager::GetSystemSettingsManager()
@@ -245,7 +245,7 @@ void AdapterManager::Reset()
     eventManagerAdapter_ = nullptr;
     timeKeeperAdapter_ = nullptr;
     systemParamManager_ = nullptr;
-    userIdManager_ = nullptr;
+    userKeyManager_ = nullptr;
     systemSettingsManager_ = nullptr;
     appForegroundStateAdapter_ = nullptr;
 }

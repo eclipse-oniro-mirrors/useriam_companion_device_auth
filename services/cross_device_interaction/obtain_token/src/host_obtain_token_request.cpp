@@ -28,7 +28,7 @@
 #include "request_stages.h"
 #include "security_agent.h"
 #include "singleton_manager.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_HOST_OBTAIN_TOKEN_REQUEST
@@ -105,9 +105,9 @@ bool HostObtainTokenRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
 
-    if (hostUserKey_.userId != GetUserIdManager().GetActiveUserId()) {
+    if (hostUserKey_.userId != GetUserKeyManager().GetActiveUserId()) {
         IAM_LOGE("%{public}s hostUserId %{public}d mismatch active %{public}d", GetDescription(), hostUserKey_.userId,
-            GetUserIdManager().GetActiveUserId());
+            GetUserKeyManager().GetActiveUserId());
         return false;
     }
 
@@ -159,7 +159,7 @@ bool HostObtainTokenRequest::SubscribeCancellationEvents()
         });
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), lockEventSubscription_ != nullptr, false);
     activeUserSubscription_ =
-        GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId activeUserId) {
+        GetUserKeyManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId activeUserId) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             if (self->hostUserKey_.userId != activeUserId) {

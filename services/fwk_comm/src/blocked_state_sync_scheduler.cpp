@@ -28,7 +28,7 @@
 #include "singleton_manager.h"
 #include "subscription.h"
 #include "system_ability_definition.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_BLOCKED_STATE_SYNC_SCHEDULER
@@ -67,7 +67,7 @@ bool BlockedStateSyncScheduler::Init()
     });
     ENSURE_OR_RETURN_VAL(blockedSyncTimer_ != nullptr, false);
 
-    activeUserSubscription_ = GetUserIdManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId userId) {
+    activeUserSubscription_ = GetUserKeyManager().SubscribeActiveUserId([weakSelf = weak_from_this()](UserId userId) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
         self->OnActiveUserChanged(userId);
@@ -79,7 +79,7 @@ bool BlockedStateSyncScheduler::Init()
         return false;
     }
 
-    UserId initialUserId = GetUserIdManager().GetActiveUserId();
+    UserId initialUserId = GetUserKeyManager().GetActiveUserId();
     if (initialUserId != INVALID_USER_ID) {
         OnActiveUserChanged(initialUserId);
     }
@@ -144,7 +144,7 @@ void BlockedStateSyncScheduler::TryQueryBlocked()
         IAM_LOGI("USER_AUTH or PIN_AUTH SA not available, defer GetProperty");
         return;
     }
-    UserId userId = GetUserIdManager().GetActiveUserId();
+    UserId userId = GetUserKeyManager().GetActiveUserId();
     if (userId == INVALID_USER_ID) {
         IAM_LOGI("active user invalid, defer GetProperty");
         return;
@@ -158,7 +158,7 @@ void BlockedStateSyncScheduler::TryQueryBlocked()
 
 void BlockedStateSyncScheduler::OnBlockedQueryResult(UserId userId, bool blocked, bool needTry)
 {
-    if (userId != GetUserIdManager().GetActiveUserId()) {
+    if (userId != GetUserKeyManager().GetActiveUserId()) {
         IAM_LOGI("stale blocked query for %{public}d, discard", userId);
         return;
     }

@@ -23,7 +23,7 @@
 #include "companion_manager.h"
 #include "outbound_request.h"
 #include "security_agent.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {

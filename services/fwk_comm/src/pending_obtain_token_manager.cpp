@@ -84,7 +84,7 @@ void PendingObtainTokenManager::OnAuthMaintainActiveChanged(bool isActive)
     pendingEntries_.clear();
     for (const auto &pair : entries) {
         const auto &entry = pair.second;
-        int32_t subProfileId = GetUserIdManager().GetForegroundSubProfileId(pair.first);
+        int32_t subProfileId = GetUserKeyManager().GetForegroundSubProfileId(pair.first);
         GetHostBindingManager().StartObtainTokenRequests(UserKey { pair.first, subProfileId },
             entry.lockStateAuthTypeValue, entry.fwkUnlockMsg);
     }

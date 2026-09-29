@@ -1588,8 +1588,8 @@ HWTEST_F(AuthModuleTest, CompanionDelegateAuthFullFlowE2E_001, TestSize.Level0)
 //   new active user.
 //
 // E2E level: HIGH
-//   - Entry: AuthenticateTokenAuth + TestSetActiveUser(999) via FakeUserIdManager
-//   - Production path: UserIdManager → OnActiveUserKeyChanged → companion cleanup
+//   - Entry: AuthenticateTokenAuth + TestSetActiveUser(999) via FakeUserKeyManager
+//   - Production path: UserKeyManager → OnActiveUserKeyChanged → companion cleanup
 //   - Verification: callback invoked with error result
 // ============================================================================
 HWTEST_F(AuthModuleTest, UserSwitchCancelsRequestE2E_001, TestSize.Level0)
@@ -1639,7 +1639,7 @@ HWTEST_F(AuthModuleTest, UserSwitchCancelsRequestE2E_001, TestSize.Level0)
 
     IAM_LOGI("[Phase] Run — Simulate user switch to user 999");
     // 6. Simulate user switch to a different user
-    guard.GetUserIdManager().TestSetActiveUser(999);
+    guard.GetUserKeyManager().TestSetActiveUser(999);
     DrainPendingTasks();
 
     // 7. Verify: callback was NOT invoked

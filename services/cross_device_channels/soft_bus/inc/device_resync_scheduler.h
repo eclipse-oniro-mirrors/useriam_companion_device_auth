@@ -60,7 +60,6 @@ private:
     std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
     std::unique_ptr<Subscription> deviceNameSubscription_;
     std::unique_ptr<Subscription> deviceStatusSubscription_;
-    std::unique_ptr<Subscription> subProfileChangedSubscription_;
 };
 
 } // namespace CompanionDeviceAuth

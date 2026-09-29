@@ -61,10 +61,8 @@ bool DecodeDeviceKey(const Attributes &attributes, Attributes::AttributeKey user
 std::optional<DeviceKey> DecodeHostDeviceKey(const Attributes &attributes)
 {
     DeviceKey deviceKey = {};
-    // clang-format off
     if (!DecodeDeviceKey(attributes, Attributes::ATTR_CDA_SA_HOST_USER_ID, Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID,
         deviceKey)) {
-        // clang-format on
         return std::nullopt;
     }
     return deviceKey;
@@ -73,10 +71,8 @@ std::optional<DeviceKey> DecodeHostDeviceKey(const Attributes &attributes)
 std::optional<DeviceKey> DecodeCompanionDeviceKey(const Attributes &attributes)
 {
     DeviceKey deviceKey = {};
-    // clang-format off
     if (!DecodeDeviceKey(attributes, Attributes::ATTR_CDA_SA_COMPANION_USER_ID,
         Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, deviceKey)) {
-        // clang-format on
         return std::nullopt;
     }
     return deviceKey;

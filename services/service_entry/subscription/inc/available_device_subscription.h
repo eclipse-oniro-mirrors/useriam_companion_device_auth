@@ -27,7 +27,7 @@
 #include "iipc_available_device_status_callback.h"
 #include "service_common.h"
 #include "subscription.h"
-#include "user_id_manager.h"
+#include "user_key_manager.h"
 
 namespace OHOS {
 namespace UserIam {
