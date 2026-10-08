@@ -282,8 +282,7 @@ std::optional<std::vector<UserKey>> DefaultUserKeyManager::GetAllValidUserKeys()
         ErrCode errCodeSub =
             AccountSA::OsAccountSubProfileClient::GetInstance().GetOsAccountSubProfileIds(userId, subProfileIds);
         if (errCodeSub != ERR_OK || subProfileIds.empty()) {
-            userIds.push_back(UserKey { userId, INVALID_SUB_PROFILE_ID });
-            continue;
+            return std::nullopt;
         }
         for (int32_t subProfileId : subProfileIds) {
             userIds.push_back(UserKey { userId, subProfileId });
