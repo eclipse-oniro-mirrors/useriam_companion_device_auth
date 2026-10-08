@@ -60,7 +60,8 @@ public:
     MOCK_METHOD(sptr<IRemoteObject>, AsObject, (), (override));
 };
 
-class SubscriptionManagerTest : public Test {};
+class SubscriptionManagerTest : public Test {
+};
 
 HWTEST_F(SubscriptionManagerTest, Constructor_001, TestSize.Level0)
 {

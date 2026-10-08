@@ -54,7 +54,8 @@ const std::vector<ExpectedPair> EXPECTED_PAIRS = {
     { ResultCode::NO_VALID_CREDENTIAL, UserAuth::ResultCode::NO_VALID_CREDENTIAL },
 };
 
-class ResultCodeConverterTest : public Test {};
+class ResultCodeConverterTest : public Test {
+};
 
 // ToUserAuthResultCode maps every known CDA code to its UserAuth equivalent.
 HWTEST_F(ResultCodeConverterTest, ToUserAuth_KnownCodes, TestSize.Level0)

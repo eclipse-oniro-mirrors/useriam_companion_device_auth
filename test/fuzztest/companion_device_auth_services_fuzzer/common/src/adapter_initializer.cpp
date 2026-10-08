@@ -530,7 +530,7 @@ void FireFuzzActiveUserIdChange(int32_t userId)
         g_fuzzActiveUserCb(userId);
     }
     if (g_fuzzActiveUserKeyChangeCb) {
-        g_fuzzActiveUserKeyChangeCb(UserKey { userId, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_ID_SWITCHED);
+        g_fuzzActiveUserKeyChangeCb(UserKey { userId, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_KEY_UPDATE);
     }
 }
 

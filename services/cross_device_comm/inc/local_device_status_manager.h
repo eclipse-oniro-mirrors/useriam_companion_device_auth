@@ -61,7 +61,7 @@ private:
 
     std::map<int32_t, std::function<void(bool)>> statusSubscribers_;
     std::unique_ptr<Subscription> authMaintainSubscription_;
-    std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
+    std::unique_ptr<Subscription> unlockedActiveUserKeySubscription_;
 
     void NotifyStatusChange();
     void Unsubscribe(SubscribeId subscriptionId);

@@ -37,7 +37,8 @@ CompanionStatus MakeStatus(uint64_t lastCheckTime)
 
 } // namespace
 
-class SubscriptionUtilTest : public Test {};
+class SubscriptionUtilTest : public Test {
+};
 
 // isConfirmed is true at the boundary: the device synced exactly when manage mode began.
 HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_ConfirmedAtBoundary, TestSize.Level0)

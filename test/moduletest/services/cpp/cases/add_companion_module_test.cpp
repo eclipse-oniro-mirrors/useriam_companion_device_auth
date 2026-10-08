@@ -40,7 +40,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-class AddCompanionModuleTest : public testing::Test {};
+class AddCompanionModuleTest : public testing::Test {
+};
 
 // Helper: build and inject a single-round companion request, capture + verify reply
 std::optional<RawMsgInfo> CompanionRoundTrip(ModuleTestGuard &guard, const std::string &connName, uint32_t seq,
@@ -417,7 +418,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionFullE2E_001, TestSize.Level0)
     EXPECT_EQ(cbCapture.extraInfo, endCompOutput.fwkMsg);
     guard.GetIdmAdapter().TestSimulateTemplateChange(HOST_USER_ID, { endCompOutput.templateId });
     DrainPendingTasks();
-    ASSERT_TRUE(GetCompanionManager()
+    ASSERT_TRUE(
+        GetCompanionManager()
             .GetCompanionStatus(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, MakeDeviceKey(deviceId, HOST_USER_ID))
             .has_value());
 }
@@ -464,7 +466,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionBeginAddCompanionFailedE2E_006,
     // HostBeginAddCompanion fails → callback with error
     EXPECT_TRUE(cbCapture.invoked);
     EXPECT_EQ(cbCapture.result, ResultCode::GENERAL_ERROR);
-    EXPECT_FALSE(GetCompanionManager()
+    EXPECT_FALSE(
+        GetCompanionManager()
             .GetCompanionStatus(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, MakeDeviceKey(deviceId, HOST_USER_ID))
             .has_value());
 }
@@ -525,7 +528,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionEndAddCompanionFailedE2E_007, T
     // HostEndAddCompanion fails → callback with error
     EXPECT_TRUE(cbCapture.invoked);
     EXPECT_EQ(cbCapture.result, ResultCode::GENERAL_ERROR);
-    EXPECT_FALSE(GetCompanionManager()
+    EXPECT_FALSE(
+        GetCompanionManager()
             .GetCompanionStatus(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, MakeDeviceKey(deviceId, HOST_USER_ID))
             .has_value());
 }

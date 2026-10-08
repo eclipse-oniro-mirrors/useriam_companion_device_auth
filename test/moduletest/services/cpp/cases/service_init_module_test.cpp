@@ -27,7 +27,8 @@
 using namespace testing;
 using namespace testing::ext;
 
-class ServiceInitModuleTest : public testing::Test {};
+class ServiceInitModuleTest : public testing::Test {
+};
 
 namespace OHOS {
 namespace UserIam {
@@ -160,9 +161,9 @@ HWTEST_F(ServiceInitModuleTest, LoadPersistedDataAfterUserSwitchE2E_001, TestSiz
     EXPECT_EQ(companion->companionDeviceStatus.deviceKey.deviceId, "companion-001");
     EXPECT_EQ(companion->enabledBusinessIds.size(), 1u);
     ASSERT_TRUE(GetCompanionManager()
-            .GetCompanionStatus(UserKey { data.hostUser, INVALID_SUB_PROFILE_ID },
-                data.persistedCompanion.companionDeviceKey)
-            .has_value());
+                    .GetCompanionStatus(UserKey { data.hostUser, INVALID_SUB_PROFILE_ID },
+                        data.persistedCompanion.companionDeviceKey)
+                    .has_value());
     EXPECT_EQ(GetCompanionManager().GetAllCompanionStatus().size(), 1u);
 
     auto binding = GetHostBindingManager().GetHostBindingStatus(data.bindingId);

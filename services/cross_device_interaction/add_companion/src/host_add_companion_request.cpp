@@ -296,11 +296,12 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     std::vector<uint8_t> addHostBindingRequest;
     bool ret = BeginAddCompanion(initReply, addHostBindingRequest, errorGuard);
     ENSURE_OR_RETURN_DESC(GetDescription(), ret);
-
+    // clang-format off
     BeginAddHostBindingRequest beginRequest = {
         .companionUserKey = UserKey { companionDeviceKey->deviceUserId, companionDeviceKey->deviceSubProfileId },
         .extraInfo = std::move(addHostBindingRequest)
     };
+    // clang-format on
     Attributes request = {};
     EncodeBeginAddHostBindingRequest(beginRequest, request);
     eventCollector_.EnterWait(HostAddCompanionStages::WAIT_BEGIN_ADD_BINDING_REPLY);

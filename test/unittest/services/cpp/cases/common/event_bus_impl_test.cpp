@@ -32,7 +32,8 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class EventBusImplTest : public Test {};
+class EventBusImplTest : public Test {
+};
 
 HWTEST_F(EventBusImplTest, Create_001, TestSize.Level0)
 {

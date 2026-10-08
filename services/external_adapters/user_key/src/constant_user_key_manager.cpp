@@ -84,7 +84,7 @@ public:
 
         TaskRunnerManager::GetInstance().PostTaskOnResident([cb = std::move(callback)]() mutable {
             if (cb) {
-                cb(UserKey { DEFAULT_USER_ID, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_ID_SWITCHED);
+                cb(UserKey { DEFAULT_USER_ID, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_KEY_UPDATE);
             }
         });
 
