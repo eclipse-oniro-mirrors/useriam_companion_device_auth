@@ -676,7 +676,7 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
             return nullptr;
         }));
 
-    capturedCb(UserKey { 1, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_ID_SWITCHED); // active user changed
+    capturedCb(UserKey { 1, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_KEY_UPDATE); // active user changed
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     // The trigger reached the factory instead of being silently dropped.

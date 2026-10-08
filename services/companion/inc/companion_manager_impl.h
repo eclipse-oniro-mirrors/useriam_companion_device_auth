@@ -96,7 +96,7 @@ private:
     UserKey hostUserKey_;
     std::vector<std::shared_ptr<Companion>> companions_;
     std::map<SubscribeId, OnCompanionDeviceStatusChange> statusSubscribers_;
-    std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
+    std::unique_ptr<Subscription> unlockedActiveUserKeySubscription_;
     std::unique_ptr<Subscription> templateChangeSubscription_;
 };
 

@@ -177,7 +177,8 @@ HWTEST_F(BackoffRetryTimerTest, OnFailure_Exhausted_SubsequentCallsStayInert, Te
 }
 
 // Test the static CalculateNextDelayMs function with boundary cases
-class BackoffRetryTimerCalculateTest : public testing::Test {};
+class BackoffRetryTimerCalculateTest : public testing::Test {
+};
 
 HWTEST_F(BackoffRetryTimerCalculateTest, FailureCount_Zero_ReturnsBaseDelay, TestSize.Level0)
 {

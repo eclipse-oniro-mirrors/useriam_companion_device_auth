@@ -49,7 +49,8 @@ public:
     MOCK_METHOD(sptr<IRemoteObject>, AsObject, (), (override));
 };
 
-class TemplateStatusSubscriptionTest : public Test {};
+class TemplateStatusSubscriptionTest : public Test {
+};
 
 HWTEST_F(TemplateStatusSubscriptionTest, Create_001, TestSize.Level0)
 {

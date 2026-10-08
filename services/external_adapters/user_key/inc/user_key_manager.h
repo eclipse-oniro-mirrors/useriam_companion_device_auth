@@ -35,9 +35,8 @@ namespace CompanionDeviceAuth {
 using ActiveUserIdCallback = std::function<void(UserId userId)>;
 
 enum class UserKeyEventType : int32_t {
-    USER_ID_SWITCHED = 1,
-    SUB_PROFILE_ID_DELETED = 2,
-    SUB_PROFILE_ID_SWITCHED = 3,
+    USER_KEY_UPDATE = 1,
+    USER_KEY_DELETED = 2,
 };
 
 using UnlockedActiveUserKeyCallback = std::function<void(const UserKey &userKey, UserKeyEventType eventType)>;

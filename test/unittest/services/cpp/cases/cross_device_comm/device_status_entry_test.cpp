@@ -84,7 +84,8 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
 {
     std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2),
         static_cast<BusinessId>(3) };
-    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
+    DeviceStatusEntry entry(
+        physicalStatus_, []() {}, hostBusinessIds);
 
     entry.protocolId = ProtocolId::VERSION_1;
     entry.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -223,7 +224,8 @@ HWTEST_F(DeviceStatusEntryTest, Constructor_SupportedBusinessIds_001, TestSize.L
     std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
     physicalStatus_.supportedBusinessIds = hostBusinessIds;
 
-    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
+    DeviceStatusEntry entry(
+        physicalStatus_, []() {}, hostBusinessIds);
 
     // sync empty -> effective degrades to hostSupportBusinessIds_ ∩ physicalCompanionBusinessIds_
     const auto &effective = entry.GetSupportedBusinessIds();
@@ -246,7 +248,8 @@ HWTEST_F(DeviceStatusEntryTest, SyncCompanionBusinessIds_TakesPriority_OverPhysi
         static_cast<BusinessId>(10003) };
     physicalStatus_.supportedBusinessIds = { static_cast<BusinessId>(10001) };
 
-    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
+    DeviceStatusEntry entry(
+        physicalStatus_, []() {}, hostBusinessIds);
     // before sync: effective degrades to hostSupport ∩ physical = {10001}
     EXPECT_EQ(entry.GetSupportedBusinessIds(), std::vector<BusinessId>({ static_cast<BusinessId>(10001) }));
 
@@ -260,7 +263,8 @@ HWTEST_F(DeviceStatusEntryTest, SetSyncCompanionBusinessIds_Empty_DegradesToPhys
     std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
     physicalStatus_.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
 
-    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
+    DeviceStatusEntry entry(
+        physicalStatus_, []() {}, hostBusinessIds);
     entry.SetSyncCompanionBusinessIds({ static_cast<BusinessId>(10001) });
     EXPECT_EQ(entry.GetSupportedBusinessIds(), std::vector<BusinessId>({ static_cast<BusinessId>(10001) }));
 

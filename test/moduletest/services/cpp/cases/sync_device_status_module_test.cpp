@@ -93,7 +93,8 @@ private:
     sptr<StubRemoteObject> remoteObj_;
 };
 
-class SyncDeviceStatusModuleTest : public testing::Test {};
+class SyncDeviceStatusModuleTest : public testing::Test {
+};
 
 // Encode a SYNC_DEVICE_STATUS reply and inject it on connName with the captured seq so the
 // host-side sync handshake completes and HandleSyncResult fires the subscriber callback.

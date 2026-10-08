@@ -80,7 +80,7 @@ private:
     UserKey activeUserKey_;
     std::vector<std::shared_ptr<HostBinding>> bindings_;
 
-    std::unique_ptr<Subscription> unlockedActiveUserIdSubscription_;
+    std::unique_ptr<Subscription> unlockedActiveUserKeySubscription_;
 };
 
 } // namespace CompanionDeviceAuth

@@ -185,10 +185,12 @@ void MockGuard::SetupUserKeyManagerDefaults()
         return std::make_unique<Subscription>([]() {});
     }));
     ON_CALL(*userKeyManager_, GetUnlockedActiveUserkey()).WillByDefault(Return(UserKey { 0, INVALID_SUB_PROFILE_ID }));
+    // clang-format off
     ON_CALL(*userKeyManager_, SubscribeUnlockedActiveUserKey(_))
         .WillByDefault(Invoke([](UnlockedActiveUserKeyCallback &&) {
             return std::make_unique<Subscription>([]() {});
         }));
+    // clang-format on
     ON_CALL(*userKeyManager_, GetActiveUserTypeName()).WillByDefault(Return("normal"));
 
     // Sub profile ID management defaults (merged from SetupSubProfileIdManagerDefaults)

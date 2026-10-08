@@ -1263,7 +1263,8 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsChanged
     physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
 
     // Pre-existing entry, not yet synced (sync empty): effective is driven by the physical ids.
-    DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
+    DeviceStatusEntry entry(
+        physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
     entry.protocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
@@ -1292,7 +1293,8 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchang
     auto physicalStatus = MakePhysicalStatus("device-biz-same", ChannelId::SOFTBUS, "Device");
     physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001) };
 
-    DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
+    DeviceStatusEntry entry(
+        physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
     entry.protocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));

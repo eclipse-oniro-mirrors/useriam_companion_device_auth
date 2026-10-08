@@ -68,16 +68,15 @@ bool CompanionManagerImpl::Initialize()
 {
     IAM_LOGI("initialize companion manager begin");
 
-    unlockedActiveUserIdSubscription_ = GetUserKeyManager().SubscribeUnlockedActiveUserKey(
+    unlockedActiveUserKeySubscription_ = GetUserKeyManager().SubscribeUnlockedActiveUserKey(
         [weakSelf = weak_from_this()](const UserKey &userKey, UserKeyEventType eventType) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            if (eventType == UserKeyEventType::USER_ID_SWITCHED ||
-                eventType == UserKeyEventType::SUB_PROFILE_ID_SWITCHED) {
+            if (eventType == UserKeyEventType::USER_KEY_UPDATE) {
                 self->OnActiveUserKeyChanged(userKey);
             }
         });
-    ENSURE_OR_RETURN_VAL(unlockedActiveUserIdSubscription_ != nullptr, false);
+    ENSURE_OR_RETURN_VAL(unlockedActiveUserKeySubscription_ != nullptr, false);
 
     IAM_LOGI("initialize companion manager success");
     return true;

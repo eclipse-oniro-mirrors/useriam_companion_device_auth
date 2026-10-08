@@ -102,7 +102,7 @@ public:
             cb(userId);
         }
         for (auto &cb : activeUserKeyChangeCallbacks_) {
-            cb(UserKey { userId, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_ID_SWITCHED);
+            cb(UserKey { userId, INVALID_SUB_PROFILE_ID }, UserKeyEventType::USER_KEY_UPDATE);
         }
     }
 

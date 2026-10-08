@@ -46,7 +46,8 @@ public:
     MOCK_METHOD(sptr<IRemoteObject>, AsObject, (), (override));
 };
 
-class ContinuousAuthSubscriptionTest : public Test {};
+class ContinuousAuthSubscriptionTest : public Test {
+};
 
 HWTEST_F(ContinuousAuthSubscriptionTest, Create_001, TestSize.Level0)
 {

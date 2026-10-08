@@ -467,7 +467,7 @@ void DefaultUserKeyManager::OnSubProfileChanged(const AccountSA::SubProfileEvent
 
     if (eventData.type_ == AccountSA::OsAccountSubProfileEventType::DELETED) {
         NotifySubProfileChangedSubscribers(UserKey { eventData.osAccountId_, eventData.subProfileId_ },
-            UserKeyEventType::SUB_PROFILE_ID_DELETED);
+            UserKeyEventType::USER_KEY_DELETED);
         return;
     } else if (eventData.type_ == AccountSA::OsAccountSubProfileEventType::SWITCHED) {
         if (eventData.subProfileId_ == foregroundSubProfileId_) {
@@ -477,7 +477,7 @@ void DefaultUserKeyManager::OnSubProfileChanged(const AccountSA::SubProfileEvent
 
         foregroundSubProfileId_ = eventData.subProfileId_;
         NotifySubProfileChangedSubscribers(UserKey { eventData.osAccountId_, eventData.subProfileId_ },
-            UserKeyEventType::SUB_PROFILE_ID_SWITCHED);
+            UserKeyEventType::USER_KEY_UPDATE);
     }
 }
 
@@ -558,7 +558,7 @@ void DefaultUserKeyManager::NotifyUnlockedUserIdSubscribers(const UserKey &userK
     TaskRunnerManager::GetInstance().PostTaskOnResident([callbacks = std::move(callbacks), userKey]() {
         for (const auto &callback : callbacks) {
             if (callback != nullptr) {
-                callback(userKey, UserKeyEventType::USER_ID_SWITCHED);
+                callback(userKey, UserKeyEventType::USER_KEY_UPDATE);
             }
         }
     });

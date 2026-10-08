@@ -41,7 +41,8 @@ std::shared_ptr<TimeKeeperImpl> TimeKeeperImpl::Create()
 
 std::optional<SystemTimeMs> TimeKeeperImpl::GetSystemTimeMs()
 {
-    struct timespec ts {};
+    struct timespec ts {
+    };
     if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
         IAM_LOGE("Failed to get CLOCK_REALTIME");
         return std::nullopt;
@@ -65,7 +66,8 @@ std::optional<SystemTimeMs> TimeKeeperImpl::GetSystemTimeMs()
 
 std::optional<SteadyTimeMs> TimeKeeperImpl::GetSteadyTimeMs()
 {
-    struct timespec ts {};
+    struct timespec ts {
+    };
     if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
         IAM_LOGE("Failed to get CLOCK_MONOTONIC");
         return std::nullopt;

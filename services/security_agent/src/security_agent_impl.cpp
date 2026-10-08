@@ -56,10 +56,10 @@ std::shared_ptr<ISecurityAgent> SecurityAgentImpl::Create()
 bool SecurityAgentImpl::Initialize()
 {
     auto &userKeyManager = GetUserKeyManager();
-    unlockedActiveUserIdSubscription_ =
+    unlockedActiveUserKeySubscription_ =
         userKeyManager.SubscribeUnlockedActiveUserKey([this](const UserKey &userKey, UserKeyEventType eventType) {
             UserKey activeUser = userKey;
-            if (eventType == UserKeyEventType::SUB_PROFILE_ID_DELETED) {
+            if (eventType == UserKeyEventType::USER_KEY_DELETED) {
                 activeUser = GetUserKeyManager().GetUnlockedActiveUserkey();
             }
             auto result = SetActiveUser(SetActiveUserInput { activeUser, CollectValidUserKeys() });
@@ -67,7 +67,7 @@ bool SecurityAgentImpl::Initialize()
                 IAM_LOGE("SetActiveUser failed, ret=%{public}d", result);
             }
         });
-    if (unlockedActiveUserIdSubscription_ == nullptr) {
+    if (unlockedActiveUserKeySubscription_ == nullptr) {
         return false;
     }
 

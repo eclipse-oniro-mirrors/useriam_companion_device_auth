@@ -30,7 +30,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-class DeviceKeyExtensionTest : public testing::Test {};
+class DeviceKeyExtensionTest : public testing::Test {
+};
 
 constexpr int32_t INT32_100 = 100;
 constexpr int32_t INT32_200 = 200;

@@ -49,7 +49,8 @@ public:
     MOCK_METHOD(sptr<IRemoteObject>, AsObject, (), (override));
 };
 
-class AvailableDeviceSubscriptionTest : public Test {};
+class AvailableDeviceSubscriptionTest : public Test {
+};
 
 HWTEST_F(AvailableDeviceSubscriptionTest, Create_001, TestSize.Level0)
 {

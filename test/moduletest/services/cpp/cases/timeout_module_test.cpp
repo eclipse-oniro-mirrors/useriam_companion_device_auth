@@ -47,7 +47,8 @@ constexpr UserId HOST_USER_ID = 100;
 // DEFAULT_REQUEST_TIMEOUT_MS = 60000 (60s). Add 1s margin to ensure the deadline is exceeded.
 constexpr uint64_t TIMEOUT_ADVANCE_MS = DEFAULT_REQUEST_TIMEOUT_MS + 1000;
 
-class TimeoutModuleTest : public testing::Test {};
+class TimeoutModuleTest : public testing::Test {
+};
 
 // ============================================================================
 // Test 1: SyncDeviceStatusTimeoutE2E_001

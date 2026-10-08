@@ -43,7 +43,8 @@ struct DmDeviceInfo {
     char networkId[DM_MAX_DEVICE_ID_LEN] { 0 };
 };
 
-struct DmDeviceBasicInfo {};
+struct DmDeviceBasicInfo {
+};
 
 class DmInitCallback {
 public:
