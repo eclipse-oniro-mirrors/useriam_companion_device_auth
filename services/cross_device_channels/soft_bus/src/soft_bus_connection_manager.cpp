@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cinttypes>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 #include <utility>
 
@@ -53,6 +54,7 @@ constexpr uint32_t INBOUND_NAMING_TIMEOUT_MS = 10000;
 // Periodic sweep cadence for the naming monitor. With interval = timeout / 2,
 // an unnamed socket is reclaimed within [timeout, timeout + interval) of accept.
 constexpr uint32_t INBOUND_NAMING_MONITOR_INTERVAL_MS = 5000;
+constexpr uint32_t PENDING_OPEN_MONITOR_INTERVAL_MS = PENDING_ARBITRATION_TIMEOUT_MS / 2;
 
 bool IsValidInboundConnectionName(const std::string &connectionName, const PhysicalDeviceKey &peerKey)
 {
@@ -118,6 +120,13 @@ bool SoftBusConnectionManager::Start()
     }
 
     std::weak_ptr<SoftBusConnectionManager> weakSelf = weak_from_this();
+    disconnectRequestedSubscription_ =
+        GetSoftBusCoordinatorAdapter().RegisterDisconnectRequestedCallback([weakSelf](const std::string &networkId) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleDisconnectRequested(networkId);
+        });
+    ENSURE_OR_RETURN_VAL(disconnectRequestedSubscription_, false);
     saStatusListener_ = SaStatusListener::Create(
         SOFTBUS_SA_NAME, SOFTBUS_SERVER_SA_ID,
         [weakSelf]() {
@@ -155,9 +164,11 @@ bool SoftBusConnectionManager::StartServerSocket()
     return true;
 }
 
-bool SoftBusConnectionManager::OpenConnection(const std::string &connectionName,
+bool SoftBusConnectionManager::OpenConnection(const std::string &connectionName, ConnectionMode connectionMode,
     const PhysicalDeviceKey &physicalDeviceKey, const std::string &networkId)
 {
+    SweepTimedOutPendingOpens();
+
     if (FindSocketByConnectionName(connectionName) != nullptr) {
         IAM_LOGE("Connection already exists: %{public}s", connectionName.c_str());
         return false;
@@ -169,27 +180,128 @@ bool SoftBusConnectionManager::OpenConnection(const std::string &connectionName,
         return false;
     }
 
+    auto requestTimeMs = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN_VAL(requestTimeMs.has_value(), false);
+
+    pendingOpens_.try_emplace(connectionName, PendingOpen { requestTimeMs.value(), networkId });
+    CheckPendingOpenMonitor();
+    GetSoftBusCoordinatorAdapter().RequestResource(connectionName, networkId, connectionMode,
+        [weakSelf = weak_from_this(), connectionName, physicalDeviceKey, networkId](bool canConnect) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleCanConnectResult(connectionName, physicalDeviceKey, networkId, canConnect);
+        });
+
+    IAM_LOGI("OpenConnection accepted, waiting for coordinator: %{public}s", connectionName.c_str());
+    return true;
+}
+
+void SoftBusConnectionManager::SweepTimedOutPendingOpens()
+{
+    auto now = GetTimeKeeper().GetSteadyTimeMs();
+    ENSURE_OR_RETURN(now.has_value());
+
+    std::vector<std::string> expiredOpens;
+    for (const auto &pair : pendingOpens_) {
+        auto ageMsOpt = SafeSub(now.value(), pair.second.requestTimeMs);
+        if (!ageMsOpt.has_value()) {
+            IAM_LOGE("Clock anomaly on pending open check, treat as timeout, drop: %{public}s", pair.first.c_str());
+            expiredOpens.push_back(pair.first);
+        } else if (ageMsOpt.value() >= PENDING_ARBITRATION_TIMEOUT_MS) {
+            IAM_LOGE("Pending open never arbitrated within timeout, drop: %{public}s, age=%{public}" PRIu64,
+                pair.first.c_str(), ageMsOpt.value());
+            expiredOpens.push_back(pair.first);
+        }
+    }
+
+    for (const auto &connectionName : expiredOpens) {
+        pendingOpens_.erase(connectionName);
+        ReportConnectionClosed(connectionName, REASON_COORDINATOR_TIMEOUT);
+    }
+
+    CheckPendingOpenMonitor();
+}
+
+void SoftBusConnectionManager::CheckPendingOpenMonitor()
+{
+    bool needTimer = !pendingOpens_.empty();
+    bool hasTimer = pendingOpenSubscription_ != nullptr;
+
+    if (needTimer && !hasTimer) {
+        pendingOpenSubscription_ = RelativeTimer::GetInstance().RegisterPeriodic(
+            [weakSelf = weak_from_this()]() {
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->SweepTimedOutPendingOpens();
+            },
+            PENDING_OPEN_MONITOR_INTERVAL_MS);
+        ENSURE_OR_RETURN(pendingOpenSubscription_ != nullptr);
+        IAM_LOGI("Pending open monitor started");
+    } else if (!needTimer && hasTimer) {
+        pendingOpenSubscription_.reset();
+        IAM_LOGI("Pending open monitor stopped");
+    }
+}
+
+void SoftBusConnectionManager::HandleCanConnectResult(const std::string &connectionName,
+    const PhysicalDeviceKey &physicalDeviceKey, const std::string &networkId, bool canConnect)
+{
+    if (!canConnect) {
+        IAM_LOGE("coordinator rejected connect: %{public}s", connectionName.c_str());
+        if (pendingOpens_.erase(connectionName) != 0) {
+            ReportConnectionClosed(connectionName, REASON_COORDINATOR_REJECTED);
+        }
+        return;
+    }
+
+    std::optional<std::string> closeReason;
+    ScopeGuard settleGuard([this, &connectionName, &closeReason]() {
+        GetSoftBusCoordinatorAdapter().ReleaseResource(connectionName);
+        if (closeReason.has_value()) {
+            ReportConnectionClosed(connectionName, closeReason.value());
+        }
+    });
+
+    if (pendingOpens_.erase(connectionName) == 0) {
+        IAM_LOGI("open cancelled before coordinator result, release grant only: %{public}s", connectionName.c_str());
+        return;
+    }
+
+    if (connections_.size() >= MAX_SOFTBUS_CONNECTIONS) {
+        IAM_LOGE("max connections reached (%{public}zu), reject: %{public}s", connections_.size(),
+            connectionName.c_str());
+        closeReason = REASON_MAX_CONNECTIONS_REACHED;
+        return;
+    }
+
     auto socketId = GetSoftBusAdapter().CreateClientSocket(connectionName, networkId);
     if (!socketId.has_value()) {
         IAM_LOGE("Create client socket failed");
-        return false;
+        closeReason = REASON_CREATE_SOCKET_FAILED;
+        return;
     }
 
-    auto connection =
-        std::make_shared<SoftbusConnection>(socketId.value(), connectionName, physicalDeviceKey, weak_from_this());
+    auto connection = std::make_shared<SoftbusConnection>(socketId.value(), connectionName, physicalDeviceKey,
+        networkId, weak_from_this());
     if (connection == nullptr) {
         IAM_LOGE("Failed to create connection object");
         GetSoftBusAdapter().ShutdownSocket(socketId.value());
-        return false;
+        closeReason = REASON_CREATE_SOCKET_FAILED;
+        return;
     }
     connections_.push_back(connection);
+    settleGuard.Cancel();
 
     IAM_LOGI("OpenConnection initiated: %{public}s, socketId=%{public}d", connectionName.c_str(), socketId.value());
-    return true;
 }
 
 void SoftBusConnectionManager::CloseConnection(const std::string &connectionName, const std::string &reason)
 {
+    if (pendingOpens_.erase(connectionName) > 0) {
+        IAM_LOGI("pending open cancelled: %{public}s", connectionName.c_str());
+        return;
+    }
+
     auto entry = FindSocketByConnectionName(connectionName);
     if (entry == nullptr) {
         IAM_LOGE("Connection not found: %{public}s", connectionName.c_str());
@@ -237,7 +349,7 @@ void SoftBusConnectionManager::HandleBind(int32_t socketId, const std::string &p
         .idType = DeviceIdType::UNIFIED_DEVICE_ID,
         .deviceId = udid.value(),
     };
-    auto connection = std::make_shared<SoftbusConnection>(socketId, physicalDeviceKey, weak_from_this());
+    auto connection = std::make_shared<SoftbusConnection>(socketId, physicalDeviceKey, peerNetworkId, weak_from_this());
     ENSURE_OR_RETURN(connection != nullptr);
     connections_.push_back(connection);
     guard.Cancel();
@@ -508,14 +620,9 @@ void SoftBusConnectionManager::HandleNamingMonitorTimer()
             continue;
         }
         auto ageMsOpt = SafeSub(now.value(), connection->GetAcceptTimeMs());
-        if (!ageMsOpt.has_value()) {
-            IAM_LOGE("Clock anomaly on inbound naming check: socketId=%{public}d", connection->GetSocketId());
-            continue;
-        }
-        if (ageMsOpt.value() >= INBOUND_NAMING_TIMEOUT_MS) {
-            IAM_LOGE(
-                "Inbound connection never named within timeout, closing: socketId=%{public}d, age=%{public}" PRIu64,
-                connection->GetSocketId(), ageMsOpt.value());
+        if (!ageMsOpt.has_value() || ageMsOpt.value() >= INBOUND_NAMING_TIMEOUT_MS) {
+            IAM_LOGE("Inbound connection never named within timeout or clock anomaly, closing: socketId=%{public}d",
+                connection->GetSocketId());
             expired.push_back(connection->GetSocketId());
         }
     }
@@ -555,6 +662,30 @@ void SoftBusConnectionManager::HandleSoftBusServiceUnavailable()
     IAM_LOGI("SoftBus service unavailable, closing sockets");
 
     CloseAllSockets("softbus_down");
+}
+
+void SoftBusConnectionManager::HandleDisconnectRequested(const std::string &networkId)
+{
+    IAM_LOGI("Disconnect requested by coordinator: networkId=%{public}s", GetMaskedString(networkId).c_str());
+
+    auto connections = connections_;
+    for (const auto &connection : connections) {
+        if (connection == nullptr || connection->GetNetworkId() != networkId) {
+            continue;
+        }
+        RemoveSocket(connection->GetSocketId(), REASON_DISCONNECT_REQUESTED);
+    }
+
+    for (auto it = pendingOpens_.begin(); it != pendingOpens_.end();) {
+        if (it->second.networkId != networkId) {
+            ++it;
+            continue;
+        }
+        std::string connectionName = it->first;
+        it = pendingOpens_.erase(it);
+        ReportConnectionClosed(connectionName, REASON_DISCONNECT_REQUESTED);
+        IAM_LOGI("Pending open revoked by disconnect request: %{public}s", connectionName.c_str());
+    }
 }
 
 void SoftBusConnectionManager::ReportConnectionEstablished(const std::string &connectionName)

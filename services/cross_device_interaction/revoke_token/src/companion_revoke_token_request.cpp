@@ -34,7 +34,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 CompanionRevokeTokenRequest::CompanionRevokeTokenRequest(const UserKey &companionUserKey,
     const DeviceKey &hostDeviceKey, const std::string &triggerReason)
-    : OutboundRequest(RequestType::COMPANION_REVOKE_TOKEN_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
+    : OutboundRequest(RequestType::COMPANION_REVOKE_TOKEN_REQUEST, ConnectionMode::BACKGROUND, 0,
+          DEFAULT_REQUEST_TIMEOUT_MS),
       companionUserKey_(companionUserKey)
 {
     SetPeerDeviceKey(hostDeviceKey);

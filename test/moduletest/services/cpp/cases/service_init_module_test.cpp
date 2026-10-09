@@ -27,8 +27,7 @@
 using namespace testing;
 using namespace testing::ext;
 
-class ServiceInitModuleTest : public testing::Test {
-};
+class ServiceInitModuleTest : public testing::Test {};
 
 namespace OHOS {
 namespace UserIam {

@@ -25,6 +25,7 @@
 #include "device_status_manager.h"
 #include "local_device_status_manager.h"
 #include "message_router.h"
+#include "task_runner_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_CROSS_DEVICE_COMM_MANAGER_IMPL
@@ -122,10 +123,10 @@ std::optional<DeviceStatus> CrossDeviceCommManagerImpl::GetDeviceStatus(const De
     return deviceStatusMgr_->GetDeviceStatus(deviceKey);
 }
 
-std::vector<DeviceStatus> CrossDeviceCommManagerImpl::GetAllDeviceStatus(bool includeUnsynced)
+std::vector<DeviceStatus> CrossDeviceCommManagerImpl::GetAllDeviceStatus(DeviceStatusFilter filter)
 {
     ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, (std::vector<DeviceStatus> {}));
-    return deviceStatusMgr_->GetAllDeviceStatus(includeUnsynced);
+    return deviceStatusMgr_->GetAllDeviceStatus(filter);
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeAllDeviceStatus(
@@ -147,19 +148,40 @@ SubscribeMode CrossDeviceCommManagerImpl::GetSubscribeMode() const
     return deviceStatusMgr_->GetSubscribeMode();
 }
 
+ConnectionMode CrossDeviceCommManagerImpl::GetCurrentConnectionMode() const
+{
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, ConnectionMode::BACKGROUND);
+    return deviceStatusMgr_->GetCurrentConnectionMode();
+}
+
 void CrossDeviceCommManagerImpl::RefreshDeviceStatus()
 {
     ENSURE_OR_RETURN(deviceStatusMgr_ != nullptr);
     deviceStatusMgr_->RefreshDeviceStatus();
 }
 
-void CrossDeviceCommManagerImpl::TriggerDeviceSync(const DeviceKey &deviceKey)
+void CrossDeviceCommManagerImpl::EnsureDeviceSynced(const PhysicalDeviceKey &physicalKey, OnDeviceSyncResult &&onResult)
 {
     ENSURE_OR_RETURN(deviceStatusMgr_ != nullptr);
-    PhysicalDeviceKey physicalKey {};
-    physicalKey.idType = deviceKey.idType;
-    physicalKey.deviceId = deviceKey.deviceId;
-    deviceStatusMgr_->TriggerDeviceSync(physicalKey);
+    auto deviceStatusMgr = deviceStatusMgr_;
+    TaskRunnerManager::GetInstance().PostTaskOnResident(
+        [deviceStatusMgr, physicalKey, onResult = std::move(onResult)]() mutable {
+            deviceStatusMgr->EnsureDeviceSynced(physicalKey, std::move(onResult));
+        });
+}
+
+void CrossDeviceCommManagerImpl::ResyncDevice(const PhysicalDeviceKey &physicalKey)
+{
+    ENSURE_OR_RETURN(deviceStatusMgr_ != nullptr);
+    auto deviceStatusMgr = deviceStatusMgr_;
+    TaskRunnerManager::GetInstance().PostTaskOnResident(
+        [deviceStatusMgr, physicalKey]() { deviceStatusMgr->ResyncDevice(physicalKey); });
+}
+
+bool CrossDeviceCommManagerImpl::IsPhysicalOnline(const DeviceKey &deviceKey)
+{
+    ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, false);
+    return deviceStatusMgr_->IsPhysicalOnline(FromDeviceKey(deviceKey));
 }
 
 std::optional<SteadyTimeMs> CrossDeviceCommManagerImpl::GetTemplateStatusSubscribeTimeMs() const
@@ -175,13 +197,14 @@ void CrossDeviceCommManagerImpl::SetTemplateStatusSubscribed(bool isActive)
 }
 
 std::unique_ptr<Subscription> CrossDeviceCommManagerImpl::SubscribeDeviceStatus(const DeviceKey &deviceKey,
-    bool needSync, OnDeviceStatusChange &&onDeviceStatusChange)
+    SyncDemand demand, OnDeviceStatusChange &&onDeviceStatusChange)
 {
     ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, nullptr);
-    return deviceStatusMgr_->SubscribeDeviceStatus(deviceKey, needSync, std::move(onDeviceStatusChange));
+    return deviceStatusMgr_->SubscribeDeviceStatus(deviceKey, demand, std::move(onDeviceStatusChange));
 }
 
-bool CrossDeviceCommManagerImpl::OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName)
+bool CrossDeviceCommManagerImpl::OpenConnection(const DeviceKey &deviceKey, ConnectionMode connectionMode,
+    std::string &outConnectionName)
 {
     ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, false);
     auto channelId = deviceStatusMgr_->GetChannelIdByDeviceKey(deviceKey);
@@ -195,7 +218,7 @@ bool CrossDeviceCommManagerImpl::OpenConnection(const DeviceKey &deviceKey, std:
     physicalDeviceKey.deviceId = deviceKey.deviceId;
 
     ENSURE_OR_RETURN_VAL(connectionMgr_ != nullptr, false);
-    return connectionMgr_->OpenConnection(physicalDeviceKey, channelId.value(), outConnectionName);
+    return connectionMgr_->OpenConnection(physicalDeviceKey, channelId.value(), connectionMode, outConnectionName);
 }
 
 void CrossDeviceCommManagerImpl::CloseConnection(const std::string &connectionName, const std::string &reason)

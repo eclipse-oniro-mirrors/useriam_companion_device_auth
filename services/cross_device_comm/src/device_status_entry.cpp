@@ -23,6 +23,7 @@
 #include "iam_para2str.h"
 
 #include "adapter_manager.h"
+#include "task_runner_manager.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_DEVICE_STATUS_ENTRY
@@ -87,12 +88,25 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       isSyncInProgress(other.isSyncInProgress),
       lastSyncTimeMs(other.lastSyncTimeMs),
       inProgressAttemptId(other.inProgressAttemptId),
+      inProgressConnectionMode(other.inProgressConnectionMode),
+      pendingResync(other.pendingResync),
+      syncWaiters(std::move(other.syncWaiters)),
       hostSupportBusinessIds_(std::move(other.hostSupportBusinessIds_)),
       physicalCompanionBusinessIds_(std::move(other.physicalCompanionBusinessIds_)),
       syncCompanionBusinessIds_(std::move(other.syncCompanionBusinessIds_)),
       effectiveBusinessIds_(std::move(other.effectiveBusinessIds_)),
       syncRetryTimer_(std::move(other.syncRetryTimer_))
 {
+}
+
+DeviceStatusEntry::~DeviceStatusEntry()
+{
+    if (syncWaiters.empty()) {
+        return;
+    }
+    IAM_LOGW("unsettled sync waiters on entry destruction: device=%{public}s, count=%{public}zu",
+        GET_MASKED_STR_CSTR(physicalDeviceKey.deviceId), syncWaiters.size());
+    NotifySyncWaiters(ResultCode::GENERAL_ERROR);
 }
 
 void DeviceStatusEntry::OnSyncSuccess()
@@ -125,6 +139,29 @@ void DeviceStatusEntry::OnSyncAbort()
     if (syncRetryTimer_ != nullptr) {
         syncRetryTimer_->Reset();
     }
+}
+
+void DeviceStatusEntry::NotifySyncWaiters(ResultCode resultCode)
+{
+    if (syncWaiters.empty()) {
+        return;
+    }
+    IAM_LOGI("notify sync waiters: device=%{public}s, count=%{public}zu, resultCode=%{public}d",
+        GET_MASKED_STR_CSTR(physicalDeviceKey.deviceId), syncWaiters.size(), static_cast<int32_t>(resultCode));
+    OnDeviceSyncResult callback = TakeCombinedSyncWaiter();
+    TaskRunnerManager::GetInstance().PostTaskOnResident(
+        [resultCode, callback = std::move(callback)]() { callback(resultCode); });
+}
+
+OnDeviceSyncResult DeviceStatusEntry::TakeCombinedSyncWaiter()
+{
+    std::vector<OnDeviceSyncResult> waiters = std::move(syncWaiters);
+    return [waiters = std::move(waiters)](ResultCode resultCode) {
+        for (auto &callback : waiters) {
+            ENSURE_OR_CONTINUE(callback != nullptr);
+            callback(resultCode);
+        }
+    };
 }
 
 std::string DeviceStatusEntry::GetDeviceName() const

@@ -36,7 +36,7 @@ class HostSyncDeviceStatusRequest : public std::enable_shared_from_this<HostSync
                                     public OutboundRequest {
 public:
     HostSyncDeviceStatusRequest(const UserKey &hostUserKey, const DeviceKey &companionDeviceKey,
-        const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback);
+        ConnectionMode connectionMode, SyncTriggerReason triggerReason, SyncDeviceStatusCallback &&callback);
     ~HostSyncDeviceStatusRequest() override = default;
 
     // Implement preemption interfaces
@@ -70,7 +70,6 @@ private:
     UserKey hostUserKey_;
     std::unique_ptr<ScopeGuard> cancelCompanionCheckGuard_;
     DeviceKey companionDeviceKey_;
-    std::string companionDeviceName_;
     SyncDeviceStatusCallback callback_;
 
     void InvokeCallback(ResultCode result, const SyncDeviceStatus &syncDeviceStatus);

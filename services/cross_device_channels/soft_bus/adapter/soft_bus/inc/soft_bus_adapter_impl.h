@@ -28,7 +28,8 @@ namespace CompanionDeviceAuth {
 
 class SoftBusAdapterImpl : public ISoftBusAdapter {
 public:
-    SoftBusAdapterImpl() = default;
+    static std::shared_ptr<SoftBusAdapterImpl> Create();
+
     ~SoftBusAdapterImpl() override = default;
 
     void RegisterCallback(const std::shared_ptr<ISoftBusSocketCallback> &callback) override;
@@ -37,6 +38,9 @@ public:
         const std::string &networkId) override;
     bool SendBytes(int32_t socketId, const std::vector<uint8_t> &data) override;
     void ShutdownSocket(int32_t socketId) override;
+
+private:
+    SoftBusAdapterImpl() = default;
 };
 
 } // namespace CompanionDeviceAuth

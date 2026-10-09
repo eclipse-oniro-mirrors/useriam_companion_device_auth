@@ -65,10 +65,12 @@ public:
         return key;
     }
 
-    bool OpenConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey) override
+    bool OpenConnection(const std::string &connectionName, ConnectionMode connectionMode,
+        const PhysicalDeviceKey &physicalDeviceKey) override
     {
         (void)connectionName;
         (void)physicalDeviceKey;
+        (void)connectionMode;
         return fuzzData_.ConsumeBool();
     }
 

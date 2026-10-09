@@ -58,7 +58,7 @@ HWTEST_F(HostRequestResyncHandlerTest, HandleRequest_001, TestSize.Level0)
         static_cast<int32_t>(resyncRequest.companionDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, resyncRequest.companionDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), TriggerDeviceSync(_)).Times(1);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), ResyncDevice(_)).Times(1);
 
     Attributes reply;
     ErrorGuard errorGuard([](ResultCode) {});
@@ -76,7 +76,7 @@ HWTEST_F(HostRequestResyncHandlerTest, HandleRequest_002, TestSize.Level0)
     CreateDefaultHandler();
     Attributes request;
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), TriggerDeviceSync(_)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), ResyncDevice(_)).Times(0);
 
     Attributes reply;
     ErrorGuard errorGuard([&reply](ResultCode result) {

@@ -23,7 +23,10 @@
 #include "adapter_manager.h"
 #include "relative_timer.h"
 #include "singleton_manager.h"
+#include "soft_bus_adapter_manager.h"
 #include "soft_bus_channel.h"
+#include "soft_bus_coordinator_adapter.h"
+#include "subscription.h"
 #include "task_runner_manager.h"
 
 using namespace testing;
@@ -40,6 +43,21 @@ std::unique_ptr<Subscription> MakeSubscription()
 {
     return std::make_unique<Subscription>([]() {});
 }
+
+// SoftBusChannel::Create registers the device-manager, softbus and stub coordinator
+// adapters. The fixture reinstalls this local mock after Create (CreateChannel),
+// so OpenConnection/Start consult it via GetSoftBusCoordinatorAdapter().
+class MockSoftBusCoordinatorAdapter : public ISoftBusCoordinatorAdapter {
+public:
+    MOCK_METHOD(bool, Initialize, (), (override));
+    MOCK_METHOD(void, RequestResource,
+        (const std::string &, const std::string &, ConnectionMode, ConnectDecisionCallback &&), (override));
+    MOCK_METHOD(std::unique_ptr<Subscription>, RegisterDisconnectRequestedCallback, (DisconnectRequestedCallback &&),
+        (override));
+    MOCK_METHOD(void, AddConnection, (const std::string &, const std::string &), (override));
+    MOCK_METHOD(void, RemoveConnection, (const std::string &), (override));
+    MOCK_METHOD(void, ReleaseResource, (const std::string &), (override));
+};
 
 class SoftBusChannelTest : public testing::Test {
 public:
@@ -61,6 +79,22 @@ public:
         ON_CALL(mockMiscManager_, GetLocalUdid()).WillByDefault(Return(std::optional<std::string>("test-local-udid")));
         ON_CALL(mockSystemParamManager_, WatchParam(_, _)).WillByDefault(Return(ByMove(MakeSubscription())));
         ON_CALL(mockSystemParamManager_, GetParam(_, _)).WillByDefault(Return(std::string(FALSE_STR)));
+
+        coordinator_ = std::make_shared<NiceMock<MockSoftBusCoordinatorAdapter>>();
+        ON_CALL(*coordinator_, RequestResource(_, _, _, _))
+            .WillByDefault(Invoke([](const std::string &, const std::string &, ConnectionMode,
+                                      ConnectDecisionCallback callback) { callback(true); }));
+        ON_CALL(*coordinator_, RegisterDisconnectRequestedCallback(_))
+            .WillByDefault(Return(ByMove(MakeSubscription())));
+    }
+
+    std::shared_ptr<SoftBusChannel> CreateChannel()
+    {
+        auto channel = SoftBusChannel::Create();
+        if (channel != nullptr) {
+            SoftBusChannelAdapterManager::GetInstance().SetSoftBusCoordinatorAdapter(coordinator_);
+        }
+        return channel;
     }
 
     void TearDown() override
@@ -75,17 +109,18 @@ protected:
     uint64_t nextGlobalId_ = UINT64_1;
     NiceMock<MockMiscManager> mockMiscManager_;
     NiceMock<MockSystemParamManager> mockSystemParamManager_;
+    std::shared_ptr<NiceMock<MockSoftBusCoordinatorAdapter>> coordinator_;
 };
 
 HWTEST_F(SoftBusChannelTest, Create_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     EXPECT_NE(channel, nullptr);
 }
 
 HWTEST_F(SoftBusChannelTest, GetChannelId_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     auto channelId = channel->GetChannelId();
@@ -94,7 +129,7 @@ HWTEST_F(SoftBusChannelTest, GetChannelId_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetLocalPhysicalDeviceKey_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     auto key = channel->GetLocalPhysicalDeviceKey();
@@ -105,7 +140,7 @@ HWTEST_F(SoftBusChannelTest, GetLocalPhysicalDeviceKey_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetLocalPhysicalDeviceKey_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->deviceStatusManager_ = nullptr;
@@ -116,7 +151,7 @@ HWTEST_F(SoftBusChannelTest, GetLocalPhysicalDeviceKey_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetCompanionSecureProtocolId_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     auto protocolId = channel->GetCompanionSecureProtocolId();
@@ -125,7 +160,7 @@ HWTEST_F(SoftBusChannelTest, GetCompanionSecureProtocolId_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, Start_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     bool result = channel->Start();
@@ -134,7 +169,7 @@ HWTEST_F(SoftBusChannelTest, Start_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, Start_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->started_ = true;
@@ -145,7 +180,7 @@ HWTEST_F(SoftBusChannelTest, Start_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, Start_003, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->connectionManager_ = nullptr;
@@ -156,7 +191,7 @@ HWTEST_F(SoftBusChannelTest, Start_003, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, Start_004, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->deviceStatusManager_ = nullptr;
@@ -167,7 +202,7 @@ HWTEST_F(SoftBusChannelTest, Start_004, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribePhysicalDeviceStatus_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     bool callbackInvoked = false;
@@ -179,7 +214,7 @@ HWTEST_F(SoftBusChannelTest, SubscribePhysicalDeviceStatus_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribePhysicalDeviceStatus_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->deviceStatusManager_ = nullptr;
@@ -193,7 +228,7 @@ HWTEST_F(SoftBusChannelTest, SubscribePhysicalDeviceStatus_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeRawMessage_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     bool callbackInvoked = false;
@@ -205,7 +240,7 @@ HWTEST_F(SoftBusChannelTest, SubscribeRawMessage_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeRawMessage_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->connectionManager_ = nullptr;
@@ -219,7 +254,7 @@ HWTEST_F(SoftBusChannelTest, SubscribeRawMessage_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeConnectionStatus_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     bool callbackInvoked = false;
@@ -231,7 +266,7 @@ HWTEST_F(SoftBusChannelTest, SubscribeConnectionStatus_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeConnectionStatus_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->connectionManager_ = nullptr;
@@ -245,7 +280,7 @@ HWTEST_F(SoftBusChannelTest, SubscribeConnectionStatus_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeIncomingConnection_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     bool callbackInvoked = false;
@@ -257,7 +292,7 @@ HWTEST_F(SoftBusChannelTest, SubscribeIncomingConnection_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeIncomingConnection_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->connectionManager_ = nullptr;
@@ -271,7 +306,7 @@ HWTEST_F(SoftBusChannelTest, SubscribeIncomingConnection_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeAuthMaintainActive_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     bool callbackInvoked = false;
@@ -282,7 +317,7 @@ HWTEST_F(SoftBusChannelTest, SubscribeAuthMaintainActive_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SubscribeAuthMaintainActive_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->deviceStatusManager_ = nullptr;
@@ -295,7 +330,7 @@ HWTEST_F(SoftBusChannelTest, SubscribeAuthMaintainActive_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetAuthMaintainActive_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     bool isActive = channel->GetAuthMaintainActive();
@@ -304,7 +339,7 @@ HWTEST_F(SoftBusChannelTest, GetAuthMaintainActive_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetAuthMaintainActive_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->deviceStatusManager_ = nullptr;
@@ -315,7 +350,7 @@ HWTEST_F(SoftBusChannelTest, GetAuthMaintainActive_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetAllPhysicalDevices_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     auto devices = channel->GetAllPhysicalDevices();
@@ -324,7 +359,7 @@ HWTEST_F(SoftBusChannelTest, GetAllPhysicalDevices_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, GetAllPhysicalDevices_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->deviceStatusManager_ = nullptr;
@@ -335,7 +370,7 @@ HWTEST_F(SoftBusChannelTest, GetAllPhysicalDevices_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SendMessage_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     std::vector<uint8_t> message = { 1, 2, 3, 4 };
@@ -345,7 +380,7 @@ HWTEST_F(SoftBusChannelTest, SendMessage_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, SendMessage_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->connectionManager_ = nullptr;
@@ -357,21 +392,21 @@ HWTEST_F(SoftBusChannelTest, SendMessage_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, OpenConnection_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     PhysicalDeviceKey key;
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device-id";
 
-    bool result = channel->OpenConnection("test-connection", key);
+    bool result = channel->OpenConnection("test-connection", ConnectionMode::BACKGROUND, key);
 
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(SoftBusChannelTest, OpenConnection_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
     channel->connectionManager_ = nullptr;
 
@@ -379,14 +414,14 @@ HWTEST_F(SoftBusChannelTest, OpenConnection_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device-id";
 
-    bool result = channel->OpenConnection("test-connection", key);
+    bool result = channel->OpenConnection("test-connection", ConnectionMode::BACKGROUND, key);
 
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(SoftBusChannelTest, OpenConnection_003, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
     channel->deviceStatusManager_ = nullptr;
 
@@ -394,14 +429,14 @@ HWTEST_F(SoftBusChannelTest, OpenConnection_003, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device-id";
 
-    bool result = channel->OpenConnection("test-connection", key);
+    bool result = channel->OpenConnection("test-connection", ConnectionMode::BACKGROUND, key);
 
     EXPECT_FALSE(result);
 }
 
 HWTEST_F(SoftBusChannelTest, OpenConnection_004, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     PhysicalDeviceKey key;
@@ -412,14 +447,14 @@ HWTEST_F(SoftBusChannelTest, OpenConnection_004, TestSize.Level0)
     status.physicalDeviceKey = key;
     channel->deviceStatusManager_->physicalDeviceStatus_.push_back(status);
 
-    bool result = channel->OpenConnection("test-connection", key);
+    bool result = channel->OpenConnection("test-connection", ConnectionMode::BACKGROUND, key);
 
     EXPECT_TRUE(result);
 }
 
 HWTEST_F(SoftBusChannelTest, CloseConnection_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->CloseConnection("test-connection", "test");
@@ -427,7 +462,7 @@ HWTEST_F(SoftBusChannelTest, CloseConnection_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CloseConnection_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->connectionManager_ = nullptr;
@@ -437,7 +472,7 @@ HWTEST_F(SoftBusChannelTest, CloseConnection_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     DeviceKey deviceKey;
@@ -451,7 +486,7 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     DeviceKey deviceKey;
@@ -470,7 +505,7 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_002, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_003, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     DeviceKey deviceKey;
@@ -500,7 +535,7 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_003, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_004, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     DeviceKey deviceKey;
@@ -530,7 +565,7 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_004, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, CheckOperationIntent_005, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     DeviceKey deviceKey;
@@ -565,7 +600,7 @@ HWTEST_F(SoftBusChannelTest, CheckOperationIntent_005, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, OnRemoteDisconnect_001, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->OnRemoteDisconnect("test-connection", "test-reason");
@@ -573,7 +608,7 @@ HWTEST_F(SoftBusChannelTest, OnRemoteDisconnect_001, TestSize.Level0)
 
 HWTEST_F(SoftBusChannelTest, OnRemoteDisconnect_002, TestSize.Level0)
 {
-    auto channel = SoftBusChannel::Create();
+    auto channel = CreateChannel();
     ASSERT_NE(channel, nullptr);
 
     channel->connectionManager_ = nullptr;

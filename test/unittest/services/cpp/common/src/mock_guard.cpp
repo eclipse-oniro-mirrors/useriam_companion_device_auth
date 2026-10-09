@@ -213,7 +213,12 @@ void MockGuard::SetupCrossDeviceCommManagerDefaults()
     ON_CALL(*crossDeviceCommManager_, IsAuthMaintainActive()).WillByDefault(Return(false));
     ON_CALL(*crossDeviceCommManager_, SubscribeIsAuthMaintainActive(_))
         .WillByDefault(Invoke([](std::function<void(bool)> &&) { return std::make_unique<Subscription>([]() {}); }));
-    ON_CALL(*crossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(LocalDeviceProfile {}));
+    ON_CALL(*crossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Invoke([]() {
+        LocalDeviceProfile profile;
+        profile.hostCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
+        profile.companionCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
+        return profile;
+    }));
     ON_CALL(*crossDeviceCommManager_, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
     ON_CALL(*crossDeviceCommManager_, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
     ON_CALL(*crossDeviceCommManager_, SubscribeAllDeviceStatus(_)).WillByDefault(Invoke([](OnDeviceStatusChange &&) {
@@ -223,9 +228,13 @@ void MockGuard::SetupCrossDeviceCommManagerDefaults()
     ON_CALL(*crossDeviceCommManager_, GetTemplateStatusSubscribeTimeMs()).WillByDefault(Return(std::nullopt));
     ON_CALL(*crossDeviceCommManager_, SetTemplateStatusSubscribed(_)).WillByDefault(Return());
     ON_CALL(*crossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
-        .WillByDefault(Invoke(
-            [](const DeviceKey &, bool, OnDeviceStatusChange &&) { return std::make_unique<Subscription>([]() {}); }));
-    ON_CALL(*crossDeviceCommManager_, OpenConnection(_, _)).WillByDefault(Return(false));
+        .WillByDefault(Invoke([](const DeviceKey &, SyncDemand, OnDeviceStatusChange &&) {
+            return std::make_unique<Subscription>([]() {});
+        }));
+    ON_CALL(*crossDeviceCommManager_, EnsureDeviceSynced(_, _))
+        .WillByDefault(
+            Invoke([](const PhysicalDeviceKey &, OnDeviceSyncResult &&onResult) { onResult(ResultCode::SUCCESS); }));
+    ON_CALL(*crossDeviceCommManager_, OpenConnection(_, _, _)).WillByDefault(Return(false));
     ON_CALL(*crossDeviceCommManager_, CloseConnection(_, _)).WillByDefault(Return());
     ON_CALL(*crossDeviceCommManager_, IsConnectionOpen(_)).WillByDefault(Return(false));
     ON_CALL(*crossDeviceCommManager_, GetConnectionStatus(_)).WillByDefault(Return(ConnectionStatus::DISCONNECTED));
@@ -273,7 +282,7 @@ void MockGuard::SetupRequestManagerDefaults()
 void MockGuard::SetupRequestFactoryDefaults()
 {
     ON_CALL(*requestFactory_, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
-    ON_CALL(*requestFactory_, CreateHostSyncDeviceStatusRequest(_, _, _, _)).WillByDefault(Return(nullptr));
+    ON_CALL(*requestFactory_, CreateHostSyncDeviceStatusRequest(_, _, _, _, _)).WillByDefault(Return(nullptr));
     ON_CALL(*requestFactory_, CreateCompanionRequestResyncRequest(_, _)).WillByDefault(Return(nullptr));
 }
 

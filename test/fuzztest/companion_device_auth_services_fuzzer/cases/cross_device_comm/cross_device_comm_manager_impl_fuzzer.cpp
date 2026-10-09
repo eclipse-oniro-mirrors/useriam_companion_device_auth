@@ -68,7 +68,7 @@ static void FuzzOpenConnection(ICrossDeviceCommManager &manager, FuzzedDataProvi
 {
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
     std::string outConnectionName;
-    bool result = manager.OpenConnection(deviceKey, outConnectionName);
+    bool result = manager.OpenConnection(deviceKey, GenerateFuzzConnectionMode(fuzzData), outConnectionName);
     (void)result;
 }
 
@@ -138,8 +138,8 @@ static void FuzzGetTemplateStatusSubscribeTimeMs(ICrossDeviceCommManager &manage
 static void FuzzSubscribeDeviceStatus(ICrossDeviceCommManager &manager, FuzzedDataProvider &fuzzData)
 {
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
-    bool needSync = fuzzData.ConsumeBool();
-    auto subscription = manager.SubscribeDeviceStatus(deviceKey, needSync,
+    SyncDemand demand = static_cast<SyncDemand>(fuzzData.ConsumeIntegralInRange<int32_t>(0, 3));
+    auto subscription = manager.SubscribeDeviceStatus(deviceKey, demand,
         [](const std::vector<DeviceStatus> &statusList) { (void)statusList; });
     (void)subscription;
 }

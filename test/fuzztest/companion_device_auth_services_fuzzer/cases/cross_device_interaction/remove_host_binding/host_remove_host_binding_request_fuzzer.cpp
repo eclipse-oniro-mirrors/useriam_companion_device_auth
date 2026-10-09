@@ -126,7 +126,7 @@ void FuzzHostRemoveHostBindingRequest(FuzzedDataProvider &fuzzData)
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
 
     auto request = std::make_shared<HostRemoveHostBindingRequest>(UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
-        templateId, companionDeviceKey);
+        templateId, companionDeviceKey, GenerateFuzzConnectionMode(fuzzData));
     if (!request) {
         return;
     }

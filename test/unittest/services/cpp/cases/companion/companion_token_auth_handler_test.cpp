@@ -75,6 +75,33 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_001, TestSize.Level0)
     EXPECT_EQ(result, static_cast<int32_t>(ResultCode::SUCCESS));
 }
 
+HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_LocalCapabilityNotSupported, TestSize.Level0)
+{
+    MockGuard guard;
+
+    LocalDeviceProfile profile = {};
+    profile.companionCapabilities = { Capability::DELEGATE_AUTH, Capability::OBTAIN_TOKEN };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    handler_ = std::make_unique<CompanionTokenAuthHandler>();
+
+    Attributes request;
+    TokenAuthRequest tokenAuthRequest = { .hostDeviceKey = hostDeviceKey_,
+        .companionUserKey = UserKey { companionUserId_ },
+        .extraInfo = extraInfo_ };
+    EncodeTokenAuthRequest(tokenAuthRequest, request);
+
+    // Local gate fires before the binding lookup.
+    EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _)).Times(0);
+
+    Attributes reply;
+    handler_->HandleRequest(request, reply);
+
+    int32_t result = -1;
+    EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result));
+    EXPECT_EQ(result, static_cast<int32_t>(ResultCode::TYPE_NOT_SUPPORT));
+}
+
 HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_002, TestSize.Level0)
 {
     MockGuard guard;

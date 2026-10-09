@@ -117,7 +117,7 @@ bool ConnectionManager::Initialize()
 }
 
 bool ConnectionManager::OpenConnection(const PhysicalDeviceKey &physicalDeviceKey, ChannelId channelId,
-    std::string &outConnectionName)
+    ConnectionMode connectionMode, std::string &outConnectionName)
 {
     IAM_LOGI("opening connection to physical device: type=%{public}d id=%{public}s on channel: %{public}d",
         static_cast<int32_t>(physicalDeviceKey.idType), GetMaskedString(physicalDeviceKey.deviceId).c_str(), channelId);
@@ -148,9 +148,8 @@ bool ConnectionManager::OpenConnection(const PhysicalDeviceKey &physicalDeviceKe
     connection.createTimeMs = createTimeMs.value();
     connection.lastActivityTimeMs = connection.createTimeMs;
 
-    bool success = channel->OpenConnection(connectionName, physicalDeviceKey);
-    if (!success) {
-        IAM_LOGE("failed to open physical connection");
+    if (!channel->OpenConnection(connectionName, connectionMode, physicalDeviceKey)) {
+        IAM_LOGE("failed to open physical connection: %{public}s", connectionName.c_str());
         return false;
     }
 
@@ -456,16 +455,13 @@ void ConnectionManager::HandleIdleMonitorTimer()
 
     for (const auto &pair : connectionMap_) {
         const Connection &connection = pair.second;
-        // Use safe subtraction to prevent underflow
-        std::optional<SteadyTimeMs> idleTimeMsOpt = SafeSub(now.value(), connection.lastActivityTimeMs);
-        if (!idleTimeMsOpt.has_value()) {
-            IAM_LOGE("clock anomaly detected for connection %{public}s, skipping idle check",
-                connection.connectionName.c_str());
+        if (connection.connectionStatus != ConnectionStatus::CONNECTED) {
+            IAM_LOGI("skip keep alive for non-connected connection: %{public}s", connection.connectionName.c_str());
             continue;
         }
-
-        if (idleTimeMsOpt.value() >= CONNECTION_IDLE_TIMEOUT_MS) {
-            IAM_LOGI("connection idle for %{public}" PRIu64 " ms: %{public}s, send keep alive", idleTimeMsOpt.value(),
+        std::optional<SteadyTimeMs> idleTimeMsOpt = SafeSub(now.value(), connection.lastActivityTimeMs);
+        if (!idleTimeMsOpt.has_value() || idleTimeMsOpt.value() >= CONNECTION_IDLE_TIMEOUT_MS) {
+            IAM_LOGI("connection idle or clock anomaly, send keep alive: %{public}s",
                 connection.connectionName.c_str());
             Attributes request;
             bool sendMessageRet =

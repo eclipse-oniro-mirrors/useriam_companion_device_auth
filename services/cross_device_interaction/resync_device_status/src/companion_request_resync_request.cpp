@@ -36,7 +36,8 @@ constexpr uint32_t MAX_RESYNC_CONCURRENCY = 10;
 
 CompanionRequestResyncRequest::CompanionRequestResyncRequest(const DeviceKey &hostDeviceKey,
     ResultCodeCallback onComplete)
-    : OutboundRequest(RequestType::COMPANION_REQUEST_RESYNC_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
+    : OutboundRequest(RequestType::COMPANION_REQUEST_RESYNC_REQUEST, ConnectionMode::BACKGROUND, 0,
+          DEFAULT_REQUEST_TIMEOUT_MS),
       onComplete_(std::move(onComplete))
 {
     SetPeerDeviceKey(hostDeviceKey);

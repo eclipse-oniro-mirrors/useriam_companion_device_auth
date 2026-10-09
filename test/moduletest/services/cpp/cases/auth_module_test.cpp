@@ -43,8 +43,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-class AuthModuleTest : public testing::Test {
-};
+class AuthModuleTest : public testing::Test {};
 
 // Common test constants
 constexpr UserId HOST_USER_ID = 100;
@@ -711,7 +710,8 @@ HWTEST_F(AuthModuleTest, HostRemoveCompanionFullE2E_001, TestSize.Level0)
     // registered companion's device key.
     auto request =
         GetRequestFactory().CreateHostRemoveHostBindingRequest(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-            TEST_TEMPLATE_ID, MakeDeviceKey("companion-test-device-remove-001", HOST_USER_ID));
+            TEST_TEMPLATE_ID, MakeDeviceKey("companion-test-device-remove-001", HOST_USER_ID),
+            GetCrossDeviceCommManager().GetCurrentConnectionMode());
     ASSERT_NE(request, nullptr) << "Failed to create HostRemoveHostBindingRequest";
 
     // 4. Start the request

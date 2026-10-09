@@ -42,6 +42,8 @@ constexpr TemplateId TEMPLATE_ID = 12345;
 const std::vector<TemplateId> TEMPLATE_ID_LIST = { TEMPLATE_ID };
 const std::vector<uint8_t> EXTRA_INFO = { 5, 6, 7, 8 };
 const int32_t AUTH_INTENTION = 1;
+constexpr uint32_t TOKEN_ID = 1000;
+const DeviceKey SELECTED_DEVICE_KEY = { .deviceId = "selected_device_id", .deviceUserId = HOST_USER_ID };
 
 class HostMixAuthRequestTest : public Test {
 protected:
@@ -571,24 +573,19 @@ HWTEST_F(HostMixAuthRequestTest, Start_WithTokenId, TestSize.Level0)
         TEMPLATE_ID_LIST, std::nullopt, std::nullopt, AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
     auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
 
-    // Set tokenId to a value to test device selection path
-    request->tokenId_ = 1000;
+    request->tokenId_ = TOKEN_ID;
     auto callbackCalled = std::make_shared<bool>(false);
     request->requestCallback_ = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
 
-    // Set up companion status to be valid so Start() can proceed
     CompanionStatus validStatus = { .isValid = true };
     EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(TEMPLATE_ID)).WillRepeatedly(Return(validStatus));
 
-    // Mock device selection to return true and invoke callback with empty devices (use all templates)
     EXPECT_CALL(guard.GetMiscManager(), GetDeviceDeviceSelectResult(_, _, _))
         .WillOnce([](uint32_t tokenId, SelectPurpose purpose, DeviceSelectResultHandler &&handler) {
-            // Invoke handler with empty device list, which triggers StartAuthWithTemplateList
             handler({}, std::nullopt);
             return true;
         });
 
-    // Create a mock request to return from the factory
     auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, SCHEDULE_ID);
     EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
@@ -596,8 +593,95 @@ HWTEST_F(HostMixAuthRequestTest, Start_WithTokenId, TestSize.Level0)
     request->Start();
 
     TaskRunnerManager::GetInstance().ExecuteAll();
-    // Callback is not called because request started successfully
     EXPECT_FALSE(*callbackCalled);
+}
+
+// Device selection: selected device not synced yet but physical online must not be filtered
+// out -- the sub request's bring-online completes the sync.
+HWTEST_F(HostMixAuthRequestTest, HandleDeviceSelectResult_NotSyncedButPhysicalOnline, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID_LIST, std::nullopt, std::nullopt, AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
+    auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
+
+    request->tokenId_ = TOKEN_ID;
+    auto callbackCalled = std::make_shared<bool>(false);
+    request->requestCallback_ = [callbackCalled](ResultCode, const std::vector<uint8_t> &) { *callbackCalled = true; };
+
+    CompanionStatus status;
+    status.templateId = TEMPLATE_ID;
+    status.isValid = true;
+    status.companionDeviceStatus.deviceKey = SELECTED_DEVICE_KEY;
+    status.companionDeviceStatus.isOnline = false;
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(TEMPLATE_ID)).WillRepeatedly(Return(status));
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillRepeatedly(Return(status));
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
+
+    EXPECT_CALL(guard.GetMiscManager(),
+        GetDeviceDeviceSelectResult(Eq(TOKEN_ID), Eq(SelectPurpose::SELECT_AUTH_DEVICE), _))
+        .WillOnce([](uint32_t tokenId, SelectPurpose purpose, DeviceSelectResultHandler &&handler) {
+            handler({ SELECTED_DEVICE_KEY }, std::nullopt);
+            return true;
+        });
+
+    auto mockRequest = std::make_shared<MockIRequest>(RequestType::HOST_SINGLE_MIX_AUTH_REQUEST, 1, SCHEDULE_ID);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).WillOnce(Return(mockRequest));
+    EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    request->Start();
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_FALSE(*callbackCalled);
+    EXPECT_EQ(request->selectedDevices_, std::vector<DeviceKey> { SELECTED_DEVICE_KEY });
+}
+
+// Device selection: selected device not physical online is filtered out with NO_VALID_CREDENTIAL.
+HWTEST_F(HostMixAuthRequestTest, HandleDeviceSelectResult_PhysicalOfflineFilteredOut, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    HostMixAuthParams params = { SCHEDULE_ID, FWK_MSG, UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID_LIST, std::nullopt, std::nullopt, AUTH_INTENTION, AUTH_SCENE_DEFAULT, "" };
+    auto request = std::make_shared<HostMixAuthRequest>(params, std::move(callback));
+
+    request->tokenId_ = TOKEN_ID;
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
+    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+
+    CompanionStatus status;
+    status.templateId = TEMPLATE_ID;
+    status.isValid = true;
+    status.companionDeviceStatus.deviceKey = SELECTED_DEVICE_KEY;
+    status.companionDeviceStatus.isOnline = true;
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(TEMPLATE_ID)).WillRepeatedly(Return(status));
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _)).WillRepeatedly(Return(status));
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(false));
+
+    EXPECT_CALL(guard.GetMiscManager(),
+        GetDeviceDeviceSelectResult(Eq(TOKEN_ID), Eq(SelectPurpose::SELECT_AUTH_DEVICE), _))
+        .WillOnce([](uint32_t tokenId, SelectPurpose purpose, DeviceSelectResultHandler &&handler) {
+            handler({ SELECTED_DEVICE_KEY }, std::nullopt);
+            return true;
+        });
+
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostSingleMixAuthRequest(_, _, _)).Times(0);
+
+    request->Start();
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::NO_VALID_CREDENTIAL);
+    EXPECT_TRUE(request->selectedDevices_.empty());
 }
 
 HWTEST_F(HostMixAuthRequestTest, CompleteWithSuccess_WithAuthScene, TestSize.Level0)

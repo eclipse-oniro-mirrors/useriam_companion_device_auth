@@ -104,7 +104,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_001, TestSize.Lev
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _)).Times(1);
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, MessageType::REQUEST_ABORTED, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
 
     std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
     ASSERT_NO_THROW(request->HandleDeviceSelectResult(selectedDevices));
@@ -123,7 +123,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_002, TestSize.Lev
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(false));
 
     std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
     request->HandleDeviceSelectResult(selectedDevices);
@@ -166,7 +166,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_004, TestSize.Lev
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
     // deviceUserId == INVALID_USER_ID must abort before a connection is opened
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).Times(0);
 
     DeviceKey invalidKey = { .deviceId = "invalid_user_device", .deviceUserId = INVALID_USER_ID };
     std::vector<DeviceKey> selectedDevices = { invalidKey };
@@ -186,7 +186,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_001, TestSize.Level0)
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
 
     // Need to open connection first to set connectionName_
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
     ASSERT_TRUE(request->OpenConnection());
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -242,7 +242,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_003, TestSize.Level0)
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
 
     // Need to open connection first to set connectionName_
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
     ASSERT_TRUE(request->OpenConnection());
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -273,7 +273,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_004, TestSize.Level0)
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
 
     // Need to open connection first to set connectionName_
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
     ASSERT_TRUE(request->OpenConnection());
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
@@ -879,6 +879,19 @@ HWTEST_F(HostAddCompanionRequestTest, ParseAdditionalInfo_004, TestSize.Level0)
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, fwkMsg, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
     EXPECT_TRUE(request != nullptr);
+}
+
+// The device list offered to SELECT_ADD_DEVICE and the supportedBusinessIds cross-check both come
+// from the synced device status, so the peer must be brought online before OnStart runs.
+HWTEST_F(HostAddCompanionRequestTest, RequireSyncedDevice_IsTrue, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+
+    EXPECT_TRUE(request->RequireSyncedDevice());
 }
 
 } // namespace

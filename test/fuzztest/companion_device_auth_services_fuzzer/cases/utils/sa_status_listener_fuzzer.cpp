@@ -36,8 +36,7 @@ static void FuzzCreateWithDefaultParams(FuzzedDataProvider &fuzzData)
     (void)fuzzData;
     std::string name = "TestSa";
     int32_t systemAbilityId = 1001;
-    auto listener = SaStatusListener::Create(
-        name, systemAbilityId, []() { (void)0; }, []() { (void)0; });
+    auto listener = SaStatusListener::Create(name, systemAbilityId, []() { (void)0; }, []() { (void)0; });
     (void)listener;
 }
 
@@ -45,8 +44,7 @@ static void FuzzCreateWithFuzzedParams(FuzzedDataProvider &fuzzData)
 {
     std::string name = GenerateFuzzString(fuzzData, 64);
     int32_t systemAbilityId = fuzzData.ConsumeIntegral<int32_t>();
-    auto listener = SaStatusListener::Create(
-        name, systemAbilityId, []() { (void)0; }, []() { (void)0; });
+    auto listener = SaStatusListener::Create(name, systemAbilityId, []() { (void)0; }, []() { (void)0; });
     (void)listener;
 }
 
@@ -55,8 +53,7 @@ static void FuzzCreateWithEmptyName(FuzzedDataProvider &fuzzData)
     (void)fuzzData;
     std::string name;
     int32_t systemAbilityId = fuzzData.ConsumeIntegral<int32_t>();
-    auto listener = SaStatusListener::Create(
-        name, systemAbilityId, []() { (void)0; }, []() { (void)0; });
+    auto listener = SaStatusListener::Create(name, systemAbilityId, []() { (void)0; }, []() { (void)0; });
     (void)listener;
 }
 
@@ -74,8 +71,7 @@ static void FuzzMultipleCreates(FuzzedDataProvider &fuzzData)
     for (uint8_t i = 0; i < count; ++i) {
         std::string name = "TestSa" + std::to_string(i);
         int32_t systemAbilityId = 1001 + i;
-        auto listener = SaStatusListener::Create(
-            name, systemAbilityId, []() { (void)0; }, []() { (void)0; });
+        auto listener = SaStatusListener::Create(name, systemAbilityId, []() { (void)0; }, []() { (void)0; });
         (void)listener;
     }
 }

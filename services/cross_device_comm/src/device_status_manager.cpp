@@ -28,6 +28,7 @@
 #include "channel_manager.h"
 #include "companion_manager.h"
 #include "connection_manager.h"
+#include "error_guard.h"
 #include "host_sync_device_status_request.h"
 #include "service_common.h"
 #include "service_converter.h"
@@ -42,6 +43,19 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+
+namespace {
+bool ShouldInvalidateCachedSync(ResultCode resultCode)
+{
+    return resultCode == PROTOCOL_NEGOTIATION_FAILED || resultCode == PEER_SYNC_FAILED;
+}
+
+bool ShouldStopRetry(ResultCode resultCode)
+{
+    return resultCode == PROTOCOL_NEGOTIATION_FAILED || resultCode == PEER_SYNC_FAILED ||
+        resultCode == PEER_SERVICE_NOT_AVAILABLE || resultCode == COORDINATOR_REJECTED;
+}
+} // namespace
 
 std::shared_ptr<DeviceStatusManager> DeviceStatusManager::Create(const std::vector<BusinessId> &hostSupportBusinessIds,
     std::shared_ptr<ConnectionManager> connectionMgr, std::shared_ptr<ChannelManager> channelMgr,
@@ -123,12 +137,12 @@ std::optional<ChannelId> DeviceStatusManager::GetChannelIdByDeviceKey(const Devi
     return it->second.channelId;
 }
 
-std::vector<DeviceStatus> DeviceStatusManager::GetAllDeviceStatus(bool includeUnsynced)
+std::vector<DeviceStatus> DeviceStatusManager::GetAllDeviceStatus(DeviceStatusFilter filter)
 {
     std::vector<DeviceStatus> result;
 
     for (const auto &pair : deviceStatusMap_) {
-        if (pair.second.isSynced || (includeUnsynced && pair.second.reportUnsynced)) {
+        if (pair.second.isSynced || (filter == DeviceStatusFilter::INCLUDE_UNSYNCED && pair.second.reportUnsynced)) {
             result.push_back(pair.second.BuildDeviceStatus());
         }
     }
@@ -143,7 +157,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(OnDevic
     info.subscriptionId = subscriptionId;
     info.deviceKey = std::nullopt;
     info.callback = std::move(callback);
-    subscriptions_.push_back(info);
+    subscriptions_.push_back(std::move(info));
 
     IAM_LOGD("device status subscription added: id=0x%{public}016" PRIX64 " (all devices)", subscriptionId);
 
@@ -154,7 +168,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(OnDevic
     });
 }
 
-void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, uint64_t attemptId, int32_t resultCode,
+void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, uint64_t attemptId, ResultCode resultCode,
     const SyncDeviceStatus &syncDeviceStatus)
 {
     IAM_LOGI("device sync result: device=%{public}s, result=%{public}d", deviceKey.GetDesc().c_str(), resultCode);
@@ -176,40 +190,73 @@ void DeviceStatusManager::HandleSyncResult(const DeviceKey &deviceKey, uint64_t 
 
     DeviceStatusEntry &deviceStatus = it->second;
 
-    ScopeGuard guard([&deviceStatus, this]() {
-        deviceStatus.isSynced = false;
+    ErrorGuard errorGuard([&deviceStatus, this](ResultCode result) {
+        if (result == ResultCode::SUCCESS) {
+            deviceStatus.isSynced = true;
+        } else if (ShouldInvalidateCachedSync(result)) {
+            deviceStatus.isSynced = false;
+        }
         deviceStatus.isSyncInProgress = false;
-        this->NotifySubscribers();
+        NotifySubscribers();
+        deviceStatus.NotifySyncWaiters(result);
+        if (deviceStatus.pendingResync) {
+            IAM_LOGI("pending resync marker, start make-up round: %{public}s",
+                GET_MASKED_STR_CSTR(deviceStatus.physicalDeviceKey.deviceId));
+            AttachOrStartDeviceSync(deviceStatus.physicalDeviceKey, SyncTriggerReason::RESYNC);
+        }
     });
+    errorGuard.UpdateErrorCode(resultCode);
 
     if (resultCode != SUCCESS) {
-        if (resultCode == PEER_SERVICE_NOT_AVAILABLE) {
-            IAM_LOGW("peer service not available, abort retry and clear backoff state: device=%{public}s",
-                deviceKey.GetDesc().c_str());
-            deviceStatus.OnSyncAbort();
-        } else {
-            IAM_LOGE("sync failed: %{public}d", resultCode);
-            deviceStatus.OnSyncFailure();
-        }
+        HandleSyncFailure(deviceStatus, deviceKey, resultCode, errorGuard);
         return;
     }
 
-    deviceStatus.OnSyncSuccess();
-
-    if (syncDeviceStatus.needSync) {
-        auto negotiatedProtocol = NegotiateProtocol(syncDeviceStatus.protocolIdList);
-        ENSURE_OR_RETURN(negotiatedProtocol.has_value());
-        deviceStatus.protocolId = negotiatedProtocol.value();
+    if (!NegotiateSyncProtocol(deviceStatus, deviceKey, syncDeviceStatus, errorGuard)) {
+        return;
     }
 
     ApplySyncResult(deviceStatus, syncDeviceStatus);
+    deviceStatus.OnSyncSuccess();
 
-    guard.Cancel();
-    deviceStatus.isSynced = true;
-    deviceStatus.isSyncInProgress = false;
-    NotifySubscribers();
     auto newDeviceKey = deviceStatus.BuildDeviceKey();
     IAM_LOGI("device synced successfully: %{public}s", newDeviceKey.GetDesc().c_str());
+}
+
+void DeviceStatusManager::HandleSyncFailure(DeviceStatusEntry &deviceStatus, const DeviceKey &deviceKey,
+    ResultCode resultCode, ErrorGuard &errorGuard)
+{
+    if (!ShouldStopRetry(resultCode)) {
+        IAM_LOGE("sync failed: %{public}d", resultCode);
+        deviceStatus.OnSyncFailure();
+        return;
+    }
+
+    IAM_LOGW("terminal sync failure %{public}d, abort retry and clear backoff state: device=%{public}s", resultCode,
+        deviceKey.GetDesc().c_str());
+    deviceStatus.OnSyncAbort();
+    if (resultCode == COORDINATOR_REJECTED && deviceStatus.inProgressConnectionMode == ConnectionMode::BACKGROUND &&
+        ResolveSyncDemandLevel(deviceStatus.physicalDeviceKey) == SyncDemandLevel::FOREGROUND) {
+        errorGuard.Cancel();
+        EscalateSyncToForeground(deviceStatus);
+    }
+}
+
+bool DeviceStatusManager::NegotiateSyncProtocol(DeviceStatusEntry &deviceStatus, const DeviceKey &deviceKey,
+    const SyncDeviceStatus &syncDeviceStatus, ErrorGuard &errorGuard)
+{
+    if (!syncDeviceStatus.needSync) {
+        return true;
+    }
+    auto negotiatedProtocol = NegotiateProtocol(syncDeviceStatus.protocolIdList);
+    if (!negotiatedProtocol.has_value()) {
+        IAM_LOGE("protocol negotiation failed: %{public}s", deviceKey.GetDesc().c_str());
+        errorGuard.UpdateErrorCode(ResultCode::PROTOCOL_NEGOTIATION_FAILED);
+        deviceStatus.OnSyncAbort();
+        return false;
+    }
+    deviceStatus.protocolId = negotiatedProtocol.value();
+    return true;
 }
 
 void DeviceStatusManager::ApplySyncResult(DeviceStatusEntry &deviceStatus, const SyncDeviceStatus &syncDeviceStatus)
@@ -230,19 +277,35 @@ void DeviceStatusManager::SetSubscribeMode(SubscribeMode mode)
     }
 
     IAM_LOGI("changing subscribe mode: %{public}d -> %{public}d", currentMode_, mode);
-
+    bool changeToSubscribeAll = mode == SUBSCRIBE_MODE_ALL_DEVICES;
     currentMode_ = mode;
-    RefreshDeviceList(false);
+    TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this(), changeToSubscribeAll]() {
+        auto self = weakSelf.lock();
+        ENSURE_OR_RETURN(self != nullptr);
+        if (changeToSubscribeAll) {
+            self->RefreshDeviceStatus();
+        } else {
+            self->ReconcileDevices(DeviceReconcilePolicy::CHANGED_ONLY);
+        }
+    });
 }
 
 void DeviceStatusManager::SetTemplateStatusSubscribed(bool isActive)
 {
     if (isActive) {
-        if (!templateStatusSubscribeTimeMs_.has_value()) {
-            auto now = GetTimeKeeper().GetSteadyTimeMs();
-            ENSURE_OR_RETURN(now.has_value());
-            templateStatusSubscribeTimeMs_ = now.value();
+        if (templateStatusSubscribeTimeMs_.has_value()) {
+            return;
         }
+        auto now = GetTimeKeeper().GetSteadyTimeMs();
+        ENSURE_OR_RETURN(now.has_value());
+        templateStatusSubscribeTimeMs_ = now.value();
+        TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this()]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            for (auto &pair : self->deviceStatusMap_) {
+                self->SyncDeviceIfNeeded(pair.second);
+            }
+        });
         return;
     }
     templateStatusSubscribeTimeMs_ = std::nullopt;
@@ -253,6 +316,11 @@ SubscribeMode DeviceStatusManager::GetSubscribeMode() const
     return currentMode_;
 }
 
+ConnectionMode DeviceStatusManager::GetCurrentConnectionMode() const
+{
+    return currentMode_ == SUBSCRIBE_MODE_ALL_DEVICES ? ConnectionMode::FOREGROUND : ConnectionMode::BACKGROUND;
+}
+
 void DeviceStatusManager::RefreshDeviceStatus()
 {
     IAM_LOGI("refresh physical device status");
@@ -261,7 +329,7 @@ void DeviceStatusManager::RefreshDeviceStatus()
             channel->RefreshPhysicalDeviceStatus();
         }
     }
-    RefreshDeviceList(true);
+    ReconcileDevices(DeviceReconcilePolicy::REEVALUATE_ALL);
 }
 
 std::optional<SteadyTimeMs> DeviceStatusManager::GetTemplateStatusSubscribeTimeMs() const
@@ -269,7 +337,7 @@ std::optional<SteadyTimeMs> DeviceStatusManager::GetTemplateStatusSubscribeTimeM
     return templateStatusSubscribeTimeMs_;
 }
 
-std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
+std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(const DeviceKey &deviceKey, SyncDemand demand,
     OnDeviceStatusChange &&callback)
 {
     SubscribeId subscriptionId = GetMiscManager().GetNextGlobalId();
@@ -277,12 +345,24 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(const D
     info.subscriptionId = subscriptionId;
     info.deviceKey = deviceKey; // specific device
     info.callback = std::move(callback);
-    info.needSync = needSync;
-    subscriptions_.push_back(info);
+    info.demand = demand;
+    PhysicalDeviceKey physicalKey = FromDeviceKey(deviceKey);
+    auto demandBefore = ResolveSyncDemandLevel(physicalKey);
+    subscriptions_.push_back(std::move(info));
+    auto demandAfter = ResolveSyncDemandLevel(physicalKey);
+    ReconcileDevices(DeviceReconcilePolicy::CHANGED_ONLY);
 
-    IAM_LOGD("device status subscription added: id=0x%{public}016" PRIX64 " for device %{public}s, needSync=%{public}d",
-        subscriptionId, deviceKey.GetDesc().c_str(), needSync);
-    RefreshDeviceList(false);
+    if (demandAfter > demandBefore) {
+        auto it = deviceStatusMap_.find(physicalKey);
+        if (it != deviceStatusMap_.end() && !it->second.isSynced && !it->second.isSyncInProgress) {
+            AttachOrStartDeviceSync(physicalKey, SyncTriggerReason::EXTERNAL_REFRESH);
+        }
+    }
+
+    IAM_LOGI(
+        "device status subscription added: device=%{public}s, demand=%{public}d, subscriptionId=0x%{public}016" PRIX64
+        "",
+        GET_MASKED_STR_CSTR(deviceKey.deviceId), demand, subscriptionId);
 
     return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscriptionId]() {
         auto self = weakSelf.lock();
@@ -296,60 +376,135 @@ bool DeviceStatusManager::UnsubscribeDeviceStatus(SubscribeId subscriptionId)
     auto it = std::find_if(subscriptions_.begin(), subscriptions_.end(),
         [subscriptionId](const DeviceStatusSubscriptionInfo &info) { return info.subscriptionId == subscriptionId; });
     if (it != subscriptions_.end()) {
-        bool wasSpecificDevice = it->deviceKey.has_value();
         subscriptions_.erase(it);
         IAM_LOGD("device status subscription removed: id=0x%{public}016" PRIX64 "", subscriptionId);
-        if (wasSpecificDevice) {
-            TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this()]() {
-                auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
-                self->RefreshDeviceList(false);
-            });
-        }
+        TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this()]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->ReconcileDevices(DeviceReconcilePolicy::CHANGED_ONLY);
+        });
         return true;
     }
     IAM_LOGE("device status subscription not found: id=0x%{public}016" PRIX64 "", subscriptionId);
     return false;
 }
 
-void DeviceStatusManager::TriggerDeviceSync(const PhysicalDeviceKey &physicalKey)
+bool DeviceStatusManager::IsPhysicalOnline(const PhysicalDeviceKey &physicalKey)
 {
-    auto it = deviceStatusMap_.find(physicalKey);
-    ENSURE_OR_RETURN(it != deviceStatusMap_.end());
-    it->second.ResetRetry();
-    DoTriggerDeviceSync(physicalKey);
+    return deviceStatusMap_.find(physicalKey) != deviceStatusMap_.end();
 }
 
-void DeviceStatusManager::DoTriggerDeviceSync(const PhysicalDeviceKey &physicalKey)
+void DeviceStatusManager::EnsureDeviceSynced(const PhysicalDeviceKey &physicalKey, OnDeviceSyncResult &&onResult)
+{
+    ErrorGuard settleGuard([&onResult](ResultCode result) {
+        TaskRunnerManager::GetInstance().PostTaskOnResident([result, cb = std::move(onResult)]() {
+            if (cb) {
+                cb(result);
+            }
+        });
+    });
+
+    auto it = deviceStatusMap_.find(physicalKey);
+    if (it == deviceStatusMap_.end()) {
+        IAM_LOGI("ensure sync rejected, device not adopted: %{public}s", GET_MASKED_STR_CSTR(physicalKey.deviceId));
+        settleGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
+        return;
+    }
+    if (ResolveSyncDemandLevel(physicalKey) == SyncDemandLevel::NONE) {
+        IAM_LOGI("ensure sync rejected, device has no sync demand: %{public}s",
+            GET_MASKED_STR_CSTR(physicalKey.deviceId));
+        settleGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
+        return;
+    }
+    if (it->second.isSynced) {
+        IAM_LOGI("device already synced, ensure short-circuits: %{public}s", GET_MASKED_STR_CSTR(physicalKey.deviceId));
+        settleGuard.UpdateErrorCode(ResultCode::SUCCESS);
+        return;
+    }
+    settleGuard.Cancel();
+    AttachOrStartDeviceSync(physicalKey, SyncTriggerReason::BRING_ONLINE, std::move(onResult));
+}
+
+void DeviceStatusManager::ResyncDevice(const PhysicalDeviceKey &physicalKey)
 {
     auto it = deviceStatusMap_.find(physicalKey);
-    ENSURE_OR_RETURN(it != deviceStatusMap_.end());
+    if (it == deviceStatusMap_.end()) {
+        IAM_LOGW("resync ignored, device not adopted: %{public}s", GET_MASKED_STR_CSTR(physicalKey.deviceId));
+        return;
+    }
+    if (ResolveSyncDemandLevel(physicalKey) == SyncDemandLevel::NONE) {
+        IAM_LOGW("resync ignored, device has no sync demand: %{public}s", GET_MASKED_STR_CSTR(physicalKey.deviceId));
+        return;
+    }
+    AttachOrStartDeviceSync(physicalKey, SyncTriggerReason::RESYNC);
+}
 
-    if (it->second.isSyncInProgress) {
-        IAM_LOGI("device already syncing");
+void DeviceStatusManager::AttachOrStartDeviceSync(const PhysicalDeviceKey &physicalKey, SyncTriggerReason reason,
+    OnDeviceSyncResult onResult)
+{
+    auto it = deviceStatusMap_.find(physicalKey);
+    if (it == deviceStatusMap_.end()) {
+        IAM_LOGI("device not adopted, skip internal sync trigger: %{public}s",
+            GET_MASKED_STR_CSTR(physicalKey.deviceId));
+        return;
+    }
+    DeviceStatusEntry &entry = it->second;
+    ErrorGuard settleGuard([&onResult](ResultCode result) {
+        TaskRunnerManager::GetInstance().PostTaskOnResident([result, onResult = std::move(onResult)]() {
+            if (onResult) {
+                onResult(result);
+            }
+        });
+    });
+
+    SyncDemandLevel demand = ResolveSyncDemandLevel(physicalKey);
+    if (demand == SyncDemandLevel::NONE) {
+        IAM_LOGI("device has no sync demand, skip trigger: %{public}s", GET_MASKED_STR_CSTR(physicalKey.deviceId));
+        return;
+    }
+    ConnectionMode mode =
+        demand == SyncDemandLevel::FOREGROUND ? ConnectionMode::FOREGROUND : ConnectionMode::BACKGROUND;
+
+    if (entry.isSyncInProgress) {
+        IAM_LOGI("device already syncing, attach: %{public}s", GET_MASKED_STR_CSTR(physicalKey.deviceId));
+        if (reason == SyncTriggerReason::RESYNC) {
+            entry.pendingResync = true;
+        }
+        if (onResult != nullptr) {
+            entry.syncWaiters.push_back(std::move(onResult));
+        }
+        settleGuard.Cancel();
         return;
     }
 
-    DeviceStatusEntry &entry = it->second;
+    StartDeviceSync(entry, mode, reason, onResult, settleGuard);
+}
+
+void DeviceStatusManager::StartDeviceSync(DeviceStatusEntry &entry, ConnectionMode mode, SyncTriggerReason reason,
+    OnDeviceSyncResult &onResult, ErrorGuard &settleGuard)
+{
+    if (reason != SyncTriggerReason::BACKOFF_RETRY && reason != SyncTriggerReason::MODE_ESCALATION) {
+        entry.ResetRetry();
+    }
+
     DeviceKey companionDeviceKey = entry.BuildDeviceKey();
 
     uint64_t attemptId = GetMiscManager().GetNextGlobalId();
     entry.inProgressAttemptId = attemptId;
-
-    if (!NeedSyncDevice(physicalKey)) {
-        IAM_LOGI("device does not need sync, skip and notify with empty sync result");
-        SyncDeviceStatus emptySyncStatus {};
-        emptySyncStatus.needSync = false;
-        HandleSyncResult(companionDeviceKey, attemptId, SUCCESS, emptySyncStatus);
-        return;
+    entry.inProgressConnectionMode = mode;
+    entry.pendingResync = false;
+    entry.syncWaiters.clear();
+    if (onResult != nullptr) {
+        entry.syncWaiters.push_back(std::move(onResult));
     }
+    settleGuard.Cancel();
 
     entry.isSyncInProgress = true;
     ScopeGuard guard([&entry, &companionDeviceKey]() {
         entry.isSyncInProgress = false;
-        entry.isSynced = false;
-        IAM_LOGE("device %{public}s sync failed", companionDeviceKey.GetDesc().c_str());
+        IAM_LOGE("device %{public}s sync failed to start", companionDeviceKey.GetDesc().c_str());
         entry.OnSyncFailure();
+        entry.NotifySyncWaiters(ResultCode::GENERAL_ERROR);
     });
 
     SyncDeviceStatusCallback callback = [weakSelf = weak_from_this(), companionDeviceKey, attemptId](ResultCode result,
@@ -360,15 +515,26 @@ void DeviceStatusManager::DoTriggerDeviceSync(const PhysicalDeviceKey &physicalK
     };
 
     auto activeUserKey = GetUserKeyManager().GetUnlockedActiveUserkey();
-    auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(activeUserKey, companionDeviceKey,
-        entry.GetDeviceName(), std::move(callback));
+    auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(activeUserKey, companionDeviceKey, mode,
+        reason, std::move(callback));
     ENSURE_OR_RETURN(request != nullptr);
 
     bool startRequestRet = GetRequestManager().Start(request);
     ENSURE_OR_RETURN(startRequestRet);
 
     guard.Cancel();
-    IAM_LOGI("SyncDeviceStatus request started for device: %{public}s", companionDeviceKey.GetDesc().c_str());
+    IAM_LOGI("SyncDeviceStatus request started for device: %{public}s, reason=%{public}d",
+        companionDeviceKey.GetDesc().c_str(), static_cast<int32_t>(reason));
+}
+
+void DeviceStatusManager::EscalateSyncToForeground(DeviceStatusEntry &deviceStatus)
+{
+    IAM_LOGI("escalate device sync to foreground: device=%{public}s",
+        GET_MASKED_STR_CSTR(deviceStatus.physicalDeviceKey.deviceId));
+    deviceStatus.isSyncInProgress = false;
+
+    AttachOrStartDeviceSync(deviceStatus.physicalDeviceKey, SyncTriggerReason::MODE_ESCALATION,
+        deviceStatus.TakeCombinedSyncWaiter());
 }
 
 std::optional<ProtocolId> DeviceStatusManager::NegotiateProtocol(const std::vector<ProtocolId> &remoteProtocols)
@@ -431,37 +597,62 @@ bool DeviceStatusManager::ShouldMonitorDevice(const PhysicalDeviceKey &physicalK
     return false;
 }
 
-bool DeviceStatusManager::NeedSyncDevice(const PhysicalDeviceKey &physicalKey)
+void DeviceStatusManager::SyncDeviceIfNeeded(DeviceStatusEntry &entry)
+{
+    if (ResolveSyncDemandLevel(entry.physicalDeviceKey) == SyncDemandLevel::NONE) {
+        return;
+    }
+    if (entry.isSyncInProgress) {
+        return;
+    }
+    if (entry.isSynced) {
+        auto windowStart = GetTemplateStatusSubscribeTimeMs();
+        if (!windowStart.has_value() || entry.lastSyncTimeMs >= windowStart.value()) {
+            return;
+        }
+    }
+    AttachOrStartDeviceSync(entry.physicalDeviceKey, SyncTriggerReason::EXTERNAL_REFRESH);
+}
+
+SyncDemandLevel DeviceStatusManager::ResolveSyncDemandLevel(const PhysicalDeviceKey &physicalKey)
 {
     if (currentMode_ == SUBSCRIBE_MODE_ALL_DEVICES) {
-        return true;
+        IAM_LOGI("sync demand foreground by all-devices mode: device=%{public}s",
+            GET_MASKED_STR_CSTR(physicalKey.deviceId));
+        return SyncDemandLevel::FOREGROUND;
     }
 
+    SyncDemandLevel resolvedDemand = SyncDemandLevel::NONE;
     for (const auto &sub : subscriptions_) {
-        if (!sub.deviceKey.has_value() || !sub.needSync) {
+        if (!sub.deviceKey.has_value() || sub.demand == SyncDemand::NONE) {
             continue;
         }
         const DeviceKey &subscribedDevice = sub.deviceKey.value();
-        if (subscribedDevice.idType == physicalKey.idType && subscribedDevice.deviceId == physicalKey.deviceId) {
-            return true;
+        if (subscribedDevice.idType != physicalKey.idType || subscribedDevice.deviceId != physicalKey.deviceId) {
+            continue;
         }
+        if (sub.demand == SyncDemand::FOREGROUND) {
+            IAM_LOGI("demand foreground by subscription: device=%{public}s, subscriptionId=0x%{public}016" PRIX64 "",
+                GET_MASKED_STR_CSTR(physicalKey.deviceId), sub.subscriptionId);
+            return SyncDemandLevel::FOREGROUND;
+        }
+        resolvedDemand = SyncDemandLevel::BACKGROUND;
     }
-
-    return false;
+    return resolvedDemand;
 }
 
-void DeviceStatusManager::RefreshDeviceList(bool resync)
+void DeviceStatusManager::ReconcileDevices(DeviceReconcilePolicy policy)
 {
-    IAM_LOGI("refreshing device list from all channels, resync=%{public}d", resync);
+    IAM_LOGI("reconciling devices from all channels, policy=%{public}d", static_cast<int32_t>(policy));
 
     auto filteredDevicesMap = CollectFilteredDevices();
     bool deviceChanged = RemoveObsoleteDevices(filteredDevicesMap);
-    deviceChanged = AddOrUpdateDevices(filteredDevicesMap, resync) || deviceChanged;
+    deviceChanged = AddOrUpdateDevices(filteredDevicesMap, policy) || deviceChanged;
     if (deviceChanged) {
         NotifySubscribers();
     }
 
-    IAM_LOGI("device list refresh completed: filtered=%{public}zu", filteredDevicesMap.size());
+    IAM_LOGI("device reconcile completed: filtered=%{public}zu", filteredDevicesMap.size());
 }
 
 std::map<PhysicalDeviceKey, PhysicalDeviceStatus> DeviceStatusManager::CollectFilteredDevices()
@@ -510,6 +701,7 @@ bool DeviceStatusManager::RemoveObsoleteDevices(
     for (auto it = deviceStatusMap_.begin(); it != deviceStatusMap_.end();) {
         if (filteredDevicesMap.find(it->first) == filteredDevicesMap.end()) {
             IAM_LOGI("device removed: %{public}s", GET_MASKED_STR_CSTR(it->first.deviceId));
+            it->second.NotifySyncWaiters(ResultCode::GENERAL_ERROR);
             it = deviceStatusMap_.erase(it);
             deviceChanged = true;
         } else {
@@ -521,7 +713,7 @@ bool DeviceStatusManager::RemoveObsoleteDevices(
 }
 
 bool DeviceStatusManager::AddOrUpdateDevices(
-    const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap, bool resync)
+    const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap, DeviceReconcilePolicy policy)
 {
     bool deviceChanged = false;
 
@@ -537,16 +729,20 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                     auto self = weakSelf.lock();
                     ENSURE_OR_RETURN(self != nullptr);
                     // Retry-fire re-entry: launch only — do NOT reset backoff, or the delay never grows.
-                    self->DoTriggerDeviceSync(key);
+                    self->AttachOrStartDeviceSync(key, SyncTriggerReason::BACKOFF_RETRY);
                 },
                 hostSupportBusinessIds_);
             deviceStatusMap_.emplace(key, std::move(entry));
             deviceChanged = true;
             IAM_LOGI("device added: %{public}s, channel=%{public}d", GET_MASKED_STR_CSTR(key.deviceId),
                 status.channelId);
-            TriggerDeviceSync(key);
+            if (policy == DeviceReconcilePolicy::REEVALUATE_ALL) {
+                AttachOrStartDeviceSync(key, SyncTriggerReason::EXTERNAL_REFRESH);
+            } else {
+                AttachOrStartDeviceSync(key, SyncTriggerReason::DEVICE_ONLINE);
+            }
         } else {
-            deviceChanged = UpdateExistingDevice(key, it->second, status, resync) || deviceChanged;
+            deviceChanged = UpdateExistingDevice(key, it->second, status, policy) || deviceChanged;
         }
     }
 
@@ -554,7 +750,7 @@ bool DeviceStatusManager::AddOrUpdateDevices(
 }
 
 bool DeviceStatusManager::UpdateExistingDevice(const PhysicalDeviceKey &key, DeviceStatusEntry &deviceStatus,
-    const PhysicalDeviceStatus &status, bool resync)
+    const PhysicalDeviceStatus &status, DeviceReconcilePolicy policy)
 {
     bool effectiveBusinessIdsChanged = deviceStatus.SetPhysicalCompanionBusinessIds(status.supportedBusinessIds);
     bool hasChange = deviceStatus.channelId != status.channelId ||
@@ -571,8 +767,10 @@ bool DeviceStatusManager::UpdateExistingDevice(const PhysicalDeviceKey &key, Dev
         deviceStatus.refreshToken = status.refreshToken;
         deviceStatus.reportUnsynced = status.reportUnsynced;
     }
-    if (resync) {
-        TriggerDeviceSync(key);
+    if (policy == DeviceReconcilePolicy::REEVALUATE_ALL) {
+        SyncDeviceIfNeeded(deviceStatus);
+    } else if (hasChange) {
+        AttachOrStartDeviceSync(key, SyncTriggerReason::DEVICE_INFO_CHANGED);
     }
     return hasChange;
 }
@@ -582,7 +780,7 @@ void DeviceStatusManager::HandleChannelDeviceStatusChange(ChannelId channelId,
 {
     IAM_LOGI("channel device status change: channel=%{public}d, statusList size=%{public}zu", channelId,
         statusList.size());
-    RefreshDeviceList(false);
+    ReconcileDevices(DeviceReconcilePolicy::CHANGED_ONLY);
 }
 
 } // namespace CompanionDeviceAuth

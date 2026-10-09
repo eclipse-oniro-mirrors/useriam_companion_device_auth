@@ -70,11 +70,13 @@ private:
     bool Initialize();
     void HandleDeviceStatusChanged(const std::vector<DeviceStatus> &deviceStatusList);
     void HandleHostDeviceStatusUpdate(const DeviceStatus &deviceStatus);
+    void HandleHostDeviceOnline();
     void HandleHostDeviceOffline();
     void HandleAuthMaintainActiveChanged(bool isActive);
     bool ShouldRevokeTokenOnInactive() const;
 
     HostBindingStatus status_;
+    bool isHostPhysicalOnline_ { false };
     std::unique_ptr<Subscription> deviceStatusSubscription_;
     std::unique_ptr<Subscription> localDeviceStatusSubscription_;
     std::unique_ptr<Subscription> authMaintainInactiveTimer_;

@@ -51,6 +51,11 @@ void InteractionEventCollector::SetConnectionName(const std::string &connectionN
     connectionName_ = connectionName;
 }
 
+void InteractionEventCollector::SetConnectionMode(ConnectionMode connectionMode)
+{
+    connectionMode_ = connectionMode;
+}
+
 void InteractionEventCollector::SetDisconnectReason(const std::string &reason)
 {
     disconnectReason_ = reason;
@@ -84,6 +89,7 @@ void InteractionEventCollector::SetCallerUserType(const std::string &callerUserT
 namespace {
 constexpr const char *KEY_CALLER_USER_ID = "callerUserId";
 constexpr const char *KEY_CALLER_USER_TYPE = "callerUserType";
+constexpr const char *KEY_CONNECTION_MODE = "connectionMode";
 constexpr const char *KEY_ATL = "ATL";
 constexpr const char *KEY_BINDING_ID = "bindingId";
 constexpr const char *KEY_CONTEXT_ID = "contextId";
@@ -218,6 +224,9 @@ void InteractionEventCollector::BuildExtraInfoStep1(std::ostringstream &oss) con
     }
     if (callerUserType_.has_value()) {
         oss << ";" << KEY_CALLER_USER_TYPE << ":" << *callerUserType_;
+    }
+    if (connectionMode_.has_value()) {
+        oss << ";" << KEY_CONNECTION_MODE << ":" << static_cast<int32_t>(*connectionMode_);
     }
 }
 

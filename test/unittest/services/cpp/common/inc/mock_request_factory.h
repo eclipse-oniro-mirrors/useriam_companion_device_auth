@@ -31,9 +31,10 @@ public:
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateHostTokenAuthRequest,
         (const AuthRequestParams &, FwkResultCallback &&), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateHostRemoveHostBindingRequest,
-        (const UserKey &, uint64_t, const DeviceKey &), (override));
+        (const UserKey &, uint64_t, const DeviceKey &, ConnectionMode), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateHostSyncDeviceStatusRequest,
-        (const UserKey &, const DeviceKey &, const std::string &, SyncDeviceStatusCallback &&), (override));
+        (const UserKey &, const DeviceKey &, ConnectionMode, SyncTriggerReason, SyncDeviceStatusCallback &&),
+        (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateHostIssueTokenRequest,
         (const UserKey &, uint64_t, uint32_t, const std::vector<uint8_t> &), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateHostDelegateAuthRequest,

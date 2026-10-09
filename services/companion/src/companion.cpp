@@ -87,13 +87,13 @@ std::string Companion::BuildDescription(const CompanionStatus &status)
 
 bool Companion::Initialize()
 {
-    deviceStatusSubscription_ =
-        GetCrossDeviceCommManager().SubscribeDeviceStatus(status_.companionDeviceStatus.deviceKey, true,
-            [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
-                auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
-                self->HandleDeviceStatusChanged(deviceStatusList);
-            });
+    deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(
+        status_.companionDeviceStatus.deviceKey, SyncDemand::FOLLOW_SUBSCRIBE_MODE,
+        [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleDeviceStatusChanged(deviceStatusList);
+        });
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), deviceStatusSubscription_ != nullptr, false);
 
     auto initialStatus = GetCrossDeviceCommManager().GetDeviceStatus(status_.companionDeviceStatus.deviceKey);

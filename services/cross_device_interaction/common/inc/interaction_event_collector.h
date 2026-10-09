@@ -44,6 +44,7 @@ public:
     void SetCompanionUserKey(const UserKey &companionUserKey);
     void SetCompanionDeviceKey(const DeviceKey &companionDeviceKey);
     void SetConnectionName(const std::string &connectionName);
+    void SetConnectionMode(ConnectionMode connectionMode);
     void SetDisconnectReason(const std::string &reason);
     void SetScheduleId(ScheduleId scheduleId);
     void SetTriggerReason(const std::string &triggerReason);
@@ -100,6 +101,10 @@ public:
     {
         return connectionName_;
     }
+    std::optional<ConnectionMode> GetConnectionMode() const
+    {
+        return connectionMode_;
+    }
     const std::optional<ScheduleId> &GetScheduleId() const
     {
         return scheduleId_;
@@ -128,6 +133,7 @@ private:
     std::optional<UserKey> companionUserKey_;
     std::optional<DeviceKey> companionDeviceKey_;
     std::optional<std::string> connectionName_;
+    std::optional<ConnectionMode> connectionMode_;
     std::optional<ScheduleId> scheduleId_;
     std::optional<std::string> triggerReason_;
     std::optional<std::vector<TemplateId>> templateIdList_;

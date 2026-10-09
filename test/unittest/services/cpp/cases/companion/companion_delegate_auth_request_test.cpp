@@ -74,6 +74,33 @@ HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_001, TestSize.Level0)
     EXPECT_TRUE(result);
 }
 
+HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_LocalCapabilityNotSupported, TestSize.Level0)
+{
+    MockGuard guard;
+
+    LocalDeviceProfile profile = {};
+    profile.companionCapabilities = { Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = 0 };
+    auto request = std::make_shared<CompanionDelegateAuthRequest>(CONNECTION_NAME,
+        UserKey { COMPANION_USER_ID, INVALID_SUB_PROFILE_ID }, HOST_DEVICE_KEY, START_DELEGATE_AUTH_REQUEST,
+        delegateAuthParam);
+
+    // Local gate fires before any local key lookup.
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_)).Times(0);
+
+    ResultCode capturedCode = ResultCode::SUCCESS;
+    bool result = false;
+    {
+        ErrorGuard errorGuard([&capturedCode](ResultCode code) { capturedCode = code; });
+        result = request->OnStart(errorGuard);
+    }
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(capturedCode, ResultCode::TYPE_NOT_SUPPORT);
+}
+
 HWTEST_F(CompanionDelegateAuthRequestTest, OnStart_002, TestSize.Level0)
 {
     MockGuard guard;

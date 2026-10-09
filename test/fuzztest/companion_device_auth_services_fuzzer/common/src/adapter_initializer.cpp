@@ -30,6 +30,7 @@
 #include "driver_manager_adapter.h"
 #include "event_manager_adapter.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_soft_bus_coordinator_adapter.h"
 #include "idm_adapter.h"
 #include "sa_manager_adapter.h"
 #include "security_command_adapter.h"
@@ -489,6 +490,9 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 
     auto deviceMgrAdapter = std::make_shared<MockDeviceManagerAdapter>(fuzzData);
     SoftBusChannelAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceMgrAdapter);
+
+    auto softBusCoordinatorAdapter = std::make_shared<FuzzSoftBusCoordinatorAdapter>();
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusCoordinatorAdapter(softBusCoordinatorAdapter);
 
     auto userAuthAdapter = std::make_shared<MockUserAuthAdapter>(fuzzData);
     adapterMgr.SetUserAuthAdapter(userAuthAdapter);

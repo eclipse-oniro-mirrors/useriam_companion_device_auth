@@ -46,7 +46,8 @@ constexpr size_t MAX_DEVICE_ID_LEN = 256;
 
 HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params, const DeviceKey &companionDeviceKey,
     FwkResultCallback &&requestCallback)
-    : OutboundRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
+    : OutboundRequest(RequestType::HOST_DELEGATE_AUTH_REQUEST, ConnectionMode::FOREGROUND, params.scheduleId,
+          DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(params.fwkMsg),
       hostUserKey_ { params.hostUserKey },
       requestCallback_(std::move(requestCallback)),
@@ -67,6 +68,12 @@ HostDelegateAuthRequest::HostDelegateAuthRequest(const AuthRequestParams &params
 bool HostDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
 {
     IAM_LOGI("%{public}s start", GetDescription());
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    if (!HasCapability(localProfile.hostCapabilities, Capability::DELEGATE_AUTH)) {
+        IAM_LOGE("%{public}s DELEGATE_AUTH capability not supported by local product", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::TYPE_NOT_SUPPORT);
+        return false;
+    }
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
     if (!GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::DELEGATE_AUTH)) {
         IAM_LOGE("%{public}s DELEGATE_AUTH capability not supported by companion device", GetDescription());

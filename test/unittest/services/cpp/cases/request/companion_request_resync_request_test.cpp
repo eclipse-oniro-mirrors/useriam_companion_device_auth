@@ -43,6 +43,16 @@ protected:
     }
 };
 
+// Resync exists to repair the host's device status: requiring the host to be synced
+// first would make the request that reconciles it unwaitable.
+HWTEST_F(CompanionRequestResyncRequestTest, RequireSyncedDevice_IsFalse, TestSize.Level0)
+{
+    MockGuard guard;
+    CompanionRequestResyncRequest request(MakeHostKey("host_A", INT32_100), nullptr);
+
+    EXPECT_FALSE(request.RequireSyncedDevice());
+}
+
 HWTEST_F(CompanionRequestResyncRequestTest, ShouldCancelOnNewRequest_SamePhysicalDevice, TestSize.Level0)
 {
     MockGuard guard;

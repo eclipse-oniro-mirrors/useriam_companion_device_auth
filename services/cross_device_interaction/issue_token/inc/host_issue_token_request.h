@@ -43,6 +43,7 @@ protected:
     void OnConnected() override;
     void CompleteWithError(ResultCode result) override;
     std::weak_ptr<OutboundRequest> GetWeakPtr() override;
+    bool RequireSyncedDevice() const override;
     void Destroy() override;
 
 private:

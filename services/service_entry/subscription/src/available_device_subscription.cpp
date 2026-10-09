@@ -120,12 +120,12 @@ bool AvailableDeviceSubscription::MatchesRegisteredCompanion(const UserKey &acti
     if (deviceStatus.isOnline) {
         return GetCompanionManager().GetCompanionStatus(activeUserKey, deviceStatus.deviceKey).has_value();
     }
-    const PhysicalDeviceKey physicalKey = PhysicalDeviceKey::FromDeviceKey(deviceStatus.deviceKey);
+    const PhysicalDeviceKey physicalKey = FromDeviceKey(deviceStatus.deviceKey);
     for (const auto &companionStatus : GetCompanionManager().GetAllCompanionStatus()) {
         if (companionStatus.hostUserKey != activeUserKey) {
             continue;
         }
-        if (PhysicalDeviceKey::FromDeviceKey(companionStatus.companionDeviceStatus.deviceKey) == physicalKey) {
+        if (FromDeviceKey(companionStatus.companionDeviceStatus.deviceKey) == physicalKey) {
             return true;
         }
     }
@@ -134,7 +134,7 @@ bool AvailableDeviceSubscription::MatchesRegisteredCompanion(const UserKey &acti
 
 void AvailableDeviceSubscription::HandleDeviceStatusChange()
 {
-    auto deviceStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus(true);
+    auto deviceStatusList = GetCrossDeviceCommManager().GetAllDeviceStatus(DeviceStatusFilter::INCLUDE_UNSYNCED);
     IAM_LOGI("HandleDeviceStatusChange start, total device count:%{public}zu, userId:%{public}d",
         deviceStatusList.size(), userId_);
     UserKey activeUserKey = GetUserKeyManager().GetUnlockedActiveUserkey();

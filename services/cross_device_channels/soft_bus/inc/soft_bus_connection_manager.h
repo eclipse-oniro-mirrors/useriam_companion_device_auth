@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "cross_device_common.h"
@@ -34,8 +35,8 @@ public:
     ~SoftBusConnectionManager();
 
     bool Start();
-    bool OpenConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey,
-        const std::string &networkId);
+    bool OpenConnection(const std::string &connectionName, ConnectionMode connectionMode,
+        const PhysicalDeviceKey &physicalDeviceKey, const std::string &networkId);
     void CloseConnection(const std::string &connectionName, const std::string &reason);
     bool SendMessage(const std::string &connectionName, const std::vector<uint8_t> &rawMsg);
     void HandleBind(int32_t socketId, const std::string &peerNetworkId) override;
@@ -58,6 +59,10 @@ private:
 
     std::shared_ptr<SoftbusConnection> FindSocketByConnectionName(const std::string &connectionName);
     std::shared_ptr<SoftbusConnection> FindSocketBySocketId(int32_t socketId);
+    void SweepTimedOutPendingOpens();
+    void CheckPendingOpenMonitor();
+    void HandleCanConnectResult(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey,
+        const std::string &networkId, bool canConnect);
     void RemoveSocket(int32_t socketId, const std::string &closeReason = "");
     void CloseAllSockets(const std::string &reason = "");
     void CheckNamingMonitor();
@@ -65,6 +70,7 @@ private:
     void HandleNamingMonitorTimer();
     void HandleSoftBusServiceReady();
     void HandleSoftBusServiceUnavailable();
+    void HandleDisconnectRequested(const std::string &networkId);
     void UnsubscribeRawMessage(SubscribeId subscriptionId);
     void UnsubscribeConnectionStatus(SubscribeId subscriptionId);
     void UnsubscribeIncomingConnection(SubscribeId subscriptionId);
@@ -74,13 +80,17 @@ private:
         OnRawMessage callback;
     };
 
+    struct PendingOpen {
+        SteadyTimeMs requestTimeMs;
+        std::string networkId;
+    };
+
     std::optional<int32_t> serverSocketId_;
     std::vector<std::shared_ptr<SoftbusConnection>> connections_;
-    // Single periodic monitor that force-closes inbound sockets which never
-    // receive their first naming message, so they cannot occupy a slot in
-    // connections_ indefinitely (prevents MAX_SOFTBUS_CONNECTIONS DoS). Only
-    // runs while at least one unnamed inbound connection exists.
+    std::unordered_map<std::string, PendingOpen> pendingOpens_;
     std::unique_ptr<Subscription> namingMonitorTimerSubscription_;
+    std::unique_ptr<Subscription> pendingOpenSubscription_;
+    std::unique_ptr<Subscription> disconnectRequestedSubscription_;
     std::vector<RawMessageSubscription> rawMessageSubscribers_;
     std::map<int32_t, OnConnectionStatusChange> connectionStatusSubscribers_;
     std::map<int32_t, OnIncomingConnection> incomingConnectionSubscribers_;

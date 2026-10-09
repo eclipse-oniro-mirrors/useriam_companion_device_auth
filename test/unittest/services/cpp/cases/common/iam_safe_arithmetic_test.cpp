@@ -26,8 +26,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class IamSafeArithmeticTest : public Test {
-};
+class IamSafeArithmeticTest : public Test {};
 
 // ===== SafeAdd tests =====
 

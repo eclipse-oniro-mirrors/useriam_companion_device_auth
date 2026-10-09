@@ -79,18 +79,20 @@ std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostTokenAuthRequest(const A
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostRemoveHostBindingRequest(const UserKey &hostUserKey,
-    TemplateId templateId, const DeviceKey &companionDeviceKey)
+    TemplateId templateId, const DeviceKey &companionDeviceKey, ConnectionMode connectionMode)
 {
-    auto request = std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey);
+    auto request =
+        std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey, connectionMode);
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }
 
 std::shared_ptr<IRequest> RequestFactoryImpl::CreateHostSyncDeviceStatusRequest(const UserKey &hostUserKey,
-    const DeviceKey &companionDeviceKey, const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback)
+    const DeviceKey &companionDeviceKey, ConnectionMode connectionMode, SyncTriggerReason triggerReason,
+    SyncDeviceStatusCallback &&callback)
 {
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, companionDeviceKey, companionDeviceName,
-        std::move(callback));
+    auto request = std::make_shared<HostSyncDeviceStatusRequest>(hostUserKey, companionDeviceKey, connectionMode,
+        triggerReason, std::move(callback));
     ENSURE_OR_RETURN_VAL(request != nullptr, nullptr);
     return request;
 }

@@ -93,8 +93,7 @@ private:
     sptr<StubRemoteObject> remoteObj_;
 };
 
-class SyncDeviceStatusModuleTest : public testing::Test {
-};
+class SyncDeviceStatusModuleTest : public testing::Test {};
 
 // Encode a SYNC_DEVICE_STATUS reply and inject it on connName with the captured seq so the
 // host-side sync handshake completes and HandleSyncResult fires the subscriber callback.
@@ -115,7 +114,7 @@ void InjectSyncReply(ModuleTestGuard &guard, const std::string &connName, uint32
 //   SubscribeAvailableDeviceStatus → SubscriptionManager → AvailableDeviceSubscription
 //     → SetSubscribeMode(MANAGE) → DeviceStatusManager monitors all devices
 //
-//   TestSimulateDeviceOnline → DeviceStatusManager.TriggerDeviceSync
+//   TestSimulateDeviceOnline → DeviceStatusManager internal sync trigger
 //     → HostSyncDeviceStatusRequest → HostBeginCompanionCheck (Mock SA)
 //     → SendSyncDeviceStatusRequest → FakeChannel (raw msg captured)
 //
@@ -160,7 +159,7 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncNoTemplateE2E_001, TestSize.Level0)
         ResultCode::SUCCESS);
     DrainPendingTasks();
 
-    // Run: device online triggers TriggerDeviceSync → HostSyncDeviceStatusRequest → FakeChannel
+    // Run: device online triggers the internal sync path → HostSyncDeviceStatusRequest → FakeChannel
     guard.SimulateDeviceOnline("companion-test-device-001");
 
     auto connNames = guard.GetChannel().GetAllConnectionNames();
@@ -201,14 +200,14 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncNoTemplateE2E_001, TestSize.Level0)
 //
 // What this tests:
 //   SimulateDeviceOnline(reportUnsynced=true) → map insertion → NotifySubscribers
-//     → AvailableDeviceSubscription re-pulls GetAllDeviceStatus(true)
+//     → AvailableDeviceSubscription re-pulls GetAllDeviceStatus(INCLUDE_UNSYNCED)
 //       → callback.OnAvailableDeviceStatusChange with isOnline=false,
 //         deviceUserId=INVALID_USER_ID (pre-sync window)
 //
 //   [Inject SyncDeviceStatusReply SUCCESS] → HandleSyncResult → isSynced=true
 //     → NotifySubscribers → re-pull → callback re-fires with isOnline=true
 //
-// E2E level: HIGH — locks the impl pass-through of includeUnsynced=true and the
+// E2E level: HIGH — locks the impl pass-through of INCLUDE_UNSYNCED and the
 // "subscribers ignore payload and re-pull" contract end to end.
 // ============================================================================
 HWTEST_F(SyncDeviceStatusModuleTest, HostSyncPreSyncWindowAndFlipE2E_001, TestSize.Level0)
@@ -343,6 +342,84 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncPeerServiceNotAvailableStaysVisible
     ASSERT_EQ(capturedList2.size(), 1u);
     EXPECT_EQ(capturedList2[0].deviceKey.deviceId, deviceId);
     EXPECT_FALSE(capturedList2[0].isOnline);
+}
+
+// ============================================================================
+// Coordinator rejection E2E — arbitration denial arrives through the connection
+// status pipeline (DISCONNECTED + coordinator_rejected), not through a reply.
+//
+// What this tests:
+//   FakeChannel rejection backdoor (mirrors ReportConnectionClosed on denial)
+//     → OutboundRequest.HandleConnectionStatus → CompleteWithError(COORDINATOR_REJECTED)
+//     → HandleSyncResult: terminal like PEER_SERVICE_NOT_AVAILABLE, no backoff retry
+//     → explicit EnsureDeviceSynced waiter receives the raw COORDINATOR_REJECTED code
+//
+// E2E level: HIGH
+//   - Entry: channel-level connection status event only — the sync request never
+//     gets to send a message, exactly like a real arbitration denial
+//   - Production path: FakeChannel → ConnectionManager → OutboundRequest
+//     → DeviceStatusManager → sync waiter
+//   - Verification: no SYNC_DEVICE_STATUS on the wire + waiter result code + unsynced state
+// ============================================================================
+HWTEST_F(SyncDeviceStatusModuleTest, HostSyncCoordinatorRejectedViaConnectionStatusE2E_001, TestSize.Level0)
+{
+    ModuleTestGuard guard;
+    constexpr UserId HOST_USER = 100;
+    const std::string deviceId = "companion-coordinator-rejected-001";
+
+    HostBeginCompanionCheckOutput checkOutput;
+    checkOutput.salt = { 0x01, 0x02, 0x03, 0x04 };
+    checkOutput.challenge = 12345;
+    ON_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _))
+        .WillByDefault(DoAll(SetArgReferee<1>(checkOutput), Return(ResultCode::SUCCESS)));
+
+    std::vector<IpcDeviceStatus> capturedList;
+    auto callback =
+        sptr<FakeAvailableDeviceStatusCallback>::MakeSptr([&](const std::vector<IpcDeviceStatus> &deviceStatusList) {
+            capturedList = deviceStatusList;
+            return 0;
+        });
+    ASSERT_NE(callback, nullptr);
+
+    EXPECT_EQ(guard.GetCore().SubscribeAvailableDeviceStatus(HOST_USER, CallerInfo { .name = FOREGROUND_TEST_BUNDLE },
+                  callback),
+        ResultCode::SUCCESS);
+    DrainPendingTasks();
+
+    // Deny every outbound connection like a coordinator rejection before the device comes online,
+    // so the lifecycle sync attempt is rejected at open time.
+    guard.GetChannel().TestSetRejectConnections(REASON_COORDINATOR_REJECTED);
+    guard.SimulateDeviceOnline(deviceId, true);
+    DrainPendingTasks();
+
+    // The sync request died at connection open: no SYNC_DEVICE_STATUS ever hit the wire.
+    EXPECT_TRUE(guard.GetChannel().GetAllConnectionNames().empty());
+
+    // Device is not synced: request-path getter stays strict.
+    EXPECT_FALSE(GetCrossDeviceCommManager().GetDeviceStatus(MakeDeviceKey(deviceId, HOST_USER)).has_value());
+
+    // The unsynced entry stays visible to the subscriber (terminal, not retried away).
+    ASSERT_EQ(capturedList.size(), 1u);
+    EXPECT_EQ(capturedList[0].deviceKey.deviceId, deviceId);
+    EXPECT_FALSE(capturedList[0].isOnline);
+
+    // The pipeline's denial code reaches a condition waiter verbatim: 20010, not
+    // COMMUNICATION_ERROR. The foreground grade comes from the SDK subscription above (foreground
+    // bundle -> ALL_DEVICES -> resolved demand FOREGROUND), not from a trigger argument.
+    PhysicalDeviceKey physicalKey;
+    physicalKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    physicalKey.deviceId = deviceId;
+    bool onResultCalled = false;
+    ResultCode syncResult = ResultCode::SUCCESS;
+    GetCrossDeviceCommManager().EnsureDeviceSynced(physicalKey, [&onResultCalled, &syncResult](ResultCode resultCode) {
+        onResultCalled = true;
+        syncResult = resultCode;
+    });
+    DrainPendingTasks();
+
+    EXPECT_TRUE(onResultCalled);
+    EXPECT_EQ(ResultCode::COORDINATOR_REJECTED, syncResult);
+    EXPECT_TRUE(guard.GetChannel().GetAllConnectionNames().empty());
 }
 
 // ============================================================================

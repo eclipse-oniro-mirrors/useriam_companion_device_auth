@@ -81,7 +81,7 @@ static void FuzzCreateHostRemoveHostBindingRequest(std::shared_ptr<RequestFactor
     TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     auto request = factory->CreateHostRemoveHostBindingRequest(UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
-        templateId, companionDeviceKey);
+        templateId, companionDeviceKey, GenerateFuzzConnectionMode(fuzzData));
     (void)request;
 }
 
@@ -90,13 +90,13 @@ static void FuzzCreateHostSyncDeviceStatusRequest(std::shared_ptr<RequestFactory
 {
     UserId hostUserId = fuzzData.ConsumeIntegral<UserId>();
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    std::string deviceName = GenerateFuzzString(fuzzData, SIZE_64);
     SyncDeviceStatusCallback callback = [](ResultCode result, const SyncDeviceStatus &status) {
         (void)result;
         (void)status;
     };
-    auto request = factory->CreateHostSyncDeviceStatusRequest(UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
-        companionDeviceKey, deviceName, std::move(callback));
+    auto request =
+        factory->CreateHostSyncDeviceStatusRequest(UserKey { hostUserId, INVALID_SUB_PROFILE_ID }, companionDeviceKey,
+            GenerateFuzzConnectionMode(fuzzData), SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
     (void)request;
 }
 

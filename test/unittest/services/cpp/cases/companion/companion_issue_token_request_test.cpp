@@ -108,6 +108,34 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_001, TestSize.Level0)
     EXPECT_EQ(*receivedResult, static_cast<int32_t>(ResultCode::SUCCESS));
 }
 
+HWTEST_F(CompanionIssueTokenRequestTest, OnStart_LocalCapabilityNotSupported, TestSize.Level0)
+{
+    MockGuard guard;
+
+    LocalDeviceProfile profile = {};
+    profile.companionCapabilities = { Capability::DELEGATE_AUTH, Capability::OBTAIN_TOKEN };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    auto replyCalled = std::make_shared<bool>(false);
+    OnMessageReply replyCallback = [replyCalled](const Attributes &) { *replyCalled = true; };
+    auto preIssueTokenRequest = MakePreIssueTokenRequest();
+    auto request = std::make_shared<CompanionIssueTokenRequest>(CONNECTION_NAME, preIssueTokenRequest,
+        std::move(replyCallback), HOST_DEVICE_KEY);
+
+    // Local gate fires before the auth maintain check.
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).Times(0);
+
+    ResultCode capturedCode = ResultCode::SUCCESS;
+    bool result = false;
+    {
+        ErrorGuard errorGuard([&capturedCode](ResultCode code) { capturedCode = code; });
+        result = request->OnStart(errorGuard);
+    }
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(capturedCode, ResultCode::TYPE_NOT_SUPPORT);
+}
+
 HWTEST_F(CompanionIssueTokenRequestTest, OnStart_002, TestSize.Level0)
 {
     MockGuard guard;

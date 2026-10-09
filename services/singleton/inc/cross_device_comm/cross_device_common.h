@@ -35,18 +35,40 @@ enum SubscribeMode : int32_t {
     SUBSCRIBE_MODE_ALL_DEVICES = 1,
 };
 
+enum class SyncTriggerReason : int32_t {
+    DEVICE_ONLINE = 0,
+    BACKOFF_RETRY = 1,
+    RESYNC = 2,
+    EXTERNAL_REFRESH = 3,
+    BRING_ONLINE = 4,
+    MODE_ESCALATION = 5,
+    DEVICE_INFO_CHANGED = 6,
+};
+
+enum class SyncDemand : int32_t {
+    NONE = 0,
+    BACKGROUND = 1,
+    FOLLOW_SUBSCRIBE_MODE = 2,
+    FOREGROUND = 3,
+};
+
+enum class SyncDemandLevel : int32_t {
+    NONE = 0,
+    BACKGROUND = 1,
+    FOREGROUND = 2,
+};
+
+enum class DeviceStatusFilter : int32_t {
+    SYNCED_ONLY = 0,
+    INCLUDE_UNSYNCED = 1,
+};
+
+using OnDeviceSyncResult = std::function<void(ResultCode resultCode)>;
+
 class PhysicalDeviceKey {
 public:
     PhysicalDeviceKey() = default;
     ~PhysicalDeviceKey() = default;
-
-    static PhysicalDeviceKey FromDeviceKey(const DeviceKey &deviceKey)
-    {
-        PhysicalDeviceKey physicalKey;
-        physicalKey.idType = deviceKey.idType;
-        physicalKey.deviceId = deviceKey.deviceId;
-        return physicalKey;
-    }
 
     bool operator==(const PhysicalDeviceKey &other) const
     {
@@ -64,6 +86,14 @@ public:
     DeviceIdType idType { DeviceIdType::UNKNOWN };
     std::string deviceId {};
 };
+
+inline PhysicalDeviceKey FromDeviceKey(const DeviceKey &deviceKey)
+{
+    PhysicalDeviceKey physicalKey;
+    physicalKey.idType = deviceKey.idType;
+    physicalKey.deviceId = deviceKey.deviceId;
+    return physicalKey;
+}
 
 struct PhysicalDeviceStatus {
 public:
@@ -115,6 +145,11 @@ inline ConnectionStatus ConvertToConnectionStatus(bool isConnected, [[maybe_unus
 }
 
 inline constexpr const char *REASON_PEER_SERVICE_NOT_AVAILABLE = "peer_service_not_available";
+inline constexpr const char *REASON_COORDINATOR_REJECTED = "coordinator_rejected";
+inline constexpr const char *REASON_COORDINATOR_TIMEOUT = "coordinator_timeout";
+inline constexpr const char *REASON_DISCONNECT_REQUESTED = "disconnect_requested";
+inline constexpr const char *REASON_MAX_CONNECTIONS_REACHED = "max_connections_reached";
+inline constexpr const char *REASON_CREATE_SOCKET_FAILED = "create_socket_failed";
 
 using OnConnectionStatusChange =
     std::function<void(const std::string &connectionName, ConnectionStatus status, const std::string &reason)>;

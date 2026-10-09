@@ -19,6 +19,7 @@
 #include "mock_guard.h"
 
 #include "cross_device_comm_manager_impl.h"
+#include "task_runner_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -219,6 +220,46 @@ HWTEST_F(CrossDeviceCommManagerImplTest, GetDeviceStatus_001, TestSize.Level0)
     EXPECT_FALSE(status.has_value());
 }
 
+HWTEST_F(CrossDeviceCommManagerImplTest, IsPhysicalOnline_001, TestSize.Level0)
+{
+    MockGuard guard;
+
+    PhysicalDeviceStatus onlineStatus;
+    onlineStatus.physicalDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    onlineStatus.physicalDeviceKey.deviceId = "online-device";
+    onlineStatus.channelId = ChannelId::SOFTBUS;
+    onlineStatus.deviceName = "online";
+
+    auto mockChannel = SetupMockChannel();
+    ON_CALL(*mockChannel, GetAllPhysicalDevices())
+        .WillByDefault(Return(std::vector<PhysicalDeviceStatus> { onlineStatus }));
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto manager = CrossDeviceCommManagerImpl::Create(
+        { .hostSupportedBusinessIds = { BusinessId::DEFAULT },
+            .hostLocalCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } },
+        channels, false);
+    ASSERT_NE(manager, nullptr);
+
+    DeviceKey deviceKey;
+    deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    deviceKey.deviceId = "online-device";
+    deviceKey.deviceUserId = 100;
+
+    DeviceKey unknownKey = deviceKey;
+    unknownKey.deviceId = "unknown-device";
+
+    // Without a specific-device subscription the channel device is filtered out, so it is not online.
+    EXPECT_FALSE(manager->IsPhysicalOnline(deviceKey));
+
+    auto subscription =
+        manager->SubscribeDeviceStatus(deviceKey, SyncDemand::NONE, [](const std::vector<DeviceStatus> &) {});
+    EXPECT_NE(subscription, nullptr);
+    EXPECT_TRUE(manager->IsPhysicalOnline(deviceKey));
+    EXPECT_FALSE(manager->IsPhysicalOnline(unknownKey));
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+}
+
 HWTEST_F(CrossDeviceCommManagerImplTest, GetAllDeviceStatus_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -268,6 +309,32 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SetSubscribeMode_001, TestSize.Level0)
     manager->SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES);
 }
 
+HWTEST_F(CrossDeviceCommManagerImplTest, GetCurrentConnectionMode_001, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto manager = CrossDeviceCommManagerImpl::Create(
+        { .hostSupportedBusinessIds = { BusinessId::DEFAULT },
+            .hostLocalCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } },
+        channels, false);
+    ASSERT_NE(manager, nullptr);
+
+    EXPECT_EQ(manager->GetSubscribeMode(), SUBSCRIBE_MODE_SUBSCRIBED_ONLY);
+    EXPECT_EQ(manager->GetCurrentConnectionMode(), ConnectionMode::BACKGROUND);
+
+    manager->SetSubscribeMode(SUBSCRIBE_MODE_ALL_DEVICES);
+    EXPECT_EQ(manager->GetSubscribeMode(), SUBSCRIBE_MODE_ALL_DEVICES);
+    EXPECT_EQ(manager->GetCurrentConnectionMode(), ConnectionMode::FOREGROUND);
+
+    manager->SetSubscribeMode(SUBSCRIBE_MODE_SUBSCRIBED_ONLY);
+    EXPECT_EQ(manager->GetSubscribeMode(), SUBSCRIBE_MODE_SUBSCRIBED_ONLY);
+    EXPECT_EQ(manager->GetCurrentConnectionMode(), ConnectionMode::BACKGROUND);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+}
+
 HWTEST_F(CrossDeviceCommManagerImplTest, GetTemplateStatusSubscribeTimeMs_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -302,9 +369,45 @@ HWTEST_F(CrossDeviceCommManagerImplTest, SubscribeDeviceStatus_001, TestSize.Lev
     deviceKey.deviceUserId = 100;
 
     auto callbackInvoked = std::make_shared<bool>(false);
-    auto subscription = manager->SubscribeDeviceStatus(deviceKey, true,
+    auto subscription = manager->SubscribeDeviceStatus(deviceKey, SyncDemand::FOLLOW_SUBSCRIBE_MODE,
         [callbackInvoked](const std::vector<DeviceStatus> &) { *callbackInvoked = true; });
     EXPECT_NE(subscription, nullptr);
+}
+
+// An ensure for an unadopted device settles with COMMUNICATION_ERROR: the device is either not
+// managed or the channel cannot enumerate it right now (section 3.1 settlement table).
+HWTEST_F(CrossDeviceCommManagerImplTest, EnsureDeviceSynced_UnadoptedDeviceSettlesCommunicationError, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto manager = CrossDeviceCommManagerImpl::Create(
+        { .hostSupportedBusinessIds = { BusinessId::DEFAULT },
+            .hostLocalCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } },
+        channels, false);
+    ASSERT_NE(manager, nullptr);
+
+    PhysicalDeviceKey physicalKey;
+    physicalKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    physicalKey.deviceId = "unmonitored-device";
+
+    bool onResultCalled = false;
+    ResultCode syncResult = ResultCode::SUCCESS;
+    manager->EnsureDeviceSynced(physicalKey, [&onResultCalled, &syncResult](ResultCode resultCode) {
+        onResultCalled = true;
+        syncResult = resultCode;
+    });
+
+    // The trigger is posted to the resident runner: nothing executes synchronously.
+    EXPECT_FALSE(onResultCalled);
+
+    // Two resident hops (the forwarded trigger, then the rejection settle): drain transitively.
+    TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
+
+    // The forwarded rejection of the unmonitored device is delivered only after the resident task runs.
+    EXPECT_TRUE(onResultCalled);
+    EXPECT_EQ(syncResult, ResultCode::COMMUNICATION_ERROR);
 }
 
 HWTEST_F(CrossDeviceCommManagerImplTest, OpenConnection_001, TestSize.Level0)
@@ -325,7 +428,7 @@ HWTEST_F(CrossDeviceCommManagerImplTest, OpenConnection_001, TestSize.Level0)
     deviceKey.deviceUserId = 100;
 
     std::string connectionName;
-    bool result = manager->OpenConnection(deviceKey, connectionName);
+    bool result = manager->OpenConnection(deviceKey, ConnectionMode::FOREGROUND, connectionName);
     EXPECT_FALSE(result);
 }
 

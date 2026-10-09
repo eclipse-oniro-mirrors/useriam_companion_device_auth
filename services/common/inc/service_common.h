@@ -63,12 +63,25 @@ enum class ChannelId : int32_t {
     SOFTBUS = 1,
 };
 
+enum class ConnectionMode : int32_t {
+    BACKGROUND = 0,
+    FOREGROUND = 1,
+};
+
 enum class Capability : uint16_t {
     INVALID = 0,
     DELEGATE_AUTH = 1,
     TOKEN_AUTH = 2,
     OBTAIN_TOKEN = 3,
 };
+
+inline bool HasCapability(const std::vector<Capability> &capabilities, Capability capability)
+{
+    if (capabilities.empty()) {
+        return true;
+    }
+    return std::find(capabilities.begin(), capabilities.end(), capability) != capabilities.end();
+}
 
 enum class ProtocolId : uint16_t {
     INVALID = 0,

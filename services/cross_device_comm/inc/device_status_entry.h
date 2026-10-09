@@ -36,6 +36,7 @@ public:
     DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus, std::function<void()> &&retrySync,
         std::vector<BusinessId> hostSupportBusinessIds = {});
     DeviceStatusEntry(DeviceStatusEntry &&other) noexcept;
+    ~DeviceStatusEntry();
 
     void OnSyncSuccess();
     void OnSyncFailure();
@@ -44,6 +45,8 @@ public:
     // "sync succeeded" semantics.
     void ResetRetry();
     void OnSyncAbort();
+    void NotifySyncWaiters(ResultCode resultCode);
+    OnDeviceSyncResult TakeCombinedSyncWaiter();
     DeviceKey BuildDeviceKey() const;
     DeviceStatus BuildDeviceStatus() const;
     std::string GetDeviceName() const;
@@ -72,6 +75,9 @@ public:
     bool isSyncInProgress { false };
     SteadyTimeMs lastSyncTimeMs { 0 };
     uint64_t inProgressAttemptId { 0 };
+    ConnectionMode inProgressConnectionMode { ConnectionMode::BACKGROUND };
+    bool pendingResync { false };
+    std::vector<OnDeviceSyncResult> syncWaiters {};
 
 private:
     void RecomputeEffectiveBusinessIds();

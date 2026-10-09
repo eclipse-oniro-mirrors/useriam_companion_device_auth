@@ -18,8 +18,11 @@
 
 #include "mock_guard.h"
 
+#include "soft_bus_adapter_manager.h"
 #include "soft_bus_connection.h"
 #include "soft_bus_connection_manager.h"
+#include "soft_bus_coordinator_adapter.h"
+#include "subscription.h"
 #include "task_runner_manager.h"
 
 using namespace testing;
@@ -34,6 +37,32 @@ constexpr uint64_t UINT64_1 = 1;
 constexpr int32_t DEFAULT_TEST_SOCKET_ID = 100;
 constexpr const char *DEFAULT_TEST_CONNECTION_NAME = "test-connection";
 constexpr const char *TEST_DEVICE_ID = "test-device";
+constexpr const char *TEST_NETWORK_ID = "test-network-id";
+
+// MockGuard resets and installs the device-manager and softbus adapter mocks but
+// no coordinator adapter, while SoftbusConnection reports named connections to
+// the coordinator on connect/destruct. Each test installs this local mock.
+class MockSoftBusCoordinatorAdapter : public ISoftBusCoordinatorAdapter {
+public:
+    MOCK_METHOD(bool, Initialize, (), (override));
+    MOCK_METHOD(void, RequestResource,
+        (const std::string &, const std::string &, ConnectionMode, ConnectDecisionCallback &&), (override));
+    MOCK_METHOD(std::unique_ptr<Subscription>, RegisterDisconnectRequestedCallback, (DisconnectRequestedCallback &&),
+        (override));
+    MOCK_METHOD(void, AddConnection, (const std::string &, const std::string &), (override));
+    MOCK_METHOD(void, RemoveConnection, (const std::string &), (override));
+    MOCK_METHOD(void, ReleaseResource, (const std::string &), (override));
+};
+
+std::shared_ptr<NiceMock<MockSoftBusCoordinatorAdapter>> InstallCoordinatorMock()
+{
+    auto coordinator = std::make_shared<NiceMock<MockSoftBusCoordinatorAdapter>>();
+    ON_CALL(*coordinator, RequestResource(_, _, _, _))
+        .WillByDefault(Invoke([](const std::string &, const std::string &, ConnectionMode,
+                                  ConnectDecisionCallback callback) { callback(true); }));
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusCoordinatorAdapter(coordinator);
+    return coordinator;
+}
 
 class SoftbusConnectionTest : public Test {
 protected:
@@ -44,6 +73,7 @@ protected:
 HWTEST_F(SoftbusConnectionTest, Constructor_001, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -53,13 +83,14 @@ HWTEST_F(SoftbusConnectionTest, Constructor_001, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection =
-        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key,
+        TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     EXPECT_EQ(connection->GetSocketId(), DEFAULT_TEST_SOCKET_ID);
     EXPECT_EQ(connection->GetConnectionName(), DEFAULT_TEST_CONNECTION_NAME);
     EXPECT_EQ(connection->GetPhysicalDeviceKey().deviceId, TEST_DEVICE_ID);
+    EXPECT_EQ(connection->GetNetworkId(), TEST_NETWORK_ID);
     EXPECT_FALSE(connection->IsConnected());
     EXPECT_FALSE(connection->IsInbound());
 }
@@ -67,6 +98,7 @@ HWTEST_F(SoftbusConnectionTest, Constructor_001, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, Constructor_002, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -76,12 +108,13 @@ HWTEST_F(SoftbusConnectionTest, Constructor_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     EXPECT_EQ(connection->GetSocketId(), DEFAULT_TEST_SOCKET_ID);
     EXPECT_TRUE(connection->GetConnectionName().empty());
     EXPECT_EQ(connection->GetPhysicalDeviceKey().deviceId, TEST_DEVICE_ID);
+    EXPECT_EQ(connection->GetNetworkId(), TEST_NETWORK_ID);
     EXPECT_FALSE(connection->IsConnected());
     EXPECT_TRUE(connection->IsInbound());
 }
@@ -89,6 +122,7 @@ HWTEST_F(SoftbusConnectionTest, Constructor_002, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, SetCloseReason_001, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -98,8 +132,8 @@ HWTEST_F(SoftbusConnectionTest, SetCloseReason_001, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection =
-        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key,
+        TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->SetCloseReason("test-reason");
@@ -110,6 +144,7 @@ HWTEST_F(SoftbusConnectionTest, SetCloseReason_001, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, SetConnectionName_001, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -119,7 +154,7 @@ HWTEST_F(SoftbusConnectionTest, SetConnectionName_001, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->SetConnectionName("new-connection");
@@ -129,6 +164,7 @@ HWTEST_F(SoftbusConnectionTest, SetConnectionName_001, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_001, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -146,8 +182,8 @@ HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_001, TestSize.Level0)
             }
         });
 
-    auto connection =
-        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key,
+        TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->HandleOutboundConnected();
@@ -160,6 +196,7 @@ HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_001, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_002, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -169,8 +206,8 @@ HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection =
-        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key,
+        TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->isConnected_ = true;
@@ -180,6 +217,8 @@ HWTEST_F(SoftbusConnectionTest, HandleOutboundConnected_002, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_001, TestSize.Level0)
 {
     MockGuard guard;
+    auto coordinator = InstallCoordinatorMock();
+    EXPECT_CALL(*coordinator, AddConnection(DEFAULT_TEST_CONNECTION_NAME, TEST_NETWORK_ID));
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -196,7 +235,7 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_001, TestSize.Level0)
             }
         });
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->HandleInboundConnected("test-connection");
@@ -210,6 +249,7 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_001, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_002, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -219,7 +259,7 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->isConnected_ = true;
@@ -229,6 +269,7 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_002, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_003, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -238,7 +279,8 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_003, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, "existing-connection", key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, "existing-connection", key,
+        TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->HandleInboundConnected("new-connection");
@@ -248,6 +290,7 @@ HWTEST_F(SoftbusConnectionTest, HandleInboundConnected_003, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, MarkShutdownByPeer_001, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -257,8 +300,8 @@ HWTEST_F(SoftbusConnectionTest, MarkShutdownByPeer_001, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection =
-        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key,
+        TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->MarkShutdownByPeer();
@@ -269,6 +312,8 @@ HWTEST_F(SoftbusConnectionTest, MarkShutdownByPeer_001, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, Destructor_001, TestSize.Level0)
 {
     MockGuard guard;
+    auto coordinator = InstallCoordinatorMock();
+    EXPECT_CALL(*coordinator, RemoveConnection(DEFAULT_TEST_CONNECTION_NAME));
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -287,8 +332,8 @@ HWTEST_F(SoftbusConnectionTest, Destructor_001, TestSize.Level0)
         });
 
     {
-        auto connection =
-            std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
+        auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key,
+            TEST_NETWORK_ID, manager_);
         ASSERT_NE(connection, nullptr);
     }
 
@@ -300,6 +345,7 @@ HWTEST_F(SoftbusConnectionTest, Destructor_001, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, Destructor_002, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -310,7 +356,7 @@ HWTEST_F(SoftbusConnectionTest, Destructor_002, TestSize.Level0)
     key.deviceId = TEST_DEVICE_ID;
 
     {
-        auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+        auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
         ASSERT_NE(connection, nullptr);
         connection->socketId_ = -1;
     }
@@ -319,6 +365,7 @@ HWTEST_F(SoftbusConnectionTest, Destructor_002, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, Destructor_003, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -329,8 +376,8 @@ HWTEST_F(SoftbusConnectionTest, Destructor_003, TestSize.Level0)
     key.deviceId = TEST_DEVICE_ID;
 
     {
-        auto connection =
-            std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
+        auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key,
+            TEST_NETWORK_ID, manager_);
         ASSERT_NE(connection, nullptr);
         connection->socketId_ = -1;
         connection->MarkShutdownByPeer();
@@ -340,6 +387,7 @@ HWTEST_F(SoftbusConnectionTest, Destructor_003, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, NotifyConnectionEstablished_001, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -349,7 +397,7 @@ HWTEST_F(SoftbusConnectionTest, NotifyConnectionEstablished_001, TestSize.Level0
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->NotifyConnectionEstablished();
@@ -358,6 +406,7 @@ HWTEST_F(SoftbusConnectionTest, NotifyConnectionEstablished_001, TestSize.Level0
 HWTEST_F(SoftbusConnectionTest, NotifyConnectionClosed_001, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -367,7 +416,7 @@ HWTEST_F(SoftbusConnectionTest, NotifyConnectionClosed_001, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->NotifyConnectionClosed();
@@ -376,6 +425,7 @@ HWTEST_F(SoftbusConnectionTest, NotifyConnectionClosed_001, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_001, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -385,7 +435,7 @@ HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_001, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
     connection->isInbound_ = false;
 
@@ -395,6 +445,7 @@ HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_001, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_002, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
     manager_ = SoftBusConnectionManager::Create();
@@ -404,7 +455,7 @@ HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_002, TestSize.Level0)
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     connection->NotifyIncomingConnection();
@@ -413,9 +464,10 @@ HWTEST_F(SoftbusConnectionTest, NotifyIncomingConnection_002, TestSize.Level0)
 HWTEST_F(SoftbusConnectionTest, GetAcceptTimeMs_RecordsSteadyTime_OnInboundCtor, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
-    // Inbound (two-arg) ctor records the current steady time as accept time.
+    // Inbound (unnamed) ctor records the current steady time as accept time.
     guard.GetTimeKeeper().SetSteadyTime(5000);
 
     manager_ = SoftBusConnectionManager::Create();
@@ -425,7 +477,7 @@ HWTEST_F(SoftbusConnectionTest, GetAcceptTimeMs_RecordsSteadyTime_OnInboundCtor,
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, key, TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     EXPECT_EQ(connection->GetAcceptTimeMs(), 5000);
@@ -434,9 +486,10 @@ HWTEST_F(SoftbusConnectionTest, GetAcceptTimeMs_RecordsSteadyTime_OnInboundCtor,
 HWTEST_F(SoftbusConnectionTest, GetAcceptTimeMs_DefaultZero_OnOutboundCtor, TestSize.Level0)
 {
     MockGuard guard;
+    InstallCoordinatorMock();
     ON_CALL(guard.GetMiscManager(), GetNextGlobalId()).WillByDefault([this]() { return nextGlobalId_++; });
 
-    // Outbound (three-arg) ctor does not record an accept time (defaults to 0).
+    // Outbound (named) ctor does not record an accept time (defaults to 0).
     guard.GetTimeKeeper().SetSteadyTime(7777);
 
     manager_ = SoftBusConnectionManager::Create();
@@ -446,8 +499,8 @@ HWTEST_F(SoftbusConnectionTest, GetAcceptTimeMs_DefaultZero_OnOutboundCtor, Test
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = TEST_DEVICE_ID;
 
-    auto connection =
-        std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key, manager_);
+    auto connection = std::make_shared<SoftbusConnection>(DEFAULT_TEST_SOCKET_ID, DEFAULT_TEST_CONNECTION_NAME, key,
+        TEST_NETWORK_ID, manager_);
     ASSERT_NE(connection, nullptr);
 
     EXPECT_EQ(connection->GetAcceptTimeMs(), 0);

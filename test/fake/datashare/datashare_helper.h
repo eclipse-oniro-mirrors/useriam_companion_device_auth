@@ -33,8 +33,7 @@ using Uri = OHOS::Uri;
 
 namespace OHOS {
 namespace DataShare {
-class DatashareBusinessError {
-};
+class DatashareBusinessError {};
 
 // Observer registry seam: tracks every registered observer by URI string so tests can assert
 // multi-key observation, active-user re-pointing (old URI removed, new URI added), and teardown.

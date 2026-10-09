@@ -22,8 +22,10 @@
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
+#include "cross_device_comm_manager.h"
 #include "host_delegate_auth_request.h"
 #include "host_token_auth_request.h"
+#include "request_stages.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -61,6 +63,46 @@ void HostSingleMixAuthRequest::Start()
     eventCollector_.Start();
     StartTimeout(weak_from_this());
 
+    ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
+
+    eventCollector_.EnterWait(CommonStages::WAIT_BRING_ONLINE);
+    peerDeviceSubscription_ =
+        GetCrossDeviceCommManager().SubscribeDeviceStatus(peerDeviceKey_, SyncDemand::FOREGROUND, nullptr);
+    if (peerDeviceSubscription_ == nullptr) {
+        IAM_LOGE("%{public}s subscribe device status failed, abort bring online", GetDescription());
+        CompleteWithError(ResultCode::COMMUNICATION_ERROR);
+        return;
+    }
+    GetCrossDeviceCommManager().EnsureDeviceSynced(FromDeviceKey(peerDeviceKey_),
+        [weakSelf = weak_from_this()](ResultCode resultCode) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleDeviceSyncResult(resultCode);
+        });
+    IAM_LOGI("%{public}s waiting for bring online device sync", GetDescription());
+}
+
+void HostSingleMixAuthRequest::HandleDeviceSyncResult(ResultCode resultCode)
+{
+    LogTraceGuard guard;
+    IAM_LOGI("%{public}s result:%{public}d", GetDescription(), resultCode);
+    if (IsFinished()) {
+        return;
+    }
+
+    eventCollector_.ExitWait(CommonStages::DONE_BRING_ONLINE);
+    if (resultCode != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s bring online failed: %{public}d", GetDescription(), static_cast<int32_t>(resultCode));
+        CompleteWithError(resultCode);
+        return;
+    }
+
+    IAM_LOGI("%{public}s bring online done", GetDescription());
+    StartTokenAuth();
+}
+
+void HostSingleMixAuthRequest::StartTokenAuth()
+{
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
     if (!GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::TOKEN_AUTH)) {
         IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by companion device", GetDescription());
@@ -255,6 +297,7 @@ void HostSingleMixAuthRequest::CompleteWithSuccess(const std::vector<uint8_t> &e
 
 void HostSingleMixAuthRequest::Destroy()
 {
+    peerDeviceSubscription_.reset();
     BaseRequest::Destroy();
 }
 } // namespace CompanionDeviceAuth

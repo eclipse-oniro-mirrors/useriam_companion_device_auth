@@ -406,6 +406,12 @@ void HostBindingManagerImpl::StartObtainTokenRequests(const UserKey &activeUserK
         return;
     }
 
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    if (!HasCapability(localProfile.companionCapabilities, Capability::OBTAIN_TOKEN)) {
+        IAM_LOGI("obtain token capability not supported by local product, skip");
+        return;
+    }
+
     for (const auto &binding : bindings_) {
         ENSURE_OR_CONTINUE(binding != nullptr);
 

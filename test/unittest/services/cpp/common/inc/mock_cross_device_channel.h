@@ -31,7 +31,8 @@ public:
     MOCK_METHOD(ChannelId, GetChannelId, (), (const, override));
     MOCK_METHOD(std::optional<PhysicalDeviceKey>, GetLocalPhysicalDeviceKey, (), (const, override));
 
-    MOCK_METHOD(bool, OpenConnection, (const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey),
+    MOCK_METHOD(bool, OpenConnection,
+        (const std::string &connectionName, ConnectionMode connectionMode, const PhysicalDeviceKey &physicalDeviceKey),
         (override));
     MOCK_METHOD(void, CloseConnection, (const std::string &connectionName, const std::string &reason), (override));
     MOCK_METHOD(bool, SendMessage, (const std::string &connectionName, const std::vector<uint8_t> &rawMsg), (override));

@@ -869,7 +869,10 @@ public:
 
     LocalDeviceProfile GetLocalDeviceProfile() override
     {
-        return LocalDeviceProfile();
+        LocalDeviceProfile profile;
+        profile.hostCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
+        profile.companionCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
+        return profile;
     }
 
     std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey) override
@@ -878,9 +881,9 @@ public:
         return std::optional<DeviceStatus>();
     }
 
-    std::vector<DeviceStatus> GetAllDeviceStatus(bool includeUnsynced) override
+    std::vector<DeviceStatus> GetAllDeviceStatus(DeviceStatusFilter filter) override
     {
-        (void)includeUnsynced;
+        (void)filter;
         return std::vector<DeviceStatus>();
     }
 
@@ -905,13 +908,32 @@ public:
         return SubscribeMode::SUBSCRIBE_MODE_SUBSCRIBED_ONLY;
     }
 
+    ConnectionMode GetCurrentConnectionMode() const override
+    {
+        return ConnectionMode::BACKGROUND;
+    }
+
     void RefreshDeviceStatus() override
     {
     }
 
-    void TriggerDeviceSync(const DeviceKey &deviceKey) override
+    void EnsureDeviceSynced(const PhysicalDeviceKey &physicalKey, OnDeviceSyncResult &&onResult) override
+    {
+        (void)physicalKey;
+        if (onResult && fuzzData_.ConsumeBool()) {
+            onResult(static_cast<ResultCode>(fuzzData_.ConsumeIntegral<int32_t>()));
+        }
+    }
+
+    void ResyncDevice(const PhysicalDeviceKey &physicalKey) override
+    {
+        (void)physicalKey;
+    }
+
+    bool IsPhysicalOnline(const DeviceKey &deviceKey) override
     {
         (void)deviceKey;
+        return true;
     }
 
     std::optional<SteadyTimeMs> GetTemplateStatusSubscribeTimeMs() const override
@@ -924,11 +946,11 @@ public:
         (void)isActive;
     }
 
-    std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
+    std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, SyncDemand demand,
         OnDeviceStatusChange &&onDeviceStatusChange) override
     {
         (void)deviceKey;
-        (void)needSync;
+        (void)demand;
         if (onDeviceStatusChange && fuzzData_.ConsumeBool()) {
             std::vector<DeviceStatus> deviceStatuses;
             FillDeviceStatusVector(fuzzData_, deviceStatuses, SIZE_100);
@@ -938,9 +960,11 @@ public:
         return std::make_unique<Subscription>([] {});
     }
 
-    bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) override
+    bool OpenConnection(const DeviceKey &deviceKey, ConnectionMode connectionMode,
+        std::string &outConnectionName) override
     {
         (void)deviceKey;
+        (void)connectionMode;
         // Generate fuzzed connection name
         outConnectionName = "connection_" + GenerateRandomString(fuzzData_);
         return GenerateFuzzBool(fuzzData_);
@@ -1243,23 +1267,25 @@ public:
     }
 
     std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(const UserKey &hostUserKey, TemplateId templateId,
-        const DeviceKey &companionDeviceKey) override
+        const DeviceKey &companionDeviceKey, ConnectionMode connectionMode) override
     {
         (void)hostUserKey;
         (void)templateId;
         (void)companionDeviceKey;
+        (void)connectionMode;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0
             ? std::make_shared<MockFuzzIRequest>(fuzzData_, requestCounter_++, 0)
             : nullptr;
     }
 
     std::shared_ptr<IRequest> CreateHostSyncDeviceStatusRequest(const UserKey &hostUserKey,
-        const DeviceKey &companionDeviceKey, const std::string &companionDeviceName,
+        const DeviceKey &companionDeviceKey, ConnectionMode connectionMode, SyncTriggerReason triggerReason,
         SyncDeviceStatusCallback &&callback) override
     {
         (void)hostUserKey;
         (void)companionDeviceKey;
-        (void)companionDeviceName;
+        (void)connectionMode;
+        (void)triggerReason;
         (void)callback;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0
             ? std::make_shared<MockFuzzIRequest>(fuzzData_, requestCounter_++, 0)

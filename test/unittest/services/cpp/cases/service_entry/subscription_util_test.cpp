@@ -37,8 +37,7 @@ CompanionStatus MakeStatus(uint64_t lastCheckTime)
 
 } // namespace
 
-class SubscriptionUtilTest : public Test {
-};
+class SubscriptionUtilTest : public Test {};
 
 // isConfirmed is true at the boundary: the device synced exactly when manage mode began.
 HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_ConfirmedAtBoundary, TestSize.Level0)
@@ -76,14 +75,36 @@ HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_NotConfirmedWithoutMan
     EXPECT_FALSE(ipcStatus.isConfirmed);
 }
 
-// tokenAuthAtl is carried to the IPC status when a token is currently issued.
+// tokenAuthAtl is carried to the IPC status when a token is currently issued and auth maintain is active.
 HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_AtlPresent, TestSize.Level0)
 {
     auto status = MakeStatus(100);
+    status.companionDeviceStatus.isAuthMaintainActive = true;
     status.tokenAuthAtl = TEST_ATL2;
     auto ipcStatus = ConvertToIpcTemplateStatus(status, std::nullopt);
     EXPECT_TRUE(ipcStatus.hasAuthTrustLevel);
     EXPECT_EQ(ipcStatus.authTrustLevel, TEST_ATL2);
+}
+
+// The gate keys on field presence, not the boolean: while the token is still held during the
+// auth-maintain-inactive grace window, the ATL remains reported until the token is revoked.
+HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_AtlHeldWhileMaintainInactive, TestSize.Level0)
+{
+    auto status = MakeStatus(100);
+    status.companionDeviceStatus.isAuthMaintainActive = false;
+    status.tokenAuthAtl = TEST_ATL2;
+    auto ipcStatus = ConvertToIpcTemplateStatus(status, std::nullopt);
+    EXPECT_TRUE(ipcStatus.hasAuthTrustLevel);
+    EXPECT_EQ(ipcStatus.authTrustLevel, TEST_ATL2);
+}
+
+// An unknown auth-maintain state (field absent) suppresses the ATL even though one is issued.
+HWTEST_F(SubscriptionUtilTest, ConvertToIpcTemplateStatus_AtlSuppressedWhenMaintainUnknown, TestSize.Level0)
+{
+    auto status = MakeStatus(100);
+    status.tokenAuthAtl = TEST_ATL2;
+    auto ipcStatus = ConvertToIpcTemplateStatus(status, std::nullopt);
+    EXPECT_FALSE(ipcStatus.hasAuthTrustLevel);
 }
 
 // tokenAuthAtl absence is carried as hasAuthTrustLevel=false.

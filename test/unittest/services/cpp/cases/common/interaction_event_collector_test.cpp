@@ -541,6 +541,29 @@ HWTEST_F(InteractionEventCollectorTest, CollectorTiming_PopulatesTotalLocalAndTr
     EXPECT_NE(extra.find("timeTrace:1:0,2:30,3:50"), std::string::npos);
 }
 
+HWTEST_F(InteractionEventCollectorTest, SetConnectionMode_001, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    collector.SetConnectionMode(ConnectionMode::FOREGROUND);
+    EXPECT_NE(collector.GetExtraInfo().find("connectionMode:1"), std::string::npos);
+}
+
+HWTEST_F(InteractionEventCollectorTest, SetConnectionMode_NotInExtraInfoWhenUnset, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    EXPECT_EQ(collector.GetExtraInfo().find("connectionMode:"), std::string::npos);
+    EXPECT_FALSE(collector.GetConnectionMode().has_value());
+}
+
+HWTEST_F(InteractionEventCollectorTest, SetConnectionMode_GetterRoundTrips, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    collector.SetConnectionMode(ConnectionMode::BACKGROUND);
+    auto mode = collector.GetConnectionMode();
+    ASSERT_TRUE(mode.has_value());
+    EXPECT_EQ(ConnectionMode::BACKGROUND, *mode);
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

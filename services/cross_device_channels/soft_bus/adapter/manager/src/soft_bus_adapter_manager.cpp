@@ -17,13 +17,8 @@
 
 #include <cstdlib>
 
-#include "device_manager_adapter_impl.h"
-
-#include "iam_check.h"
 #include "iam_logger.h"
 #include "task_runner_manager.h"
-
-#include "soft_bus_adapter_impl.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_SOFT_BUS_ADAPTER_MANAGER
@@ -36,24 +31,6 @@ SoftBusChannelAdapterManager &SoftBusChannelAdapterManager::GetInstance()
 {
     static SoftBusChannelAdapterManager instance;
     return instance;
-}
-
-bool SoftBusChannelAdapterManager::CreateAndRegisterAdapters()
-{
-    IAM_LOGI("Starting to create and register SoftBus adapters");
-
-    // DeviceManagerAdapter
-    auto deviceManagerAdapter = DeviceManagerAdapterImpl::Create();
-    ENSURE_OR_RETURN_VAL(deviceManagerAdapter != nullptr, false);
-    SetDeviceManagerAdapter(deviceManagerAdapter);
-
-    // SoftBusAdapter
-    auto softBusAdapter = std::make_shared<SoftBusAdapterImpl>();
-    ENSURE_OR_RETURN_VAL(softBusAdapter != nullptr, false);
-    SetSoftBusAdapter(softBusAdapter);
-
-    IAM_LOGI("SoftBus adapters created and registered successfully");
-    return true;
 }
 
 IDeviceManagerAdapter &SoftBusChannelAdapterManager::GetDeviceManagerAdapter()
@@ -88,6 +65,22 @@ void SoftBusChannelAdapterManager::SetSoftBusAdapter(std::shared_ptr<ISoftBusAda
     softBusAdapter_ = adapter;
 }
 
+ISoftBusCoordinatorAdapter &SoftBusChannelAdapterManager::GetSoftBusCoordinatorAdapter()
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    if (softBusCoordinatorAdapter_ == nullptr) {
+        IAM_LOGE("SoftBus coordinator adapter is not initialized");
+        AbortIfAdapterUninitialized("SoftBusCoordinator");
+    }
+    return *softBusCoordinatorAdapter_;
+}
+
+void SoftBusChannelAdapterManager::SetSoftBusCoordinatorAdapter(std::shared_ptr<ISoftBusCoordinatorAdapter> adapter)
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    softBusCoordinatorAdapter_ = adapter;
+}
+
 void SoftBusChannelAdapterManager::AbortIfAdapterUninitialized(const char *adapterName)
 {
     IAM_LOGE("%{public}s adapter is not initialized, abort", adapterName);
@@ -99,6 +92,7 @@ void SoftBusChannelAdapterManager::Reset()
 {
     deviceManagerAdapter_ = nullptr;
     softBusAdapter_ = nullptr;
+    softBusCoordinatorAdapter_ = nullptr;
 }
 #endif // ENABLE_TEST
 

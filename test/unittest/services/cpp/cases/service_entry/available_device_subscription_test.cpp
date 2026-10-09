@@ -49,8 +49,7 @@ public:
     MOCK_METHOD(sptr<IRemoteObject>, AsObject, (), (override));
 };
 
-class AvailableDeviceSubscriptionTest : public Test {
-};
+class AvailableDeviceSubscriptionTest : public Test {};
 
 HWTEST_F(AvailableDeviceSubscriptionTest, Create_001, TestSize.Level0)
 {
@@ -60,7 +59,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, Create_001, TestSize.Level0)
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeAllDeviceStatus(_))
         .WillOnce(Invoke([](OnDeviceStatusChange &&callback) { return MakeSubscription(); }));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(DeviceStatusFilter::INCLUDE_UNSYNCED))
         .WillOnce(Return(std::vector<DeviceStatus> {}));
     EXPECT_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillOnce(Return(UserKey { 0, INVALID_SUB_PROFILE_ID }));
@@ -166,7 +165,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_ReportUnsynce
             storedCallback = std::move(callback);
             return MakeSubscription();
         }));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(DeviceStatusFilter::INCLUDE_UNSYNCED))
         .WillRepeatedly(Return(std::vector<DeviceStatus> { MakeUnsyncedStatus("device-1") }));
     EXPECT_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillRepeatedly(Return(UserKey { userId, INVALID_SUB_PROFILE_ID }));
@@ -197,7 +196,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_SuppressBound
             storedCallback = std::move(callback);
             return MakeSubscription();
         }));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(DeviceStatusFilter::INCLUDE_UNSYNCED))
         .WillRepeatedly(Return(std::vector<DeviceStatus> { MakeUnsyncedStatus("device-1") }));
     EXPECT_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillRepeatedly(Return(UserKey { userId, INVALID_SUB_PROFILE_ID }));
@@ -225,7 +224,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_ReportDeviceB
             storedCallback = std::move(callback);
             return MakeSubscription();
         }));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(DeviceStatusFilter::INCLUDE_UNSYNCED))
         .WillRepeatedly(Return(std::vector<DeviceStatus> { MakeUnsyncedStatus("device-1") }));
     EXPECT_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillRepeatedly(Return(UserKey { userId, INVALID_SUB_PROFILE_ID }));
@@ -257,7 +256,7 @@ HWTEST_F(AvailableDeviceSubscriptionTest, HandleDeviceStatusChange_SuppressSynce
             storedCallback = std::move(callback);
             return MakeSubscription();
         }));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(true))
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(DeviceStatusFilter::INCLUDE_UNSYNCED))
         .WillRepeatedly(Return(std::vector<DeviceStatus> { syncedStatus }));
     EXPECT_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
         .WillRepeatedly(Return(UserKey { userId, INVALID_SUB_PROFILE_ID }));

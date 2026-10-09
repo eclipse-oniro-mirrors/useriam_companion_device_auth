@@ -19,6 +19,7 @@
 
 #include "device_status_entry.h"
 #include "relative_timer.h"
+#include "task_runner_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -80,12 +81,28 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceKey_001, TestSize.Level0)
     EXPECT_EQ(deviceKey.deviceSubProfileId, 100001);
 }
 
+HWTEST_F(DeviceStatusEntryTest, DestructorSettlesLeftoverSyncWaiters, TestSize.Level0)
+{
+    ResultCode received = ResultCode::SUCCESS;
+    int32_t callCount = 0;
+    {
+        DeviceStatusEntry entry(physicalStatus_, []() {});
+        entry.syncWaiters.push_back([&received, &callCount](ResultCode resultCode) {
+            received = resultCode;
+            ++callCount;
+        });
+    }
+    TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
+
+    EXPECT_EQ(callCount, 1);
+    EXPECT_EQ(received, ResultCode::GENERAL_ERROR);
+}
+
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
 {
     std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2),
         static_cast<BusinessId>(3) };
-    DeviceStatusEntry entry(
-        physicalStatus_, []() {}, hostBusinessIds);
+    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
 
     entry.protocolId = ProtocolId::VERSION_1;
     entry.secureProtocolId = SecureProtocolId::DEFAULT;
@@ -224,8 +241,7 @@ HWTEST_F(DeviceStatusEntryTest, Constructor_SupportedBusinessIds_001, TestSize.L
     std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
     physicalStatus_.supportedBusinessIds = hostBusinessIds;
 
-    DeviceStatusEntry entry(
-        physicalStatus_, []() {}, hostBusinessIds);
+    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
 
     // sync empty -> effective degrades to hostSupportBusinessIds_ ∩ physicalCompanionBusinessIds_
     const auto &effective = entry.GetSupportedBusinessIds();
@@ -248,8 +264,7 @@ HWTEST_F(DeviceStatusEntryTest, SyncCompanionBusinessIds_TakesPriority_OverPhysi
         static_cast<BusinessId>(10003) };
     physicalStatus_.supportedBusinessIds = { static_cast<BusinessId>(10001) };
 
-    DeviceStatusEntry entry(
-        physicalStatus_, []() {}, hostBusinessIds);
+    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
     // before sync: effective degrades to hostSupport ∩ physical = {10001}
     EXPECT_EQ(entry.GetSupportedBusinessIds(), std::vector<BusinessId>({ static_cast<BusinessId>(10001) }));
 
@@ -263,8 +278,7 @@ HWTEST_F(DeviceStatusEntryTest, SetSyncCompanionBusinessIds_Empty_DegradesToPhys
     std::vector<BusinessId> hostBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
     physicalStatus_.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
 
-    DeviceStatusEntry entry(
-        physicalStatus_, []() {}, hostBusinessIds);
+    DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
     entry.SetSyncCompanionBusinessIds({ static_cast<BusinessId>(10001) });
     EXPECT_EQ(entry.GetSupportedBusinessIds(), std::vector<BusinessId>({ static_cast<BusinessId>(10001) }));
 

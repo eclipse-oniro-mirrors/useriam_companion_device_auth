@@ -76,7 +76,7 @@ HWTEST_F(CompanionDeviceAuthExecutorCallbackTest, OperatorCall_002, TestSize.Lev
     auto callback = std::make_shared<CompanionDeviceAuthExecutorCallback>(mockCallback);
     ASSERT_NE(nullptr, callback);
 
-    EXPECT_CALL(*mockCallback, OnResult(FwkResultCode::FAIL, _)).Times(1);
+    EXPECT_CALL(*mockCallback, OnResult(FwkResultCode::GENERAL_ERROR, _)).Times(1);
 
     std::vector<uint8_t> extraInfo;
     (*callback)(ResultCode::COMMUNICATION_ERROR, extraInfo);

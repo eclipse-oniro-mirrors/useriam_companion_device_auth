@@ -48,6 +48,13 @@ HostObtainTokenRequest::HostObtainTokenRequest(const std::string &connectionName
 
 bool HostObtainTokenRequest::ParsePreObtainTokenRequest(ErrorGuard &errorGuard)
 {
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    if (!HasCapability(localProfile.hostCapabilities, Capability::OBTAIN_TOKEN)) {
+        IAM_LOGE("%{public}s OBTAIN_TOKEN capability not supported by local product", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::TYPE_NOT_SUPPORT);
+        return false;
+    }
+
     auto preRequestOpt = DecodePreObtainTokenRequest(request_);
     if (!preRequestOpt.has_value()) {
         IAM_LOGE("%{public}s DecodePreObtainTokenRequest failed", GetDescription());
@@ -405,7 +412,7 @@ bool HostObtainTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &
         IAM_LOGE("%{public}s device not in auth maintain active state", GetDescription());
         return false;
     }
-    deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey, false,
+    deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey, SyncDemand::BACKGROUND,
         [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);

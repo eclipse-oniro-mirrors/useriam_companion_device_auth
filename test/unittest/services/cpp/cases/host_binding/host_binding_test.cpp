@@ -260,10 +260,11 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_001, TestSize.Level0)
 
     auto deviceStatus = MakeDeviceStatus(deviceKey, true);
     std::vector<DeviceStatus> statusList { deviceStatus };
+    ON_CALL(crossDeviceMgr, IsPhysicalOnline(_)).WillByDefault(Return(true));
     binding->HandleDeviceStatusChanged(statusList);
 
-    auto status = binding->GetStatus();
-    EXPECT_TRUE(status.hostDeviceStatus.isOnline);
+    EXPECT_TRUE(binding->isHostPhysicalOnline_);
+    EXPECT_EQ("TestDevice", binding->GetStatus().hostDeviceStatus.deviceName);
 }
 
 HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_002, TestSize.Level0)
@@ -308,13 +309,61 @@ HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_002, TestSize.Level0)
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    binding->status_.hostDeviceStatus.isOnline = true;
+    binding->isHostPhysicalOnline_ = true;
 
+    ON_CALL(crossDeviceMgr, IsPhysicalOnline(_)).WillByDefault(Return(false));
     std::vector<DeviceStatus> emptyStatusList;
     binding->HandleDeviceStatusChanged(emptyStatusList);
 
-    auto status = binding->GetStatus();
-    EXPECT_FALSE(status.hostDeviceStatus.isOnline);
+    EXPECT_FALSE(binding->isHostPhysicalOnline_);
+}
+
+// The host device is subscribed without sync, so it is absent from the synced-only reported list
+// even while it is reachable: the binding must stay online and keep its token.
+HWTEST_F(HostBindingTest, HandleDeviceStatusChanged_003, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto &crossDeviceMgr = guard.GetCrossDeviceCommManager();
+    EXPECT_CALL(crossDeviceMgr, SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(crossDeviceMgr, SubscribeIsAuthMaintainActive(_))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(crossDeviceMgr, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(crossDeviceMgr, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
+    ON_CALL(crossDeviceMgr, IsAuthMaintainActive()).WillByDefault(Return(true));
+
+    auto &companionMgr = guard.GetCompanionManager();
+    CompanionStatus mockCompanionStatus = {};
+    mockCompanionStatus.templateId = UINT32_12345;
+    mockCompanionStatus.hostUserKey.userId = INT32_100;
+    mockCompanionStatus.isValid = true;
+    mockCompanionStatus.tokenAuthAtl = std::nullopt;
+    ON_CALL(companionMgr, GetCompanionStatus(_, _)).WillByDefault(Return(mockCompanionStatus));
+    ON_CALL(companionMgr, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));
+
+    auto &requestFactory = guard.GetRequestFactory();
+    ON_CALL(requestFactory, CreateCompanionRevokeTokenRequest(_, _, _)).WillByDefault(Return(nullptr));
+    auto resyncRequest = std::make_shared<MockIRequest>();
+    ON_CALL(requestFactory, CreateCompanionRequestResyncRequest(_, _)).WillByDefault(Return(resyncRequest));
+
+    auto &requestMgr = guard.GetRequestManager();
+    ON_CALL(requestMgr, Start(_)).WillByDefault(Return(true));
+
+    auto persistedStatus = MakePersistedStatus(UINT32_12345, INT32_100, "test_device_id", INT32_200);
+    auto binding = HostBinding::Create(persistedStatus);
+    ASSERT_NE(nullptr, binding);
+
+    binding->status_.isTokenValid = true;
+
+    ON_CALL(crossDeviceMgr, IsPhysicalOnline(_)).WillByDefault(Return(true));
+    std::vector<DeviceStatus> emptyStatusList;
+    binding->HandleDeviceStatusChanged(emptyStatusList);
+
+    EXPECT_TRUE(binding->isHostPhysicalOnline_);
+    EXPECT_TRUE(binding->GetStatus().isTokenValid);
 }
 
 HWTEST_F(HostBindingTest, HandleHostDeviceStatusUpdate_001, TestSize.Level0)
@@ -362,9 +411,12 @@ HWTEST_F(HostBindingTest, HandleHostDeviceStatusUpdate_001, TestSize.Level0)
     auto deviceStatus = MakeDeviceStatus(deviceKey, true);
     binding->HandleHostDeviceStatusUpdate(deviceStatus);
 
+    // The report is stored verbatim, isOnline included (it mirrors the sync state); the binding's
+    // own online decision lives in isHostPhysicalOnline_ and is not taken over.
     auto status = binding->GetStatus();
     EXPECT_TRUE(status.hostDeviceStatus.isOnline);
     EXPECT_EQ("TestDevice", status.hostDeviceStatus.deviceName);
+    EXPECT_FALSE(binding->isHostPhysicalOnline_);
 }
 
 HWTEST_F(HostBindingTest, HandleHostDeviceOffline_001, TestSize.Level0)
@@ -408,12 +460,12 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_001, TestSize.Level0)
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    binding->status_.hostDeviceStatus.isOnline = true;
+    binding->isHostPhysicalOnline_ = true;
     binding->status_.isTokenValid = true;
 
     binding->HandleHostDeviceOffline();
 
-    EXPECT_FALSE(binding->GetStatus().hostDeviceStatus.isOnline);
+    EXPECT_FALSE(binding->isHostPhysicalOnline_);
     EXPECT_FALSE(binding->GetStatus().isTokenValid);
 }
 
@@ -458,11 +510,11 @@ HWTEST_F(HostBindingTest, HandleHostDeviceOffline_002, TestSize.Level0)
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    binding->status_.hostDeviceStatus.isOnline = false;
+    binding->isHostPhysicalOnline_ = false;
 
     binding->HandleHostDeviceOffline();
 
-    EXPECT_FALSE(binding->GetStatus().hostDeviceStatus.isOnline);
+    EXPECT_FALSE(binding->isHostPhysicalOnline_);
 }
 
 HWTEST_F(HostBindingTest, HandleAuthMaintainActiveChanged_001, TestSize.Level0)

@@ -11,3 +11,4 @@ build
 *.profraw
 fuzz/corpus/
 .claude
+.opencode

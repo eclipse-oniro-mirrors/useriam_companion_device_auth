@@ -22,6 +22,7 @@
 #include "nocopyable.h"
 
 #include "soft_bus_adapter.h"
+#include "soft_bus_coordinator_adapter.h"
 
 namespace OHOS {
 namespace UserIam {
@@ -31,13 +32,14 @@ class SoftBusChannelAdapterManager : public NoCopyable {
 public:
     static SoftBusChannelAdapterManager &GetInstance();
 
-    bool CreateAndRegisterAdapters();
-
     IDeviceManagerAdapter &GetDeviceManagerAdapter();
     void SetDeviceManagerAdapter(std::shared_ptr<IDeviceManagerAdapter> adapter);
 
     ISoftBusAdapter &GetSoftBusAdapter();
     void SetSoftBusAdapter(std::shared_ptr<ISoftBusAdapter> adapter);
+
+    ISoftBusCoordinatorAdapter &GetSoftBusCoordinatorAdapter();
+    void SetSoftBusCoordinatorAdapter(std::shared_ptr<ISoftBusCoordinatorAdapter> adapter);
 
 #ifdef ENABLE_TEST
     void Reset();
@@ -51,6 +53,7 @@ private:
 
     std::shared_ptr<IDeviceManagerAdapter> deviceManagerAdapter_;
     std::shared_ptr<ISoftBusAdapter> softBusAdapter_;
+    std::shared_ptr<ISoftBusCoordinatorAdapter> softBusCoordinatorAdapter_;
 };
 
 inline IDeviceManagerAdapter &GetDeviceManagerAdapter()
@@ -61,6 +64,11 @@ inline IDeviceManagerAdapter &GetDeviceManagerAdapter()
 inline ISoftBusAdapter &GetSoftBusAdapter()
 {
     return SoftBusChannelAdapterManager::GetInstance().GetSoftBusAdapter();
+}
+
+inline ISoftBusCoordinatorAdapter &GetSoftBusCoordinatorAdapter()
+{
+    return SoftBusChannelAdapterManager::GetInstance().GetSoftBusCoordinatorAdapter();
 }
 
 } // namespace CompanionDeviceAuth

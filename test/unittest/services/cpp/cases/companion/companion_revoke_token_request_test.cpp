@@ -39,6 +39,18 @@ class CompanionRevokeTokenRequestTest : public Test {
 protected:
 };
 
+// Revocation targets an offline host by definition: waiting for its device status to
+// sync would deadlock the request that the offline transition just started.
+HWTEST_F(CompanionRevokeTokenRequestTest, RequireSyncedDevice_IsFalse, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto request = std::make_shared<CompanionRevokeTokenRequest>(
+        UserKey { COMPANION_USER_ID, COMPANION_SUB_PROFILE_ID }, HOST_DEVICE_KEY, REASON);
+
+    EXPECT_FALSE(request->RequireSyncedDevice());
+}
+
 HWTEST_F(CompanionRevokeTokenRequestTest, OnConnected_001, TestSize.Level0)
 {
     MockGuard guard;

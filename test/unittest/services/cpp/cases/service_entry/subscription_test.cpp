@@ -29,8 +29,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-class SubscriptionTest : public testing::Test {
-};
+class SubscriptionTest : public testing::Test {};
 
 HWTEST_F(SubscriptionTest, Constructor_001, TestSize.Level0)
 {

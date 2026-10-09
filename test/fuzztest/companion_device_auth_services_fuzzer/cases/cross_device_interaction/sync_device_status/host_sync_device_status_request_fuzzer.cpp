@@ -127,11 +127,11 @@ void FuzzHostSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
 {
     int32_t hostUserId = fuzzData.ConsumeIntegral<int32_t>();
     DeviceKey companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    std::string companionDeviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
 
     auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { hostUserId, INVALID_SUB_PROFILE_ID },
-        companionDeviceKey, companionDeviceName, std::move(callback));
+        companionDeviceKey, GenerateFuzzConnectionMode(fuzzData), SyncTriggerReason::EXTERNAL_REFRESH,
+        std::move(callback));
     if (!request) {
         return;
     }

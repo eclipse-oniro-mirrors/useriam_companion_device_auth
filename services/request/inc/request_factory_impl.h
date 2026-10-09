@@ -36,9 +36,9 @@ public:
     std::shared_ptr<IRequest> CreateHostTokenAuthRequest(const AuthRequestParams &params,
         FwkResultCallback &&requestCallback) override;
     std::shared_ptr<IRequest> CreateHostRemoveHostBindingRequest(const UserKey &hostUserKey, TemplateId templateId,
-        const DeviceKey &companionDeviceKey) override;
+        const DeviceKey &companionDeviceKey, ConnectionMode connectionMode) override;
     std::shared_ptr<IRequest> CreateHostSyncDeviceStatusRequest(const UserKey &hostUserKey,
-        const DeviceKey &companionDeviceKey, const std::string &companionDeviceName,
+        const DeviceKey &companionDeviceKey, ConnectionMode connectionMode, SyncTriggerReason triggerReason,
         SyncDeviceStatusCallback &&callback) override;
     std::shared_ptr<IRequest> CreateHostIssueTokenRequest(const UserKey &hostUserKey, TemplateId templateId,
         uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) override;

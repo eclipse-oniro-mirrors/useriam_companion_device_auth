@@ -26,6 +26,7 @@
 
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
+#include "fuzz_soft_bus_coordinator_adapter.h"
 #include "soft_bus_adapter.h"
 #include "soft_bus_adapter_manager.h"
 
@@ -132,6 +133,9 @@ bool InitSoftBusAdapter(FuzzedDataProvider &fuzzData)
 
     auto deviceMgrAdapter = std::make_shared<MockDeviceManagerAdapterForChannel>(fuzzData);
     SoftBusChannelAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceMgrAdapter);
+
+    auto softBusCoordinatorAdapter = std::make_shared<FuzzSoftBusCoordinatorAdapter>();
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusCoordinatorAdapter(softBusCoordinatorAdapter);
 
     return true;
 }

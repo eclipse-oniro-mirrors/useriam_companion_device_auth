@@ -225,7 +225,7 @@ public:
         return localPhysicalKey_;
     }
 
-    bool OpenConnection(const std::string &connectionName, const PhysicalDeviceKey &) override
+    bool OpenConnection(const std::string &connectionName, ConnectionMode, const PhysicalDeviceKey &) override
     {
         openedConnections_.push_back(connectionName);
         return true;

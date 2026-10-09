@@ -21,6 +21,7 @@
 #include "channel_manager.h"
 #include "connection_manager.h"
 #include "local_device_status_manager.h"
+#include "message_router.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 
@@ -31,6 +32,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+
+// Move past the idle deadline by a clear margin, so the tick is unambiguously late.
+constexpr uint32_t IDLE_TIMEOUT_MARGIN_MS = 1000;
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
@@ -54,9 +58,12 @@ public:
             .WillOnce(Return(ByMove(MakeSubscription())));
         ON_CALL(*mockChannel, GetAuthMaintainActive()).WillByDefault(Return(false));
         ON_CALL(*mockChannel, GetCompanionSecureProtocolId()).WillByDefault(Return(SecureProtocolId::DEFAULT));
-        ON_CALL(*mockChannel, OpenConnection(_, _)).WillByDefault(Return(true));
+        ON_CALL(*mockChannel, OpenConnection(_, _, _)).WillByDefault(Return(true));
         ON_CALL(*mockChannel, SubscribePhysicalDeviceStatus(_))
             .WillByDefault(Invoke([](OnPhysicalDeviceStatusChange &&) { return MakeSubscription(); }));
+        ON_CALL(*mockChannel, SubscribeRawMessage(_)).WillByDefault(Invoke([](OnRawMessage &&) {
+            return MakeSubscription();
+        }));
 
         return mockChannel;
     }
@@ -253,10 +260,11 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_001, TestSize.Level0)
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    EXPECT_CALL(*mockChannel, OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mockChannel, OpenConnection(_, _, _)).WillOnce(Return(true));
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
 
     EXPECT_TRUE(result);
     EXPECT_FALSE(connectionName.empty());
@@ -301,10 +309,11 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_002, TestSize.Level0)
     remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     remoteKey.deviceId = "remote-device";
 
-    EXPECT_CALL(*mockChannel, OpenConnection(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mockChannel, OpenConnection(_, _, _)).WillOnce(Return(false));
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
 
     EXPECT_FALSE(result);
 }
@@ -346,7 +355,8 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_003, TestSize.Level0)
     EXPECT_CALL(*mockChannel, GetLocalPhysicalDeviceKey()).WillOnce(Return(std::nullopt));
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
 
     EXPECT_FALSE(result);
 }
@@ -392,7 +402,8 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_004, TestSize.Level0)
     EXPECT_CALL(*mockChannel, GetLocalPhysicalDeviceKey()).WillOnce(Return(localPhysicalKey));
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
 
     EXPECT_FALSE(result);
 }
@@ -438,7 +449,8 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_005, TestSize.Level0)
     EXPECT_CALL(*mockChannel, GetLocalPhysicalDeviceKey()).WillOnce(Return(localPhysicalKey));
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
 
     EXPECT_FALSE(result);
 }
@@ -479,7 +491,8 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_006, TestSize.Level0)
         remoteKey.deviceId = "device-" + std::to_string(i);
 
         std::string connectionName;
-        bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+        bool result =
+            connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
         EXPECT_TRUE(result);
     }
 
@@ -488,7 +501,8 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_006, TestSize.Level0)
     remoteKey.deviceId = "device-overflow";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     EXPECT_FALSE(result);
 }
 
@@ -534,12 +548,14 @@ HWTEST_F(ConnectionManagerTest, OpenConnection_007, TestSize.Level0)
 
     for (size_t i = 0; i < 10; ++i) {
         std::string connectionName;
-        bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+        bool result =
+            connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
         EXPECT_TRUE(result);
     }
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     EXPECT_FALSE(result);
 }
 
@@ -578,7 +594,8 @@ HWTEST_F(ConnectionManagerTest, CloseConnection_001, TestSize.Level0)
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     auto notified = std::make_shared<bool>(false);
@@ -665,7 +682,8 @@ HWTEST_F(ConnectionManagerTest, CloseConnection_003, TestSize.Level0)
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     EXPECT_CALL(*mockChannel, RequiresDisconnectNotification()).WillOnce(Return(false));
@@ -952,7 +970,8 @@ HWTEST_F(ConnectionManagerTest, GetConnectionStatus_002, TestSize.Level0)
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     connectionStatusCallback(connectionName, ConnectionStatus::CONNECTED, "established");
@@ -1123,7 +1142,8 @@ HWTEST_F(ConnectionManagerTest, HandleChannelConnectionStatusChange_001, TestSiz
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     auto notified = std::make_shared<bool>(false);
@@ -1179,7 +1199,8 @@ HWTEST_F(ConnectionManagerTest, HandleChannelConnectionStatusChange_002, TestSiz
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     auto notified = std::make_shared<bool>(false);
@@ -1234,7 +1255,8 @@ HWTEST_F(ConnectionManagerTest, HandleChannelConnectionStatusChange_003, TestSiz
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     ASSERT_TRUE(connectionStatusCallback != nullptr);
@@ -1606,10 +1628,72 @@ HWTEST_F(ConnectionManagerTest, HandleIdleMonitorTimer_001, TestSize.Level0)
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     connectionMgr->HandleIdleMonitorTimer();
+}
+
+HWTEST_F(ConnectionManagerTest, HandleIdleMonitorTimer_002, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto mockChannel = SetupMockChannel();
+    OnConnectionStatusChange connectionStatusCallback;
+    OnIncomingConnection incomingConnectionCallback;
+
+    ON_CALL(*mockChannel, SubscribeConnectionStatus(_))
+        .WillByDefault(Invoke([&connectionStatusCallback](OnConnectionStatusChange &&callback) {
+            connectionStatusCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SubscribeIncomingConnection(_))
+        .WillByDefault(Invoke([&incomingConnectionCallback](OnIncomingConnection &&callback) {
+            incomingConnectionCallback = std::move(callback);
+            return MakeSubscription();
+        }));
+    ON_CALL(*mockChannel, SendMessage(_, _)).WillByDefault(Return(true));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    auto localDeviceStatusMgr = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
+    ASSERT_NE(localDeviceStatusMgr, nullptr);
+    std::shared_ptr<ConnectionManager> connectionMgr;
+    connectionMgr = ConnectionManager::Create(channelMgr, localDeviceStatusMgr);
+    ASSERT_NE(connectionMgr, nullptr);
+
+    auto messageRouter = MessageRouter::Create(connectionMgr, channelMgr);
+    ASSERT_NE(messageRouter, nullptr);
+    connectionMgr->SetMessageRouter(messageRouter);
+
+    PhysicalDeviceKey remoteKey;
+    remoteKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    remoteKey.deviceId = "remote-device";
+
+    std::string connectionName;
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
+    ASSERT_TRUE(result);
+    ASSERT_EQ(connectionMgr->GetConnectionStatus(connectionName), ConnectionStatus::ESTABLISHING);
+
+    // idle beyond timeout while still establishing: keep alive must not be sent
+    EXPECT_CALL(*mockChannel, SendMessage(_, _)).Times(0);
+    guard.GetTimeKeeper().AdvanceSteadyTime(CONNECTION_IDLE_TIMEOUT_MS + IDLE_TIMEOUT_MARGIN_MS);
+    connectionMgr->HandleIdleMonitorTimer();
+
+    // connected and idle: keep alive is sent
+    ASSERT_TRUE(connectionStatusCallback);
+    connectionStatusCallback(connectionName, ConnectionStatus::CONNECTED, "established");
+    ASSERT_EQ(connectionMgr->GetConnectionStatus(connectionName), ConnectionStatus::CONNECTED);
+    EXPECT_CALL(*mockChannel, SendMessage(_, _)).Times(1);
+    guard.GetTimeKeeper().AdvanceSteadyTime(CONNECTION_IDLE_TIMEOUT_MS + IDLE_TIMEOUT_MARGIN_MS);
+    connectionMgr->HandleIdleMonitorTimer();
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
 }
 
 HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_001, TestSize.Level0)
@@ -1647,7 +1731,8 @@ HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_001, TestSize.L
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     auto notified = std::make_shared<bool>(false);
@@ -1705,11 +1790,13 @@ HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_002, TestSize.L
     remoteKey2.deviceId = "remote-device-2";
 
     std::string connectionName1;
-    bool result1 = connectionMgr->OpenConnection(remoteKey1, ChannelId::SOFTBUS, connectionName1);
+    bool result1 =
+        connectionMgr->OpenConnection(remoteKey1, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName1);
     ASSERT_TRUE(result1);
 
     std::string connectionName2;
-    bool result2 = connectionMgr->OpenConnection(remoteKey2, ChannelId::SOFTBUS, connectionName2);
+    bool result2 =
+        connectionMgr->OpenConnection(remoteKey2, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName2);
     ASSERT_TRUE(result2);
 
     PhysicalDeviceStatus status1;
@@ -1759,7 +1846,8 @@ HWTEST_F(ConnectionManagerTest, HandlePhysicalDeviceStatusChange_003, TestSize.L
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     std::vector<PhysicalDeviceStatus> statusList;
@@ -1894,7 +1982,8 @@ HWTEST_F(ConnectionManagerTest, CheckIdleMonitoring_001, TestSize.Level0)
     remoteKey.deviceId = "remote-device";
 
     std::string connectionName;
-    bool result = connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, connectionName);
+    bool result =
+        connectionMgr->OpenConnection(remoteKey, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName);
     ASSERT_TRUE(result);
 
     EXPECT_NE(connectionMgr->idleMonitorTimerSubscription_, nullptr);
@@ -1944,11 +2033,13 @@ HWTEST_F(ConnectionManagerTest, GenerateConnectionName_001, TestSize.Level0)
     remoteKey2.deviceId = "remote-device-2";
 
     std::string connectionName1;
-    bool result1 = connectionMgr->OpenConnection(remoteKey1, ChannelId::SOFTBUS, connectionName1);
+    bool result1 =
+        connectionMgr->OpenConnection(remoteKey1, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName1);
     ASSERT_TRUE(result1);
 
     std::string connectionName2;
-    bool result2 = connectionMgr->OpenConnection(remoteKey2, ChannelId::SOFTBUS, connectionName2);
+    bool result2 =
+        connectionMgr->OpenConnection(remoteKey2, ChannelId::SOFTBUS, ConnectionMode::FOREGROUND, connectionName2);
     ASSERT_TRUE(result2);
 
     EXPECT_NE(connectionName1, connectionName2);

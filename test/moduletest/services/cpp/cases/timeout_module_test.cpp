@@ -47,8 +47,7 @@ constexpr UserId HOST_USER_ID = 100;
 // DEFAULT_REQUEST_TIMEOUT_MS = 60000 (60s). Add 1s margin to ensure the deadline is exceeded.
 constexpr uint64_t TIMEOUT_ADVANCE_MS = DEFAULT_REQUEST_TIMEOUT_MS + 1000;
 
-class TimeoutModuleTest : public testing::Test {
-};
+class TimeoutModuleTest : public testing::Test {};
 
 // ============================================================================
 // Test 1: SyncDeviceStatusTimeoutE2E_001
@@ -111,9 +110,9 @@ HWTEST_F(TimeoutModuleTest, SyncDeviceStatusTimeoutE2E_001, TestSize.Level0)
     IAM_LOGI("[Phase] Run — create SyncDeviceStatus request, send, NO reply, drain all");
     // 4. Create HostSyncDeviceStatusRequest via RequestFactory
     auto companionDeviceKey = MakeDeviceKey(companionDeviceId, HOST_USER_ID);
-    auto request =
-        GetRequestFactory().CreateHostSyncDeviceStatusRequest(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-            companionDeviceKey, "companion-timeout-sync-001", std::move(syncCallback));
+    auto request = GetRequestFactory().CreateHostSyncDeviceStatusRequest(
+        UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, companionDeviceKey, ConnectionMode::BACKGROUND,
+        SyncTriggerReason::EXTERNAL_REFRESH, std::move(syncCallback));
     ASSERT_NE(request, nullptr) << "Failed to create HostSyncDeviceStatusRequest";
 
     // 5. Start the request

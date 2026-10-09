@@ -48,6 +48,12 @@ bool CompanionIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
 {
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    if (!HasCapability(localProfile.companionCapabilities, Capability::TOKEN_AUTH)) {
+        IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by local product", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::TYPE_NOT_SUPPORT);
+        return false;
+    }
     if (!GetCrossDeviceCommManager().IsAuthMaintainActive()) {
         IAM_LOGE("%{public}s local auth maintain inactive", GetDescription());
         return false;

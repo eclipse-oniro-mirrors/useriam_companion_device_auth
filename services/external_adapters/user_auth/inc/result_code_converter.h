@@ -33,9 +33,6 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-// Single source of truth for CDA ResultCode <-> UserAuth::ResultCode.
-// COMMUNICATION_ERROR is CDA-only: it collapses to FAIL one-way (UserAuth never reports it),
-// so reverse lookup of FAIL must hit the FAIL row below — keep it before COMMUNICATION_ERROR.
 struct ResultCodeMapping {
     ResultCode cdaCode;
     UserAuth::ResultCode userAuthCode;
@@ -60,7 +57,11 @@ constexpr ResultCodeMapping RESULT_CODE_MAPPINGS[] = {
     { ResultCode::AUTH_TOKEN_CHECK_FAILED, UserAuth::ResultCode::AUTH_TOKEN_CHECK_FAILED },
     { ResultCode::AUTH_TOKEN_EXPIRED, UserAuth::ResultCode::AUTH_TOKEN_EXPIRED },
     { ResultCode::NO_VALID_CREDENTIAL, UserAuth::ResultCode::NO_VALID_CREDENTIAL },
-    { ResultCode::COMMUNICATION_ERROR, UserAuth::ResultCode::FAIL },
+    { ResultCode::PEER_SERVICE_NOT_AVAILABLE, UserAuth::ResultCode::GENERAL_ERROR },
+    { ResultCode::COORDINATOR_REJECTED, UserAuth::ResultCode::GENERAL_ERROR },
+    { ResultCode::PROTOCOL_NEGOTIATION_FAILED, UserAuth::ResultCode::GENERAL_ERROR },
+    { ResultCode::PEER_SYNC_FAILED, UserAuth::ResultCode::GENERAL_ERROR },
+    { ResultCode::COMMUNICATION_ERROR, UserAuth::ResultCode::GENERAL_ERROR },
 };
 
 inline UserAuth::ResultCode ToUserAuthResultCode(ResultCode in)

@@ -78,6 +78,13 @@ public:
         isAuthMaintainActive_ = active;
     }
 
+    // Test backdoor: make subsequent OpenConnection calls report DISCONNECTED with this reason
+    void TestSetRejectConnections(std::string reason)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        rejectReason_ = std::move(reason);
+    }
+
     std::vector<PhysicalDeviceStatus> GetAllPhysicalDevices() const override
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -90,20 +97,39 @@ public:
 
     // === Connection management ===
 
-    bool OpenConnection(const std::string &connectionName, const PhysicalDeviceKey &) override
+    bool OpenConnection(const std::string &connectionName, ConnectionMode, const PhysicalDeviceKey &) override
     {
-        // Defer callback to match real channel async behavior.
-        // ConnectionManager adds connection to its map AFTER OpenConnection returns,
-        // so synchronous callback would fire before the connection is tracked.
-        if (connectionStatusCb_) {
-            auto cb = connectionStatusCb_;
-            TaskRunnerManager::GetInstance().PostTaskOnResident([cb, connectionName]() {
-                if (cb) {
-                    cb(connectionName, ConnectionStatus::CONNECTED, "test_connected");
-                }
-            });
+        std::string rejectReason;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            rejectReason = rejectReason_;
         }
+        if (!rejectReason.empty()) {
+            // Mirror a coordinator denial: the quick checks pass (return true), then the
+            // connection reports DISCONNECTED with the configured reason, like the real
+            // ReportConnectionClosed path for an arbitration rejection.
+            PostConnectionStatusAsync(connectionName, ConnectionStatus::DISCONNECTED, rejectReason);
+            return true;
+        }
+        PostConnectionStatusAsync(connectionName, ConnectionStatus::CONNECTED, "test_connected");
         return true;
+    }
+
+    // Defer callback to match real channel async behavior.
+    // ConnectionManager adds connection to its map AFTER OpenConnection returns,
+    // so synchronous callback would fire before the connection is tracked.
+    void PostConnectionStatusAsync(const std::string &connectionName, ConnectionStatus status,
+        const std::string &reason)
+    {
+        if (!connectionStatusCb_) {
+            return;
+        }
+        auto cb = connectionStatusCb_;
+        TaskRunnerManager::GetInstance().PostTaskOnResident([cb, connectionName, status, reason]() {
+            if (cb) {
+                cb(connectionName, status, reason);
+            }
+        });
     }
 
     void CloseConnection(const std::string &, const std::string &) override
@@ -236,6 +262,7 @@ public:
 private:
     mutable std::mutex mutex_;
     bool isAuthMaintainActive_ = true; // Default to active for companion-side tests
+    std::string rejectReason_;
     std::vector<PhysicalDeviceStatus> onlineDevices_;
     std::map<std::string, std::vector<std::vector<uint8_t>>> sentMessages_;
     OnPhysicalDeviceStatusChange physicalDeviceStatusCb_;

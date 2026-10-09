@@ -104,11 +104,12 @@ HWTEST_F(CompanionManagerImplTest, Create_001, TestSize.Level0)
     ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionEnabledBusinessIds(_))
         .WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(guard.GetSecurityAgent(), HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _))
-        .WillByDefault(
-            Invoke([this](const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey) {
-                return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey);
-            }));
+    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _, _))
+        .WillByDefault(Invoke([this](const UserKey &hostUserKey, TemplateId templateId,
+                                  const DeviceKey &companionDeviceKey, ConnectionMode connectionMode) {
+            return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey,
+                connectionMode);
+        }));
     ON_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
         .WillByDefault(Invoke([this](const UserKey &hostUserKey, TemplateId templateId, uint32_t lockStateAuthTypeValue,
                                   const std::vector<uint8_t> &fwkUnlockMsg) {
@@ -150,11 +151,12 @@ HWTEST_F(CompanionManagerImplTest, Reload_001, TestSize.Level0)
     ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionEnabledBusinessIds(_))
         .WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(guard.GetSecurityAgent(), HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _))
-        .WillByDefault(
-            Invoke([this](const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey) {
-                return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey);
-            }));
+    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _, _))
+        .WillByDefault(Invoke([this](const UserKey &hostUserKey, TemplateId templateId,
+                                  const DeviceKey &companionDeviceKey, ConnectionMode connectionMode) {
+            return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey,
+                connectionMode);
+        }));
     ON_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
         .WillByDefault(Invoke([this](const UserKey &hostUserKey, TemplateId templateId, uint32_t lockStateAuthTypeValue,
                                   const std::vector<uint8_t> &fwkUnlockMsg) {
@@ -199,11 +201,12 @@ HWTEST_F(CompanionManagerImplTest, Reload_002, TestSize.Level0)
     ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionEnabledBusinessIds(_))
         .WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(guard.GetSecurityAgent(), HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _))
-        .WillByDefault(
-            Invoke([this](const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey) {
-                return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey);
-            }));
+    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _, _))
+        .WillByDefault(Invoke([this](const UserKey &hostUserKey, TemplateId templateId,
+                                  const DeviceKey &companionDeviceKey, ConnectionMode connectionMode) {
+            return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey,
+                connectionMode);
+        }));
     ON_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
         .WillByDefault(Invoke([this](const UserKey &hostUserKey, TemplateId templateId, uint32_t lockStateAuthTypeValue,
                                   const std::vector<uint8_t> &fwkUnlockMsg) {
@@ -249,11 +252,12 @@ HWTEST_F(CompanionManagerImplTest, Reload_003, TestSize.Level0)
     ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionEnabledBusinessIds(_))
         .WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(guard.GetSecurityAgent(), HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _))
-        .WillByDefault(
-            Invoke([this](const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey) {
-                return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey);
-            }));
+    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _, _))
+        .WillByDefault(Invoke([this](const UserKey &hostUserKey, TemplateId templateId,
+                                  const DeviceKey &companionDeviceKey, ConnectionMode connectionMode) {
+            return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey,
+                connectionMode);
+        }));
     ON_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
         .WillByDefault(Invoke([this](const UserKey &hostUserKey, TemplateId templateId, uint32_t lockStateAuthTypeValue,
                                   const std::vector<uint8_t> &fwkUnlockMsg) {
@@ -606,7 +610,7 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_002, TestSize.Level0)
     manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(guard.GetSecurityAgent(), HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _, _)).WillOnce(Return(nullptr));
 
     ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345, true);
 
@@ -628,11 +632,12 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_003, TestSize.Level0)
     manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(guard.GetSecurityAgent(), HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _))
-        .WillOnce(
-            Invoke([this](const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey) {
-                return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey);
-            }));
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _, _))
+        .WillOnce(Invoke([this](const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey,
+                             ConnectionMode connectionMode) {
+            return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey,
+                connectionMode);
+        }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(false));
 
     ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345, true);
@@ -655,11 +660,12 @@ HWTEST_F(CompanionManagerImplTest, RemoveCompanion_004, TestSize.Level0)
     manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_CALL(guard.GetSecurityAgent(), HostRemoveCompanion(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _))
-        .WillOnce(
-            Invoke([this](const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey) {
-                return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey);
-            }));
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _, _))
+        .WillOnce(Invoke([this](const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey,
+                             ConnectionMode connectionMode) {
+            return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey,
+                connectionMode);
+        }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
     ResultCode ret = manager->RemoveCompanion(TEMPLATE_ID_12345, true);
@@ -900,6 +906,37 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_003, TestSize.Level0)
     manager->StartIssueTokenRequests(templateIds, lockStateAuthTypeValue, fwkMsg);
 }
 
+HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_NotPhysicalOnline_Skips, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserKey_.userId = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+
+    // Device is online and capable, but IsPhysicalOnline stays false (mock default)
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.isOnline = true;
+    deviceStatus.isAuthMaintainActive = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    std::vector<uint64_t> templateIds = { TEMPLATE_ID_12345 };
+    uint32_t lockStateAuthTypeValue = 1;
+    std::vector<uint8_t> fwkMsg;
+
+    EXPECT_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _)).Times(0);
+
+    manager->StartIssueTokenRequests(templateIds, lockStateAuthTypeValue, fwkMsg);
+}
+
 HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_004, TestSize.Level0)
 {
     MockGuard guard;
@@ -917,6 +954,7 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_004, TestSize.Level0)
     deviceStatus.isAuthMaintainActive = true;
     deviceStatus.capabilities = { Capability::TOKEN_AUTH };
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
@@ -948,6 +986,7 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_005, TestSize.Level0)
     deviceStatus.isAuthMaintainActive = true;
     deviceStatus.capabilities = { Capability::TOKEN_AUTH };
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
@@ -985,6 +1024,7 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_006, TestSize.Level0)
     deviceStatus.isAuthMaintainActive = true;
     deviceStatus.capabilities = { Capability::TOKEN_AUTH };
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
@@ -1022,6 +1062,7 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_
     deviceStatus.capabilities = { Capability::TOKEN_AUTH };
     deviceStatus.refreshToken = true;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
@@ -1063,6 +1104,7 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Disabled
     deviceStatus.isAuthMaintainActive = true;
     deviceStatus.capabilities = { Capability::TOKEN_AUTH };
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
@@ -1105,6 +1147,7 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_
     deviceStatus.capabilities = { Capability::TOKEN_AUTH };
     deviceStatus.refreshToken = true;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
@@ -1145,6 +1188,7 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_
     deviceStatus.capabilities = { Capability::TOKEN_AUTH };
     deviceStatus.refreshToken = true;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
@@ -1186,6 +1230,7 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_
     deviceStatus.capabilities = { Capability::TOKEN_AUTH };
     deviceStatus.refreshToken = true;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
@@ -1228,6 +1273,7 @@ HWTEST_F(CompanionManagerImplTest, StartIssueTokenRequests_RefreshToken_Enabled_
     deviceStatus.capabilities = { Capability::TOKEN_AUTH };
     deviceStatus.refreshToken = true;
     ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
     std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
