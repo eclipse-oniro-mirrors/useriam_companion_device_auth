@@ -118,8 +118,9 @@ void FuzzSoftbusConnection(FuzzedDataProvider &fuzzData)
     physicalKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     physicalKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
 
-    auto socket =
-        std::make_unique<SoftbusConnection>(socketId, physicalKey, std::weak_ptr<SoftBusConnectionManager>(manager));
+    std::string networkId = GenerateFuzzString(fuzzData, TEST_VAL64);
+    auto socket = std::make_unique<SoftbusConnection>(socketId, physicalKey, networkId,
+        std::weak_ptr<SoftBusConnectionManager>(manager));
 
     for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
         if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {

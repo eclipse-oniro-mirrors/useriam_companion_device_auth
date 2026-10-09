@@ -23,6 +23,8 @@
 #include "fuzz_constants.h"
 #include "fuzz_data_generator.h"
 #include "fuzz_registry.h"
+#include "fuzz_soft_bus_coordinator_adapter.h"
+#include "soft_bus_adapter_manager.h"
 #include "soft_bus_channel.h"
 
 namespace OHOS {
@@ -70,7 +72,7 @@ static void FuzzOp4(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider
     PhysicalDeviceKey physicalKey;
     physicalKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     physicalKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
-    channel->OpenConnection(connectionName, physicalKey);
+    channel->OpenConnection(connectionName, GenerateFuzzConnectionMode(fuzzData), physicalKey);
 }
 
 static void FuzzOp5(std::shared_ptr<SoftBusChannel> &channel, FuzzedDataProvider &fuzzData)
@@ -216,6 +218,9 @@ void FuzzSoftBusChannel(FuzzedDataProvider &fuzzData)
     if (!channel) {
         return;
     }
+    // Create installs the stub coordinator adapter; restore the fuzz adapter for the ops below
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusCoordinatorAdapter(
+        std::make_shared<FuzzSoftBusCoordinatorAdapter>());
 
     for (size_t i = 0; i < NUM_FUZZ_OPERATIONS; ++i) {
         if (fuzzData.remaining_bytes() < MINIMUM_REMAINING_BYTES) {

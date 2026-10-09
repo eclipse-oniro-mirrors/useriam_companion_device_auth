@@ -55,9 +55,9 @@ static void FuzzGetAllDeviceStatus(std::shared_ptr<DeviceStatusManager> &mgr, Fu
 static void FuzzSubscribeDeviceStatus(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
-    bool needSync = fuzzData.ConsumeBool();
+    SyncDemand demand = static_cast<SyncDemand>(fuzzData.ConsumeIntegralInRange<int32_t>(0, 3));
     auto callback = [](const std::vector<DeviceStatus> &statusList) { (void)statusList; };
-    auto subscription = mgr->SubscribeDeviceStatus(deviceKey, needSync, std::move(callback));
+    auto subscription = mgr->SubscribeDeviceStatus(deviceKey, demand, std::move(callback));
     (void)subscription;
 }
 
@@ -101,7 +101,7 @@ static void FuzzHandleSyncResult(std::shared_ptr<DeviceStatusManager> &mgr, Fuzz
 {
     DeviceKey deviceKey = GenerateFuzzDeviceKey(fuzzData);
     uint64_t requestId = fuzzData.ConsumeIntegral<uint64_t>();
-    int32_t resultCode = fuzzData.ConsumeIntegral<int32_t>();
+    ResultCode resultCode = static_cast<ResultCode>(fuzzData.ConsumeIntegral<int32_t>());
     SyncDeviceStatus syncStatus;
     syncStatus.needSync = fuzzData.ConsumeBool();
     // Randomly decide whether to add protocols (to test empty protocol list scenario)
@@ -115,12 +115,16 @@ static void FuzzHandleSyncResult(std::shared_ptr<DeviceStatusManager> &mgr, Fuzz
     mgr->HandleSyncResult(deviceKey, requestId, resultCode, syncStatus);
 }
 
-static void FuzzTriggerDeviceSync(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
+static void FuzzEnsureOrResyncDevice(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     PhysicalDeviceKey physicalKey;
     physicalKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     physicalKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
-    mgr->TriggerDeviceSync(physicalKey);
+    if (fuzzData.ConsumeBool()) {
+        mgr->EnsureDeviceSynced(physicalKey, [](ResultCode) {});
+    } else {
+        mgr->ResyncDevice(physicalKey);
+    }
 }
 
 static void FuzzUnsubscribeDeviceStatus(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
@@ -168,10 +172,12 @@ static void FuzzHandleChannelDeviceStatusChange(std::shared_ptr<DeviceStatusMana
     mgr->HandleChannelDeviceStatusChange(channelId, statusList);
 }
 
-static void FuzzRefreshDeviceList(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
+static void FuzzReconcileDevices(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
-    bool resync = fuzzData.ConsumeBool();
-    mgr->RefreshDeviceList(resync);
+    // Consume a bool and map it to the policy so existing corpus bytes keep their branch meaning.
+    DeviceReconcilePolicy policy =
+        fuzzData.ConsumeBool() ? DeviceReconcilePolicy::REEVALUATE_ALL : DeviceReconcilePolicy::CHANGED_ONLY;
+    mgr->ReconcileDevices(policy);
 }
 
 static void FuzzCollectFilteredDevices(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
@@ -192,8 +198,10 @@ static void FuzzRemoveObsoleteDevices(std::shared_ptr<DeviceStatusManager> &mgr,
 static void FuzzAddOrUpdateDevices(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
 {
     std::map<PhysicalDeviceKey, PhysicalDeviceStatus> filteredDevicesMap;
-    bool resync = fuzzData.ConsumeBool();
-    bool result = mgr->AddOrUpdateDevices(filteredDevicesMap, resync);
+    // Consume a bool and map it to the policy so existing corpus bytes keep their branch meaning.
+    DeviceReconcilePolicy policy =
+        fuzzData.ConsumeBool() ? DeviceReconcilePolicy::REEVALUATE_ALL : DeviceReconcilePolicy::CHANGED_ONLY;
+    bool result = mgr->AddOrUpdateDevices(filteredDevicesMap, policy);
     (void)result;
 }
 
@@ -213,12 +221,12 @@ static const DeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzGetChannelIdByDeviceKey,
     FuzzInitialize,
     FuzzHandleSyncResult,
-    FuzzTriggerDeviceSync,
+    FuzzEnsureOrResyncDevice,
     FuzzUnsubscribeDeviceStatus,
     FuzzNegotiateProtocol,
     FuzzShouldMonitorDevice,
     FuzzHandleChannelDeviceStatusChange,
-    FuzzRefreshDeviceList,
+    FuzzReconcileDevices,
     FuzzCollectFilteredDevices,
     FuzzRemoveObsoleteDevices,
     FuzzAddOrUpdateDevices,

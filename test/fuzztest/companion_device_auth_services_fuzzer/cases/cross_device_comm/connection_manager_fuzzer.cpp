@@ -59,7 +59,7 @@ static void FuzzOpenConnection(std::shared_ptr<ConnectionManager> &conn, FuzzedD
     physicalKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     ChannelId channelId = GenerateFuzzChannelId(fuzzData);
     std::string outConnectionName;
-    bool result = conn->OpenConnection(physicalKey, channelId, outConnectionName);
+    bool result = conn->OpenConnection(physicalKey, channelId, GenerateFuzzConnectionMode(fuzzData), outConnectionName);
     (void)result;
 }
 

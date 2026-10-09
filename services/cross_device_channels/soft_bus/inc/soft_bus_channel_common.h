@@ -7,6 +7,8 @@
 #ifndef SOFTBUS_CHANNEL_COMMON_H
 #define SOFTBUS_CHANNEL_COMMON_H
 
+#include <cstdint>
+
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
@@ -14,6 +16,7 @@ namespace CompanionDeviceAuth {
 inline constexpr const char *PKG_NAME = "ohos.companiondeviceauth";
 inline constexpr const char *SERVER_SOCKET_NAME = "ohos.companiondeviceauth.server";
 inline constexpr const char *CLIENT_SOCKET_NAME_PREFIX = "ohos.companiondeviceauth.";
+inline constexpr uint32_t PENDING_ARBITRATION_TIMEOUT_MS = 35000; // 35 seconds
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

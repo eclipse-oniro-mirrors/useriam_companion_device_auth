@@ -119,7 +119,6 @@ ResultCode BaseServiceCore::SubscribeTemplateStatusChange(int32_t localUserId, C
         IAM_LOGE("AddTemplateStatusCallback failed ret=%{public}d", ret);
         return ret;
     }
-    TaskRunnerManager::GetInstance().PostTaskOnResident([]() { GetCrossDeviceCommManager().RefreshDeviceStatus(); });
     IAM_LOGI("End");
     return ResultCode::SUCCESS;
 }

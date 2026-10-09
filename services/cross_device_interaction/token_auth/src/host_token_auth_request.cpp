@@ -37,7 +37,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 HostTokenAuthRequest::HostTokenAuthRequest(const AuthRequestParams &params, const DeviceKey &companionDeviceKey,
     FwkResultCallback &&requestCallback)
-    : OutboundRequest(RequestType::HOST_TOKEN_AUTH_REQUEST, params.scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
+    : OutboundRequest(RequestType::HOST_TOKEN_AUTH_REQUEST, ConnectionMode::FOREGROUND, params.scheduleId,
+          DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(params.fwkMsg),
       hostUserKey_ { params.hostUserKey },
       requestCallback_(std::move(requestCallback))
@@ -66,6 +67,12 @@ void HostTokenAuthRequest::Destroy()
 bool HostTokenAuthRequest::OnStart(ErrorGuard &errorGuard)
 {
     IAM_LOGI("%{public}s start", GetDescription());
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    if (!HasCapability(localProfile.hostCapabilities, Capability::TOKEN_AUTH)) {
+        IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by local product", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::TYPE_NOT_SUPPORT);
+        return false;
+    }
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
     auto companionStatus = GetCompanionManager().GetCompanionStatus(*templateId_);
     if (!companionStatus.has_value()) {
@@ -342,7 +349,7 @@ bool HostTokenAuthRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &de
         IAM_LOGE("%{public}s device not in auth maintain active state", GetDescription());
         return false;
     }
-    deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey, false,
+    deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey, SyncDemand::FOREGROUND,
         [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);

@@ -26,7 +26,6 @@
 
 #include "accesstoken_kit.h"
 #include "adapter_manager.h"
-#include "task_runner_manager.h"
 
 #include "available_device_subscription.h"
 #include "continuous_auth_subscription.h"
@@ -269,16 +268,14 @@ void SubscriptionManager::RemoveContinuousAuthStatusCallback(
     }
 }
 
-bool SubscriptionManager::UpdateSubscribeMode()
+void SubscriptionManager::UpdateSubscribeMode()
 {
     EnsureAppForegroundStateSubscribed();
     auto foregroundApps = GetAppForegroundStateAdapter().GetForegroundWatchedApps();
-    SubscribeMode oldMode = GetCrossDeviceCommManager().GetSubscribeMode();
     SubscribeMode mode = !foregroundApps.empty() ? SUBSCRIBE_MODE_ALL_DEVICES : SUBSCRIBE_MODE_SUBSCRIBED_ONLY;
     IAM_LOGI("UpdateSubscribeMode mode:%{public}d foreground:%{public}s", static_cast<int32_t>(mode),
         GetVectorString(foregroundApps).c_str());
     GetCrossDeviceCommManager().SetSubscribeMode(mode);
-    return (oldMode == SUBSCRIBE_MODE_SUBSCRIBED_ONLY && mode == SUBSCRIBE_MODE_ALL_DEVICES);
 }
 
 void SubscriptionManager::EnsureAppForegroundStateSubscribed()
@@ -289,10 +286,7 @@ void SubscriptionManager::EnsureAppForegroundStateSubscribed()
     ForegroundWatchedAppsHandler handler = [weakSelf = weak_from_this()](const std::vector<std::string> &) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
-        if (self->UpdateSubscribeMode()) {
-            TaskRunnerManager::GetInstance().PostTaskOnResident(
-                []() { GetCrossDeviceCommManager().RefreshDeviceStatus(); });
-        }
+        self->UpdateSubscribeMode();
     };
     foregroundAppSub_ = GetAppForegroundStateAdapter().SubscribeForegroundWatchedApps(handler);
     if (!foregroundAppSub_) {

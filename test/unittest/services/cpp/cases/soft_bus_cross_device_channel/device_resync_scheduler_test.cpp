@@ -218,6 +218,28 @@ HWTEST_F(DeviceResyncSchedulerTest, HandleResyncComplete_PeerServiceNotAvailable
     EXPECT_EQ(scheduler->scheduledResyncs_.count(key), 0u);
 }
 
+HWTEST_F(DeviceResyncSchedulerTest, HandleResyncComplete_CoordinatorRejectedIsTerminal, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = SoftBusDeviceStatusManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    auto scheduler = DeviceResyncScheduler::Create(manager);
+    ASSERT_NE(scheduler, nullptr);
+    EXPECT_TRUE(scheduler->Start());
+
+    PhysicalDeviceKey key;
+    key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    key.deviceId = "dev_coord_rej";
+    MarkDeviceOnline(*manager, key);
+
+    scheduler->EnsureRetryEntry(key, "test");
+    scheduler->HandleResyncComplete(key, 0, ResultCode::COORDINATOR_REJECTED);
+
+    EXPECT_EQ(scheduler->scheduledResyncs_.count(key), 0u);
+}
+
 HWTEST_F(DeviceResyncSchedulerTest, OnPhysicalDeviceStatusChanged_RemovesOfflineDevice, TestSize.Level0)
 {
     MockGuard guard;
@@ -317,13 +339,6 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_OnlyNotifiesSyncedD
     unsyncedKey.deviceId = "dev_unsynced";
     MarkDeviceOnline(*manager, unsyncedKey);
 
-    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
-    DeviceStatus syncedDeviceStatus;
-    syncedDeviceStatus.deviceKey.idType = syncedKey.idType;
-    syncedDeviceStatus.deviceKey.deviceId = syncedKey.deviceId;
-    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
-        .WillByDefault(Return(std::vector<DeviceStatus> { syncedDeviceStatus }));
-
     auto factoryCallCount = std::make_shared<int>(0);
     auto lastFactoryKey = std::make_shared<PhysicalDeviceKey>();
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
@@ -338,6 +353,47 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_OnlyNotifiesSyncedD
 
     EXPECT_EQ(*factoryCallCount, 1);
     EXPECT_EQ(*lastFactoryKey, syncedKey);
+}
+
+// Candidacy follows the recent peer sync, not the binding or outbound sync state: a bound host
+// that only pulled our status and an unbound prober that pulled us are both resynced.
+HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_FollowsPeerSyncNotBinding, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto manager = SoftBusDeviceStatusManager::Create();
+    ASSERT_NE(manager, nullptr);
+
+    EventDataHandler peerSyncHandler;
+    CapturePeerSyncHandler(guard, peerSyncHandler);
+
+    auto scheduler = DeviceResyncScheduler::Create(manager);
+    ASSERT_NE(scheduler, nullptr);
+    ASSERT_TRUE(scheduler->Start());
+
+    PhysicalDeviceKey boundKey;
+    boundKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    boundKey.deviceId = "dev_bound_unsynced";
+    MarkDeviceOnline(*manager, boundKey);
+    peerSyncHandler(BuildPeerSyncedEvent(boundKey));
+
+    PhysicalDeviceKey proberKey;
+    proberKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    proberKey.deviceId = "dev_prober_no_binding";
+    MarkDeviceOnline(*manager, proberKey);
+    peerSyncHandler(BuildPeerSyncedEvent(proberKey));
+
+    auto factoryCallCount = std::make_shared<int>(0);
+    ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
+        .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
+            ++(*factoryCallCount);
+            return std::make_shared<FakeResyncRequest>();
+        }));
+
+    scheduler->ResyncAllPhysicalDevices("test");
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_EQ(*factoryCallCount, 2);
 }
 
 // ResyncAllPhysicalDevices drives the fan-out path synchronously; a device whose resync fails
@@ -361,13 +417,6 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_LaunchFailureArmsRe
     key.deviceId = "dev_A";
     MarkDeviceOnline(*manager, key);
     peerSyncHandler(BuildPeerSyncedEvent(key));
-
-    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
-    DeviceStatus deviceStatus;
-    deviceStatus.deviceKey.idType = key.idType;
-    deviceStatus.deviceKey.deviceId = key.deviceId;
-    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
-        .WillByDefault(Return(std::vector<DeviceStatus> { deviceStatus }));
 
     // Launch failure (factory returns nullptr) arms a retry instead of erasing.
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _)).WillByDefault(Return(nullptr));
@@ -662,13 +711,6 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesActiveUserIdChangeToFactory, Tes
     MarkDeviceOnline(*manager, key);
     peerSyncHandler(BuildPeerSyncedEvent(key));
 
-    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
-    DeviceStatus deviceStatus;
-    deviceStatus.deviceKey.idType = key.idType;
-    deviceStatus.deviceKey.deviceId = key.deviceId;
-    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
-        .WillByDefault(Return(std::vector<DeviceStatus> { deviceStatus }));
-
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
         .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
@@ -715,13 +757,6 @@ HWTEST_F(DeviceResyncSchedulerTest, Start_RoutesDeviceNameChangeToFactory, TestS
     MarkDeviceOnline(*manager, key);
     peerSyncHandler(BuildPeerSyncedEvent(key));
 
-    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
-    DeviceStatus deviceStatus;
-    deviceStatus.deviceKey.idType = key.idType;
-    deviceStatus.deviceKey.deviceId = key.deviceId;
-    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
-        .WillByDefault(Return(std::vector<DeviceStatus> { deviceStatus }));
-
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))
         .WillByDefault(Invoke([factoryCallCount](const PhysicalDeviceKey &, ResultCodeCallback) {
@@ -765,19 +800,6 @@ HWTEST_F(DeviceResyncSchedulerTest, ResyncAllPhysicalDevices_CoversAllDevices, T
     peerSyncHandler(BuildPeerSyncedEvent(keyA));
     peerSyncHandler(BuildPeerSyncedEvent(keyB));
     peerSyncHandler(BuildPeerSyncedEvent(keyC));
-
-    // ResyncAllPhysicalDevices only considers devices present in GetAllDeviceStatus.
-    DeviceStatus statusA;
-    statusA.deviceKey.idType = keyA.idType;
-    statusA.deviceKey.deviceId = keyA.deviceId;
-    DeviceStatus statusB;
-    statusB.deviceKey.idType = keyB.idType;
-    statusB.deviceKey.deviceId = keyB.deviceId;
-    DeviceStatus statusC;
-    statusC.deviceKey.idType = keyC.idType;
-    statusC.deviceKey.deviceId = keyC.deviceId;
-    ON_CALL(guard.GetCrossDeviceCommManager(), GetAllDeviceStatus(_))
-        .WillByDefault(Return(std::vector<DeviceStatus> { statusA, statusB, statusC }));
 
     auto factoryCallCount = std::make_shared<int>(0);
     ON_CALL(guard.GetRequestFactory(), CreateCompanionRequestResyncRequest(_, _))

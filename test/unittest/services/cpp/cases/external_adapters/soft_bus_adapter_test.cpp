@@ -69,13 +69,13 @@ void SoftBusAdapterTest::TearDown()
 
 HWTEST_F(SoftBusAdapterTest, CreateDefaultAdapter, TestSize.Level0)
 {
-    auto adapter = std::make_shared<SoftBusAdapterImpl>();
+    auto adapter = SoftBusAdapterImpl::Create();
     ASSERT_NE(adapter, nullptr);
 }
 
 HWTEST_F(SoftBusAdapterTest, RegisterToSingleton, TestSize.Level0)
 {
-    auto adapter = std::make_shared<SoftBusAdapterImpl>();
+    auto adapter = SoftBusAdapterImpl::Create();
     SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(adapter);
 
     ISoftBusAdapter &retrieved = SoftBusChannelAdapterManager::GetInstance().GetSoftBusAdapter();
@@ -85,7 +85,7 @@ HWTEST_F(SoftBusAdapterTest, RegisterToSingleton, TestSize.Level0)
 HWTEST_F(SoftBusAdapterTest, CreateServerSocketWithNullCallback, TestSize.Level0)
 {
     // Test CreateServerSocket functionality
-    auto adapter = std::make_shared<SoftBusAdapterImpl>();
+    auto adapter = SoftBusAdapterImpl::Create();
     SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(adapter);
 
     class MockCallback : public ISoftBusSocketCallback {
@@ -116,7 +116,7 @@ HWTEST_F(SoftBusAdapterTest, CreateServerSocketWithNullCallback, TestSize.Level0
 HWTEST_F(SoftBusAdapterTest, CreateClientSocketWithEmptyNetworkId, TestSize.Level0)
 {
     // Test CreateClientSocket with empty network ID
-    auto adapter = std::make_shared<SoftBusAdapterImpl>();
+    auto adapter = SoftBusAdapterImpl::Create();
     SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(adapter);
 
     class MockCallback : public ISoftBusSocketCallback {
@@ -146,7 +146,7 @@ HWTEST_F(SoftBusAdapterTest, CreateClientSocketWithEmptyNetworkId, TestSize.Leve
 
 HWTEST_F(SoftBusAdapterTest, SendBytesWithInvalidSocket, TestSize.Level0)
 {
-    auto adapter = std::make_shared<SoftBusAdapterImpl>();
+    auto adapter = SoftBusAdapterImpl::Create();
 
     std::vector<uint8_t> data = { 1, 2, 3, 4 };
     bool result = adapter->SendBytes(-1, data);

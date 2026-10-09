@@ -66,6 +66,13 @@ bool CompanionDelegateAuthRequest::OnStart(ErrorGuard &errorGuard)
     LogTraceGuard guard;
     IAM_LOGI("%{public}s start", GetDescription());
 
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    if (!HasCapability(localProfile.companionCapabilities, Capability::DELEGATE_AUTH)) {
+        IAM_LOGE("%{public}s DELEGATE_AUTH capability not supported by local product", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::TYPE_NOT_SUPPORT);
+        return false;
+    }
+
     auto localDeviceKey = GetCrossDeviceCommManager().GetLocalDeviceKeyByConnectionName(GetConnectionName());
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), localDeviceKey.has_value(), false);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), companionUserKey_.userId == localDeviceKey->deviceUserId, false);

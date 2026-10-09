@@ -84,12 +84,39 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_001, TestSize.Level0)
         .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
 
     EXPECT_TRUE(result);
+}
+
+HWTEST_F(HostTokenAuthRequestTest, OnStart_LocalCapabilityNotSupported, TestSize.Level0)
+{
+    MockGuard guard;
+
+    LocalDeviceProfile profile = {};
+    profile.hostCapabilities = { Capability::DELEGATE_AUTH, Capability::OBTAIN_TOKEN };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    // Local gate fires before the companion status lookup.
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_)).Times(0);
+
+    ResultCode capturedCode = ResultCode::SUCCESS;
+    bool result = false;
+    {
+        ErrorGuard errorGuard([&capturedCode](ResultCode code) { capturedCode = code; });
+        result = request->OnStart(errorGuard);
+    }
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(capturedCode, ResultCode::TYPE_NOT_SUPPORT);
 }
 
 HWTEST_F(HostTokenAuthRequestTest, OnStart_002, TestSize.Level0)
@@ -141,7 +168,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_CarBypass, TestSize.Level0)
         .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
@@ -221,7 +248,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_004, TestSize.Level0)
         .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(SecureProtocolId::DEFAULT));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _)).WillOnce(Return(nullptr));
 
     ResultCode errorCode = ResultCode::SUCCESS;
@@ -232,6 +259,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnStart_004, TestSize.Level0)
     }
 
     EXPECT_FALSE(result);
+    // OpenConnection reports failure as COMMUNICATION_ERROR when a subscription fails
     EXPECT_EQ(errorCode, ResultCode::COMMUNICATION_ERROR);
 }
 
@@ -263,7 +291,7 @@ HWTEST_F(HostTokenAuthRequestTest, OnConnected_001, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillByDefault(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
@@ -309,7 +337,7 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_001, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillByDefault(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
@@ -357,7 +385,7 @@ HWTEST_F(HostTokenAuthRequestTest, HostBeginTokenAuth_002, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillByDefault(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
@@ -406,7 +434,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_001, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillByDefault(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
@@ -458,7 +486,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_002, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillByDefault(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
@@ -505,7 +533,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_003, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillByDefault(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
@@ -555,7 +583,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_004, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillByDefault(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
@@ -607,7 +635,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_005, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillByDefault(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
@@ -660,7 +688,7 @@ HWTEST_F(HostTokenAuthRequestTest, HandleTokenAuthReply_006, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .Times(AtMost(1))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillByDefault(Return(true));
+    ON_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillByDefault(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
@@ -978,6 +1006,19 @@ HWTEST_F(HostTokenAuthRequestTest, HandlePeerDeviceStatusChanged_AfterFinished_D
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_FALSE(*callbackCalled);
+}
+
+HWTEST_F(HostTokenAuthRequestTest, RequireSyncedDevice_IsFalse, TestSize.Level0)
+{
+    // Device sync is ensured by HostSingleMixAuthRequest before this request is created.
+    MockGuard guard;
+
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION };
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request = std::make_shared<HostTokenAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    EXPECT_FALSE(request->RequireSyncedDevice());
 }
 
 } // namespace

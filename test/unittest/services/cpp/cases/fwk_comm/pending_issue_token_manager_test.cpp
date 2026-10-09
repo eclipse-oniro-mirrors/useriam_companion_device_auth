@@ -98,6 +98,8 @@ HWTEST_F(PendingIssueTokenManagerTest, StatusChange_TriggersMatchingTemplate, Te
             return std::make_unique<Subscription>([]() {});
         }));
 
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
+
     mgr->Defer(cmd, extraInfo);
 
     CompanionStatus status;
@@ -131,6 +133,8 @@ HWTEST_F(PendingIssueTokenManagerTest, StatusChange_AllTemplatesTriggered, TestS
             capturedCallback = std::move(callback);
             return std::make_unique<Subscription>([]() {});
         }));
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     mgr->Defer(cmd, extraInfo);
 
@@ -175,6 +179,8 @@ HWTEST_F(PendingIssueTokenManagerTest, StatusChange_BothTemplatesReadyAtOnce, Te
             capturedCallback = std::move(callback);
             return std::make_unique<Subscription>([]() {});
         }));
+
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
 
     mgr->Defer(cmd, extraInfo);
 
@@ -280,6 +286,8 @@ HWTEST_F(PendingIssueTokenManagerTest, Defer_ReplacesOldEntries_SameTemplateId, 
     EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(USER_300));
     EXPECT_CALL(guard.GetCompanionManager(), SubscribeCompanionDeviceStatusChange(_)).Times(0);
 
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
+
     mgr->Defer(cmd2, extraInfo);
 
     // Trigger template 123 -- should use user 300 (the replacement)
@@ -290,8 +298,10 @@ HWTEST_F(PendingIssueTokenManagerTest, Defer_ReplacesOldEntries_SameTemplateId, 
     capturedCallback({ status });
 }
 
-// UT 008: Offline companion -> skip issue token, pendingEntry preserved
-HWTEST_F(PendingIssueTokenManagerTest, StatusChange_OfflineSkipsIssueToken, TestSize.Level0)
+// UT 008: Companion not physical online -> skip issue token, pendingEntry preserved;
+// once physical online the entry triggers even when not synced yet (bring-online completes
+// the sync inside the issue-token request).
+HWTEST_F(PendingIssueTokenManagerTest, StatusChange_PhysicalOfflineSkipsIssueToken, TestSize.Level0)
 {
     MockGuard guard;
     auto mgr = std::make_shared<PendingIssueTokenManager>();
@@ -313,19 +323,20 @@ HWTEST_F(PendingIssueTokenManagerTest, StatusChange_OfflineSkipsIssueToken, Test
 
     mgr->Defer(cmd, extraInfo);
 
-    // Status with isOnline=false -> should skip issue token
+    // Not physical online (mock default) -> skip issue token, even though synced
     CompanionStatus offlineStatus;
     offlineStatus.templateId = TID_123;
-    offlineStatus.companionDeviceStatus.isOnline = false;
+    offlineStatus.companionDeviceStatus.isOnline = true;
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(_, _, _)).Times(0);
     capturedCallback({ offlineStatus });
 
-    // Now go online -> should trigger issue token
-    CompanionStatus onlineStatus;
-    onlineStatus.templateId = TID_123;
-    onlineStatus.companionDeviceStatus.isOnline = true;
+    // Physical online but not synced -> trigger issue token
+    ON_CALL(guard.GetCrossDeviceCommManager(), IsPhysicalOnline(_)).WillByDefault(Return(true));
+    CompanionStatus notSyncedStatus;
+    notSyncedStatus.templateId = TID_123;
+    notSyncedStatus.companionDeviceStatus.isOnline = false;
     EXPECT_CALL(guard.GetCompanionManager(), StartIssueTokenRequests(ElementsAre(TID_123), _, _)).Times(1);
-    capturedCallback({ onlineStatus });
+    capturedCallback({ notSyncedStatus });
 }
 
 } // namespace

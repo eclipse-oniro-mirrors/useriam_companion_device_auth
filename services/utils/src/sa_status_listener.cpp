@@ -102,7 +102,7 @@ std::unique_ptr<SaStatusListener> SaStatusListener::Create(const std::string &na
 SaStatusListener::SaStatusListener([[maybe_unused]] const std::string &name, int32_t systemAbilityId, AddFunc &&addFunc,
     RemoveFunc &&removeFunc)
     : systemAbilityId_(systemAbilityId),
-      stub_(new (std::nothrow) SaStatusStub(systemAbilityId, std::move(addFunc), std::move(removeFunc)))
+      stub_(new(std::nothrow) SaStatusStub(systemAbilityId, std::move(addFunc), std::move(removeFunc)))
 {
 }
 

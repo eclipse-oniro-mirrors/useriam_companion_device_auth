@@ -36,7 +36,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 HostIssueTokenRequest::HostIssueTokenRequest(const UserKey &hostUserKey, TemplateId templateId,
     uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg, const DeviceKey &companionDeviceKey)
-    : OutboundRequest(RequestType::HOST_ISSUE_TOKEN_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
+    : OutboundRequest(RequestType::HOST_ISSUE_TOKEN_REQUEST, ConnectionMode::BACKGROUND, 0, DEFAULT_REQUEST_TIMEOUT_MS),
       hostUserKey_(hostUserKey),
       fwkUnlockMsg_(fwkUnlockMsg)
 {
@@ -55,6 +55,12 @@ bool HostIssueTokenRequest::OnStart(ErrorGuard &errorGuard)
     if (hostUserKey_.userId != GetUserKeyManager().GetActiveUserId()) {
         IAM_LOGE("%{public}s hostUserId %{public}d mismatch active %{public}d", GetDescription(), hostUserKey_.userId,
             GetUserKeyManager().GetActiveUserId());
+        return false;
+    }
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    if (!HasCapability(localProfile.hostCapabilities, Capability::TOKEN_AUTH)) {
+        IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by local product", GetDescription());
+        errorGuard.UpdateErrorCode(ResultCode::TYPE_NOT_SUPPORT);
         return false;
     }
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), templateId_.has_value(), false);
@@ -283,6 +289,11 @@ std::weak_ptr<OutboundRequest> HostIssueTokenRequest::GetWeakPtr()
     return weak_from_this();
 }
 
+bool HostIssueTokenRequest::RequireSyncedDevice() const
+{
+    return true;
+}
+
 void HostIssueTokenRequest::Destroy()
 {
     deviceStatusSubscription_.reset();
@@ -332,7 +343,7 @@ bool HostIssueTokenRequest::EnsureCompanionAuthMaintainActive(const DeviceKey &d
         IAM_LOGE("%{public}s device not in auth maintain active state", GetDescription());
         return false;
     }
-    deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey, false,
+    deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(deviceKey, SyncDemand::BACKGROUND,
         [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);

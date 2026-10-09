@@ -54,8 +54,7 @@ const std::vector<ExpectedPair> EXPECTED_PAIRS = {
     { ResultCode::NO_VALID_CREDENTIAL, UserAuth::ResultCode::NO_VALID_CREDENTIAL },
 };
 
-class ResultCodeConverterTest : public Test {
-};
+class ResultCodeConverterTest : public Test {};
 
 // ToUserAuthResultCode maps every known CDA code to its UserAuth equivalent.
 HWTEST_F(ResultCodeConverterTest, ToUserAuth_KnownCodes, TestSize.Level0)
@@ -65,10 +64,20 @@ HWTEST_F(ResultCodeConverterTest, ToUserAuth_KnownCodes, TestSize.Level0)
     }
 }
 
-// COMMUNICATION_ERROR is CDA-only and collapses to FAIL on the way to UserAuth.
-HWTEST_F(ResultCodeConverterTest, ToUserAuth_CommunicationErrorCollapsesToFail, TestSize.Level0)
+// COMMUNICATION_ERROR is CDA-only and collapses to GENERAL_ERROR on the way to UserAuth.
+HWTEST_F(ResultCodeConverterTest, ToUserAuth_CommunicationErrorCollapsesToGeneralError, TestSize.Level0)
 {
-    EXPECT_EQ(ToUserAuthResultCode(ResultCode::COMMUNICATION_ERROR), UserAuth::ResultCode::FAIL);
+    EXPECT_EQ(ToUserAuthResultCode(ResultCode::COMMUNICATION_ERROR), UserAuth::ResultCode::GENERAL_ERROR);
+}
+
+// Cross-device comm/arbitration codes are CDA-only as well and collapse to GENERAL_ERROR
+// one-way, so the executor callback never hits the unmapped-code fallback.
+HWTEST_F(ResultCodeConverterTest, ToUserAuth_CrossDeviceCodesCollapseToGeneralError, TestSize.Level0)
+{
+    EXPECT_EQ(ToUserAuthResultCode(ResultCode::PEER_SERVICE_NOT_AVAILABLE), UserAuth::ResultCode::GENERAL_ERROR);
+    EXPECT_EQ(ToUserAuthResultCode(ResultCode::COORDINATOR_REJECTED), UserAuth::ResultCode::GENERAL_ERROR);
+    EXPECT_EQ(ToUserAuthResultCode(ResultCode::PROTOCOL_NEGOTIATION_FAILED), UserAuth::ResultCode::GENERAL_ERROR);
+    EXPECT_EQ(ToUserAuthResultCode(ResultCode::PEER_SYNC_FAILED), UserAuth::ResultCode::GENERAL_ERROR);
 }
 
 // A CDA code with no UserAuth counterpart falls back to GENERAL_ERROR.
@@ -86,13 +95,13 @@ HWTEST_F(ResultCodeConverterTest, FromUserAuth_KnownCodes, TestSize.Level0)
     }
 }
 
-// Crucial ordering edge: UserAuth::FAIL must reverse to ResultCode::FAIL, not to
-// ResultCode::COMMUNICATION_ERROR (which also maps to FAIL one-way). The FAIL row must stay
-// ahead of COMMUNICATION_ERROR in RESULT_CODE_MAPPINGS for this to hold.
-HWTEST_F(ResultCodeConverterTest, FromUserAuth_FailMapsToFailNotCommunicationError, TestSize.Level0)
+// Crucial ordering edge: UserAuth::GENERAL_ERROR must reverse to ResultCode::GENERAL_ERROR,
+// not to a CDA-only comm code (which collapses to GENERAL_ERROR one-way). The GENERAL_ERROR
+// row must stay ahead of the collapsing rows in RESULT_CODE_MAPPINGS for this to hold.
+HWTEST_F(ResultCodeConverterTest, FromUserAuth_GeneralErrorMapsToGeneralErrorNotCommCode, TestSize.Level0)
 {
-    ResultCode reversed = FromUserAuthResultCode(static_cast<int32_t>(UserAuth::ResultCode::FAIL));
-    EXPECT_EQ(reversed, ResultCode::FAIL);
+    ResultCode reversed = FromUserAuthResultCode(static_cast<int32_t>(UserAuth::ResultCode::GENERAL_ERROR));
+    EXPECT_EQ(reversed, ResultCode::GENERAL_ERROR);
     EXPECT_NE(reversed, ResultCode::COMMUNICATION_ERROR);
 }
 

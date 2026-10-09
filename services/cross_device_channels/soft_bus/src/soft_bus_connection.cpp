@@ -27,10 +27,12 @@ constexpr int32_t INVALID_SOCKET_ID = -1;
 } // namespace
 
 SoftbusConnection::SoftbusConnection(int32_t socketId, const std::string &connectionName,
-    const PhysicalDeviceKey &physicalDeviceKey, std::weak_ptr<SoftBusConnectionManager> manager)
+    const PhysicalDeviceKey &physicalDeviceKey, const std::string &networkId,
+    std::weak_ptr<SoftBusConnectionManager> manager)
     : socketId_(socketId),
       connectionName_(connectionName),
       physicalDeviceKey_(physicalDeviceKey),
+      networkId_(networkId),
       isConnected_(false),
       isInbound_(false),
       isShutdownByPeer_(false),
@@ -40,10 +42,11 @@ SoftbusConnection::SoftbusConnection(int32_t socketId, const std::string &connec
 }
 
 SoftbusConnection::SoftbusConnection(int32_t socketId, const PhysicalDeviceKey &physicalDeviceKey,
-    std::weak_ptr<SoftBusConnectionManager> manager)
+    const std::string &networkId, std::weak_ptr<SoftBusConnectionManager> manager)
     : socketId_(socketId),
       connectionName_(""),
       physicalDeviceKey_(physicalDeviceKey),
+      networkId_(networkId),
       isConnected_(false),
       isInbound_(true),
       isShutdownByPeer_(false),
@@ -56,6 +59,10 @@ SoftbusConnection::SoftbusConnection(int32_t socketId, const PhysicalDeviceKey &
 SoftbusConnection::~SoftbusConnection()
 {
     Cleanup();
+    if (!connectionName_.empty()) {
+        GetSoftBusCoordinatorAdapter().RemoveConnection(connectionName_);
+        GetSoftBusCoordinatorAdapter().ReleaseResource(connectionName_);
+    }
 }
 
 void SoftbusConnection::SetCloseReason(const std::string &reason)
@@ -74,6 +81,7 @@ void SoftbusConnection::HandleOutboundConnected()
         return;
     }
     isConnected_ = true;
+    GetSoftBusCoordinatorAdapter().AddConnection(connectionName_, networkId_);
     NotifyConnectionEstablished();
 }
 
@@ -88,6 +96,7 @@ void SoftbusConnection::HandleInboundConnected(const std::string &connectionName
     }
 
     isConnected_ = true;
+    GetSoftBusCoordinatorAdapter().AddConnection(connectionName_, networkId_);
     NotifyIncomingConnection();
 }
 

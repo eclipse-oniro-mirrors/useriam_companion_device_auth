@@ -17,10 +17,13 @@
 #include "adapter_manager.h"
 #include "common_defines.h"
 #include "companion_device_auth_types.h"
+#include "device_manager_adapter_impl.h"
 #include "service_common.h"
 #include "singleton_manager.h"
+#include "soft_bus_adapter_impl.h"
 #include "soft_bus_adapter_manager.h"
 #include "soft_bus_channel_common.h"
+#include "soft_bus_coordinator_adapter_impl.h"
 #include "subscription.h"
 
 #define LOG_TAG "CDA_SA"
@@ -49,8 +52,16 @@ SoftBusChannel::SoftBusChannel()
 
 bool SoftBusChannel::Initialize()
 {
-    if (!SoftBusChannelAdapterManager::GetInstance().CreateAndRegisterAdapters()) {
-        IAM_LOGE("Failed to initialize SoftBus adapter manager");
+    auto deviceManagerAdapter = DeviceManagerAdapterImpl::Create();
+    ENSURE_OR_RETURN_VAL(deviceManagerAdapter != nullptr, false);
+    SoftBusChannelAdapterManager::GetInstance().SetDeviceManagerAdapter(deviceManagerAdapter);
+
+    auto softBusAdapter = SoftBusAdapterImpl::Create();
+    ENSURE_OR_RETURN_VAL(softBusAdapter != nullptr, false);
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusAdapter(softBusAdapter);
+
+    if (!InitializeSoftbusCoordinatorAdapter()) {
+        IAM_LOGE("Failed to initialize SoftBus coordinator adapter");
         return false;
     }
 
@@ -64,6 +75,14 @@ bool SoftBusChannel::Initialize()
     ENSURE_OR_RETURN_VAL(deviceResyncScheduler_ != nullptr, false);
 
     IAM_LOGI("SoftBusChannel initialized");
+    return true;
+}
+
+bool SoftBusChannel::InitializeSoftbusCoordinatorAdapter()
+{
+    auto softBusCoordinatorAdapter = SoftBusCoordinatorAdapterImpl::Create();
+    ENSURE_OR_RETURN_VAL(softBusCoordinatorAdapter != nullptr, false);
+    SoftBusChannelAdapterManager::GetInstance().SetSoftBusCoordinatorAdapter(softBusCoordinatorAdapter);
     return true;
 }
 
@@ -108,7 +127,8 @@ std::optional<PhysicalDeviceKey> SoftBusChannel::GetLocalPhysicalDeviceKey() con
     return deviceStatusManager_->GetLocalPhysicalDeviceKey();
 }
 
-bool SoftBusChannel::OpenConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey)
+bool SoftBusChannel::OpenConnection(const std::string &connectionName, ConnectionMode connectionMode,
+    const PhysicalDeviceKey &physicalDeviceKey)
 {
     ENSURE_OR_RETURN_VAL(connectionManager_ != nullptr, false);
     ENSURE_OR_RETURN_VAL(deviceStatusManager_ != nullptr, false);
@@ -116,7 +136,7 @@ bool SoftBusChannel::OpenConnection(const std::string &connectionName, const Phy
     std::optional<PhysicalDeviceStatus> status = deviceStatusManager_->GetPhysicalDeviceStatus(physicalDeviceKey);
     ENSURE_OR_RETURN_VAL(status.has_value(), false);
 
-    return connectionManager_->OpenConnection(connectionName, physicalDeviceKey, status->networkId);
+    return connectionManager_->OpenConnection(connectionName, connectionMode, physicalDeviceKey, status->networkId);
 }
 
 void SoftBusChannel::CloseConnection(const std::string &connectionName, const std::string &reason)

@@ -37,7 +37,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 CompanionObtainTokenRequest::CompanionObtainTokenRequest(const DeviceKey &hostDeviceKey,
     uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg)
-    : OutboundRequest(RequestType::COMPANION_OBTAIN_TOKEN_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
+    : OutboundRequest(RequestType::COMPANION_OBTAIN_TOKEN_REQUEST, ConnectionMode::BACKGROUND, 0,
+          DEFAULT_REQUEST_TIMEOUT_MS),
       fwkUnlockMsg_(fwkUnlockMsg)
 {
     SetPeerDeviceKey(hostDeviceKey);

@@ -59,7 +59,7 @@ public:
 
     void SetMessageRouter(std::weak_ptr<MessageRouter> messageRouter);
 
-    bool OpenConnection(const PhysicalDeviceKey &physicalDeviceKey, ChannelId channelId,
+    bool OpenConnection(const PhysicalDeviceKey &physicalDeviceKey, ChannelId channelId, ConnectionMode connectionMode,
         std::string &outConnectionName);
     void CloseConnection(const std::string &connectionName, const std::string &reason = "not_set");
     bool HandleIncomingConnection(const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey);

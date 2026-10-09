@@ -78,7 +78,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_001, TestSize.Level0)
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
@@ -100,6 +100,33 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_002, TestSize.Level0)
     bool result = request->OnStart(errorGuard);
 
     EXPECT_FALSE(result);
+}
+
+HWTEST_F(HostIssueTokenRequestTest, OnStart_LocalCapabilityNotSupported, TestSize.Level0)
+{
+    MockGuard guard;
+    EXPECT_CALL(guard.GetUserKeyManager(), GetActiveUserId()).WillRepeatedly(Return(HOST_USER_ID));
+
+    LocalDeviceProfile profile = {};
+    profile.hostCapabilities = { Capability::DELEGATE_AUTH, Capability::OBTAIN_TOKEN };
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    auto request = std::make_shared<HostIssueTokenRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
+
+    // Local gate fires before the companion status lookup and peer capability check.
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).Times(0);
+
+    ResultCode capturedCode = ResultCode::SUCCESS;
+    bool result = false;
+    {
+        ErrorGuard errorGuard([&capturedCode](ResultCode code) { capturedCode = code; });
+        result = request->OnStart(errorGuard);
+    }
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(capturedCode, ResultCode::TYPE_NOT_SUPPORT);
 }
 
 HWTEST_F(HostIssueTokenRequestTest, OnStart_003, TestSize.Level0)
@@ -146,7 +173,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_004, TestSize.Level0)
         .WillOnce(Return(ByMove(MakeSubscription())));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _)).WillOnce(Return(nullptr));
 
     ErrorGuard errorGuard([](ResultCode) {});
@@ -202,7 +229,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_Disabled_FallsThroug
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
@@ -235,7 +262,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_NoCachedAtl_FallsThr
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
@@ -267,7 +294,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_HostRefreshTokenFail
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
@@ -300,7 +327,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_NeedReissue_FallsThr
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
@@ -331,7 +358,7 @@ HWTEST_F(HostIssueTokenRequestTest, OnStart_TryRefreshToken_Success_CompletesWit
         .WillOnce(DoAll(SetArgReferee<1>(HostRefreshTokenOutput { false, 30000 }), Return(SUCCESS)));
     EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _, _)).WillOnce(Return(true));
     // Should NOT open connection when token is refreshed
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).Times(0);
 
     ErrorGuard errorGuard([](ResultCode) {});
     bool result = request->OnStart(errorGuard);
@@ -802,6 +829,18 @@ HWTEST_F(HostIssueTokenRequestTest, CanStart_004, TestSize.Level0)
 
     std::vector<std::shared_ptr<IRequest>> prevRequests = { prevReq };
     EXPECT_TRUE(request->CanStart(prevRequests));
+}
+
+// secureProtocolId is produced by the device sync round (HostGetSecureProtocolId reads it out of
+// the synced device status), so issuing a token requires the companion to be synced first.
+HWTEST_F(HostIssueTokenRequestTest, RequireSyncedDevice_IsTrue, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto request = std::make_shared<HostIssueTokenRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        TEMPLATE_ID, LOCK_STATE_AUTH_TYPE_VALUE, FWK_UNLOCK_MSG, COMPANION_DEVICE_KEY);
+
+    EXPECT_TRUE(request->RequireSyncedDevice());
 }
 
 } // namespace

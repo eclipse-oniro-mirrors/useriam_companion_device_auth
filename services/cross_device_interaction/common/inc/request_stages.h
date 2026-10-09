@@ -23,8 +23,10 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 namespace CommonStages {
-constexpr StageId WAIT_CONNECTION_OPEN = 101;
-constexpr StageId DONE_CONNECTION_OPEN = 102;
+constexpr StageId WAIT_BRING_ONLINE = 101;
+constexpr StageId DONE_BRING_ONLINE = 102;
+constexpr StageId WAIT_CONNECTION_OPEN = 103;
+constexpr StageId DONE_CONNECTION_OPEN = 104;
 } // namespace CommonStages
 
 namespace HostDelegateAuthStages {

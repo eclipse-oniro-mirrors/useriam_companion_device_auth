@@ -88,8 +88,7 @@ bool IsManageMode()
     return GetCrossDeviceCommManager().GetSubscribeMode() == SUBSCRIBE_MODE_ALL_DEVICES;
 }
 
-class SubscribeModeModuleTest : public testing::Test {
-};
+class SubscribeModeModuleTest : public testing::Test {};
 
 // HAP subscriber whose window is visible -> MANAGE.
 HWTEST_F(SubscribeModeModuleTest, HapForeground_Manage_001, TestSize.Level0)

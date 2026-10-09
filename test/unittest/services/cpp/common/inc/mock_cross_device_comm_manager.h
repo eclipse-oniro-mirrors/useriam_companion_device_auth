@@ -34,20 +34,25 @@ public:
     MOCK_METHOD(LocalDeviceProfile, GetLocalDeviceProfile, (), (override));
 
     MOCK_METHOD(std::optional<DeviceStatus>, GetDeviceStatus, (const DeviceKey &deviceKey), (override));
-    MOCK_METHOD(std::vector<DeviceStatus>, GetAllDeviceStatus, (bool), (override));
+    MOCK_METHOD(std::vector<DeviceStatus>, GetAllDeviceStatus, (DeviceStatusFilter), (override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeAllDeviceStatus, (OnDeviceStatusChange && onDeviceStatusChange),
         (override));
 
     MOCK_METHOD(void, SetSubscribeMode, (SubscribeMode subscribeMode), (override));
     MOCK_METHOD(SubscribeMode, GetSubscribeMode, (), (const, override));
+    MOCK_METHOD(ConnectionMode, GetCurrentConnectionMode, (), (const, override));
     MOCK_METHOD(void, RefreshDeviceStatus, (), (override));
-    MOCK_METHOD(void, TriggerDeviceSync, (const DeviceKey &deviceKey), (override));
+    MOCK_METHOD(void, EnsureDeviceSynced, (const PhysicalDeviceKey &physicalKey, OnDeviceSyncResult &&onResult),
+        (override));
+    MOCK_METHOD(void, ResyncDevice, (const PhysicalDeviceKey &physicalKey), (override));
+    MOCK_METHOD(bool, IsPhysicalOnline, (const DeviceKey &deviceKey), (override));
     MOCK_METHOD(std::optional<SteadyTimeMs>, GetTemplateStatusSubscribeTimeMs, (), (const, override));
     MOCK_METHOD(void, SetTemplateStatusSubscribed, (bool isActive), (override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeDeviceStatus,
-        (const DeviceKey &deviceKey, bool needSync, OnDeviceStatusChange &&onDeviceStatusChange), (override));
+        (const DeviceKey &deviceKey, SyncDemand demand, OnDeviceStatusChange &&onDeviceStatusChange), (override));
 
-    MOCK_METHOD(bool, OpenConnection, (const DeviceKey &deviceKey, std::string &outConnectionName), (override));
+    MOCK_METHOD(bool, OpenConnection,
+        (const DeviceKey &deviceKey, ConnectionMode connectionMode, std::string &outConnectionName), (override));
     MOCK_METHOD(void, CloseConnection, (const std::string &connectionName, const std::string &reason), (override));
     MOCK_METHOD(bool, IsConnectionOpen, (const std::string &connectionName), (override));
     MOCK_METHOD(ConnectionStatus, GetConnectionStatus, (const std::string &connectionName), (override));

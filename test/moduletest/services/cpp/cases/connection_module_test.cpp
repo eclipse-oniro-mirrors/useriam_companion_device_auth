@@ -38,8 +38,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-class ConnectionModuleTest : public testing::Test {
-};
+class ConnectionModuleTest : public testing::Test {};
 
 // Common test constants
 constexpr UserId HOST_USER_ID = 100;

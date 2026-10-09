@@ -28,8 +28,8 @@ namespace CompanionDeviceAuth {
 class HostRemoveHostBindingRequest : public std::enable_shared_from_this<HostRemoveHostBindingRequest>,
                                      public OutboundRequest {
 public:
-    HostRemoveHostBindingRequest(const UserKey &hostUserKey, TemplateId templateId,
-        const DeviceKey &companionDeviceKey);
+    HostRemoveHostBindingRequest(const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey,
+        ConnectionMode connectionMode);
     ~HostRemoveHostBindingRequest() override = default;
 
     uint32_t GetMaxConcurrency() const override;

@@ -59,8 +59,14 @@ IpcTemplateStatus ConvertToIpcTemplateStatus(const CompanionStatus &companionSta
         ipcStatus.enabledBusinessIds.push_back(static_cast<int>(id));
     }
     ipcStatus.deviceStatus = ConvertToIpcDeviceStatus(companionStatus.companionDeviceStatus);
-    ipcStatus.hasAuthTrustLevel = companionStatus.tokenAuthAtl.has_value();
-    ipcStatus.authTrustLevel = companionStatus.tokenAuthAtl.value_or(0);
+    if (companionStatus.companionDeviceStatus.isAuthMaintainActive.has_value() &&
+        companionStatus.tokenAuthAtl.has_value()) {
+        ipcStatus.hasAuthTrustLevel = true;
+        ipcStatus.authTrustLevel = companionStatus.tokenAuthAtl.value();
+    } else {
+        ipcStatus.hasAuthTrustLevel = false;
+        ipcStatus.authTrustLevel = 0;
+    }
     return ipcStatus;
 }
 

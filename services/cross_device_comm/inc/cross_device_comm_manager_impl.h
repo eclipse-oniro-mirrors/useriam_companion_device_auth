@@ -57,18 +57,22 @@ public:
     std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) override;
 
     std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey) override;
-    std::vector<DeviceStatus> GetAllDeviceStatus(bool includeUnsynced = false) override;
+    std::vector<DeviceStatus> GetAllDeviceStatus(DeviceStatusFilter filter = DeviceStatusFilter::SYNCED_ONLY) override;
     std::unique_ptr<Subscription> SubscribeAllDeviceStatus(OnDeviceStatusChange &&onDeviceStatusChange) override;
-    std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
+    std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, SyncDemand demand,
         OnDeviceStatusChange &&onDeviceStatusChange) override;
     void SetSubscribeMode(SubscribeMode subscribeMode) override;
     SubscribeMode GetSubscribeMode() const override;
+    ConnectionMode GetCurrentConnectionMode() const override;
     void RefreshDeviceStatus() override;
-    void TriggerDeviceSync(const DeviceKey &deviceKey) override;
+    void EnsureDeviceSynced(const PhysicalDeviceKey &physicalKey, OnDeviceSyncResult &&onResult) override;
+    void ResyncDevice(const PhysicalDeviceKey &physicalKey) override;
+    bool IsPhysicalOnline(const DeviceKey &deviceKey) override;
     std::optional<SteadyTimeMs> GetTemplateStatusSubscribeTimeMs() const override;
     void SetTemplateStatusSubscribed(bool isActive) override;
 
-    bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) override;
+    bool OpenConnection(const DeviceKey &deviceKey, ConnectionMode connectionMode,
+        std::string &outConnectionName) override;
     void CloseConnection(const std::string &connectionName, const std::string &reason) override;
     bool IsConnectionOpen(const std::string &connectionName) override;
     ConnectionStatus GetConnectionStatus(const std::string &connectionName) override;

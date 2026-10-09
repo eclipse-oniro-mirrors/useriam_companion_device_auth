@@ -40,8 +40,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
-class AddCompanionModuleTest : public testing::Test {
-};
+class AddCompanionModuleTest : public testing::Test {};
 
 // Helper: build and inject a single-round companion request, capture + verify reply
 std::optional<RawMsgInfo> CompanionRoundTrip(ModuleTestGuard &guard, const std::string &connName, uint32_t seq,

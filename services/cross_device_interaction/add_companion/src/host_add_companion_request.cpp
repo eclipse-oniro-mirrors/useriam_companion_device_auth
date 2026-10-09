@@ -46,7 +46,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 HostAddCompanionRequest::HostAddCompanionRequest(ScheduleId scheduleId, const std::vector<uint8_t> &fwkMsg,
     uint32_t tokenId, const std::string &additionalInfo, FwkResultCallback &&requestCallback)
-    : OutboundRequest(RequestType::HOST_ADD_COMPANION_REQUEST, scheduleId, DEFAULT_REQUEST_TIMEOUT_MS),
+    : OutboundRequest(RequestType::HOST_ADD_COMPANION_REQUEST, ConnectionMode::FOREGROUND, scheduleId,
+          DEFAULT_REQUEST_TIMEOUT_MS),
       fwkMsg_(fwkMsg),
       tokenId_(tokenId),
       additionalInfo_(additionalInfo),
@@ -266,6 +267,11 @@ ResultCode HostAddCompanionRequest::SendInitKeyNegotiationRequest(const std::vec
 std::weak_ptr<OutboundRequest> HostAddCompanionRequest::GetWeakPtr()
 {
     return weak_from_this();
+}
+
+bool HostAddCompanionRequest::RequireSyncedDevice() const
+{
+    return true;
 }
 
 void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &reply)

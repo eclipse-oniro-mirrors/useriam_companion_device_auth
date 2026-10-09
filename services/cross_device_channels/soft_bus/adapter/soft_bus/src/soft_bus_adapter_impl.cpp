@@ -24,6 +24,7 @@
 #include "singleton_manager.h"
 #include "socket.h"
 #include "soft_bus_channel_common.h"
+#include "soft_bus_qos.h"
 #include "softbus_error_code.h"
 #include "task_runner_manager.h"
 #include "xcollie_helper.h"
@@ -37,10 +38,6 @@ namespace CompanionDeviceAuth {
 
 namespace {
 constexpr int32_t INVALID_SOCKET_ID = -1;
-constexpr int32_t QOS_MIN_BW = 1024 * 1024;
-constexpr int32_t QOS_MAX_LATENCY = 30 * 1000;
-constexpr int32_t QOS_MIN_LATENCY = 100;
-constexpr int32_t QOS_MAX_WAIT_TIMEOUT = 30 * 1000;
 constexpr size_t SERVER_QOS = 4;
 constexpr size_t CLIENT_QOS = 3;
 
@@ -128,6 +125,11 @@ bool SoftBusAdapterOnNegotiate(int32_t socket, PeerSocketInfo info)
 
 } // namespace
 
+std::shared_ptr<SoftBusAdapterImpl> SoftBusAdapterImpl::Create()
+{
+    return std::shared_ptr<SoftBusAdapterImpl>(new (std::nothrow) SoftBusAdapterImpl());
+}
+
 void SoftBusAdapterImpl::RegisterCallback(const std::shared_ptr<ISoftBusSocketCallback> &callback)
 {
     std::lock_guard<std::mutex> lock(g_callbackMutex);
@@ -153,10 +155,10 @@ std::optional<SocketId> SoftBusAdapterImpl::CreateServerSocket()
     ScopeGuard guard([socketId]() { ::Shutdown(socketId); });
 
     QosTV serverQos[] = {
-        { .qos = QOS_TYPE_MIN_BW, .value = QOS_MIN_BW },
-        { .qos = QOS_TYPE_MAX_LATENCY, .value = QOS_MAX_LATENCY },
-        { .qos = QOS_TYPE_MIN_LATENCY, .value = QOS_MIN_LATENCY },
-        { .qos = QOS_TYPE_MAX_WAIT_TIMEOUT, .value = QOS_MAX_WAIT_TIMEOUT },
+        { .qos = QOS_TYPE_MIN_BW, .value = SoftBusQos::MIN_BW },
+        { .qos = QOS_TYPE_MAX_LATENCY, .value = SoftBusQos::MAX_LATENCY },
+        { .qos = QOS_TYPE_MIN_LATENCY, .value = SoftBusQos::MIN_LATENCY },
+        { .qos = QOS_TYPE_MAX_WAIT_TIMEOUT, .value = SoftBusQos::MAX_WAIT_TIMEOUT },
     };
 
     ISocketListener listener {};
@@ -200,9 +202,9 @@ std::optional<SocketId> SoftBusAdapterImpl::CreateClientSocket(const std::string
     ScopeGuard guard([socketId]() { ::Shutdown(socketId); });
 
     QosTV clientQos[] = {
-        { .qos = QOS_TYPE_MIN_BW, .value = QOS_MIN_BW },
-        { .qos = QOS_TYPE_MAX_LATENCY, .value = QOS_MAX_LATENCY },
-        { .qos = QOS_TYPE_MIN_LATENCY, .value = QOS_MIN_LATENCY },
+        { .qos = QOS_TYPE_MIN_BW, .value = SoftBusQos::MIN_BW },
+        { .qos = QOS_TYPE_MAX_LATENCY, .value = SoftBusQos::MAX_LATENCY },
+        { .qos = QOS_TYPE_MIN_LATENCY, .value = SoftBusQos::MIN_LATENCY },
     };
 
     ISocketListener listener {};

@@ -22,6 +22,7 @@
 #include "fuzzer/FuzzedDataProvider.h"
 
 #include "cda_attributes.h"
+#include "cross_device_common.h"
 #include "service_common.h"
 
 namespace OHOS {
@@ -61,6 +62,8 @@ void FillDeviceKeyVector(FuzzedDataProvider &fuzzData, std::vector<DeviceKey> &d
 std::string GenerateFuzzString(FuzzedDataProvider &fuzzData, uint32_t maxSize = FUZZ_MAX_STRING_SIZE);
 std::string GenerateRandomString(FuzzedDataProvider &fuzzData, uint32_t maxSize = 100);
 ChannelId GenerateFuzzChannelId(FuzzedDataProvider &fuzzData);
+ConnectionMode GenerateFuzzConnectionMode(FuzzedDataProvider &fuzzData);
+SyncTriggerReason GenerateFuzzSyncTriggerReason(FuzzedDataProvider &fuzzData);
 ProtocolId GenerateFuzzProtocolId(FuzzedDataProvider &fuzzData);
 SecureProtocolId GenerateFuzzSecureProtocolId(FuzzedDataProvider &fuzzData);
 Capability GenerateFuzzCapability(FuzzedDataProvider &fuzzData);

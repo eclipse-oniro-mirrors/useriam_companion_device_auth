@@ -50,7 +50,7 @@ static void FuzzOp1(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDa
     physicalKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     physicalKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
     std::string networkId = GenerateFuzzString(fuzzData, TEST_VAL64);
-    manager->OpenConnection(connectionName, physicalKey, networkId);
+    manager->OpenConnection(connectionName, GenerateFuzzConnectionMode(fuzzData), physicalKey, networkId);
 }
 
 static void FuzzOp2(std::shared_ptr<SoftBusConnectionManager> &manager, FuzzedDataProvider &fuzzData)

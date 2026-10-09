@@ -48,6 +48,7 @@ protected:
     void CompleteWithError(ResultCode result) override;
     void CompleteWithSuccess();
     std::weak_ptr<OutboundRequest> GetWeakPtr() override;
+    bool RequireSyncedDevice() const override;
 
 private:
     void HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices);

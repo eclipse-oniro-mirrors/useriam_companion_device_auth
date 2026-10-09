@@ -213,6 +213,20 @@ ChannelId GenerateFuzzChannelId(FuzzedDataProvider &fuzzData)
     return static_cast<ChannelId>(fuzzData.ConsumeIntegralInRange<int32_t>(leftRange, rightRange));
 }
 
+ConnectionMode GenerateFuzzConnectionMode(FuzzedDataProvider &fuzzData)
+{
+    int32_t leftRange = 0;
+    int32_t rightRange = 1;
+    return static_cast<ConnectionMode>(fuzzData.ConsumeIntegralInRange<int32_t>(leftRange, rightRange));
+}
+
+SyncTriggerReason GenerateFuzzSyncTriggerReason(FuzzedDataProvider &fuzzData)
+{
+    int32_t leftRange = 0;
+    int32_t rightRange = 5;
+    return static_cast<SyncTriggerReason>(fuzzData.ConsumeIntegralInRange<int32_t>(leftRange, rightRange));
+}
+
 ProtocolId GenerateFuzzProtocolId(FuzzedDataProvider &fuzzData)
 {
     int32_t leftRange = 0;

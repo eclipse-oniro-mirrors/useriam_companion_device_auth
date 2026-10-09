@@ -31,8 +31,10 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-OutboundRequest::OutboundRequest(RequestType requestType, ScheduleId scheduleId, uint32_t timeoutMs)
-    : BaseRequest(requestType, scheduleId, timeoutMs, "-")
+OutboundRequest::OutboundRequest(RequestType requestType, ConnectionMode connectionMode, ScheduleId scheduleId,
+    uint32_t timeoutMs)
+    : BaseRequest(requestType, scheduleId, timeoutMs, "-"),
+      connectionMode_(connectionMode)
 {
 }
 
@@ -42,7 +44,73 @@ void OutboundRequest::Start()
     LogTraceGuard guard;
 
     eventCollector_.Start();
+    eventCollector_.SetConnectionMode(connectionMode_);
     StartTimeout(GetWeakPtr());
+
+    BringPeerOnline();
+}
+
+bool OutboundRequest::RequireSyncedDevice() const
+{
+    return false;
+}
+
+void OutboundRequest::BringPeerOnline()
+{
+    std::optional<DeviceKey> peerDeviceKey;
+    if (RequireSyncedDevice()) {
+        peerDeviceKey = GetPeerDeviceKey();
+    }
+    if (!peerDeviceKey.has_value()) {
+        TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = GetWeakPtr()]() {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->RunOnStart();
+        });
+        return;
+    }
+
+    eventCollector_.EnterWait(CommonStages::WAIT_BRING_ONLINE);
+    SyncDemand peerDemand =
+        connectionMode_ == ConnectionMode::FOREGROUND ? SyncDemand::FOREGROUND : SyncDemand::BACKGROUND;
+    peerDeviceSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(*peerDeviceKey, peerDemand, nullptr);
+    if (peerDeviceSubscription_ == nullptr) {
+        IAM_LOGE("%{public}s subscribe device status failed, abort bring online", GetDescription());
+        CompleteWithError(ResultCode::COMMUNICATION_ERROR);
+        return;
+    }
+    GetCrossDeviceCommManager().EnsureDeviceSynced(FromDeviceKey(*peerDeviceKey),
+        [weakSelf = GetWeakPtr()](ResultCode resultCode) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleBringOnlineResult(resultCode);
+        });
+    IAM_LOGI("%{public}s waiting for bring online device sync", GetDescription());
+}
+
+void OutboundRequest::HandleBringOnlineResult(ResultCode resultCode)
+{
+    if (IsFinished()) {
+        return;
+    }
+
+    eventCollector_.ExitWait(CommonStages::DONE_BRING_ONLINE);
+
+    if (resultCode != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s bring online failed: %{public}d", GetDescription(), static_cast<int32_t>(resultCode));
+        CompleteWithError(resultCode);
+        return;
+    }
+
+    IAM_LOGI("%{public}s bring online done", GetDescription());
+    RunOnStart();
+}
+
+void OutboundRequest::RunOnStart()
+{
+    if (IsFinished()) {
+        return;
+    }
 
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
 
@@ -80,6 +148,7 @@ void OutboundRequest::Destroy()
 {
     connectionStatusSubscription_.reset();
     requestAbortedSubscription_.reset();
+    peerDeviceSubscription_.reset();
     CloseConnection();
     BaseRequest::Destroy();
 }
@@ -105,7 +174,7 @@ bool OutboundRequest::OpenConnection()
 
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), peerDeviceKey_.has_value(), false);
 
-    if (!GetCrossDeviceCommManager().OpenConnection(*peerDeviceKey_, connectionName_)) {
+    if (!GetCrossDeviceCommManager().OpenConnection(*peerDeviceKey_, connectionMode_, connectionName_)) {
         IAM_LOGE("%{public}s OpenConnection failed", GetDescription());
         return false;
     }
@@ -171,8 +240,23 @@ void OutboundRequest::HandleConnectionStatus(const std::string &connName, Connec
         case ConnectionStatus::DISCONNECTED:
             IAM_LOGI("%{public}s disconnected", GetDescription());
             eventCollector_.SetDisconnectReason(reason);
-            CompleteWithError(reason == REASON_PEER_SERVICE_NOT_AVAILABLE ? ResultCode::PEER_SERVICE_NOT_AVAILABLE
-                                                                          : ResultCode::COMMUNICATION_ERROR);
+            if (reason == REASON_PEER_SERVICE_NOT_AVAILABLE) {
+                CompleteWithError(ResultCode::PEER_SERVICE_NOT_AVAILABLE);
+                break;
+            }
+            if (reason == REASON_COORDINATOR_REJECTED) {
+                CompleteWithError(ResultCode::COORDINATOR_REJECTED);
+                break;
+            }
+            if (reason == REASON_COORDINATOR_TIMEOUT) {
+                CompleteWithError(ResultCode::TIMEOUT);
+                break;
+            }
+            if (reason == REASON_DISCONNECT_REQUESTED) {
+                CompleteWithError(ResultCode::COMMUNICATION_ERROR);
+                break;
+            }
+            CompleteWithError(ResultCode::COMMUNICATION_ERROR);
             break;
         default:
             IAM_LOGE("%{public}s unknown connection status: %{public}d", GetDescription(), status);

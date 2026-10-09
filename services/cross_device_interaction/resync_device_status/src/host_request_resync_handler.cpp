@@ -63,9 +63,7 @@ void HostRequestResyncHandler::HandleRequest(const Attributes &request, Attribut
     desc.SetDeviceId(companionDeviceKey);
     eventCollector.SetCompanionDeviceKey(companionDeviceKey);
 
-    // The sender's DeviceKey is authenticated by the message router; ask the device status
-    // manager to re-sync this physical device immediately.
-    GetCrossDeviceCommManager().TriggerDeviceSync(companionDeviceKey);
+    GetCrossDeviceCommManager().ResyncDevice(FromDeviceKey(companionDeviceKey));
 
     RequestDeviceResyncReply replyMsg = { .result = ResultCode::SUCCESS };
     EncodeRequestDeviceResyncReply(replyMsg, reply);

@@ -87,7 +87,7 @@ HostBinding::~HostBinding()
 bool HostBinding::Initialize()
 {
     deviceStatusSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(status_.hostDeviceStatus.deviceKey,
-        false, [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
+        SyncDemand::NONE, [weakSelf = weak_from_this()](const std::vector<DeviceStatus> &deviceStatusList) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleDeviceStatusChanged(deviceStatusList);
@@ -122,6 +122,10 @@ void HostBinding::HandleDeviceStatusChanged(const std::vector<DeviceStatus> &dev
         [hostDeviceKey](const auto &status) { return status.deviceKey == hostDeviceKey; });
     if (it != deviceStatusList.end()) {
         HandleHostDeviceStatusUpdate(*it);
+    }
+
+    if (GetCrossDeviceCommManager().IsPhysicalOnline(hostDeviceKey)) {
+        HandleHostDeviceOnline();
         return;
     }
     HandleHostDeviceOffline();
@@ -133,13 +137,24 @@ void HostBinding::HandleHostDeviceStatusUpdate(const DeviceStatus &hostDeviceSta
     IAM_LOGI("%{public}s device status updated", GetDescription());
 }
 
-void HostBinding::HandleHostDeviceOffline()
+void HostBinding::HandleHostDeviceOnline()
 {
-    if (!status_.hostDeviceStatus.isOnline) {
+    if (isHostPhysicalOnline_) {
         return;
     }
 
-    status_.hostDeviceStatus.isOnline = false;
+    isHostPhysicalOnline_ = true;
+    IAM_LOGI("%{public}s host device %{public}s is online", GetDescription(),
+        status_.hostDeviceStatus.deviceKey.GetDesc().c_str());
+}
+
+void HostBinding::HandleHostDeviceOffline()
+{
+    if (!isHostPhysicalOnline_) {
+        return;
+    }
+
+    isHostPhysicalOnline_ = false;
     IAM_LOGE("%{public}s host device %{public}s is offline", GetDescription(),
         status_.hostDeviceStatus.deviceKey.GetDesc().c_str());
     SetTokenValid(false, "host device offline");

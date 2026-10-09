@@ -30,6 +30,7 @@
 #include "connection_manager.h"
 #include "cross_device_common.h"
 #include "device_status_entry.h"
+#include "error_guard.h"
 #include "host_sync_device_status_request.h"
 #include "local_device_status_manager.h"
 #include "misc_manager.h"
@@ -42,6 +43,11 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
+enum class DeviceReconcilePolicy : int32_t {
+    CHANGED_ONLY = 0,
+    REEVALUATE_ALL = 1,
+};
+
 // Remote device status management and subscription mode control
 class DeviceStatusManager : public std::enable_shared_from_this<DeviceStatusManager>, public NoCopyable {
 public:
@@ -53,25 +59,28 @@ public:
 
     std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey);
     std::optional<ChannelId> GetChannelIdByDeviceKey(const DeviceKey &deviceKey);
-    std::vector<DeviceStatus> GetAllDeviceStatus(bool includeUnsynced = false);
+    std::vector<DeviceStatus> GetAllDeviceStatus(DeviceStatusFilter filter = DeviceStatusFilter::SYNCED_ONLY);
     std::optional<SteadyTimeMs> GetTemplateStatusSubscribeTimeMs() const;
     void SetTemplateStatusSubscribed(bool isActive);
 
     std::unique_ptr<Subscription> SubscribeDeviceStatus(OnDeviceStatusChange &&callback);
-    std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
+    std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, SyncDemand demand,
         OnDeviceStatusChange &&callback);
 
     void SetSubscribeMode(SubscribeMode mode);
     SubscribeMode GetSubscribeMode() const;
+    ConnectionMode GetCurrentConnectionMode() const;
     void RefreshDeviceStatus();
-    void TriggerDeviceSync(const PhysicalDeviceKey &physicalKey);
+    bool IsPhysicalOnline(const PhysicalDeviceKey &physicalKey);
+    void EnsureDeviceSynced(const PhysicalDeviceKey &physicalKey, OnDeviceSyncResult &&onResult);
+    void ResyncDevice(const PhysicalDeviceKey &physicalKey);
 
 private:
     struct DeviceStatusSubscriptionInfo {
         SubscribeId subscriptionId;
         std::optional<DeviceKey> deviceKey;
         OnDeviceStatusChange callback;
-        bool needSync { false };
+        SyncDemand demand { SyncDemand::NONE };
     };
 
     DeviceStatusManager(const std::vector<BusinessId> &hostSupportBusinessIds,
@@ -80,30 +89,38 @@ private:
 
     bool Initialize();
 
-    void HandleSyncResult(const DeviceKey &deviceKey, uint64_t requestId, int32_t resultCode,
+    void HandleSyncResult(const DeviceKey &deviceKey, uint64_t requestId, ResultCode resultCode,
         const SyncDeviceStatus &syncDeviceStatus);
     void ApplySyncResult(DeviceStatusEntry &deviceStatus, const SyncDeviceStatus &syncDeviceStatus);
 
-    void DoTriggerDeviceSync(const PhysicalDeviceKey &physicalKey);
+    void AttachOrStartDeviceSync(const PhysicalDeviceKey &physicalKey, SyncTriggerReason reason,
+        OnDeviceSyncResult onResult = nullptr);
+    void HandleSyncFailure(DeviceStatusEntry &deviceStatus, const DeviceKey &deviceKey, ResultCode resultCode,
+        ErrorGuard &errorGuard);
+    bool NegotiateSyncProtocol(DeviceStatusEntry &deviceStatus, const DeviceKey &deviceKey,
+        const SyncDeviceStatus &syncDeviceStatus, ErrorGuard &errorGuard);
+    void StartDeviceSync(DeviceStatusEntry &entry, ConnectionMode mode, SyncTriggerReason reason,
+        OnDeviceSyncResult &onResult, ErrorGuard &settleGuard);
+    void SyncDeviceIfNeeded(DeviceStatusEntry &entry);
+    void EscalateSyncToForeground(DeviceStatusEntry &deviceStatus);
 
     bool UnsubscribeDeviceStatus(SubscribeId subscriptionId);
 
     std::optional<ProtocolId> NegotiateProtocol(const std::vector<ProtocolId> &remoteProtocols);
 
-    DeviceKey MakeTemporaryDeviceKey(const PhysicalDeviceKey &physicalKey);
-
     bool ShouldMonitorDevice(const PhysicalDeviceKey &physicalKey);
-    bool NeedSyncDevice(const PhysicalDeviceKey &physicalKey);
+    SyncDemandLevel ResolveSyncDemandLevel(const PhysicalDeviceKey &physicalKey);
 
     void HandleChannelDeviceStatusChange(ChannelId channelId, const std::vector<PhysicalDeviceStatus> &statusList);
 
-    void RefreshDeviceList(bool resync);
+    void ReconcileDevices(DeviceReconcilePolicy policy);
 
     std::map<PhysicalDeviceKey, PhysicalDeviceStatus> CollectFilteredDevices();
     bool RemoveObsoleteDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap);
-    bool AddOrUpdateDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap, bool resync);
+    bool AddOrUpdateDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap,
+        DeviceReconcilePolicy policy);
     bool UpdateExistingDevice(const PhysicalDeviceKey &key, DeviceStatusEntry &deviceStatus,
-        const PhysicalDeviceStatus &status, bool resync);
+        const PhysicalDeviceStatus &status, DeviceReconcilePolicy policy);
     void NotifySubscribers();
 
     std::map<PhysicalDeviceKey, DeviceStatusEntry> deviceStatusMap_;

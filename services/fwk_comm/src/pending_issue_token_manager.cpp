@@ -89,8 +89,9 @@ void PendingIssueTokenManager::OnCompanionStatusChange(const std::vector<Compani
         if (it == pendingEntries_.end()) {
             continue;
         }
-        if (!status.companionDeviceStatus.isOnline) {
-            IAM_LOGI("templateId %{public}s offline, skipping issue token", GET_MASKED_NUM_CSTR(status.templateId));
+        if (!GetCrossDeviceCommManager().IsPhysicalOnline(status.companionDeviceStatus.deviceKey)) {
+            IAM_LOGI("templateId %{public}s not physical online, skipping issue token",
+                GET_MASKED_NUM_CSTR(status.templateId));
             continue;
         }
         IAM_LOGI("templateId %{public}s ready, triggering issue token", GET_MASKED_NUM_CSTR(status.templateId));

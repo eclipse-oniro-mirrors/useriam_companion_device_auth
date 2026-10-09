@@ -35,7 +35,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 class OutboundRequest : public BaseRequest {
 public:
-    OutboundRequest(RequestType requestType, ScheduleId scheduleId, uint32_t timeoutMs);
+    OutboundRequest(RequestType requestType, ConnectionMode connectionMode, ScheduleId scheduleId, uint32_t timeoutMs);
     virtual ~OutboundRequest() = default;
 
     void Start() override final;
@@ -49,12 +49,18 @@ protected:
 
     virtual std::weak_ptr<OutboundRequest> GetWeakPtr() = 0;
 
+    virtual bool RequireSyncedDevice() const;
+
     bool OpenConnection();
     void SetPeerDeviceKey(const DeviceKey &peerDeviceKey);
     std::optional<DeviceKey> GetPeerDeviceKey() const override;
     const std::string &GetConnectionName() const;
 
 private:
+    void RunOnStart();
+    void BringPeerOnline();
+    void HandleBringOnlineResult(ResultCode resultCode);
+
     void CloseConnection();
 
     void HandleConnectionStatus(const std::string &connName, ConnectionStatus status, const std::string &reason);
@@ -62,6 +68,8 @@ private:
 
     std::optional<DeviceKey> peerDeviceKey_;
     std::string connectionName_ = "";
+    ConnectionMode connectionMode_;
+    std::unique_ptr<Subscription> peerDeviceSubscription_;
     std::unique_ptr<Subscription> connectionStatusSubscription_;
     std::unique_ptr<Subscription> requestAbortedSubscription_;
 };

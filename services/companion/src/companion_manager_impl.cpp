@@ -412,7 +412,7 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId, bool rem
     NotifyCompanionStatusChange();
     ScopeGuard guard([this, templateId]() { HandleRemoveHostBindingComplete(templateId); });
     auto request = GetRequestFactory().CreateHostRemoveHostBindingRequest({ output.userId, hostUserKey_.subProfileId },
-        templateId, output.companionDeviceKey);
+        templateId, output.companionDeviceKey, GetCrossDeviceCommManager().GetCurrentConnectionMode());
     if (request == nullptr) {
         IAM_LOGE("CreateHostRemoveHostBindingRequest failed for templateId %{public}s",
             GET_MASKED_NUM_CSTR(templateId));
@@ -477,9 +477,8 @@ bool CompanionManagerImpl::IsCapabilitySupported(TemplateId templateId, Capabili
         return false;
     }
 
-    auto it = std::find(companionStatus->companionDeviceStatus.capabilities.begin(),
-        companionStatus->companionDeviceStatus.capabilities.end(), capability);
-    if (it == companionStatus->companionDeviceStatus.capabilities.end()) {
+    const auto &capabilities = companionStatus->companionDeviceStatus.capabilities;
+    if (!HasCapability(capabilities, capability)) {
         IAM_LOGE("capability %{public}u not supported by companion device %{public}s",
             static_cast<uint16_t>(capability), GET_MASKED_NUM_CSTR(templateId));
         return false;
@@ -660,15 +659,14 @@ void CompanionManagerImpl::StartIssueTokenRequests(const std::vector<uint64_t> &
             continue;
         }
 
-        auto it2 = std::find(companionStatus.companionDeviceStatus.capabilities.begin(),
-            companionStatus.companionDeviceStatus.capabilities.end(), Capability::TOKEN_AUTH);
-        if (it2 == companionStatus.companionDeviceStatus.capabilities.end()) {
-            IAM_LOGI("companion %{public}s does not support TOKEN_AUTH, skip", companion->GetDescription());
+        if (!companionStatus.companionDeviceStatus.isAuthMaintainActive.value_or(true)) {
+            IAM_LOGI("companion %{public}s is not auth maintain active, skip", companion->GetDescription());
             continue;
         }
 
-        if (!companionStatus.companionDeviceStatus.isAuthMaintainActive.value_or(true)) {
-            IAM_LOGI("companion %{public}s is not auth maintain active, skip", companion->GetDescription());
+        if (!GetCrossDeviceCommManager().IsPhysicalOnline(companionStatus.companionDeviceStatus.deviceKey)) {
+            IAM_LOGI("companion %{public}s is not physical online, skip creating issue token request",
+                companion->GetDescription());
             continue;
         }
 

@@ -38,17 +38,18 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 HostSyncDeviceStatusRequest::HostSyncDeviceStatusRequest(const UserKey &hostUserKey,
-    const DeviceKey &companionDeviceKey, const std::string &companionDeviceName, SyncDeviceStatusCallback &&callback)
-    : OutboundRequest(RequestType::HOST_SYNC_DEVICE_STATUS_REQUEST, 0, DEFAULT_REQUEST_TIMEOUT_MS),
+    const DeviceKey &companionDeviceKey, ConnectionMode connectionMode, SyncTriggerReason triggerReason,
+    SyncDeviceStatusCallback &&callback)
+    : OutboundRequest(RequestType::HOST_SYNC_DEVICE_STATUS_REQUEST, connectionMode, 0, DEFAULT_REQUEST_TIMEOUT_MS),
       hostUserKey_(hostUserKey),
       companionDeviceKey_(companionDeviceKey),
-      companionDeviceName_(companionDeviceName),
       callback_(std::move(callback))
 {
     SetPeerDeviceKey(companionDeviceKey_);
     desc_.SetDeviceId(companionDeviceKey_);
     eventCollector_.SetHostUserKey(hostUserKey_);
     eventCollector_.SetCompanionDeviceKey(companionDeviceKey);
+    eventCollector_.SetTriggerReason("syncTriggerReason " + std::to_string(static_cast<int32_t>(triggerReason)));
 }
 
 void HostSyncDeviceStatusRequest::OnConnected()
@@ -207,9 +208,9 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     const auto &replyData = *replyDataOpt;
 
     if (replyData.result != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s peer result not success, result=%{public}d", GetDescription(),
+        IAM_LOGE("%{public}s peer sync failed, peerResult=%{public}d", GetDescription(),
             static_cast<int32_t>(replyData.result));
-        errorGuard.UpdateErrorCode(replyData.result);
+        errorGuard.UpdateErrorCode(ResultCode::PEER_SYNC_FAILED);
         return;
     }
 

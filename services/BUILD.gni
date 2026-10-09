@@ -200,13 +200,19 @@ if (companion_device_auth_enable_auth_state_maintain_simulation) {
 }
 
 if (companion_device_auth_has_soft_bus_channel) {
-  companion_device_auth_service_include_dirs +=
-      [ "cross_device_channels/soft_bus/inc" ]
+  companion_device_auth_service_include_dirs += [
+    "cross_device_channels/soft_bus/adapter/coordinator/inc",
+    "cross_device_channels/soft_bus/adapter/device_manager/inc",
+    "cross_device_channels/soft_bus/adapter/manager/inc",
+    "cross_device_channels/soft_bus/adapter/soft_bus/inc",
+    "cross_device_channels/soft_bus/inc",
+  ]
   companion_device_auth_service_static_sources += [
-    "cross_device_channels/soft_bus/src/device_manager_adapter_impl.cpp",
+    "cross_device_channels/soft_bus/adapter/coordinator/src/soft_bus_coordinator_adapter_impl.cpp",
+    "cross_device_channels/soft_bus/adapter/device_manager/src/device_manager_adapter_impl.cpp",
+    "cross_device_channels/soft_bus/adapter/manager/src/soft_bus_adapter_manager.cpp",
+    "cross_device_channels/soft_bus/adapter/soft_bus/src/soft_bus_adapter_impl.cpp",
     "cross_device_channels/soft_bus/src/device_resync_scheduler.cpp",
-    "cross_device_channels/soft_bus/src/soft_bus_adapter_impl.cpp",
-    "cross_device_channels/soft_bus/src/soft_bus_adapter_manager.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_channel.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_connection.cpp",
     "cross_device_channels/soft_bus/src/soft_bus_connection_manager.cpp",
@@ -226,7 +232,8 @@ if (companion_device_auth_has_account_os_account) {
   companion_device_auth_service_external_deps +=
       [ "os_account:os_account_innerkits" ]
   if (companion_device_auth_enable_multiple_os_account_sub_profiles) {
-    companion_device_auth_service_flags += [ "-DENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES" ]
+    companion_device_auth_service_flags +=
+        [ "-DENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES" ]
   }
 } else {
   companion_device_auth_service_static_sources +=

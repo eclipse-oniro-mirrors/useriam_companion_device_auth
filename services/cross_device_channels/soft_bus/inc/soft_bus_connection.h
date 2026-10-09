@@ -25,8 +25,8 @@ class SoftBusConnectionManager;
 class SoftbusConnection : public NoCopyable {
 public:
     SoftbusConnection(int32_t socketId, const std::string &connectionName, const PhysicalDeviceKey &physicalDeviceKey,
-        std::weak_ptr<SoftBusConnectionManager> manager);
-    SoftbusConnection(int32_t socketId, const PhysicalDeviceKey &physicalDeviceKey,
+        const std::string &networkId, std::weak_ptr<SoftBusConnectionManager> manager);
+    SoftbusConnection(int32_t socketId, const PhysicalDeviceKey &physicalDeviceKey, const std::string &networkId,
         std::weak_ptr<SoftBusConnectionManager> manager);
     ~SoftbusConnection();
 
@@ -41,6 +41,10 @@ public:
     const PhysicalDeviceKey &GetPhysicalDeviceKey() const
     {
         return physicalDeviceKey_;
+    }
+    const std::string &GetNetworkId() const
+    {
+        return networkId_;
     }
     bool IsConnected() const
     {
@@ -73,6 +77,7 @@ private:
     int32_t socketId_;
     std::string connectionName_;
     PhysicalDeviceKey physicalDeviceKey_;
+    std::string networkId_;
     bool isConnected_;
     bool isInbound_;
     bool isShutdownByPeer_;

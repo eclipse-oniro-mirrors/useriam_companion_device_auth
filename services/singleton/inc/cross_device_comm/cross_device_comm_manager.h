@@ -45,18 +45,23 @@ public:
     virtual std::unique_ptr<Subscription> SubscribeIsAuthMaintainActive(OnAuthMaintainActiveChange &&callback) = 0;
 
     virtual std::optional<DeviceStatus> GetDeviceStatus(const DeviceKey &deviceKey) = 0;
-    virtual std::vector<DeviceStatus> GetAllDeviceStatus(bool includeUnsynced = false) = 0;
+    virtual std::vector<DeviceStatus> GetAllDeviceStatus(
+        DeviceStatusFilter filter = DeviceStatusFilter::SYNCED_ONLY) = 0;
     virtual std::unique_ptr<Subscription> SubscribeAllDeviceStatus(OnDeviceStatusChange &&onDeviceStatusChange) = 0;
-    virtual std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, bool needSync,
+    virtual std::unique_ptr<Subscription> SubscribeDeviceStatus(const DeviceKey &deviceKey, SyncDemand demand,
         OnDeviceStatusChange &&onDeviceStatusChange) = 0;
     virtual void SetSubscribeMode(SubscribeMode subscribeMode) = 0;
     virtual SubscribeMode GetSubscribeMode() const = 0;
+    virtual ConnectionMode GetCurrentConnectionMode() const = 0;
     virtual void RefreshDeviceStatus() = 0;
-    virtual void TriggerDeviceSync(const DeviceKey &deviceKey) = 0;
+    virtual void EnsureDeviceSynced(const PhysicalDeviceKey &physicalKey, OnDeviceSyncResult &&onResult) = 0;
+    virtual void ResyncDevice(const PhysicalDeviceKey &physicalKey) = 0;
+    virtual bool IsPhysicalOnline(const DeviceKey &deviceKey) = 0;
     virtual std::optional<SteadyTimeMs> GetTemplateStatusSubscribeTimeMs() const = 0;
     virtual void SetTemplateStatusSubscribed(bool isActive) = 0;
 
-    virtual bool OpenConnection(const DeviceKey &deviceKey, std::string &outConnectionName) = 0;
+    virtual bool OpenConnection(const DeviceKey &deviceKey, ConnectionMode connectionMode,
+        std::string &outConnectionName) = 0;
     virtual void CloseConnection(const std::string &connectionName, const std::string &reason) = 0;
     virtual bool IsConnectionOpen(const std::string &connectionName) = 0;
     virtual ConnectionStatus GetConnectionStatus(const std::string &connectionName) = 0;

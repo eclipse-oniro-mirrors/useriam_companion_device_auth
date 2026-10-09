@@ -102,17 +102,8 @@ void DeviceResyncScheduler::ResyncAllPhysicalDevices(const std::string &reason)
 {
     ENSURE_OR_RETURN(deviceStatusManager_ != nullptr);
     auto devices = deviceStatusManager_->GetAllPhysicalDevices();
-    std::set<PhysicalDeviceKey> reloadDevices;
-    for (const auto &status : GetCrossDeviceCommManager().GetAllDeviceStatus(true)) {
-        reloadDevices.insert(PhysicalDeviceKey::FromDeviceKey(status.deviceKey));
-    }
     std::vector<PhysicalDeviceKey> recentlySyncedDevices;
     for (const auto &device : devices) {
-        if (!reloadDevices.count(device.physicalDeviceKey)) {
-            IAM_LOGI("skip resync for device %{public}s, not load by hostbinding, reason %{public}s",
-                GET_MASKED_STR_CSTR(device.physicalDeviceKey.deviceId), reason.c_str());
-            continue;
-        }
         if (syncedPeerRegistry_.IsRecentlySynced(device.physicalDeviceKey)) {
             recentlySyncedDevices.push_back(device.physicalDeviceKey);
         }
@@ -235,7 +226,7 @@ void DeviceResyncScheduler::HandleResyncComplete(const PhysicalDeviceKey &device
         scheduledResyncs_.erase(it);
         return;
     }
-    if (result == ResultCode::PEER_SERVICE_NOT_AVAILABLE) {
+    if (result == ResultCode::PEER_SERVICE_NOT_AVAILABLE || result == ResultCode::COORDINATOR_REJECTED) {
         IAM_LOGW("terminal resync result %{public}d for device %{public}s, stop retry", static_cast<int32_t>(result),
             GET_MASKED_STR_CSTR(deviceKey.deviceId));
         scheduledResyncs_.erase(it);

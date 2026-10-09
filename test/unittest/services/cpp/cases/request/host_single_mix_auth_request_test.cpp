@@ -114,6 +114,34 @@ HWTEST_F(HostSingleMixAuthRequestTest, Start_002, TestSize.Level0)
     EXPECT_EQ(*callbackResult, ResultCode::GENERAL_ERROR);
 }
 
+// A failed demand subscription aborts the foreground sync gate with COMMUNICATION_ERROR
+// instead of proceeding and settling later with a misleading GENERAL_ERROR.
+HWTEST_F(HostSingleMixAuthRequestTest, Start_FailedDemandSubscription_CompletesWithCommunicationError, TestSize.Level0)
+{
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT };
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request = std::make_shared<HostSingleMixAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
+    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+
+    ON_CALL(guard_->GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillByDefault(Invoke([](const DeviceKey &, SyncDemand, OnDeviceStatusChange &&) {
+            return std::unique_ptr<Subscription>(nullptr);
+        }));
+
+    request->Start();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::COMMUNICATION_ERROR);
+}
+
 HWTEST_F(HostSingleMixAuthRequestTest, Start_003, TestSize.Level0)
 {
     AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
@@ -618,6 +646,146 @@ HWTEST_F(HostSingleMixAuthRequestTest, ShouldCancelOnNewRequest_003, TestSize.Le
     auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_ADD_COMPANION_REQUEST);
     bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
     EXPECT_FALSE(result);
+}
+
+HWTEST_F(HostSingleMixAuthRequestTest, Start_SyncsDeviceBeforeSelectingAuthRoute, TestSize.Level0)
+{
+    // Unsynchronized device: Start pins the peer with a FOREGROUND demand subscription and waits for
+    // EnsureDeviceSynced before reading capabilities and creating the token auth sub-request.
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT };
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request = std::make_shared<HostSingleMixAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    DeviceKey subscribedKey;
+    SyncDemand subscribedDemand = SyncDemand::NONE;
+    ON_CALL(guard_->GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillByDefault(Invoke([&subscribedKey, &subscribedDemand](const DeviceKey &deviceKey, SyncDemand demand,
+                                  OnDeviceStatusChange &&) {
+            subscribedKey = deviceKey;
+            subscribedDemand = demand;
+            return std::make_unique<Subscription>([]() {});
+        }));
+    std::optional<OnDeviceSyncResult> syncResult;
+    std::string ensuredDeviceId;
+    ON_CALL(guard_->GetCrossDeviceCommManager(), EnsureDeviceSynced(_, _))
+        .WillByDefault(Invoke(
+            [&syncResult, &ensuredDeviceId](const PhysicalDeviceKey &physicalKey, OnDeviceSyncResult &&onResult) {
+                ensuredDeviceId = physicalKey.deviceId;
+                syncResult = std::move(onResult);
+            }));
+
+    auto tokenCreated = std::make_shared<bool>(false);
+    EXPECT_CALL(guard_->GetRequestFactory(), CreateHostTokenAuthRequest(_, _))
+        .WillOnce(Invoke([tokenCreated](const AuthRequestParams &, FwkResultCallback &&) {
+            *tokenCreated = true;
+            return std::make_shared<MockIRequest>(RequestType::HOST_TOKEN_AUTH_REQUEST, TOKEN_AUTH_REQ_ID, SCHEDULE_ID);
+        }));
+    EXPECT_CALL(guard_->GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    request->Start();
+
+    EXPECT_TRUE(subscribedKey == COMPANION_DEVICE_KEY);
+    EXPECT_EQ(subscribedDemand, SyncDemand::FOREGROUND);
+    EXPECT_EQ(ensuredDeviceId, COMPANION_DEVICE_KEY.deviceId);
+    ASSERT_TRUE(syncResult.has_value());
+    EXPECT_FALSE(*tokenCreated);
+
+    (*syncResult)(ResultCode::SUCCESS);
+
+    EXPECT_TRUE(*tokenCreated);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+}
+
+HWTEST_F(HostSingleMixAuthRequestTest, Start_AlreadySynced_EnsuresExactlyOnce, TestSize.Level0)
+{
+    // Already synced: SingleMix ensures exactly once; token/delegate sub-requests skip their own ensure
+    // (covered by their RequireSyncedDevice_IsFalse tests).
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT };
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request = std::make_shared<HostSingleMixAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    EXPECT_CALL(guard_->GetCrossDeviceCommManager(), EnsureDeviceSynced(_, _))
+        .Times(Exactly(1))
+        .WillOnce(
+            Invoke([](const PhysicalDeviceKey &, OnDeviceSyncResult &&onResult) { onResult(ResultCode::SUCCESS); }));
+    EXPECT_CALL(guard_->GetRequestFactory(), CreateHostTokenAuthRequest(_, _))
+        .WillOnce(Return(
+            std::make_shared<MockIRequest>(RequestType::HOST_TOKEN_AUTH_REQUEST, TOKEN_AUTH_REQ_ID, SCHEDULE_ID)));
+    EXPECT_CALL(guard_->GetRequestManager(), Start(_)).WillOnce(Return(true));
+
+    request->Start();
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+}
+
+HWTEST_F(HostSingleMixAuthRequestTest, Start_SyncFailed_CreatesNoAuthSubRequest, TestSize.Level0)
+{
+    // Sync failure ends SingleMix directly: no auth sub-request is created.
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT };
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request = std::make_shared<HostSingleMixAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
+    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+
+    std::optional<OnDeviceSyncResult> syncResult;
+    ON_CALL(guard_->GetCrossDeviceCommManager(), EnsureDeviceSynced(_, _))
+        .WillByDefault(Invoke([&syncResult](const PhysicalDeviceKey &, OnDeviceSyncResult &&onResult) {
+            syncResult = std::move(onResult);
+        }));
+    EXPECT_CALL(guard_->GetRequestFactory(), CreateHostTokenAuthRequest(_, _)).Times(Exactly(0));
+    EXPECT_CALL(guard_->GetRequestFactory(), CreateHostDelegateAuthRequest(_, _)).Times(Exactly(0));
+
+    request->Start();
+    ASSERT_TRUE(syncResult.has_value());
+    (*syncResult)(ResultCode::COMMUNICATION_ERROR);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::COMMUNICATION_ERROR);
+}
+
+HWTEST_F(HostSingleMixAuthRequestTest, Start_Cancelled_LateSyncCallbackStartsNoAuth, TestSize.Level0)
+{
+    // Cancel before the sync result arrives: the late sync callback must not start auth.
+    AuthRequestParams params = { SCHEDULE_ID, FWK_MSG, { HOST_USER_ID, INVALID_SUB_PROFILE_ID }, TEMPLATE_ID,
+        AUTH_INTENTION, AUTH_SCENE_DEFAULT };
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request = std::make_shared<HostSingleMixAuthRequest>(params, COMPANION_DEVICE_KEY, std::move(callback));
+
+    auto callbackCalled = std::make_shared<bool>(false);
+    auto callbackResult = std::make_shared<ResultCode>(ResultCode::SUCCESS);
+    request->requestCallback_ = [callbackCalled, callbackResult](ResultCode result, const std::vector<uint8_t> &) {
+        *callbackCalled = true;
+        *callbackResult = result;
+    };
+
+    std::optional<OnDeviceSyncResult> syncResult;
+    ON_CALL(guard_->GetCrossDeviceCommManager(), EnsureDeviceSynced(_, _))
+        .WillByDefault(Invoke([&syncResult](const PhysicalDeviceKey &, OnDeviceSyncResult &&onResult) {
+            syncResult = std::move(onResult);
+        }));
+    EXPECT_CALL(guard_->GetRequestFactory(), CreateHostTokenAuthRequest(_, _)).Times(Exactly(0));
+    EXPECT_CALL(guard_->GetRequestFactory(), CreateHostDelegateAuthRequest(_, _)).Times(Exactly(0));
+
+    request->Start();
+    bool cancelResult = request->Cancel(ResultCode::CANCELED);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    ASSERT_TRUE(syncResult.has_value());
+    (*syncResult)(ResultCode::SUCCESS);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(cancelResult);
+    EXPECT_TRUE(*callbackCalled);
+    EXPECT_EQ(*callbackResult, ResultCode::CANCELED);
 }
 
 } // namespace

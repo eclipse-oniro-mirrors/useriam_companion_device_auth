@@ -21,6 +21,7 @@
 #include "base_request.h"
 #include "request_factory.h"
 #include "request_manager.h"
+#include "subscription.h"
 #include "task_runner_manager.h"
 
 namespace OHOS {
@@ -45,6 +46,8 @@ private:
     void InvokeCallback(ResultCode result, const std::vector<uint8_t> &extraInfo);
 
     void HandleTokenAuthResult(ResultCode result, const std::vector<uint8_t> &extraInfo);
+    void HandleDeviceSyncResult(ResultCode result);
+    void StartTokenAuth();
     void StartDelegateAuth();
     void HandleDelegateAuthResult(ResultCode result, const std::vector<uint8_t> &extraInfo);
 
@@ -56,6 +59,7 @@ private:
     std::optional<RequestId> tokenAuthRequestId_;
     std::optional<RequestId> delegateAuthRequestId_;
     DeviceKey peerDeviceKey_ {};
+    std::unique_ptr<Subscription> peerDeviceSubscription_;
     std::vector<RequestId> subRequestIds_;
     std::optional<std::vector<uint8_t>> selectContext_;
     WidgetAuthParam widgetAuthParam_;

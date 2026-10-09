@@ -58,6 +58,13 @@ void CompanionTokenAuthHandler::HandleRequest(const Attributes &request, Attribu
         eventCollector.SetConnectionName(connectionName);
     }
 
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    if (!HasCapability(localProfile.companionCapabilities, Capability::TOKEN_AUTH)) {
+        IAM_LOGE("%{public}s TOKEN_AUTH capability not supported by local product", desc.GetCStr());
+        errorGuard.UpdateErrorCode(ResultCode::TYPE_NOT_SUPPORT);
+        return;
+    }
+
     auto tokenRequestOpt = DecodeTokenAuthRequest(request);
     if (!tokenRequestOpt.has_value()) {
         IAM_LOGE("%{public}s DecodeTokenAuthRequest failed", desc.GetCStr());

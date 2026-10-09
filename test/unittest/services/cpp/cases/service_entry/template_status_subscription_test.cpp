@@ -49,8 +49,7 @@ public:
     MOCK_METHOD(sptr<IRemoteObject>, AsObject, (), (override));
 };
 
-class TemplateStatusSubscriptionTest : public Test {
-};
+class TemplateStatusSubscriptionTest : public Test {};
 
 HWTEST_F(TemplateStatusSubscriptionTest, Create_001, TestSize.Level0)
 {
@@ -235,6 +234,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_004, TestSi
 
     CompanionStatus status {};
     status.hostUserKey.userId = userId;
+    status.companionDeviceStatus.isAuthMaintainActive = true;
 
     if (storedCallback) {
         storedCallback({ status });
@@ -270,6 +270,7 @@ HWTEST_F(TemplateStatusSubscriptionTest, HandleCompanionStatusChange_005, TestSi
 
     CompanionStatus status {};
     status.hostUserKey.userId = userId;
+    status.companionDeviceStatus.isAuthMaintainActive = true;
     status.tokenAuthAtl = TEST_ATL2;
 
     if (storedCallback) {

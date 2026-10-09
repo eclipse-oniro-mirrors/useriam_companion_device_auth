@@ -74,7 +74,7 @@ private:
         std::unique_ptr<Subscription> bundleSub_;
     };
 
-    bool UpdateSubscribeMode();
+    void UpdateSubscribeMode();
     void EnsureAppForegroundStateSubscribed();
 
     std::shared_ptr<AvailableDeviceSubscription> GetOrCreateAvailableDeviceSubscription(UserId userId);

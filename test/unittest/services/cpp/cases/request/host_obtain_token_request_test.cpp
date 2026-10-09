@@ -23,6 +23,7 @@
 #include "mock_request.h"
 #include "mock_request_manager.h"
 #include "mock_security_agent.h"
+#include "mock_system_param_manager.h"
 #include "mock_time_keeper.h"
 #include "mock_user_key_manager.h"
 
@@ -58,32 +59,9 @@ public:
     void SetUp() override
     {
         SingletonManager::GetInstance().Reset();
+        InstallMockInstances();
 
-        auto crossDeviceCommMgr =
-            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
-        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
-
-        auto requestMgr = std::shared_ptr<IRequestManager>(&mockRequestManager_, [](IRequestManager *) {});
-        SingletonManager::GetInstance().SetRequestManager(requestMgr);
-
-        auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
-        SingletonManager::GetInstance().SetCompanionManager(companionMgr);
-
-        auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
-        SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
-
-        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
-        SingletonManager::GetInstance().SetMiscManager(miscMgr);
-
-        auto userKeyMgr = std::shared_ptr<IUserKeyManager>(&mockUserKeyManager_, [](IUserKeyManager *) {});
-        AdapterManager::GetInstance().SetUserKeyManager(userKeyMgr);
-
-        auto timeKeeper = std::make_shared<MockTimeKeeper>();
-        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
-
-        auto eventManagerAdapter =
-            std::shared_ptr<IEventManagerAdapter>(&mockEventManagerAdapter_, [](IEventManagerAdapter *) {});
-        AdapterManager::GetInstance().SetEventManagerAdapter(eventManagerAdapter);
+        ON_CALL(mockSystemParamManager_, GetParam(_, _)).WillByDefault(Return(TRUE_STR));
 
         CompanionStatus companionStatus;
         companionStatus.templateId = TEST_TEMPLATE_ID;
@@ -92,12 +70,18 @@ public:
         ON_CALL(mockCompanionManager_, IsCapabilitySupported(_, Capability::OBTAIN_TOKEN)).WillByDefault(Return(true));
         ON_CALL(mockCrossDeviceCommManager_, HostGetSecureProtocolId(_))
             .WillByDefault(Return(std::make_optional(SecureProtocolId::DEFAULT)));
+        ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Invoke([]() {
+            LocalDeviceProfile profile;
+            profile.hostCapabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
+            return profile;
+        }));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeMessage(_, _, _))
             .WillByDefault(Invoke([](const std::string &, MessageType, OnMessage &&) { return MakeSubscription(); }));
         ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_))
             .WillByDefault(Return(std::make_optional(DEVICE_STATUS)));
         ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
-            .WillByDefault(Invoke([](const DeviceKey &, bool, OnDeviceStatusChange &&) { return MakeSubscription(); }));
+            .WillByDefault(
+                Invoke([](const DeviceKey &, SyncDemand, OnDeviceStatusChange &&) { return MakeSubscription(); }));
         ON_CALL(mockSecurityAgent_, HostProcessPreObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostProcessObtainToken(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockEventManagerAdapter_, ReportInteractionEvent(_)).WillByDefault(Return());
@@ -136,6 +120,39 @@ public:
         return preObtainTokenRequest;
     }
 
+    void InstallMockInstances()
+    {
+        auto crossDeviceCommMgr =
+            std::shared_ptr<ICrossDeviceCommManager>(&mockCrossDeviceCommManager_, [](ICrossDeviceCommManager *) {});
+        SingletonManager::GetInstance().SetCrossDeviceCommManager(crossDeviceCommMgr);
+
+        auto requestMgr = std::shared_ptr<IRequestManager>(&mockRequestManager_, [](IRequestManager *) {});
+        SingletonManager::GetInstance().SetRequestManager(requestMgr);
+
+        auto companionMgr = std::shared_ptr<ICompanionManager>(&mockCompanionManager_, [](ICompanionManager *) {});
+        SingletonManager::GetInstance().SetCompanionManager(companionMgr);
+
+        auto securityAgent = std::shared_ptr<ISecurityAgent>(&mockSecurityAgent_, [](ISecurityAgent *) {});
+        SingletonManager::GetInstance().SetSecurityAgent(securityAgent);
+
+        auto miscMgr = std::shared_ptr<IMiscManager>(&mockMiscManager_, [](IMiscManager *) {});
+        SingletonManager::GetInstance().SetMiscManager(miscMgr);
+
+        auto userKeyMgr = std::shared_ptr<IUserKeyManager>(&mockUserKeyManager_, [](IUserKeyManager *) {});
+        AdapterManager::GetInstance().SetUserKeyManager(userKeyMgr);
+
+        auto timeKeeper = std::make_shared<MockTimeKeeper>();
+        AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
+
+        auto eventManagerAdapter =
+            std::shared_ptr<IEventManagerAdapter>(&mockEventManagerAdapter_, [](IEventManagerAdapter *) {});
+        AdapterManager::GetInstance().SetEventManagerAdapter(eventManagerAdapter);
+
+        auto systemParamMgr =
+            std::shared_ptr<ISystemParamManager>(&mockSystemParamManager_, [](ISystemParamManager *) {});
+        AdapterManager::GetInstance().SetSystemParamManager(systemParamMgr);
+    }
+
 protected:
     NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
     NiceMock<MockRequestManager> mockRequestManager_;
@@ -144,6 +161,7 @@ protected:
     NiceMock<MockMiscManager> mockMiscManager_;
     NiceMock<MockUserKeyManager> mockUserKeyManager_;
     NiceMock<MockEventManagerAdapter> mockEventManagerAdapter_;
+    NiceMock<MockSystemParamManager> mockSystemParamManager_;
 };
 
 HWTEST_F(HostObtainTokenRequestTest, OnStart_001, TestSize.Level0)
@@ -181,6 +199,40 @@ HWTEST_F(HostObtainTokenRequestTest, OnStart_001, TestSize.Level0)
     EXPECT_TRUE(result);
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, static_cast<int32_t>(ResultCode::SUCCESS));
+}
+
+HWTEST_F(HostObtainTokenRequestTest, OnStart_LocalObtainTokenDisabled, TestSize.Level0)
+{
+    auto replyCalled = std::make_shared<bool>(false);
+    auto receivedResult = std::make_shared<int32_t>(-1);
+    OnMessageReply onMessageReply = [&replyCalled, &receivedResult](const Attributes &reply) {
+        *replyCalled = true;
+        auto decodedReply = DecodePreObtainTokenReply(reply);
+        EXPECT_TRUE(decodedReply.has_value());
+        *receivedResult = decodedReply.value().result;
+    };
+
+    auto preObtainTokenRequest = MakePreObtainTokenRequest();
+    auto request = std::make_shared<HostObtainTokenRequest>(CONNECTION_NAME, preObtainTokenRequest,
+        OnMessageReply(onMessageReply), COMPANION_DEVICE_KEY);
+
+    // An empty capability list means unrestricted; disable by declaring capabilities without OBTAIN_TOKEN.
+    LocalDeviceProfile profile {};
+    profile.hostCapabilities = { Capability::DELEGATE_AUTH };
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    // Mirror InboundRequest::Start(): the guard fires right after OnStart returns (not at test exit),
+    // so the failure reply is sent before the assertions below check it.
+    bool result = false;
+    {
+        ErrorGuard errorGuard([request](ResultCode r) { request->CompleteWithError(r); });
+        result = request->OnStart(errorGuard);
+    }
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(*replyCalled);
+    EXPECT_EQ(*receivedResult, static_cast<int32_t>(ResultCode::TYPE_NOT_SUPPORT));
 }
 
 HWTEST_F(HostObtainTokenRequestTest, OnStart_002, TestSize.Level0)
