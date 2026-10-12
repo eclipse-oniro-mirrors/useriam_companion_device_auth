@@ -54,6 +54,7 @@ ohos_unittest("companion_device_auth_services_cpp_test") {
     "cases/cross_device_comm/connection_manager_test.cpp",
     "cases/cross_device_comm/cross_device_comm_manager_impl_test.cpp",
     "cases/cross_device_comm/device_status_entry_test.cpp",
+    "cases/cross_device_comm/device_status_manager_sync_test.cpp",
     "cases/cross_device_comm/device_status_manager_test.cpp",
     "cases/cross_device_comm/local_device_status_manager_test.cpp",
     "cases/cross_device_comm/message_router_test.cpp",

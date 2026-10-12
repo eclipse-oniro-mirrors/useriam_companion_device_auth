@@ -742,22 +742,23 @@ bool DeviceStatusManager::AddOrUpdateDevices(
                 AttachOrStartDeviceSync(key, SyncTriggerReason::DEVICE_ONLINE);
             }
         } else {
-            deviceChanged = UpdateExistingDevice(key, it->second, status, policy) || deviceChanged;
+            deviceChanged = UpdateExistingDevice(it->second, status, policy) || deviceChanged;
         }
     }
 
     return deviceChanged;
 }
 
-bool DeviceStatusManager::UpdateExistingDevice(const PhysicalDeviceKey &key, DeviceStatusEntry &deviceStatus,
-    const PhysicalDeviceStatus &status, DeviceReconcilePolicy policy)
+bool DeviceStatusManager::UpdateExistingDevice(DeviceStatusEntry &deviceStatus, const PhysicalDeviceStatus &status,
+    DeviceReconcilePolicy policy)
 {
     bool effectiveBusinessIdsChanged = deviceStatus.SetPhysicalCompanionBusinessIds(status.supportedBusinessIds);
     bool hasChange = deviceStatus.channelId != status.channelId ||
         deviceStatus.physicalDeviceName != status.deviceName ||
         deviceStatus.deviceModelInfo != status.deviceModelInfo || deviceStatus.deviceType != status.deviceType ||
         deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs || deviceStatus.refreshToken != status.refreshToken ||
-        deviceStatus.reportUnsynced != status.reportUnsynced || effectiveBusinessIdsChanged;
+        deviceStatus.reportUnsynced != status.reportUnsynced || effectiveBusinessIdsChanged ||
+        deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive;
     if (hasChange) {
         deviceStatus.channelId = status.channelId;
         deviceStatus.physicalDeviceName = status.deviceName;
@@ -766,11 +767,10 @@ bool DeviceStatusManager::UpdateExistingDevice(const PhysicalDeviceKey &key, Dev
         deviceStatus.atlRevokeDelayMs = status.atlRevokeDelayMs;
         deviceStatus.refreshToken = status.refreshToken;
         deviceStatus.reportUnsynced = status.reportUnsynced;
+        deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
     }
     if (policy == DeviceReconcilePolicy::REEVALUATE_ALL) {
         SyncDeviceIfNeeded(deviceStatus);
-    } else if (hasChange) {
-        AttachOrStartDeviceSync(key, SyncTriggerReason::DEVICE_INFO_CHANGED);
     }
     return hasChange;
 }
