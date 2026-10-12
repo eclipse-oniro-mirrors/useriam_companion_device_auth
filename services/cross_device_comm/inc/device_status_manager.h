@@ -119,8 +119,8 @@ private:
     bool RemoveObsoleteDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap);
     bool AddOrUpdateDevices(const std::map<PhysicalDeviceKey, PhysicalDeviceStatus> &filteredDevicesMap,
         DeviceReconcilePolicy policy);
-    bool UpdateExistingDevice(const PhysicalDeviceKey &key, DeviceStatusEntry &deviceStatus,
-        const PhysicalDeviceStatus &status, DeviceReconcilePolicy policy);
+    bool UpdateExistingDevice(DeviceStatusEntry &deviceStatus, const PhysicalDeviceStatus &status,
+        DeviceReconcilePolicy policy);
     void NotifySubscribers();
 
     std::map<PhysicalDeviceKey, DeviceStatusEntry> deviceStatusMap_;
