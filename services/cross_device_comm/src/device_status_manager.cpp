@@ -52,8 +52,8 @@ bool ShouldInvalidateCachedSync(ResultCode resultCode)
 
 bool ShouldStopRetry(ResultCode resultCode)
 {
-    return resultCode == PROTOCOL_NEGOTIATION_FAILED || resultCode == PEER_SYNC_FAILED ||
-        resultCode == PEER_SERVICE_NOT_AVAILABLE || resultCode == COORDINATOR_REJECTED;
+    return resultCode == PROTOCOL_NEGOTIATION_FAILED || resultCode == PEER_SERVICE_NOT_AVAILABLE ||
+        resultCode == COORDINATOR_REJECTED;
 }
 } // namespace
 

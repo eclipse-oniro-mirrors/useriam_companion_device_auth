@@ -462,9 +462,9 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocolKeepsSyncTime
     EXPECT_EQ(stored.lastSyncTimeMs, 0u); // success side effect must not have run
 }
 
-// PEER_SYNC_FAILED is the peer's explicit verdict: terminal AND cache-invalidating. A previously
-// synced device drops out of the synced set, unlike communication-class failures.
-HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_PeerSyncFailedIsTerminalAndInvalidatesCache, TestSize.Level0)
+// PEER_SYNC_FAILED is the peer's explicit verdict on the data: cache-invalidating, yet retryable
+// (the peer may recover), so a backoff round is armed — unlike the terminal denial codes.
+HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_PeerSyncFailedInvalidatesCacheAndArmsRetry, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
     auto retryCount = std::make_shared<int>(0);
@@ -488,7 +488,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_PeerSyncFailedIsTerminalAndIn
 
     EXPECT_TRUE(onResultCalled);
     EXPECT_EQ(ResultCode::PEER_SYNC_FAILED, notifiedResult);
-    EXPECT_EQ(*retryCount, 0); // terminal: no backoff retry armed
+    EXPECT_EQ(*retryCount, 1); // retryable: backoff timer armed and fired once
     const auto &stored = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
     EXPECT_FALSE(stored.isSynced); // peer verdict invalidates the cache
     EXPECT_FALSE(stored.isSyncInProgress);
