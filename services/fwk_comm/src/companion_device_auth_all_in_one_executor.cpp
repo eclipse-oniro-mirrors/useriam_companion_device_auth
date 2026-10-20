@@ -263,7 +263,7 @@ FwkResultCode Inner::Delete(const std::vector<uint64_t> &templateIdList)
     }
 
     for (TemplateId templateId : templateIdList) {
-        ResultCode ret = GetCompanionManager().RemoveCompanion(templateId, true);
+        ResultCode ret = GetCompanionManager().RemoveCompanion(templateId, true, ConnectionMode::FOREGROUND);
         if (ret != ResultCode::SUCCESS) {
             IAM_LOGE("RemoveCompanion failed for templateId %{public}s, ret=%{public}d",
                 GET_MASKED_NUM_CSTR(templateId), ret);

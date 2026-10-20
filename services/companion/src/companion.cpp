@@ -351,7 +351,7 @@ void Companion::HandleTemplateAddToIdmTimeout()
                 GET_MASKED_NUM_CSTR(templateId));
             return;
         }
-        manager->RemoveCompanion(templateId, true);
+        manager->RemoveCompanion(templateId, true, ConnectionMode::BACKGROUND);
     });
 }
 

@@ -530,7 +530,7 @@ ResultCode ModuleTestGuard::RemoveCompanion(TemplateId templateId, FwkResultCall
 {
     // Use CompanionManager.RemoveCompanion() (production path)
     // Note: This is a synchronous operation; callback is provided for test convenience
-    ResultCode ret = GetCompanionManager().RemoveCompanion(templateId, true);
+    ResultCode ret = GetCompanionManager().RemoveCompanion(templateId, true, ConnectionMode::FOREGROUND);
     if (callback) {
         callback(ret, {});
     }

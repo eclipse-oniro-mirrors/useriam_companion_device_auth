@@ -901,6 +901,14 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleCanConnectResult_ReleasesGrant_When
     key.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     key.deviceId = "test-device";
 
+    auto disconnectReported = std::make_shared<bool>(false);
+    auto subscription = manager->SubscribeConnectionStatus(
+        [disconnectReported](const std::string &name, ConnectionStatus status, const std::string &) {
+            if (name == DEFAULT_TEST_CONNECTION_NAME && status == ConnectionStatus::DISCONNECTED) {
+                *disconnectReported = true;
+            }
+        });
+
     EXPECT_TRUE(
         manager->OpenConnection(DEFAULT_TEST_CONNECTION_NAME, ConnectionMode::BACKGROUND, key, TEST_NETWORK_ID));
     manager->CloseConnection(DEFAULT_TEST_CONNECTION_NAME, "cancelled");
@@ -911,6 +919,7 @@ HWTEST_F(SoftBusConnectionManagerTest, HandleCanConnectResult_ReleasesGrant_When
     EXPECT_TRUE(added.empty());
     EXPECT_EQ(released, std::vector<std::string> { DEFAULT_TEST_CONNECTION_NAME });
     EXPECT_TRUE(manager->connections_.empty());
+    EXPECT_FALSE(*disconnectReported);
 }
 
 HWTEST_F(SoftBusConnectionManagerTest, HandleSoftBusServiceUnavailable_001, TestSize.Level0)
@@ -1359,6 +1368,7 @@ HWTEST_F(SoftBusConnectionManagerTest, PendingOpenMonitor_Drops_OnClockRollback,
     // Simulate a clock rollback: request time ahead of now -> SafeSub underflows to nullopt.
     guard.GetTimeKeeper().SetSteadyTime(1000);
     manager->SweepTimedOutPendingOpens();
+    manager->CheckPendingOpenMonitor();
     TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
 
     EXPECT_EQ(manager->pendingOpens_.size(), 0);

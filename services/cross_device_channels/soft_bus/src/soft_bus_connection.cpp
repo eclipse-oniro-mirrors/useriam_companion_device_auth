@@ -58,9 +58,19 @@ SoftbusConnection::SoftbusConnection(int32_t socketId, const PhysicalDeviceKey &
 
 SoftbusConnection::~SoftbusConnection()
 {
-    Cleanup();
-    if (!connectionName_.empty()) {
-        GetSoftBusCoordinatorAdapter().RemoveConnection(connectionName_);
+    if (socketId_ > INVALID_SOCKET_ID) {
+        if (!isShutdownByPeer_) {
+            ::Shutdown(socketId_);
+        }
+        socketId_ = INVALID_SOCKET_ID;
+    }
+    NotifyConnectionClosed();
+
+    if (connectionName_.empty()) {
+        return;
+    }
+    GetSoftBusCoordinatorAdapter().RemoveConnection(connectionName_);
+    if (!isInbound_) {
         GetSoftBusCoordinatorAdapter().ReleaseResource(connectionName_);
     }
 }
@@ -118,18 +128,6 @@ bool SoftbusConnection::SendMessage(const std::vector<uint8_t> &data)
     }
 
     return true;
-}
-
-void SoftbusConnection::Cleanup()
-{
-    if (socketId_ > INVALID_SOCKET_ID) {
-        if (!isShutdownByPeer_) {
-            ::Shutdown(socketId_);
-        }
-        socketId_ = INVALID_SOCKET_ID;
-    }
-
-    NotifyConnectionClosed();
 }
 
 void SoftbusConnection::NotifyConnectionEstablished()

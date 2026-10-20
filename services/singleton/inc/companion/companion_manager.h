@@ -78,7 +78,8 @@ public:
     virtual ResultCode BeginAddCompanion(const BeginAddCompanionParams &params,
         std::vector<uint8_t> &outAddHostBindingRequest, uint16_t &selectedAlgorithm) = 0;
     virtual ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) = 0;
-    virtual ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding) = 0;
+    virtual ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding,
+        ConnectionMode connectionMode) = 0;
 
     virtual ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
         const std::vector<BusinessId> &enabledBusinessIds) = 0;

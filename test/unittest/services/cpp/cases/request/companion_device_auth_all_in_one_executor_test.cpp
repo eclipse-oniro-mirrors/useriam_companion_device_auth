@@ -566,7 +566,7 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Delete_001, TestSize.Level0)
 
     std::vector<uint64_t> templateIdList = { UINT64_123, UINT64_456 };
 
-    EXPECT_CALL(guard.GetCompanionManager(), RemoveCompanion(_, _))
+    EXPECT_CALL(guard.GetCompanionManager(), RemoveCompanion(_, true, ConnectionMode::FOREGROUND))
         .Times(2)
         .WillRepeatedly(Return(ResultCode::SUCCESS));
 
@@ -598,7 +598,8 @@ HWTEST_F(CompanionDeviceAuthAllInOneExecutorTest, Delete_003, TestSize.Level0)
 
     std::vector<uint64_t> templateIdList = { 123 };
 
-    EXPECT_CALL(guard.GetCompanionManager(), RemoveCompanion(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(guard.GetCompanionManager(), RemoveCompanion(_, true, ConnectionMode::FOREGROUND))
+        .WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     FwkResultCode ret = executor->Delete(templateIdList);
 

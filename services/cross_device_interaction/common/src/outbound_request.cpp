@@ -57,11 +57,7 @@ bool OutboundRequest::RequireSyncedDevice() const
 
 void OutboundRequest::BringPeerOnline()
 {
-    std::optional<DeviceKey> peerDeviceKey;
-    if (RequireSyncedDevice()) {
-        peerDeviceKey = GetPeerDeviceKey();
-    }
-    if (!peerDeviceKey.has_value()) {
+    if (!RequireSyncedDevice() || !GetPeerDeviceKey().has_value()) {
         TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = GetWeakPtr()]() {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
@@ -69,17 +65,18 @@ void OutboundRequest::BringPeerOnline()
         });
         return;
     }
+    DeviceKey peerDeviceKey = *GetPeerDeviceKey();
 
     eventCollector_.EnterWait(CommonStages::WAIT_BRING_ONLINE);
     SyncDemand peerDemand =
         connectionMode_ == ConnectionMode::FOREGROUND ? SyncDemand::FOREGROUND : SyncDemand::BACKGROUND;
-    peerDeviceSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(*peerDeviceKey, peerDemand, nullptr);
+    peerDeviceSubscription_ = GetCrossDeviceCommManager().SubscribeDeviceStatus(peerDeviceKey, peerDemand, nullptr);
     if (peerDeviceSubscription_ == nullptr) {
         IAM_LOGE("%{public}s subscribe device status failed, abort bring online", GetDescription());
         CompleteWithError(ResultCode::COMMUNICATION_ERROR);
         return;
     }
-    GetCrossDeviceCommManager().EnsureDeviceSynced(FromDeviceKey(*peerDeviceKey),
+    GetCrossDeviceCommManager().EnsureDeviceSynced(FromDeviceKey(peerDeviceKey),
         [weakSelf = GetWeakPtr()](ResultCode resultCode) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);

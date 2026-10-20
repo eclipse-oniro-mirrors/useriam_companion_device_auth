@@ -134,10 +134,11 @@ public:
         return result;
     }
 
-    ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding) override
+    ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding, ConnectionMode connectionMode) override
     {
         (void)templateId;
         (void)removeHostBinding;
+        (void)connectionMode;
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 

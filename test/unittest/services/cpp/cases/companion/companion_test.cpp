@@ -125,7 +125,8 @@ public:
     class MockCompanionManagerImpl : public CompanionManagerImpl {
     public:
         MOCK_METHOD(void, NotifyCompanionStatusChange, (), (override));
-        MOCK_METHOD(ResultCode, RemoveCompanion, (TemplateId templateId, bool removeHostBinding), (override));
+        MOCK_METHOD(ResultCode, RemoveCompanion,
+            (TemplateId templateId, bool removeHostBinding, ConnectionMode connectionMode), (override));
     };
 
 protected:
@@ -537,7 +538,7 @@ HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_001, TestSize.Level0)
 
     EXPECT_TRUE(companion->IsAddedToIdm());
 
-    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_, _)).Times(0);
+    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_, _, _)).Times(0);
 
     companion->HandleTemplateAddToIdmTimeout();
 }
@@ -550,7 +551,8 @@ HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_002, TestSize.Level0)
 
     EXPECT_FALSE(companion->IsAddedToIdm());
 
-    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(TEMPLATE_ID_12345, _)).WillOnce(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(TEMPLATE_ID_12345, true, ConnectionMode::BACKGROUND))
+        .WillOnce(Return(ResultCode::SUCCESS));
 
     companion->HandleTemplateAddToIdmTimeout();
 }
@@ -566,7 +568,7 @@ HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_003, TestSize.Level0)
     std::weak_ptr<CompanionManagerImpl> nullWeakPtr;
     auto companionWithNullManager = std::make_shared<Companion>(persistedStatus, false, nullWeakPtr);
 
-    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_, _)).Times(0);
+    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_, _, _)).Times(0);
 
     companionWithNullManager->HandleTemplateAddToIdmTimeout();
 }

@@ -53,7 +53,7 @@ public:
     ResultCode BeginAddCompanion(const BeginAddCompanionParams &params, std::vector<uint8_t> &outAddHostBindingRequest,
         uint16_t &selectedAlgorithm) override;
     ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) override;
-    ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding) override;
+    ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding, ConnectionMode connectionMode) override;
 
     ResultCode UpdateCompanionEnabledBusinessIds(TemplateId templateId,
         const std::vector<BusinessId> &enabledBusinessIds) override;

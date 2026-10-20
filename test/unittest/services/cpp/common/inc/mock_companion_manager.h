@@ -39,7 +39,8 @@ public:
         (override));
     MOCK_METHOD(ResultCode, EndAddCompanion, (const EndAddCompanionInput &input, EndAddCompanionOutput &output),
         (override));
-    MOCK_METHOD(ResultCode, RemoveCompanion, (TemplateId templateId, bool removeHostBinding), (override));
+    MOCK_METHOD(ResultCode, RemoveCompanion,
+        (TemplateId templateId, bool removeHostBinding, ConnectionMode connectionMode), (override));
     MOCK_METHOD(ResultCode, UpdateCompanionEnabledBusinessIds,
         (TemplateId templateId, const std::vector<BusinessId> &enabledBusinessIds), (override));
     MOCK_METHOD(bool, SetCompanionTokenAuthAtl, (TemplateId templateId, std::optional<Atl> atl, bool forEnrollment),

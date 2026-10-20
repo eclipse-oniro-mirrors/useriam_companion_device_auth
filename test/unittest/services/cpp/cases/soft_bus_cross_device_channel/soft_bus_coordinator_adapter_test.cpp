@@ -508,14 +508,15 @@ HWTEST_F(SoftBusCoordinatorAdapterTest, HandleServiceUnavailable_004, TestSize.L
     adapter->RequestResource(TEST_OTHER_CONNECTION_NAME, TEST_NETWORK_ID, ConnectionMode::FOREGROUND,
         [&fgResult](bool result) { fgResult = static_cast<int>(result); });
 
-    // The rejection arms the foreground re-apply, but the service dies before the posted re-apply
-    // runs: the entry is gone, so no orphan apply may reach the ext.
+    // The rejection submits the foreground re-apply synchronously, so the ext sees it; the
+    // service dies afterwards: every waiter is denied and the entry is gone.
     adapter->HandleApplyResourceResult(adapter->pendingApplies_.at(TEST_NETWORK_ID).applyId, TEST_NETWORK_ID, false);
     adapter->HandleServiceUnavailable();
     TaskRunnerManager::GetInstance().EnsureAllTaskExecuted();
 
-    ASSERT_EQ(adapter->appliedModes.size(), 1U);
+    ASSERT_EQ(adapter->appliedModes.size(), 2U);
     EXPECT_EQ(adapter->appliedModes.front(), ConnectionMode::BACKGROUND);
+    EXPECT_EQ(adapter->appliedModes.back(), ConnectionMode::FOREGROUND);
     EXPECT_EQ(bgResult, 0);
     EXPECT_EQ(fgResult, 0);
     EXPECT_TRUE(adapter->pendingApplies_.empty());
