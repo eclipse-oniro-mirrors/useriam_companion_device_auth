@@ -264,7 +264,7 @@ void MockGuard::SetupCompanionManagerDefaults()
     ON_CALL(*companionManager_, UnsubscribeCompanionDeviceStatusChange(_)).WillByDefault(Return());
     ON_CALL(*companionManager_, BeginAddCompanion(_, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, EndAddCompanion(_, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
-    ON_CALL(*companionManager_, RemoveCompanion(_, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
+    ON_CALL(*companionManager_, RemoveCompanion(_, _, _)).WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, UpdateCompanionEnabledBusinessIds(_, _))
         .WillByDefault(Return(ResultCode::GENERAL_ERROR));
     ON_CALL(*companionManager_, SetCompanionTokenAuthAtl(_, _, _)).WillByDefault(Return(true));

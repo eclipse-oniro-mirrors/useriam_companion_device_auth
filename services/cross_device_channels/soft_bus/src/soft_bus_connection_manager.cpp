@@ -254,7 +254,7 @@ void SoftBusConnectionManager::HandleCanConnectResult(const std::string &connect
         return;
     }
 
-    std::optional<std::string> closeReason;
+    std::optional<std::string> closeReason = REASON_OPEN_FAILED;
     ScopeGuard settleGuard([this, &connectionName, &closeReason]() {
         GetSoftBusCoordinatorAdapter().ReleaseResource(connectionName);
         if (closeReason.has_value()) {
@@ -264,6 +264,7 @@ void SoftBusConnectionManager::HandleCanConnectResult(const std::string &connect
 
     if (pendingOpens_.erase(connectionName) == 0) {
         IAM_LOGI("open cancelled before coordinator result, release grant only: %{public}s", connectionName.c_str());
+        closeReason.reset();
         return;
     }
 

@@ -382,7 +382,8 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
     return ResultCode::SUCCESS;
 }
 
-ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId, bool removeHostBinding)
+ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId, bool removeHostBinding,
+    ConnectionMode connectionMode)
 {
     auto companion = FindCompanionByTemplateId(templateId);
     if (companion != nullptr) {
@@ -412,7 +413,7 @@ ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId, bool rem
     NotifyCompanionStatusChange();
     ScopeGuard guard([this, templateId]() { HandleRemoveHostBindingComplete(templateId); });
     auto request = GetRequestFactory().CreateHostRemoveHostBindingRequest({ output.userId, hostUserKey_.subProfileId },
-        templateId, output.companionDeviceKey, GetCrossDeviceCommManager().GetCurrentConnectionMode());
+        templateId, output.companionDeviceKey, connectionMode);
     if (request == nullptr) {
         IAM_LOGE("CreateHostRemoveHostBindingRequest failed for templateId %{public}s",
             GET_MASKED_NUM_CSTR(templateId));
@@ -615,7 +616,7 @@ ResultCode CompanionManagerImpl::AddCompanionInternal(const std::shared_ptr<Comp
     if (oldCompanion != nullptr) {
         IAM_LOGI("user %{public}d, device %{public}s already exists, removing old companion", hostUserKey.userId,
             deviceKey.GetDesc().c_str());
-        RemoveCompanion(oldCompanion->GetTemplateId(), false);
+        RemoveCompanion(oldCompanion->GetTemplateId(), false, ConnectionMode::BACKGROUND);
     }
 
     companions_.push_back(companion);

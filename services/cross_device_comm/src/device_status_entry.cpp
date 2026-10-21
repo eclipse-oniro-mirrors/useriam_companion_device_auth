@@ -155,8 +155,7 @@ void DeviceStatusEntry::NotifySyncWaiters(ResultCode resultCode)
 
 OnDeviceSyncResult DeviceStatusEntry::TakeCombinedSyncWaiter()
 {
-    std::vector<OnDeviceSyncResult> waiters = std::move(syncWaiters);
-    return [waiters = std::move(waiters)](ResultCode resultCode) {
+    return [waiters = std::move(syncWaiters)](ResultCode resultCode) {
         for (auto &callback : waiters) {
             ENSURE_OR_CONTINUE(callback != nullptr);
             callback(resultCode);

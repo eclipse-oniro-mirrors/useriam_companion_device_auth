@@ -186,7 +186,8 @@ static void FuzzEndAddCompanion(std::shared_ptr<CompanionManagerImpl> &manager, 
 static void FuzzRemoveCompanion(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
 {
     TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
-    manager->RemoveCompanion(templateId, true);
+    ConnectionMode connectionMode = fuzzData.ConsumeBool() ? ConnectionMode::FOREGROUND : ConnectionMode::BACKGROUND;
+    manager->RemoveCompanion(templateId, true, connectionMode);
 }
 
 static void FuzzOnActiveUserKeyChanged(std::shared_ptr<CompanionManagerImpl> &manager, FuzzedDataProvider &fuzzData)
@@ -275,7 +276,8 @@ static void FuzzRemoveCompanionInternal(std::shared_ptr<CompanionManagerImpl> &m
 {
     // Test RemoveCompanionInternal via RemoveCompanion
     TemplateId templateId = fuzzData.ConsumeIntegral<TemplateId>();
-    manager->RemoveCompanion(templateId, true);
+    ConnectionMode connectionMode = fuzzData.ConsumeBool() ? ConnectionMode::FOREGROUND : ConnectionMode::BACKGROUND;
+    manager->RemoveCompanion(templateId, true, connectionMode);
 }
 
 static const CompanionManagerImplFuzzFunction g_fuzzFuncs[] = {

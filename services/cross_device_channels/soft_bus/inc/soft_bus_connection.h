@@ -69,7 +69,6 @@ public:
     bool SendMessage(const std::vector<uint8_t> &data);
 
 private:
-    void Cleanup();
     void NotifyConnectionEstablished();
     void NotifyConnectionClosed();
     void NotifyIncomingConnection();

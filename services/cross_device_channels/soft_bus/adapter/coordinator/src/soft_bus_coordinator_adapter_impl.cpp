@@ -25,6 +25,7 @@
 #include "iam_safe_arithmetic.h"
 
 #include "adapter_manager.h"
+#include "cda_scope_guard.h"
 #include "service_common.h"
 #include "singleton_manager.h"
 #include "soft_bus_channel_common.h"
@@ -218,26 +219,23 @@ void SoftBusCoordinatorAdapterImpl::ReapplyAsForeground(const std::string &netwo
 {
     IAM_LOGW("background apply rejected with foreground waiter, re-apply as foreground: networkId=%{public}s",
         GET_MASKED_STR_CSTR(networkId));
+    ScopeGuard denyGuard([this, &apply, &networkId]() {
+        IAM_LOGE("deny re-apply: networkId=%{public}s", GET_MASKED_STR_CSTR(networkId));
+        apply.pendingForegroundEscalation = false;
+        HandleApplyResourceResult(apply.applyId, networkId, false);
+    });
     auto reapplyTimeMs = GetTimeKeeper().GetSteadyTimeMs();
     ENSURE_OR_RETURN(reapplyTimeMs.has_value());
+
     apply.pendingForegroundEscalation = false;
     apply.submittedMode = ConnectionMode::FOREGROUND;
     apply.applyId = GetMiscManager().GetNextGlobalId();
-    uint64_t reapplyId = apply.applyId;
     apply.submitTimeMs = reapplyTimeMs.value();
-    TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this(), networkId, reapplyId]() {
-        auto self = weakSelf.lock();
-        ENSURE_OR_RETURN(self != nullptr);
-        auto reapplyIt = self->pendingApplies_.find(networkId);
-        if (reapplyIt == self->pendingApplies_.end() || reapplyIt->second.applyId != reapplyId) {
-            IAM_LOGI("apply settled or superseded before foreground re-apply, skip: networkId=%{public}s",
-                GET_MASKED_STR_CSTR(networkId));
-            return;
-        }
-        if (!self->ApplyResource(reapplyId, networkId, ConnectionMode::FOREGROUND)) {
-            self->HandleApplyResourceResult(reapplyId, networkId, false);
-        }
-    });
+    if (!ApplyResource(apply.applyId, networkId, ConnectionMode::FOREGROUND)) {
+        IAM_LOGE("foreground re-apply failed, deny: networkId=%{public}s", GET_MASKED_STR_CSTR(networkId));
+        return;
+    }
+    denyGuard.Cancel();
 }
 
 void SoftBusCoordinatorAdapterImpl::CompletePendingApply(std::map<std::string, PendingApplyEntry>::iterator it,
@@ -302,11 +300,7 @@ void SoftBusCoordinatorAdapterImpl::AddConnection(const std::string &connectionN
     bool isFirstConnection = !HasActiveConnection(networkId);
     activeConnections_.push_back({ connectionName, networkId });
     if (isFirstConnection) {
-        TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this(), networkId]() {
-            auto self = weakSelf.lock();
-            ENSURE_OR_RETURN(self != nullptr);
-            self->OnFirstConnectionAdded(networkId);
-        });
+        OnFirstConnectionAdded(networkId);
     }
 }
 
@@ -328,11 +322,7 @@ void SoftBusCoordinatorAdapterImpl::RemoveConnection(const std::string &connecti
         return;
     }
 
-    TaskRunnerManager::GetInstance().PostTaskOnResident([weakSelf = weak_from_this(), networkId]() {
-        auto self = weakSelf.lock();
-        ENSURE_OR_RETURN(self != nullptr);
-        self->OnLastConnectionRemoved(networkId);
-    });
+    OnLastConnectionRemoved(networkId);
 }
 
 void SoftBusCoordinatorAdapterImpl::ReleaseResource(const std::string &connectionName)

@@ -150,6 +150,7 @@ inline constexpr const char *REASON_COORDINATOR_TIMEOUT = "coordinator_timeout";
 inline constexpr const char *REASON_DISCONNECT_REQUESTED = "disconnect_requested";
 inline constexpr const char *REASON_MAX_CONNECTIONS_REACHED = "max_connections_reached";
 inline constexpr const char *REASON_CREATE_SOCKET_FAILED = "create_socket_failed";
+inline constexpr const char *REASON_OPEN_FAILED = "open_failed";
 
 using OnConnectionStatusChange =
     std::function<void(const std::string &connectionName, ConnectionStatus status, const std::string &reason)>;
