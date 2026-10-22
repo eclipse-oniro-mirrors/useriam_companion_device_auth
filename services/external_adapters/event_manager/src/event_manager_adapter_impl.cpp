@@ -70,7 +70,7 @@ void EventManagerAdapterImpl::ReportInteractionEvent(const InteractionEventColle
 
     std::string templateIdList;
     if (eventCollector.GetTemplateIdList().has_value() && !eventCollector.GetTemplateIdList()->empty()) {
-        templateIdList = GetMaskedVectorString(*eventCollector.GetTemplateIdList());
+        templateIdList = GetTruncatedVectorString(*eventCollector.GetTemplateIdList());
     }
 
     int32_t ret = HiSysEventWrite(HiSysEvent::Domain::COMPANION_AUTH, "INTERACTION_EVENT", HiSysEvent::EventType::FAULT,

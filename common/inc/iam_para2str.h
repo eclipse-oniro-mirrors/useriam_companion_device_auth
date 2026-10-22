@@ -81,18 +81,30 @@ std::string GetVectorString(const std::vector<T> &vec)
     return result;
 }
 
-template <typename T>
-std::string GetMaskedVectorString(const std::vector<T> &vec)
+template <typename T, typename Formatter>
+std::string GetFormattedVectorString(const std::vector<T> &vec, Formatter formatter)
 {
     std::string result = "[";
     for (size_t i = 0; i < vec.size(); ++i) {
-        result += GetMaskedString(static_cast<uint16_t>(vec[i]));
+        result += formatter(vec[i]);
         if (i + 1 < vec.size()) {
             result += ", ";
         }
     }
     result += "]";
     return result;
+}
+
+template <typename T>
+std::string GetMaskedVectorString(const std::vector<T> &vec)
+{
+    return GetFormattedVectorString(vec, [](const T &val) { return GetMaskedString(static_cast<uint16_t>(val)); });
+}
+
+template <typename T>
+std::string GetTruncatedVectorString(const std::vector<T> &vec)
+{
+    return GetFormattedVectorString(vec, [](const T &val) { return GetTruncatedString(static_cast<uint16_t>(val)); });
 }
 
 std::string ToHexString(uint64_t val);
