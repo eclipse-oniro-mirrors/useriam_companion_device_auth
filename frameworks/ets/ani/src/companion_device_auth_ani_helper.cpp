@@ -35,6 +35,7 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace TaiheUserAuth = ::ohos::userIAM::userAuth::userAuth;
+constexpr int32_t INVALID_SUB_PROFILE_ID = -1;
 
 taihe::array<uint8_t> CompanionDeviceAuthAniHelper::ConvertTemplateId(uint64_t templateId)
 {
@@ -64,9 +65,13 @@ companionDeviceAuth::DeviceStatus CompanionDeviceAuthAniHelper::ConvertDeviceSta
 {
     companionDeviceAuth::DeviceKey deviceKey = ConvertDeviceKey(clientDeviceStatus.deviceKey);
     taihe::array<int32_t> supportedBusinessIds = ConvertInt32VectorToArray(clientDeviceStatus.supportedBusinessIds);
+    taihe::optional<taihe::string> deviceSubProfileName = std::nullopt;
+    if (!clientDeviceStatus.deviceSubProfileName.empty()) {
+        deviceSubProfileName = taihe::optional<taihe::string>(std::in_place, clientDeviceStatus.deviceSubProfileName);
+    }
     companionDeviceAuth::DeviceStatus result { deviceKey, clientDeviceStatus.deviceUserName,
         clientDeviceStatus.deviceModelInfo, clientDeviceStatus.deviceName, clientDeviceStatus.isOnline,
-        supportedBusinessIds, clientDeviceStatus.deviceSubProfileName };
+        supportedBusinessIds, deviceSubProfileName };
     return result;
 }
 
@@ -120,8 +125,12 @@ uintptr_t CompanionDeviceAuthAniHelper::ConvertAddedTime(int64_t addedTime, ani_
 
 companionDeviceAuth::DeviceKey CompanionDeviceAuthAniHelper::ConvertDeviceKey(ClientDeviceKey clientDeviceKey)
 {
+    taihe::optional<int32_t> deviceSubProfileId = std::nullopt;
+    if (clientDeviceKey.deviceSubProfileId != INVALID_SUB_PROFILE_ID) {
+        deviceSubProfileId = taihe::optional<int32_t>(std::in_place, clientDeviceKey.deviceSubProfileId);
+    }
     companionDeviceAuth::DeviceKey result { clientDeviceKey.deviceIdType, clientDeviceKey.deviceId,
-        clientDeviceKey.deviceUserId, clientDeviceKey.deviceSubProfileId };
+        clientDeviceKey.deviceUserId, deviceSubProfileId };
     return result;
 }
 
@@ -131,7 +140,11 @@ ClientDeviceKey CompanionDeviceAuthAniHelper::ConvertAniDeviceKey(companionDevic
     result.deviceIdType = deviceKey.deviceIdType;
     result.deviceId = deviceKey.deviceId;
     result.deviceUserId = deviceKey.deviceUserId;
-    result.deviceSubProfileId = deviceKey.deviceSubProfileId;
+    if (deviceKey.deviceSubProfileId.has_value()) {
+        result.deviceSubProfileId = deviceKey.deviceSubProfileId.value();
+    } else {
+        result.deviceSubProfileId = INVALID_SUB_PROFILE_ID;
+    }
     return result;
 }
 
