@@ -24,8 +24,10 @@
 
 #include "os_account_info.h"
 #include "os_account_manager.h"
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
 #include "os_account_sub_profile_subscribe_callback.h"
 #include "os_account_subprofile_client.h"
+#endif
 #include "os_account_subscribe_info.h"
 #include "os_account_subscriber.h"
 #include "system_ability_definition.h"
@@ -79,6 +81,7 @@ private:
         std::weak_ptr<DefaultUserKeyManager> impl_;
     };
 
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     class SubProfileEventSubscriber final : public AccountSA::OsAccountSubProfileSubscribeCallback {
     public:
         explicit SubProfileEventSubscriber(std::weak_ptr<DefaultUserKeyManager> impl);
@@ -89,6 +92,7 @@ private:
     private:
         std::weak_ptr<DefaultUserKeyManager> impl_;
     };
+#endif
 
     friend class IUserKeyManager;
 
@@ -103,16 +107,18 @@ private:
     void UpdateUnlockedUserId(UserId userId);
     void NotifyActiveUserIdSubscribers(UserId userId);
     void NotifyUnlockedUserIdSubscribers(const UserKey &userKey);
-    void NotifySubProfileChangedSubscribers(const UserKey &userKey, UserKeyEventType eventType);
     void QueryActiveAndUnlockedFromSystem(UserId &active, UserId &unlocked) const;
     void UnsubscribeActiveUserId(const SubscribeId &subscribeId);
     void UnsubscribeUnlockedActiveUserKey(const SubscribeId &subscribeId);
     static std::string QueryUserTypeNameById(UserId userId);
 
     // Sub profile event handling
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     void SubscribeSubProfileEvent();
     void UnsubscribeSubProfileEvent();
     void OnSubProfileChanged(const AccountSA::SubProfileEventData &eventData);
+    void NotifySubProfileChangedSubscribers(const UserKey &userKey, UserKeyEventType eventType);
+#endif
 
     bool initialized_ = false;
     std::unique_ptr<SaStatusListener> saStatusListener_;
@@ -124,9 +130,10 @@ private:
     std::map<SubscribeId, ActiveUserIdCallback> activeSubscribers_;
     std::map<SubscribeId, UnlockedActiveUserKeyCallback> unlockedSubscribers_;
     std::shared_ptr<ActiveUserOsAccountSubscriber> osAccountSubscriber_;
-
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     std::shared_ptr<SubProfileEventSubscriber> subProfileEventSubscriber_;
     std::map<SubscribeId, UnlockedActiveUserKeyCallback> subProfileChangedSubscribers_;
+#endif
 };
 
 DefaultUserKeyManager::DefaultUserKeyManager()
@@ -136,7 +143,9 @@ DefaultUserKeyManager::DefaultUserKeyManager()
 DefaultUserKeyManager::~DefaultUserKeyManager()
 {
     UnsubscribeOsAccount();
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     UnsubscribeSubProfileEvent();
+#endif
 }
 
 bool DefaultUserKeyManager::Initialize()
@@ -228,7 +237,9 @@ std::unique_ptr<Subscription> DefaultUserKeyManager::SubscribeUnlockedActiveUser
     ENSURE_OR_RETURN_VAL(callback != nullptr, nullptr);
     SubscribeId subscribeId = GetMiscManager().GetNextGlobalId();
     unlockedSubscribers_[subscribeId] = callback;
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     subProfileChangedSubscribers_[subscribeId] = std::move(callback);
+#endif
 
     return std::make_unique<Subscription>([weakSelf = weak_from_this(), subscribeId]() {
         auto self = weakSelf.lock();
@@ -245,7 +256,9 @@ void DefaultUserKeyManager::UnsubscribeActiveUserId(const SubscribeId &subscribe
 void DefaultUserKeyManager::UnsubscribeUnlockedActiveUserKey(const SubscribeId &subscribeId)
 {
     unlockedSubscribers_.erase(subscribeId);
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     subProfileChangedSubscribers_.erase(subscribeId);
+#endif
 }
 
 bool DefaultUserKeyManager::IsUserIdValid(int32_t userId)
@@ -348,7 +361,9 @@ std::optional<std::string> DefaultUserKeyManager::GetSubProfileName(const UserKe
 void DefaultUserKeyManager::HandleOsAccountServiceReady()
 {
     SubscribeOsAccount();
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     SubscribeSubProfileEvent();
+#endif
     SyncUserIds();
 }
 
@@ -357,7 +372,9 @@ void DefaultUserKeyManager::HandleOsAccountServiceUnavailable()
     UpdateActiveUserId(INVALID_USER_ID);
     UpdateUnlockedUserId(INVALID_USER_ID);
     UnsubscribeOsAccount();
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     UnsubscribeSubProfileEvent();
+#endif
 }
 
 void DefaultUserKeyManager::OnOsAccountStateChange(const AccountSA::OsAccountStateData &data)
@@ -408,9 +425,9 @@ void DefaultUserKeyManager::UnsubscribeOsAccount()
     }
 }
 
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
 void DefaultUserKeyManager::SubscribeSubProfileEvent()
 {
-#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     if (subProfileEventSubscriber_ != nullptr) {
         IAM_LOGI("already subscribed to sub profile event");
         return;
@@ -431,12 +448,10 @@ void DefaultUserKeyManager::SubscribeSubProfileEvent()
     }
     subProfileEventSubscriber_ = subscriber;
     IAM_LOGI("SubscribeOsAccountSubProfileEvents success");
-#endif
 }
 
 void DefaultUserKeyManager::UnsubscribeSubProfileEvent()
 {
-#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
     if (subProfileEventSubscriber_ == nullptr) {
         return;
     }
@@ -448,7 +463,6 @@ void DefaultUserKeyManager::UnsubscribeSubProfileEvent()
     if (errCode != ERR_OK) {
         IAM_LOGE("UnsubscribeOsAccountSubProfileEvents failed %{public}d", errCode);
     }
-#endif
 }
 
 void DefaultUserKeyManager::OnSubProfileChanged(const AccountSA::SubProfileEventData &eventData)
@@ -495,6 +509,7 @@ void DefaultUserKeyManager::NotifySubProfileChangedSubscribers(const UserKey &us
         }
     });
 }
+#endif
 
 void DefaultUserKeyManager::SyncUserIds()
 {
@@ -646,6 +661,7 @@ void DefaultUserKeyManager::ActiveUserOsAccountSubscriber::OnStateChanged(const 
     });
 }
 
+#ifdef ENABLE_MULTIPLE_OS_ACCOUNT_SUB_PROFILES
 DefaultUserKeyManager::SubProfileEventSubscriber::SubProfileEventSubscriber(std::weak_ptr<DefaultUserKeyManager> impl)
     : impl_(std::move(impl))
 {
@@ -663,6 +679,7 @@ void DefaultUserKeyManager::SubProfileEventSubscriber::OnSubProfileChanged(
         impl->OnSubProfileChanged(eventData);
     });
 }
+#endif
 
 #ifndef ENABLE_TEST
 std::shared_ptr<IUserKeyManager> IUserKeyManager::Create()
