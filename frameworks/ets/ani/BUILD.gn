@@ -71,6 +71,7 @@ taihe_shared_library("companiondeviceauth_ani") {
   ]
 
   sanitize = companion_device_auth_default_sanitize
+  branch_protector_ret = "pac_ret"
 
   deps = [
     ":companion_device_auth_taihe",
