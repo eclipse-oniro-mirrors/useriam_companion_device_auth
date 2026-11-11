@@ -38,7 +38,8 @@ public:
 
     MOCK_METHOD(ResultCode, HostBeginCompanionCheck,
         (const HostBeginCompanionCheckInput &input, HostBeginCompanionCheckOutput &output), (override));
-    MOCK_METHOD(ResultCode, HostEndCompanionCheck, (const HostEndCompanionCheckInput &input), (override));
+    MOCK_METHOD(ResultCode, HostEndCompanionCheck,
+        (const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &output), (override));
     MOCK_METHOD(ResultCode, HostCancelCompanionCheck, (const HostCancelCompanionCheckInput &input), (override));
     MOCK_METHOD(ResultCode, CompanionProcessCheck,
         (const CompanionProcessCheckInput &input, CompanionProcessCheckOutput &output), (override));

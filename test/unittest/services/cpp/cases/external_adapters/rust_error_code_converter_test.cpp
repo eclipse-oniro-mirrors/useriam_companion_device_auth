@@ -37,6 +37,14 @@ HWTEST(RustErrorCodeConverterTest, AllKnownMappings, TestSize.Level0)
     EXPECT_EQ(ConvertRustErrorCode(static_cast<int32_t>(RustErrorCode::TOKEN_NOT_FOUND)), ResultCode::TOKEN_NOT_FOUND);
     EXPECT_EQ(ConvertRustErrorCode(static_cast<int32_t>(RustErrorCode::TOKEN_VERIFY_FAILED)),
         ResultCode::TOKEN_VERIFY_FAILED);
+    EXPECT_EQ(ConvertRustErrorCode(static_cast<int32_t>(RustErrorCode::PROTOCOL_NEGOTIATION_FAILED)),
+        ResultCode::PROTOCOL_NEGOTIATION_FAILED);
+    EXPECT_EQ(ConvertRustErrorCode(static_cast<int32_t>(RustErrorCode::SECURE_PROTOCOL_NOT_SUPPORTED)),
+        ResultCode::SECURE_PROTOCOL_NOT_SUPPORTED);
+    EXPECT_EQ(ConvertRustErrorCode(static_cast<int32_t>(RustErrorCode::CAPABILITY_NEGOTIATION_FAILED)),
+        ResultCode::CAPABILITY_NEGOTIATION_FAILED);
+    EXPECT_EQ(ConvertRustErrorCode(static_cast<int32_t>(RustErrorCode::ALGORITHM_NEGOTIATION_FAILED)),
+        ResultCode::ALGORITHM_NEGOTIATION_FAILED);
 }
 
 HWTEST(RustErrorCodeConverterTest, UnknownCodeFallsBackToGeneralError, TestSize.Level0)

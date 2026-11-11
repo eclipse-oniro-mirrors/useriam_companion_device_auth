@@ -35,7 +35,7 @@ public:
     MOCK_METHOD(void, UnsubscribeCompanionDeviceStatusChange, (SubscribeId subscriptionId), (override));
     MOCK_METHOD(ResultCode, BeginAddCompanion,
         (const BeginAddCompanionParams &params, std::vector<uint8_t> &outAddHostBindingRequest,
-            uint16_t &selectedAlgorithm),
+            SelectedAlgorithms &selectedAlgorithms),
         (override));
     MOCK_METHOD(ResultCode, EndAddCompanion, (const EndAddCompanionInput &input, EndAddCompanionOutput &output),
         (override));

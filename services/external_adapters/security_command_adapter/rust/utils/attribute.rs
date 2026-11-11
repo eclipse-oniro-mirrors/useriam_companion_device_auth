@@ -47,7 +47,7 @@ pub enum AttributeKey {
 
     AttrMessage = 300001,
     AttrProtocolList = 300002,
-    AttrAlgoList = 300003,
+    AttrKaAlgoList = 300003,
     AttrCapabilityList = 300004,
     AttrDeviceId = 300005,
     AttrSalt = 300006,
@@ -59,6 +59,13 @@ pub enum AttributeKey {
     AttrHostChallenge = 300016,
     AttrCompanionChallenge = 300017,
     AttrSubProfileId = 300018,
+    AttrKdfAlgoList = 300019,
+    AttrAeadAlgoList = 300020,
+    AttrMacAlgoList = 300021,
+    AttrKaAlgoSupportList = 300022,
+    AttrKdfAlgoSupportList = 300023,
+    AttrAeadAlgoSupportList = 300024,
+    AttrMacAlgoSupportList = 300025,
 }
 
 impl TryFrom<i32> for AttributeKey {
@@ -86,7 +93,7 @@ impl TryFrom<i32> for AttributeKey {
             100089 => Ok(AttributeKey::AttrAuthTrustLevel),
             300001 => Ok(AttributeKey::AttrMessage),
             300002 => Ok(AttributeKey::AttrProtocolList),
-            300003 => Ok(AttributeKey::AttrAlgoList),
+            300003 => Ok(AttributeKey::AttrKaAlgoList),
             300004 => Ok(AttributeKey::AttrCapabilityList),
             300005 => Ok(AttributeKey::AttrDeviceId),
             300006 => Ok(AttributeKey::AttrSalt),
@@ -98,6 +105,13 @@ impl TryFrom<i32> for AttributeKey {
             300016 => Ok(AttributeKey::AttrHostChallenge),
             300017 => Ok(AttributeKey::AttrCompanionChallenge),
             300018 => Ok(AttributeKey::AttrSubProfileId),
+            300019 => Ok(AttributeKey::AttrKdfAlgoList),
+            300020 => Ok(AttributeKey::AttrAeadAlgoList),
+            300021 => Ok(AttributeKey::AttrMacAlgoList),
+            300022 => Ok(AttributeKey::AttrKaAlgoSupportList),
+            300023 => Ok(AttributeKey::AttrKdfAlgoSupportList),
+            300024 => Ok(AttributeKey::AttrAeadAlgoSupportList),
+            300025 => Ok(AttributeKey::AttrMacAlgoSupportList),
             _ => Err(ErrorCode::GeneralError),
         }
     }
@@ -119,6 +133,10 @@ impl Default for Attribute {
 impl Attribute {
     pub fn new() -> Self {
         Attribute { map: BTreeMap::new() }
+    }
+
+    pub fn has(&self, key: AttributeKey) -> bool {
+        self.map.contains_key(&key)
     }
 
     pub fn try_from_bytes(msg: &[u8]) -> Result<Self, ErrorCode> {

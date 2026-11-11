@@ -71,11 +71,6 @@ void InteractionEventCollector::SetTriggerReason(const std::string &triggerReaso
     triggerReason_ = triggerReason;
 }
 
-void InteractionEventCollector::SetTemplateIdList(const std::vector<TemplateId> &templateIdList)
-{
-    templateIdList_ = templateIdList;
-}
-
 void InteractionEventCollector::SetCallerUserId(UserId callerUserId)
 {
     callerUserId_ = callerUserId;
@@ -94,12 +89,12 @@ constexpr const char *KEY_ATL = "ATL";
 constexpr const char *KEY_BINDING_ID = "bindingId";
 constexpr const char *KEY_CONTEXT_ID = "contextId";
 constexpr const char *KEY_SUCCESS_AUTH_TYPE = "successAuthType";
-constexpr const char *KEY_ALGORITHM_LIST = "algorithmList";
-constexpr const char *KEY_SELECTED_ALGORITHM = "selectedAlgorithm";
+constexpr const char *KEY_SELECTED_ALGORITHMS = "selectedAlgorithms";
 constexpr const char *KEY_ESL = "ESL";
 constexpr const char *KEY_PROTOCOL_ID_LIST = "protocolIdList";
 constexpr const char *KEY_CAPABILITY_LIST = "capabilityList";
-constexpr const char *KEY_SELECTED_PROTOCOL_ID_LIST = "selectedProtocolIdList";
+constexpr const char *KEY_PEER_PROTOCOL_ID_LIST = "peerProtocolIdList";
+constexpr const char *KEY_SELECTED_PROTOCOL_ID = "selectedProtocolId";
 constexpr const char *KEY_SECURE_PROTOCOL_ID = "secureProtocolId";
 constexpr const char *KEY_TEMPLATE_AUTH_RESULT = "templateAuthResult";
 constexpr const char *KEY_SUCCESS_TEMPLATE_ID = "successTemplateId";
@@ -114,6 +109,11 @@ void InteractionEventCollector::SetAtl(Atl atl)
     atl_ = atl;
 }
 
+void InteractionEventCollector::SetEsl(int32_t esl)
+{
+    esl_ = esl;
+}
+
 void InteractionEventCollector::SetBindingId(BindingId bindingId)
 {
     bindingId_ = bindingId;
@@ -124,29 +124,24 @@ void InteractionEventCollector::SetContextId(uint64_t contextId)
     contextId_ = contextId;
 }
 
-void InteractionEventCollector::SetSuccessAuthType(int32_t authType)
-{
-    successAuthType_ = authType;
-}
-
-void InteractionEventCollector::SetAlgorithmList(const std::vector<uint16_t> &algorithmList)
-{
-    algorithmList_ = algorithmList;
-}
-
-void InteractionEventCollector::SetSelectedAlgorithm(uint16_t algorithm)
-{
-    selectedAlgorithm_ = algorithm;
-}
-
-void InteractionEventCollector::SetEsl(int32_t esl)
-{
-    esl_ = esl;
-}
-
 void InteractionEventCollector::SetProtocolIdList(const std::vector<uint16_t> &protocolIdList)
 {
     protocolIdList_ = protocolIdList;
+}
+
+void InteractionEventCollector::SetPeerProtocolIdList(const std::vector<uint16_t> &peerProtocolIdList)
+{
+    peerProtocolIdList_ = peerProtocolIdList;
+}
+
+void InteractionEventCollector::SetSelectedProtocolId(uint16_t selectedProtocolId)
+{
+    selectedProtocolId_ = selectedProtocolId;
+}
+
+void InteractionEventCollector::SetSecureProtocolId(uint16_t secureProtocolId)
+{
+    secureProtocolId_ = secureProtocolId;
 }
 
 void InteractionEventCollector::SetCapabilityList(const std::vector<uint16_t> &capabilityList)
@@ -154,14 +149,14 @@ void InteractionEventCollector::SetCapabilityList(const std::vector<uint16_t> &c
     capabilityList_ = capabilityList;
 }
 
-void InteractionEventCollector::SetSelectedProtocolIdList(const std::vector<uint16_t> &selectedProtocolIdList)
+void InteractionEventCollector::SetSelectedAlgorithms(const SelectedAlgorithms &selectedAlgorithms)
 {
-    selectedProtocolIdList_ = selectedProtocolIdList;
+    selectedAlgorithms_ = selectedAlgorithms;
 }
 
-void InteractionEventCollector::SetSecureProtocolId(uint16_t secureProtocolId)
+void InteractionEventCollector::SetTemplateIdList(const std::vector<TemplateId> &templateIdList)
 {
-    secureProtocolId_ = secureProtocolId;
+    templateIdList_ = templateIdList;
 }
 
 void InteractionEventCollector::AddTemplateAuthResult(TemplateId templateId, ResultCode result)
@@ -177,6 +172,11 @@ void InteractionEventCollector::AddTemplateAuthResult(TemplateId templateId, Res
 void InteractionEventCollector::SetSuccessTemplateId(TemplateId templateId)
 {
     successTemplateId_ = templateId;
+}
+
+void InteractionEventCollector::SetSuccessAuthType(int32_t authType)
+{
+    successAuthType_ = authType;
 }
 
 void InteractionEventCollector::Start()
@@ -213,11 +213,10 @@ void InteractionEventCollector::BuildExtraInfoStep1(std::ostringstream &oss) con
     if (successAuthType_.has_value()) {
         oss << ";" << KEY_SUCCESS_AUTH_TYPE << ":" << *successAuthType_;
     }
-    if (algorithmList_.has_value()) {
-        oss << ";" << KEY_ALGORITHM_LIST << ":" << GetVectorString<uint16_t>(*algorithmList_);
-    }
-    if (selectedAlgorithm_.has_value()) {
-        oss << ";" << KEY_SELECTED_ALGORITHM << ":" << *selectedAlgorithm_;
+    if (selectedAlgorithms_.has_value()) {
+        oss << ";" << KEY_SELECTED_ALGORITHMS << ":ka=" << selectedAlgorithms_->kaAlgorithm
+            << ",kdf=" << selectedAlgorithms_->kdfAlgorithm << ",aead=" << selectedAlgorithms_->aeadAlgorithm
+            << ",mac=" << selectedAlgorithms_->macAlgorithm;
     }
     if (callerUserId_.has_value()) {
         oss << ";" << KEY_CALLER_USER_ID << ":" << *callerUserId_;
@@ -241,8 +240,11 @@ void InteractionEventCollector::BuildExtraInfoStep2(std::ostringstream &oss) con
     if (capabilityList_.has_value()) {
         oss << ";" << KEY_CAPABILITY_LIST << ":" << GetVectorString<uint16_t>(*capabilityList_);
     }
-    if (selectedProtocolIdList_.has_value()) {
-        oss << ";" << KEY_SELECTED_PROTOCOL_ID_LIST << ":" << GetVectorString<uint16_t>(*selectedProtocolIdList_);
+    if (peerProtocolIdList_.has_value()) {
+        oss << ";" << KEY_PEER_PROTOCOL_ID_LIST << ":" << GetVectorString<uint16_t>(*peerProtocolIdList_);
+    }
+    if (selectedProtocolId_.has_value()) {
+        oss << ";" << KEY_SELECTED_PROTOCOL_ID << ":" << *selectedProtocolId_;
     }
     if (secureProtocolId_.has_value()) {
         oss << ";" << KEY_SECURE_PROTOCOL_ID << ":" << *secureProtocolId_;

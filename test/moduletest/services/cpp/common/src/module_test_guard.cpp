@@ -30,6 +30,7 @@
 #include "request_factory.h"
 #include "request_manager.h"
 #include "service_common.h"
+#include "service_converter.h"
 #include "singleton_manager.h"
 #include "subscription.h"
 #include "subscription_manager.h"
@@ -181,9 +182,13 @@ void TestServiceInitializer::SetupSecurityAgentDefaults()
     ON_CALL(*securityAgent_, HostGetPersistedCompanionStatus(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, CompanionGetPersistedHostBindingStatus(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostBeginCompanionCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(*securityAgent_, HostEndCompanionCheck(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostEndCompanionCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostCancelCompanionCheck(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(*securityAgent_, CompanionProcessCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, CompanionProcessCheck(_, _))
+        .WillByDefault(Invoke([](const CompanionProcessCheckInput &, CompanionProcessCheckOutput &output) {
+            output.companionCheckResponse = { 1 };
+            return ResultCode::SUCCESS;
+        }));
     ON_CALL(*securityAgent_, HostGetInitKeyNegotiationRequest(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostBeginAddCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostEndAddCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
@@ -547,13 +552,12 @@ void ModuleTestGuard::SetupEnrollSecurityAgentMocks(TemplateId templateId)
 
     HostGetInitKeyNegotiationRequestOutput initReqOutput;
     initReqOutput.initKeyNegotiationRequest = { 0x01, 0x02, 0x03 };
-    initReqOutput.algorithmList = { 1, 2 };
     EXPECT_CALL(GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(initReqOutput), Return(ResultCode::SUCCESS)));
 
     HostBeginAddCompanionOutput beginCompOutput;
     beginCompOutput.addHostBindingRequest = { 0x04, 0x05, 0x06 };
-    beginCompOutput.selectedAlgorithm = 1;
+    beginCompOutput.selectedAlgorithms.kaAlgorithm = 1;
     EXPECT_CALL(GetSecurityAgent(), HostBeginAddCompanion(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(beginCompOutput), Return(ResultCode::SUCCESS)));
 
@@ -720,8 +724,17 @@ void ModuleTestGuard::SetupEndAddCompanionMock(TemplateId templateId)
     secOutput.atl = DEFAULT_ATL;
     secOutput.esl = DEFAULT_ESL;
     secOutput.addedTime = DEFAULT_ADDED_TIME;
+    // The enrolled capability pin is seeded only from the security-channel output
+    // (EndAddCompanion reads secOutput.capabilityList, not the input status). An empty
+    // list here leaves the mirror pin empty, and the strict runtime gate then rejects
+    // every host-side auth flow before it can open a connection.
+    secOutput.capabilityList = CapabilityConverter::ToUnderlyingVec(
+        std::vector<Capability> { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN });
     EXPECT_CALL(GetSecurityAgent(), HostEndAddCompanion(_, _))
-        .WillOnce(DoAll(SetArgReferee<1>(secOutput), Return(ResultCode::SUCCESS)));
+        .WillOnce(Invoke([secOutput](const HostEndAddCompanionInput &input, HostEndAddCompanionOutput &output) mutable {
+            output = secOutput;
+            return ResultCode::SUCCESS;
+        }));
 }
 
 void ModuleTestGuard::InjectDefaultSyncReply(const DeviceKey &companionDeviceKey, UserId hostUserId)
@@ -734,6 +747,10 @@ void ModuleTestGuard::InjectDefaultSyncReply(const DeviceKey &companionDeviceKey
     syncReply.companionDeviceKey = companionDeviceKey;
     syncReply.companionDeviceKey.deviceUserId = hostUserId;
     syncReply.deviceUserName = "test-user";
+    // A bound companion always returns a proof, and the secure layer can only succeed after
+    // decrypting it. The fixture has to carry one or the host rejects the round as an
+    // unauthenticated success (PEER_SYNC_FAILED) instead of caching the device status.
+    syncReply.companionCheckResponse = { 0x01 };
     InjectSyncDeviceStatusReply(GetChannel(), syncReply, companionDeviceKey);
     DrainPendingTasks();
 }
@@ -752,6 +769,9 @@ bool ModuleTestGuard::RegisterCompanionDirect(UserId hostUserId, const DeviceKey
     companionStatus.isValid = true;
     companionStatus.enabledBusinessIds = enabledBusinessIds;
     companionStatus.deviceType = DeviceType::UNKNOWN;
+    // Mirrors the capability set the injected sync reply advertises: enrolled scope gates every
+    // business capability, so a device that syncs OBTAIN_TOKEN must also have enrolled it.
+    companionStatus.capabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
 
     SetupEndAddCompanionMock(templateId);
 
@@ -759,9 +779,6 @@ bool ModuleTestGuard::RegisterCompanionDirect(UserId hostUserId, const DeviceKey
     endInput.requestId = 0;
     endInput.companionStatus = companionStatus;
     endInput.secureProtocolId = SecureProtocolId::DEFAULT;
-    endInput.protocolVersionList = { 1 };
-    endInput.capabilityList = { static_cast<uint16_t>(Capability::DELEGATE_AUTH),
-        static_cast<uint16_t>(Capability::TOKEN_AUTH) };
     endInput.supportedBusinessIds = {};
     endInput.addHostBindingReply = {};
 
@@ -920,6 +937,8 @@ void ModuleTestGuard::SetupHostSideSync(const std::string &companionDeviceId, Us
     syncReply.secureProtocolId = SecureProtocolId::DEFAULT;
     syncReply.companionDeviceKey = MakeDeviceKey(companionDeviceId, hostUserId);
     syncReply.deviceUserName = "TestCompanion";
+    // See InjectDefaultSyncReply: a proof-bearing reply is what a bound companion produces.
+    syncReply.companionCheckResponse = { 0x01 };
     InjectSyncDeviceStatusReply(GetChannel(), syncReply, MakeDeviceKey(companionDeviceId, hostUserId));
     DrainPendingTasks();
 }

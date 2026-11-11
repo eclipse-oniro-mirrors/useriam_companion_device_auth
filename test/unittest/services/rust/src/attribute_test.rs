@@ -47,7 +47,7 @@ fn attribute_key_test() {
     assert_eq!(AttributeKey::try_from(100089).unwrap(), AttributeKey::AttrAuthTrustLevel);
     assert_eq!(AttributeKey::try_from(300001).unwrap(), AttributeKey::AttrMessage);
     assert_eq!(AttributeKey::try_from(300002).unwrap(), AttributeKey::AttrProtocolList);
-    assert_eq!(AttributeKey::try_from(300003).unwrap(), AttributeKey::AttrAlgoList);
+    assert_eq!(AttributeKey::try_from(300003).unwrap(), AttributeKey::AttrKaAlgoList);
     assert_eq!(AttributeKey::try_from(300004).unwrap(), AttributeKey::AttrCapabilityList);
     assert_eq!(AttributeKey::try_from(300005).unwrap(), AttributeKey::AttrDeviceId);
     assert_eq!(AttributeKey::try_from(300006).unwrap(), AttributeKey::AttrSalt);

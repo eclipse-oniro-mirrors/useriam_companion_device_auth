@@ -78,6 +78,8 @@ HWTEST_F(ResultCodeConverterTest, ToUserAuth_CrossDeviceCodesCollapseToGeneralEr
     EXPECT_EQ(ToUserAuthResultCode(ResultCode::COORDINATOR_REJECTED), UserAuth::ResultCode::GENERAL_ERROR);
     EXPECT_EQ(ToUserAuthResultCode(ResultCode::PROTOCOL_NEGOTIATION_FAILED), UserAuth::ResultCode::GENERAL_ERROR);
     EXPECT_EQ(ToUserAuthResultCode(ResultCode::PEER_SYNC_FAILED), UserAuth::ResultCode::GENERAL_ERROR);
+    EXPECT_EQ(ToUserAuthResultCode(ResultCode::SECURE_PROTOCOL_NOT_SUPPORTED), UserAuth::ResultCode::GENERAL_ERROR);
+    EXPECT_EQ(ToUserAuthResultCode(ResultCode::CAPABILITY_NEGOTIATION_FAILED), UserAuth::ResultCode::GENERAL_ERROR);
 }
 
 // A CDA code with no UserAuth counterpart falls back to GENERAL_ERROR.

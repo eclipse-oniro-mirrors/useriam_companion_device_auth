@@ -34,6 +34,7 @@ static void FuzzEncodeInitKeyNegotiationRequest(FuzzedDataProvider &fuzzData)
 {
     InitKeyNegotiationRequest request;
     request.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
+    request.protocolId = static_cast<ProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     request.extraInfo =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
     Attributes attr;

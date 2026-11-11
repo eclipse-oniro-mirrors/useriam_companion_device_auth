@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+#include <algorithm>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -357,6 +359,39 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_003, TestSize.Level0)
 
     auto deviceKeyOpt = manager->GetLocalDeviceKey(ChannelId::SOFTBUS);
     EXPECT_FALSE(deviceKeyOpt.has_value());
+}
+
+// Lockstep invariants of the local profile: every prioritized protocol must be published in
+// protocols, and the priority floor (last entry) must stay the version every peer understands.
+HWTEST_F(LocalDeviceStatusManagerTest, ProfileInvariants_001, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto mockChannel = std::make_shared<NiceMock<MockCrossDeviceChannel>>();
+    ON_CALL(*mockChannel, SubscribeAuthMaintainActive(_)).WillByDefault(Invoke([](OnAuthMaintainActiveChange &&) {
+        return std::make_unique<Subscription>([]() {});
+    }));
+    ON_CALL(*mockChannel, GetAuthMaintainActive()).WillByDefault(Return(false));
+    ON_CALL(*mockChannel, GetCompanionSecureProtocolId()).WillByDefault(Return(SecureProtocolId::DEFAULT));
+
+    std::vector<std::shared_ptr<ICrossDeviceChannel>> channels = { mockChannel };
+    auto channelMgr = std::make_shared<ChannelManager>(channels);
+
+    DeviceCapabilityInfo deviceCapabilityInfo = { {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN }, {},
+        { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN } };
+    auto manager = LocalDeviceStatusManager::Create(channelMgr, deviceCapabilityInfo, false);
+    ASSERT_NE(manager, nullptr);
+
+    const auto &profile = manager->profile_;
+    // protocols is the single ordered source: members = supported set, order = priority.
+    EXPECT_FALSE(profile.protocols.empty());
+    for (const auto &protocol : profile.protocols) {
+        EXPECT_NE(protocol, ProtocolId::INVALID) << "invalid protocol published";
+    }
+    EXPECT_EQ(profile.protocols.back(), ProtocolId::VERSION_1);
+    EXPECT_FALSE(profile.hostCapabilities.empty());
+    EXPECT_FALSE(profile.companionCapabilities.empty());
 }
 
 } // namespace

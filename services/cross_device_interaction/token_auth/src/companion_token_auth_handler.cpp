@@ -118,6 +118,7 @@ ResultCode CompanionTokenAuthHandler::ProcessTokenAuth(const TokenAuthRequest &t
     const HostBindingStatus &hostBindingStatus, Attributes &reply)
 {
     auto secureProtocolId = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
+    ENSURE_OR_RETURN_VAL(secureProtocolId != SecureProtocolId::INVALID, ResultCode::GENERAL_ERROR);
 
     CompanionProcessTokenAuthInput input = {};
     input.bindingId = hostBindingStatus.bindingId;

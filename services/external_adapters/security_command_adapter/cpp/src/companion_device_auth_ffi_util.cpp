@@ -43,6 +43,15 @@ bool EncodeDeviceKey(const DeviceKey &key, DeviceKeyFfi &ffi)
     return EncodeStringToDataArray(key.deviceId, ffi.deviceId, "device ID");
 }
 
+bool DecodeSelectedAlgorithms(const SelectedAlgorithmsFfi &ffi, SelectedAlgorithms &algorithms)
+{
+    algorithms.kaAlgorithm = ffi.kaAlgorithm;
+    algorithms.kdfAlgorithm = ffi.kdfAlgorithm;
+    algorithms.aeadAlgorithm = ffi.aeadAlgorithm;
+    algorithms.macAlgorithm = ffi.macAlgorithm;
+    return true;
+}
+
 bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, PersistedCompanionStatus &status)
 {
     status.templateId = ffi.templateId;
@@ -75,6 +84,11 @@ bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, Pers
         return false;
     }
     if (!DecodeDataArrayToString(ffi.deviceSubProfileIdName, status.deviceSubProfileName)) {
+        return false;
+    }
+    status.enrolledProtocolId = static_cast<ProtocolId>(ffi.enrolledProtocolId);
+    if (!FfiArrayToVector(ffi.capabilityList, status.capabilities)) {
+        IAM_LOGE("failed to decode capability list");
         return false;
     }
 
@@ -110,6 +124,10 @@ bool EncodePersistedCompanionStatus(const PersistedCompanionStatus &status, Pers
         !EncodeStringToDataArray(status.deviceSubProfileName, ffi.deviceSubProfileIdName, "device sub profile name")) {
         return false;
     }
+    ffi.enrolledProtocolId = static_cast<uint16_t>(status.enrolledProtocolId);
+    if (!VectorToFfiArray(status.capabilities, ffi.capabilityList, "capability list")) {
+        return false;
+    }
 
     return true;
 }
@@ -120,6 +138,7 @@ bool DecodePersistedHostBindingStatus(const PersistedHostBindingStatusFfi &ffi, 
     status.companionUserKey.userId = ffi.companionUserKey.userId;
     status.companionUserKey.subProfileId = ffi.companionUserKey.subProfileId;
     status.isTokenValid = ffi.isTokenValid;
+    status.enrolledProtocolId = static_cast<ProtocolId>(ffi.enrolledProtocolId);
 
     return DecodeDeviceKey(ffi.hostDeviceKey, status.hostDeviceKey);
 }
@@ -184,12 +203,12 @@ bool EncodeHostEndCompanionCheckInput(const HostEndCompanionCheckInput &input, H
     ffi.templateId = input.templateId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
 
-    if (!VectorToFfiArray(input.protocolVersionList, ffi.protocolList, "protocol list") ||
-        !VectorToFfiArray(input.capabilityList, ffi.capabilityList, "capability list")) {
-        return false;
-    }
-
     return EncodeMessageArray(input.companionCheckResponse, ffi.secMessage);
+}
+
+bool DecodeHostEndCompanionCheckOutput(const HostEndCompanionCheckOutputFfi &ffi, HostEndCompanionCheckOutput &output)
+{
+    return FfiArrayToVector(ffi.capabilityList, output.capabilityList);
 }
 
 bool EncodeHostGetInitKeyNegotiationInput(const HostGetInitKeyNegotiationRequestInput &input,
@@ -206,7 +225,7 @@ bool DecodeHostInitKeyNegotiationOutput(const HostGetInitKeyNegotiationOutputFfi
     if (!DecodeMessageArray(ffi.secMessage, output.initKeyNegotiationRequest)) {
         return false;
     }
-    return FfiArrayToVector(ffi.algorithmList, output.algorithmList);
+    return true;
 }
 
 bool EncodeHostBeginAddCompanionInput(const HostBeginAddCompanionInput &input, HostBeginAddCompanionInputFfi &ffi)
@@ -217,6 +236,14 @@ bool EncodeHostBeginAddCompanionInput(const HostBeginAddCompanionInput &input, H
 
     if (!EncodeDeviceKey(input.hostDeviceKey, ffi.hostDeviceKey) ||
         !EncodeDeviceKey(input.companionDeviceKey, ffi.companionDeviceKey)) {
+        return false;
+    }
+
+    if (!VectorToFfiArray(input.hostCapabilityList, ffi.hostCapabilityList, "host capability list")) {
+        return false;
+    }
+
+    if (!VectorToFfiArray(input.hostProtocolList, ffi.hostProtocolList, "host protocol list")) {
         return false;
     }
 
@@ -233,7 +260,9 @@ bool DecodeHostBeginAddCompanionOutput(const HostBeginAddCompanionOutputFfi &ffi
     if (!DecodeMessageArray(ffi.secMessage, output.addHostBindingRequest)) {
         return false;
     }
-    output.selectedAlgorithm = ffi.selectedAlgorithm;
+    if (!DecodeSelectedAlgorithms(ffi.selectedAlgorithms, output.selectedAlgorithms)) {
+        return false;
+    }
     return true;
 }
 
@@ -246,9 +275,7 @@ bool EncodeHostEndAddCompanionInput(const HostEndAddCompanionInput &input, HostE
         return false;
     }
 
-    if (!VectorToFfiArray(input.protocolVersionList, ffi.protocolList, "protocol list") ||
-        !VectorToFfiArray(input.capabilityList, ffi.capabilityList, "capability list") ||
-        !VectorToFfiArray(input.supportedBusinessIds, ffi.supportedBusinessIds, "supported business IDs")) {
+    if (!VectorToFfiArray(input.supportedBusinessIds, ffi.supportedBusinessIds, "supported business IDs")) {
         return false;
     }
 
@@ -265,7 +292,7 @@ bool DecodeHostEndAddCompanionOutput(const HostEndAddCompanionOutputFfi &ffi, Ho
         return false;
     }
 
-    return true;
+    return FfiArrayToVector(ffi.capabilityList, output.capabilityList);
 }
 
 bool EncodeHostPreIssueTokenInput(const HostPreIssueTokenInput &input, HostPreIssueTokenInputFfi &ffi)
@@ -466,7 +493,7 @@ bool EncodeCompanionProcessCheckInput(const CompanionProcessCheckInput &input, C
         return false;
     }
 
-    if (!VectorToFfiArray(input.capabilityList, ffi.capabilityList, "capability list")) {
+    if (!VectorToFfiArray(input.companionCapabilityList, ffi.companionCapabilityList, "companion capability list")) {
         return false;
     }
 
@@ -474,7 +501,7 @@ bool EncodeCompanionProcessCheckInput(const CompanionProcessCheckInput &input, C
         return false;
     }
 
-    return EncodeMessageArray(input.companionCheckRequest, ffi.secMessage);
+    return true;
 }
 
 bool DecodeCompanionProcessCheckOutput(const CompanionProcessCheckOutputFfi &ffi, CompanionProcessCheckOutput &output)
@@ -488,13 +515,15 @@ bool EncodeCompanionInitKeyNegotiationInput(const CompanionInitKeyNegotiationInp
     ffi.requestId = input.requestId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
 
-    if (!VectorToFfiArray(input.protocolList, ffi.protocolList, "protocol list")) {
+    if (!VectorToFfiArray(input.companionProtocolList, ffi.companionProtocolList, "companion protocol list")) {
         return false;
     }
 
-    if (!VectorToFfiArray(input.capabilityList, ffi.capabilityList, "capability list")) {
+    if (!VectorToFfiArray(input.companionCapabilityList, ffi.companionCapabilityList, "companion capability list")) {
         return false;
     }
+
+    ffi.selectedProtocolId = static_cast<uint16_t>(input.selectedProtocolId);
 
     if (!EncodeDeviceKey(input.hostDeviceKey, ffi.hostDeviceKey) ||
         !EncodeDeviceKey(input.companionDeviceKey, ffi.companionDeviceKey)) {
@@ -510,10 +539,9 @@ bool DecodeCompanionInitKeyNegotiationOutput(const CompanionInitKeyNegotiationOu
     if (!DecodeMessageArray(ffi.secMessage, output.initKeyNegotiationReply)) {
         return false;
     }
-    if (!FfiArrayToVector(ffi.algorithmList, output.algorithmList)) {
+    if (!DecodeSelectedAlgorithms(ffi.selectedAlgorithms, output.selectedAlgorithms)) {
         return false;
     }
-    output.selectedAlgorithm = ffi.selectedAlgorithm;
     return true;
 }
 

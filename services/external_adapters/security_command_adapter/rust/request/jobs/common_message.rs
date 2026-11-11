@@ -125,12 +125,18 @@ impl SecIssueToken {
         sec_message: &[u8],
         processor_type: ProcessorType,
         session_key: &[u8],
+        aead_algorithm: u16,
     ) -> Result<Self, ErrorCode> {
         let output = SecCommonRequest::decode(sec_message, processor_type)?;
 
-        let decrypt_data =
-            message_crypto::decrypt_sec_message(&output.encrypt_data, session_key, &output.tag, &output.iv)
-                .map_err(|e| p!(e))?;
+        let decrypt_data = message_crypto::decrypt_sec_message(
+            aead_algorithm,
+            &output.encrypt_data,
+            session_key,
+            &output.tag,
+            &output.iv,
+        )
+        .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
 
         let challenge = decrypt_attribute.get_u64(AttributeKey::AttrCompanionChallenge).map_err(|e| p!(e))?;
@@ -145,15 +151,19 @@ impl SecIssueToken {
         salt: &[u8],
         processor_type: ProcessorType,
         session_key: &[u8],
+        aead_algorithm: u16,
     ) -> Result<Vec<u8>, ErrorCode> {
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrCompanionChallenge, self.challenge);
         encrypt_attribute.set_u8_slice(AttributeKey::AttrToken, &self.token);
         encrypt_attribute.set_i32(AttributeKey::AttrAuthTrustLevel, self.atl);
 
-        let (encrypt_data, tag, iv) =
-            message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), session_key)
-                .map_err(|e| p!(e))?;
+        let (encrypt_data, tag, iv) = message_crypto::encrypt_sec_message(
+            aead_algorithm,
+            encrypt_attribute.to_bytes()?.as_slice(),
+            session_key,
+        )
+        .map_err(|e| p!(e))?;
 
         let issue_token_request = Box::new(SecCommonRequest {
             salt: salt.try_into().map_err(|e| {

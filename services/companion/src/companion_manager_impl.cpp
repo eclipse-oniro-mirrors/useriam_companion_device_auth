@@ -34,6 +34,7 @@
 #include "request_factory.h"
 #include "request_manager.h"
 #include "security_agent.h"
+#include "service_converter.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
 #include "time_keeper.h"
@@ -186,6 +187,8 @@ HostBeginAddCompanionInput CompanionManagerImpl::BuildHostBeginAddCompanionInput
     input.companionDeviceKey = params.companionDeviceKey;
     input.fwkMsg = params.fwkMsg;
     input.secureProtocolId = params.secureProtocolId;
+    input.hostCapabilityList = CapabilityConverter::ToUnderlyingVec(params.hostCapabilityList);
+    input.hostProtocolList = ProtocolIdConverter::ToUnderlyingVec(params.hostProtocolList);
     input.initKeyNegotiationReply = params.initKeyNegotiationReply;
     return input;
 }
@@ -202,7 +205,7 @@ ResultCode CompanionManagerImpl::InvokeHostBeginAddCompanion(const HostBeginAddC
 }
 
 ResultCode CompanionManagerImpl::BeginAddCompanion(const BeginAddCompanionParams &params,
-    std::vector<uint8_t> &outAddHostBindingRequest, uint16_t &selectedAlgorithm)
+    std::vector<uint8_t> &outAddHostBindingRequest, SelectedAlgorithms &selectedAlgorithms)
 {
     IAM_LOGI("begin add companion, request id 0x%{public}08X", params.requestId);
 
@@ -231,7 +234,7 @@ ResultCode CompanionManagerImpl::BeginAddCompanion(const BeginAddCompanionParams
     }
 
     outAddHostBindingRequest.swap(output.addHostBindingRequest);
-    selectedAlgorithm = output.selectedAlgorithm;
+    selectedAlgorithms = output.selectedAlgorithms;
 
     IAM_LOGI("begin add companion success, request id 0x%{public}08X", params.requestId);
     return ResultCode::SUCCESS;
@@ -243,8 +246,6 @@ HostEndAddCompanionInput CompanionManagerImpl::BuildHostEndAddCompanionInput(con
     secInput.requestId = input.requestId;
     secInput.companionStatus = input.companionStatus;
     secInput.secureProtocolId = input.secureProtocolId;
-    secInput.protocolVersionList = input.protocolVersionList;
-    secInput.capabilityList = input.capabilityList;
     secInput.supportedBusinessIds = input.supportedBusinessIds;
     secInput.addHostBindingReply = input.addHostBindingReply;
     return secInput;
@@ -346,20 +347,12 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
         return ret;
     }
 
-    ScopeGuard secAgentGuard([this, templateId = secOutput.templateId]() {
-        IAM_LOGE("rolling back SecurityAgent for %{public}s", GET_MASKED_NUM_CSTR(templateId));
-        HostRemoveCompanionInput removeInput { templateId };
-        HostRemoveCompanionOutput removeOutput {};
-        ResultCode removeRet = GetSecurityAgent().HostRemoveCompanion(removeInput, removeOutput);
-        if (removeRet != ResultCode::SUCCESS) {
-            IAM_LOGE("failed to rollback SecurityAgent for %{public}s ret %{public}d", GET_MASKED_NUM_CSTR(templateId),
-                removeRet);
-        }
-    });
+    ScopeGuard secAgentGuard([this, templateId = secOutput.templateId]() { RollbackSecurityAgentState(templateId); });
 
     PersistedCompanionStatus updatedStatus = input.companionStatus;
     updatedStatus.templateId = secOutput.templateId;
     updatedStatus.addedTime = secOutput.addedTime;
+    updatedStatus.capabilities = CapabilityConverter::FromUnderlyingVec(secOutput.capabilityList);
 
     auto companion = Companion::Create(updatedStatus, false, weak_from_this());
     if (companion == nullptr) {
@@ -380,6 +373,18 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
 
     IAM_LOGI("end add companion success, request id 0x%{public}08X", input.requestId);
     return ResultCode::SUCCESS;
+}
+
+void CompanionManagerImpl::RollbackSecurityAgentState(TemplateId templateId)
+{
+    IAM_LOGE("rolling back SecurityAgent for %{public}s", GET_MASKED_NUM_CSTR(templateId));
+    HostRemoveCompanionInput removeInput { templateId };
+    HostRemoveCompanionOutput removeOutput {};
+    ResultCode removeRet = GetSecurityAgent().HostRemoveCompanion(removeInput, removeOutput);
+    if (removeRet != ResultCode::SUCCESS) {
+        IAM_LOGE("failed to rollback SecurityAgent for %{public}s ret %{public}d", GET_MASKED_NUM_CSTR(templateId),
+            removeRet);
+    }
 }
 
 ResultCode CompanionManagerImpl::RemoveCompanion(TemplateId templateId, bool removeHostBinding,
@@ -478,8 +483,13 @@ bool CompanionManagerImpl::IsCapabilitySupported(TemplateId templateId, Capabili
         return false;
     }
 
+    if (!companionStatus->isValid) {
+        IAM_LOGE("companion template id %{public}s is invalid", GET_MASKED_NUM_CSTR(templateId));
+        return false;
+    }
+
     const auto &capabilities = companionStatus->companionDeviceStatus.capabilities;
-    if (!HasCapability(capabilities, capability)) {
+    if (std::find(capabilities.begin(), capabilities.end(), capability) == capabilities.end()) {
         IAM_LOGE("capability %{public}u not supported by companion device %{public}s",
             static_cast<uint16_t>(capability), GET_MASKED_NUM_CSTR(templateId));
         return false;

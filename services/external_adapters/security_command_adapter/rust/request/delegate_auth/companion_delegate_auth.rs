@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{AuthTrustLevel, ErrorCode, ProcessorType, HKDF_SALT_SIZE};
+use crate::common::constants::{AuthTrustLevel, ErrorCode, ProcessorType, HKDF_SALT_SIZE, validate_secure_protocol_id};
 use crate::entry::companion_device_auth_ffi::CompanionBeginDelegateAuthInputFfi;
 use crate::jobs::host_binding_db_helper;
 use crate::jobs::message_crypto;
@@ -34,10 +34,12 @@ pub struct CompanionDelegateAuthRequest {
     pub auth_type: i32,
     pub salt: [u8; HKDF_SALT_SIZE],
     pub session_key: Vec<u8>,
+    pub aead_algorithm: u16,
 }
 
 impl CompanionDelegateAuthRequest {
     pub fn new(input: &CompanionBeginDelegateAuthInputFfi) -> Result<Self, ErrorCode> {
+        validate_secure_protocol_id(input.secure_protocol_id)?;
         Ok(CompanionDelegateAuthRequest {
             request_id: input.request_id,
             binding_id: input.binding_id,
@@ -47,6 +49,7 @@ impl CompanionDelegateAuthRequest {
             auth_type: 1,
             salt: [0u8; HKDF_SALT_SIZE],
             session_key: Vec::new(),
+            aead_algorithm: 0,
         })
     }
 
@@ -58,10 +61,17 @@ impl CompanionDelegateAuthRequest {
         let output =
             SecCommonRequest::decode(sec_message, ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?)?;
 
-        self.session_key = host_binding_db_helper::get_session_key(self.binding_id, &output.salt)?;
-        let decrypt_data =
-            message_crypto::decrypt_sec_message(&output.encrypt_data, &self.session_key, &output.tag, &output.iv)
-                .map_err(|e| p!(e))?;
+        let session_key_param = host_binding_db_helper::get_session_key(self.binding_id, &output.salt)?;
+        self.session_key = session_key_param.session_key;
+        self.aead_algorithm = session_key_param.aead_algorithm;
+        let decrypt_data = message_crypto::decrypt_sec_message(
+            self.aead_algorithm,
+            &output.encrypt_data,
+            &self.session_key,
+            &output.tag,
+            &output.iv,
+        )
+        .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let challenge = decrypt_attribute.get_u64(AttributeKey::AttrHostChallenge).map_err(|e| p!(e))?;
         let atl_value = decrypt_attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
@@ -81,9 +91,12 @@ impl CompanionDelegateAuthRequest {
         encrypt_attribute.set_i32(AttributeKey::AttrType, self.auth_type);
         encrypt_attribute.set_i32(AttributeKey::AttrAuthTrustLevel, self.atl as i32);
 
-        let (encrypt_data, tag, iv) =
-            message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &self.session_key)
-                .map_err(|e| p!(e))?;
+        let (encrypt_data, tag, iv) = message_crypto::encrypt_sec_message(
+            self.aead_algorithm,
+            encrypt_attribute.to_bytes()?.as_slice(),
+            &self.session_key,
+        )
+        .map_err(|e| p!(e))?;
 
         let sec_auth_reply = Box::new(SecCommonReply { tag, iv, encrypt_data });
         let output = sec_auth_reply.encode(ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?)?;
@@ -108,6 +121,7 @@ impl Request for CompanionDelegateAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
+        self.secure_protocol_id = host_binding_db_helper::get_binding_secure_protocol_id(self.binding_id)?;
         self.decode_sec_delegate_auth_request(ffi_input.sec_message.as_slice()?)?;
 
         ffi_output.challenge = self.host_challenge;

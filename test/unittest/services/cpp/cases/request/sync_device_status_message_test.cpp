@@ -220,7 +220,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
         .protocolIdList = {},
         .capabilityList = {},
-        .secureProtocolId = SecureProtocolId::INVALID,
+        .secureProtocolId = SecureProtocolId::DEFAULT,
         .companionDeviceKey = companionDeviceKey_,
         .deviceUserName = "",
         .companionCheckResponse = {} };
@@ -239,9 +239,34 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.
     EXPECT_EQ(decoded.result, reply.result);
     EXPECT_TRUE(decoded.protocolIdList.empty());
     EXPECT_TRUE(decoded.capabilityList.empty());
-    EXPECT_EQ(decoded.secureProtocolId, SecureProtocolId::INVALID);
+    EXPECT_EQ(decoded.secureProtocolId, SecureProtocolId::DEFAULT);
     EXPECT_TRUE(decoded.deviceUserName.empty());
     EXPECT_TRUE(decoded.companionCheckResponse.empty());
+}
+
+// Decode enforces only the field's presence: which secure protocol values this build can
+// consume is judged inside the Rust security layer, so non-DEFAULT raw values must decode and
+// round-trip unchanged on their way there.
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_PreservesFutureSecureProtocolValue, TestSize.Level0)
+{
+    for (auto rawSecureProtocolId : std::vector<uint16_t> { static_cast<uint16_t>(SecureProtocolId::INVALID),
+             static_cast<uint16_t>(SecureProtocolId::DEFAULT) + 1 }) {
+        SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
+            .protocolIdList = protocolIdList_,
+            .capabilityList = capabilityList_,
+            .secureProtocolId = static_cast<SecureProtocolId>(rawSecureProtocolId),
+            .companionDeviceKey = companionDeviceKey_,
+            .deviceUserName = deviceUserName_,
+            .companionCheckResponse = companionCheckResponse_ };
+        Attributes attributes;
+        EncodeSyncDeviceStatusReply(reply, attributes);
+        attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+            static_cast<int32_t>(reply.companionDeviceKey.idType));
+        attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
+        auto result = DecodeSyncDeviceStatusReply(attributes);
+        ASSERT_TRUE(result.has_value());
+        EXPECT_EQ(result->secureProtocolId, static_cast<SecureProtocolId>(rawSecureProtocolId));
+    }
 }
 
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_001, TestSize.Level0)

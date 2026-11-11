@@ -26,16 +26,20 @@ namespace CompanionDeviceAuth {
 
 // Rust ErrorCode enumeration (mirrors services/security_agent/rust/common/constants.rs)
 enum class RustErrorCode : int32_t {
-    SUCCESS = 0,                 // ErrorCode::Success
-    FAIL = 1,                    // ErrorCode::Fail
-    GENERAL_ERROR = 2,           // ErrorCode::GeneralError
-    TIMEOUT = 4,                 // ErrorCode::Timeout
-    BAD_PARAM = 8,               // ErrorCode::BadParam
-    NOT_FOUND = 10006,           // ErrorCode::NotFound
-    ID_EXISTS = 10015,           // ErrorCode::IdExists
-    EXCEED_LIMIT = 10018,        // ErrorCode::ExceedLimit
-    TOKEN_NOT_FOUND = 20005,     // ErrorCode::TokenNotFound
-    TOKEN_VERIFY_FAILED = 20006, // ErrorCode::TokenVerifyFailed
+    SUCCESS = 0,                           // ErrorCode::Success
+    FAIL = 1,                              // ErrorCode::Fail
+    GENERAL_ERROR = 2,                     // ErrorCode::GeneralError
+    TIMEOUT = 4,                           // ErrorCode::Timeout
+    BAD_PARAM = 8,                         // ErrorCode::BadParam
+    NOT_FOUND = 10006,                     // ErrorCode::NotFound
+    ID_EXISTS = 10015,                     // ErrorCode::IdExists
+    EXCEED_LIMIT = 10018,                  // ErrorCode::ExceedLimit
+    TOKEN_NOT_FOUND = 20005,               // ErrorCode::TokenNotFound
+    TOKEN_VERIFY_FAILED = 20006,           // ErrorCode::TokenVerifyFailed
+    PROTOCOL_NEGOTIATION_FAILED = 20011,   // ErrorCode::ProtocolNegotiationFailed
+    SECURE_PROTOCOL_NOT_SUPPORTED = 20013, // ErrorCode::SecureProtocolNotSupported
+    CAPABILITY_NEGOTIATION_FAILED = 20014, // ErrorCode::CapabilityNegotiationFailed
+    ALGORITHM_NEGOTIATION_FAILED = 20015,  // ErrorCode::AlgorithmNegotiationFailed
 };
 
 // Converts a Rust ErrorCode (int32_t returned by the FFI) into the CDA ResultCode. Unknown codes fall back to

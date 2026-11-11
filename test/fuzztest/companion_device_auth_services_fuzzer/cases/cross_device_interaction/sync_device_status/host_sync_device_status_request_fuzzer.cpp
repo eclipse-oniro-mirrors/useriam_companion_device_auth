@@ -107,20 +107,13 @@ static void FuzzOp7(std::shared_ptr<HostSyncDeviceStatusRequest> &request, Fuzze
 static void FuzzOp8(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    // Test NeedBeginCompanionCheck (protected method)
-    (void)request->NeedBeginCompanionCheck();
-}
-
-static void FuzzOp9(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
-{
-    (void)fuzzData;
     // Test Cancel (base method)
     ResultCode resultCode = GenerateFuzzResultCode(fuzzData);
     (void)request->Cancel(resultCode);
 }
 
 static const HostSyncDeviceStatusRequestFuzzFunction g_fuzzFuncs[] = { FuzzOp0, FuzzOp1, FuzzOp2, FuzzOp3, FuzzOp4,
-    FuzzOp5, FuzzOp6, FuzzOp7, FuzzOp8, FuzzOp9 };
+    FuzzOp5, FuzzOp6, FuzzOp7, FuzzOp8 };
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(HostSyncDeviceStatusRequestFuzzFunction);
 
 void FuzzHostSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)

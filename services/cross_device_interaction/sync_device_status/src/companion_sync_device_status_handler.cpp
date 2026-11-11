@@ -15,9 +15,12 @@
 
 #include "companion_sync_device_status_handler.h"
 
+#include <algorithm>
+
 #include "iam_check.h"
 #include "iam_log_tracer.h"
 #include "iam_logger.h"
+#include "iam_para2str.h"
 
 #include "adapter_manager.h"
 #include "common_message.h"
@@ -46,9 +49,8 @@ void CompanionSyncDeviceStatusHandler::SetCompanionDeviceKeyUserId(SyncDeviceSta
 }
 
 std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSyncDeviceStatusReply(
-    const UserKey &companionUserKey, const InteractionDesc &desc)
+    const UserKey &companionUserKey, const LocalDeviceProfile &localProfile, const InteractionDesc &desc)
 {
-    auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
     auto userNameOpt = GetUserKeyManager().GetActiveUserName();
     if (!userNameOpt.has_value()) {
         IAM_LOGE("%{public}s GetActiveUserName failed", desc.GetCStr());
@@ -57,10 +59,10 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
 
     SyncDeviceStatusReply syncReply = {};
     syncReply.result = ResultCode::SUCCESS;
-    syncReply.protocolIdList = profile.protocols;
-    syncReply.capabilityList = profile.companionCapabilities;
-    syncReply.businessIdList = profile.companionSupportedBusinessIds;
-    syncReply.secureProtocolId = profile.companionSecureProtocolId;
+    syncReply.protocolIdList = localProfile.protocols;
+    syncReply.capabilityList = localProfile.companionCapabilities;
+    syncReply.businessIdList = localProfile.companionSupportedBusinessIds;
+    syncReply.secureProtocolId = localProfile.companionSecureProtocolId;
     SetCompanionDeviceKeyUserId(syncReply, companionUserKey);
     syncReply.deviceUserName = GetUserKeyManager().GetActiveUserTypeName() + ":" + userNameOpt.value();
     syncReply.deviceName = GetSystemSettingsManager().GetSettingsValue(SettingKey::DisplayDeviceName);
@@ -108,64 +110,115 @@ void CompanionSyncDeviceStatusHandler::HandleRequest(const Attributes &request, 
         return;
     }
 
-    auto syncReplyOpt = BuildSyncDeviceStatusReply(companionUserKey, desc);
-    ENSURE_OR_RETURN_DESC(desc.GetCStr(), syncReplyOpt.has_value());
-    SyncDeviceStatusReply syncReply = std::move(*syncReplyOpt);
-
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
     auto hostBindingStatus = QueryHostBindingStatus(companionUserKey, syncRequest.hostDeviceKey);
     if (hostBindingStatus.has_value()) {
         desc.SetBindingId(hostBindingStatus->bindingId);
         eventCollector.SetBindingId(hostBindingStatus->bindingId);
-        bool ret = CompanionProcessCheck(*hostBindingStatus, syncRequest, syncReply.companionCheckResponse, desc);
-        if (!ret) {
-            IAM_LOGE("%{public}s CompanionProcessCheck failed, clear companionCheckResponse", desc.GetCStr());
-            syncReply.companionCheckResponse.clear();
-        }
+    }
+    auto negotiatedProtocolIdListOpt =
+        NegotiateSyncParameters(syncRequest, localProfile, hostBindingStatus, errorGuard);
+    ENSURE_OR_RETURN_DESC(desc.GetCStr(), negotiatedProtocolIdListOpt.has_value());
+
+    auto syncReplyOpt = BuildSyncDeviceStatusReply(companionUserKey, localProfile, desc);
+    ENSURE_OR_RETURN_DESC(desc.GetCStr(), syncReplyOpt.has_value());
+    auto &syncReply = *syncReplyOpt;
+
+    if (hostBindingStatus.has_value()) {
+        bool boundHostCheckPassed = ProcessBoundHostCheck(*hostBindingStatus, syncRequest, *negotiatedProtocolIdListOpt,
+            localProfile, desc, errorGuard, syncReply);
+        ENSURE_OR_RETURN_DESC(desc.GetCStr(), boundHostCheckPassed);
     }
 
     EncodeSyncDeviceStatusReply(syncReply, reply);
-
-    Attributes peerSyncedEvent {};
-    peerSyncedEvent.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncRequest.hostDeviceKey.deviceId);
-    peerSyncedEvent.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(syncRequest.hostDeviceKey.idType));
-    GetEventBus().Publish(EventType::PEER_SYNCED, peerSyncedEvent.Serialize());
+    PublishPeerSyncedEvent(syncRequest.hostDeviceKey);
 
     errorGuard.Cancel();
     eventCollector.Report(ResultCode::SUCCESS);
     IAM_LOGI("%{public}s success", desc.GetCStr());
 }
 
+bool CompanionSyncDeviceStatusHandler::ProcessBoundHostCheck(const HostBindingStatus &hostBindingStatus,
+    const SyncDeviceStatusRequest &syncRequest, const std::vector<ProtocolId> &negotiatedProtocolIdList,
+    const LocalDeviceProfile &localProfile, const InteractionDesc &desc, ErrorGuard &errorGuard,
+    SyncDeviceStatusReply &syncReply)
+{
+    syncReply.protocolIdList = negotiatedProtocolIdList;
+    CompanionProcessCheckInput input =
+        BuildCompanionProcessCheckInput(hostBindingStatus, syncRequest, negotiatedProtocolIdList, localProfile);
+    ResultCode checkRet = CompanionProcessCheck(input, desc, syncReply.companionCheckResponse);
+    if (checkRet == ResultCode::SUCCESS) {
+        return true;
+    }
+    IAM_LOGE("%{public}s CompanionProcessCheck failed ret=%{public}d", desc.GetCStr(), checkRet);
+    errorGuard.UpdateErrorCode(checkRet);
+    return false;
+}
+
+void CompanionSyncDeviceStatusHandler::PublishPeerSyncedEvent(const DeviceKey &hostDeviceKey)
+{
+    Attributes peerSyncedEvent {};
+    peerSyncedEvent.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey.deviceId);
+    peerSyncedEvent.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(hostDeviceKey.idType));
+    GetEventBus().Publish(EventType::PEER_SYNCED, peerSyncedEvent.Serialize());
+}
+
+std::optional<std::vector<ProtocolId>> CompanionSyncDeviceStatusHandler::NegotiateSyncParameters(
+    const SyncDeviceStatusRequest &syncRequest, const LocalDeviceProfile &localProfile,
+    const std::optional<HostBindingStatus> &hostBindingStatus, ErrorGuard &errorGuard)
+{
+    std::vector<ProtocolId> negotiatedProtocolIdList =
+        IntersectLists(syncRequest.protocolIdList, localProfile.protocols);
+    if (negotiatedProtocolIdList.empty()) {
+        IAM_LOGE("protocol negotiation failed, offered protocol count=%{public}zu, local supported count=%{public}zu",
+            syncRequest.protocolIdList.size(), localProfile.protocols.size());
+        errorGuard.UpdateErrorCode(ResultCode::PROTOCOL_NEGOTIATION_FAILED);
+        return std::nullopt;
+    }
+    if (hostBindingStatus.has_value()) {
+        const auto &enrolledProtocolId = hostBindingStatus->enrolledProtocolId;
+        if (std::find(negotiatedProtocolIdList.begin(), negotiatedProtocolIdList.end(), enrolledProtocolId) ==
+            negotiatedProtocolIdList.end()) {
+            IAM_LOGE("enrolled protocol %{public}hu not in negotiated protocol list, bindingId=%{public}s",
+                static_cast<uint16_t>(enrolledProtocolId), GET_MASKED_NUM_STRING(hostBindingStatus->bindingId).c_str());
+            errorGuard.UpdateErrorCode(ResultCode::PROTOCOL_NEGOTIATION_FAILED);
+            return std::nullopt;
+        }
+        negotiatedProtocolIdList = { enrolledProtocolId };
+    }
+    return negotiatedProtocolIdList;
+}
+
 CompanionProcessCheckInput CompanionSyncDeviceStatusHandler::BuildCompanionProcessCheckInput(
     const HostBindingStatus &hostBindingStatus, const SyncDeviceStatusRequest &syncRequest,
-    SecureProtocolId secureProtocolId)
+    const std::vector<ProtocolId> &negotiatedProtocolIdList, const LocalDeviceProfile &localProfile)
 {
     CompanionProcessCheckInput input = {};
     input.bindingId = hostBindingStatus.bindingId;
-    input.protocolList = ProtocolIdConverter::ToUnderlyingVec(syncRequest.protocolIdList);
-    input.capabilityList = CapabilityConverter::ToUnderlyingVec(syncRequest.capabilityList);
-    input.secureProtocolId = secureProtocolId;
+    input.protocolList = ProtocolIdConverter::ToUnderlyingVec(negotiatedProtocolIdList);
+    input.companionCapabilityList = CapabilityConverter::ToUnderlyingVec(localProfile.companionCapabilities);
+    input.secureProtocolId = localProfile.companionSecureProtocolId;
     input.salt = syncRequest.salt;
     input.challenge = syncRequest.challenge;
     return input;
 }
 
-bool CompanionSyncDeviceStatusHandler::CompanionProcessCheck(const HostBindingStatus &hostBindingStatus,
-    const SyncDeviceStatusRequest &syncRequest, std::vector<uint8_t> &outCompanionCheckResponse,
-    const InteractionDesc &desc)
+ResultCode CompanionSyncDeviceStatusHandler::CompanionProcessCheck(const CompanionProcessCheckInput &input,
+    const InteractionDesc &desc, std::vector<uint8_t> &outCompanionCheckResponse)
 {
-    auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
-    CompanionProcessCheckInput input =
-        BuildCompanionProcessCheckInput(hostBindingStatus, syncRequest, profile.companionSecureProtocolId);
-
     CompanionProcessCheckOutput output = {};
     ResultCode ret = GetSecurityAgent().CompanionProcessCheck(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionProcessCheck failed ret=%{public}d", desc.GetCStr(), ret);
-        return false;
+        return ret;
+    }
+    if (output.companionCheckResponse.empty()) {
+        IAM_LOGE("%{public}s CompanionProcessCheck succeeded without a proof", desc.GetCStr());
+        return ResultCode::GENERAL_ERROR;
     }
     outCompanionCheckResponse.swap(output.companionCheckResponse);
-    return true;
+    return ResultCode::SUCCESS;
 }
 
 UserKey CompanionSyncDeviceStatusHandler::QueryActiveUserKey()

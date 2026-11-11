@@ -14,14 +14,12 @@
  */
 
 use crate::common::constants::{
-    ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel, SECURE_RANDOM_MAX_ATTEMPTS, SHARE_KEY_LEN,
+    ErrorCode, ExecutorSecurityLevel, ProcessorType, SECURE_RANDOM_MAX_ATTEMPTS, SHARE_KEY_LEN, TrackAbilityLevel,
 };
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManager, CompanionDeviceFilter};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::{
-    CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
-    DeviceKey, UserInfo, UserKey,
-};
+use crate::common::algorithm::SelectedAlgorithms;
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo, UserKey};
 use crate::traits::log_trace::RustFileId;
 use crate::traits::storage_io::StorageIoRegistry;
 use crate::utils::parcel::Parcel;
@@ -113,6 +111,8 @@ impl DefaultCompanionDeviceDbManager {
             for &capability in &companion_device_info.capability_list {
                 parcel.write_u16(capability);
             }
+            parcel.write_u16(companion_device_info.protocol_id);
+            parcel.write_u16(companion_device_info.secure_protocol_id);
         }
     }
 
@@ -152,6 +152,8 @@ impl DefaultCompanionDeviceDbManager {
                 let capability = parcel.read_u16().map_err(|e| p!(e))?;
                 capability_list.push(capability);
             }
+            let protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
+            let secure_protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
 
             let companion_device_info = CompanionDevice {
                 template_id,
@@ -166,6 +168,8 @@ impl DefaultCompanionDeviceDbManager {
                 added_time,
                 is_valid: is_valid_u32 != 0,
                 capability_list,
+                protocol_id,
+                secure_protocol_id,
             };
 
             self.companion_device_infos.push(companion_device_info);
@@ -278,17 +282,21 @@ impl DefaultCompanionDeviceDbManager {
         Ok(capability_infos)
     }
 
-    fn serialize_device_sk(sk_infos: &[CompanionDeviceSk], parcel: &mut Parcel) {
+    fn serialize_device_sk(sk_infos: &[CompanionDeviceKeyMaterial], parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
         parcel.write_u32(sk_infos.len() as u32);
 
         for sk_info in sk_infos {
             parcel.write_i32(sk_info.processor_type as i32);
             parcel.write_bytes(&sk_info.sk);
+            parcel.write_u16(sk_info.selected_algorithms.ka_algorithm);
+            parcel.write_u16(sk_info.selected_algorithms.kdf_algorithm);
+            parcel.write_u16(sk_info.selected_algorithms.aead_algorithm);
+            parcel.write_u16(sk_info.selected_algorithms.mac_algorithm);
         }
     }
 
-    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
+    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<Vec<CompanionDeviceKeyMaterial>, ErrorCode> {
         let version = parcel.read_i32().map_err(|e| p!(e))?;
         if version > CURRENT_VERSION {
             log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
@@ -300,20 +308,25 @@ impl DefaultCompanionDeviceDbManager {
             log_e!("count is error, count:{}", count);
             return Err(ErrorCode::GeneralError);
         }
-        let mut sk_infos: Vec<CompanionDeviceSk> = Vec::with_capacity(count);
+        let mut sk_infos: Vec<CompanionDeviceKeyMaterial> = Vec::with_capacity(count);
 
         for _ in 0..count {
             let device_type_value = parcel.read_i32().map_err(|e| p!(e))?;
             let device_type = ProcessorType::try_from(device_type_value).map_err(|e| p!(e))?;
             let mut sk = vec![0u8; SHARE_KEY_LEN];
             parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
+            let ka_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
+            let kdf_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
+            let aead_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
+            let mac_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
 
-            let sk_info = CompanionDeviceSk {
+            let sk_info = CompanionDeviceKeyMaterial {
                 processor_type: device_type,
                 sk: sk.try_into().map_err(|e| {
                     log_e!("try_into fail: {:?}", e);
                     ErrorCode::GeneralError
                 })?,
+                selected_algorithms: SelectedAlgorithms { ka_algorithm, kdf_algorithm, aead_algorithm, mac_algorithm },
             };
             sk_infos.push(sk_info);
         }
@@ -334,7 +347,7 @@ impl DefaultCompanionDeviceDbManager {
         template_id: u64,
         base_info: &CompanionDeviceProfile,
         capability_info: &[CompanionDeviceCapability],
-        sk_info: &[CompanionDeviceSk],
+        sk_info: &[CompanionDeviceKeyMaterial],
     ) -> Result<(), ErrorCode> {
         self.write_device_profile(template_id, base_info)?;
         self.write_device_capability_info(template_id, capability_info)?;
@@ -354,7 +367,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
         device_info: &CompanionDevice,
         base_info: &CompanionDeviceProfile,
         capability_info: &[CompanionDeviceCapability],
-        sk_info: &[CompanionDeviceSk],
+        sk_info: &[CompanionDeviceKeyMaterial],
     ) -> Result<(), ErrorCode> {
         log_i!("add_device start");
         if device_info.device_key.device_id.is_empty() {
@@ -618,7 +631,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
         Ok(())
     }
 
-    fn read_device_sk(&self, template_id: u64) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
+    fn read_device_sk(&self, template_id: u64) -> Result<Vec<CompanionDeviceKeyMaterial>, ErrorCode> {
         log_i!("read_device_sk start, template_id:{:04x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, COMPANION_DEVICE_SK);
         let sk_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
@@ -631,7 +644,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
         Self::deserialize_device_sk(&mut parcel)
     }
 
-    fn write_device_sk(&self, template_id: u64, sk_info: &[CompanionDeviceSk]) -> Result<(), ErrorCode> {
+    fn write_device_sk(&self, template_id: u64, sk_info: &[CompanionDeviceKeyMaterial]) -> Result<(), ErrorCode> {
         log_i!("write_device_sk start, template_id:{:04x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, COMPANION_DEVICE_SK);
         let mut parcel = Parcel::new();

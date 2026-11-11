@@ -862,6 +862,7 @@ impl crate::traits::event_manager::EventManager for MockEventManager {
 #[cfg(any(test, feature = "test-utils"))]
 pub struct MockCompanionDeviceDbManager {
     add_device: Expectation0<Result<(), ErrorCode>>,
+    added_devices: std::rc::Rc<RefCell<Vec<crate::traits::db_manager::CompanionDevice>>>,
     get_device: Expectation0<Result<crate::traits::db_manager::CompanionDevice, ErrorCode>>,
     get_device_list: Expectation0<Vec<crate::traits::db_manager::CompanionDevice>>,
     remove_device: Expectation0<Result<crate::traits::db_manager::CompanionDevice, ErrorCode>>,
@@ -879,7 +880,7 @@ pub struct MockCompanionDeviceDbManager {
         Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceCapability>, ErrorCode>>,
     write_device_capability_info: Expectation0<Result<(), ErrorCode>>,
     delete_device_capability_info: Expectation0<Result<(), ErrorCode>>,
-    read_device_sk: Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode>>,
+    read_device_sk: Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceKeyMaterial>, ErrorCode>>,
     write_device_sk: Expectation0<Result<(), ErrorCode>>,
     delete_device_sk: Expectation0<Result<(), ErrorCode>>,
 }
@@ -889,6 +890,7 @@ impl MockCompanionDeviceDbManager {
     pub fn new() -> Self {
         Self {
             add_device: Expectation0::new(),
+            added_devices: std::rc::Rc::new(RefCell::new(Vec::new())),
             get_device: Expectation0::new(),
             get_device_list: Expectation0::new(),
             remove_device: Expectation0::new(),
@@ -913,6 +915,9 @@ impl MockCompanionDeviceDbManager {
 
     pub fn expect_add_device(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
         &mut self.add_device
+    }
+    pub fn added_devices(&self) -> std::rc::Rc<RefCell<Vec<crate::traits::db_manager::CompanionDevice>>> {
+        self.added_devices.clone()
     }
     pub fn expect_get_device(
         &mut self,
@@ -976,7 +981,7 @@ impl MockCompanionDeviceDbManager {
     }
     pub fn expect_read_device_sk(
         &mut self,
-    ) -> &mut Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode>> {
+    ) -> &mut Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceKeyMaterial>, ErrorCode>> {
         &mut self.read_device_sk
     }
     pub fn expect_write_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
@@ -991,12 +996,14 @@ impl MockCompanionDeviceDbManager {
 impl crate::traits::companion_device_db_manager::CompanionDeviceDbManager for MockCompanionDeviceDbManager {
     fn add_device(
         &mut self,
-        _device_info: &crate::traits::db_manager::CompanionDevice,
+        device_info: &crate::traits::db_manager::CompanionDevice,
         _base_info: &crate::traits::db_manager::CompanionDeviceProfile,
         _capability_info: &[crate::traits::db_manager::CompanionDeviceCapability],
-        _sk_info: &[crate::traits::db_manager::CompanionDeviceSk],
+        _sk_info: &[crate::traits::db_manager::CompanionDeviceKeyMaterial],
     ) -> Result<(), ErrorCode> {
-        self.add_device.call()
+        self.add_device.call()?;
+        self.added_devices.borrow_mut().push(device_info.clone());
+        Ok(())
     }
     fn get_device(&self, _template_id: u64) -> Result<crate::traits::db_manager::CompanionDevice, ErrorCode> {
         self.get_device.call()
@@ -1077,13 +1084,13 @@ impl crate::traits::companion_device_db_manager::CompanionDeviceDbManager for Mo
     fn read_device_sk(
         &self,
         _template_id: u64,
-    ) -> Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode> {
+    ) -> Result<Vec<crate::traits::db_manager::CompanionDeviceKeyMaterial>, ErrorCode> {
         self.read_device_sk.call()
     }
     fn write_device_sk(
         &self,
         _template_id: u64,
-        _sk_info: &[crate::traits::db_manager::CompanionDeviceSk],
+        _sk_info: &[crate::traits::db_manager::CompanionDeviceKeyMaterial],
     ) -> Result<(), ErrorCode> {
         self.write_device_sk.call()
     }
@@ -1106,7 +1113,7 @@ pub struct MockHostBindingDbManager {
     write_device_token: Expectation0<Result<(), ErrorCode>>,
     delete_device_token: Expectation0<Result<(), ErrorCode>>,
     is_device_token_valid: Expectation0<Result<bool, ErrorCode>>,
-    read_device_sk: Expectation0<Result<crate::traits::db_manager::HostBindingSk, ErrorCode>>,
+    read_device_sk: Expectation0<Result<crate::traits::db_manager::HostBindingKeyMaterial, ErrorCode>>,
     write_device_sk: Expectation0<Result<(), ErrorCode>>,
     delete_device_sk: Expectation0<Result<(), ErrorCode>>,
     get_device_list: Expectation0<Vec<crate::traits::db_manager::HostBinding>>,
@@ -1179,7 +1186,7 @@ impl MockHostBindingDbManager {
     }
     pub fn expect_read_device_sk(
         &mut self,
-    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostBindingSk, ErrorCode>> {
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostBindingKeyMaterial, ErrorCode>> {
         &mut self.read_device_sk
     }
     pub fn expect_write_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
@@ -1201,7 +1208,7 @@ impl crate::traits::host_binding_db_manager::HostBindingDbManager for MockHostBi
     fn add_device(
         &mut self,
         _device_info: &crate::traits::db_manager::HostBinding,
-        _sk_info: &crate::traits::db_manager::HostBindingSk,
+        _sk_info: &crate::traits::db_manager::HostBindingKeyMaterial,
     ) -> Result<Option<i32>, ErrorCode> {
         self.add_device.call()
     }
@@ -1243,13 +1250,13 @@ impl crate::traits::host_binding_db_manager::HostBindingDbManager for MockHostBi
     fn is_device_token_valid(&self, _binding_id: i32) -> Result<bool, ErrorCode> {
         self.is_device_token_valid.call()
     }
-    fn read_device_sk(&self, _binding_id: i32) -> Result<crate::traits::db_manager::HostBindingSk, ErrorCode> {
+    fn read_device_sk(&self, _binding_id: i32) -> Result<crate::traits::db_manager::HostBindingKeyMaterial, ErrorCode> {
         self.read_device_sk.call()
     }
     fn write_device_sk(
         &self,
         _binding_id: i32,
-        _sk_info: &crate::traits::db_manager::HostBindingSk,
+        _sk_info: &crate::traits::db_manager::HostBindingKeyMaterial,
     ) -> Result<(), ErrorCode> {
         self.write_device_sk.call()
     }

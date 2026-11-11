@@ -36,11 +36,10 @@ fn create_test_companion_process_check_input_ffi(binding_id: i32) -> CompanionPr
     CompanionProcessCheckInputFfi {
         binding_id,
         protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
         challenge: 12345,
-        sec_message: DataArray1024Ffi::default(),
     }
 }
 

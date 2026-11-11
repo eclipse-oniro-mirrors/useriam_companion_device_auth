@@ -552,9 +552,10 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckSuccessE2E_001, Te
     // Expect HostEndCompanionCheck to be called with templateId.
     // Note: companionCheckResponse may be empty because the companion side has no host binding
     // (this is a host-side test, the companion doesn't know about the host binding).
-    EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_))
-        .WillRepeatedly([&](const HostEndCompanionCheckInput &input) {
+    EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_, _))
+        .WillRepeatedly([&](const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &output) {
             EXPECT_EQ(input.templateId, TEMPLATE_ID);
+            output.capabilityList = { 1, 2, 3 };
             return ResultCode::SUCCESS;
         });
 
@@ -580,19 +581,20 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckSuccessE2E_001, Te
 }
 
 // ============================================================================
-// Test 4: Host side — sync with template enrolled → companion check fails
+// Test 4: Host side — authenticated protocol divergence → credential invalidated, discovery succeeds
 // ============================================================================
 //
 // What this tests:
-//   Pre-register a companion → sync → companionCheckResponse in reply
-//   → HostEndCompanionCheck FAILS → SetTemplateInvalid called
-//   → callback still fires (sync completes despite check failure)
+//   Pre-register a companion → sync → proof-bearing companionCheckResponse
+//   → HostEndCompanionCheck reports an authenticated negotiation divergence
+//   → SetTemplateInvalid called → discovery remains available without restoring
+//     credential validity
 //
 // E2E level: HIGH
 //   - Entry: service-level SubscribeAvailableDeviceStatus API
-//   - Verification: SetTemplateInvalid called, callback still fires
+//   - Verification: SetTemplateInvalid called, device remains discoverable
 // ============================================================================
-HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckFailureE2E_001, TestSize.Level0)
+HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithAuthenticatedDivergenceE2E_001, TestSize.Level0)
 {
     ModuleTestGuard guard;
 
@@ -609,26 +611,38 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckFailureE2E_001, Te
     EXPECT_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _))
         .WillRepeatedly(DoAll(SetArgReferee<1>(checkOutput), Return(ResultCode::SUCCESS)));
 
-    // HostEndCompanionCheck FAILS → should trigger SetTemplateInvalid
-    EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_)).WillRepeatedly(Return(ResultCode::GENERAL_ERROR));
+    // Invalidation may only follow a proof-bearing reply: a proof-less round never reaches
+    // the secure layer.
+    EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_, _))
+        .WillRepeatedly([](const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &) {
+            EXPECT_FALSE(input.companionCheckResponse.empty()) << "invalidation may only follow an authenticated reply";
+            return ResultCode::PROTOCOL_NEGOTIATION_FAILED;
+        });
 
-    // 2. Setup Phase: Register a companion via direct API call.
-    // Per E2E two-phase principle: Setup Phase allows direct internal API calls.
-    // SetupCompanionDevice combines TestSimulateDeviceOnline + DrainPendingTasks + RegisterCompanionDirect.
-    ASSERT_TRUE(guard.SetupCompanionDevice(HOST_USER, companionDeviceId, TEMPLATE_ID));
+    // 2. Setup Phase: the device is discovered as an unsynced candidate, then the companion is
+    // enrolled and the proof-bearing sync reply is judged divergent by the security layer.
+    guard.SimulateDeviceOnline(companionDeviceId, true);
+    ASSERT_TRUE(guard.RegisterCompanion(HOST_USER, companionDeviceId, TEMPLATE_ID));
 
-    // 3. Verify companion was registered correctly despite HostEndCompanionCheck failure
+    // 3. The companion stays registered, but the authenticated divergence invalidates its template.
     DeviceKey queryKey = MakeDeviceKey(companionDeviceId, HOST_USER);
 
     auto companionStatus =
         GetCompanionManager().GetCompanionStatus(UserKey { HOST_USER, INVALID_SUB_PROFILE_ID }, queryKey);
-    ASSERT_TRUE(companionStatus.has_value()) << "Companion should be registered";
+    ASSERT_TRUE(companionStatus.has_value()) << "Companion should stay registered";
     EXPECT_EQ(companionStatus->templateId, TEMPLATE_ID);
+    EXPECT_FALSE(companionStatus->isValid) << "Authenticated divergence should invalidate the template";
 
-    // 4. Verify device is synced (sync completes despite check failure)
-    auto deviceStatus = GetCrossDeviceCommManager().GetDeviceStatus(queryKey);
-    ASSERT_TRUE(deviceStatus.has_value()) << "Device should be synced even when check fails";
-    EXPECT_EQ(deviceStatus->deviceKey.deviceId, companionDeviceId);
+    // 4. Invalidation does not propagate to the round: per ruling, a re-validation round whose
+    // secure check fails still completes with SUCCESS, so the device stays isSynced and remains
+    // visible in discovery as an online entry (DeviceStatus.isOnline mirrors isSynced). Whether
+    // re-enrollment is offered is decided by the framework from the invalidated template, not by
+    // unsynced reporting.
+    auto discoverable = GetCrossDeviceCommManager().GetAllDeviceStatus(DeviceStatusFilter::INCLUDE_UNSYNCED);
+    auto found = std::find_if(discoverable.begin(), discoverable.end(),
+        [&companionDeviceId](const DeviceStatus &status) { return status.deviceKey.deviceId == companionDeviceId; });
+    ASSERT_NE(found, discoverable.end()) << "Invalidated device should stay discoverable";
+    EXPECT_TRUE(found->isOnline);
 }
 
 // ============================================================================

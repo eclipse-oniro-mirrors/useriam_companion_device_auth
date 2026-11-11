@@ -50,6 +50,8 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
         added_time: 123456,
         is_valid: true,
         capability_list: vec![1, 2, 3],
+        protocol_id: 1,
+        secure_protocol_id: 0,
     }
 }
 
@@ -96,9 +98,44 @@ fn get_session_key_test_fail() {
     log_i!("get_session_key_test_fail start");
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
     mock_companion_device_db_manager.expect_read_device_sk().returning(|| Ok(Vec::new()));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let result = get_session_key(123, ProcessorType::Default, &[]);
     assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn get_device_secure_protocol_id_test_invalid_persisted_value_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("get_device_secure_protocol_id_test_invalid_persisted_value_rejected start");
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| {
+        let mut device = create_mock_companion_device(123);
+        device.secure_protocol_id = 0;
+        Ok(device)
+    });
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let result = crate::jobs::companion_device_db_helper::get_device_secure_protocol_id(123);
+    assert_eq!(result, Err(ErrorCode::SecureProtocolNotSupported));
+}
+
+#[test]
+fn get_device_secure_protocol_id_test_out_of_domain_persisted_value_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("get_device_secure_protocol_id_test_out_of_domain_persisted_value_rejected start");
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| {
+        let mut device = create_mock_companion_device(123);
+        device.secure_protocol_id = 9999;
+        Ok(device)
+    });
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let result = crate::jobs::companion_device_db_helper::get_device_secure_protocol_id(123);
+    assert_eq!(result, Err(ErrorCode::SecureProtocolNotSupported));
 }

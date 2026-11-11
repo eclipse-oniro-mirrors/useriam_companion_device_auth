@@ -93,11 +93,19 @@ impl HostDeviceObtainTokenRequest {
         sec_message: &[u8],
     ) -> Result<(), ErrorCode> {
         let output = SecPreObtainTokenReply::decode(sec_message, processor_type)?;
-        let session_key =
-            companion_device_db_helper::get_session_key(self.obtain_param.template_id, processor_type, &self.salt)?;
-        let decrypt_data =
-            message_crypto::decrypt_sec_message(&output.encrypt_data, &session_key, &output.tag, &output.iv)
-                .map_err(|e| p!(e))?;
+        let session_key_param = companion_device_db_helper::get_session_key(
+            self.obtain_param.template_id,
+            processor_type,
+            &self.salt,
+        )?;
+        let decrypt_data = message_crypto::decrypt_sec_message(
+            session_key_param.aead_algorithm,
+            &output.encrypt_data,
+            &session_key_param.session_key,
+            &output.tag,
+            &output.iv,
+        )
+        .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let challenge = decrypt_attribute.get_u64(AttributeKey::AttrHostChallenge).map_err(|e| p!(e))?;
         if challenge != self.host_challenge {
@@ -135,7 +143,7 @@ impl HostDeviceObtainTokenRequest {
     fn encode_sec_token_obtain_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
         for token_info in &self.token_infos {
-            let session_key = companion_device_db_helper::get_session_key(
+            let session_key_param = companion_device_db_helper::get_session_key(
                 self.obtain_param.template_id,
                 token_info.processor_type,
                 &self.salt,
@@ -145,7 +153,12 @@ impl HostDeviceObtainTokenRequest {
                 atl: token_info.atl as i32,
                 token: token_info.token.clone(),
             };
-            output.extend(issue_token.encrypt_issue_token(&self.salt, token_info.processor_type, &session_key)?);
+            output.extend(issue_token.encrypt_issue_token(
+                &self.salt,
+                token_info.processor_type,
+                &session_key_param.session_key,
+                session_key_param.aead_algorithm,
+            )?);
         }
 
         Ok(output)

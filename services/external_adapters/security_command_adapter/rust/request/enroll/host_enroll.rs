@@ -13,11 +13,20 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{
-    AlgoType, AuthCapabilityLevel, AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, SecureProtocolId,
-    TrackAbilityLevel, CHALLENGE_LEN, HKDF_SALT_SIZE, TOKEN_VALID_PERIOD,
+use crate::common::algorithm::{
+    CryptoAlgorithms, SelectedAlgorithms, get_supported_algorithms, intersect_algorithms_in_reference_order,
+    select_algorithms_by_priority, validate_selected_algorithms_supported,
 };
-use crate::entry::companion_device_auth_ffi::HostGetInitKeyNegotiationInputFfi;
+use crate::common::constants::{
+    AuthCapabilityLevel, AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, SecureProtocolId,
+    TrackAbilityLevel, CHALLENGE_LEN, HKDF_SALT_SIZE, TOKEN_VALID_PERIOD,
+    intersect_lists_in_reference_order,
+    same_elements,
+    validate_capability_list,
+    validate_protocol_list,
+    validate_secure_protocol_id,
+};
+use crate::entry::companion_device_auth_ffi::{HostGetInitKeyNegotiationInputFfi, SelectedAlgorithmsFfi};
 use crate::jobs::{companion_device_db_helper, message_crypto};
 use crate::request::enroll::enroll_message::{
     FwkEnrollReply, FwkEnrollRequest, SecBindingReply, SecBindingReplyInfo, SecBindingRequest, SecKeyNegoReply,
@@ -27,10 +36,7 @@ use crate::request::jobs::common_message::SecIssueToken;
 use crate::request::jobs::token_helper;
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
-use crate::traits::db_manager::{
-    CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
-    DeviceKey, UserInfo, UserKey,
-};
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo, UserKey};
 use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::TimeKeeperRegistry;
@@ -42,7 +48,7 @@ pub(crate) const FILE_ID: u16 = RustFileId::HostEnroll as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct KeyNegotialParam {
     pub processor_type: ProcessorType,
-    pub algorithm: u16,
+    pub selected_algorithms: SelectedAlgorithms,
     pub companion_challenge: u64,
     pub key_pair: Option<KeyPair>,
     pub sk: Vec<u8>,
@@ -74,14 +80,15 @@ pub struct HostDeviceEnrollRequest {
     pub host_challenge: u64,
     pub acl: AuthCapabilityLevel,
     pub atl: AuthTrustLevel,
-    pub expected_protocol_list: Vec<u16>,
-    pub expected_capability_list: Vec<u16>,
+    pub selected_protocol_id: u16,
+    pub host_protocol_list: Vec<u16>,
+    pub host_capability_list: Vec<u16>,
+    pub negotiated_capability_list: Option<Vec<u16>>,
     pub device_model_info: String,
     pub device_name: String,
     pub device_user_name: String,
     pub device_type: i32,
-    pub algorithm_list: Vec<u16>,
-    pub selected_algorithm: u16,
+    pub selected_algorithms: SelectedAlgorithms,
     pub supported_business_ids: Vec<i32>,
     pub device_sub_profile_name: String,
 }
@@ -115,14 +122,20 @@ impl HostDeviceEnrollRequest {
             salt,
             acl: AuthCapabilityLevel::Acl0,
             atl: AuthTrustLevel::Atl0,
-            expected_protocol_list: Vec::new(),
-            expected_capability_list: Vec::new(),
+            selected_protocol_id: 0,
+            host_protocol_list: Vec::new(),
+            host_capability_list: Vec::new(),
+            negotiated_capability_list: None,
             device_model_info: String::new(),
             device_name: String::new(),
             device_user_name: String::new(),
             device_type: 0,
-            algorithm_list: Vec::new(),
-            selected_algorithm: 0,
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: 0,
+                kdf_algorithm: 0,
+                aead_algorithm: 0,
+                mac_algorithm: 0,
+            },
             supported_business_ids: Vec::new(),
             device_sub_profile_name: String::new(),
         })
@@ -160,16 +173,15 @@ impl HostDeviceEnrollRequest {
     }
 
     fn encode_sec_algo_nego_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
-        let algorithm_list = Vec::from([AlgoType::X25519 as u16]);
-        let key_nego_request = Box::new(SecKeyNegoRequest { algorithm_list: algorithm_list.clone() });
+        let host_supported_algorithms = get_supported_algorithms();
+        let key_nego_request = Box::new(SecKeyNegoRequest { crypto_algorithms: host_supported_algorithms });
         let output = match SecureProtocolId::try_from(self.secure_protocol_id).map_err(|e| p!(e))? {
             SecureProtocolId::Default => key_nego_request.encode(ProcessorType::default())?,
             _ => {
                 log_e!("secure_protocol_id is not supported: {}", self.secure_protocol_id);
-                return Err(ErrorCode::GeneralError);
+                return Err(ErrorCode::SecureProtocolNotSupported);
             },
         };
-        self.algorithm_list = algorithm_list;
         Ok(output)
     }
 
@@ -193,20 +205,28 @@ impl HostDeviceEnrollRequest {
         sec_message: &[u8],
     ) -> Result<(), ErrorCode> {
         let output = SecKeyNegoReply::decode(sec_message, processor_type)?;
-        let key_pair = CryptoEngineRegistry::get().generate_x25519_key_pair().map_err(|e| p!(e))?;
-        let sk = CryptoEngineRegistry::get().x25519_ecdh(&key_pair, &output.pub_key).map_err(|e| {
-            log_e!("x25519 computation failed for {:?}: {:?}", processor_type, e);
+        let host_supported_algorithms = get_supported_algorithms();
+        validate_selected_algorithms_supported(&output.selected_algorithms, &host_supported_algorithms)?;
+        let key_pair =
+            message_crypto::generate_key_pair(output.selected_algorithms.ka_algorithm).map_err(|e| p!(e))?;
+        let sk = message_crypto::key_agreement(
+            output.selected_algorithms.ka_algorithm,
+            &key_pair,
+            &output.pub_key,
+        )
+        .map_err(|e| {
+            log_e!("key agreement failed for {:?}: {:?}", processor_type, e);
             ErrorCode::GeneralError
         })?;
         let key_nego_param = KeyNegotialParam {
             processor_type,
-            algorithm: output.algorithm,
+            selected_algorithms: output.selected_algorithms,
             companion_challenge: output.challenge,
             key_pair: Some(key_pair.clone()),
             sk,
         };
         self.key_negotial_param.push(key_nego_param);
-        self.selected_algorithm = output.algorithm;
+        self.selected_algorithms = output.selected_algorithms;
         Ok(())
     }
 
@@ -215,12 +235,12 @@ impl HostDeviceEnrollRequest {
             SecureProtocolId::Default => {
                 if let Err(e) = self.decode_sec_key_nego_reply_message(ProcessorType::default(), sec_message) {
                     log_e!("parse key nego reply message fail: {:?}", e);
-                    return Err(ErrorCode::GeneralError);
+                    return Err(e);
                 }
             },
             _ => {
                 log_e!("secure_protocol_id is not supported: {}", self.secure_protocol_id);
-                return Err(ErrorCode::GeneralError);
+                return Err(ErrorCode::SecureProtocolNotSupported);
             },
         }
 
@@ -234,12 +254,18 @@ impl HostDeviceEnrollRequest {
 
     fn encode_sec_binding_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
+        let host_supported_algorithms = get_supported_algorithms();
         for key_nego_param in &self.key_negotial_param {
             let Some(key_pair) = key_nego_param.key_pair.as_ref() else {
                 log_e!("x25519 key pair not set");
                 return Err(ErrorCode::GeneralError);
             };
-            let session_key = CryptoEngineRegistry::get().hkdf(&self.salt, &key_nego_param.sk).map_err(|e| p!(e))?;
+            let session_key = message_crypto::derive_session_key(
+                key_nego_param.selected_algorithms.kdf_algorithm,
+                &self.salt,
+                &key_nego_param.sk,
+            )
+            .map_err(|e| p!(e))?;
 
             let mut encrypt_attribute = Attribute::new();
             encrypt_attribute
@@ -247,9 +273,19 @@ impl HostDeviceEnrollRequest {
             encrypt_attribute.set_i32(AttributeKey::AttrUserId, self.enroll_param.host_device_key.user_id);
             encrypt_attribute.set_i32(AttributeKey::AttrSubProfileId, self.enroll_param.host_device_key.sub_profile_id);
             encrypt_attribute.set_u64(AttributeKey::AttrCompanionChallenge, key_nego_param.companion_challenge);
-            let (encrypt_data, tag, iv) =
-                message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
-                    .map_err(|e| p!(e))?;
+            // Request-side offer echo reuses the plaintext request keys (same request-array
+            // semantics as SecKeyNegoRequest); the confirmation is message-scoped.
+            encrypt_attribute.set_u16_slice(AttributeKey::AttrKaAlgoList, &host_supported_algorithms.ka_algorithms);
+            encrypt_attribute.set_u16_slice(AttributeKey::AttrKdfAlgoList, &host_supported_algorithms.kdf_algorithms);
+            encrypt_attribute.set_u16_slice(AttributeKey::AttrAeadAlgoList, &host_supported_algorithms.aead_algorithms);
+            encrypt_attribute.set_u16_slice(AttributeKey::AttrMacAlgoList, &host_supported_algorithms.mac_algorithms);
+            encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.host_protocol_list);
+            let (encrypt_data, tag, iv) = message_crypto::encrypt_sec_message(
+                key_nego_param.selected_algorithms.aead_algorithm,
+                encrypt_attribute.to_bytes()?.as_slice(),
+                &session_key,
+            )
+            .map_err(|e| p!(e))?;
 
             let binding_request = Box::new(SecBindingRequest {
                 pub_key: key_pair.pub_key.clone(),
@@ -266,6 +302,36 @@ impl HostDeviceEnrollRequest {
         Ok(output)
     }
 
+    fn verify_selected_algorithms(
+        &self,
+        encrypted_selected_algorithms: &SelectedAlgorithms,
+        section_selected_algorithms: &SelectedAlgorithms,
+        companion_supported_algorithms: &CryptoAlgorithms,
+    ) -> Result<(), ErrorCode> {
+        if encrypted_selected_algorithms != section_selected_algorithms {
+            log_e!(
+                "encrypted selected algorithms {:?} differ from plaintext section selection {:?}",
+                encrypted_selected_algorithms,
+                section_selected_algorithms
+            );
+            return Err(ErrorCode::AlgorithmNegotiationFailed);
+        }
+        let host_supported_algorithms = get_supported_algorithms();
+        let candidates =
+            intersect_algorithms_in_reference_order(&host_supported_algorithms, companion_supported_algorithms);
+        let expected = select_algorithms_by_priority(&host_supported_algorithms, &candidates)?;
+        if encrypted_selected_algorithms != &expected {
+            log_e!(
+                "encrypted selected algorithms {:?} differ from recomputed expectation {:?} over companion set {:?}",
+                encrypted_selected_algorithms,
+                expected,
+                companion_supported_algorithms
+            );
+            return Err(ErrorCode::AlgorithmNegotiationFailed);
+        }
+        Ok(())
+    }
+
     fn decode_sec_binding_reply_message(
         &mut self,
         processor_type: ProcessorType,
@@ -274,10 +340,20 @@ impl HostDeviceEnrollRequest {
         let output = SecBindingReply::decode(sec_message, processor_type)?;
 
         let mut key_nego_param = self.get_aes_gcm_param(processor_type).map_err(|e| p!(e))?;
-        let session_key = CryptoEngineRegistry::get().hkdf(&self.salt, &key_nego_param.sk).map_err(|e| p!(e))?;
-        let decrypt_data =
-            message_crypto::decrypt_sec_message(&output.encrypt_data, &session_key, &output.tag, &output.iv)
-                .map_err(|e| p!(e))?;
+        let session_key = message_crypto::derive_session_key(
+            key_nego_param.selected_algorithms.kdf_algorithm,
+            &self.salt,
+            &key_nego_param.sk,
+        )
+        .map_err(|e| p!(e))?;
+        let decrypt_data = message_crypto::decrypt_sec_message(
+            key_nego_param.selected_algorithms.aead_algorithm,
+            &output.encrypt_data,
+            &session_key,
+            &output.tag,
+            &output.iv,
+        )
+        .map_err(|e| p!(e))?;
         let reply_info = SecBindingReplyInfo::decode(&decrypt_data)?;
 
         if self.host_challenge != reply_info.challenge {
@@ -308,23 +384,55 @@ impl HostDeviceEnrollRequest {
             return Err(ErrorCode::GeneralError);
         }
 
-        if reply_info.protocol_list != self.expected_protocol_list {
+        // Unified exchange leg (2026-11-11 ruling): symmetric to the
+        // companion-side recompute, recompute the protocol selection over the
+        // companion's encrypted-announced set in host priority order and verify
+        // it against the pinned selection. profile.protocols ⊇ protocolPriorityList
+        // is the locked-step invariant, so this mirrors the C++ NegotiateProtocol
+        // first-hit semantics; divergence means C++/TA priority drift or an
+        // anomalous reply.
+        let expected_protocol_id = self
+            .host_protocol_list
+            .iter()
+            .find(|protocol| reply_info.protocol_list.contains(protocol))
+            .copied();
+        if expected_protocol_id != Some(self.selected_protocol_id) {
             log_e!(
-                "protocol verification failed, expected: {:?}, actual: {:?}",
-                self.expected_protocol_list,
+                "recomputed protocol {:?} differs from pinned selection {} (companion list: {:?})",
+                expected_protocol_id,
+                self.selected_protocol_id,
                 reply_info.protocol_list
             );
-            return Err(ErrorCode::GeneralError);
+            return Err(ErrorCode::ProtocolNegotiationFailed);
         }
 
-        if reply_info.capability_list != self.expected_capability_list {
-            log_e!(
-                "capability verification failed, expected: {:?}, actual: {:?}",
-                self.expected_capability_list,
-                reply_info.capability_list
+        self.verify_selected_algorithms(
+            &reply_info.selected_algorithms,
+            &key_nego_param.selected_algorithms,
+            &reply_info.companion_supported_algorithms,
+        )?;
+
+        let negotiated =
+            intersect_lists_in_reference_order(&self.host_capability_list, &reply_info.capability_list);
+        if !same_elements(&negotiated, &reply_info.capability_list) {
+            log_i!(
+                "announced capabilities {:?} exceed host offer {:?}, pinning the intersection {:?}",
+                reply_info.capability_list,
+                self.host_capability_list,
+                negotiated
             );
-            return Err(ErrorCode::GeneralError);
         }
+        if let Some(previous) = &self.negotiated_capability_list {
+            if previous != &negotiated {
+                log_e!(
+                    "capability result differs across processor types: {:?} vs {:?}",
+                    previous,
+                    negotiated
+                );
+                return Err(ErrorCode::CapabilityNegotiationFailed);
+            }
+        }
+        self.negotiated_capability_list = Some(negotiated);
 
         key_nego_param.companion_challenge = output.challenge;
         self.update_aes_gcm_param(processor_type, &key_nego_param)?;
@@ -360,7 +468,7 @@ impl HostDeviceEnrollRequest {
         for processor_type in processor_types {
             if let Err(e) = self.decode_sec_binding_reply_message(processor_type, sec_message) {
                 log_e!("parse binding reply message fail: processor_type: {:?}, result: {:?}", processor_type, e);
-                return Err(ErrorCode::GeneralError);
+                return Err(e);
             }
         }
 
@@ -370,14 +478,22 @@ impl HostDeviceEnrollRequest {
     fn encode_sec_token_issue(&mut self, template_id: u64) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
         for token_info in &self.token_infos {
-            let session_key =
-                companion_device_db_helper::get_session_key(template_id, token_info.processor_type, &self.salt)?;
+            let session_key_param = companion_device_db_helper::get_session_key(
+                template_id,
+                token_info.processor_type,
+                &self.salt,
+            )?;
             let issue_token = SecIssueToken {
                 challenge: token_info.challenge,
                 atl: self.atl as i32,
                 token: token_info.token.clone(),
             };
-            output.extend(issue_token.encrypt_issue_token(&self.salt, token_info.processor_type, &session_key)?);
+            output.extend(issue_token.encrypt_issue_token(
+                &self.salt,
+                token_info.processor_type,
+                &session_key_param.session_key,
+                session_key_param.aead_algorithm,
+            )?);
         }
         Ok(output)
     }
@@ -399,7 +515,12 @@ impl HostDeviceEnrollRequest {
     fn init_device_info(
         &mut self,
     ) -> Result<
-        (Box<CompanionDevice>, Box<CompanionDeviceProfile>, Vec<CompanionDeviceCapability>, Vec<CompanionDeviceSk>),
+        (
+            Box<CompanionDevice>,
+            Box<CompanionDeviceProfile>,
+            Vec<CompanionDeviceCapability>,
+            Vec<CompanionDeviceKeyMaterial>,
+        ),
         ErrorCode,
     > {
         let template_id = CompanionDeviceDbManagerRegistry::get().generate_unique_template_id().map_err(|e| p!(e))?;
@@ -415,7 +536,9 @@ impl HostDeviceEnrollRequest {
             },
             added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             is_valid: true,
-            capability_list: self.expected_capability_list.clone(),
+            capability_list: self.negotiated_capability_list.clone().unwrap_or_default(),
+            protocol_id: self.selected_protocol_id,
+            secure_protocol_id: self.secure_protocol_id,
         });
 
         let base_info = Box::new(CompanionDeviceProfile {
@@ -438,10 +561,11 @@ impl HostDeviceEnrollRequest {
             capability_infos.push(capability_info);
         }
 
-        let mut sk_infos: Vec<CompanionDeviceSk> = Vec::new();
+        let mut sk_infos: Vec<CompanionDeviceKeyMaterial> = Vec::new();
         for key_nego_param in &self.key_negotial_param {
-            let sk_info = CompanionDeviceSk {
+            let sk_info = CompanionDeviceKeyMaterial {
                 processor_type: key_nego_param.processor_type,
+                selected_algorithms: key_nego_param.selected_algorithms,
                 sk: key_nego_param.sk.clone().try_into().map_err(|e| {
                     log_e!("try_into fail: {:?}", e);
                     ErrorCode::GeneralError
@@ -461,6 +585,12 @@ impl HostDeviceEnrollRequest {
             &capability_infos,
             &sk_infos,
         )?;
+        log_i!(
+            "store device sk rows done, template_id:{:04x}, sk_rows:{}, algorithms:{:?}",
+            device_info.template_id as u16,
+            sk_infos.len(),
+            sk_infos.iter().map(|sk_info| sk_info.selected_algorithms.ka_algorithm).collect::<Vec<u16>>()
+        );
         Ok(*device_info)
     }
 
@@ -503,9 +633,6 @@ impl Request for HostDeviceEnrollRequest {
         let sec_message = self.encode_sec_algo_nego_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
 
-        let (algo_data, algo_len) = crate::commands::common_command::try_array_from_vec(self.algorithm_list.clone())?;
-        ffi_output.algorithm_list.data = algo_data;
-        ffi_output.algorithm_list.len = algo_len;
         Ok(())
     }
 
@@ -521,13 +648,32 @@ impl Request for HostDeviceEnrollRequest {
         self.enroll_param.host_device_key = host_device_key;
         self.enroll_param.companion_device_key = companion_device_key;
         self.enroll_param.schedule_id = ffi_input.schedule_id;
+        self.host_capability_list = Vec::<u16>::try_from(ffi_input.host_capability_list).map_err(|e| {
+            log_e!("Failed to convert host_capability_list: {:?}", e);
+            ErrorCode::GeneralError
+        })?;
+        validate_capability_list(&self.host_capability_list)?;
+        self.host_protocol_list = Vec::<u16>::try_from(ffi_input.host_protocol_list).map_err(|e| {
+            log_e!("Failed to convert host_protocol_list: {:?}", e);
+            ErrorCode::GeneralError
+        })?;
+        if self.host_protocol_list.is_empty() {
+            log_e!("host protocol list is empty");
+            return Err(ErrorCode::GeneralError);
+        }
+        validate_protocol_list(&self.host_protocol_list)?;
 
         self.decode_fwk_binding_request(ffi_input.fwk_message.as_slice()?)?;
         self.decode_sec_key_nego_reply(ffi_input.sec_message.as_slice()?)?;
 
         let sec_message = self.encode_sec_binding_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
-        ffi_output.selected_algorithm = self.selected_algorithm;
+        ffi_output.selected_algorithms = SelectedAlgorithmsFfi {
+            ka_algorithm: self.selected_algorithms.ka_algorithm,
+            kdf_algorithm: self.selected_algorithms.kdf_algorithm,
+            aead_algorithm: self.selected_algorithms.aead_algorithm,
+            mac_algorithm: self.selected_algorithms.mac_algorithm,
+        };
         Ok(())
     }
 
@@ -538,15 +684,8 @@ impl Request for HostDeviceEnrollRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.expected_protocol_list = Vec::<u16>::try_from(ffi_input.protocol_list).map_err(|e| {
-            log_e!("Failed to convert protocol_list: {:?}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        self.expected_capability_list = Vec::<u16>::try_from(ffi_input.capability_list).map_err(|e| {
-            log_e!("Failed to convert capability_list: {:?}", e);
-            ErrorCode::GeneralError
-        })?;
+        validate_secure_protocol_id(ffi_input.companion_status.enrolled_protocol_id)?;
+        self.selected_protocol_id = ffi_input.companion_status.enrolled_protocol_id;
 
         self.supported_business_ids = Vec::<i32>::try_from(ffi_input.supported_business_ids).map_err(|e| {
             log_e!("Failed to convert supported_business_ids: {:?}", e);
@@ -575,6 +714,11 @@ impl Request for HostDeviceEnrollRequest {
         let esl = self.device_capability.iter().map(|cap| cap.esl).max().unwrap_or(ExecutorSecurityLevel::Esl0);
         ffi_output.esl = esl as i32;
         ffi_output.added_time = device_info.added_time;
+        let (capability_data, capability_len) = crate::commands::common_command::try_array_from_vec(
+            self.negotiated_capability_list.clone().unwrap_or_default(),
+        )?;
+        ffi_output.capability_list.data = capability_data;
+        ffi_output.capability_list.len = capability_len;
         Ok(())
     }
 }

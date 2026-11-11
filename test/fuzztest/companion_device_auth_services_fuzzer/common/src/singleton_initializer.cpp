@@ -110,12 +110,15 @@ public:
     }
 
     ResultCode BeginAddCompanion(const BeginAddCompanionParams &params, std::vector<uint8_t> &outAddHostBindingRequest,
-        uint16_t &selectedAlgorithm) override
+        SelectedAlgorithms &selectedAlgorithms) override
     {
         (void)params;
         outAddHostBindingRequest =
             fuzzData_.ConsumeBytes<uint8_t>(fuzzData_.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
-        selectedAlgorithm = fuzzData_.ConsumeIntegral<uint16_t>();
+        selectedAlgorithms.kaAlgorithm = fuzzData_.ConsumeIntegral<uint16_t>();
+        selectedAlgorithms.kdfAlgorithm = fuzzData_.ConsumeIntegral<uint16_t>();
+        selectedAlgorithms.aeadAlgorithm = fuzzData_.ConsumeIntegral<uint16_t>();
+        selectedAlgorithms.macAlgorithm = fuzzData_.ConsumeIntegral<uint16_t>();
         return ResultCode::SUCCESS;
     }
 
@@ -452,9 +455,16 @@ public:
         return result;
     }
 
-    ResultCode HostEndCompanionCheck(const HostEndCompanionCheckInput &input) override
+    ResultCode HostEndCompanionCheck(const HostEndCompanionCheckInput &input,
+        HostEndCompanionCheckOutput &output) override
     {
         (void)input;
+        if (fuzzData_.ConsumeBool()) {
+            uint8_t count = fuzzData_.ConsumeIntegralInRange<uint8_t>(0, 10);
+            for (uint8_t i = 0; i < count; ++i) {
+                output.capabilityList.push_back(fuzzData_.ConsumeIntegral<uint16_t>());
+            }
+        }
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 

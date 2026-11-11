@@ -262,6 +262,24 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_003, TestSize.Level0)
     EXPECT_EQ(companion->GetStatus().companionDeviceStatus.lastSyncTimeMs, 100u);
 }
 
+HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_KeepsEnrolledPinCapabilities, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    persistedStatus.capabilities = { Capability::TOKEN_AUTH };
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    auto deviceStatus = MakeDeviceStatus(persistedStatus.companionDeviceKey);
+    deviceStatus.capabilities = { Capability::OBTAIN_TOKEN };
+    EXPECT_CALL(mockSecurityAgent_, HostGetPersistedCompanionStatus(_, _)).Times(0);
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return());
+
+    companion->HandleDeviceStatusUpdate(deviceStatus);
+
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.capabilities,
+        std::vector<Capability> { Capability::TOKEN_AUTH });
+}
+
 HWTEST_F(CompanionTest, HandleDeviceOffline_001, TestSize.Level0)
 {
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);

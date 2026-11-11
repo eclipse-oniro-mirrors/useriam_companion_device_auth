@@ -31,6 +31,8 @@ void EncodeInitKeyNegotiationRequest(const InitKeyNegotiationRequest &request, A
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostDeviceKey.deviceSubProfileId);
+    attributes.SetUint16Value(Attributes::ATTR_CDA_SA_PROTOCOL_ID,
+        ProtocolIdConverter::ToUnderlying(request.protocolId));
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
 }
 
@@ -40,6 +42,15 @@ std::optional<InitKeyNegotiationRequest> DecodeInitKeyNegotiationRequest(const A
     auto hostKeyOpt = DecodeHostDeviceKey(attributes);
     ENSURE_OR_RETURN_VAL(hostKeyOpt.has_value(), std::nullopt);
     request.hostDeviceKey = *hostKeyOpt;
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_PROTOCOL_ID)) {
+        uint16_t protocolId = 0;
+        if (!attributes.GetUint16Value(Attributes::ATTR_CDA_SA_PROTOCOL_ID, protocolId)) {
+            return std::nullopt;
+        }
+        request.protocolId = ProtocolIdConverter::FromUnderlying(protocolId);
+    } else {
+        request.protocolId = ProtocolId::VERSION_1;
+    }
     if (!attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo)) {
         return std::nullopt;
     }

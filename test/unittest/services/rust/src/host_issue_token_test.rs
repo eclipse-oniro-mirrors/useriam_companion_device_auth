@@ -27,7 +27,8 @@ use crate::request::token_issue::host_issue_token::HostDeviceIssueTokenRequest;
 use crate::request::token_issue::token_issue_message::SecIssueTokenReply;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceSk, DeviceKey, UserInfo, UserKey};
+use crate::common::algorithm::SelectedAlgorithms;
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, DeviceKey, UserInfo, UserKey};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
@@ -102,7 +103,16 @@ fn mock_set_companion_device_db_manager() {
     });
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
+        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: 1,
+                kdf_algorithm: 1,
+                aead_algorithm: 1,
+                mac_algorithm: 1,
+            },
+        }]));
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
@@ -120,7 +130,9 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
         user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         added_time: 123456,
         is_valid: true,
-        capability_list: vec![1, 2, 3], // Includes both DelegateAuth(1) and TokenAuth(2)
+        capability_list: vec![1, 2, 3],
+        protocol_id: 1,
+        secure_protocol_id: 0,
     }
 }
 

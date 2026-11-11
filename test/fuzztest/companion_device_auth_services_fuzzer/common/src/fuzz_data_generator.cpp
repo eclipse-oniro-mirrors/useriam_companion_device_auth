@@ -76,6 +76,7 @@ const FuzzAttrSpec g_fuzzAttrSpecs[] = {
     { Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST, FUZZ_ATTR_INT32_ARRAY },
     { Attributes::ATTR_CDA_SA_CAPABILITY_LIST, FUZZ_ATTR_UINT16_ARRAY },
     { Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, FUZZ_ATTR_UINT16_ARRAY },
+    { Attributes::ATTR_CDA_SA_PROTOCOL_ID, FUZZ_ATTR_UINT16 },
 };
 
 const size_t FUZZ_ATTR_SPEC_COUNT = sizeof(g_fuzzAttrSpecs) / sizeof(g_fuzzAttrSpecs[0]);

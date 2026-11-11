@@ -13,10 +13,11 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{Capability, ErrorCode, ProcessorType};
+use crate::common::constants::{Capability, ErrorCode, ProcessorType, validate_secure_protocol_id};
+use crate::jobs::message_crypto;
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
-use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::{CompanionDevice, UserKey};
+use crate::common::algorithm::validate_selected_algorithms;
+use crate::traits::db_manager::{CompanionDevice, SessionKeyParam, UserKey};
 use crate::traits::log_trace::RustFileId;
 use crate::{log_e, log_i, p, Box, String, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::CompanionDeviceDbHelper as u16;
@@ -94,15 +95,33 @@ pub fn update_device_business_id(template_id: u64, business_ids: Vec<i32>) -> Re
     CompanionDeviceDbManagerRegistry::get_mut().write_device_profile(template_id, &device_profile)
 }
 
-pub fn get_session_key(template_id: u64, processor_type: ProcessorType, salt: &[u8]) -> Result<Vec<u8>, ErrorCode> {
+pub fn get_session_key(
+    template_id: u64,
+    processor_type: ProcessorType,
+    salt: &[u8],
+) -> Result<SessionKeyParam, ErrorCode> {
     let sk_infos = CompanionDeviceDbManagerRegistry::get_mut().read_device_sk(template_id).map_err(|e| p!(e))?;
     for sk_info in sk_infos {
         if sk_info.processor_type == processor_type {
-            return CryptoEngineRegistry::get().hkdf(salt, &sk_info.sk).map_err(|e| p!(e));
+            validate_selected_algorithms(&sk_info.selected_algorithms)?;
+            let session_key =
+                message_crypto::derive_session_key(sk_info.selected_algorithms.kdf_algorithm, salt, &sk_info.sk)
+                    .map_err(|e| p!(e))?;
+            return Ok(SessionKeyParam {
+                session_key,
+                aead_algorithm: sk_info.selected_algorithms.aead_algorithm,
+                mac_algorithm: sk_info.selected_algorithms.mac_algorithm,
+            });
         }
     }
     log_e!("get_session_key fail");
     Err(ErrorCode::GeneralError)
+}
+
+pub fn get_device_secure_protocol_id(template_id: u64) -> Result<u16, ErrorCode> {
+    let device_info = CompanionDeviceDbManagerRegistry::get().get_device(template_id).map_err(|e| p!(e))?;
+    validate_secure_protocol_id(device_info.secure_protocol_id)?;
+    Ok(device_info.secure_protocol_id)
 }
 
 pub fn verify_template(template_ids: Vec<u64>) -> Result<(), ErrorCode> {

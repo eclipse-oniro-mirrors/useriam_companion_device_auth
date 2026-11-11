@@ -51,7 +51,8 @@ public:
     // Companion check
     ResultCode HostBeginCompanionCheck(const HostBeginCompanionCheckInput &input,
         HostBeginCompanionCheckOutput &output) override;
-    ResultCode HostEndCompanionCheck(const HostEndCompanionCheckInput &input) override;
+    ResultCode HostEndCompanionCheck(const HostEndCompanionCheckInput &input,
+        HostEndCompanionCheckOutput &output) override;
     ResultCode HostCancelCompanionCheck(const HostCancelCompanionCheckInput &input) override;
 
     ResultCode CompanionProcessCheck(const CompanionProcessCheckInput &input,

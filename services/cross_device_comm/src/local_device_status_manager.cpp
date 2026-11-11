@@ -55,13 +55,11 @@ LocalDeviceStatusManager::LocalDeviceStatusManager(std::shared_ptr<ChannelManage
     : channelMgr_(channelMgr)
 {
     profile_.protocols = { ProtocolId::VERSION_1 };
-    profile_.hostSecureProtocols = { SecureProtocolId::DEFAULT };
     profile_.companionSecureProtocolId = SecureProtocolId::INVALID;
     profile_.hostCapabilities = deviceCapabilityInfo.hostLocalCapabilities;
     profile_.companionCapabilities = deviceCapabilityInfo.companionLocalCapabilities;
     profile_.hostSupportedBusinessIds = deviceCapabilityInfo.hostSupportedBusinessIds;
     profile_.companionSupportedBusinessIds = deviceCapabilityInfo.companionSupportedBusinessIds;
-    profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     profile_.hostBindingRevokeTokenOnInactive = hostBindingRevokeTokenOnInactive;
     authState_.isAuthMaintainActive = false;
 }

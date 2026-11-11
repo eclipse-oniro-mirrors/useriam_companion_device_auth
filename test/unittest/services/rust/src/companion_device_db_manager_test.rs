@@ -20,7 +20,8 @@ use crate::common::constants::*;
 use crate::log_i;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManager, DummyCompanionDeviceDbManager};
 use crate::traits::db_manager::{
-    CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
+    CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, CompanionDeviceProfile,
+    CompanionDeviceToken,
     DeviceKey, UserInfo, UserKey,
 };
 use crate::ut_registry_guard;
@@ -33,6 +34,8 @@ fn create_mock_companion_device() -> CompanionDevice {
         added_time: 0,
         is_valid: false,
         capability_list: Vec::new(),
+        protocol_id: 1,
+        secure_protocol_id: 0,
     }
 }
 
@@ -74,7 +77,7 @@ fn dummy_companion_device_db_manager_test() {
             &device_info,
             &base_info,
             &Vec::<CompanionDeviceCapability>::new(),
-            &Vec::<CompanionDeviceSk>::new()
+            &Vec::<CompanionDeviceKeyMaterial>::new()
         ),
         Err(ErrorCode::GeneralError)
     );
@@ -97,6 +100,6 @@ fn dummy_companion_device_db_manager_test() {
         .is_err());
     assert!(dummy_companion_device_db_manager.delete_device_capability_info(0).is_err());
     assert!(dummy_companion_device_db_manager.read_device_sk(0).is_err());
-    assert!(dummy_companion_device_db_manager.write_device_sk(0, &Vec::<CompanionDeviceSk>::new()).is_err());
+    assert!(dummy_companion_device_db_manager.write_device_sk(0, &Vec::<CompanionDeviceKeyMaterial>::new()).is_err());
     assert!(dummy_companion_device_db_manager.delete_device_sk(0).is_err());
 }

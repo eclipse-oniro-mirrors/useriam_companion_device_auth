@@ -72,6 +72,7 @@ public:
         ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID = 200030,
         ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME = 200031,
         ATTR_CDA_SA_ATL = 200032,
+        ATTR_CDA_SA_PROTOCOL_ID = 200033,
 
         /** Attributes inside device */
         ATTR_CDA_SA_SELECT_CONTEXT = 210000,

@@ -54,23 +54,24 @@ private:
     void BeginCompanionCheck();
     bool SendSyncDeviceStatusRequest(const std::vector<uint8_t> &salt, uint64_t challenge);
     void HandleSyncDeviceStatusReply(const Attributes &reply);
-    bool EndCompanionCheck(const SyncDeviceStatusReply &reply);
-    std::optional<CompanionStatus> QueryCompanionStatus();
-    ResultCode HostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply);
-    void ProcessCompanionCheckResult(ResultCode checkResult, const CompanionStatus &companionStatus,
-        const SyncDeviceStatusReply &reply);
-    bool NeedBeginCompanionCheck() const;
-    SyncDeviceStatusRequest BuildSyncDeviceStatusRequest(const LocalDeviceProfile &profile,
+    void EndCompanionCheck(const SyncDeviceStatusReply &reply, const std::optional<CompanionStatus> &companionStatus,
+        std::vector<Capability> &outCapabilities);
+    std::optional<CompanionStatus> QueryCompanionStatus(const SyncDeviceStatusReply &reply) const;
+    ResultCode HostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply,
+        HostEndCompanionCheckOutput &output);
+    SyncDeviceStatusRequest BuildSyncDeviceStatusRequest(const LocalDeviceProfile &localProfile,
         const std::vector<uint8_t> &salt, uint64_t challenge);
+    ResultCode ValidateReplyParameters(const SyncDeviceStatusReply &reply) const;
     HostEndCompanionCheckInput BuildHostEndCompanionCheckInput(TemplateId templateId,
         const SyncDeviceStatusReply &reply) const;
-    void CollectSyncDeviceStatusEventInfo(const LocalDeviceProfile &profile);
+    void CollectSyncDeviceStatusEventInfo(const LocalDeviceProfile &localProfile);
     void UpdateCompanionUserIdAndSubProfileId(const UserKey &companionUserKey);
 
     UserKey hostUserKey_;
     std::unique_ptr<ScopeGuard> cancelCompanionCheckGuard_;
     DeviceKey companionDeviceKey_;
     SyncDeviceStatusCallback callback_;
+    std::vector<ProtocolId> hostProtocolIdList_;
 
     void InvokeCallback(ResultCode result, const SyncDeviceStatus &syncDeviceStatus);
 };

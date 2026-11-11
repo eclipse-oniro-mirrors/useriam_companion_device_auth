@@ -120,10 +120,11 @@ static void FuzzCompanionInitKeyNegotiation(std::shared_ptr<CompanionAddCompanio
     FuzzedDataProvider &fuzzData)
 {
     // Simplified implementation - just create a default request
+    LocalDeviceProfile profile = {};
     InitKeyNegotiationRequest keyNegotiationRequest = {};
     std::vector<uint8_t> initKeyNegotiationReply =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
-    (void)request->CompanionInitKeyNegotiation(keyNegotiationRequest, initKeyNegotiationReply);
+    (void)request->CompanionInitKeyNegotiation(profile, keyNegotiationRequest, initKeyNegotiationReply);
 }
 
 static void FuzzSendInitKeyNegotiationReply(std::shared_ptr<CompanionAddCompanionRequest> &request,

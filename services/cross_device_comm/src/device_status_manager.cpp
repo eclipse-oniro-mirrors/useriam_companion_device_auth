@@ -47,13 +47,14 @@ namespace CompanionDeviceAuth {
 namespace {
 bool ShouldInvalidateCachedSync(ResultCode resultCode)
 {
-    return resultCode == PROTOCOL_NEGOTIATION_FAILED || resultCode == PEER_SYNC_FAILED;
+    return resultCode == PROTOCOL_NEGOTIATION_FAILED || resultCode == PEER_SYNC_FAILED ||
+        resultCode == SECURE_PROTOCOL_NOT_SUPPORTED;
 }
 
 bool ShouldStopRetry(ResultCode resultCode)
 {
     return resultCode == PROTOCOL_NEGOTIATION_FAILED || resultCode == PEER_SERVICE_NOT_AVAILABLE ||
-        resultCode == COORDINATOR_REJECTED;
+        resultCode == COORDINATOR_REJECTED || resultCode == SECURE_PROTOCOL_NOT_SUPPORTED || resultCode == NOT_ENROLLED;
 }
 } // namespace
 
@@ -542,11 +543,9 @@ std::optional<ProtocolId> DeviceStatusManager::NegotiateProtocol(const std::vect
     ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, std::nullopt);
 
     auto localProfile = localDeviceStatusMgr_->GetLocalDeviceProfile();
-    const auto &localProtocols = localProfile.protocols;
 
-    for (const auto &localProtocol : localProfile.protocolPriorityList) {
-        if (std::find(remoteProtocols.begin(), remoteProtocols.end(), localProtocol) != remoteProtocols.end() &&
-            std::find(localProtocols.begin(), localProtocols.end(), localProtocol) != localProtocols.end()) {
+    for (const auto &localProtocol : localProfile.protocols) {
+        if (std::find(remoteProtocols.begin(), remoteProtocols.end(), localProtocol) != remoteProtocols.end()) {
             IAM_LOGI("negotiated protocol: %{public}hu", localProtocol);
             return localProtocol;
         }

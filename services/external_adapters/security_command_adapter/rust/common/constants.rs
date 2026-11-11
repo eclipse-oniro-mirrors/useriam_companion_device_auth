@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+use crate::Vec;
 use crate::log_e;
 use crate::traits::log_trace::RustFileId;
 use crate::utils::AttributeKey;
@@ -53,6 +54,10 @@ pub enum ErrorCode {
     ExceedLimit = 10018,
     TokenNotFound = 20005,
     TokenVerifyFailed = 20006,
+    ProtocolNegotiationFailed = 20011,
+    SecureProtocolNotSupported = 20013,
+    CapabilityNegotiationFailed = 20014,
+    AlgorithmNegotiationFailed = 20015,
 }
 
 impl TryFrom<i32> for ErrorCode {
@@ -71,6 +76,10 @@ impl TryFrom<i32> for ErrorCode {
             10018 => Ok(ErrorCode::ExceedLimit),
             20005 => Ok(ErrorCode::TokenNotFound),
             20006 => Ok(ErrorCode::TokenVerifyFailed),
+            20011 => Ok(ErrorCode::ProtocolNegotiationFailed),
+            20013 => Ok(ErrorCode::SecureProtocolNotSupported),
+            20014 => Ok(ErrorCode::CapabilityNegotiationFailed),
+            20015 => Ok(ErrorCode::AlgorithmNegotiationFailed),
             _ => {
                 log_e!("Invalid error code: {}", value);
                 Err(ErrorCode::BadParam)
@@ -162,6 +171,15 @@ impl TryFrom<i32> for AuthCapabilityLevel {
             },
         }
     }
+}
+
+pub const LOCAL_EXECUTOR_MAX_ACL: AuthCapabilityLevel = AuthCapabilityLevel::Acl3;
+
+pub const DEVICE_ID_TYPE_UNIFIED_DEVICE_ID: i32 = 1;
+pub const DEVICE_ID_TYPE_VENDOR_BEGIN: i32 = 10000;
+
+pub fn is_valid_device_id_type(device_id_type: i32) -> bool {
+    device_id_type == DEVICE_ID_TYPE_UNIFIED_DEVICE_ID || device_id_type >= DEVICE_ID_TYPE_VENDOR_BEGIN
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Debug)]
@@ -320,19 +338,85 @@ pub struct DeviceCapability {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u16)]
 #[derive(Default)]
-pub enum AlgoType {
+pub enum KaAlgoType {
     #[default]
     None = 0,
     X25519 = 1,
 }
 
-impl TryFrom<u16> for AlgoType {
+impl TryFrom<u16> for KaAlgoType {
     type Error = ErrorCode;
     fn try_from(value: u16) -> core::result::Result<Self, ErrorCode> {
         match value {
-            1 => Ok(AlgoType::X25519),
+            1 => Ok(KaAlgoType::X25519),
             _ => {
-                log_e!("Invalid algo type: {}", value);
+                log_e!("Invalid ka algo type: {}", value);
+                Err(ErrorCode::BadParam)
+            },
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(u16)]
+#[derive(Default)]
+pub enum KdfAlgoType {
+    #[default]
+    Invalid = 0,
+    HkdfSha256 = 1,
+}
+
+impl TryFrom<u16> for KdfAlgoType {
+    type Error = ErrorCode;
+    fn try_from(value: u16) -> core::result::Result<Self, ErrorCode> {
+        match value {
+            1 => Ok(KdfAlgoType::HkdfSha256),
+            _ => {
+                log_e!("Invalid kdf algo type: {}", value);
+                Err(ErrorCode::BadParam)
+            },
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(u16)]
+#[derive(Default)]
+pub enum AeadAlgoType {
+    #[default]
+    Invalid = 0,
+    Aes256Gcm = 1,
+}
+
+impl TryFrom<u16> for AeadAlgoType {
+    type Error = ErrorCode;
+    fn try_from(value: u16) -> core::result::Result<Self, ErrorCode> {
+        match value {
+            1 => Ok(AeadAlgoType::Aes256Gcm),
+            _ => {
+                log_e!("Invalid aead algo type: {}", value);
+                Err(ErrorCode::BadParam)
+            },
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(u16)]
+#[derive(Default)]
+pub enum MacAlgoType {
+    #[default]
+    Invalid = 0,
+    HmacSha256 = 1,
+}
+
+impl TryFrom<u16> for MacAlgoType {
+    type Error = ErrorCode;
+    fn try_from(value: u16) -> core::result::Result<Self, ErrorCode> {
+        match value {
+            1 => Ok(MacAlgoType::HmacSha256),
+            _ => {
+                log_e!("Invalid mac algo type: {}", value);
                 Err(ErrorCode::BadParam)
             },
         }
@@ -418,6 +502,79 @@ impl TryFrom<u16> for Capability {
     }
 }
 
+pub const PROTOCOL_ID_INVALID: u16 = 0;
 pub const SUPPORTED_PROTOCOL_VERSIONS: &[u16] = &[1];
-pub const SUPPORT_CAPABILITIES: &[u16] =
-    &[Capability::DelegateAuth as u16, Capability::TokenAuth as u16, Capability::ObtainToken as u16];
+
+pub const SUPPORTED_KA_ALGORITHMS: &[u16] = &[KaAlgoType::X25519 as u16];
+pub const SUPPORTED_KDF_ALGORITHMS: &[u16] = &[KdfAlgoType::HkdfSha256 as u16];
+pub const SUPPORTED_AEAD_ALGORITHMS: &[u16] = &[AeadAlgoType::Aes256Gcm as u16];
+pub const SUPPORTED_MAC_ALGORITHMS: &[u16] = &[MacAlgoType::HmacSha256 as u16];
+
+pub const SECURE_PROTOCOL_ID_INVALID: u16 = 0;
+
+pub fn validate_secure_protocol_id(secure_protocol_id: u16) -> core::result::Result<(), ErrorCode> {
+    if !SUPPORTED_PROTOCOL_VERSIONS.contains(&secure_protocol_id) {
+        log_e!("protocol {} is not supported by TA, supported: {:?}", secure_protocol_id, SUPPORTED_PROTOCOL_VERSIONS);
+        return Err(ErrorCode::SecureProtocolNotSupported);
+    }
+    Ok(())
+}
+
+pub fn validate_protocol_list(protocol_list: &[u16]) -> core::result::Result<(), ErrorCode> {
+    for protocol in protocol_list {
+        if !SUPPORTED_PROTOCOL_VERSIONS.contains(protocol) {
+            log_e!("protocol {} is not supported by TA, supported: {:?}", protocol, SUPPORTED_PROTOCOL_VERSIONS);
+            return Err(ErrorCode::GeneralError);
+        }
+    }
+    Ok(())
+}
+
+pub fn validate_capability_list(capability_list: &[u16]) -> core::result::Result<(), ErrorCode> {
+    for capability in capability_list {
+        let is_valid = match Capability::try_from(*capability) {
+            Ok(c) => c != Capability::Invalid,
+            Err(_) => false,
+        };
+        if !is_valid {
+            log_e!("capability {} is not supported by TA", capability);
+            return Err(ErrorCode::GeneralError);
+        }
+    }
+    Ok(())
+}
+
+pub fn canonicalize_list(list: &[u16]) -> Vec<u16> {
+    let mut canonical: Vec<u16> = list.to_vec();
+    canonical.sort_unstable();
+    canonical.dedup();
+    canonical
+}
+
+pub fn intersect_lists_in_reference_order(reference: &[u16], candidate: &[u16]) -> Vec<u16> {
+    let mut result: Vec<u16> = Vec::new();
+    for &value in reference {
+        if candidate.contains(&value) && !result.contains(&value) {
+            result.push(value);
+        }
+    }
+    result
+}
+
+pub fn intersect_lists(offered: &[u16], local: &[u16]) -> Vec<u16> {
+    let mut result: Vec<u16> = Vec::new();
+    for &capability in offered {
+        if local.contains(&capability) {
+            result.push(capability);
+        }
+    }
+    canonicalize_list(&result)
+}
+
+pub fn is_subset(subset: &[u16], superset: &[u16]) -> bool {
+    subset.iter().all(|item| superset.contains(item))
+}
+
+pub fn same_elements(a: &[u16], b: &[u16]) -> bool {
+    canonicalize_list(a) == canonicalize_list(b)
+}

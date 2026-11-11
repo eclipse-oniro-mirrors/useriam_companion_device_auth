@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{ErrorCode, ProcessorType, HKDF_SALT_SIZE};
+use crate::common::constants::{ErrorCode, ProcessorType, HKDF_SALT_SIZE, validate_secure_protocol_id};
 use crate::entry::companion_device_auth_ffi::CompanionProcessTokenAuthInputFfi;
 use crate::jobs::host_binding_db_helper;
 use crate::jobs::message_crypto;
@@ -31,15 +31,18 @@ pub struct CompanionTokenAuthRequest {
     pub binding_id: i32,
     pub secure_protocol_id: u16,
     pub host_challenge: u64,
+    pub mac_algorithm: u16,
     pub salt: [u8; HKDF_SALT_SIZE],
 }
 
 impl CompanionTokenAuthRequest {
     pub fn new(input: &CompanionProcessTokenAuthInputFfi) -> Result<Self, ErrorCode> {
+        validate_secure_protocol_id(input.secure_protocol_id)?;
         Ok(CompanionTokenAuthRequest {
             binding_id: input.binding_id,
             secure_protocol_id: input.secure_protocol_id,
             host_challenge: 0,
+            mac_algorithm: 0,
             salt: [0u8; HKDF_SALT_SIZE],
         })
     }
@@ -55,14 +58,20 @@ impl CompanionTokenAuthRequest {
     ) -> Result<(), ErrorCode> {
         let output = SecCommonRequest::decode(sec_message, processor_type)?;
 
-        let session_key = host_binding_db_helper::get_session_key(self.binding_id, &output.salt)?;
-        let decrypt_data =
-            message_crypto::decrypt_sec_message(&output.encrypt_data, &session_key, &output.tag, &output.iv)
-                .map_err(|e| p!(e))?;
+        let session_key_param = host_binding_db_helper::get_session_key(self.binding_id, &output.salt)?;
+        let decrypt_data = message_crypto::decrypt_sec_message(
+            session_key_param.aead_algorithm,
+            &output.encrypt_data,
+            &session_key_param.session_key,
+            &output.tag,
+            &output.iv,
+        )
+        .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let challenge = decrypt_attribute.get_u64(AttributeKey::AttrHostChallenge).map_err(|e| p!(e))?;
 
         self.host_challenge = challenge;
+        self.mac_algorithm = session_key_param.mac_algorithm;
         self.salt = output.salt;
         Ok(())
     }
@@ -88,7 +97,8 @@ impl CompanionTokenAuthRequest {
         data.extend_from_slice(&atl_bytes);
         data.extend_from_slice(&challenge_bytes);
 
-        let hmac = CryptoEngineRegistry::get().hmac_sha256(&token_info.token, &data).map_err(|e| p!(e))?;
+        let hmac =
+            message_crypto::compute_mac(self.mac_algorithm, &token_info.token, &data).map_err(|e| p!(e))?;
 
         let sec_auth_reply = Box::new(SecAuthReply { hmac: hmac.to_vec() });
         let output = sec_auth_reply.encode(ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?)?;
@@ -113,6 +123,7 @@ impl Request for CompanionTokenAuthRequest {
             return Err(ErrorCode::BadParam);
         };
 
+        self.secure_protocol_id = host_binding_db_helper::get_binding_secure_protocol_id(self.binding_id)?;
         self.decode_sec_token_auth_request(ffi_input.sec_message.as_slice()?)?;
         let sec_message = self.encode_sec_token_auth_reply()?;
         host_binding_db_helper::update_host_binding_last_used_time(self.binding_id)?;

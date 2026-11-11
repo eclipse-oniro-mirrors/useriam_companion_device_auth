@@ -49,6 +49,7 @@ HostBindingStatus BuildHostBindingStatus(const PersistedHostBindingStatus &persi
     status.hostDeviceStatus.deviceKey = persistedStatus.hostDeviceKey;
     status.hostDeviceStatus.atlRevokeDelayMs = 0;
     status.isTokenValid = persistedStatus.isTokenValid;
+    status.enrolledProtocolId = persistedStatus.enrolledProtocolId;
     return status;
 }
 } // namespace

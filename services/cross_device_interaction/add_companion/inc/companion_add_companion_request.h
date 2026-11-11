@@ -45,12 +45,13 @@ protected:
     void CompleteWithSuccess();
 
 private:
-    bool CompanionInitKeyNegotiation(const InitKeyNegotiationRequest &request,
-        std::vector<uint8_t> &initKeyNegotiationReply);
+    ResultCode CompanionInitKeyNegotiation(const LocalDeviceProfile &localProfile,
+        const InitKeyNegotiationRequest &request, std::vector<uint8_t> &initKeyNegotiationReply);
     bool SendInitKeyNegotiationReply(ResultCode result, const std::vector<uint8_t> &initKeyNegotiationReply);
     void SendErrorReply(ResultCode result);
+    ResultCode ValidateAndPinProtocol(const LocalDeviceProfile &localProfile, const InitKeyNegotiationRequest &request);
 
-    CompanionInitKeyNegotiationInput BuildCompanionInitKeyNegotiationInput(const LocalDeviceProfile &profile,
+    CompanionInitKeyNegotiationInput BuildCompanionInitKeyNegotiationInput(const LocalDeviceProfile &localProfile,
         const std::vector<uint8_t> &initKeyNegotiationRequest);
     BeginAddHostBindingInput BuildBeginAddHostBindingInput(const UserKey &companionUserKey,
         const std::vector<uint8_t> &addHostBindingRequest) const;
@@ -60,6 +61,7 @@ private:
     ResultCode BeginAddHostBinding(const UserKey &companionUserKey, const std::vector<uint8_t> &extraInfo,
         BeginAddHostBindingOutput &beginOutput);
 
+    bool SubscribeBindingMessageHandlers();
     void HandleBeginAddHostBinding(const Attributes &attrInput, OnMessageReply &onMessageReply);
     void HandleEndAddHostBinding(const Attributes &attrInput, OnMessageReply &onMessageReply);
     ResultCode EndAddHostBinding(ResultCode resultCode, std::vector<uint8_t> &&tokenData,
@@ -73,6 +75,7 @@ private:
     std::unique_ptr<Subscription> endAddHostBindingSubscription_;
     DeviceKey companionDeviceKey_ {};
     std::optional<BindingId> bindingId_;
+    ProtocolId selectedProtocolId_ { ProtocolId::INVALID };
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

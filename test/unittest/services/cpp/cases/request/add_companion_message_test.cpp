@@ -56,6 +56,7 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationRequest_001, Tes
     EXPECT_EQ(decoded->hostDeviceKey.deviceId, request.hostDeviceKey.deviceId);
     EXPECT_EQ(decoded->hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
     EXPECT_EQ(decoded->extraInfo, request.extraInfo);
+    EXPECT_EQ(decoded->protocolId, ProtocolId::VERSION_1);
 }
 
 HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationRequest_002, TestSize.Level0)
@@ -72,6 +73,41 @@ HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationRequest_002, Tes
     auto decoded = DecodeInitKeyNegotiationRequest(attributes);
     EXPECT_TRUE(decoded.has_value());
     EXPECT_TRUE(decoded->extraInfo.empty());
+}
+
+HWTEST_F(AddCompanionMessageTest, EncodeDecodeInitKeyNegotiationRequest_003, TestSize.Level0)
+{
+    InitKeyNegotiationRequest request = { .hostDeviceKey = hostDeviceKey_,
+        .protocolId = ProtocolId::VERSION_1,
+        .extraInfo = extraInfo_ };
+
+    Attributes attributes;
+    EncodeInitKeyNegotiationRequest(request, attributes);
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(request.hostDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
+
+    auto decoded = DecodeInitKeyNegotiationRequest(attributes);
+    EXPECT_TRUE(decoded.has_value());
+    EXPECT_EQ(decoded->protocolId, request.protocolId);
+    EXPECT_EQ(decoded->extraInfo, request.extraInfo);
+}
+
+HWTEST_F(AddCompanionMessageTest, DecodeInitKeyNegotiationRequest_003, TestSize.Level0)
+{
+    Attributes attributes;
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey_.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
+    attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, extraInfo_);
+
+    auto decoded = DecodeInitKeyNegotiationRequest(attributes);
+    EXPECT_TRUE(decoded.has_value());
+    EXPECT_EQ(decoded->hostDeviceKey.deviceId, hostDeviceKey_.deviceId);
+    // Absent field decodes as the pre-baseline default VERSION_1 (see InitKeyNegotiationRequest).
+    EXPECT_EQ(decoded->protocolId, ProtocolId::VERSION_1);
+    EXPECT_EQ(decoded->extraInfo, extraInfo_);
 }
 
 HWTEST_F(AddCompanionMessageTest, DecodeInitKeyNegotiationRequest_001, TestSize.Level0)

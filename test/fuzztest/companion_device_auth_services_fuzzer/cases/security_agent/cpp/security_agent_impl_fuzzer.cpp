@@ -99,14 +99,10 @@ static void FuzzHostEndCompanionCheck(std::shared_ptr<ISecurityAgent> &agent, Fu
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
-    uint8_t count = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
-    for (uint8_t i = 0; i < count; ++i) {
-        input.protocolVersionList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
-        input.capabilityList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
-    }
     input.companionCheckResponse =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
-    agent->HostEndCompanionCheck(input);
+    HostEndCompanionCheckOutput output;
+    agent->HostEndCompanionCheck(input, output);
 }
 
 static void FuzzHostCancelCompanionCheck(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
@@ -123,8 +119,6 @@ static void FuzzCompanionProcessCheck(std::shared_ptr<ISecurityAgent> &agent, Fu
     for (uint8_t i = 0; i < protocolCount; ++i) {
         input.protocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
     }
-    input.companionCheckRequest =
-        fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
     CompanionProcessCheckOutput output;
     agent->CompanionProcessCheck(input, output);
 }
@@ -158,6 +152,7 @@ static void FuzzHostEndAddCompanion(std::shared_ptr<ISecurityAgent> &agent, Fuzz
     HostEndAddCompanionInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
+    input.companionStatus.enrolledProtocolId = static_cast<ProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.companionStatus.templateId = fuzzData.ConsumeIntegral<uint64_t>();
     input.companionStatus.hostUserKey.userId = fuzzData.ConsumeIntegral<int32_t>();
     uint32_t supportedBusinessIdsSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, 64);
@@ -183,11 +178,11 @@ static void FuzzCompanionInitKeyNegotiation(std::shared_ptr<ISecurityAgent> &age
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     uint8_t protocolCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < protocolCount; ++i) {
-        input.protocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
+        input.companionProtocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
     }
     uint8_t capCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < capCount; ++i) {
-        input.capabilityList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
+        input.companionCapabilityList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
     }
     input.companionDeviceKey = GenerateFuzzDeviceKey(fuzzData);
     input.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
