@@ -106,8 +106,8 @@ static void FuzzHandleSyncResult(std::shared_ptr<DeviceStatusManager> &mgr, Fuzz
     syncStatus.needSync = fuzzData.ConsumeBool();
     // Randomly decide whether to add protocols (to test empty protocol list scenario)
     if (fuzzData.ConsumeBool()) {
-        syncStatus.protocolIdList.push_back(static_cast<ProtocolId>(fuzzData.ConsumeIntegral<uint8_t>()));
-        syncStatus.capabilityList.push_back(static_cast<Capability>(fuzzData.ConsumeIntegral<uint8_t>()));
+        syncStatus.companionProtocolIdList.push_back(static_cast<ProtocolId>(fuzzData.ConsumeIntegral<uint8_t>()));
+        syncStatus.companionCapabilityList.push_back(static_cast<Capability>(fuzzData.ConsumeIntegral<uint8_t>()));
         syncStatus.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint8_t>());
         syncStatus.deviceUserName = GenerateFuzzString(fuzzData, TEST_VAL64);
     }

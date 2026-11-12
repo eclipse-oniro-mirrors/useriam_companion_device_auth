@@ -383,14 +383,14 @@ HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_MultipleSynced, TestSize.Le
     auto status1 = MakePhysicalStatus("device-all-1", ChannelId::SOFTBUS, "Device1");
     DeviceStatusEntry entry1(status1, []() {});
     entry1.isSynced = true;
-    entry1.protocolId = ProtocolId::VERSION_1;
+    entry1.negotiatedProtocolId = ProtocolId::VERSION_1;
     entry1.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(status1.physicalDeviceKey, std::move(entry1));
 
     auto status2 = MakePhysicalStatus("device-all-2", ChannelId::SOFTBUS, "Device2");
     DeviceStatusEntry entry2(status2, []() {});
     entry2.isSynced = true;
-    entry2.protocolId = ProtocolId::VERSION_1;
+    entry2.negotiatedProtocolId = ProtocolId::VERSION_1;
     entry2.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(status2.physicalDeviceKey, std::move(entry2));
 
@@ -456,7 +456,7 @@ HWTEST_F(DeviceStatusManagerTest, NotifySubscribers_WithNullCallback, TestSize.L
     auto status = MakePhysicalStatus("device-notify", ChannelId::SOFTBUS, "Device");
     DeviceStatusEntry entry(status, []() {});
     entry.isSynced = true;
-    entry.protocolId = ProtocolId::VERSION_1;
+    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
     entry.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(status.physicalDeviceKey, std::move(entry));
 
@@ -529,7 +529,7 @@ HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_IncludesRefreshToken, TestSize
     physicalStatus.refreshToken = true;
     DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = true;
-    entry.protocolId = ProtocolId::VERSION_1;
+    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
     entry.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
@@ -550,7 +550,7 @@ HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_IncludesRefreshToken, TestS
     physicalStatus.refreshToken = true;
     DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = true;
-    entry.protocolId = ProtocolId::VERSION_1;
+    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
     entry.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
@@ -624,7 +624,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsChanged
     // Pre-existing entry, not yet synced (sync empty): effective is driven by the physical ids.
     DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
-    entry.protocolId = ProtocolId::VERSION_1;
+    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     auto updatedStatus = MakePhysicalStatus("device-biz-change", ChannelId::SOFTBUS, "Device");
@@ -653,7 +653,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchang
 
     DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
-    entry.protocolId = ProtocolId::VERSION_1;
+    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())

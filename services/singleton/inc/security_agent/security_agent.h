@@ -77,7 +77,7 @@ struct HostEndCompanionCheckInput {
 };
 
 struct HostEndCompanionCheckOutput {
-    std::vector<uint16_t> capabilityList;
+    std::vector<uint16_t> companionCapabilityList;
 };
 
 struct HostCancelCompanionCheckInput {
@@ -86,7 +86,7 @@ struct HostCancelCompanionCheckInput {
 
 struct CompanionProcessCheckInput {
     BindingId bindingId;
-    std::vector<uint16_t> protocolList;
+    std::vector<uint16_t> companionProtocolList;
     std::vector<uint16_t> companionCapabilityList;
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> salt;
@@ -120,12 +120,13 @@ struct HostBeginAddCompanionInput {
     SecureProtocolId secureProtocolId;
     std::vector<uint16_t> hostCapabilityList;
     std::vector<uint16_t> hostProtocolList;
+    std::vector<uint16_t> companionCapabilityList;
     std::vector<uint8_t> initKeyNegotiationReply;
 };
 
 struct HostBeginAddCompanionOutput {
     std::vector<uint8_t> addHostBindingRequest;
-    SelectedAlgorithms selectedAlgorithms;
+    std::vector<SelectedAlgorithms> selectedAlgorithmsList;
 };
 
 struct HostEndAddCompanionInput {
@@ -143,7 +144,7 @@ struct HostEndAddCompanionOutput {
     Atl atl;
     int32_t esl;
     int64_t addedTime;
-    std::vector<uint16_t> capabilityList;
+    std::vector<uint16_t> enrolledCapabilityList;
 };
 
 struct HostCancelAddCompanionInput {

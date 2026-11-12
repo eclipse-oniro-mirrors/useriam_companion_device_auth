@@ -723,9 +723,8 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_004_TokenFailurePreserves
     manager->bindings_.push_back(binding);
     ASSERT_FALSE(manager->bindings_.empty());
 
-    // CompanionEndAddHostBinding returns failure: the binding must be preserved. The host may
-    // already have persisted its credential (it only ever sends SUCCESS with the final message),
-    // and a token-distribution failure must not split the state between the two devices.
+    // CompanionEndAddHostBinding failure must preserve the binding: the host may already have
+    // persisted its credential, and a token-distribution failure must not split the two devices.
     EXPECT_CALL(securityAgent, CompanionEndAddHostBinding(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
     EXPECT_CALL(securityAgent, CompanionRemoveHostBinding(_)).Times(0);
 

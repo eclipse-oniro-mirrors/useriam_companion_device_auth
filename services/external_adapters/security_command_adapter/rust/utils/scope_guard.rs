@@ -18,6 +18,7 @@ pub struct ScopeGuard<F: FnOnce()> {
 }
 
 impl<F: FnOnce()> ScopeGuard<F> {
+    #[must_use]
     pub fn new(action: F) -> Self {
         ScopeGuard { action: Some(action) }
     }

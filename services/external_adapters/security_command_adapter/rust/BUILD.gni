@@ -17,6 +17,7 @@ companion_device_auth_rust_service_local_sources = [
   "commands/common_command.rs",
   "commands/mod.rs",
   "commands/system_commands.rs",
+  "common/algorithm.rs",
   "common/constants.rs",
   "common/mod.rs",
   "common/types.rs",
@@ -82,6 +83,7 @@ companion_device_auth_rust_service_local_sources = [
   "utils/message_codec.rs",
   "utils/mod.rs",
   "utils/parcel.rs",
+  "utils/scope_guard.rs",
 ]
 
 # For security_command_adapter/BUILD.gn - relative paths from security_command_adapter directory

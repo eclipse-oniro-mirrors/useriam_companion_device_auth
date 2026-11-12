@@ -47,8 +47,8 @@ protected:
 
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_001, TestSize.Level0)
 {
-    SyncDeviceStatusRequest request = { .protocolIdList = protocolIdList_,
-        .capabilityList = capabilityList_,
+    SyncDeviceStatusRequest request = { .hostProtocolIdList = protocolIdList_,
+        .hostCapabilityList = capabilityList_,
         .hostDeviceKey = hostDeviceKey_,
         .salt = salt_,
         .challenge = challenge_ };
@@ -64,8 +64,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_001, TestSiz
     ASSERT_TRUE(result.has_value());
     SyncDeviceStatusRequest decoded = result.value();
 
-    EXPECT_EQ(decoded.protocolIdList, request.protocolIdList);
-    EXPECT_EQ(decoded.capabilityList, request.capabilityList);
+    EXPECT_EQ(decoded.hostProtocolIdList, request.hostProtocolIdList);
+    EXPECT_EQ(decoded.hostCapabilityList, request.hostCapabilityList);
     EXPECT_EQ(decoded.hostDeviceKey.idType, request.hostDeviceKey.idType);
     EXPECT_EQ(decoded.hostDeviceKey.deviceId, request.hostDeviceKey.deviceId);
     EXPECT_EQ(decoded.hostDeviceKey.deviceUserId, request.hostDeviceKey.deviceUserId);
@@ -75,8 +75,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_001, TestSiz
 
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_002, TestSize.Level0)
 {
-    SyncDeviceStatusRequest request = { .protocolIdList = {},
-        .capabilityList = {},
+    SyncDeviceStatusRequest request = { .hostProtocolIdList = {},
+        .hostCapabilityList = {},
         .hostDeviceKey = hostDeviceKey_,
         .salt = {},
         .challenge = 0 };
@@ -92,8 +92,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_002, TestSiz
     ASSERT_TRUE(result.has_value());
     SyncDeviceStatusRequest decoded = result.value();
 
-    EXPECT_TRUE(decoded.protocolIdList.empty());
-    EXPECT_TRUE(decoded.capabilityList.empty());
+    EXPECT_TRUE(decoded.hostProtocolIdList.empty());
+    EXPECT_TRUE(decoded.hostCapabilityList.empty());
     EXPECT_TRUE(decoded.salt.empty());
     EXPECT_EQ(decoded.challenge, 0);
 }
@@ -162,8 +162,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_005, TestSiz
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-        .protocolIdList = protocolIdList_,
-        .capabilityList = capabilityList_,
+        .companionProtocolIdList = protocolIdList_,
+        .companionCapabilityList = capabilityList_,
         .secureProtocolId = secureProtocolId_,
         .companionDeviceKey = companionDeviceKey_,
         .deviceUserName = deviceUserName_,
@@ -183,8 +183,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.
     SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
-    EXPECT_EQ(decoded.protocolIdList, reply.protocolIdList);
-    EXPECT_EQ(decoded.capabilityList, reply.capabilityList);
+    EXPECT_EQ(decoded.companionProtocolIdList, reply.companionProtocolIdList);
+    EXPECT_EQ(decoded.companionCapabilityList, reply.companionCapabilityList);
     EXPECT_EQ(decoded.secureProtocolId, reply.secureProtocolId);
     EXPECT_EQ(decoded.companionDeviceKey.idType, reply.companionDeviceKey.idType);
     EXPECT_EQ(decoded.companionDeviceKey.deviceId, reply.companionDeviceKey.deviceId);
@@ -198,8 +198,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_002, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::GENERAL_ERROR,
-        .protocolIdList = protocolIdList_,
-        .capabilityList = capabilityList_,
+        .companionProtocolIdList = protocolIdList_,
+        .companionCapabilityList = capabilityList_,
         .secureProtocolId = secureProtocolId_,
         .companionDeviceKey = companionDeviceKey_,
         .deviceUserName = deviceUserName_,
@@ -218,8 +218,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_002, TestSize.
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-        .protocolIdList = {},
-        .capabilityList = {},
+        .companionProtocolIdList = {},
+        .companionCapabilityList = {},
         .secureProtocolId = SecureProtocolId::DEFAULT,
         .companionDeviceKey = companionDeviceKey_,
         .deviceUserName = "",
@@ -237,23 +237,22 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.
     SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
-    EXPECT_TRUE(decoded.protocolIdList.empty());
-    EXPECT_TRUE(decoded.capabilityList.empty());
+    EXPECT_TRUE(decoded.companionProtocolIdList.empty());
+    EXPECT_TRUE(decoded.companionCapabilityList.empty());
     EXPECT_EQ(decoded.secureProtocolId, SecureProtocolId::DEFAULT);
     EXPECT_TRUE(decoded.deviceUserName.empty());
     EXPECT_TRUE(decoded.companionCheckResponse.empty());
 }
 
-// Decode enforces only the field's presence: which secure protocol values this build can
-// consume is judged inside the Rust security layer, so non-DEFAULT raw values must decode and
-// round-trip unchanged on their way there.
+// Decode enforces only the field's presence; consumption is judged in the Rust security layer,
+// so non-DEFAULT raw values must round-trip unchanged on their way there.
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_PreservesFutureSecureProtocolValue, TestSize.Level0)
 {
     for (auto rawSecureProtocolId : std::vector<uint16_t> { static_cast<uint16_t>(SecureProtocolId::INVALID),
              static_cast<uint16_t>(SecureProtocolId::DEFAULT) + 1 }) {
         SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-            .protocolIdList = protocolIdList_,
-            .capabilityList = capabilityList_,
+            .companionProtocolIdList = protocolIdList_,
+            .companionCapabilityList = capabilityList_,
             .secureProtocolId = static_cast<SecureProtocolId>(rawSecureProtocolId),
             .companionDeviceKey = companionDeviceKey_,
             .deviceUserName = deviceUserName_,
@@ -398,8 +397,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MissingDeviceN
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_WithSubProfileFields, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-        .protocolIdList = protocolIdList_,
-        .capabilityList = capabilityList_,
+        .companionProtocolIdList = protocolIdList_,
+        .companionCapabilityList = capabilityList_,
         .secureProtocolId = secureProtocolId_,
         .companionDeviceKey = companionDeviceKey_,
         .deviceUserName = deviceUserName_,
@@ -462,8 +461,8 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_WithSubProfi
         .deviceUserId = 100,
         .deviceSubProfileId = 100001 };
 
-    SyncDeviceStatusRequest request = { .protocolIdList = protocolIdList_,
-        .capabilityList = capabilityList_,
+    SyncDeviceStatusRequest request = { .hostProtocolIdList = protocolIdList_,
+        .hostCapabilityList = capabilityList_,
         .hostDeviceKey = hostKey,
         .salt = salt_,
         .challenge = 0 };

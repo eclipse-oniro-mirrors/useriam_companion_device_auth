@@ -40,7 +40,7 @@ fn create_test_host_binding(binding_id: i32, device_id: &str, user_id: i32) -> H
         user_info: UserInfo { user_key: UserKey { user_id, sub_profile_id: 0 }, user_type: 1 },
         binding_time: 1000,
         last_used_time: 2000,
-        protocol_id: 1,
+        enrolled_protocol_id: 1,
         secure_protocol_id: 0,
     }
 }
@@ -63,7 +63,7 @@ fn create_test_host_binding_with_profile(
         user_info: UserInfo { user_key: UserKey { user_id, sub_profile_id }, user_type: 1 },
         binding_time: 1000,
         last_used_time,
-        protocol_id: 1,
+        enrolled_protocol_id: 1,
         secure_protocol_id: 0,
     }
 }
@@ -661,7 +661,7 @@ fn default_host_binding_db_manager_read_device_db_test_success() {
     assert!(manager.get_device_by_binding_id(123).is_ok());
     let retrieved = manager.get_device_by_binding_id(123).unwrap();
     assert_eq!(retrieved.device_key.device_id, "device1");
-    assert_eq!(retrieved.protocol_id, PROTOCOL_ID_INVALID);
+    assert_eq!(retrieved.enrolled_protocol_id, PROTOCOL_ID_INVALID);
 }
 
 // A binding written at the current version must round-trip its enrolled protocol through
@@ -689,14 +689,14 @@ fn default_host_binding_db_manager_test_roundtrip_preserves_protocol_id() {
 
     let mut manager = DefaultHostBindingDbManager::new();
     let mut device_info = create_test_host_binding(123, "device1", 100);
-    device_info.protocol_id = NON_DEFAULT_PROTOCOL_ID;
+    device_info.enrolled_protocol_id = NON_DEFAULT_PROTOCOL_ID;
     let sk_info = create_test_sk_info(vec![1u8, 2, 3]);
     assert!(manager.add_device(&device_info, &sk_info).is_ok());
 
     let mut restored = DefaultHostBindingDbManager::new();
     assert!(restored.read_device_db().is_ok());
     let retrieved = restored.get_device_by_binding_id(123).unwrap();
-    assert_eq!(retrieved.protocol_id, NON_DEFAULT_PROTOCOL_ID);
+    assert_eq!(retrieved.enrolled_protocol_id, NON_DEFAULT_PROTOCOL_ID);
 }
 
 #[test]

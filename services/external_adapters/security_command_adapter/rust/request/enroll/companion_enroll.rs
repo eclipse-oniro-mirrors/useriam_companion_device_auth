@@ -66,7 +66,7 @@ pub struct TokenInfo {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDeviceEnrollRequest {
     pub secure_protocol_id: u16,
-    pub protocol_list: Vec<u16>,
+    pub companion_protocol_list: Vec<u16>,
     pub companion_capability_list: Vec<u16>,
     pub selected_protocol_id: u16,
     pub key_nego_param: KeyNegoParam,
@@ -84,7 +84,7 @@ impl CompanionDeviceEnrollRequest {
         let host_device_key = DeviceKey::try_from(&input.host_device_key)?;
         let companion_device_key = DeviceKey::try_from(&input.companion_device_key)?;
 
-        let protocol_list: Vec<u16> = input.companion_protocol_list.try_into().map_err(|e| {
+        let companion_protocol_list: Vec<u16> = input.companion_protocol_list.try_into().map_err(|e| {
             log_e!("companion_protocol_list try_into fail: {:?}", e);
             ErrorCode::GeneralError
         })?;
@@ -93,14 +93,14 @@ impl CompanionDeviceEnrollRequest {
             ErrorCode::GeneralError
         })?;
 
-        validate_protocol_list(&protocol_list)?;
+        validate_protocol_list(&companion_protocol_list)?;
         validate_capability_list(&companion_capability_list)?;
 
-        if input.selected_protocol_id == PROTOCOL_ID_INVALID || !protocol_list.contains(&input.selected_protocol_id) {
+        if input.selected_protocol_id == PROTOCOL_ID_INVALID || !companion_protocol_list.contains(&input.selected_protocol_id) {
             log_e!(
                 "selected protocol {} is invalid or not in the negotiated protocol list {:?}",
                 input.selected_protocol_id,
-                protocol_list
+                companion_protocol_list
             );
             return Err(ErrorCode::GeneralError);
         }
@@ -112,7 +112,7 @@ impl CompanionDeviceEnrollRequest {
         })?;
         Ok(Self {
             secure_protocol_id: input.secure_protocol_id,
-            protocol_list,
+            companion_protocol_list,
             companion_capability_list,
             selected_protocol_id: input.selected_protocol_id,
             key_nego_param: KeyNegoParam {
@@ -177,7 +177,6 @@ impl CompanionDeviceEnrollRequest {
 
     fn init_device_info(&mut self) -> Result<(Box<HostBinding>, Box<HostBindingKeyMaterial>), ErrorCode> {
         let binding_id = HostBindingDbManagerRegistry::get().generate_unique_binding_id().map_err(|e| p!(e))?;
-        let protocol_id = self.selected_protocol_id;
         let device_info = Box::new(HostBinding {
             binding_id,
             device_key: self.key_nego_param.host_device_key.clone(),
@@ -190,7 +189,7 @@ impl CompanionDeviceEnrollRequest {
             },
             binding_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             last_used_time: 0,
-            protocol_id,
+            enrolled_protocol_id: self.selected_protocol_id,
             secure_protocol_id: self.secure_protocol_id,
         });
 
@@ -292,11 +291,11 @@ impl CompanionDeviceEnrollRequest {
         let host_protocol_list = decrypt_attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
         let expected_protocol_id = host_protocol_list
             .iter()
-            .find(|protocol| self.protocol_list.contains(protocol))
+            .find(|protocol| self.companion_protocol_list.contains(protocol))
             .copied();
         if expected_protocol_id != Some(self.selected_protocol_id) {
             log_e!(
-                "recomputed protocol {:?} differs from pinned selection {}",
+                "recomputed protocol {:?} differs from selected protocol {}",
                 expected_protocol_id,
                 self.selected_protocol_id
             );
@@ -319,8 +318,8 @@ impl CompanionDeviceEnrollRequest {
             esl: ExecutorSecurityLevel::Esl3 as i32,
             track_ability_level: TrackAbilityLevel::Tal4 as i32,
             challenge: self.binding_param.host_challenge,
-            protocol_list: self.protocol_list.clone(),
-            capability_list: self.companion_capability_list.clone(),
+            companion_protocol_list: self.companion_protocol_list.clone(),
+            companion_capability_list: self.companion_capability_list.clone(),
             selected_algorithms: self.selected_algorithms,
             companion_supported_algorithms: get_supported_algorithms(),
         });
@@ -432,7 +431,7 @@ impl Request for CompanionDeviceEnrollRequest {
             },
             host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
             is_token_valid: false,
-            enrolled_protocol_id: device_info.protocol_id,
+            enrolled_protocol_id: device_info.enrolled_protocol_id,
         };
         Ok(())
     }

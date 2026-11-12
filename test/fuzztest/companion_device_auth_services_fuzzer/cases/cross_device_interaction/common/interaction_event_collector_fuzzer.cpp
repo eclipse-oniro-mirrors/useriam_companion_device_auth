@@ -88,7 +88,7 @@ static void FuzzSetSelectedAlgorithms(InteractionEventCollector &collector, Fuzz
     selectedAlgorithms.kdfAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
     selectedAlgorithms.aeadAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
     selectedAlgorithms.macAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
-    collector.SetSelectedAlgorithms(selectedAlgorithms);
+    collector.SetSelectedAlgorithms(std::vector<SelectedAlgorithms> { selectedAlgorithms });
 }
 
 static void FuzzSetEsl(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)

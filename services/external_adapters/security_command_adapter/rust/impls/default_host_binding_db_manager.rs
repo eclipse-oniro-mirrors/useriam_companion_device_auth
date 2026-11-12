@@ -100,7 +100,7 @@ impl DefaultHostBindingDbManager {
             parcel.write_i32(host_binding.user_info.user_key.sub_profile_id);
             parcel.write_u64(host_binding.binding_time);
             parcel.write_u64(host_binding.last_used_time);
-            parcel.write_u16(host_binding.protocol_id);
+            parcel.write_u16(host_binding.enrolled_protocol_id);
             parcel.write_u16(host_binding.secure_protocol_id);
         }
     }
@@ -130,7 +130,7 @@ impl DefaultHostBindingDbManager {
             let user_info_sub_profile_id = parcel.read_i32().map_err(|e| p!(e))?;
             let binding_time = parcel.read_u64().map_err(|e| p!(e))?;
             let last_used_time = parcel.read_u64().map_err(|e| p!(e))?;
-            let protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
+            let enrolled_protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
             let secure_protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
 
             let host_binding = HostBinding {
@@ -145,7 +145,7 @@ impl DefaultHostBindingDbManager {
                 },
                 binding_time,
                 last_used_time,
-                protocol_id,
+                enrolled_protocol_id,
                 secure_protocol_id,
             };
             self.host_bindings.push(host_binding);

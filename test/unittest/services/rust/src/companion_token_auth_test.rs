@@ -53,7 +53,7 @@ fn mock_enrolled_binding() -> HostBinding {
         user_info: UserInfo { user_key: UserKey::default(), user_type: 0 },
         binding_time: 0,
         last_used_time: 0,
-        protocol_id: 1,
+        enrolled_protocol_id: 1,
         secure_protocol_id: 1,
     }
 }
@@ -110,7 +110,7 @@ fn companion_token_auth_request_begin_test_wrong_input_type() {
         secure_protocol_id: 1,
         challenge: 0,
         salt: DataArray32Ffi { data: [0u8; HKDF_SALT_SIZE], len: HKDF_SALT_SIZE as u32 },
-        protocol_list: Uint16Array64Ffi::default(),
+        companion_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list: Uint16Array64Ffi::default(),
     };
 

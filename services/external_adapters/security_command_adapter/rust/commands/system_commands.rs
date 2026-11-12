@@ -166,8 +166,8 @@ pub fn host_get_persisted_status(
                     device_user_name: DataArray256Ffi::try_from(device_profile.device_user_name)?,
                     device_name: DataArray256Ffi::try_from(device_profile.device_name)?,
                     device_sub_profile_name: DataArray256Ffi::try_from(device_profile.device_sub_profile_name)?,
-                    enrolled_protocol_id: device_info.protocol_id,
-                    capability_list: Uint16Array64Ffi::try_from(device_info.capability_list)?,
+                    enrolled_protocol_id: device_info.enrolled_protocol_id,
+                    enrolled_capability_list: Uint16Array64Ffi::try_from(device_info.enrolled_capability_list)?,
                 };
 
                 companion_status_list.push(companion_status);
@@ -549,7 +549,7 @@ pub fn companion_get_persisted_status(
             },
             host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
             is_token_valid: HostBindingDbManagerRegistry::get().is_device_token_valid(device_info.binding_id)?,
-            enrolled_protocol_id: device_info.protocol_id,
+            enrolled_protocol_id: device_info.enrolled_protocol_id,
         };
         binding_status_list.push(binding_status);
     }

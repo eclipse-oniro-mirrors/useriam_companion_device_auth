@@ -98,7 +98,7 @@ fn mock_enrolled_binding() -> HostBinding {
         user_info: UserInfo { user_key: UserKey::default(), user_type: 0 },
         binding_time: 0,
         last_used_time: 0,
-        protocol_id: 1,
+        enrolled_protocol_id: 1,
         secure_protocol_id: 1,
     }
 }

@@ -59,8 +59,8 @@ SyncDeviceStatusReply MakeDefaultSyncDeviceStatusReply()
 {
     return {
         .result = ResultCode::SUCCESS,
-        .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+        .companionProtocolIdList = { ProtocolId::VERSION_1 },
+        .companionCapabilityList = { Capability::TOKEN_AUTH },
         .businessIdList = { BusinessId::DEFAULT },
         .secureProtocolId = SecureProtocolId::DEFAULT,
         .companionDeviceKey = COMPANION_DEVICE_KEY,
@@ -289,8 +289,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_002, TestS
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_003, TestSize.Level0)
 {
     auto errorCalled = std::make_shared<bool>(false);
-    // Generic peer failures are collapsed into PEER_SYNC_FAILED before reaching the completion
-    // callback; only SECURE_PROTOCOL_NOT_SUPPORTED passes through verbatim.
+    // Generic peer failures collapse into PEER_SYNC_FAILED; terminal errors
+    // (PROTOCOL_NEGOTIATION_FAILED, SECURE_PROTOCOL_NOT_SUPPORTED, NOT_ENROLLED) pass through
+    // verbatim so the caller aborts the retry.
     auto callback = [errorCalled](ResultCode result, const SyncDeviceStatus &) {
         if (result == ResultCode::PEER_SYNC_FAILED) {
             *errorCalled = true;
@@ -408,7 +409,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_DivergedProtocolEnds
         COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
-        .protocolIdList = { PROTOCOL_VERSION_2 },
+        .companionProtocolIdList = { PROTOCOL_VERSION_2 },
         .businessIdList = { BusinessId::DEFAULT },
         .companionCheckResponse = { 1, 2, 3 } };
     syncDeviceStatusReply.companionDeviceKey = COMPANION_DEVICE_KEY;
@@ -424,9 +425,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_DivergedProtocolEnds
         authenticatedCapabilities);
 }
 
-// A proofless reply never reaches the security layer, so no divergence verdict — authenticated
-// or not — can invalidate the credential (rules 6/7). The round falls through to the legacy
-// empty-proof tolerance instead.
+// A proofless reply never reaches the security layer, so no divergence verdict can invalidate
+// the credential; the round falls through to the legacy empty-proof tolerance.
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_ProoflessReplySkipsSecureLayer, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
@@ -434,7 +434,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_ProoflessReplySkipsS
         COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
-        .protocolIdList = { PROTOCOL_VERSION_2 },
+        .companionProtocolIdList = { PROTOCOL_VERSION_2 },
         .businessIdList = { BusinessId::DEFAULT } };
     syncDeviceStatusReply.companionDeviceKey = COMPANION_DEVICE_KEY;
 
@@ -498,8 +498,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BuildSyncDeviceStatusRequest_OffersFul
     LocalDeviceProfile profile = { .protocols = { PROTOCOL_VERSION_2, ProtocolId::VERSION_1 },
         .hostCapabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH } };
     auto message = request->BuildSyncDeviceStatusRequest(profile, {}, 0);
-    EXPECT_EQ(message.protocolIdList, profile.protocols);
-    EXPECT_EQ(message.capabilityList, profile.hostCapabilities);
+    EXPECT_EQ(message.hostProtocolIdList, profile.protocols);
+    EXPECT_EQ(message.hostCapabilityList, profile.hostCapabilities);
     EXPECT_EQ(message.hostDeviceKey.deviceUserId, HOST_USER_ID);
 }
 
@@ -512,8 +512,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, ValidateReplyParameters_AcceptsSuperse
     ASSERT_NE(request, nullptr);
     request->hostProtocolIdList_ = PROFILE.protocols;
     auto reply = MakeDefaultSyncDeviceStatusReply();
-    reply.protocolIdList = { PROTOCOL_VERSION_2, ProtocolId::VERSION_1 };
-    reply.capabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
+    reply.companionProtocolIdList = { PROTOCOL_VERSION_2, ProtocolId::VERSION_1 };
+    reply.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
     EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
 }
 
@@ -547,8 +547,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FirstSync_SelectsReplyUserBindingInOne
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
         .WillOnce(Invoke([&](const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &output) {
             EXPECT_EQ(input.templateId, bound.templateId);
-            output.capabilityList =
-                CapabilityConverter::ToUnderlyingVec(MakeDefaultSyncDeviceStatusReply().capabilityList);
+            output.companionCapabilityList =
+                CapabilityConverter::ToUnderlyingVec(MakeDefaultSyncDeviceStatusReply().companionCapabilityList);
             return SUCCESS;
         }));
     request->OnConnected();
@@ -563,8 +563,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FirstSync_SelectsReplyUserBindingInOne
 }
 
 // An unoffered announced version on the plaintext outer list fails the structural pre-filter
-// before the security layer runs (dual judgment, 2026-11-08 ruling); the plaintext rejection
-// fails the round but does not invalidate the binding.
+// before the security layer runs; the rejection fails the round but does not invalidate the
+// binding.
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_RejectsUnofferedPlaintextProtocol,
     TestSize.Level0)
 {
@@ -579,7 +579,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_RejectsUno
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
-    message.protocolIdList = { PROTOCOL_VERSION_2 };
+    message.companionProtocolIdList = { PROTOCOL_VERSION_2 };
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
@@ -589,7 +589,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_RejectsUno
     EXPECT_EQ(received, PROTOCOL_NEGOTIATION_FAILED);
 }
 
-// A capability growth beyond the enrolled pin diverges: the template is invalidated but the
+// A capability growth beyond the enrolled capability list diverges: the template is invalidated but the
 // sync round itself still succeeds, so discovery keeps flowing and re-enrollment can proceed.
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_CapabilityDivergenceInvalidatesAndSucceeds,
     TestSize.Level0)
@@ -613,9 +613,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_Capability
     EXPECT_EQ(received, SUCCESS);
 }
 
-// The converged authenticated capability value returned by the security layer wins over
-// the plaintext announcement; the announcement is only the fallback when no authenticated
-// value exists (legacy empty-proof rounds).
+// The authenticated capability value from the security layer wins over the plaintext
+// announcement; the announcement is only the fallback for legacy empty-proof rounds.
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_ConsumesAuthenticatedCapabilityValue,
     TestSize.Level0)
 {
@@ -625,7 +624,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_ConsumesAu
         COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
         [&succeeded, &receivedCapabilities](ResultCode result, const SyncDeviceStatus &status) {
             succeeded = result == SUCCESS;
-            receivedCapabilities = status.capabilityList;
+            receivedCapabilities = status.companionCapabilityList;
         });
     ASSERT_NE(request, nullptr);
     request->hostProtocolIdList_ = PROFILE.protocols;
@@ -635,11 +634,11 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_ConsumesAu
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
         .WillOnce(Invoke([](const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &output) {
             // Converged value narrower than the plaintext announcement below.
-            output.capabilityList = { static_cast<uint16_t>(Capability::TOKEN_AUTH) };
+            output.companionCapabilityList = { static_cast<uint16_t>(Capability::TOKEN_AUTH) };
             return SUCCESS;
         }));
     auto message = MakeDefaultSyncDeviceStatusReply();
-    message.capabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
+    message.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
@@ -660,7 +659,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_FallsBackT
         COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
         [&succeeded, &receivedCapabilities](ResultCode result, const SyncDeviceStatus &status) {
             succeeded = result == SUCCESS;
-            receivedCapabilities = status.capabilityList;
+            receivedCapabilities = status.companionCapabilityList;
         });
     ASSERT_NE(request, nullptr);
     request->hostProtocolIdList_ = PROFILE.protocols;
@@ -690,9 +689,14 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, PeerCheckErrorPreservesBindingAndCance
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).Times(0);
 
-    // Generic peer failures collapse into PEER_SYNC_FAILED; the binding is preserved and the
-    // security agent-side check is cancelled for each peer error code.
-    for (auto peerResult : { GENERAL_ERROR, PROTOCOL_NEGOTIATION_FAILED }) {
+    // In every case the binding is preserved and the security agent-side check is cancelled;
+    // terminal errors keep their code so the caller aborts the retry.
+    const std::pair<ResultCode, ResultCode> peerErrorExpectations[] = {
+        { GENERAL_ERROR, PEER_SYNC_FAILED },
+        { PROTOCOL_NEGOTIATION_FAILED, PROTOCOL_NEGOTIATION_FAILED },
+        { NOT_ENROLLED, NOT_ENROLLED },
+    };
+    for (auto [peerResult, expectedReport] : peerErrorExpectations) {
         ResultCode received = SUCCESS;
         bool callbackCalled = false;
         auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
@@ -719,13 +723,13 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, PeerCheckErrorPreservesBindingAndCance
         callback(reply);
         TaskRunnerManager::GetInstance().ExecuteAll();
         EXPECT_TRUE(callbackCalled);
-        EXPECT_EQ(received, PEER_SYNC_FAILED);
+        EXPECT_EQ(received, expectedReport);
         EXPECT_EQ(request->companionDeviceKey_, COMPANION_DEVICE_KEY);
     }
 }
 
-// The terminal secure-protocol error is the one peer code reported verbatim: the caller maps it
-// to template invalidation, so flattening it would hide the invalidation trigger.
+// The terminal secure-protocol error passes through verbatim so the caller aborts the retry;
+// this path never invalidates the template.
 HWTEST_F(HostSyncDeviceStatusRequestTest, PeerCheckSecureProtocolErrorPassesThrough, TestSize.Level0)
 {
     ON_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
@@ -797,10 +801,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_EmptyProofNeverConsu
     request->EndCompanionCheck(reply, request->QueryCompanionStatus(reply), authenticatedCapabilities);
 }
 
-// A legacy empty-proof acceptance under a claimed, not-yet-known user key completes the round AND
-// learns the announced key for discovery/re-enrollment routing. Learning grants no trust: the
-// wash-attack concern is gone because no failure path reads the cache for invalidation authority
-// (see UnauthenticatedRoundsNeverInvalidate below).
+// A legacy empty-proof acceptance under a claimed, not-yet-known user key completes the round
+// and learns the announced key for routing only; no failure path reads the cache for
+// invalidation authority.
 HWTEST_F(HostSyncDeviceStatusRequestTest, LegacyEmptyProofLearnsUserKeyForRoutingOnly, TestSize.Level0)
 {
     constexpr int32_t CLAIMED_USER_ID = 201;
@@ -827,9 +830,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, LegacyEmptyProofLearnsUserKeyForRoutin
     EXPECT_EQ(request->companionDeviceKey_.deviceUserId, CLAIMED_USER_ID);
 }
 
-// Two consecutive unauthenticated rounds must never invalidate a binding, even after the first
-// round washed the claimed user key into the cache: round 1 accepts and learns user 201; round 2
-// announces the same user with a failing check — no invalidation may follow.
+// Two consecutive unauthenticated rounds never invalidate a binding, even after round 1
+// learned the claimed user key into the cache and round 2 fails under the same key.
 HWTEST_F(HostSyncDeviceStatusRequestTest, UnauthenticatedRoundsNeverInvalidate, TestSize.Level0)
 {
     constexpr int32_t CLAIMED_USER_ID = 201;
@@ -908,8 +910,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchUsesReplyBindingAndFullOffer
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
         .WillOnce(Invoke([&](const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &output) {
             EXPECT_EQ(input.templateId, activeBinding.templateId);
-            output.capabilityList =
-                CapabilityConverter::ToUnderlyingVec(MakeDefaultSyncDeviceStatusReply().capabilityList);
+            output.companionCapabilityList =
+                CapabilityConverter::ToUnderlyingVec(MakeDefaultSyncDeviceStatusReply().companionCapabilityList);
             return SUCCESS;
         }));
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
@@ -917,7 +919,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchUsesReplyBindingAndFullOffer
     ASSERT_TRUE(callback);
     auto message = MakeDefaultSyncDeviceStatusReply();
     message.companionDeviceKey = activeKey;
-    message.protocolIdList = { PROTOCOL_VERSION_2 };
+    message.companionProtocolIdList = { PROTOCOL_VERSION_2 };
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(activeKey.idType));
@@ -944,8 +946,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DiscoveryDoesNotBorrowAnotherHostUsers
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
-    message.protocolIdList.push_back(PROTOCOL_VERSION_2);
-    message.capabilityList.push_back(Capability::DELEGATE_AUTH);
+    message.companionProtocolIdList.push_back(PROTOCOL_VERSION_2);
+    message.companionCapabilityList.push_back(Capability::DELEGATE_AUTH);
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
@@ -974,8 +976,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchToUnboundUserAllowsDiscovery
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
     message.companionDeviceKey = activeKey;
-    message.protocolIdList.push_back(PROTOCOL_VERSION_2);
-    message.capabilityList.push_back(Capability::DELEGATE_AUTH);
+    message.companionProtocolIdList.push_back(PROTOCOL_VERSION_2);
+    message.companionCapabilityList.push_back(Capability::DELEGATE_AUTH);
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
@@ -987,9 +989,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchToUnboundUserAllowsDiscovery
     EXPECT_EQ(request->companionDeviceKey_.deviceUserId, NEXT_USER_ID);
 }
 
-// A trusted-key empty-proof round keeps the credential (rule 6, revised): without a verifiable
-// proof the ambiguity is resolved in favor of keeping the binding; discovery still proceeds and
-// the announced user key is learned for routing only.
+// A trusted-key empty-proof round keeps the credential: without a verifiable proof the
+// ambiguity is resolved in favor of the binding; discovery proceeds and the announced user
+// key is learned for routing only.
 HWTEST_F(HostSyncDeviceStatusRequestTest, MissingPeerBindingKeepsCredentialButAllowsDiscovery, TestSize.Level0)
 {
     bool succeeded = false;
@@ -1003,7 +1005,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, MissingPeerBindingKeepsCredentialButAl
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
-    message.capabilityList.push_back(Capability::DELEGATE_AUTH);
+    message.companionCapabilityList.push_back(Capability::DELEGATE_AUTH);
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
@@ -1083,18 +1085,16 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, ValidateReplyParameters_RejectsEmptyIn
     ASSERT_NE(request, nullptr);
     request->hostProtocolIdList_ = PROFILE.protocols;
     auto reply = MakeDefaultSyncDeviceStatusReply();
-    reply.protocolIdList.clear();
+    reply.companionProtocolIdList.clear();
     EXPECT_EQ(request->ValidateReplyParameters(reply), PROTOCOL_NEGOTIATION_FAILED);
-    reply.protocolIdList = { PROTOCOL_VERSION_2 };
+    reply.companionProtocolIdList = { PROTOCOL_VERSION_2 };
     EXPECT_EQ(request->ValidateReplyParameters(reply), PROTOCOL_NEGOTIATION_FAILED);
-    reply.protocolIdList = PROFILE.protocols;
+    reply.companionProtocolIdList = PROFILE.protocols;
     EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
 }
 
-// A security-layer divergence on a binding located through a claimed, not-yet-known user key is
-// produced after the proof verified, so it invalidates the binding: the verdict is authenticated
-// and must not depend on which user key the discovery cache happens to hold. The round itself
-// still succeeds and learns the announced key for routing.
+// A divergence found after the proof verified is authenticated and invalidates the binding
+// regardless of which user key the discovery cache holds; the round itself still succeeds.
 HWTEST_F(HostSyncDeviceStatusRequestTest, DivergedListWithUntrustedUserKeyStillInvalidates, TestSize.Level0)
 {
     constexpr int32_t CLAIMED_USER_ID = 201;
@@ -1120,9 +1120,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DivergedListWithUntrustedUserKeyStillI
     EXPECT_EQ(request->companionDeviceKey_.deviceUserId, CLAIMED_USER_ID);
 }
 
-// A bound peer whose reply announces a secure protocol the secure layer cannot consume is
-// rejected by the Rust layer (20013) and invalidates the binding; the sync round itself still
-// succeeds — the credential invalidation is the consequence, not a round failure.
+// A secure protocol the Rust layer cannot consume is rejected (20013) and invalidates the
+// binding; the sync round itself still succeeds.
 HWTEST_F(HostSyncDeviceStatusRequestTest, FutureSecureProtocolInvalidatesTemplate, TestSize.Level0)
 {
     ResultCode received = GENERAL_ERROR;

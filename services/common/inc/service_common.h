@@ -391,8 +391,8 @@ struct SecureExecutorInfo {
 
 struct SyncDeviceStatus {
     bool needSync { false };
-    std::vector<ProtocolId> protocolIdList;
-    std::vector<Capability> capabilityList;
+    std::vector<ProtocolId> companionProtocolIdList;
+    std::vector<Capability> companionCapabilityList;
     std::vector<BusinessId> businessIdList;
     SecureProtocolId secureProtocolId;
     std::string deviceUserName {};

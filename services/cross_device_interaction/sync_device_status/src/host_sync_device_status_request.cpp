@@ -148,8 +148,8 @@ SyncDeviceStatusRequest HostSyncDeviceStatusRequest::BuildSyncDeviceStatusReques
     const LocalDeviceProfile &localProfile, const std::vector<uint8_t> &salt, uint64_t challenge)
 {
     SyncDeviceStatusRequest request = {};
-    request.protocolIdList = localProfile.protocols;
-    request.capabilityList = localProfile.hostCapabilities;
+    request.hostProtocolIdList = localProfile.protocols;
+    request.hostCapabilityList = localProfile.hostCapabilities;
     request.hostDeviceKey.deviceUserId = hostUserKey_.userId;
     request.hostDeviceKey.deviceSubProfileId = hostUserKey_.subProfileId;
     request.salt = salt;
@@ -177,7 +177,7 @@ bool HostSyncDeviceStatusRequest::SendSyncDeviceStatusRequest(const std::vector<
     CollectSyncDeviceStatusEventInfo(localProfile);
 
     SyncDeviceStatusRequest request = BuildSyncDeviceStatusRequest(localProfile, salt, challenge);
-    hostProtocolIdList_ = request.protocolIdList;
+    hostProtocolIdList_ = request.hostProtocolIdList;
 
     Attributes attrRequest = {};
     EncodeSyncDeviceStatusRequest(request, attrRequest);
@@ -214,9 +214,9 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     if (replyData.result != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s peer sync failed, peerResult=%{public}d", GetDescription(),
             static_cast<int32_t>(replyData.result));
-        // Only the terminal secure-protocol error is reported verbatim (the caller maps it to
-        // template invalidation); every other peer failure collapses into PEER_SYNC_FAILED.
-        ResultCode reportCode = replyData.result == ResultCode::SECURE_PROTOCOL_NOT_SUPPORTED
+        ResultCode reportCode = (replyData.result == ResultCode::PROTOCOL_NEGOTIATION_FAILED ||
+                                    replyData.result == ResultCode::SECURE_PROTOCOL_NOT_SUPPORTED ||
+                                    replyData.result == ResultCode::NOT_ENROLLED)
             ? replyData.result
             : ResultCode::PEER_SYNC_FAILED;
         errorGuard.UpdateErrorCode(reportCode);
@@ -234,19 +234,10 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     UpdateCompanionUserIdAndSubProfileId(
         UserKey { replyData.companionDeviceKey.deviceUserId, replyData.companionDeviceKey.deviceSubProfileId });
 
-    SyncDeviceStatus syncDeviceStatus = {};
-    syncDeviceStatus.needSync = true;
-    syncDeviceStatus.protocolIdList = replyData.protocolIdList;
-    syncDeviceStatus.capabilityList = hasProof ? authenticatedCapabilities : replyData.capabilityList;
-    syncDeviceStatus.businessIdList = replyData.businessIdList;
-    syncDeviceStatus.secureProtocolId = replyData.secureProtocolId;
-    syncDeviceStatus.deviceUserName = replyData.deviceUserName;
-    syncDeviceStatus.deviceName = replyData.deviceName;
-    syncDeviceStatus.deviceUserKey =
-        UserKey { replyData.companionDeviceKey.deviceUserId, replyData.companionDeviceKey.deviceSubProfileId };
-    syncDeviceStatus.deviceSubProfileName = replyData.deviceSubProfileName;
+    SyncDeviceStatus syncDeviceStatus = BuildSyncDeviceStatus(replyData, hasProof, authenticatedCapabilities);
 
-    eventCollector_.SetPeerProtocolIdList(ProtocolIdConverter::ToUnderlyingVec(syncDeviceStatus.protocolIdList));
+    eventCollector_.SetPeerProtocolIdList(
+        ProtocolIdConverter::ToUnderlyingVec(syncDeviceStatus.companionProtocolIdList));
     if (companionStatus.has_value() && companionStatus->enrolledProtocolId != ProtocolId::INVALID) {
         eventCollector_.SetSelectedProtocolId(ProtocolIdConverter::ToUnderlying(companionStatus->enrolledProtocolId));
     }
@@ -254,6 +245,23 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
 
     errorGuard.Cancel();
     CompleteWithSuccess(syncDeviceStatus);
+}
+
+SyncDeviceStatus HostSyncDeviceStatusRequest::BuildSyncDeviceStatus(const SyncDeviceStatusReply &reply, bool hasProof,
+    const std::vector<Capability> &authenticatedCapabilities) const
+{
+    SyncDeviceStatus syncDeviceStatus = {};
+    syncDeviceStatus.needSync = true;
+    syncDeviceStatus.companionProtocolIdList = reply.companionProtocolIdList;
+    syncDeviceStatus.companionCapabilityList = hasProof ? authenticatedCapabilities : reply.companionCapabilityList;
+    syncDeviceStatus.businessIdList = reply.businessIdList;
+    syncDeviceStatus.secureProtocolId = reply.secureProtocolId;
+    syncDeviceStatus.deviceUserName = reply.deviceUserName;
+    syncDeviceStatus.deviceName = reply.deviceName;
+    syncDeviceStatus.deviceUserKey =
+        UserKey { reply.companionDeviceKey.deviceUserId, reply.companionDeviceKey.deviceSubProfileId };
+    syncDeviceStatus.deviceSubProfileName = reply.deviceSubProfileName;
+    return syncDeviceStatus;
 }
 
 std::optional<CompanionStatus> HostSyncDeviceStatusRequest::QueryCompanionStatus(
@@ -267,10 +275,10 @@ std::optional<CompanionStatus> HostSyncDeviceStatusRequest::QueryCompanionStatus
 
 ResultCode HostSyncDeviceStatusRequest::ValidateReplyParameters(const SyncDeviceStatusReply &reply) const
 {
-    if (reply.protocolIdList.empty()) {
+    if (reply.companionProtocolIdList.empty()) {
         return ResultCode::PROTOCOL_NEGOTIATION_FAILED;
     }
-    if (IntersectLists(reply.protocolIdList, hostProtocolIdList_).empty()) {
+    if (IntersectLists(reply.companionProtocolIdList, hostProtocolIdList_).empty()) {
         return ResultCode::PROTOCOL_NEGOTIATION_FAILED;
     }
     return ResultCode::SUCCESS;
@@ -311,7 +319,7 @@ void HostSyncDeviceStatusRequest::EndCompanionCheck(const SyncDeviceStatusReply 
         // Companion check failure only invalidates the credential; the sync round still succeeds.
         return;
     }
-    outCapabilities = CapabilityConverter::FromUnderlyingVec(checkOutput.capabilityList);
+    outCapabilities = CapabilityConverter::FromUnderlyingVec(checkOutput.companionCapabilityList);
 }
 
 ResultCode HostSyncDeviceStatusRequest::HostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply,

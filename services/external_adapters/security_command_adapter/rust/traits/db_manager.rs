@@ -88,7 +88,7 @@ pub struct HostBinding {
     pub user_info: UserInfo,
     pub binding_time: u64,
     pub last_used_time: u64,
-    pub protocol_id: u16,
+    pub enrolled_protocol_id: u16,
     pub secure_protocol_id: u16,
 }
 
@@ -134,8 +134,8 @@ pub struct CompanionDevice {
     pub user_info: UserInfo,
     pub added_time: u64,
     pub is_valid: bool,
-    pub capability_list: Vec<u16>,
-    pub protocol_id: u16,
+    pub enrolled_capability_list: Vec<u16>,
+    pub enrolled_protocol_id: u16,
     pub secure_protocol_id: u16,
 }
 

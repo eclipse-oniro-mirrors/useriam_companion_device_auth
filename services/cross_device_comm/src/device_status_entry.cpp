@@ -40,7 +40,7 @@ DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus,
       physicalDeviceName(physicalStatus.deviceName),
       syncDeviceName(),
       useSyncDeviceName(physicalStatus.useSyncDeviceName),
-      protocolId(ProtocolId::INVALID),
+      negotiatedProtocolId(ProtocolId::INVALID),
       secureProtocolId(SecureProtocolId::INVALID),
       deviceType(physicalStatus.deviceType),
       capabilities(),
@@ -75,7 +75,7 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       syncDeviceName(std::move(other.syncDeviceName)),
       deviceSubProfileName(std::move(other.deviceSubProfileName)),
       useSyncDeviceName(other.useSyncDeviceName),
-      protocolId(other.protocolId),
+      negotiatedProtocolId(other.negotiatedProtocolId),
       secureProtocolId(other.secureProtocolId),
       deviceType(other.deviceType),
       capabilities(std::move(other.capabilities)),
@@ -192,7 +192,7 @@ DeviceStatus DeviceStatusEntry::BuildDeviceStatus() const
     status.deviceName = GetDeviceName();
     status.deviceUserName = deviceUserName;
     status.deviceModelInfo = deviceModelInfo;
-    status.protocolId = protocolId;
+    status.protocolId = negotiatedProtocolId;
     status.secureProtocolId = secureProtocolId;
     status.capabilities = capabilities;
     status.supportedBusinessIds = effectiveBusinessIds_;

@@ -37,7 +37,7 @@ fn create_mock_host_binding(binding_id: i32) -> HostBinding {
         user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         binding_time: 123456,
         last_used_time: 123456,
-        protocol_id: 1,
+        enrolled_protocol_id: 1,
         secure_protocol_id: 0,
     }
 }

@@ -172,8 +172,8 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncNoTemplateE2E_001, TestSize.Level0)
     EXPECT_FALSE(msgInfo->isReply);
     SyncDeviceStatusReply reply;
     reply.result = ResultCode::SUCCESS;
-    reply.protocolIdList = { ProtocolId::VERSION_1 };
-    reply.capabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
+    reply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    reply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
     reply.secureProtocolId = SecureProtocolId::DEFAULT;
     reply.companionDeviceKey = MakeDeviceKey("companion-test-device-001", 200);
     reply.deviceUserName = "CompanionUser";
@@ -255,8 +255,8 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncPreSyncWindowAndFlipE2E_001, TestSi
 
     SyncDeviceStatusReply reply;
     reply.result = ResultCode::SUCCESS;
-    reply.protocolIdList = { ProtocolId::VERSION_1 };
-    reply.capabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
+    reply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    reply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
     reply.secureProtocolId = SecureProtocolId::DEFAULT;
     reply.companionDeviceKey = MakeDeviceKey(deviceId, 200);
     reply.deviceUserName = "CompanionUser";
@@ -453,8 +453,8 @@ HWTEST_F(SyncDeviceStatusModuleTest, CompanionResponseNoBindingE2E_001, TestSize
     IAM_LOGI("[Phase] Run — receive SYNC_DEVICE_STATUS request, send reply with protocols + user name");
     // 2. Build SyncDeviceStatusRequest from "host"
     SyncDeviceStatusRequest request;
-    request.protocolIdList = { ProtocolId::VERSION_1 };
-    request.capabilityList = { Capability::DELEGATE_AUTH };
+    request.hostProtocolIdList = { ProtocolId::VERSION_1 };
+    request.hostCapabilityList = { Capability::DELEGATE_AUTH };
     request.hostDeviceKey = MakeDeviceKey("host-test-device-001", COMPANION_ACTIVE_USER);
     request.salt = { 0xAA, 0xBB, 0xCC, 0xDD };
     request.challenge = 99999;
@@ -555,7 +555,7 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckSuccessE2E_001, Te
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_, _))
         .WillRepeatedly([&](const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &output) {
             EXPECT_EQ(input.templateId, TEMPLATE_ID);
-            output.capabilityList = { 1, 2, 3 };
+            output.companionCapabilityList = { 1, 2, 3 };
             return ResultCode::SUCCESS;
         });
 
@@ -585,10 +585,9 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithTemplateCheckSuccessE2E_001, Te
 // ============================================================================
 //
 // What this tests:
-//   Pre-register a companion → sync → proof-bearing companionCheckResponse
-//   → HostEndCompanionCheck reports an authenticated negotiation divergence
-//   → SetTemplateInvalid called → discovery remains available without restoring
-//     credential validity
+//   Pre-register a companion → sync → proof-bearing reply
+//   → authenticated divergence reported by HostEndCompanionCheck
+//   → SetTemplateInvalid called, discovery stays available
 //
 // E2E level: HIGH
 //   - Entry: service-level SubscribeAvailableDeviceStatus API
@@ -633,11 +632,8 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncWithAuthenticatedDivergenceE2E_001,
     EXPECT_EQ(companionStatus->templateId, TEMPLATE_ID);
     EXPECT_FALSE(companionStatus->isValid) << "Authenticated divergence should invalidate the template";
 
-    // 4. Invalidation does not propagate to the round: per ruling, a re-validation round whose
-    // secure check fails still completes with SUCCESS, so the device stays isSynced and remains
-    // visible in discovery as an online entry (DeviceStatus.isOnline mirrors isSynced). Whether
-    // re-enrollment is offered is decided by the framework from the invalidated template, not by
-    // unsynced reporting.
+    // 4. Invalidation does not propagate to the round: the sync still completes with SUCCESS,
+    // so the device stays discoverable as an online entry.
     auto discoverable = GetCrossDeviceCommManager().GetAllDeviceStatus(DeviceStatusFilter::INCLUDE_UNSYNCED);
     auto found = std::find_if(discoverable.begin(), discoverable.end(),
         [&companionDeviceId](const DeviceStatus &status) { return status.deviceKey.deviceId == companionDeviceId; });
@@ -691,8 +687,8 @@ HWTEST_F(SyncDeviceStatusModuleTest, CompanionResponseWithBindingE2E_001, TestSi
 
     // 4. Build sync request from host
     SyncDeviceStatusRequest request;
-    request.protocolIdList = { ProtocolId::VERSION_1 };
-    request.capabilityList = { Capability::DELEGATE_AUTH };
+    request.hostProtocolIdList = { ProtocolId::VERSION_1 };
+    request.hostCapabilityList = { Capability::DELEGATE_AUTH };
     request.hostDeviceKey = MakeDeviceKey("host-with-binding-001", COMPANION_USER);
     request.salt = { 0x01, 0x02, 0x03, 0x04 };
     request.challenge = 88888;

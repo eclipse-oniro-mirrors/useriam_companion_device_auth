@@ -123,8 +123,8 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
         user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         added_time: 123456,
         is_valid: true,
-        capability_list: vec![1, 2, 3],
-        protocol_id: 1,
+        enrolled_capability_list: vec![1, 2, 3],
+        enrolled_protocol_id: 1,
         secure_protocol_id: 1,
     }
 }

@@ -107,11 +107,11 @@ impl DefaultCompanionDeviceDbManager {
             parcel.write_i32(companion_device_info.user_info.user_key.sub_profile_id);
             parcel.write_u64(companion_device_info.added_time);
             parcel.write_u32(companion_device_info.is_valid as u32);
-            parcel.write_i32(companion_device_info.capability_list.len() as i32);
-            for &capability in &companion_device_info.capability_list {
+            parcel.write_i32(companion_device_info.enrolled_capability_list.len() as i32);
+            for &capability in &companion_device_info.enrolled_capability_list {
                 parcel.write_u16(capability);
             }
-            parcel.write_u16(companion_device_info.protocol_id);
+            parcel.write_u16(companion_device_info.enrolled_protocol_id);
             parcel.write_u16(companion_device_info.secure_protocol_id);
         }
     }
@@ -147,12 +147,12 @@ impl DefaultCompanionDeviceDbManager {
                 return Err(ErrorCode::GeneralError);
             }
             let capability_list_len = capability_list_len_raw as usize;
-            let mut capability_list = Vec::with_capacity(capability_list_len);
+            let mut enrolled_capability_list = Vec::with_capacity(capability_list_len);
             for _ in 0..capability_list_len {
                 let capability = parcel.read_u16().map_err(|e| p!(e))?;
-                capability_list.push(capability);
+                enrolled_capability_list.push(capability);
             }
-            let protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
+            let enrolled_protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
             let secure_protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
 
             let companion_device_info = CompanionDevice {
@@ -167,8 +167,8 @@ impl DefaultCompanionDeviceDbManager {
                 },
                 added_time,
                 is_valid: is_valid_u32 != 0,
-                capability_list,
-                protocol_id,
+                enrolled_capability_list,
+                enrolled_protocol_id,
                 secure_protocol_id,
             };
 

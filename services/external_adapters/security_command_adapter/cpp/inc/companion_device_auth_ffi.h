@@ -82,7 +82,7 @@ typedef struct HostEndCompanionCheckInputFfi {
 } HostEndCompanionCheckInputFfi;
 
 typedef struct HostEndCompanionCheckOutputFfi {
-    struct Uint16Array64Ffi capabilityList;
+    struct Uint16Array64Ffi companionCapabilityList;
 } HostEndCompanionCheckOutputFfi;
 
 typedef struct HostCancelCompanionCheckInputFfi {
@@ -109,12 +109,13 @@ typedef struct HostBeginAddCompanionInputFfi {
     uint16_t secureProtocolId;
     struct Uint16Array64Ffi hostCapabilityList;
     struct Uint16Array64Ffi hostProtocolList;
+    struct Uint16Array64Ffi companionCapabilityList;
     struct DataArray20000Ffi secMessage;
 } HostBeginAddCompanionInputFfi;
 
 typedef struct HostBeginAddCompanionOutputFfi {
     struct DataArray20000Ffi secMessage;
-    struct SelectedAlgorithmsFfi selectedAlgorithms;
+    struct SelectedAlgorithmsArrayFfi selectedAlgorithms;
 } HostBeginAddCompanionOutputFfi;
 
 typedef struct HostEndAddCompanionInputFfi {
@@ -132,7 +133,7 @@ typedef struct HostEndAddCompanionOutputFfi {
     int32_t atl;
     int32_t esl;
     uint64_t addedTime;
-    struct Uint16Array64Ffi capabilityList;
+    struct Uint16Array64Ffi enrolledCapabilityList;
 } HostEndAddCompanionOutputFfi;
 
 typedef struct HostCancelAddCompanionInputFfi {
@@ -325,7 +326,7 @@ typedef struct CompanionGetPersistedStatusOutputFfi {
 
 typedef struct CompanionProcessCheckInputFfi {
     int32_t bindingId;
-    struct Uint16Array64Ffi protocolList;
+    struct Uint16Array64Ffi companionProtocolList;
     struct Uint16Array64Ffi companionCapabilityList;
     uint16_t secureProtocolId;
     struct DataArray32Ffi salt;

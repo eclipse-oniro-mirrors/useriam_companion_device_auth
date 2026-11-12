@@ -78,8 +78,8 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
         user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         added_time: 123456,
         is_valid: true,
-        capability_list: vec![1, 2, 3],
-        protocol_id: 1,
+        enrolled_capability_list: vec![1, 2, 3],
+        enrolled_protocol_id: 1,
         secure_protocol_id: 1,
     }
 }
@@ -108,7 +108,7 @@ fn create_mock_host_binding(binding_id: i32) -> HostBinding {
         user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         binding_time: 123456,
         last_used_time: 123456,
-        protocol_id: 1,
+        enrolled_protocol_id: 1,
         secure_protocol_id: 1,
     }
 }
@@ -544,8 +544,8 @@ fn host_end_companion_check_test_success() {
             user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
             added_time: 0,
             is_valid: true,
-            capability_list: vec![1, 2, 3],
-            protocol_id: 1,
+            enrolled_capability_list: vec![1, 2, 3],
+            enrolled_protocol_id: 1,
             secure_protocol_id: 1,
         })
     });
@@ -771,6 +771,7 @@ fn host_begin_add_companion_test_success() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -796,6 +797,7 @@ fn host_begin_add_companion_test_get_request_fail() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::default(),
     };
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -832,6 +834,7 @@ fn host_begin_add_companion_test_request_begin_fail() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::default(),
     };
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -2738,7 +2741,7 @@ fn companion_process_check_test_success() {
 
     let input = CompanionProcessCheckInputFfi {
         binding_id: 123,
-        protocol_list: Uint16Array64Ffi::default(),
+        companion_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
@@ -2763,7 +2766,7 @@ fn companion_process_check_test_request_begin_fail() {
 
     let input = CompanionProcessCheckInputFfi {
         binding_id: 123,
-        protocol_list: Uint16Array64Ffi::default(),
+        companion_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
@@ -2959,7 +2962,7 @@ fn companion_begin_add_host_binding_test_success() {
     attr.set_u16_slice(AttributeKey::AttrKdfAlgoList, &[]);
     attr.set_u16_slice(AttributeKey::AttrAeadAlgoList, &[]);
     attr.set_u16_slice(AttributeKey::AttrMacAlgoList, &[]);
-    // Unified exchange leg: [1] recomputes to the pinned selection and the
+    // Unified exchange leg: [1] recomputes to the selected protocol and the
     // empty host set intersects to [] against the empty local capability list.
     attr.set_u16_slice(AttributeKey::AttrProtocolList, &[PROTOCOL_VERSION_1]);
     attr.set_u16_slice(AttributeKey::AttrCapabilityList, &[]);
@@ -3055,7 +3058,7 @@ fn companion_begin_add_host_binding_test_replaced_binding() {
     attr.set_u16_slice(AttributeKey::AttrKdfAlgoList, &[]);
     attr.set_u16_slice(AttributeKey::AttrAeadAlgoList, &[]);
     attr.set_u16_slice(AttributeKey::AttrMacAlgoList, &[]);
-    // Unified exchange leg: [1] recomputes to the pinned selection and the
+    // Unified exchange leg: [1] recomputes to the selected protocol and the
     // empty host set intersects to [] against the empty local capability list.
     attr.set_u16_slice(AttributeKey::AttrProtocolList, &[PROTOCOL_VERSION_1]);
     attr.set_u16_slice(AttributeKey::AttrCapabilityList, &[]);

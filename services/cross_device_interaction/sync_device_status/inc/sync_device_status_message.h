@@ -31,8 +31,8 @@ namespace CompanionDeviceAuth {
 
 // Host -> Companion
 struct SyncDeviceStatusRequest {
-    std::vector<ProtocolId> protocolIdList;
-    std::vector<Capability> capabilityList;
+    std::vector<ProtocolId> hostProtocolIdList;
+    std::vector<Capability> hostCapabilityList;
     DeviceKey hostDeviceKey {};
     std::vector<uint8_t> salt;
     uint64_t challenge;
@@ -41,8 +41,8 @@ struct SyncDeviceStatusRequest {
 // Companion -> Host
 struct SyncDeviceStatusReply {
     ResultCode result { ResultCode::GENERAL_ERROR };
-    std::vector<ProtocolId> protocolIdList;
-    std::vector<Capability> capabilityList;
+    std::vector<ProtocolId> companionProtocolIdList;
+    std::vector<Capability> companionCapabilityList;
     std::vector<BusinessId> businessIdList;
     SecureProtocolId secureProtocolId;
     DeviceKey companionDeviceKey {};

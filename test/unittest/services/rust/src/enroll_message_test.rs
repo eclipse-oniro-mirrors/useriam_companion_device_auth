@@ -564,23 +564,22 @@ fn sec_binding_reply_decode_test_iv_try_into_fail() {
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
-// The capability attribute and the algorithm confirmation attributes of the binding reply
-// are mandatory: the empty set is a legal negotiated value, while a reply that omits the
-// attributes fails to decode.
+// The capability and algorithm confirmation attributes of the binding reply are mandatory:
+// an empty set is legal, an omitted attribute fails to decode.
 #[test]
 fn sec_binding_reply_info_capability_list_round_trip() {
     let _guard = ut_registry_guard!();
     log_i!("sec_binding_reply_info_capability_list_round_trip start");
 
-    let make_info = |capability_list: Vec<u16>| {
+    let make_info = |companion_capability_list: Vec<u16>| {
         crate::request::enroll::enroll_message::SecBindingReplyInfo {
             device_id: crate::String::from("device"),
             user_key: crate::traits::db_manager::UserKey { user_id: 1, sub_profile_id: 0 },
             esl: 3,
             track_ability_level: 4,
             challenge: 5,
-            protocol_list: vec![1],
-            capability_list,
+            companion_protocol_list: vec![1],
+            companion_capability_list,
             selected_algorithms: crate::common::algorithm::SelectedAlgorithms {
                 ka_algorithm: 1,
                 kdf_algorithm: 1,
@@ -598,7 +597,7 @@ fn sec_binding_reply_info_capability_list_round_trip() {
 
     let encoded = make_info(vec![]).encode().unwrap();
     let decoded = crate::request::enroll::enroll_message::SecBindingReplyInfo::decode(&encoded).unwrap();
-    assert_eq!(decoded.capability_list, vec![]);
+    assert_eq!(decoded.companion_capability_list, vec![]);
     assert_eq!(decoded.selected_algorithms, crate::common::algorithm::SelectedAlgorithms {
         ka_algorithm: 1,
         kdf_algorithm: 1,
@@ -608,7 +607,7 @@ fn sec_binding_reply_info_capability_list_round_trip() {
 
     let encoded = make_info(vec![2, 1, 2]).encode().unwrap();
     let decoded = crate::request::enroll::enroll_message::SecBindingReplyInfo::decode(&encoded).unwrap();
-    assert_eq!(decoded.capability_list, vec![2, 1, 2]);
+    assert_eq!(decoded.companion_capability_list, vec![2, 1, 2]);
 
     // Capability present, confirmation keys omitted: the legacy format fails to decode.
     let mut attribute = crate::utils::Attribute::new();

@@ -59,8 +59,8 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
 
     SyncDeviceStatusReply syncReply = {};
     syncReply.result = ResultCode::SUCCESS;
-    syncReply.protocolIdList = localProfile.protocols;
-    syncReply.capabilityList = localProfile.companionCapabilities;
+    syncReply.companionProtocolIdList = localProfile.protocols;
+    syncReply.companionCapabilityList = localProfile.companionCapabilities;
     syncReply.businessIdList = localProfile.companionSupportedBusinessIds;
     syncReply.secureProtocolId = localProfile.companionSecureProtocolId;
     SetCompanionDeviceKeyUserId(syncReply, companionUserKey);
@@ -143,7 +143,7 @@ bool CompanionSyncDeviceStatusHandler::ProcessBoundHostCheck(const HostBindingSt
     const LocalDeviceProfile &localProfile, const InteractionDesc &desc, ErrorGuard &errorGuard,
     SyncDeviceStatusReply &syncReply)
 {
-    syncReply.protocolIdList = negotiatedProtocolIdList;
+    syncReply.companionProtocolIdList = negotiatedProtocolIdList;
     CompanionProcessCheckInput input =
         BuildCompanionProcessCheckInput(hostBindingStatus, syncRequest, negotiatedProtocolIdList, localProfile);
     ResultCode checkRet = CompanionProcessCheck(input, desc, syncReply.companionCheckResponse);
@@ -169,10 +169,10 @@ std::optional<std::vector<ProtocolId>> CompanionSyncDeviceStatusHandler::Negotia
     const std::optional<HostBindingStatus> &hostBindingStatus, ErrorGuard &errorGuard)
 {
     std::vector<ProtocolId> negotiatedProtocolIdList =
-        IntersectLists(syncRequest.protocolIdList, localProfile.protocols);
+        IntersectLists(syncRequest.hostProtocolIdList, localProfile.protocols);
     if (negotiatedProtocolIdList.empty()) {
         IAM_LOGE("protocol negotiation failed, offered protocol count=%{public}zu, local supported count=%{public}zu",
-            syncRequest.protocolIdList.size(), localProfile.protocols.size());
+            syncRequest.hostProtocolIdList.size(), localProfile.protocols.size());
         errorGuard.UpdateErrorCode(ResultCode::PROTOCOL_NEGOTIATION_FAILED);
         return std::nullopt;
     }
@@ -196,7 +196,7 @@ CompanionProcessCheckInput CompanionSyncDeviceStatusHandler::BuildCompanionProce
 {
     CompanionProcessCheckInput input = {};
     input.bindingId = hostBindingStatus.bindingId;
-    input.protocolList = ProtocolIdConverter::ToUnderlyingVec(negotiatedProtocolIdList);
+    input.companionProtocolList = ProtocolIdConverter::ToUnderlyingVec(negotiatedProtocolIdList);
     input.companionCapabilityList = CapabilityConverter::ToUnderlyingVec(localProfile.companionCapabilities);
     input.secureProtocolId = localProfile.companionSecureProtocolId;
     input.salt = syncRequest.salt;

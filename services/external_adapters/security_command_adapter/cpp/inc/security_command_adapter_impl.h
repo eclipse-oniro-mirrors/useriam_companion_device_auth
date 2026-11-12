@@ -24,7 +24,6 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 
-// Rust ErrorCode enumeration (mirrors services/security_agent/rust/common/constants.rs)
 enum class RustErrorCode : int32_t {
     SUCCESS = 0,                           // ErrorCode::Success
     FAIL = 1,                              // ErrorCode::Fail

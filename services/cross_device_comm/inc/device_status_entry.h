@@ -63,7 +63,7 @@ public:
     std::string syncDeviceName {};
     std::string deviceSubProfileName {};
     bool useSyncDeviceName { false };
-    ProtocolId protocolId { ProtocolId::INVALID };
+    ProtocolId negotiatedProtocolId { ProtocolId::INVALID };
     SecureProtocolId secureProtocolId { SecureProtocolId::INVALID };
     DeviceType deviceType { DeviceType::INVALID };
     std::vector<Capability> capabilities {};

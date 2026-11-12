@@ -512,9 +512,19 @@ pub const SUPPORTED_MAC_ALGORITHMS: &[u16] = &[MacAlgoType::HmacSha256 as u16];
 
 pub const SECURE_PROTOCOL_ID_INVALID: u16 = 0;
 
+pub const SUPPORTED_SECURE_PROTOCOLS: &[u16] = &[SecureProtocolId::Default as u16];
+
 pub fn validate_secure_protocol_id(secure_protocol_id: u16) -> core::result::Result<(), ErrorCode> {
-    if !SUPPORTED_PROTOCOL_VERSIONS.contains(&secure_protocol_id) {
-        log_e!("protocol {} is not supported by TA, supported: {:?}", secure_protocol_id, SUPPORTED_PROTOCOL_VERSIONS);
+    if !SUPPORTED_SECURE_PROTOCOLS.contains(&secure_protocol_id) {
+        log_e!("secure protocol {} is not supported by TA, supported: {:?}", secure_protocol_id, SUPPORTED_SECURE_PROTOCOLS);
+        return Err(ErrorCode::SecureProtocolNotSupported);
+    }
+    Ok(())
+}
+
+pub fn validate_protocol_id(protocol_id: u16) -> core::result::Result<(), ErrorCode> {
+    if !SUPPORTED_PROTOCOL_VERSIONS.contains(&protocol_id) {
+        log_e!("protocol {} is not supported by TA, supported: {:?}", protocol_id, SUPPORTED_PROTOCOL_VERSIONS);
         return Err(ErrorCode::SecureProtocolNotSupported);
     }
     Ok(())

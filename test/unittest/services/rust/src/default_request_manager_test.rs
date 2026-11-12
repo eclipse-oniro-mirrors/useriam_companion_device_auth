@@ -35,7 +35,7 @@ const MAX_REQUEST_NUM: usize = 50;
 fn create_test_companion_process_check_input_ffi(binding_id: i32) -> CompanionProcessCheckInputFfi {
     CompanionProcessCheckInputFfi {
         binding_id,
-        protocol_list: Uint16Array64Ffi::default(),
+        companion_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },

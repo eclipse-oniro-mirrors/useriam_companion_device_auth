@@ -154,9 +154,9 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_NegotiationFailureReportsResu
     EXPECT_FALSE(*replyCalled);
 }
 
-// An algorithm-negotiation failure (20015) inside the secure layer must reach the host verbatim
-// in the INIT_KEY_NEGOTIATION error reply (via CompleteWithError -> SendErrorReply); flattening
-// it into GENERAL_ERROR would hide the renegotiation trigger from the host.
+// A secure-layer algorithm-negotiation failure (20015) must reach the host verbatim in the
+// INIT_KEY_NEGOTIATION error reply; flattening it into GENERAL_ERROR would hide the
+// renegotiation trigger.
 HWTEST_F(CompanionAddCompanionRequestTest, OnStart_InitKeyNegoFailureReportsAlgorithmNegotiationFailed, TestSize.Level0)
 {
     MockGuard guard;
@@ -885,7 +885,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, HandleEndAddHostBinding_005, TestSize
     EXPECT_EQ(*receivedResult, ResultCode::GENERAL_ERROR);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_001, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_001, TestSize.Level0)
 {
     MockGuard guard;
     auto negotiateProfile = MakeCompanionProfile();
@@ -897,11 +897,11 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_001, TestSize.
     InitKeyNegotiationRequest initRequest;
     initRequest.protocolId = ProtocolId::VERSION_1;
 
-    EXPECT_EQ(request->ValidateAndPinProtocol(negotiateProfile, initRequest), ResultCode::SUCCESS);
+    EXPECT_EQ(request->ValidateAndSelectProtocol(negotiateProfile, initRequest), ResultCode::SUCCESS);
     EXPECT_EQ(request->selectedProtocolId_, ProtocolId::VERSION_1);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_002, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_002, TestSize.Level0)
 {
     MockGuard guard;
     auto negotiateProfile = MakeCompanionProfile();
@@ -913,10 +913,11 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_002, TestSize.
     InitKeyNegotiationRequest initRequest;
     initRequest.protocolId = UNSUPPORTED_PROTOCOL_ID;
 
-    EXPECT_EQ(request->ValidateAndPinProtocol(negotiateProfile, initRequest), ResultCode::PROTOCOL_NEGOTIATION_FAILED);
+    EXPECT_EQ(request->ValidateAndSelectProtocol(negotiateProfile, initRequest),
+        ResultCode::PROTOCOL_NEGOTIATION_FAILED);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_003, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_003, TestSize.Level0)
 {
     MockGuard guard;
     auto negotiateProfile = MakeCompanionProfile();
@@ -927,14 +928,13 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_003, TestSize.
 
     InitKeyNegotiationRequest initRequest;
 
-    EXPECT_EQ(request->ValidateAndPinProtocol(negotiateProfile, initRequest), ResultCode::SUCCESS);
+    EXPECT_EQ(request->ValidateAndSelectProtocol(negotiateProfile, initRequest), ResultCode::SUCCESS);
     EXPECT_EQ(request->selectedProtocolId_, ProtocolId::VERSION_1);
 }
 
-// A legacy host (no negotiated protocol on the wire) decodes as the pre-baseline default
-// VERSION_1, so a multi-protocol companion pins itself to that default and enrolls it — the
-// same single-value echo a legacy host strict-compares.
-HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_004, TestSize.Level0)
+// A legacy host sends no protocol on the wire, which decodes as the default VERSION_1, so a
+// multi-protocol companion selects and enrolls that default.
+HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_004, TestSize.Level0)
 {
     MockGuard guard;
     LocalDeviceProfile negotiateProfile = MakeCompanionProfile();
@@ -947,11 +947,11 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_004, TestSize.
 
     InitKeyNegotiationRequest initRequest;
 
-    EXPECT_EQ(request->ValidateAndPinProtocol(negotiateProfile, initRequest), ResultCode::SUCCESS);
+    EXPECT_EQ(request->ValidateAndSelectProtocol(negotiateProfile, initRequest), ResultCode::SUCCESS);
     EXPECT_EQ(request->selectedProtocolId_, ProtocolId::VERSION_1);
 }
 
-HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_005, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_005, TestSize.Level0)
 {
     MockGuard guard;
     LocalDeviceProfile negotiateProfile = MakeCompanionProfile();
@@ -964,12 +964,13 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_005, TestSize.
 
     InitKeyNegotiationRequest initRequest;
 
-    EXPECT_EQ(request->ValidateAndPinProtocol(negotiateProfile, initRequest), ResultCode::PROTOCOL_NEGOTIATION_FAILED);
+    EXPECT_EQ(request->ValidateAndSelectProtocol(negotiateProfile, initRequest),
+        ResultCode::PROTOCOL_NEGOTIATION_FAILED);
 }
 
 // An explicit INVALID(0) on the wire is a host bug, not a legacy host (those omit the field):
 // fail closed instead of treating it as the pre-baseline default.
-HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_006, TestSize.Level0)
+HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_006, TestSize.Level0)
 {
     MockGuard guard;
     auto negotiateProfile = MakeCompanionProfile();
@@ -981,7 +982,8 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndPinProtocol_006, TestSize.
     InitKeyNegotiationRequest initRequest;
     initRequest.protocolId = ProtocolId::INVALID;
 
-    EXPECT_EQ(request->ValidateAndPinProtocol(negotiateProfile, initRequest), ResultCode::PROTOCOL_NEGOTIATION_FAILED);
+    EXPECT_EQ(request->ValidateAndSelectProtocol(negotiateProfile, initRequest),
+        ResultCode::PROTOCOL_NEGOTIATION_FAILED);
 }
 
 } // namespace
