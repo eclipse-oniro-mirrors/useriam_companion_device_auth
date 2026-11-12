@@ -96,12 +96,7 @@ bool Companion::Initialize()
         });
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), deviceStatusSubscription_ != nullptr, false);
 
-    auto initialStatus = GetCrossDeviceCommManager().GetDeviceStatus(status_.companionDeviceStatus.deviceKey);
-    if (initialStatus.has_value()) {
-        HandleDeviceStatusUpdate(initialStatus.value());
-    } else {
-        HandleDeviceOffline();
-    }
+    HandleDeviceStatusChanged(GetCrossDeviceCommManager().GetAllDeviceStatus());
 
     return true;
 }
@@ -120,6 +115,7 @@ void Companion::HandleDeviceStatusChanged(const std::vector<DeviceStatus> &devic
 
 void Companion::HandleDeviceStatusUpdate(const DeviceStatus &deviceStatus)
 {
+    ENSURE_OR_RETURN_DESC(GetDescription(), deviceStatus.deviceKey == status_.companionDeviceStatus.deviceKey);
     DeviceStatus updatedStatus = deviceStatus;
     updatedStatus.capabilities = status_.companionDeviceStatus.capabilities;
 

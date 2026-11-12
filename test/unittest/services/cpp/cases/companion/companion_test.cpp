@@ -40,6 +40,7 @@ namespace {
 constexpr TemplateId TEMPLATE_ID_12345 = 12345;
 constexpr UserId USER_ID_100 = 100;
 constexpr UserId USER_ID_200 = 200;
+constexpr UserId USER_ID_300 = 300;
 constexpr BusinessId BUSINESS_ID_1 = static_cast<BusinessId>(1);
 constexpr BusinessId BUSINESS_ID_2 = static_cast<BusinessId>(2);
 constexpr uint32_t TEST_ATL_REVOKE_DELAY_MS = 30000;
@@ -108,7 +109,7 @@ public:
 
         ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
             .WillByDefault(Return(ByMove(MakeSubscription())));
-        ON_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+        ON_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_)).WillByDefault(Return(std::vector<DeviceStatus> {}));
         ON_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillByDefault(Return());
@@ -141,7 +142,7 @@ HWTEST_F(CompanionTest, Create_001, TestSize.Level0)
 
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_)).WillOnce(Return(std::vector<DeviceStatus> {}));
 
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
 
@@ -157,7 +158,8 @@ HWTEST_F(CompanionTest, Create_002, TestSize.Level0)
     DeviceKey deviceKey = persistedStatus.companionDeviceKey;
 
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_))
+        .WillOnce(Return(std::vector<DeviceStatus> { deviceStatus }));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
@@ -178,6 +180,34 @@ HWTEST_F(CompanionTest, Create_003, TestSize.Level0)
     auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
 
     EXPECT_EQ(nullptr, companion);
+}
+
+HWTEST_F(CompanionTest, Create_PhysicalEntryOfOtherUser_NotAdopted, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    DeviceKey otherUserDeviceKey = persistedStatus.companionDeviceKey;
+    otherUserDeviceKey.deviceUserId = USER_ID_300;
+
+    auto deviceStatus =
+        MakeDeviceStatus(otherUserDeviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
+    deviceStatus.deviceName = "OtherUserName";
+    deviceStatus.deviceUserName = "OtherUser";
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_))
+        .WillOnce(Return(std::vector<DeviceStatus> { deviceStatus }));
+    EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).Times(0);
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).Times(0);
+
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    auto status = companion->GetStatus();
+    EXPECT_EQ(USER_ID_200, companion->GetCompanionDeviceKey().deviceUserId);
+    EXPECT_EQ(USER_ID_200, status.companionDeviceStatus.deviceKey.deviceUserId);
+    EXPECT_FALSE(status.companionDeviceStatus.isOnline);
+    EXPECT_EQ("TestDevice", status.companionDeviceStatus.deviceName);
+    EXPECT_EQ("TestUser", status.companionDeviceStatus.deviceUserName);
 }
 
 HWTEST_F(CompanionTest, HandleDeviceStatusChanged_001, TestSize.Level0)
@@ -278,6 +308,31 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_KeepsEnrolledPinCapabilities, T
 
     EXPECT_EQ(companion->GetStatus().companionDeviceStatus.capabilities,
         std::vector<Capability> { Capability::TOKEN_AUTH });
+}
+
+HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_MismatchedDeviceKey_Ignored, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    DeviceKey otherUserDeviceKey = persistedStatus.companionDeviceKey;
+    otherUserDeviceKey.deviceUserId = USER_ID_300;
+    auto deviceStatus =
+        MakeDeviceStatus(otherUserDeviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
+    deviceStatus.deviceName = "OtherUserName";
+    deviceStatus.deviceUserName = "OtherUser";
+
+    EXPECT_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).Times(0);
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).Times(0);
+
+    companion->HandleDeviceStatusUpdate(deviceStatus);
+
+    auto status = companion->GetStatus();
+    EXPECT_EQ(USER_ID_200, status.companionDeviceStatus.deviceKey.deviceUserId);
+    EXPECT_FALSE(status.companionDeviceStatus.isOnline);
+    EXPECT_EQ("TestDevice", status.companionDeviceStatus.deviceName);
+    EXPECT_EQ("TestUser", status.companionDeviceStatus.deviceUserName);
 }
 
 HWTEST_F(CompanionTest, HandleDeviceOffline_001, TestSize.Level0)
@@ -777,7 +832,8 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentWorn_NoNotWornTimer, 
 
     // Device is online and worn at creation time
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, true, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_))
+        .WillOnce(Return(std::vector<DeviceStatus> { deviceStatus }));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
@@ -817,7 +873,8 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_StartsNotWorn
 
     // Device is online but NOT worn at creation time
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_))
+        .WillOnce(Return(std::vector<DeviceStatus> { deviceStatus }));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
@@ -844,7 +901,8 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_TimerFiresAnd
 
     // Device is online but NOT worn
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_))
+        .WillOnce(Return(std::vector<DeviceStatus> { deviceStatus }));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
@@ -870,7 +928,8 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_TimerCancelle
 
     // Device is online but NOT worn
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_))
+        .WillOnce(Return(std::vector<DeviceStatus> { deviceStatus }));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
@@ -897,7 +956,8 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_RevokedManual
 
     // Device is online but NOT worn
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_))
+        .WillOnce(Return(std::vector<DeviceStatus> { deviceStatus }));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
@@ -926,7 +986,8 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_RefreshAtl_Ol
 
     // Device is online but NOT worn
     auto deviceStatus = MakeDeviceStatus(deviceKey, true, false, std::nullopt, { BUSINESS_ID_1, BUSINESS_ID_2 });
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetDeviceStatus(_)).WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetAllDeviceStatus(_))
+        .WillOnce(Return(std::vector<DeviceStatus> { deviceStatus }));
     EXPECT_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
