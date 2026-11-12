@@ -16,11 +16,17 @@
 use crate::traits::log_trace::TestFileId;
 const FILE_ID: u16 = TestFileId::DefaultHostBindingDbManagerTest as u16;
 
+// Distinct from the VERSION_1 default so a lost field cannot pass the round-trip assert.
+const NON_DEFAULT_PROTOCOL_ID: u16 = 2;
+
 use crate::common::constants::*;
-use crate::impls::default_host_binding_db_manager::{DefaultHostBindingDbManager, MAX_DEVICE_NUM_PER_USER};
+use crate::impls::default_host_binding_db_manager::{
+    CURRENT_VERSION, DefaultHostBindingDbManager, MAX_DEVICE_NUM_PER_USER,
+};
 use crate::log_i;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo, UserKey};
+use crate::common::algorithm::SelectedAlgorithms;
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, HostBindingToken, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManager, HostDeviceFilter};
 use crate::traits::storage_io::{MockStorageIo, StorageIoRegistry};
 use crate::ut_registry_guard;
@@ -34,6 +40,8 @@ fn create_test_host_binding(binding_id: i32, device_id: &str, user_id: i32) -> H
         user_info: UserInfo { user_key: UserKey { user_id, sub_profile_id: 0 }, user_type: 1 },
         binding_time: 1000,
         last_used_time: 2000,
+        protocol_id: 1,
+        secure_protocol_id: 0,
     }
 }
 
@@ -55,11 +63,21 @@ fn create_test_host_binding_with_profile(
         user_info: UserInfo { user_key: UserKey { user_id, sub_profile_id }, user_type: 1 },
         binding_time: 1000,
         last_used_time,
+        protocol_id: 1,
+        secure_protocol_id: 0,
     }
 }
 
-fn create_test_sk_info(_sk: Vec<u8>) -> HostBindingSk {
-    HostBindingSk { sk: [0u8; SHARE_KEY_LEN] }
+fn create_test_sk_info(_sk: Vec<u8>) -> HostBindingKeyMaterial {
+    HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }
 }
 
 fn create_test_token_info() -> HostBindingToken {
@@ -616,7 +634,7 @@ fn default_host_binding_db_manager_read_device_db_test_success() {
     log_i!("default_host_binding_db_manager_read_device_db_test_success start");
 
     let mut parcel = Parcel::new();
-    parcel.write_i32(0);
+    parcel.write_i32(CURRENT_VERSION);
     parcel.write_u32(1);
     parcel.write_string("device1");
     parcel.write_i32(1);
@@ -628,6 +646,8 @@ fn default_host_binding_db_manager_read_device_db_test_success() {
     parcel.write_i32(0);
     parcel.write_u64(1000);
     parcel.write_u64(2000);
+    parcel.write_u16(PROTOCOL_ID_INVALID);
+    parcel.write_u16(SECURE_PROTOCOL_ID_INVALID);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -641,6 +661,75 @@ fn default_host_binding_db_manager_read_device_db_test_success() {
     assert!(manager.get_device_by_binding_id(123).is_ok());
     let retrieved = manager.get_device_by_binding_id(123).unwrap();
     assert_eq!(retrieved.device_key.device_id, "device1");
+    assert_eq!(retrieved.protocol_id, PROTOCOL_ID_INVALID);
+}
+
+// A binding written at the current version must round-trip its enrolled protocol through
+// serialize/deserialize.
+#[test]
+fn default_host_binding_db_manager_test_roundtrip_preserves_protocol_id() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_host_binding_db_manager_test_roundtrip_preserves_protocol_id start");
+
+    let written = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let mut mock_storage_io = MockStorageIo::new();
+    {
+        let written = written.clone();
+        mock_storage_io.expect_write().returning(move |_, data| {
+            *written.lock().unwrap() = data.to_vec();
+            Ok(())
+        });
+    }
+    mock_storage_io.expect_delete().returning(|| Ok(()));
+    mock_storage_io.expect_exists().returning(|| Ok(true));
+    mock_storage_io
+        .expect_read()
+        .returning(move || Ok(written.lock().unwrap().clone()));
+    StorageIoRegistry::set(Box::new(mock_storage_io));
+
+    let mut manager = DefaultHostBindingDbManager::new();
+    let mut device_info = create_test_host_binding(123, "device1", 100);
+    device_info.protocol_id = NON_DEFAULT_PROTOCOL_ID;
+    let sk_info = create_test_sk_info(vec![1u8, 2, 3]);
+    assert!(manager.add_device(&device_info, &sk_info).is_ok());
+
+    let mut restored = DefaultHostBindingDbManager::new();
+    assert!(restored.read_device_db().is_ok());
+    let retrieved = restored.get_device_by_binding_id(123).unwrap();
+    assert_eq!(retrieved.protocol_id, NON_DEFAULT_PROTOCOL_ID);
+}
+
+#[test]
+fn default_host_binding_db_manager_test_roundtrip_preserves_security_params() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_host_binding_db_manager_test_roundtrip_preserves_security_params start");
+
+    let written = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let mut mock_storage_io = MockStorageIo::new();
+    {
+        let written = written.clone();
+        mock_storage_io.expect_write().returning(move |_, data| {
+            *written.lock().unwrap() = data.to_vec();
+            Ok(())
+        });
+    }
+    mock_storage_io.expect_delete().returning(|| Ok(()));
+    mock_storage_io.expect_exists().returning(|| Ok(true));
+    mock_storage_io
+        .expect_read()
+        .returning(move || Ok(written.lock().unwrap().clone()));
+    StorageIoRegistry::set(Box::new(mock_storage_io));
+
+    let mut manager = DefaultHostBindingDbManager::new();
+    let mut device_info = create_test_host_binding(123, "device1", 100);
+    device_info.secure_protocol_id = 1;
+    let sk_info = create_test_sk_info(vec![1u8, 2, 3]);
+    assert!(manager.add_device(&device_info, &sk_info).is_ok());
+
+    let mut restored = DefaultHostBindingDbManager::new();
+    assert!(restored.read_device_db().is_ok());
+    let retrieved = restored.get_device_by_binding_id(123).unwrap();
+    assert_eq!(retrieved.secure_protocol_id, 1);
 }
 
 #[test]
@@ -1169,6 +1258,10 @@ fn default_host_binding_db_manager_read_device_sk_test_success() {
     let mut parcel = Parcel::new();
     parcel.write_i32(0);
     parcel.write_bytes(&[0u8; SHARE_KEY_LEN]);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -1181,6 +1274,30 @@ fn default_host_binding_db_manager_read_device_sk_test_success() {
     assert!(result.is_ok());
     let sk_info = result.unwrap();
     assert_eq!(sk_info.sk, [0u8; SHARE_KEY_LEN]);
+    assert_eq!(
+        sk_info.selected_algorithms,
+        SelectedAlgorithms { ka_algorithm: 1, kdf_algorithm: 1, aead_algorithm: 1, mac_algorithm: 1 }
+    );
+}
+
+#[test]
+fn default_host_binding_db_manager_read_device_sk_test_deserialize_miss_algorithms() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_host_binding_db_manager_read_device_sk_test_deserialize_miss_algorithms start");
+
+    let mut parcel = Parcel::new();
+    parcel.write_i32(0);
+    parcel.write_bytes(&[0u8; SHARE_KEY_LEN]);
+
+    let serialized_data = parcel.as_slice().to_vec();
+
+    let mut mock_storage_io = MockStorageIo::new();
+    mock_storage_io.expect_read().returning(move || Ok(serialized_data.clone()));
+    StorageIoRegistry::set(Box::new(mock_storage_io));
+
+    let manager = DefaultHostBindingDbManager::new();
+    let result = manager.read_device_sk(123);
+    assert!(result.is_err());
 }
 
 #[test]

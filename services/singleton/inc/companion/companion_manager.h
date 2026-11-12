@@ -41,6 +41,8 @@ struct BeginAddCompanionParams {
     DeviceKey companionDeviceKey;
     std::vector<uint8_t> fwkMsg;
     SecureProtocolId secureProtocolId;
+    std::vector<Capability> hostCapabilityList;
+    std::vector<ProtocolId> hostProtocolList;
     std::vector<uint8_t> initKeyNegotiationReply;
 };
 
@@ -48,8 +50,6 @@ struct EndAddCompanionInput {
     RequestId requestId;
     PersistedCompanionStatus companionStatus;
     SecureProtocolId secureProtocolId;
-    std::vector<uint16_t> protocolVersionList;
-    std::vector<uint16_t> capabilityList;
     std::vector<BusinessId> supportedBusinessIds;
     std::vector<uint8_t> addHostBindingReply;
 };
@@ -76,7 +76,7 @@ public:
     virtual void UnsubscribeCompanionDeviceStatusChange(SubscribeId subscriptionId) = 0;
 
     virtual ResultCode BeginAddCompanion(const BeginAddCompanionParams &params,
-        std::vector<uint8_t> &outAddHostBindingRequest, uint16_t &selectedAlgorithm) = 0;
+        std::vector<uint8_t> &outAddHostBindingRequest, SelectedAlgorithms &selectedAlgorithms) = 0;
     virtual ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) = 0;
     virtual ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding,
         ConnectionMode connectionMode) = 0;

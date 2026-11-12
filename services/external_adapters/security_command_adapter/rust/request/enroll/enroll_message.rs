@@ -14,6 +14,7 @@
  */
 
 use crate::common::constants::{ErrorCode, ProcessorType, AES_GCM_IV_SIZE, AES_GCM_TAG_SIZE, HKDF_SALT_SIZE};
+use crate::common::algorithm::{CryptoAlgorithms, SelectedAlgorithms};
 use crate::traits::db_manager::UserKey;
 use crate::traits::log_trace::RustFileId;
 use crate::traits::misc_manager::MiscManagerRegistry;
@@ -21,7 +22,7 @@ use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
 use crate::String;
-use crate::{log_e, p, Box, Vec};
+use crate::{log_e, p, vec, Box, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::EnrollMessage as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkEnrollRequest {
@@ -72,14 +73,17 @@ impl FwkEnrollReply {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SecKeyNegoRequest {
-    pub algorithm_list: Vec<u16>,
+    pub crypto_algorithms: CryptoAlgorithms,
 }
 
 impl SecKeyNegoRequest {
     pub fn encode(&self, processor_type: ProcessorType) -> Result<Vec<u8>, ErrorCode> {
         let message_type = AttributeKey::try_from(processor_type).map_err(|e| p!(e))?;
         let mut attribute = Attribute::new();
-        attribute.set_u16_slice(AttributeKey::AttrAlgoList, &self.algorithm_list);
+        attribute.set_u16_slice(AttributeKey::AttrKaAlgoList, &self.crypto_algorithms.ka_algorithms);
+        attribute.set_u16_slice(AttributeKey::AttrKdfAlgoList, &self.crypto_algorithms.kdf_algorithms);
+        attribute.set_u16_slice(AttributeKey::AttrAeadAlgoList, &self.crypto_algorithms.aead_algorithms);
+        attribute.set_u16_slice(AttributeKey::AttrMacAlgoList, &self.crypto_algorithms.mac_algorithms);
 
         let mut final_attribute = Attribute::new();
         final_attribute.set_u8_slice(message_type, attribute.to_bytes()?.as_slice());
@@ -92,14 +96,24 @@ impl SecKeyNegoRequest {
         let message_data = attribute.get_u8_slice(message_type).map_err(|e| p!(e))?;
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
-        let algorithm_list = message_attribute.get_u16_vec(AttributeKey::AttrAlgoList).map_err(|e| p!(e))?;
-        Ok(Box::new(Self { algorithm_list: algorithm_list.to_vec() }))
+        let ka_algorithm_list = message_attribute.get_u16_vec(AttributeKey::AttrKaAlgoList).map_err(|e| p!(e))?;
+        let kdf_algorithm_list = message_attribute.get_u16_vec(AttributeKey::AttrKdfAlgoList).map_err(|e| p!(e))?;
+        let aead_algorithm_list = message_attribute.get_u16_vec(AttributeKey::AttrAeadAlgoList).map_err(|e| p!(e))?;
+        let mac_algorithm_list = message_attribute.get_u16_vec(AttributeKey::AttrMacAlgoList).map_err(|e| p!(e))?;
+        Ok(Box::new(Self {
+            crypto_algorithms: CryptoAlgorithms {
+                ka_algorithms: ka_algorithm_list.to_vec(),
+                kdf_algorithms: kdf_algorithm_list,
+                aead_algorithms: aead_algorithm_list,
+                mac_algorithms: mac_algorithm_list,
+            },
+        }))
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SecKeyNegoReply {
-    pub algorithm: u16,
+    pub selected_algorithms: SelectedAlgorithms,
     pub challenge: u64,
     pub pub_key: Vec<u8>,
 }
@@ -108,7 +122,10 @@ impl SecKeyNegoReply {
     pub fn encode(&self, processor_type: ProcessorType) -> Result<Vec<u8>, ErrorCode> {
         let message_type = AttributeKey::try_from(processor_type).map_err(|e| p!(e))?;
         let mut attribute = Attribute::new();
-        attribute.set_u16(AttributeKey::AttrAlgoList, self.algorithm);
+        attribute.set_u16(AttributeKey::AttrKaAlgoList, self.selected_algorithms.ka_algorithm);
+        attribute.set_u16(AttributeKey::AttrKdfAlgoList, self.selected_algorithms.kdf_algorithm);
+        attribute.set_u16(AttributeKey::AttrAeadAlgoList, self.selected_algorithms.aead_algorithm);
+        attribute.set_u16(AttributeKey::AttrMacAlgoList, self.selected_algorithms.mac_algorithm);
         attribute.set_u64(AttributeKey::AttrCompanionChallenge, self.challenge);
         attribute.set_u8_slice(AttributeKey::AttrPublicKey, &self.pub_key);
 
@@ -123,10 +140,22 @@ impl SecKeyNegoReply {
         let message_data = attribute.get_u8_slice(message_type).map_err(|e| p!(e))?;
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
-        let algorithm = message_attribute.get_u16(AttributeKey::AttrAlgoList).map_err(|e| p!(e))?;
+        let selected_ka_algorithm = message_attribute.get_u16(AttributeKey::AttrKaAlgoList).map_err(|e| p!(e))?;
+        let selected_kdf_algorithm = message_attribute.get_u16(AttributeKey::AttrKdfAlgoList).map_err(|e| p!(e))?;
+        let selected_aead_algorithm = message_attribute.get_u16(AttributeKey::AttrAeadAlgoList).map_err(|e| p!(e))?;
+        let selected_mac_algorithm = message_attribute.get_u16(AttributeKey::AttrMacAlgoList).map_err(|e| p!(e))?;
         let challenge = message_attribute.get_u64(AttributeKey::AttrCompanionChallenge).map_err(|e| p!(e))?;
         let pub_key = message_attribute.get_u8_slice(AttributeKey::AttrPublicKey).map_err(|e| p!(e))?;
-        Ok(Box::new(Self { algorithm, challenge, pub_key: pub_key.to_vec() }))
+        Ok(Box::new(Self {
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: selected_ka_algorithm,
+                kdf_algorithm: selected_kdf_algorithm,
+                aead_algorithm: selected_aead_algorithm,
+                mac_algorithm: selected_mac_algorithm,
+            },
+            challenge,
+            pub_key: pub_key.to_vec(),
+        }))
     }
 }
 
@@ -246,6 +275,8 @@ pub struct SecBindingReplyInfo {
     pub challenge: u64,
     pub protocol_list: Vec<u16>,
     pub capability_list: Vec<u16>,
+    pub selected_algorithms: SelectedAlgorithms,
+    pub companion_supported_algorithms: CryptoAlgorithms,
 }
 
 impl SecBindingReplyInfo {
@@ -259,6 +290,26 @@ impl SecBindingReplyInfo {
         attribute.set_u64(AttributeKey::AttrHostChallenge, self.challenge);
         attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocol_list);
         attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.capability_list);
+        attribute.set_u16(AttributeKey::AttrKaAlgoList, self.selected_algorithms.ka_algorithm);
+        attribute.set_u16(AttributeKey::AttrKdfAlgoList, self.selected_algorithms.kdf_algorithm);
+        attribute.set_u16(AttributeKey::AttrAeadAlgoList, self.selected_algorithms.aead_algorithm);
+        attribute.set_u16(AttributeKey::AttrMacAlgoList, self.selected_algorithms.mac_algorithm);
+        attribute.set_u16_slice(
+            AttributeKey::AttrKaAlgoSupportList,
+            &self.companion_supported_algorithms.ka_algorithms,
+        );
+        attribute.set_u16_slice(
+            AttributeKey::AttrKdfAlgoSupportList,
+            &self.companion_supported_algorithms.kdf_algorithms,
+        );
+        attribute.set_u16_slice(
+            AttributeKey::AttrAeadAlgoSupportList,
+            &self.companion_supported_algorithms.aead_algorithms,
+        );
+        attribute.set_u16_slice(
+            AttributeKey::AttrMacAlgoSupportList,
+            &self.companion_supported_algorithms.mac_algorithms,
+        );
         attribute.to_bytes()
     }
 
@@ -271,7 +322,26 @@ impl SecBindingReplyInfo {
         let track_ability_level = attribute.get_i32(AttributeKey::AttrTrackAbilityLevel).map_err(|e| p!(e))?;
         let challenge = attribute.get_u64(AttributeKey::AttrHostChallenge).map_err(|e| p!(e))?;
         let protocol_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
-        let capability_list = attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
+        let capability_list =
+            attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
+        let selected_ka_algorithm = attribute.get_u16(AttributeKey::AttrKaAlgoList).map_err(|e| p!(e))?;
+        let selected_kdf_algorithm = attribute.get_u16(AttributeKey::AttrKdfAlgoList).map_err(|e| p!(e))?;
+        let selected_aead_algorithm = attribute.get_u16(AttributeKey::AttrAeadAlgoList).map_err(|e| p!(e))?;
+        let selected_mac_algorithm = attribute.get_u16(AttributeKey::AttrMacAlgoList).map_err(|e| p!(e))?;
+        let companion_supported_algorithms = CryptoAlgorithms {
+            ka_algorithms: attribute
+                .get_u16_vec(AttributeKey::AttrKaAlgoSupportList)
+                .map_err(|e| p!(e))?,
+            kdf_algorithms: attribute
+                .get_u16_vec(AttributeKey::AttrKdfAlgoSupportList)
+                .map_err(|e| p!(e))?,
+            aead_algorithms: attribute
+                .get_u16_vec(AttributeKey::AttrAeadAlgoSupportList)
+                .map_err(|e| p!(e))?,
+            mac_algorithms: attribute
+                .get_u16_vec(AttributeKey::AttrMacAlgoSupportList)
+                .map_err(|e| p!(e))?,
+        };
 
         Ok(Box::new(Self {
             device_id,
@@ -281,6 +351,13 @@ impl SecBindingReplyInfo {
             challenge,
             protocol_list,
             capability_list,
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: selected_ka_algorithm,
+                kdf_algorithm: selected_kdf_algorithm,
+                aead_algorithm: selected_aead_algorithm,
+                mac_algorithm: selected_mac_algorithm,
+            },
+            companion_supported_algorithms,
         }))
     }
 }

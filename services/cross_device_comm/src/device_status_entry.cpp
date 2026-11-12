@@ -15,7 +15,6 @@
 
 #include "device_status_entry.h"
 
-#include <algorithm>
 #include <cstdint>
 
 #include "iam_check.h"
@@ -232,24 +231,11 @@ void DeviceStatusEntry::RecomputeEffectiveBusinessIds()
     // Sync-sourced ids are authoritative when present; otherwise degrade to the physical-layer ids.
     const std::vector<BusinessId> &deviceSupportedBusinessIds =
         syncCompanionBusinessIds_.empty() ? physicalCompanionBusinessIds_ : syncCompanionBusinessIds_;
-    effectiveBusinessIds_ = IntersectBusinessIds(hostSupportBusinessIds_, deviceSupportedBusinessIds);
+    effectiveBusinessIds_ = IntersectLists(hostSupportBusinessIds_, deviceSupportedBusinessIds);
     IAM_LOGI("recompute effective business ids: host=%{public}s, device=%{public}s, effective=%{public}s",
         GetMaskedVectorString(hostSupportBusinessIds_).c_str(),
         GetMaskedVectorString(deviceSupportedBusinessIds).c_str(),
         GetMaskedVectorString(effectiveBusinessIds_).c_str());
-}
-
-std::vector<BusinessId> DeviceStatusEntry::IntersectBusinessIds(const std::vector<BusinessId> &hostSupportBusinessIds,
-    const std::vector<BusinessId> &deviceSupportedBusinessIds)
-{
-    std::vector<BusinessId> effectiveBusinessIds;
-    for (const auto &id : hostSupportBusinessIds) {
-        if (std::find(deviceSupportedBusinessIds.begin(), deviceSupportedBusinessIds.end(), id) !=
-            deviceSupportedBusinessIds.end()) {
-            effectiveBusinessIds.push_back(id);
-        }
-    }
-    return effectiveBusinessIds;
 }
 
 } // namespace CompanionDeviceAuth

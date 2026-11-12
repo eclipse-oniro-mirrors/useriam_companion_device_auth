@@ -13,7 +13,9 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{AuthTrustLevel, ErrorCode, ProcessorType, CHALLENGE_LEN, HKDF_SALT_SIZE};
+use crate::common::constants::{
+    AuthTrustLevel, ErrorCode, ProcessorType, CHALLENGE_LEN, HKDF_SALT_SIZE, validate_secure_protocol_id,
+};
 use crate::entry::companion_device_auth_ffi::{CompanionBeginObtainTokenInputFfi, CompanionEndObtainTokenOutputFfi};
 use crate::jobs::host_binding_db_helper;
 use crate::jobs::message_crypto;
@@ -44,10 +46,12 @@ pub struct CompanionDeviceObtainTokenRequest {
     pub companion_challenge: u64,
     pub atl: AuthTrustLevel,
     pub session_key: Vec<u8>,
+    pub aead_algorithm: u16,
 }
 
 impl CompanionDeviceObtainTokenRequest {
     pub fn new(input: &CompanionBeginObtainTokenInputFfi) -> Result<Self, ErrorCode> {
+        validate_secure_protocol_id(input.secure_protocol_id)?;
         let mut challenge = [0u8; CHALLENGE_LEN];
         CryptoEngineRegistry::get().secure_random(&mut challenge).map_err(|_| {
             log_e!("secure_random challenge fail");
@@ -63,6 +67,7 @@ impl CompanionDeviceObtainTokenRequest {
             companion_challenge: u64::from_ne_bytes(challenge),
             atl: AuthTrustLevel::Atl0,
             session_key: Vec::new(),
+            aead_algorithm: 0,
         })
     }
 
@@ -89,15 +94,20 @@ impl CompanionDeviceObtainTokenRequest {
     }
 
     fn encode_sec_token_obtain_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
-        self.session_key = host_binding_db_helper::get_session_key(self.binding_id, &self.obtain_param.salt)?;
+        let session_key_param = host_binding_db_helper::get_session_key(self.binding_id, &self.obtain_param.salt)?;
+        self.session_key = session_key_param.session_key;
+        self.aead_algorithm = session_key_param.aead_algorithm;
 
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrHostChallenge, self.obtain_param.host_challenge);
         encrypt_attribute.set_i32(AttributeKey::AttrAuthTrustLevel, self.atl as i32);
 
-        let (encrypt_data, tag, iv) =
-            message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &self.session_key)
-                .map_err(|e| p!(e))?;
+        let (encrypt_data, tag, iv) = message_crypto::encrypt_sec_message(
+            self.aead_algorithm,
+            encrypt_attribute.to_bytes()?.as_slice(),
+            &self.session_key,
+        )
+        .map_err(|e| p!(e))?;
 
         let pre_obtain_token_reply =
             Box::new(SecPreObtainTokenReply { challenge: self.companion_challenge, tag, iv, encrypt_data });
@@ -107,7 +117,8 @@ impl CompanionDeviceObtainTokenRequest {
 
     fn parse_obtain_token_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let processor_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
-        let issue_token = SecIssueToken::decrypt_issue_token(sec_message, processor_type, &self.session_key)?;
+        let issue_token =
+            SecIssueToken::decrypt_issue_token(sec_message, processor_type, &self.session_key, self.aead_algorithm)?;
 
         if issue_token.challenge != self.companion_challenge {
             log_e!("Challenge verification failed");
@@ -154,6 +165,7 @@ impl Request for CompanionDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
+        self.secure_protocol_id = host_binding_db_helper::get_binding_secure_protocol_id(self.binding_id)?;
         self.decode_fwk_token_obtain_request(ffi_input.fwk_message.as_slice()?)?;
         self.decode_sec_token_pre_obtain_request(ffi_input.sec_message.as_slice()?)?;
 

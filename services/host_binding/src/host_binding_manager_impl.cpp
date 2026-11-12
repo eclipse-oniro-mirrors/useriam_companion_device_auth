@@ -154,6 +154,7 @@ ResultCode HostBindingManagerImpl::BeginAddHostBinding(const BeginAddHostBinding
 {
     IAM_LOGI("begin add host binding, request id 0x%{public}08X", in.requestId);
 
+    ENSURE_OR_RETURN_VAL(in.companionUserKey.userId != INVALID_USER_ID, ResultCode::GENERAL_ERROR);
     ENSURE_OR_RETURN_VAL(in.companionUserKey == activeUserKey_, ResultCode::GENERAL_ERROR);
 
     CompanionBeginAddHostBindingInput input { .requestId = in.requestId,

@@ -61,6 +61,9 @@ constexpr ResultCodeMapping RESULT_CODE_MAPPINGS[] = {
     { ResultCode::COORDINATOR_REJECTED, UserAuth::ResultCode::GENERAL_ERROR },
     { ResultCode::PROTOCOL_NEGOTIATION_FAILED, UserAuth::ResultCode::GENERAL_ERROR },
     { ResultCode::PEER_SYNC_FAILED, UserAuth::ResultCode::GENERAL_ERROR },
+    { ResultCode::SECURE_PROTOCOL_NOT_SUPPORTED, UserAuth::ResultCode::GENERAL_ERROR },
+    { ResultCode::CAPABILITY_NEGOTIATION_FAILED, UserAuth::ResultCode::GENERAL_ERROR },
+    { ResultCode::ALGORITHM_NEGOTIATION_FAILED, UserAuth::ResultCode::GENERAL_ERROR },
     { ResultCode::COMMUNICATION_ERROR, UserAuth::ResultCode::GENERAL_ERROR },
 };
 

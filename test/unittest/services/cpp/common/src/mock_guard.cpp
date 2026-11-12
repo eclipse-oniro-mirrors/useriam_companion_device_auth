@@ -315,9 +315,13 @@ void MockGuard::SetupSecurityAgentDefaults()
     ON_CALL(*securityAgent_, HostGetPersistedCompanionStatus(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, CompanionGetPersistedHostBindingStatus(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostBeginCompanionCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(*securityAgent_, HostEndCompanionCheck(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, HostEndCompanionCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostCancelCompanionCheck(_)).WillByDefault(Return(ResultCode::SUCCESS));
-    ON_CALL(*securityAgent_, CompanionProcessCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(*securityAgent_, CompanionProcessCheck(_, _))
+        .WillByDefault(Invoke([](const CompanionProcessCheckInput &, CompanionProcessCheckOutput &output) {
+            output.companionCheckResponse = { 1 };
+            return ResultCode::SUCCESS;
+        }));
     ON_CALL(*securityAgent_, HostGetInitKeyNegotiationRequest(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostBeginAddCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
 }

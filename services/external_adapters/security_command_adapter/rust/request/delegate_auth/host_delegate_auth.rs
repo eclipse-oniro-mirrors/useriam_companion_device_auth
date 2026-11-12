@@ -15,6 +15,7 @@
 
 use crate::common::constants::{
     AuthCapabilityLevel, AuthTrustLevel, Capability, ErrorCode, ProcessorType, CHALLENGE_LEN, HKDF_SALT_SIZE,
+    LOCAL_EXECUTOR_MAX_ACL,
 };
 use crate::entry::companion_device_auth_ffi::HostBeginDelegateAuthInputFfi;
 use crate::jobs::companion_device_db_helper;
@@ -93,7 +94,7 @@ impl HostDelegateAuthRequest {
         let device_capabilities =
             CompanionDeviceDbManagerRegistry::get_mut().read_device_capability_info(self.auth_param.template_id)?;
         for device_capability in &device_capabilities {
-            let session_key = companion_device_db_helper::get_session_key(
+            let session_key_param = companion_device_db_helper::get_session_key(
                 self.auth_param.template_id,
                 device_capability.processor_type,
                 &self.salt,
@@ -103,9 +104,12 @@ impl HostDelegateAuthRequest {
             encrypt_attribute.set_u64(AttributeKey::AttrHostChallenge, self.host_challenge);
             encrypt_attribute.set_i32(AttributeKey::AttrAuthTrustLevel, self.atl as i32);
 
-            let (encrypt_data, tag, iv) =
-                message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
-                    .map_err(|e| p!(e))?;
+            let (encrypt_data, tag, iv) = message_crypto::encrypt_sec_message(
+                session_key_param.aead_algorithm,
+                encrypt_attribute.to_bytes()?.as_slice(),
+                &session_key_param.session_key,
+            )
+            .map_err(|e| p!(e))?;
 
             let sec_auth_request = Box::new(SecCommonRequest { salt: self.salt, tag, iv, encrypt_data });
             output.extend(sec_auth_request.encode(device_capability.processor_type)?);
@@ -119,11 +123,16 @@ impl HostDelegateAuthRequest {
         message_data: &[u8],
     ) -> Result<(), ErrorCode> {
         let output = SecCommonReply::decode(message_data, processor_type)?;
-        let session_key =
+        let session_key_param =
             companion_device_db_helper::get_session_key(self.auth_param.template_id, processor_type, &self.salt)?;
-        let decrypt_data =
-            message_crypto::decrypt_sec_message(&output.encrypt_data, &session_key, &output.tag, &output.iv)
-                .map_err(|e| p!(e))?;
+        let decrypt_data = message_crypto::decrypt_sec_message(
+            session_key_param.aead_algorithm,
+            &output.encrypt_data,
+            &session_key_param.session_key,
+            &output.tag,
+            &output.iv,
+        )
+        .map_err(|e| p!(e))?;
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let auth_type = decrypt_attribute.get_i32(AttributeKey::AttrType).map_err(|e| p!(e))?;
         let atl_value = decrypt_attribute.get_i32(AttributeKey::AttrAuthTrustLevel).map_err(|e| p!(e))?;
@@ -174,7 +183,7 @@ impl HostDelegateAuthRequest {
             schedule_id: self.auth_param.schedule_id,
             template_id: self.auth_param.template_id,
             result_code: result as i32,
-            acl: AuthCapabilityLevel::Acl3 as i32,
+            acl: LOCAL_EXECUTOR_MAX_ACL as i32,
             pin_sub_type: 0,
             remain_attempts: 0,
             lock_duration: 0,

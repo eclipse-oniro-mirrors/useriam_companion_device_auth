@@ -212,6 +212,13 @@ typedef struct Uint16Array64Ffi {
     uint32_t len;
 } Uint16Array64Ffi;
 
+typedef struct SelectedAlgorithmsFfi {
+    uint16_t kaAlgorithm;
+    uint16_t kdfAlgorithm;
+    uint16_t aeadAlgorithm;
+    uint16_t macAlgorithm;
+} SelectedAlgorithmsFfi;
+
 typedef struct UserKeyFfi {
     int32_t userId;
     int32_t subProfileId;
@@ -230,6 +237,8 @@ typedef struct PersistedCompanionStatusFfi {
     struct DataArray256Ffi deviceUserName;
     struct DataArray256Ffi deviceName;
     struct DataArray256Ffi deviceSubProfileIdName;
+    uint16_t enrolledProtocolId;
+    struct Uint16Array64Ffi capabilityList;
 } PersistedCompanionStatusFfi;
 
 typedef struct PersistedHostBindingStatusFfi {
@@ -237,6 +246,7 @@ typedef struct PersistedHostBindingStatusFfi {
     struct UserKeyFfi companionUserKey;
     struct DeviceKeyFfi hostDeviceKey;
     bool isTokenValid;
+    uint16_t enrolledProtocolId;
 } PersistedHostBindingStatusFfi;
 
 typedef struct CompanionStatusArrayFfi {

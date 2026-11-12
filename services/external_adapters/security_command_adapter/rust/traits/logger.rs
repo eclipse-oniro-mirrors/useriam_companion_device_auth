@@ -58,7 +58,7 @@ macro_rules! log_d {
                 FILE_ID,
                 line!(),
                 format_args!($($arg)*)
-            );
+            )
         }
     }
 }
@@ -72,7 +72,7 @@ macro_rules! log_i {
                 FILE_ID,
                 line!(),
                 format_args!($($arg)*)
-            );
+            )
         }
     }
 }
@@ -85,7 +85,7 @@ macro_rules! log_e {
             FILE_ID,
             line!(),
             format_args!($($arg)*)
-        );
+        )
     }
 }
 

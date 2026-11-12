@@ -14,7 +14,7 @@
  */
 
 use crate::common::constants::ErrorCode;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserKey};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, HostBindingToken, UserKey};
 use crate::traits::log_trace::RustFileId;
 use crate::{log_e, singleton_registry, Box, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::HostBindingDbManager as u16;
@@ -22,7 +22,11 @@ pub(crate) const FILE_ID: u16 = RustFileId::HostBindingDbManager as u16;
 pub type HostDeviceFilter = Box<dyn Fn(&HostBinding) -> bool>;
 
 pub trait HostBindingDbManager {
-    fn add_device(&mut self, device_info: &HostBinding, sk_info: &HostBindingSk) -> Result<Option<i32>, ErrorCode>;
+    fn add_device(
+        &mut self,
+        device_info: &HostBinding,
+        sk_info: &HostBindingKeyMaterial,
+    ) -> Result<Option<i32>, ErrorCode>;
     fn get_device_by_binding_id(&self, binding_id: i32) -> Result<HostBinding, ErrorCode>;
     fn get_device_by_device_key(&self, user_key: UserKey, device_key: &DeviceKey) -> Result<HostBinding, ErrorCode>;
     fn remove_device(&mut self, binding_id: i32) -> Result<HostBinding, ErrorCode>;
@@ -37,8 +41,8 @@ pub trait HostBindingDbManager {
     fn delete_device_token(&self, binding_id: i32) -> Result<(), ErrorCode>;
     fn is_device_token_valid(&self, binding_id: i32) -> Result<bool, ErrorCode>;
 
-    fn read_device_sk(&self, binding_id: i32) -> Result<HostBindingSk, ErrorCode>;
-    fn write_device_sk(&self, binding_id: i32, sk_info: &HostBindingSk) -> Result<(), ErrorCode>;
+    fn read_device_sk(&self, binding_id: i32) -> Result<HostBindingKeyMaterial, ErrorCode>;
+    fn write_device_sk(&self, binding_id: i32, sk_info: &HostBindingKeyMaterial) -> Result<(), ErrorCode>;
     fn delete_device_sk(&self, binding_id: i32) -> Result<(), ErrorCode>;
 
     fn get_device_list(&self, filter: HostDeviceFilter) -> Vec<HostBinding>;
@@ -48,7 +52,11 @@ pub trait HostBindingDbManager {
 pub struct DummyHostBindingDbManager;
 
 impl HostBindingDbManager for DummyHostBindingDbManager {
-    fn add_device(&mut self, _device_info: &HostBinding, _sk_info: &HostBindingSk) -> Result<Option<i32>, ErrorCode> {
+    fn add_device(
+        &mut self,
+        _device_info: &HostBinding,
+        _sk_info: &HostBindingKeyMaterial,
+    ) -> Result<Option<i32>, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
@@ -94,12 +102,12 @@ impl HostBindingDbManager for DummyHostBindingDbManager {
         Err(ErrorCode::GeneralError)
     }
 
-    fn read_device_sk(&self, _binding_id: i32) -> Result<HostBindingSk, ErrorCode> {
+    fn read_device_sk(&self, _binding_id: i32) -> Result<HostBindingKeyMaterial, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
 
-    fn write_device_sk(&self, _binding_id: i32, _sk_info: &HostBindingSk) -> Result<(), ErrorCode> {
+    fn write_device_sk(&self, _binding_id: i32, _sk_info: &HostBindingKeyMaterial) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }

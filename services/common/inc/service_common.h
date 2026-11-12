@@ -93,6 +93,20 @@ enum class SecureProtocolId : uint16_t {
     DEFAULT = 1,
 };
 
+template <typename T>
+std::vector<T> IntersectLists(const std::vector<T> &offered, const std::vector<T> &supported)
+{
+    std::vector<T> negotiated;
+    for (const auto &item : offered) {
+        bool isSupported = std::find(supported.begin(), supported.end(), item) != supported.end();
+        bool isDuplicated = std::find(negotiated.begin(), negotiated.end(), item) != negotiated.end();
+        if (isSupported && !isDuplicated) {
+            negotiated.push_back(item);
+        }
+    }
+    return negotiated;
+}
+
 constexpr int32_t INVALID_USER_ID = -1;
 constexpr int32_t INVALID_SUB_PROFILE_ID = -1;
 
@@ -109,6 +123,13 @@ struct UserKey {
     {
         return !(*this == other);
     }
+};
+
+struct SelectedAlgorithms {
+    uint16_t kaAlgorithm { 0 };
+    uint16_t kdfAlgorithm { 0 };
+    uint16_t aeadAlgorithm { 0 };
+    uint16_t macAlgorithm { 0 };
 };
 
 enum class MessageType : uint16_t {
@@ -252,14 +273,14 @@ public:
 };
 
 struct LocalDeviceProfile {
+    // Ordered by selection priority: members are the supported set, order is the
+    // negotiation preference. Published members keep their relative order across versions.
     std::vector<ProtocolId> protocols;
-    std::vector<SecureProtocolId> hostSecureProtocols;
     SecureProtocolId companionSecureProtocolId { SecureProtocolId::INVALID };
     std::vector<Capability> hostCapabilities;
     std::vector<Capability> companionCapabilities;
     std::vector<BusinessId> hostSupportedBusinessIds;
     std::vector<BusinessId> companionSupportedBusinessIds;
-    std::vector<ProtocolId> protocolPriorityList;
     bool hostBindingRevokeTokenOnInactive { false };
 };
 
@@ -280,6 +301,8 @@ struct PersistedCompanionStatus {
     std::string deviceName {};
     DeviceType deviceType { DeviceType::INVALID };
     std::string deviceSubProfileName {};
+    ProtocolId enrolledProtocolId { ProtocolId::VERSION_1 };
+    std::vector<Capability> capabilities {};
 };
 
 struct CompanionStatus {
@@ -299,6 +322,9 @@ struct CompanionStatus {
         companionDeviceStatus.deviceType = persistedStatus.deviceType;
         companionDeviceStatus.supportedBusinessIds = persistedStatus.supportedBusinessIds;
         companionDeviceStatus.deviceSubProfileName = persistedStatus.deviceSubProfileName;
+        companionDeviceStatus.protocolId = persistedStatus.enrolledProtocolId;
+        companionDeviceStatus.capabilities = persistedStatus.capabilities;
+        enrolledProtocolId = persistedStatus.enrolledProtocolId;
         tokenAuthAtl = std::nullopt;
         return *this;
     }
@@ -318,6 +344,8 @@ struct CompanionStatus {
         persistedStatus.deviceType = companionDeviceStatus.deviceType;
         persistedStatus.supportedBusinessIds = companionDeviceStatus.supportedBusinessIds;
         persistedStatus.deviceSubProfileName = companionDeviceStatus.deviceSubProfileName;
+        persistedStatus.enrolledProtocolId = enrolledProtocolId;
+        persistedStatus.capabilities = companionDeviceStatus.capabilities;
         return persistedStatus;
     }
 
@@ -335,6 +363,7 @@ struct CompanionStatus {
     std::optional<Atl> tokenAuthAtl { std::nullopt };
     std::vector<BusinessId> enabledBusinessIds {};
     int64_t addedTime { 0 };
+    ProtocolId enrolledProtocolId { ProtocolId::INVALID };
 };
 
 struct HostBindingStatus {
@@ -343,6 +372,7 @@ struct HostBindingStatus {
     DeviceStatus hostDeviceStatus {};
     bool isTokenValid { false };
     bool localAuthMaintainActive { false };
+    ProtocolId enrolledProtocolId { ProtocolId::INVALID };
 };
 
 struct PersistedHostBindingStatus {
@@ -350,6 +380,7 @@ struct PersistedHostBindingStatus {
     UserKey companionUserKey;
     DeviceKey hostDeviceKey {};
     bool isTokenValid { false };
+    ProtocolId enrolledProtocolId { ProtocolId::VERSION_1 };
 };
 
 struct SecureExecutorInfo {

@@ -15,6 +15,7 @@
 
 #include "companion_add_companion_request.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "iam_check.h"
@@ -61,23 +62,8 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), secureProtocolId_ != SecureProtocolId::INVALID, false);
 
-    beginAddHostBindingSubscription_ =
-        GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::BEGIN_ADD_HOST_BINDING,
-            [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
-                auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
-                self->HandleBeginAddHostBinding(msg, onMessageReply);
-            });
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), beginAddHostBindingSubscription_ != nullptr, false);
-
-    endAddHostBindingSubscription_ =
-        GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::END_ADD_HOST_BINDING,
-            [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
-                auto self = weakSelf.lock();
-                ENSURE_OR_RETURN(self != nullptr);
-                self->HandleEndAddHostBinding(msg, onMessageReply);
-            });
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), endAddHostBindingSubscription_ != nullptr, false);
+    bool subscribeRet = SubscribeBindingMessageHandlers();
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), subscribeRet, false);
 
     auto initRequestOpt = DecodeInitKeyNegotiationRequest(initKeyNegoRequest_);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), initRequestOpt.has_value(), false);
@@ -85,11 +71,20 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
         IAM_LOGE("%{public}s host device key mismatch", GetDescription());
         return false;
     }
+    auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
+    ResultCode negotiateRet = ValidateAndPinProtocol(localProfile, *initRequestOpt);
+    if (negotiateRet != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s validate and pin protocol failed ret=%{public}d", GetDescription(), negotiateRet);
+        errorGuard.UpdateErrorCode(negotiateRet);
+        return false;
+    }
 
     std::vector<uint8_t> initKeyNegotiationReply;
-    bool initRet = CompanionInitKeyNegotiation(*initRequestOpt, initKeyNegotiationReply);
-    if (!initRet) {
-        IAM_LOGE("%{public}s CompanionInitKeyNegotiation failed", GetDescription());
+    ResultCode initRet = CompanionInitKeyNegotiation(localProfile, *initRequestOpt, initKeyNegotiationReply);
+    if (initRet != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s CompanionInitKeyNegotiation failed ret=%{public}d", GetDescription(),
+            static_cast<int32_t>(initRet));
+        errorGuard.UpdateErrorCode(initRet);
         return false;
     }
 
@@ -105,14 +100,28 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
     return true;
 }
 
+ResultCode CompanionAddCompanionRequest::ValidateAndPinProtocol(const LocalDeviceProfile &localProfile,
+    const InitKeyNegotiationRequest &request)
+{
+    if (std::find(localProfile.protocols.begin(), localProfile.protocols.end(), request.protocolId) ==
+        localProfile.protocols.end()) {
+        IAM_LOGE("%{public}s host negotiated protocol %{public}hu is not supported locally", GetDescription(),
+            ProtocolIdConverter::ToUnderlying(request.protocolId));
+        return ResultCode::PROTOCOL_NEGOTIATION_FAILED;
+    }
+    selectedProtocolId_ = request.protocolId;
+    return ResultCode::SUCCESS;
+}
+
 CompanionInitKeyNegotiationInput CompanionAddCompanionRequest::BuildCompanionInitKeyNegotiationInput(
-    const LocalDeviceProfile &profile, const std::vector<uint8_t> &initKeyNegotiationRequest)
+    const LocalDeviceProfile &localProfile, const std::vector<uint8_t> &initKeyNegotiationRequest)
 {
     CompanionInitKeyNegotiationInput input = {};
     input.requestId = GetRequestId();
     input.secureProtocolId = secureProtocolId_;
-    input.protocolList = ProtocolIdConverter::ToUnderlyingVec(profile.protocols);
-    input.capabilityList = CapabilityConverter::ToUnderlyingVec(profile.companionCapabilities);
+    input.companionProtocolList = ProtocolIdConverter::ToUnderlyingVec(localProfile.protocols);
+    input.companionCapabilityList = CapabilityConverter::ToUnderlyingVec(localProfile.companionCapabilities);
+    input.selectedProtocolId = selectedProtocolId_;
     input.companionDeviceKey = companionDeviceKey_;
     input.hostDeviceKey = PeerDeviceKey();
     input.initKeyNegotiationRequest = initKeyNegotiationRequest;
@@ -135,29 +144,27 @@ void CompanionAddCompanionRequest::ProcessCompanionInitKeyNegotiationOutput(
 {
     needCancelAddCompanion_ = true;
 
-    eventCollector_.SetAlgorithmList(output.algorithmList);
-    eventCollector_.SetSelectedAlgorithm(output.selectedAlgorithm);
+    eventCollector_.SetSelectedAlgorithms(output.selectedAlgorithms);
 
     initKeyNegotiationReply = output.initKeyNegotiationReply;
 }
 
-bool CompanionAddCompanionRequest::CompanionInitKeyNegotiation(const InitKeyNegotiationRequest &request,
-    std::vector<uint8_t> &initKeyNegotiationReply)
+ResultCode CompanionAddCompanionRequest::CompanionInitKeyNegotiation(const LocalDeviceProfile &localProfile,
+    const InitKeyNegotiationRequest &request, std::vector<uint8_t> &initKeyNegotiationReply)
 {
     IAM_LOGI("%{public}s start", GetDescription());
 
-    auto profile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
-    CompanionInitKeyNegotiationInput input = BuildCompanionInitKeyNegotiationInput(profile, request.extraInfo);
+    CompanionInitKeyNegotiationInput input = BuildCompanionInitKeyNegotiationInput(localProfile, request.extraInfo);
 
     CompanionInitKeyNegotiationOutput output = {};
     ResultCode ret = GetSecurityAgent().CompanionInitKeyNegotiation(input, output);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionInitKeyNegotiation failed ret=%{public}d", GetDescription(), ret);
-        return false;
+        return ret;
     }
 
     ProcessCompanionInitKeyNegotiationOutput(output, initKeyNegotiationReply);
-    return true;
+    return ResultCode::SUCCESS;
 }
 
 bool CompanionAddCompanionRequest::SendInitKeyNegotiationReply(ResultCode result,
@@ -181,6 +188,28 @@ ResultCode CompanionAddCompanionRequest::BeginAddHostBinding(const UserKey &comp
     return GetHostBindingManager().BeginAddHostBinding(beginInput, beginOutput);
 }
 
+bool CompanionAddCompanionRequest::SubscribeBindingMessageHandlers()
+{
+    beginAddHostBindingSubscription_ =
+        GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::BEGIN_ADD_HOST_BINDING,
+            [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->HandleBeginAddHostBinding(msg, onMessageReply);
+            });
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), beginAddHostBindingSubscription_ != nullptr, false);
+
+    endAddHostBindingSubscription_ =
+        GetCrossDeviceCommManager().SubscribeMessage(GetConnectionName(), MessageType::END_ADD_HOST_BINDING,
+            [weakSelf = weak_from_this()](const Attributes &msg, OnMessageReply &onMessageReply) {
+                auto self = weakSelf.lock();
+                ENSURE_OR_RETURN(self != nullptr);
+                self->HandleEndAddHostBinding(msg, onMessageReply);
+            });
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), endAddHostBindingSubscription_ != nullptr, false);
+    return true;
+}
+
 void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &attrInput,
     OnMessageReply &onMessageReply)
 {
@@ -199,6 +228,8 @@ void CompanionAddCompanionRequest::HandleBeginAddHostBinding(const Attributes &a
 
     auto requestOpt = DecodeBeginAddHostBindingRequest(attrInput);
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt.has_value());
+    ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt->companionUserKey.userId != INVALID_USER_ID);
+    ENSURE_OR_RETURN_DESC(GetDescription(), companionDeviceKey_.deviceUserId != INVALID_USER_ID);
     ENSURE_OR_RETURN_DESC(GetDescription(), requestOpt->companionUserKey.userId == companionDeviceKey_.deviceUserId);
     ENSURE_OR_RETURN_DESC(GetDescription(),
         requestOpt->companionUserKey.subProfileId == companionDeviceKey_.deviceSubProfileId);

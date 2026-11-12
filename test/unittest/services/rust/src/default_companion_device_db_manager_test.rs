@@ -16,15 +16,18 @@
 use crate::traits::log_trace::TestFileId;
 const FILE_ID: u16 = TestFileId::DefaultCompanionDeviceDbManagerTest as u16;
 
+// Distinct from the VERSION_1 default so a lost field cannot pass the round-trip assert.
+const NON_DEFAULT_PROTOCOL_ID: u16 = 7;
+
 use crate::common::constants::*;
-use crate::impls::default_companion_device_db_manager::DefaultCompanionDeviceDbManager;
+use crate::impls::default_companion_device_db_manager::{
+    COMPANION_DEVICE_DB, CURRENT_VERSION, DefaultCompanionDeviceDbManager,
+};
 use crate::log_i;
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManager;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
-use crate::traits::db_manager::{
-    CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
-    DeviceKey, UserInfo, UserKey,
-};
+use crate::common::algorithm::SelectedAlgorithms;
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo, UserKey};
 use crate::traits::storage_io::{MockStorageIo, StorageIoRegistry};
 use crate::ut_registry_guard;
 use crate::utils::parcel::Parcel;
@@ -40,6 +43,8 @@ fn create_test_companion_device(template_id: u64, device_id: &str, user_id: i32)
         added_time: 1000,
         is_valid: true,
         capability_list: vec![1, 2, 3],
+        protocol_id: 1,
+        secure_protocol_id: 0,
     }
 }
 
@@ -63,8 +68,17 @@ fn create_test_capability_info() -> Vec<CompanionDeviceCapability> {
     }]
 }
 
-fn create_test_sk_info() -> Vec<CompanionDeviceSk> {
-    vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }]
+fn create_test_sk_info() -> Vec<CompanionDeviceKeyMaterial> {
+    vec![CompanionDeviceKeyMaterial {
+        processor_type: ProcessorType::Default,
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }]
 }
 
 fn create_test_token_info(template_id: u64) -> CompanionDeviceToken {
@@ -672,7 +686,7 @@ fn default_companion_device_db_manager_read_device_db_test_success() {
     log_i!("default_companion_device_db_manager_read_device_db_test_success start");
 
     let mut parcel = Parcel::new();
-    parcel.write_i32(0);
+    parcel.write_i32(CURRENT_VERSION);
     parcel.write_u32(1);
     parcel.write_u64(123);
     parcel.write_string("device1");
@@ -689,6 +703,8 @@ fn default_companion_device_db_manager_read_device_db_test_success() {
     parcel.write_u16(1);
     parcel.write_u16(2);
     parcel.write_u16(3);
+    parcel.write_u16(PROTOCOL_ID_INVALID);
+    parcel.write_u16(SECURE_PROTOCOL_ID_INVALID);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -701,6 +717,7 @@ fn default_companion_device_db_manager_read_device_db_test_success() {
     assert!(result.is_ok());
     assert_eq!(manager.companion_device_infos.len(), 1);
     assert!(manager.get_device(123).is_ok());
+    assert_eq!(manager.get_device(123).unwrap().protocol_id, PROTOCOL_ID_INVALID);
 }
 
 #[test]
@@ -1474,6 +1491,10 @@ fn default_companion_device_db_manager_read_device_sk_test_success() {
     parcel.write_i32(1);
     parcel.write_i32(ProcessorType::Default as i32);
     parcel.write_bytes(&[0u8; TOKEN_KEY_LEN]);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -1484,6 +1505,34 @@ fn default_companion_device_db_manager_read_device_sk_test_success() {
     let manager = DefaultCompanionDeviceDbManager::new();
     let result = manager.read_device_sk(123);
     assert!(result.is_ok());
+    let sk_infos = result.unwrap();
+    assert_eq!(sk_infos.len(), 1);
+    assert_eq!(
+        sk_infos[0].selected_algorithms,
+        SelectedAlgorithms { ka_algorithm: 1, kdf_algorithm: 1, aead_algorithm: 1, mac_algorithm: 1 }
+    );
+}
+
+#[test]
+fn default_companion_device_db_manager_read_device_sk_test_deserialize_miss_algorithms() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_device_db_manager_read_device_sk_test_deserialize_miss_algorithms start");
+
+    let mut parcel = Parcel::new();
+    parcel.write_i32(0);
+    parcel.write_i32(1);
+    parcel.write_i32(ProcessorType::Default as i32);
+    parcel.write_bytes(&[0u8; TOKEN_KEY_LEN]);
+
+    let serialized_data = parcel.as_slice().to_vec();
+
+    let mut mock_storage_io = MockStorageIo::new();
+    mock_storage_io.expect_read().returning(move || Ok(serialized_data.clone()));
+    StorageIoRegistry::set(Box::new(mock_storage_io));
+
+    let manager = DefaultCompanionDeviceDbManager::new();
+    let result = manager.read_device_sk(123);
+    assert!(result.is_err());
 }
 
 #[test]
@@ -1687,4 +1736,99 @@ fn default_companion_device_db_manager_delete_device_sk_test_fail() {
 
     let result = manager.delete_device_sk(123);
     assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn default_companion_device_db_manager_read_db_test_protocol_roundtrip() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_device_db_manager_read_db_test_protocol_roundtrip start");
+
+    let mut manager = DefaultCompanionDeviceDbManager::new();
+    let mut device_info = create_test_companion_device(123, "device1", 100);
+    device_info.protocol_id = NON_DEFAULT_PROTOCOL_ID;
+
+    let written_db = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    {
+        let capture = written_db.clone();
+        let mut mock_storage_io = MockStorageIo::new();
+        mock_storage_io.expect_write().returning(move |name, data| {
+            if name == COMPANION_DEVICE_DB {
+                *capture.borrow_mut() = data.to_vec();
+            }
+            Ok(())
+        });
+        mock_storage_io.expect_read().returning(|| Ok(Vec::new()));
+        mock_storage_io.expect_delete().returning(|| Ok(()));
+        mock_storage_io.expect_exists().returning(|| Ok(true));
+        StorageIoRegistry::set(Box::new(mock_storage_io));
+
+        let result = manager.add_device(
+            &device_info,
+            &create_test_base_info(),
+            &create_test_capability_info(),
+            &create_test_sk_info(),
+        );
+        assert!(result.is_ok());
+    }
+
+    let mut reloaded = DefaultCompanionDeviceDbManager::new();
+    {
+        let db_bytes = written_db.borrow().clone();
+        let mut mock_storage_io = MockStorageIo::new();
+        mock_storage_io.expect_read().returning(move || Ok(db_bytes.clone()));
+        mock_storage_io.expect_write().returning(|_, _| Ok(()));
+        mock_storage_io.expect_delete().returning(|| Ok(()));
+        mock_storage_io.expect_exists().returning(|| Ok(true));
+        StorageIoRegistry::set(Box::new(mock_storage_io));
+        assert!(reloaded.read_device_db().is_ok());
+    }
+    assert_eq!(reloaded.get_device(123).unwrap().protocol_id, NON_DEFAULT_PROTOCOL_ID);
+}
+
+#[test]
+fn default_companion_device_db_manager_read_db_test_security_params_roundtrip() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_device_db_manager_read_db_test_security_params_roundtrip start");
+
+    let mut manager = DefaultCompanionDeviceDbManager::new();
+    let mut device_info = create_test_companion_device(123, "device1", 100);
+    device_info.secure_protocol_id = 1;
+
+    let written_db = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    {
+        let capture = written_db.clone();
+        let mut mock_storage_io = MockStorageIo::new();
+        mock_storage_io.expect_write().returning(move |name, data| {
+            if name == COMPANION_DEVICE_DB {
+                *capture.borrow_mut() = data.to_vec();
+            }
+            Ok(())
+        });
+        mock_storage_io.expect_read().returning(|| Ok(Vec::new()));
+        mock_storage_io.expect_delete().returning(|| Ok(()));
+        mock_storage_io.expect_exists().returning(|| Ok(true));
+        StorageIoRegistry::set(Box::new(mock_storage_io));
+
+        let result = manager.add_device(
+            &device_info,
+            &create_test_base_info(),
+            &create_test_capability_info(),
+            &create_test_sk_info(),
+        );
+        assert!(result.is_ok());
+    }
+
+    let mut reloaded = DefaultCompanionDeviceDbManager::new();
+    {
+        let db_bytes = written_db.borrow().clone();
+        let mut mock_storage_io = MockStorageIo::new();
+        mock_storage_io.expect_read().returning(move || Ok(db_bytes.clone()));
+        mock_storage_io.expect_write().returning(|_, _| Ok(()));
+        mock_storage_io.expect_delete().returning(|| Ok(()));
+        mock_storage_io.expect_exists().returning(|| Ok(true));
+        StorageIoRegistry::set(Box::new(mock_storage_io));
+        assert!(reloaded.read_device_db().is_ok());
+    }
+    let retrieved = reloaded.get_device(123).unwrap();
+    assert_eq!(retrieved.secure_protocol_id, 1);
 }

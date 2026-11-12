@@ -28,7 +28,7 @@ fn sec_common_request_decode_test_miss_message() {
     log_i!("sec_common_request_decode_test_miss_message start");
 
     let mut attribute = Attribute::new();
-    attribute.set_u16_slice(AttributeKey::AttrAlgoList, &Vec::new());
+    attribute.set_u16_slice(AttributeKey::AttrKaAlgoList, &Vec::new());
     let message = attribute.to_bytes().unwrap();
 
     let result = SecCommonRequest::decode(&message, ProcessorType::Default);
@@ -172,7 +172,7 @@ fn sec_common_reply_decode_test_miss_message() {
     log_i!("sec_common_reply_decode_test_miss_message start");
 
     let mut attribute = Attribute::new();
-    attribute.set_u16_slice(AttributeKey::AttrAlgoList, &Vec::new());
+    attribute.set_u16_slice(AttributeKey::AttrKaAlgoList, &Vec::new());
     let message = attribute.to_bytes().unwrap();
 
     let result = SecCommonReply::decode(&message, ProcessorType::Default);

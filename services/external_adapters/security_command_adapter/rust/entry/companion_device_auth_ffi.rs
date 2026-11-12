@@ -243,6 +243,17 @@ pub struct UserKeyFfi {
 assert_max_size!(UserKeyFfi);
 
 #[repr(C)]
+#[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct SelectedAlgorithmsFfi {
+    pub ka_algorithm: u16,
+    pub kdf_algorithm: u16,
+    pub aead_algorithm: u16,
+    pub mac_algorithm: u16,
+}
+assert_max_size!(SelectedAlgorithmsFfi);
+
+#[repr(C)]
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct UserKeyArray64Ffi {
@@ -273,6 +284,8 @@ pub struct PersistedCompanionStatusFfi {
     pub device_user_name: DataArray256Ffi,
     pub device_name: DataArray256Ffi,
     pub device_sub_profile_name: DataArray256Ffi,
+    pub enrolled_protocol_id: u16,
+    pub capability_list: Uint16Array64Ffi,
 }
 assert_max_size!(PersistedCompanionStatusFfi);
 
@@ -284,6 +297,7 @@ pub struct PersistedHostBindingStatusFfi {
     pub companion_user_key: UserKeyFfi,
     pub host_device_key: DeviceKeyFfi,
     pub is_token_valid: bool,
+    pub enrolled_protocol_id: u16,
 }
 assert_max_size!(PersistedHostBindingStatusFfi);
 
@@ -422,14 +436,18 @@ assert_max_size!(HostBeginCompanionCheckOutputFfi);
 pub struct HostEndCompanionCheckInputFfi {
     pub request_id: i32,
     pub template_id: u64,
-    pub protocol_list: Uint16Array64Ffi,
-    pub capability_list: Uint16Array64Ffi,
     pub secure_protocol_id: u16,
-    pub sec_message: DataArray1024Ffi, /* algorithm, capability_list, challenge*/
+    pub sec_message: DataArray1024Ffi, /* per-processor sections: tag, iv, encrypt_data(host_challenge, protocol_list, capability_list) */
 }
 assert_max_size!(HostEndCompanionCheckInputFfi);
 
-pub type HostEndCompanionCheckOutputFfi = PlaceHolderFfi;
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
+pub struct HostEndCompanionCheckOutputFfi {
+    pub capability_list: Uint16Array64Ffi,
+}
+assert_max_size!(HostEndCompanionCheckOutputFfi);
 
 // HostCancelCompanionCheck
 #[repr(C)]
@@ -456,8 +474,7 @@ assert_max_size!(HostGetInitKeyNegotiationInputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct HostGetInitKeyNegotiationOutputFfi {
-    pub sec_message: DataArray1024Ffi,    /* algorithm_list */
-    pub algorithm_list: Uint16Array64Ffi, /* algorithm_list for big data reporting */
+    pub sec_message: DataArray1024Ffi,
 }
 assert_max_size!(HostGetInitKeyNegotiationOutputFfi);
 
@@ -472,7 +489,9 @@ pub struct HostBeginAddCompanionInputFfi {
     pub companion_device_key: DeviceKeyFfi,
     pub fwk_message: DataArray1024Ffi,
     pub secure_protocol_id: u16,
-    pub sec_message: DataArray20000Ffi, /* algo, challenge, pub_key */
+    pub host_capability_list: Uint16Array64Ffi,
+    pub host_protocol_list: Uint16Array64Ffi,
+    pub sec_message: DataArray20000Ffi, /* algorithm, challenge, pub_key */
 }
 assert_max_size!(HostBeginAddCompanionInputFfi);
 
@@ -483,7 +502,7 @@ pub struct HostBeginAddCompanionOutputFfi {
     // device_id, user_id, pub_key, salt, tag, iv,
     // encrypt_data(challenge, device_id, user_id)
     pub sec_message: DataArray20000Ffi,
-    pub selected_algorithm: u16,
+    pub selected_algorithms: SelectedAlgorithmsFfi,
 }
 assert_max_size!(HostBeginAddCompanionOutputFfi);
 
@@ -495,8 +514,6 @@ pub struct HostEndAddCompanionInputFfi {
     pub request_id: i32,
     pub companion_status: PersistedCompanionStatusFfi,
     pub secure_protocol_id: u16,
-    pub protocol_list: Uint16Array64Ffi,
-    pub capability_list: Uint16Array64Ffi,
     pub supported_business_ids: Int32Array64Ffi,
     // device_id, user_id, track_ability_level, tag, iv,
     // encrypt_data(device_id, user_id)
@@ -514,6 +531,7 @@ pub struct HostEndAddCompanionOutputFfi {
     pub atl: i32,
     pub esl: i32,
     pub added_time: u64,
+    pub capability_list: Uint16Array64Ffi,
 }
 assert_max_size!(HostEndAddCompanionOutputFfi);
 
@@ -869,11 +887,10 @@ assert_max_size!(CompanionGetPersistedStatusOutputFfi);
 pub struct CompanionProcessCheckInputFfi {
     pub binding_id: i32,
     pub protocol_list: Uint16Array64Ffi,
-    pub capability_list: Uint16Array64Ffi,
+    pub companion_capability_list: Uint16Array64Ffi,
     pub secure_protocol_id: u16,
     pub salt: DataArray32Ffi,
     pub challenge: u64,
-    pub sec_message: DataArray1024Ffi, /* algorithm_list, capability_list */
 }
 assert_max_size!(CompanionProcessCheckInputFfi);
 
@@ -881,7 +898,7 @@ assert_max_size!(CompanionProcessCheckInputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionProcessCheckOutputFfi {
-    pub sec_message: DataArray1024Ffi, /* salt, tag, iv, encrypt_data(algorithm, capability_list, challenge) */
+    pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(host_challenge, protocol_list, capability_list) */
 }
 assert_max_size!(CompanionProcessCheckOutputFfi);
 
@@ -892,11 +909,12 @@ assert_max_size!(CompanionProcessCheckOutputFfi);
 pub struct CompanionInitKeyNegotiationInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
-    pub protocol_list: Uint16Array64Ffi,
-    pub capability_list: Uint16Array64Ffi,
+    pub companion_protocol_list: Uint16Array64Ffi,
+    pub companion_capability_list: Uint16Array64Ffi,
+    pub selected_protocol_id: u16,
     pub companion_device_key: DeviceKeyFfi,
     pub host_device_key: DeviceKeyFfi,
-    pub sec_message: DataArray1024Ffi, /* algorithm_list */
+    pub sec_message: DataArray1024Ffi,
 }
 assert_max_size!(CompanionInitKeyNegotiationInputFfi);
 
@@ -904,9 +922,8 @@ assert_max_size!(CompanionInitKeyNegotiationInputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionInitKeyNegotiationOutputFfi {
-    pub sec_message: DataArray20000Ffi,   /* challenge, algorithm, algorithm_data */
-    pub algorithm_list: Uint16Array64Ffi, /* algorithm_list for big data reporting */
-    pub selected_algorithm: u16,
+    pub sec_message: DataArray20000Ffi, /* algorithm, challenge, pub_key */
+    pub selected_algorithms: SelectedAlgorithmsFfi,
 }
 assert_max_size!(CompanionInitKeyNegotiationOutputFfi);
 
@@ -982,7 +999,7 @@ assert_max_size!(CompanionPreIssueTokenInputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "test-utils", derive(Debug, PartialEq))]
 pub struct CompanionPreIssueTokenOutputFfi {
-    pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(challenge) */
+    pub sec_message: DataArray1024Ffi, /* challenge */
 }
 assert_max_size!(CompanionPreIssueTokenOutputFfi);
 

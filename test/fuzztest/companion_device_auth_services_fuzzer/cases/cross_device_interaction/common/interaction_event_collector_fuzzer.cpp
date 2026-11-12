@@ -81,14 +81,14 @@ static void FuzzSetSuccessAuthType(InteractionEventCollector &collector, FuzzedD
     collector.SetSuccessAuthType(fuzzData.ConsumeIntegral<int32_t>());
 }
 
-static void FuzzSetAlgorithmList(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
+static void FuzzSetSelectedAlgorithms(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
 {
-    collector.SetAlgorithmList(GenerateFuzzVector<uint16_t>(fuzzData, FUZZ_MAX_CAPABILITIES_COUNT));
-}
-
-static void FuzzSetSelectedAlgorithm(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
-{
-    collector.SetSelectedAlgorithm(fuzzData.ConsumeIntegral<uint16_t>());
+    SelectedAlgorithms selectedAlgorithms;
+    selectedAlgorithms.kaAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
+    selectedAlgorithms.kdfAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
+    selectedAlgorithms.aeadAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
+    selectedAlgorithms.macAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
+    collector.SetSelectedAlgorithms(selectedAlgorithms);
 }
 
 static void FuzzSetEsl(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
@@ -106,9 +106,14 @@ static void FuzzSetCapabilityList(InteractionEventCollector &collector, FuzzedDa
     collector.SetCapabilityList(GenerateFuzzVector<uint16_t>(fuzzData, FUZZ_MAX_CAPABILITIES_COUNT));
 }
 
-static void FuzzSetSelectedProtocolIdList(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
+static void FuzzSetPeerProtocolIdList(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
 {
-    collector.SetSelectedProtocolIdList(GenerateFuzzVector<uint16_t>(fuzzData, FUZZ_MAX_PROTOCOLS_COUNT));
+    collector.SetPeerProtocolIdList(GenerateFuzzVector<uint16_t>(fuzzData, FUZZ_MAX_PROTOCOLS_COUNT));
+}
+
+static void FuzzSetSelectedProtocolId(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
+{
+    collector.SetSelectedProtocolId(fuzzData.ConsumeIntegral<uint16_t>());
 }
 
 static void FuzzSetSecureProtocolId(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
@@ -163,12 +168,12 @@ static const CollectorFuzzFunction g_fuzzFuncs[] = {
     FuzzSetBindingId,
     FuzzSetContextId,
     FuzzSetSuccessAuthType,
-    FuzzSetAlgorithmList,
-    FuzzSetSelectedAlgorithm,
+    FuzzSetSelectedAlgorithms,
     FuzzSetEsl,
     FuzzSetProtocolIdList,
     FuzzSetCapabilityList,
-    FuzzSetSelectedProtocolIdList,
+    FuzzSetPeerProtocolIdList,
+    FuzzSetSelectedProtocolId,
     FuzzSetSecureProtocolId,
     FuzzAddTemplateAuthResult,
     FuzzSetSuccessTemplateId,

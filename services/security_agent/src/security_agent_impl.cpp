@@ -231,7 +231,8 @@ ResultCode SecurityAgentImpl::HostBeginCompanionCheck(const HostBeginCompanionCh
     return SUCCESS;
 }
 
-ResultCode SecurityAgentImpl::HostEndCompanionCheck(const HostEndCompanionCheckInput &input)
+ResultCode SecurityAgentImpl::HostEndCompanionCheck(const HostEndCompanionCheckInput &input,
+    HostEndCompanionCheckOutput &output)
 {
     auto ffiInput = std::make_unique<HostEndCompanionCheckInputFfi>();
     ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
@@ -245,6 +246,9 @@ ResultCode SecurityAgentImpl::HostEndCompanionCheck(const HostEndCompanionCheckI
         reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostEndCompanionCheckInputFfi),
         reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostEndCompanionCheckOutputFfi));
     ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
+
+    bool decodeRet = DecodeHostEndCompanionCheckOutput(*ffiOutput, output);
+    ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);
 
     IAM_LOGI("success");
     return SUCCESS;

@@ -13,5 +13,6 @@
  * limitations under the License.
  */
 
+pub mod algorithm;
 pub mod constants;
 pub mod types;

@@ -31,6 +31,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 bool EncodeDeviceKey(const DeviceKey &key, DeviceKeyFfi &ffi);
 bool DecodeDeviceKey(const DeviceKeyFfi &ffi, DeviceKey &key);
+bool DecodeSelectedAlgorithms(const SelectedAlgorithmsFfi &ffi, SelectedAlgorithms &algorithms);
 bool EncodePersistedCompanionStatus(const PersistedCompanionStatus &status, PersistedCompanionStatusFfi &ffi);
 bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, PersistedCompanionStatus &status);
 bool DecodePersistedCompanionStatusList(const CompanionStatusArrayFfi &ffi,
@@ -48,6 +49,7 @@ bool EncodeHostBeginCompanionCheckInput(const HostBeginCompanionCheckInput &inpu
 bool DecodeHostBeginCompanionCheckOutput(const HostBeginCompanionCheckOutputFfi &ffi,
     HostBeginCompanionCheckOutput &output);
 bool EncodeHostEndCompanionCheckInput(const HostEndCompanionCheckInput &input, HostEndCompanionCheckInputFfi &ffi);
+bool DecodeHostEndCompanionCheckOutput(const HostEndCompanionCheckOutputFfi &ffi, HostEndCompanionCheckOutput &output);
 bool EncodeHostGetInitKeyNegotiationInput(const HostGetInitKeyNegotiationRequestInput &input,
     HostGetInitKeyNegotiationInputFfi &ffi);
 bool DecodeHostInitKeyNegotiationOutput(const HostGetInitKeyNegotiationOutputFfi &ffi,

@@ -228,7 +228,7 @@ HWTEST_F(ConnectionModuleTest, KeepAliveAfterIdleE2E_001, TestSize.Level0)
     checkOutput.challenge = 54321;
     EXPECT_CALL(guard.GetSecurityAgent(), HostBeginCompanionCheck(_, _))
         .WillRepeatedly(DoAll(SetArgReferee<1>(checkOutput), Return(ResultCode::SUCCESS)));
-    EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_)).WillRepeatedly(Return(ResultCode::SUCCESS));
+    EXPECT_CALL(guard.GetSecurityAgent(), HostEndCompanionCheck(_, _)).WillRepeatedly(Return(ResultCode::SUCCESS));
 
     // Setup: register companion device (establishes connection and syncs)
     ASSERT_TRUE(guard.SetupCompanionDevice(HOST_USER_ID, "companion-keepalive-001", TEST_TEMPLATE_ID));

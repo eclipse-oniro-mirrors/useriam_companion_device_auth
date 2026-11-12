@@ -65,18 +65,16 @@ HWTEST_F(InteractionEventCollectorTest, SetSuccessAuthType_001, TestSize.Level0)
     EXPECT_NE(collector.GetExtraInfo().find("successAuthType:2"), std::string::npos);
 }
 
-HWTEST_F(InteractionEventCollectorTest, SetAlgorithmList_001, TestSize.Level0)
+HWTEST_F(InteractionEventCollectorTest, SetSelectedAlgorithms_001, TestSize.Level0)
 {
     InteractionEventCollector collector("test");
-    collector.SetAlgorithmList({ 1, 2, 3 });
-    EXPECT_NE(collector.GetExtraInfo().find("algorithmList:[1, 2, 3]"), std::string::npos);
-}
-
-HWTEST_F(InteractionEventCollectorTest, SetSelectedAlgorithm_001, TestSize.Level0)
-{
-    InteractionEventCollector collector("test");
-    collector.SetSelectedAlgorithm(5);
-    EXPECT_NE(collector.GetExtraInfo().find("selectedAlgorithm:5"), std::string::npos);
+    SelectedAlgorithms selectedAlgorithms;
+    selectedAlgorithms.kaAlgorithm = 5;
+    selectedAlgorithms.kdfAlgorithm = 6;
+    selectedAlgorithms.aeadAlgorithm = 7;
+    selectedAlgorithms.macAlgorithm = 8;
+    collector.SetSelectedAlgorithms(selectedAlgorithms);
+    EXPECT_NE(collector.GetExtraInfo().find("selectedAlgorithms:ka=5,kdf=6,aead=7,mac=8"), std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, SetCallerUserId_001, TestSize.Level0)
@@ -109,11 +107,11 @@ HWTEST_F(InteractionEventCollectorTest, SetCallerUserId_EncodedInFixedOrder, Tes
     // Set in reverse order to verify encoding is independent of call order
     collector.SetEsl(1);
     collector.SetCallerUserId(50);
-    collector.SetSelectedAlgorithm(5);
+    collector.SetSelectedAlgorithms(SelectedAlgorithms { .kaAlgorithm = 5 });
 
     const auto extra = collector.GetExtraInfo();
-    // callerUserId is encoded right after selectedAlgorithm and before ESL
-    EXPECT_LT(extra.find("selectedAlgorithm:5"), extra.find("callerUserId:50"));
+    // callerUserId is encoded right after selectedAlgorithms and before ESL
+    EXPECT_LT(extra.find("selectedAlgorithms:ka=5,kdf=0,aead=0,mac=0"), extra.find("callerUserId:50"));
     EXPECT_LT(extra.find("callerUserId:50"), extra.find("ESL:1"));
 }
 
@@ -139,11 +137,11 @@ HWTEST_F(InteractionEventCollectorTest, SetCallerUserType_EncodedRightAfterCalle
     collector.SetEsl(1);
     collector.SetCallerUserType("normal");
     collector.SetCallerUserId(100);
-    collector.SetSelectedAlgorithm(5);
+    collector.SetSelectedAlgorithms(SelectedAlgorithms { .kaAlgorithm = 5 });
 
     const auto extra = collector.GetExtraInfo();
     // callerUserType is encoded immediately after callerUserId, and both stay before ESL.
-    EXPECT_LT(extra.find("selectedAlgorithm:5"), extra.find("callerUserId:100"));
+    EXPECT_LT(extra.find("selectedAlgorithms:ka=5,kdf=0,aead=0,mac=0"), extra.find("callerUserId:100"));
     EXPECT_LT(extra.find("callerUserId:100"), extra.find("callerUserType:normal"));
     EXPECT_LT(extra.find("callerUserType:normal"), extra.find("ESL:1"));
 }
@@ -169,11 +167,18 @@ HWTEST_F(InteractionEventCollectorTest, SetCapabilityList_001, TestSize.Level0)
     EXPECT_NE(collector.GetExtraInfo().find("capabilityList:[1]"), std::string::npos);
 }
 
-HWTEST_F(InteractionEventCollectorTest, SetSelectedProtocolIdList_001, TestSize.Level0)
+HWTEST_F(InteractionEventCollectorTest, SetPeerProtocolIdList_001, TestSize.Level0)
 {
     InteractionEventCollector collector("test");
-    collector.SetSelectedProtocolIdList({ 10 });
-    EXPECT_NE(collector.GetExtraInfo().find("selectedProtocolIdList:[10]"), std::string::npos);
+    collector.SetPeerProtocolIdList({ 10 });
+    EXPECT_NE(collector.GetExtraInfo().find("peerProtocolIdList:[10]"), std::string::npos);
+}
+
+HWTEST_F(InteractionEventCollectorTest, SetSelectedProtocolId_001, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    collector.SetSelectedProtocolId(10);
+    EXPECT_NE(collector.GetExtraInfo().find("selectedProtocolId:10"), std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, SetSecureProtocolId_001, TestSize.Level0)
@@ -245,13 +250,6 @@ HWTEST_F(InteractionEventCollectorTest, UpdateMethods_StoreValues, TestSize.Leve
     EXPECT_EQ(collector.GetTriggerReason().value(), "test reason");
 }
 
-HWTEST_F(InteractionEventCollectorTest, SetAlgorithmList_Empty, TestSize.Level0)
-{
-    InteractionEventCollector collector("test");
-    collector.SetAlgorithmList({});
-    EXPECT_NE(collector.GetExtraInfo().find("algorithmList:[]"), std::string::npos);
-}
-
 HWTEST_F(InteractionEventCollectorTest, SetContextId_UpdateOverwrites, TestSize.Level0)
 {
     InteractionEventCollector collector("test");
@@ -268,15 +266,6 @@ HWTEST_F(InteractionEventCollectorTest, SetEsl_UpdateOverwrites, TestSize.Level0
     collector.SetEsl(2);
     EXPECT_NE(collector.GetExtraInfo().find("ESL:2"), std::string::npos);
     EXPECT_EQ(collector.GetExtraInfo().find("ESL:1"), std::string::npos);
-}
-
-HWTEST_F(InteractionEventCollectorTest, SetAlgorithmList_UpdateOverwrites, TestSize.Level0)
-{
-    InteractionEventCollector collector("test");
-    collector.SetAlgorithmList({ 1, 2 });
-    collector.SetAlgorithmList({ 3, 4, 5 });
-    EXPECT_NE(collector.GetExtraInfo().find("algorithmList:[3, 4, 5]"), std::string::npos);
-    EXPECT_EQ(collector.GetExtraInfo().find("algorithmList:[1, 2]"), std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, AllFields_EncodedInFixedOrder, TestSize.Level0)
@@ -439,12 +428,12 @@ HWTEST_F(InteractionEventCollectorTest, Report_WithAllFieldsSet, TestSize.Level0
     collector.SetBindingId(42);
     collector.SetContextId(99999);
     collector.SetSuccessAuthType(4);
-    collector.SetAlgorithmList({ 10, 20 });
-    collector.SetSelectedAlgorithm(10);
+    collector.SetSelectedAlgorithms(SelectedAlgorithms { .kaAlgorithm = 10 });
     collector.SetEsl(2);
     collector.SetProtocolIdList({ 100 });
     collector.SetCapabilityList({ 200 });
-    collector.SetSelectedProtocolIdList({ 300 });
+    collector.SetPeerProtocolIdList({ 300 });
+    collector.SetSelectedProtocolId(30);
     collector.SetSecureProtocolId(400);
     collector.AddTemplateAuthResult(555, ResultCode::SUCCESS);
     collector.SetSuccessTemplateId(777);

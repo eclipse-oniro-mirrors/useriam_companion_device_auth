@@ -51,7 +51,7 @@ public:
     void UnsubscribeCompanionDeviceStatusChange(SubscribeId subscriptionId) override;
 
     ResultCode BeginAddCompanion(const BeginAddCompanionParams &params, std::vector<uint8_t> &outAddHostBindingRequest,
-        uint16_t &selectedAlgorithm) override;
+        SelectedAlgorithms &selectedAlgorithms) override;
     ResultCode EndAddCompanion(const EndAddCompanionInput &input, EndAddCompanionOutput &output) override;
     ResultCode RemoveCompanion(TemplateId templateId, bool removeHostBinding, ConnectionMode connectionMode) override;
 
@@ -92,6 +92,7 @@ private:
     HostEndAddCompanionInput BuildHostEndAddCompanionInput(const EndAddCompanionInput &input);
     void ProcessEndAddCompanionOutput(const HostEndAddCompanionOutput &secOutput, EndAddCompanionOutput &output);
     ResultCode InvokeHostEndAddCompanion(const HostEndAddCompanionInput &input, HostEndAddCompanionOutput &output);
+    void RollbackSecurityAgentState(TemplateId templateId);
 
     UserKey hostUserKey_;
     std::vector<std::shared_ptr<Companion>> companions_;

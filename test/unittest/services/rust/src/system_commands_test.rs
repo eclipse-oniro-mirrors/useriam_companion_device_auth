@@ -18,6 +18,10 @@ const FILE_ID: u16 = TestFileId::SystemCommandsTest as u16;
 
 use crate::commands::system_commands::*;
 use crate::common::constants::*;
+
+const PROTOCOL_VERSION_1: u16 = 1;
+const ALL_CAPABILITIES: &[u16] =
+    &[Capability::DelegateAuth as u16, Capability::TokenAuth as u16, Capability::ObtainToken as u16];
 use crate::entry::companion_device_auth_ffi::*;
 use crate::impls::default_request_manager::DefaultRequestManager;
 use crate::log_i;
@@ -38,10 +42,8 @@ use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenReques
 use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenRequest;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::traits::db_manager::{
-    CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
-    DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo, UserKey,
-};
+use crate::common::algorithm::{CryptoAlgorithms, SelectedAlgorithms};
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, HostBinding, HostBindingKeyMaterial, HostBindingToken, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{MockRequestManager, RequestManagerRegistry};
@@ -77,6 +79,8 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
         added_time: 123456,
         is_valid: true,
         capability_list: vec![1, 2, 3],
+        protocol_id: 1,
+        secure_protocol_id: 1,
     }
 }
 
@@ -104,6 +108,8 @@ fn create_mock_host_binding(binding_id: i32) -> HostBinding {
         user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         binding_time: 123456,
         last_used_time: 123456,
+        protocol_id: 1,
+        secure_protocol_id: 1,
     }
 }
 
@@ -432,10 +438,11 @@ fn host_begin_companion_check_test_success() {
     mock_host_request_manager.expect_add_request().returning(|| Ok(()));
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
-    let input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0 };
+    let input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0, ..Default::default() };
     let mut output = HostBeginCompanionCheckOutputFfi {
         challenge: 0,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
+        ..Default::default()
     };
     let result = host_begin_companion_check(&input, &mut output);
     assert!(result.is_ok());
@@ -450,10 +457,11 @@ fn host_begin_companion_check_test_request_new_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0 };
+    let input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0, ..Default::default() };
     let mut output = HostBeginCompanionCheckOutputFfi {
         challenge: 0,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
+        ..Default::default()
     };
     let result = host_begin_companion_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
@@ -472,10 +480,11 @@ fn host_begin_companion_check_test_add_request_fail() {
     mock_host_request_manager.expect_add_request().returning(|| Err(ErrorCode::GeneralError));
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
-    let input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0 };
+    let input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0, ..Default::default() };
     let mut output = HostBeginCompanionCheckOutputFfi {
         challenge: 0,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
+        ..Default::default()
     };
     let result = host_begin_companion_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
@@ -492,8 +501,8 @@ fn host_end_companion_check_test_success() {
     let decrypt_attribute = {
         let mut attribute = Attribute::new();
         attribute.set_u64(AttributeKey::AttrHostChallenge, 0);
-        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &[SUPPORTED_PROTOCOL_VERSIONS[0]]);
-        attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &[SUPPORT_CAPABILITIES[0]]);
+        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &[PROTOCOL_VERSION_1]);
+        attribute.set_u16_slice(AttributeKey::AttrCapabilityList, ALL_CAPABILITIES);
         attribute.to_bytes().unwrap()
     };
     mock_crypto_engine
@@ -501,7 +510,7 @@ fn host_end_companion_check_test_success() {
         .returning(move |_aes_gcm_result| Ok(decrypt_attribute.clone()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let begin_input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0 };
+    let begin_input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0, ..Default::default() };
     let sync_status_request = HostDeviceSyncStatusRequest::new(&begin_input).unwrap();
 
     let mut mock_host_request_manager = MockRequestManager::new();
@@ -517,8 +526,30 @@ fn host_end_companion_check_test_success() {
         }])
     });
     mock_companion_device_db_manager.expect_read_device_sk().returning(|| {
-        Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }])
+        Ok(vec![CompanionDeviceKeyMaterial {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: 1,
+                kdf_algorithm: 1,
+                aead_algorithm: 1,
+                mac_algorithm: 1,
+            },
+        }])
     });
+    mock_companion_device_db_manager.expect_get_device().returning(|| {
+        Ok(CompanionDevice {
+            template_id: 123,
+            device_key: DeviceKey { device_id: String::new(), device_id_type: 0, user_id: 100, sub_profile_id: 0 },
+            user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
+            added_time: 0,
+            is_valid: true,
+            capability_list: vec![1, 2, 3],
+            protocol_id: 1,
+            secure_protocol_id: 1,
+        })
+    });
+    mock_companion_device_db_manager.expect_update_device().returning(|| Ok(()));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let sec_reply = SecCommonReply {
@@ -531,17 +562,9 @@ fn host_end_companion_check_test_success() {
     sec_message.data[..sec_message_bytes.len()].copy_from_slice(&sec_message_bytes);
     sec_message.len = sec_message_bytes.len() as u32;
 
-    let mut capability_list = Uint16Array64Ffi::default();
-    capability_list.data[0] = SUPPORT_CAPABILITIES[0];
-    capability_list.data[1] = SUPPORT_CAPABILITIES[1];
-    capability_list.data[2] = SUPPORT_CAPABILITIES[2];
-    capability_list.len = 3;
-
     let input = HostEndCompanionCheckInputFfi {
         request_id: 1,
         template_id: 123,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list,
         secure_protocol_id: 1,
         sec_message,
     };
@@ -562,8 +585,6 @@ fn host_end_companion_check_test_remove_request_fail() {
     let input = HostEndCompanionCheckInputFfi {
         request_id: 1,
         template_id: 123,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
     };
@@ -581,7 +602,7 @@ fn host_end_companion_check_test_request_end_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let begin_input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0 };
+    let begin_input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0, ..Default::default() };
     let sync_status_request = HostDeviceSyncStatusRequest::new(&begin_input).unwrap();
 
     let mut mock_host_request_manager = MockRequestManager::new();
@@ -596,8 +617,6 @@ fn host_end_companion_check_test_request_end_fail() {
     let input = HostEndCompanionCheckInputFfi {
         request_id: 1,
         template_id: 123,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
     };
@@ -615,7 +634,7 @@ fn host_cancel_companion_check_test_success() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let begin_input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0 };
+    let begin_input = HostBeginCompanionCheckInputFfi { request_id: 1, user_id: 0, ..Default::default() };
     let sync_status_request = HostDeviceSyncStatusRequest::new(&begin_input).unwrap();
 
     let mut mock_host_request_manager = MockRequestManager::new();
@@ -731,16 +750,27 @@ fn host_begin_add_companion_test_success() {
     let fwk_message_codec = MessageCodec::new(MessageSignParam::Executor(create_mock_key_pair()));
     let fwk_message = fwk_message_codec.serialize_attribute(&attr).unwrap();
 
-    let sec_key_nego_reply = SecKeyNegoReply { algorithm: 1, challenge: 0, pub_key: vec![1, 2, 3] };
+    let sec_key_nego_reply = SecKeyNegoReply {
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+        challenge: 0,
+        pub_key: vec![1, 2, 3],
+    };
     let sec_message = sec_key_nego_reply.encode(ProcessorType::Default).unwrap();
 
     let input = HostBeginAddCompanionInputFfi {
         request_id: 1,
         schedule_id: 1,
-        host_device_key: DeviceKeyFfi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         sec_message: DataArray20000Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -760,10 +790,12 @@ fn host_begin_add_companion_test_get_request_fail() {
     let input = HostBeginAddCompanionInputFfi {
         request_id: 1,
         schedule_id: 1,
-        host_device_key: DeviceKeyFfi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         fwk_message: DataArray1024Ffi::default(),
         secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         sec_message: DataArray20000Ffi::default(),
     };
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -794,10 +826,12 @@ fn host_begin_add_companion_test_request_begin_fail() {
     let input = HostBeginAddCompanionInputFfi {
         request_id: 1,
         schedule_id: 1,
-        host_device_key: DeviceKeyFfi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         fwk_message: DataArray1024Ffi::default(),
         secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         sec_message: DataArray20000Ffi::default(),
     };
     let mut output = HostBeginAddCompanionOutputFfi::default();
@@ -839,10 +873,11 @@ fn host_end_add_companion_test_success() {
 
     let input = HostEndAddCompanionInputFfi {
         request_id: 1,
-        companion_status: PersistedCompanionStatusFfi::default(),
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_1,
+            ..Default::default()
+        },
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
         supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
@@ -862,10 +897,11 @@ fn host_end_add_companion_test_remove_request_fail() {
 
     let input = HostEndAddCompanionInputFfi {
         request_id: 1,
-        companion_status: PersistedCompanionStatusFfi::default(),
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_1,
+            ..Default::default()
+        },
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
         supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
@@ -898,10 +934,11 @@ fn host_end_add_companion_test_request_end_fail() {
 
     let input = HostEndAddCompanionInputFfi {
         request_id: 1,
-        companion_status: PersistedCompanionStatusFfi::default(),
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_1,
+            ..Default::default()
+        },
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
         supported_business_ids: Int32Array64Ffi::default(),
         sec_message: DataArray1024Ffi::default(),
     };
@@ -958,7 +995,7 @@ fn host_remove_companion_test_success() {
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let input = HostRemoveCompanionInputFfi { template_id: 123 };
-    let mut output = HostRemoveCompanionOutputFfi { user_id: 0, companion_device_key: DeviceKeyFfi::default() };
+    let mut output = HostRemoveCompanionOutputFfi { user_id: 0, companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() } };
     let result = host_remove_companion(&input, &mut output);
     assert!(result.is_ok());
     assert_eq!(output.user_id, 100);
@@ -974,7 +1011,7 @@ fn host_remove_companion_test_fail_get_device() {
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let input = HostRemoveCompanionInputFfi { template_id: 123 };
-    let mut output = HostRemoveCompanionOutputFfi { user_id: 0, companion_device_key: DeviceKeyFfi::default() };
+    let mut output = HostRemoveCompanionOutputFfi { user_id: 0, companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() } };
     let result = host_remove_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::NotFound));
 }
@@ -990,7 +1027,7 @@ fn host_remove_companion_test_fail_remove_device() {
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let input = HostRemoveCompanionInputFfi { template_id: 123 };
-    let mut output = HostRemoveCompanionOutputFfi { user_id: 0, companion_device_key: DeviceKeyFfi::default() };
+    let mut output = HostRemoveCompanionOutputFfi { user_id: 0, companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() } };
     let result = host_remove_companion(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -1155,10 +1192,20 @@ fn host_begin_issue_token_test_success() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
     mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Ok(Vec::new()));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
+        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: 1,
+                kdf_algorithm: 1,
+                aead_algorithm: 1,
+                mac_algorithm: 1,
+            },
+        }]));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let host_request_manager = DefaultRequestManager::new();
@@ -1355,7 +1402,16 @@ fn host_begin_token_auth_test_success() {
         .returning(|| Ok(create_mock_companion_device_token(AuthTrustLevel::Atl3)));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
+        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: 1,
+                kdf_algorithm: 1,
+                aead_algorithm: 1,
+                mac_algorithm: 1,
+            },
+        }]));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
@@ -1395,7 +1451,7 @@ fn host_begin_token_auth_test_request_new_fail() {
         request_id: 1,
         schedule_id: 1,
         template_id: 123,
-        secure_protocol_id: 0,
+        secure_protocol_id: 1,
         fwk_message: DataArray1024Ffi::default(),
     };
     let mut output = HostBeginTokenAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
@@ -1424,7 +1480,7 @@ fn host_begin_token_auth_test_request_begin_fail() {
         request_id: 1,
         schedule_id: 1,
         template_id: 123,
-        secure_protocol_id: 0,
+        secure_protocol_id: 1,
         fwk_message: DataArray1024Ffi::default(),
     };
     let mut output = HostBeginTokenAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
@@ -1464,7 +1520,16 @@ fn host_begin_token_auth_test_add_request_fail() {
         .returning(|| Ok(create_mock_companion_device_token(AuthTrustLevel::Atl3)));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
+        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: 1,
+                kdf_algorithm: 1,
+                aead_algorithm: 1,
+                mac_algorithm: 1,
+            },
+        }]));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let mut mock_time_keeper = MockTimeKeeper::new();
@@ -1483,7 +1548,7 @@ fn host_begin_token_auth_test_add_request_fail() {
         request_id: 1,
         schedule_id: 1,
         template_id: 123,
-        secure_protocol_id: 0,
+        secure_protocol_id: 1,
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
     };
     let mut output = HostBeginTokenAuthOutputFfi { sec_message: DataArray1024Ffi::default() };
@@ -1506,10 +1571,11 @@ fn host_end_token_auth_test_success() {
         request_id: 1,
         schedule_id: 1,
         template_id: 123,
-        secure_protocol_id: 0,
+        secure_protocol_id: 1,
         fwk_message: DataArray1024Ffi::default(),
     };
-    let token_auth_request = HostTokenAuthRequest::new(&begin_input).unwrap();
+    let mut token_auth_request = HostTokenAuthRequest::new(&begin_input).unwrap();
+    token_auth_request.mac_algorithm = 1;
 
     let mut mock_host_request_manager = MockRequestManager::new();
     mock_host_request_manager.expect_remove_request().returning(move || Ok(Box::new(token_auth_request.clone())));
@@ -1939,6 +2005,7 @@ fn host_end_delegate_auth_test_success() {
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
     mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| {
         Ok(vec![CompanionDeviceCapability {
             processor_type: ProcessorType::Default,
@@ -1947,7 +2014,16 @@ fn host_end_delegate_auth_test_success() {
         }])
     });
     mock_companion_device_db_manager.expect_read_device_sk().returning(|| {
-        Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }])
+        Ok(vec![CompanionDeviceKeyMaterial {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: 1,
+                kdf_algorithm: 1,
+                aead_algorithm: 1,
+                mac_algorithm: 1,
+            },
+        }])
     });
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
@@ -2183,10 +2259,20 @@ fn host_process_obtain_token_test_success() {
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
     mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Ok(Vec::new()));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceSk { processor_type: ProcessorType::Default, sk: [0u8; SHARE_KEY_LEN] }]));
+        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            selected_algorithms: SelectedAlgorithms {
+                ka_algorithm: 1,
+                kdf_algorithm: 1,
+                aead_algorithm: 1,
+                mac_algorithm: 1,
+            },
+        }]));
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
@@ -2245,6 +2331,9 @@ fn host_process_obtain_token_test_request_end_fail() {
     RequestManagerRegistry::set(Box::new(mock_host_request_manager));
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager
+        .expect_get_device()
+        .returning(|| Ok(create_mock_companion_device(123)));
     mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Ok(Vec::new()));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
@@ -2625,7 +2714,18 @@ fn companion_process_check_test_success() {
     log_i!("companion_process_check_test_success start");
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk { sk: [0u8; SHARE_KEY_LEN] }));
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -2639,13 +2739,12 @@ fn companion_process_check_test_success() {
     let input = CompanionProcessCheckInputFfi {
         binding_id: 123,
         protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
         challenge: 12345,
-        sec_message: DataArray1024Ffi::default(),
     };
-    let mut output = CompanionProcessCheckOutputFfi { sec_message: DataArray1024Ffi::default() };
+    let mut output = CompanionProcessCheckOutputFfi::default();
     let result = companion_process_check(&input, &mut output);
     assert!(result.is_ok());
 }
@@ -2656,19 +2755,21 @@ fn companion_process_check_test_request_begin_fail() {
     log_i!("companion_process_check_test_request_begin_fail start");
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
     mock_host_binding_db_manager.expect_read_device_sk().returning(|| Err(ErrorCode::GeneralError));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let input = CompanionProcessCheckInputFfi {
         binding_id: 123,
         protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
         challenge: 12345,
-        sec_message: DataArray1024Ffi::default(),
     };
-    let mut output = CompanionProcessCheckOutputFfi { sec_message: DataArray1024Ffi::default() };
+    let mut output = CompanionProcessCheckOutputFfi::default();
     let result = companion_process_check(&input, &mut output);
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
@@ -2687,16 +2788,24 @@ fn companion_init_key_negotiation_test_success() {
     mock_companion_request_manager.expect_add_request().returning(|| Ok(()));
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
-    let sec_key_nego_request = SecKeyNegoRequest { algorithm_list: vec![1] };
+    let sec_key_nego_request = SecKeyNegoRequest {
+        crypto_algorithms: CryptoAlgorithms {
+            ka_algorithms: vec![1],
+            kdf_algorithms: vec![1],
+            aead_algorithms: vec![1],
+            mac_algorithms: vec![1],
+        },
+    };
     let sec_message = sec_key_nego_request.encode(ProcessorType::Default).unwrap();
 
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        host_device_key: DeviceKeyFfi::default(),
+        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
+        selected_protocol_id: PROTOCOL_VERSION_1,
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionInitKeyNegotiationOutputFfi::default();
@@ -2716,10 +2825,11 @@ fn companion_init_key_negotiation_test_request_new_fail() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        host_device_key: DeviceKeyFfi::default(),
+        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
+        selected_protocol_id: PROTOCOL_VERSION_1,
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionInitKeyNegotiationOutputFfi::default();
@@ -2739,10 +2849,11 @@ fn companion_init_key_negotiation_test_request_prepare_fail() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        host_device_key: DeviceKeyFfi::default(),
+        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
+        selected_protocol_id: PROTOCOL_VERSION_1,
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         sec_message: DataArray1024Ffi::default(),
     };
     let mut output = CompanionInitKeyNegotiationOutputFfi::default();
@@ -2764,16 +2875,24 @@ fn companion_init_key_negotiation_test_add_request_fail() {
     mock_companion_request_manager.expect_add_request().returning(|| Err(ErrorCode::GeneralError));
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
-    let sec_key_nego_request = SecKeyNegoRequest { algorithm_list: vec![1] };
+    let sec_key_nego_request = SecKeyNegoRequest {
+        crypto_algorithms: CryptoAlgorithms {
+            ka_algorithms: vec![1],
+            kdf_algorithms: vec![1],
+            aead_algorithms: vec![1],
+            mac_algorithms: vec![1],
+        },
+    };
     let sec_message = sec_key_nego_request.encode(ProcessorType::Default).unwrap();
 
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        host_device_key: DeviceKeyFfi::default(),
+        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
+        selected_protocol_id: PROTOCOL_VERSION_1,
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         sec_message: DataArray1024Ffi::try_from(&sec_message).unwrap(),
     };
     let mut output = CompanionInitKeyNegotiationOutputFfi::default();
@@ -2812,10 +2931,11 @@ fn companion_begin_add_host_binding_test_success() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        host_device_key: DeviceKeyFfi::default(),
+        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
+        selected_protocol_id: PROTOCOL_VERSION_1,
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         sec_message: DataArray1024Ffi::default(),
     };
     let mut enroll_request = CompanionDeviceEnrollRequest::new(&init_input).unwrap();
@@ -2823,6 +2943,10 @@ fn companion_begin_add_host_binding_test_success() {
     enroll_request.key_nego_param.host_device_key.device_id = "test-device-id".to_string();
     enroll_request.key_nego_param.host_device_key.user_id = 100;
     enroll_request.key_nego_param.companion_challenge = 0;
+    enroll_request.selected_algorithms.ka_algorithm = KaAlgoType::X25519 as u16;
+    enroll_request.selected_algorithms.kdf_algorithm = 1;
+    enroll_request.selected_algorithms.aead_algorithm = 1;
+    enroll_request.selected_algorithms.mac_algorithm = 1;
     RequestManagerRegistry::get_mut().add_request(Box::new(enroll_request)).unwrap();
 
     let mut attr = Attribute::new();
@@ -2830,6 +2954,15 @@ fn companion_begin_add_host_binding_test_success() {
     attr.set_i32(AttributeKey::AttrUserId, 100);
     attr.set_i32(AttributeKey::AttrSubProfileId, 0);
     attr.set_u64(AttributeKey::AttrCompanionChallenge, 0);
+    // Offer confirmation keys are mandatory; the request keeps the default empty offer view.
+    attr.set_u16_slice(AttributeKey::AttrKaAlgoList, &[]);
+    attr.set_u16_slice(AttributeKey::AttrKdfAlgoList, &[]);
+    attr.set_u16_slice(AttributeKey::AttrAeadAlgoList, &[]);
+    attr.set_u16_slice(AttributeKey::AttrMacAlgoList, &[]);
+    // Unified exchange leg: [1] recomputes to the pinned selection and the
+    // empty host set intersects to [] against the empty local capability list.
+    attr.set_u16_slice(AttributeKey::AttrProtocolList, &[PROTOCOL_VERSION_1]);
+    attr.set_u16_slice(AttributeKey::AttrCapabilityList, &[]);
 
     let sec_binding_request = SecBindingRequest {
         pub_key: vec![1, 2, 3],
@@ -2894,10 +3027,11 @@ fn companion_begin_add_host_binding_test_replaced_binding() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        host_device_key: DeviceKeyFfi::default(),
+        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
+        selected_protocol_id: PROTOCOL_VERSION_1,
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         sec_message: DataArray1024Ffi::default(),
     };
     let mut enroll_request = CompanionDeviceEnrollRequest::new(&init_input).unwrap();
@@ -2905,6 +3039,10 @@ fn companion_begin_add_host_binding_test_replaced_binding() {
     enroll_request.key_nego_param.host_device_key.device_id = "test-device-id".to_string();
     enroll_request.key_nego_param.host_device_key.user_id = 100;
     enroll_request.key_nego_param.companion_challenge = 0;
+    enroll_request.selected_algorithms.ka_algorithm = KaAlgoType::X25519 as u16;
+    enroll_request.selected_algorithms.kdf_algorithm = 1;
+    enroll_request.selected_algorithms.aead_algorithm = 1;
+    enroll_request.selected_algorithms.mac_algorithm = 1;
     RequestManagerRegistry::get_mut().add_request(Box::new(enroll_request)).unwrap();
 
     let mut attr = Attribute::new();
@@ -2912,6 +3050,15 @@ fn companion_begin_add_host_binding_test_replaced_binding() {
     attr.set_i32(AttributeKey::AttrUserId, 100);
     attr.set_i32(AttributeKey::AttrSubProfileId, 0);
     attr.set_u64(AttributeKey::AttrCompanionChallenge, 0);
+    // Offer confirmation keys are mandatory; the request keeps the default empty offer view.
+    attr.set_u16_slice(AttributeKey::AttrKaAlgoList, &[]);
+    attr.set_u16_slice(AttributeKey::AttrKdfAlgoList, &[]);
+    attr.set_u16_slice(AttributeKey::AttrAeadAlgoList, &[]);
+    attr.set_u16_slice(AttributeKey::AttrMacAlgoList, &[]);
+    // Unified exchange leg: [1] recomputes to the pinned selection and the
+    // empty host set intersects to [] against the empty local capability list.
+    attr.set_u16_slice(AttributeKey::AttrProtocolList, &[PROTOCOL_VERSION_1]);
+    attr.set_u16_slice(AttributeKey::AttrCapabilityList, &[]);
 
     let sec_binding_request = SecBindingRequest {
         pub_key: vec![1, 2, 3],
@@ -2977,10 +3124,11 @@ fn companion_begin_add_host_binding_test_request_begin_fail() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        host_device_key: DeviceKeyFfi::default(),
+        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
+        selected_protocol_id: PROTOCOL_VERSION_1,
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         sec_message: DataArray1024Ffi::default(),
     };
     let enroll_request = CompanionDeviceEnrollRequest::new(&init_input).unwrap();
@@ -3026,21 +3174,25 @@ fn companion_end_add_host_binding_test_success() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        host_device_key: DeviceKeyFfi::default(),
+        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
+        selected_protocol_id: PROTOCOL_VERSION_1,
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         sec_message: DataArray1024Ffi::default(),
     };
-    let enroll_request = CompanionDeviceEnrollRequest::new(&init_input).unwrap();
+    let mut enroll_request = CompanionDeviceEnrollRequest::new(&init_input).unwrap();
+    enroll_request.selected_algorithms.aead_algorithm = 1;
 
     let mut mock_companion_request_manager = MockRequestManager::new();
     mock_companion_request_manager.expect_remove_request().returning(move || Ok(Box::new(enroll_request.clone())));
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
+    // Enroll end: the issued token is accepted (companion verifies and keeps
+    // only the token; capability convergence is host-side business).
     let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: [0u8; TOKEN_KEY_LEN].to_vec() };
     let sec_message =
-        sec_issue_token.encrypt_issue_token(&[0u8; SALT_LEN_FFI], ProcessorType::Default, &[1, 2, 3]).unwrap();
+        sec_issue_token.encrypt_issue_token(&[0u8; SALT_LEN_FFI], ProcessorType::Default, &[1, 2, 3], 1).unwrap();
 
     let input = CompanionEndAddHostBindingInputFfi {
         request_id: 1,
@@ -3080,10 +3232,11 @@ fn companion_end_add_host_binding_test_request_end_fail() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        protocol_list: Uint16Array64Ffi::default(),
-        capability_list: Uint16Array64Ffi::default(),
-        companion_device_key: DeviceKeyFfi::default(),
-        host_device_key: DeviceKeyFfi::default(),
+        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_capability_list: Uint16Array64Ffi::default(),
+        selected_protocol_id: PROTOCOL_VERSION_1,
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
         sec_message: DataArray1024Ffi::default(),
     };
     let enroll_request = CompanionDeviceEnrollRequest::new(&init_input).unwrap();
@@ -3147,7 +3300,18 @@ fn companion_pre_issue_token_test_success() {
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk { sk: [0u8; SHARE_KEY_LEN] }));
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let sec_pre_issue_request = SecPreIssueRequest { salt: [0u8; HKDF_SALT_SIZE] };
@@ -3193,6 +3357,12 @@ fn companion_pre_issue_token_test_request_begin_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
+    let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
+
     let input = CompanionPreIssueTokenInputFfi {
         request_id: 1,
         binding_id: 123,
@@ -3222,7 +3392,18 @@ fn companion_pre_issue_token_test_add_request_fail() {
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk { sk: [0u8; SHARE_KEY_LEN] }));
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let sec_pre_issue_request = SecPreIssueRequest { salt: [0u8; HKDF_SALT_SIZE] };
@@ -3264,6 +3445,7 @@ fn companion_process_issue_token_test_success() {
     };
     let mut issue_token_request = CompanionDeviceIssueTokenRequest::new(&pre_input).unwrap();
     issue_token_request.pre_issue_param.companion_challenge = 0;
+    issue_token_request.aead_algorithm = 1;
 
     let mut mock_companion_request_manager = MockRequestManager::new();
     mock_companion_request_manager.expect_remove_request().returning(move || Ok(Box::new(issue_token_request.clone())));
@@ -3271,7 +3453,7 @@ fn companion_process_issue_token_test_success() {
 
     let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: [0u8; TOKEN_KEY_LEN].to_vec() };
     let sec_message =
-        sec_issue_token.encrypt_issue_token(&[0u8; SALT_LEN_FFI], ProcessorType::Default, &[1, 2, 3]).unwrap();
+        sec_issue_token.encrypt_issue_token(&[0u8; SALT_LEN_FFI], ProcessorType::Default, &[1, 2, 3], 1).unwrap();
 
     let input = CompanionProcessIssueTokenInputFfi {
         request_id: 1,
@@ -3381,7 +3563,15 @@ fn companion_process_token_auth_test_success() {
     log_i!("companion_process_token_auth_test_success start");
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk { sk: [0u8; SHARE_KEY_LEN] }));
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }));
     mock_host_binding_db_manager
         .expect_read_device_token()
         .returning(|| Ok(HostBindingToken { token: [0u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl3 }));
@@ -3424,6 +3614,12 @@ fn companion_process_token_auth_test_success() {
 fn companion_process_token_auth_test_request_begin_fail() {
     let _guard = ut_registry_guard!();
     log_i!("companion_process_token_auth_test_request_begin_fail start");
+
+    let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let input = CompanionProcessTokenAuthInputFfi {
         binding_id: 123,
@@ -3475,7 +3671,18 @@ fn companion_begin_delegate_auth_test_success() {
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk { sk: [0u8; SHARE_KEY_LEN] }));
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -3513,6 +3720,12 @@ fn companion_begin_delegate_auth_test_request_begin_fail() {
     let _guard = ut_registry_guard!();
     log_i!("companion_begin_delegate_auth_test_request_begin_fail start");
 
+    let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
+
     let input = CompanionBeginDelegateAuthInputFfi {
         request_id: 1,
         binding_id: 123,
@@ -3534,7 +3747,18 @@ fn companion_begin_delegate_auth_test_add_request_fail() {
     RequestManagerRegistry::set(Box::new(mock_companion_request_manager));
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk { sk: [0u8; SHARE_KEY_LEN] }));
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
@@ -3589,7 +3813,18 @@ fn companion_begin_obtain_token_test_success() {
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk { sk: [0u8; SHARE_KEY_LEN] }));
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let mut attr = Attribute::new();
@@ -3634,6 +3869,12 @@ fn companion_begin_obtain_token_test_request_begin_fail() {
     mock_misc_manager.expect_get_fwk_pub_key().returning(|| Err(ErrorCode::GeneralError));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
+    let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
+
     let input = CompanionBeginObtainTokenInputFfi {
         request_id: 1,
         binding_id: 123,
@@ -3670,7 +3911,18 @@ fn companion_begin_obtain_token_test_add_request_fail() {
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk { sk: [0u8; SHARE_KEY_LEN] }));
+    mock_host_binding_db_manager
+        .expect_get_device_by_binding_id()
+        .returning(|| Ok(create_mock_host_binding(123)));
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let mut attr = Attribute::new();
@@ -3728,6 +3980,7 @@ fn companion_end_obtain_token_test_success() {
     };
     let mut obtain_token_request = CompanionDeviceObtainTokenRequest::new(&begin_input).unwrap();
     obtain_token_request.obtain_param.host_challenge = 0;
+    obtain_token_request.aead_algorithm = 1;
 
     let mut mock_companion_request_manager = MockRequestManager::new();
     mock_companion_request_manager
@@ -3737,7 +3990,7 @@ fn companion_end_obtain_token_test_success() {
 
     let sec_issue_token = SecIssueToken { challenge: 0, atl: 30000, token: [0u8; TOKEN_KEY_LEN].to_vec() };
     let sec_message =
-        sec_issue_token.encrypt_issue_token(&[0u8; SALT_LEN_FFI], ProcessorType::Default, &[1, 2, 3]).unwrap();
+        sec_issue_token.encrypt_issue_token(&[0u8; SALT_LEN_FFI], ProcessorType::Default, &[1, 2, 3], 1).unwrap();
 
     let input = CompanionEndObtainTokenInputFfi {
         request_id: 1,

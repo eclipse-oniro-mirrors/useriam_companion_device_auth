@@ -27,7 +27,6 @@ namespace CompanionDeviceAuth {
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedStatus, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
 
@@ -245,7 +244,6 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultFailureMarksEntryAndSkipsNotif
 HWTEST_F(DeviceStatusManagerTest, AttachOrStartDeviceSyncStartsRequestAndHandlesCallback, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
@@ -394,7 +392,6 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_EmptySyncStatus, TestSize.Lev
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocol, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
@@ -425,7 +422,6 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocol, TestSize.Le
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocolKeepsSyncTimeAndAbortsRetry, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
 
     constexpr uint64_t syncSteadyTimeMs = 98765;
@@ -495,6 +491,40 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_PeerSyncFailedInvalidatesCach
     EXPECT_FALSE(ctx.manager->GetDeviceStatus(deviceKey).has_value());
 }
 
+// Permanent local/peer conditions diagnosed by the host: terminal stop, cache dropped, no retry.
+HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_PermanentConditionsAbortAndInvalidateCache, TestSize.Level0)
+{
+    for (ResultCode code : { ResultCode::PROTOCOL_NEGOTIATION_FAILED, ResultCode::SECURE_PROTOCOL_NOT_SUPPORTED }) {
+        auto ctx = SetupTestContext();
+        auto retryCount = std::make_shared<int>(0);
+        bool onResultCalled = false;
+        ResultCode notifiedResult = ResultCode::SUCCESS;
+        auto physicalStatus = MakePhysicalStatus("device-permanent-fail", ChannelId::SOFTBUS, "Device");
+        DeviceStatusEntry entry(physicalStatus, [retryCount]() { (*retryCount)++; });
+        entry.isSynced = true;
+        entry.isSyncInProgress = true;
+        entry.syncWaiters.push_back([&onResultCalled, &notifiedResult](ResultCode resultCode) {
+            onResultCalled = true;
+            notifiedResult = resultCode;
+        });
+        ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+        auto deviceKey = MakeDeviceKey(physicalStatus.physicalDeviceKey);
+        ctx.manager->HandleSyncResult(deviceKey, 0, code, SyncDeviceStatus {});
+
+        TaskRunnerManager::GetInstance().ExecuteAll();
+        RelativeTimer::GetInstance().EnsureAllTaskExecuted();
+
+        EXPECT_TRUE(onResultCalled);
+        EXPECT_EQ(code, notifiedResult);
+        EXPECT_EQ(*retryCount, 0);
+        const auto &stored = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
+        EXPECT_FALSE(stored.isSynced);
+        EXPECT_FALSE(stored.isSyncInProgress);
+        EXPECT_FALSE(ctx.manager->GetDeviceStatus(deviceKey).has_value());
+    }
+}
+
 // Communication-class failures (link down / timeout / local transient) say nothing about the
 // cached data: the sync bit must survive them, the device stays in the synced set, and the
 // backoff schedule keeps working.
@@ -558,7 +588,6 @@ HWTEST_F(DeviceStatusManagerTest, AttachOrStartDeviceSyncStartFailureKeepsCached
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonCapabilities, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 

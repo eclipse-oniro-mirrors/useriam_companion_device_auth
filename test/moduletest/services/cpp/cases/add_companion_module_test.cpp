@@ -187,8 +187,7 @@ HWTEST_F(AddCompanionModuleTest, CompanionAddCompanionInitKeyNegotiationE2E_001,
     // Setup Mock: CompanionInitKeyNegotiation returns algorithm list + reply
     CompanionInitKeyNegotiationOutput initOutput;
     initOutput.initKeyNegotiationReply = { 0x11, 0x22, 0x33, 0x44 };
-    initOutput.algorithmList = { 1, 2, 3 };
-    initOutput.selectedAlgorithm = 2;
+    initOutput.selectedAlgorithms.kaAlgorithm = 2;
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionInitKeyNegotiation(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(initOutput), Return(ResultCode::SUCCESS)));
 
@@ -228,8 +227,7 @@ HWTEST_F(AddCompanionModuleTest, CompanionAddCompanionFullE2E_001, TestSize.Leve
 
     CompanionInitKeyNegotiationOutput initOutput;
     initOutput.initKeyNegotiationReply = { 0x11, 0x22, 0x33, 0x44 };
-    initOutput.algorithmList = { 1, 2 };
-    initOutput.selectedAlgorithm = 1;
+    initOutput.selectedAlgorithms.kaAlgorithm = 1;
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionInitKeyNegotiation(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(initOutput), Return(ResultCode::SUCCESS)));
 
@@ -292,8 +290,7 @@ HWTEST_F(AddCompanionModuleTest, CompanionDuplicateAddReplacedBindingE2E_001, Te
 
     CompanionInitKeyNegotiationOutput initOutput;
     initOutput.initKeyNegotiationReply = { 0x11, 0x22 };
-    initOutput.algorithmList = { 1 };
-    initOutput.selectedAlgorithm = 1;
+    initOutput.selectedAlgorithms.kaAlgorithm = 1;
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionInitKeyNegotiation(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(initOutput), Return(ResultCode::SUCCESS)));
 
@@ -379,10 +376,10 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionFullE2E_001, TestSize.Level0)
     guard.SetupHostSideSync(deviceId, HOST_USER_ID);
 
     // Setup all three SecurityAgent mocks
-    HostGetInitKeyNegotiationRequestOutput initReqOutput = { { 0x01, 0x02, 0x03 }, { 1, 2 } };
+    HostGetInitKeyNegotiationRequestOutput initReqOutput = { { 0x01, 0x02, 0x03 } };
     HostBeginAddCompanionOutput beginCompOutput;
     beginCompOutput.addHostBindingRequest = { 0x04, 0x05, 0x06 };
-    beginCompOutput.selectedAlgorithm = 1;
+    beginCompOutput.selectedAlgorithms.kaAlgorithm = 1;
     HostEndAddCompanionOutput endCompOutput = { .fwkMsg = { 0x07, 0x08 },
         .templateId = 12345,
         .tokenData = { 0x09, 0x0A },
@@ -439,7 +436,6 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionBeginAddCompanionFailedE2E_006,
 
     HostGetInitKeyNegotiationRequestOutput initReqOutput;
     initReqOutput.initKeyNegotiationRequest = { 0x01, 0x02, 0x03 };
-    initReqOutput.algorithmList = { 1, 2 };
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(initReqOutput), Return(ResultCode::SUCCESS)));
     EXPECT_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
@@ -487,13 +483,12 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionEndAddCompanionFailedE2E_007, T
 
     HostGetInitKeyNegotiationRequestOutput initReqOutput;
     initReqOutput.initKeyNegotiationRequest = { 0x01, 0x02, 0x03 };
-    initReqOutput.algorithmList = { 1, 2 };
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(initReqOutput), Return(ResultCode::SUCCESS)));
 
     HostBeginAddCompanionOutput beginCompOutput;
     beginCompOutput.addHostBindingRequest = { 0x04, 0x05, 0x06 };
-    beginCompOutput.selectedAlgorithm = 1;
+    beginCompOutput.selectedAlgorithms.kaAlgorithm = 1;
     EXPECT_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(beginCompOutput), Return(ResultCode::SUCCESS)));
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndAddCompanion(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));

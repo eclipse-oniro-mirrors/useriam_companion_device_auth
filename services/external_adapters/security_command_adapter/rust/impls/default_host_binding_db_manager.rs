@@ -13,9 +13,12 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{AuthTrustLevel, ErrorCode, SECURE_RANDOM_MAX_ATTEMPTS, SHARE_KEY_LEN, TOKEN_KEY_LEN};
+use crate::common::constants::{
+    AuthTrustLevel, ErrorCode, SECURE_RANDOM_MAX_ATTEMPTS, SHARE_KEY_LEN, TOKEN_KEY_LEN,
+};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo, UserKey};
+use crate::common::algorithm::SelectedAlgorithms;
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, HostBindingToken, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManager, HostDeviceFilter};
 use crate::traits::log_trace::RustFileId;
 use crate::traits::storage_io::StorageIoRegistry;
@@ -97,6 +100,8 @@ impl DefaultHostBindingDbManager {
             parcel.write_i32(host_binding.user_info.user_key.sub_profile_id);
             parcel.write_u64(host_binding.binding_time);
             parcel.write_u64(host_binding.last_used_time);
+            parcel.write_u16(host_binding.protocol_id);
+            parcel.write_u16(host_binding.secure_protocol_id);
         }
     }
 
@@ -125,6 +130,8 @@ impl DefaultHostBindingDbManager {
             let user_info_sub_profile_id = parcel.read_i32().map_err(|e| p!(e))?;
             let binding_time = parcel.read_u64().map_err(|e| p!(e))?;
             let last_used_time = parcel.read_u64().map_err(|e| p!(e))?;
+            let protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
+            let secure_protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
 
             let host_binding = HostBinding {
                 device_key: DeviceKey { device_id, device_id_type, user_id, sub_profile_id },
@@ -138,6 +145,8 @@ impl DefaultHostBindingDbManager {
                 },
                 binding_time,
                 last_used_time,
+                protocol_id,
+                secure_protocol_id,
             };
             self.host_bindings.push(host_binding);
         }
@@ -171,12 +180,16 @@ impl DefaultHostBindingDbManager {
         Ok(host_binding_token)
     }
 
-    fn serialize_device_sk(sk_info: &HostBindingSk, parcel: &mut Parcel) {
+    fn serialize_device_sk(sk_info: &HostBindingKeyMaterial, parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
         parcel.write_bytes(&sk_info.sk);
+        parcel.write_u16(sk_info.selected_algorithms.ka_algorithm);
+        parcel.write_u16(sk_info.selected_algorithms.kdf_algorithm);
+        parcel.write_u16(sk_info.selected_algorithms.aead_algorithm);
+        parcel.write_u16(sk_info.selected_algorithms.mac_algorithm);
     }
 
-    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<HostBindingSk, ErrorCode> {
+    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<HostBindingKeyMaterial, ErrorCode> {
         let version = parcel.read_i32().map_err(|e| p!(e))?;
         if version > CURRENT_VERSION {
             log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
@@ -184,11 +197,16 @@ impl DefaultHostBindingDbManager {
         }
         let mut sk = vec![0u8; SHARE_KEY_LEN];
         parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
-        let sk_info = HostBindingSk {
+        let ka_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
+        let kdf_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
+        let aead_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
+        let mac_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
+        let sk_info = HostBindingKeyMaterial {
             sk: sk.try_into().map_err(|e| {
                 log_e!("try_into fail: {:?}", e);
                 ErrorCode::GeneralError
             })?,
+            selected_algorithms: SelectedAlgorithms { ka_algorithm, kdf_algorithm, aead_algorithm, mac_algorithm },
         };
         Ok(sk_info)
     }
@@ -248,7 +266,11 @@ impl DefaultHostBindingDbManager {
 }
 
 impl HostBindingDbManager for DefaultHostBindingDbManager {
-    fn add_device(&mut self, device_info: &HostBinding, sk_info: &HostBindingSk) -> Result<Option<i32>, ErrorCode> {
+    fn add_device(
+        &mut self,
+        device_info: &HostBinding,
+        sk_info: &HostBindingKeyMaterial,
+    ) -> Result<Option<i32>, ErrorCode> {
         log_i!("add_device start");
         if device_info.device_key.device_id.is_empty() {
             log_e!("invalid device id");
@@ -431,7 +453,7 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         StorageIoRegistry::get().exists(&filename)
     }
 
-    fn read_device_sk(&self, binding_id: i32) -> Result<HostBindingSk, ErrorCode> {
+    fn read_device_sk(&self, binding_id: i32) -> Result<HostBindingKeyMaterial, ErrorCode> {
         log_i!("read_device_sk start, binding_id:{:04x}", binding_id as u16);
         let filename = format!("{:x}_{}", binding_id, HOST_BINDING_SK);
         let sk_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
@@ -444,7 +466,7 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         Self::deserialize_device_sk(&mut parcel)
     }
 
-    fn write_device_sk(&self, binding_id: i32, sk_info: &HostBindingSk) -> Result<(), ErrorCode> {
+    fn write_device_sk(&self, binding_id: i32, sk_info: &HostBindingKeyMaterial) -> Result<(), ErrorCode> {
         log_i!("write_device_sk start, binding_id:{:04x}", binding_id as u16);
         let filename = format!("{:x}_{}", binding_id, HOST_BINDING_SK);
         let mut parcel = Parcel::new();

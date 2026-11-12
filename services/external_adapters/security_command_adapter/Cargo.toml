@@ -29,7 +29,7 @@ cxx = { version = "=1.0.130", features = ["c++14"], optional = true }
 hilog_rust = { git = "https://gitcode.com/openharmony/hiviewdfx_hilog.git" }
 
 [features]
-default = []
+default = ["cxxbridge", "test-utils"]
 cxxbridge = ["cxx"]
 test-utils = []
 

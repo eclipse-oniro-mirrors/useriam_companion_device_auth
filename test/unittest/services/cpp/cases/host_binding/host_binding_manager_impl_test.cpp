@@ -446,6 +446,26 @@ HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_001, TestSize.Level0)
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
 }
 
+// With no unlocked user the active key is the {-1,-1} sentinel; a request announcing the same
+// sentinel must not pass the equality gate, or a stale message could create a binding with an
+// unknown owner.
+HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_RejectsInvalidUserKey, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CreateManager(guard, INVALID_USER_ID);
+    ASSERT_NE(nullptr, manager);
+
+    auto &securityAgent = guard.GetSecurityAgent();
+    EXPECT_CALL(securityAgent, CompanionBeginAddHostBinding(_, _)).Times(0);
+
+    std::vector<uint8_t> request;
+    BeginAddHostBindingOutput output;
+    ResultCode ret = manager->BeginAddHostBinding(
+        { 1, UserKey { INVALID_USER_ID, INVALID_SUB_PROFILE_ID }, SecureProtocolId::DEFAULT, request }, output);
+
+    EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
+}
+
 HWTEST_F(HostBindingManagerImplTest, BeginAddHostBinding_002, TestSize.Level0)
 {
     MockGuard guard;
@@ -687,7 +707,7 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_001, TestSize.Level0)
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
 }
 
-HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_004_CleanupOnFailureWithBindingId, TestSize.Level0)
+HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_004_TokenFailurePreservesBinding, TestSize.Level0)
 {
     MockGuard guard;
     SetupManagerCreationMocks(guard);
@@ -703,9 +723,11 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_004_CleanupOnFailureWithB
     manager->bindings_.push_back(binding);
     ASSERT_FALSE(manager->bindings_.empty());
 
-    // CompanionEndAddHostBinding returns failure.
-    // Binding should be preserved to keep C++ and Rust state consistent.
+    // CompanionEndAddHostBinding returns failure: the binding must be preserved. The host may
+    // already have persisted its credential (it only ever sends SUCCESS with the final message),
+    // and a token-distribution failure must not split the state between the two devices.
     EXPECT_CALL(securityAgent, CompanionEndAddHostBinding(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(securityAgent, CompanionRemoveHostBinding(_)).Times(0);
 
     EndAddHostBindingInput input = { .requestId = 1, .resultCode = ResultCode::SUCCESS, .bindingId = testBindingId };
     EndAddHostBindingOutput output = {};
@@ -802,7 +824,8 @@ HWTEST_F(HostBindingManagerImplTest, EndAddHostBinding_003, TestSize.Level0)
     EndAddHostBindingOutput output = {};
     ResultCode ret = manager->EndAddHostBinding(input, output);
     EXPECT_EQ(ResultCode::GENERAL_ERROR, ret);
-    // Binding is preserved (Rust end() never deletes bindings, only distributes tokens).
+    // Binding is preserved: a non-SUCCESS code here comes from local cleanup (the host only ever
+    // sends SUCCESS with the final message), so it cannot authorize deleting the row.
     EXPECT_TRUE(manager->GetHostBindingStatus(testBindingId).has_value());
 }
 

@@ -613,7 +613,7 @@ HWTEST_F(XxxModuleTest, ScenarioE2E_001, TestSize.Level0)
 | `service_init_module_test.cpp` | LoadPersistedDataAfterUserSwitchE2E_001 | 用户切换 → SecurityAgent Mock → 数据加载 |
 | `sync_device_status_module_test.cpp` | HostSyncNoTemplateE2E_001 | 订阅 → 设备上线 → 同步 → 无模板 → 回调通知 |
 | `sync_device_status_module_test.cpp` | HostSyncWithTemplateCheckSuccessE2E_001 | 有模板 → companion check 成功 |
-| `sync_device_status_module_test.cpp` | HostSyncWithTemplateCheckFailureE2E_001 | 有模板 → companion check 失败 → 设备仍同步 |
+| `sync_device_status_module_test.cpp` | HostSyncWithAuthenticatedDivergenceE2E_001 | 主机有模板、伴随回带 proof 的已完成身份校验协议分歧 → 模板失效，但设备仍可发现并重新绑定 |
 | `sync_device_status_module_test.cpp` | CompanionResponseNoBindingE2E_001 | 收到同步请求 → 无绑定 → 返回回复 |
 | `sync_device_status_module_test.cpp` | CompanionResponseWithBindingE2E_001 | 有绑定 → companion check response 包含在回复中 |
 | `add_companion_module_test.cpp` | CompanionAddCompanionInitKeyNegotiationE2E_001 | 伴随侧密钥协商 |

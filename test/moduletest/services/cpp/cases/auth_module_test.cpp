@@ -1302,6 +1302,7 @@ HWTEST_F(AuthModuleTest, HostDelegateAuthFailureE2E_001, TestSize.Level0)
     DrainPendingTasks();
 
     auto allConnNames = guard.GetChannel().GetAllConnectionNames();
+    ASSERT_FALSE(allConnNames.empty()) << "Expected a connection to be established";
     const auto &actualConnName = allConnNames[0];
 
     // 5. Build SendDelegateAuthResult request with failure

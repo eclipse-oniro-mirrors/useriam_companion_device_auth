@@ -13,15 +13,16 @@
  * limitations under the License.
  */
 
-use crate::common::constants::ErrorCode;
-use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::traits::db_manager::{HostBinding, HostBindingSk};
+use crate::common::constants::{ErrorCode, validate_secure_protocol_id};
+use crate::jobs::message_crypto;
+use crate::common::algorithm::validate_selected_algorithms;
+use crate::traits::db_manager::{HostBinding, HostBindingKeyMaterial, SessionKeyParam};
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
 use crate::traits::log_trace::RustFileId;
 use crate::traits::time_keeper::TimeKeeperRegistry;
-use crate::{log_e, p, Vec};
+use crate::{log_e, p};
 pub(crate) const FILE_ID: u16 = RustFileId::HostBindingDbHelper as u16;
-pub fn add_host_binding(device_info: &HostBinding, sk_info: &HostBindingSk) -> Result<Option<i32>, ErrorCode> {
+pub fn add_host_binding(device_info: &HostBinding, sk_info: &HostBindingKeyMaterial) -> Result<Option<i32>, ErrorCode> {
     let mut same_device_replaced_binding_id = None;
     if let Ok(info) = HostBindingDbManagerRegistry::get()
         .get_device_by_device_key(device_info.user_info.user_key, &device_info.device_key)
@@ -51,7 +52,20 @@ pub fn update_host_binding_last_used_time(binding_id: i32) -> Result<(), ErrorCo
     Ok(())
 }
 
-pub fn get_session_key(binding_id: i32, salt: &[u8]) -> Result<Vec<u8>, ErrorCode> {
+pub fn get_session_key(binding_id: i32, salt: &[u8]) -> Result<SessionKeyParam, ErrorCode> {
     let sk = HostBindingDbManagerRegistry::get_mut().read_device_sk(binding_id).map_err(|e| p!(e))?;
-    CryptoEngineRegistry::get().hkdf(salt, &sk.sk).map_err(|e| p!(e))
+    validate_selected_algorithms(&sk.selected_algorithms)?;
+    let session_key =
+        message_crypto::derive_session_key(sk.selected_algorithms.kdf_algorithm, salt, &sk.sk).map_err(|e| p!(e))?;
+    Ok(SessionKeyParam {
+        session_key,
+        aead_algorithm: sk.selected_algorithms.aead_algorithm,
+        mac_algorithm: sk.selected_algorithms.mac_algorithm,
+    })
+}
+
+pub fn get_binding_secure_protocol_id(binding_id: i32) -> Result<u16, ErrorCode> {
+    let binding = HostBindingDbManagerRegistry::get().get_device_by_binding_id(binding_id).map_err(|e| p!(e))?;
+    validate_secure_protocol_id(binding.secure_protocol_id)?;
+    Ok(binding.secure_protocol_id)
 }

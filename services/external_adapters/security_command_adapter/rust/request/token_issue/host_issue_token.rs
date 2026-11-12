@@ -113,7 +113,7 @@ impl HostDeviceIssueTokenRequest {
     fn encode_sec_token_issue_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut output = Vec::new();
         for token_info in &self.token_infos {
-            let session_key = companion_device_db_helper::get_session_key(
+            let session_key_param = companion_device_db_helper::get_session_key(
                 self.token_issue_param.template_id,
                 token_info.processor_type,
                 &self.salt,
@@ -125,7 +125,12 @@ impl HostDeviceIssueTokenRequest {
                 token: token_info.token.clone(),
             };
 
-            output.extend(issue_token.encrypt_issue_token(&self.salt, token_info.processor_type, &session_key)?);
+            output.extend(issue_token.encrypt_issue_token(
+                &self.salt,
+                token_info.processor_type,
+                &session_key_param.session_key,
+                session_key_param.aead_algorithm,
+            )?);
         }
 
         Ok(output)

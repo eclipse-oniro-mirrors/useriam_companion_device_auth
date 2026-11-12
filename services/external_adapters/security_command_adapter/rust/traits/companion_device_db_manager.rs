@@ -15,7 +15,8 @@
 
 use crate::common::constants::{ErrorCode, ProcessorType};
 use crate::traits::db_manager::{
-    CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceSk, CompanionDeviceToken,
+    CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, CompanionDeviceProfile,
+    CompanionDeviceToken,
 };
 use crate::traits::log_trace::RustFileId;
 use crate::{log_e, singleton_registry, Box, Vec};
@@ -30,7 +31,7 @@ pub trait CompanionDeviceDbManager {
         device_info: &CompanionDevice,
         base_info: &CompanionDeviceProfile,
         capability_info: &[CompanionDeviceCapability],
-        sk_info: &[CompanionDeviceSk],
+        sk_info: &[CompanionDeviceKeyMaterial],
     ) -> Result<(), ErrorCode>;
     fn get_device(&self, template_id: u64) -> Result<CompanionDevice, ErrorCode>;
     fn get_device_list(&self, filter: CompanionDeviceFilter) -> Vec<CompanionDevice>;
@@ -60,8 +61,8 @@ pub trait CompanionDeviceDbManager {
         capability_info: &[CompanionDeviceCapability],
     ) -> Result<(), ErrorCode>;
     fn delete_device_capability_info(&self, template_id: u64) -> Result<(), ErrorCode>;
-    fn read_device_sk(&self, template_id: u64) -> Result<Vec<CompanionDeviceSk>, ErrorCode>;
-    fn write_device_sk(&self, template_id: u64, sk_info: &[CompanionDeviceSk]) -> Result<(), ErrorCode>;
+    fn read_device_sk(&self, template_id: u64) -> Result<Vec<CompanionDeviceKeyMaterial>, ErrorCode>;
+    fn write_device_sk(&self, template_id: u64, sk_info: &[CompanionDeviceKeyMaterial]) -> Result<(), ErrorCode>;
     fn delete_device_sk(&self, template_id: u64) -> Result<(), ErrorCode>;
 }
 
@@ -73,7 +74,7 @@ impl CompanionDeviceDbManager for DummyCompanionDeviceDbManager {
         _device_info: &CompanionDevice,
         _base_info: &CompanionDeviceProfile,
         _capability_info: &[CompanionDeviceCapability],
-        _sk_info: &[CompanionDeviceSk],
+        _sk_info: &[CompanionDeviceKeyMaterial],
     ) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
@@ -153,11 +154,11 @@ impl CompanionDeviceDbManager for DummyCompanionDeviceDbManager {
         Err(ErrorCode::GeneralError)
     }
 
-    fn read_device_sk(&self, _template_id: u64) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
+    fn read_device_sk(&self, _template_id: u64) -> Result<Vec<CompanionDeviceKeyMaterial>, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
-    fn write_device_sk(&self, _template_id: u64, _sk_info: &[CompanionDeviceSk]) -> Result<(), ErrorCode> {
+    fn write_device_sk(&self, _template_id: u64, _sk_info: &[CompanionDeviceKeyMaterial]) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }

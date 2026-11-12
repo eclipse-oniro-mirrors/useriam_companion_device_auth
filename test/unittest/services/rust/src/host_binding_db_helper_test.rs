@@ -19,7 +19,8 @@ const FILE_ID: u16 = TestFileId::HostBindingDbHelperTest as u16;
 use crate::common::constants::*;
 use crate::jobs::host_binding_db_helper::{add_host_binding, update_host_binding_last_used_time};
 use crate::log_i;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, UserInfo, UserKey};
+use crate::common::algorithm::SelectedAlgorithms;
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
@@ -36,6 +37,8 @@ fn create_mock_host_binding(binding_id: i32) -> HostBinding {
         user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         binding_time: 123456,
         last_used_time: 123456,
+        protocol_id: 1,
+        secure_protocol_id: 0,
     }
 }
 
@@ -51,7 +54,15 @@ fn add_host_binding_test() {
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let device_info = create_mock_host_binding(456);
-    let sk_info = HostBindingSk { sk: [0u8; SHARE_KEY_LEN] };
+    let sk_info = HostBindingKeyMaterial {
+        sk: [0u8; SHARE_KEY_LEN],
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: 1,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        },
+    };
 
     let result = add_host_binding(&device_info, &sk_info);
     assert!(result.is_ok());
@@ -103,4 +114,38 @@ fn update_host_binding_last_used_time_test_update_device_fail() {
 
     let result = update_host_binding_last_used_time(123);
     assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+#[test]
+fn get_binding_secure_protocol_id_test_invalid_persisted_value_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("get_binding_secure_protocol_id_test_invalid_persisted_value_rejected start");
+
+    let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
+    mock_host_binding_db_manager.expect_get_device_by_binding_id().returning(|| {
+        let mut binding = create_mock_host_binding(123);
+        binding.secure_protocol_id = 0;
+        Ok(binding)
+    });
+    HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
+
+    let result = crate::jobs::host_binding_db_helper::get_binding_secure_protocol_id(123);
+    assert_eq!(result, Err(ErrorCode::SecureProtocolNotSupported));
+}
+
+#[test]
+fn get_binding_secure_protocol_id_test_out_of_domain_persisted_value_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("get_binding_secure_protocol_id_test_out_of_domain_persisted_value_rejected start");
+
+    let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
+    mock_host_binding_db_manager.expect_get_device_by_binding_id().returning(|| {
+        let mut binding = create_mock_host_binding(123);
+        binding.secure_protocol_id = 9999;
+        Ok(binding)
+    });
+    HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
+
+    let result = crate::jobs::host_binding_db_helper::get_binding_secure_protocol_id(123);
+    assert_eq!(result, Err(ErrorCode::SecureProtocolNotSupported));
 }

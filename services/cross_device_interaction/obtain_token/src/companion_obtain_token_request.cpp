@@ -90,6 +90,7 @@ void CompanionObtainTokenRequest::OnConnected()
 
     companionDeviceKey_ = localDeviceKeyOpt.value();
     secureProtocolId_ = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
+    ENSURE_OR_RETURN_DESC(GetDescription(), secureProtocolId_ != SecureProtocolId::INVALID);
     eventCollector_.SetCompanionUserKey(
         UserKey { companionDeviceKey_.deviceUserId, companionDeviceKey_.deviceSubProfileId });
 

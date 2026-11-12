@@ -72,10 +72,12 @@ struct HostBeginCompanionCheckOutput {
 struct HostEndCompanionCheckInput {
     RequestId requestId;
     TemplateId templateId;
-    std::vector<uint16_t> protocolVersionList;
-    std::vector<uint16_t> capabilityList;
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> companionCheckResponse;
+};
+
+struct HostEndCompanionCheckOutput {
+    std::vector<uint16_t> capabilityList;
 };
 
 struct HostCancelCompanionCheckInput {
@@ -85,11 +87,10 @@ struct HostCancelCompanionCheckInput {
 struct CompanionProcessCheckInput {
     BindingId bindingId;
     std::vector<uint16_t> protocolList;
-    std::vector<uint16_t> capabilityList;
+    std::vector<uint16_t> companionCapabilityList;
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> salt;
     uint64_t challenge;
-    std::vector<uint8_t> companionCheckRequest;
 };
 
 struct CompanionProcessCheckOutput {
@@ -108,7 +109,6 @@ struct HostGetInitKeyNegotiationRequestInput {
 
 struct HostGetInitKeyNegotiationRequestOutput {
     std::vector<uint8_t> initKeyNegotiationRequest;
-    std::vector<uint16_t> algorithmList;
 };
 
 struct HostBeginAddCompanionInput {
@@ -118,20 +118,20 @@ struct HostBeginAddCompanionInput {
     DeviceKey companionDeviceKey;
     std::vector<uint8_t> fwkMsg;
     SecureProtocolId secureProtocolId;
+    std::vector<uint16_t> hostCapabilityList;
+    std::vector<uint16_t> hostProtocolList;
     std::vector<uint8_t> initKeyNegotiationReply;
 };
 
 struct HostBeginAddCompanionOutput {
     std::vector<uint8_t> addHostBindingRequest;
-    uint16_t selectedAlgorithm;
+    SelectedAlgorithms selectedAlgorithms;
 };
 
 struct HostEndAddCompanionInput {
     RequestId requestId;
     PersistedCompanionStatus companionStatus;
     SecureProtocolId secureProtocolId;
-    std::vector<uint16_t> protocolVersionList;
-    std::vector<uint16_t> capabilityList;
     std::vector<BusinessId> supportedBusinessIds;
     std::vector<uint8_t> addHostBindingReply;
 };
@@ -143,6 +143,7 @@ struct HostEndAddCompanionOutput {
     Atl atl;
     int32_t esl;
     int64_t addedTime;
+    std::vector<uint16_t> capabilityList;
 };
 
 struct HostCancelAddCompanionInput {
@@ -152,8 +153,9 @@ struct HostCancelAddCompanionInput {
 struct CompanionInitKeyNegotiationInput {
     RequestId requestId;
     SecureProtocolId secureProtocolId;
-    std::vector<uint16_t> protocolList;
-    std::vector<uint16_t> capabilityList;
+    std::vector<uint16_t> companionProtocolList;
+    std::vector<uint16_t> companionCapabilityList;
+    ProtocolId selectedProtocolId { ProtocolId::INVALID };
     DeviceKey companionDeviceKey;
     DeviceKey hostDeviceKey;
     std::vector<uint8_t> initKeyNegotiationRequest;
@@ -162,8 +164,7 @@ struct CompanionInitKeyNegotiationInput {
 struct CompanionInitKeyNegotiationOutput {
     RequestId requestId;
     std::vector<uint8_t> initKeyNegotiationReply;
-    std::vector<uint16_t> algorithmList;
-    uint16_t selectedAlgorithm;
+    SelectedAlgorithms selectedAlgorithms;
 };
 
 struct CompanionBeginAddHostBindingInput {
@@ -459,7 +460,8 @@ public:
     // Companion check
     virtual ResultCode HostBeginCompanionCheck(const HostBeginCompanionCheckInput &input,
         HostBeginCompanionCheckOutput &output) = 0;
-    virtual ResultCode HostEndCompanionCheck(const HostEndCompanionCheckInput &input) = 0;
+    virtual ResultCode HostEndCompanionCheck(const HostEndCompanionCheckInput &input,
+        HostEndCompanionCheckOutput &output) = 0;
     virtual ResultCode HostCancelCompanionCheck(const HostCancelCompanionCheckInput &input) = 0;
 
     virtual ResultCode CompanionProcessCheck(const CompanionProcessCheckInput &input,

@@ -38,6 +38,10 @@ fn error_code_test() {
     assert_eq!(ErrorCode::try_from(10018).unwrap(), ErrorCode::ExceedLimit);
     assert_eq!(ErrorCode::try_from(20005).unwrap(), ErrorCode::TokenNotFound);
     assert_eq!(ErrorCode::try_from(20006).unwrap(), ErrorCode::TokenVerifyFailed);
+    assert_eq!(ErrorCode::try_from(20011).unwrap(), ErrorCode::ProtocolNegotiationFailed);
+    assert_eq!(ErrorCode::try_from(20013).unwrap(), ErrorCode::SecureProtocolNotSupported);
+    assert_eq!(ErrorCode::try_from(20014).unwrap(), ErrorCode::CapabilityNegotiationFailed);
+    assert_eq!(ErrorCode::try_from(20015).unwrap(), ErrorCode::AlgorithmNegotiationFailed);
     assert_eq!(ErrorCode::try_from(-1), Err(ErrorCode::BadParam));
 }
 
@@ -109,9 +113,9 @@ fn algo_type_test() {
     let _guard = ut_registry_guard!();
     log_i!("algo_type_test start");
 
-    assert_eq!(AlgoType::default(), AlgoType::None);
-    assert_eq!(AlgoType::try_from(1).unwrap(), AlgoType::X25519);
-    assert_eq!(AlgoType::try_from(999), Err(ErrorCode::BadParam));
+    assert_eq!(KaAlgoType::default(), KaAlgoType::None);
+    assert_eq!(KaAlgoType::try_from(1).unwrap(), KaAlgoType::X25519);
+    assert_eq!(KaAlgoType::try_from(999), Err(ErrorCode::BadParam));
 }
 
 #[test]
@@ -149,4 +153,79 @@ fn capability_test() {
     assert_eq!(Capability::try_from(1).unwrap(), Capability::DelegateAuth);
     assert_eq!(Capability::try_from(2).unwrap(), Capability::TokenAuth);
     assert_eq!(Capability::try_from(999), Err(ErrorCode::BadParam));
+}
+
+// Negotiation lists are unordered sets: canonicalize sorts and dedups, and the
+// intersection is order- and duplicate-insensitive with a legal empty result.
+#[test]
+fn canonicalize_list_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("canonicalize_list_test start");
+
+    assert_eq!(canonicalize_list(&[]), Vec::<u16>::new());
+    assert_eq!(canonicalize_list(&[3, 1, 2]), vec![1, 2, 3]);
+    assert_eq!(canonicalize_list(&[2, 2, 1, 1]), vec![1, 2]);
+}
+
+#[test]
+fn intersect_lists_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("intersect_lists_test start");
+
+    // Order and duplicates on either side do not change the result.
+    assert_eq!(intersect_lists(&[2, 1, 2], &[3, 2, 1, 1]), vec![1, 2]);
+    // Subset offer narrows the result.
+    assert_eq!(intersect_lists(&[1], &[3, 1, 2]), vec![1]);
+    // Empty sides are legal.
+    assert_eq!(intersect_lists(&[], &[1, 2]), Vec::<u16>::new());
+    assert_eq!(intersect_lists(&[1, 2], &[]), Vec::<u16>::new());
+    // Disjoint sets negotiate to the legal empty set.
+    assert_eq!(intersect_lists(&[1], &[2]), Vec::<u16>::new());
+}
+
+#[test]
+fn intersect_lists_in_reference_order_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("intersect_lists_in_reference_order_test start");
+
+    // Result keeps the reference (priority) order and drops duplicates.
+    assert_eq!(intersect_lists_in_reference_order(&[3, 1, 3, 2], &[2, 1, 4]), vec![1, 2]);
+    // Candidate order and duplicates do not leak into the result.
+    assert_eq!(intersect_lists_in_reference_order(&[1, 2], &[2, 2, 1, 1]), vec![1, 2]);
+    // Empty and disjoint sides stay legal.
+    assert_eq!(intersect_lists_in_reference_order(&[], &[1, 2]), Vec::<u16>::new());
+    assert_eq!(intersect_lists_in_reference_order(&[1], &[2]), Vec::<u16>::new());
+}
+
+#[test]
+fn is_subset_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("is_subset_test start");
+
+    assert!(is_subset(&[], &[1]));
+    assert!(is_subset(&[1, 1], &[2, 1]));
+    assert!(!is_subset(&[3], &[1, 2]));
+    assert!(!is_subset(&[1], &[]));
+}
+
+#[test]
+fn same_elements_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("same_elements_test start");
+
+    assert!(same_elements(&[], &[]));
+    assert!(same_elements(&[3, 1, 2], &[2, 1, 3]));
+    assert!(same_elements(&[1, 1], &[1]));
+    assert!(!same_elements(&[1, 2], &[1]));
+    assert!(!same_elements(&[], &[1]));
+}
+
+#[test]
+fn validate_secure_protocol_id_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("validate_secure_protocol_id_test start");
+
+    assert_eq!(validate_secure_protocol_id(SecureProtocolId::Default as u16), Ok(()));
+    assert_eq!(validate_secure_protocol_id(SECURE_PROTOCOL_ID_INVALID), Err(ErrorCode::SecureProtocolNotSupported));
+    assert_eq!(validate_secure_protocol_id(SecureProtocolId::Default as u16 + 1), Err(ErrorCode::SecureProtocolNotSupported));
 }

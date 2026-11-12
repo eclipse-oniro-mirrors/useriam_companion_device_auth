@@ -365,20 +365,18 @@ HWTEST_F(DeviceStatusManagerTest, HandleChannelDeviceStatusChange, TestSize.Leve
 HWTEST_F(DeviceStatusManagerTest, NegotiateProtocol_MultipleProtocols, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::INVALID, ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1, ProtocolId::INVALID };
 
     std::vector<ProtocolId> remoteProtocols = { ProtocolId::VERSION_1, ProtocolId::INVALID };
     auto result = ctx.manager->NegotiateProtocol(remoteProtocols);
 
     EXPECT_TRUE(result.has_value());
-    EXPECT_EQ(ProtocolId::INVALID, result.value());
+    EXPECT_EQ(ProtocolId::VERSION_1, result.value());
 }
 
 HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_MultipleSynced, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
@@ -524,7 +522,6 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_DetectsReportUnsyncedChange
 HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_IncludesRefreshToken, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.hostCapabilities = { Capability::TOKEN_AUTH };
 
@@ -546,7 +543,6 @@ HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_IncludesRefreshToken, TestSize
 HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_IncludesRefreshToken, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocolPriorityList = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.hostCapabilities = { Capability::TOKEN_AUTH };
 

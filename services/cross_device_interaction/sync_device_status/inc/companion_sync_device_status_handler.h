@@ -16,6 +16,7 @@
 #ifndef COMPANION_DEVICE_AUTH_COMPANION_SYNC_DEVICE_STATUS_HANDLER_H
 #define COMPANION_DEVICE_AUTH_COMPANION_SYNC_DEVICE_STATUS_HANDLER_H
 
+#include "error_guard.h"
 #include "host_binding_manager.h"
 #include "interaction_desc.h"
 #include "security_agent.h"
@@ -36,16 +37,24 @@ protected:
     void HandleRequest(const Attributes &request, Attributes &reply) override;
 
 private:
-    bool CompanionProcessCheck(const HostBindingStatus &hostBindingStatus, const SyncDeviceStatusRequest &syncRequest,
-        std::vector<uint8_t> &outCompanionCheckResponse, const InteractionDesc &desc);
+    std::optional<std::vector<ProtocolId>> NegotiateSyncParameters(const SyncDeviceStatusRequest &syncRequest,
+        const LocalDeviceProfile &localProfile, const std::optional<HostBindingStatus> &hostBindingStatus,
+        ErrorGuard &errorGuard);
+    ResultCode CompanionProcessCheck(const CompanionProcessCheckInput &input, const InteractionDesc &desc,
+        std::vector<uint8_t> &outCompanionCheckResponse);
     std::optional<SyncDeviceStatusReply> BuildSyncDeviceStatusReply(const UserKey &companionUserKey,
-        const InteractionDesc &desc);
+        const LocalDeviceProfile &localProfile, const InteractionDesc &desc);
     void SetCompanionDeviceKeyUserId(SyncDeviceStatusReply &syncReply, const UserKey &companionUserKey);
     CompanionProcessCheckInput BuildCompanionProcessCheckInput(const HostBindingStatus &hostBindingStatus,
-        const SyncDeviceStatusRequest &syncRequest, SecureProtocolId secureProtocolId);
+        const SyncDeviceStatusRequest &syncRequest, const std::vector<ProtocolId> &negotiatedProtocolIdList,
+        const LocalDeviceProfile &localProfile);
     UserKey QueryActiveUserKey();
     std::optional<HostBindingStatus> QueryHostBindingStatus(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey);
+    bool ProcessBoundHostCheck(const HostBindingStatus &hostBindingStatus, const SyncDeviceStatusRequest &syncRequest,
+        const std::vector<ProtocolId> &negotiatedProtocolIdList, const LocalDeviceProfile &localProfile,
+        const InteractionDesc &desc, ErrorGuard &errorGuard, SyncDeviceStatusReply &syncReply);
+    void PublishPeerSyncedEvent(const DeviceKey &hostDeviceKey);
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

@@ -72,6 +72,7 @@ private:
     ResultCode SecurityAgentGetInitKeyNegotiationRequest(std::vector<uint8_t> &initKeyNegotiationRequest);
     ResultCode SendInitKeyNegotiationRequest(const std::vector<uint8_t> &initKeyNegotiationRequest);
     bool BuildBeginAddCompanionParams(const InitKeyNegotiationReply &reply, BeginAddCompanionParams &params) const;
+    bool ValidateAndPinProtocol(const DeviceKey &peerDeviceKey);
 
     std::vector<uint8_t> fwkMsg_;
     uint32_t tokenId_ = 0;
@@ -86,6 +87,7 @@ private:
     DeviceKey hostDeviceKey_ {};
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     std::vector<BusinessId> enabledBusinessIdsFromAdditionalInfo_; // Parsed from additionalInfo
+    ProtocolId selectedProtocolId_ { ProtocolId::INVALID };
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

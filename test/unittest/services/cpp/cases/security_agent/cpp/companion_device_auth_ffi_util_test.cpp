@@ -190,6 +190,36 @@ HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationTrue, TestSize.
     }
 }
 
+// §10.2 scheme A: the persisted capability list round-trips through the FFI boundary so
+// the C++ gate and the security layer read the same authenticated value.
+HWTEST_F(FfiUtilTest, PersistedCompanionStatusCapabilityListRoundTrip, TestSize.Level1)
+{
+    MockGuard guard;
+    PersistedCompanionStatus status;
+    status.templateId = INT32_123;
+    status.capabilities = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
+
+    PersistedCompanionStatusFfi ffi = {};
+    EXPECT_TRUE(EncodePersistedCompanionStatus(status, ffi));
+    EXPECT_EQ(ffi.capabilityList.len, 3U);
+    EXPECT_EQ(ffi.capabilityList.data[0], static_cast<uint16_t>(Capability::DELEGATE_AUTH));
+    EXPECT_EQ(ffi.capabilityList.data[1], static_cast<uint16_t>(Capability::TOKEN_AUTH));
+    EXPECT_EQ(ffi.capabilityList.data[2], static_cast<uint16_t>(Capability::OBTAIN_TOKEN));
+
+    PersistedCompanionStatus decoded;
+    EXPECT_TRUE(DecodePersistedCompanionStatus(ffi, decoded));
+    EXPECT_EQ(decoded.capabilities, status.capabilities);
+
+    // Empty capability list must survive the round trip unchanged (no fail-open).
+    PersistedCompanionStatus empty;
+    empty.capabilities = {};
+    PersistedCompanionStatusFfi emptyFfi = {};
+    EXPECT_TRUE(EncodePersistedCompanionStatus(empty, emptyFfi));
+    PersistedCompanionStatus decodedEmpty;
+    EXPECT_TRUE(DecodePersistedCompanionStatus(emptyFfi, decodedEmpty));
+    EXPECT_TRUE(decodedEmpty.capabilities.empty());
+}
+
 HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationFalse, TestSize.Level1)
 {
     MockGuard guard;
@@ -552,13 +582,13 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessCheckInputSaltSizeValidation, TestSi
         input.secureProtocolId = SecureProtocolId::DEFAULT;
         input.challenge = INT32_123;
         input.salt.resize(SALT_LEN_FFI, UINT8_0XCC);
-        input.capabilityList = { 1, 2 };
-        input.companionCheckRequest = { UINT8_0XAA, UINT8_0XBB };
+        input.companionCapabilityList = { 1, 2, 3 };
 
         CompanionProcessCheckInputFfi ffi = {};
 
         EncodeCompanionProcessCheckInput(input, ffi);
         EXPECT_EQ(ffi.bindingId, 1U);
+        EXPECT_EQ(ffi.companionCapabilityList.len, 3U);
     }
 }
 
@@ -703,14 +733,35 @@ HWTEST_F(FfiUtilTest, EncodeHostEndCompanionCheckInput_001, TestSize.Level0)
     input.requestId = INT32_123;
     input.templateId = INT32_456;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.protocolVersionList = { 1, 2 };
-    input.capabilityList = { 10, 20 };
     input.companionCheckResponse = { UINT8_0XAA, UINT8_0XBB };
 
     HostEndCompanionCheckInputFfi ffi = {};
     EncodeHostEndCompanionCheckInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 123U);
     EXPECT_EQ(ffi.templateId, 456U);
+    EXPECT_EQ(ffi.secureProtocolId, static_cast<uint16_t>(SecureProtocolId::DEFAULT));
+    EXPECT_EQ(ffi.secMessage.len, 2U);
+}
+
+HWTEST_F(FfiUtilTest, DecodeHostEndCompanionCheckOutput_001, TestSize.Level0)
+{
+    MockGuard guard;
+    HostEndCompanionCheckOutputFfi ffi = {};
+    ffi.capabilityList.len = 2;
+    ffi.capabilityList.data[0] = static_cast<uint16_t>(Capability::DELEGATE_AUTH);
+    ffi.capabilityList.data[1] = static_cast<uint16_t>(Capability::TOKEN_AUTH);
+
+    HostEndCompanionCheckOutput output;
+    EXPECT_TRUE(DecodeHostEndCompanionCheckOutput(ffi, output));
+    EXPECT_EQ(output.capabilityList.size(), 2U);
+    EXPECT_EQ(output.capabilityList[0], static_cast<uint16_t>(Capability::DELEGATE_AUTH));
+    EXPECT_EQ(output.capabilityList[1], static_cast<uint16_t>(Capability::TOKEN_AUTH));
+
+    // Converged-empty is a legal authenticated result and must decode as an empty list.
+    HostEndCompanionCheckOutputFfi emptyFfi = {};
+    HostEndCompanionCheckOutput emptyOutput;
+    EXPECT_TRUE(DecodeHostEndCompanionCheckOutput(emptyFfi, emptyOutput));
+    EXPECT_TRUE(emptyOutput.capabilityList.empty());
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostGetInitKeyNegotiationInput_001, TestSize.Level0)
@@ -733,14 +784,10 @@ HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_001, TestSize.Level0)
     ffi.secMessage.data[0] = UINT8_0XAA;
     ffi.secMessage.data[1] = UINT8_0XBB;
     ffi.secMessage.data[2] = UINT8_0XCC;
-    ffi.algorithmList.len = 2;
-    ffi.algorithmList.data[0] = 1;
-    ffi.algorithmList.data[1] = 2;
 
     HostGetInitKeyNegotiationRequestOutput output;
     EXPECT_TRUE(DecodeHostInitKeyNegotiationOutput(ffi, output));
     EXPECT_EQ(output.initKeyNegotiationRequest.size(), 3U);
-    EXPECT_EQ(output.algorithmList.size(), 2U);
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostBeginAddCompanionInput_001, TestSize.Level0)
@@ -772,11 +819,18 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_001, TestSize.Level0)
     ffi.secMessage.len = 2;
     ffi.secMessage.data[0] = UINT8_0XDD;
     ffi.secMessage.data[1] = UINT8_0XEE;
-    ffi.selectedAlgorithm = 1;
+    ffi.selectedAlgorithms.kaAlgorithm = 1;
+    ffi.selectedAlgorithms.kdfAlgorithm = 2;
+    ffi.selectedAlgorithms.aeadAlgorithm = 3;
+    ffi.selectedAlgorithms.macAlgorithm = 4;
 
     HostBeginAddCompanionOutput output;
     EXPECT_TRUE(DecodeHostBeginAddCompanionOutput(ffi, output));
     EXPECT_EQ(output.addHostBindingRequest.size(), 2U);
+    EXPECT_EQ(output.selectedAlgorithms.kaAlgorithm, 1U);
+    EXPECT_EQ(output.selectedAlgorithms.kdfAlgorithm, 2U);
+    EXPECT_EQ(output.selectedAlgorithms.aeadAlgorithm, 3U);
+    EXPECT_EQ(output.selectedAlgorithms.macAlgorithm, 4U);
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
@@ -785,6 +839,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
     HostEndAddCompanionInput input;
     input.requestId = INT32_444;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
+    input.companionStatus.enrolledProtocolId = ProtocolId::VERSION_1;
     input.companionStatus.templateId = INT32_555;
     input.companionStatus.hostUserKey.userId = INT32_666;
     input.supportedBusinessIds = { static_cast<BusinessId>(1), static_cast<BusinessId>(2) };
@@ -793,6 +848,7 @@ HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
     HostEndAddCompanionInputFfi ffi = {};
     EncodeHostEndAddCompanionInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 444U);
+    EXPECT_EQ(ffi.companionStatus.enrolledProtocolId, 1U);
     EXPECT_EQ(ffi.supportedBusinessIds.len, 2U);
 }
 
@@ -804,11 +860,15 @@ HWTEST_F(FfiUtilTest, DecodeHostEndAddCompanionOutput_001, TestSize.Level0)
     ffi.fwkMessage.len = 2;
     ffi.fwkMessage.data[0] = UINT8_0X77;
     ffi.fwkMessage.data[1] = UINT8_0X88;
+    ffi.capabilityList.len = 2;
+    ffi.capabilityList.data[0] = 1;
+    ffi.capabilityList.data[1] = 2;
 
     HostEndAddCompanionOutput output;
     EXPECT_TRUE(DecodeHostEndAddCompanionOutput(ffi, output));
     EXPECT_EQ(output.templateId, 777U);
     EXPECT_EQ(output.fwkMsg.size(), 2U);
+    EXPECT_EQ(output.capabilityList, (std::vector<uint16_t> { 1, 2 }));
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostPreIssueTokenInput_001, TestSize.Level0)
@@ -1136,8 +1196,8 @@ HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_001, TestSize.Level
     CompanionInitKeyNegotiationInput input;
     input.requestId = 17000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.protocolList = { 1 };
-    input.capabilityList = { 1, 2, 3 };
+    input.companionProtocolList = { 1 };
+    input.companionCapabilityList = { 1, 2, 3 };
     input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     input.hostDeviceKey.deviceUserId = 100;
     input.hostDeviceKey.deviceId = "host";
@@ -1149,8 +1209,8 @@ HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_001, TestSize.Level
     CompanionInitKeyNegotiationInputFfi ffi = {};
     EncodeCompanionInitKeyNegotiationInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 17000U);
-    EXPECT_EQ(ffi.protocolList.len, 1U);
-    EXPECT_EQ(ffi.capabilityList.len, 3U);
+    EXPECT_EQ(ffi.companionProtocolList.len, 1U);
+    EXPECT_EQ(ffi.companionCapabilityList.len, 3U);
 }
 
 HWTEST_F(FfiUtilTest, DecodeCompanionInitKeyNegotiationOutput_001, TestSize.Level0)
@@ -1160,16 +1220,18 @@ HWTEST_F(FfiUtilTest, DecodeCompanionInitKeyNegotiationOutput_001, TestSize.Leve
     ffi.secMessage.len = 2;
     ffi.secMessage.data[0] = UINT8_0XFF;
     ffi.secMessage.data[1] = UINT8_0X00;
-    ffi.algorithmList.len = 2;
-    ffi.algorithmList.data[0] = 1;
-    ffi.algorithmList.data[1] = 2;
-    ffi.selectedAlgorithm = 1;
+    ffi.selectedAlgorithms.kaAlgorithm = 1;
+    ffi.selectedAlgorithms.kdfAlgorithm = 2;
+    ffi.selectedAlgorithms.aeadAlgorithm = 3;
+    ffi.selectedAlgorithms.macAlgorithm = 4;
 
     CompanionInitKeyNegotiationOutput output;
     EXPECT_TRUE(DecodeCompanionInitKeyNegotiationOutput(ffi, output));
     EXPECT_EQ(output.initKeyNegotiationReply.size(), 2U);
-    EXPECT_EQ(output.algorithmList.size(), 2U);
-    EXPECT_EQ(output.selectedAlgorithm, 1U);
+    EXPECT_EQ(output.selectedAlgorithms.kaAlgorithm, 1U);
+    EXPECT_EQ(output.selectedAlgorithms.kdfAlgorithm, 2U);
+    EXPECT_EQ(output.selectedAlgorithms.aeadAlgorithm, 3U);
+    EXPECT_EQ(output.selectedAlgorithms.macAlgorithm, 4U);
 }
 
 HWTEST_F(FfiUtilTest, EncodeCompanionBeginAddHostBindingInput_001, TestSize.Level0)
@@ -1478,6 +1540,35 @@ HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusList_001, TestSize.Level0)
     EXPECT_EQ(list.size(), 2U);
     EXPECT_EQ(list[0].bindingId, 555U);
     EXPECT_EQ(list[1].bindingId, 888U);
+}
+
+HWTEST_F(FfiUtilTest, PersistedCompanionStatusRoundtripKeepsEnrolledParameters, TestSize.Level1)
+{
+    MockGuard guard;
+    PersistedCompanionStatus status;
+    status.templateId = INT32_123;
+    status.enrolledProtocolId = ProtocolId::VERSION_1;
+
+    PersistedCompanionStatusFfi ffi = {};
+    ASSERT_TRUE(EncodePersistedCompanionStatus(status, ffi));
+    EXPECT_EQ(ffi.enrolledProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_1));
+
+    PersistedCompanionStatus decoded;
+    ASSERT_TRUE(DecodePersistedCompanionStatus(ffi, decoded));
+    EXPECT_EQ(decoded.enrolledProtocolId, ProtocolId::VERSION_1);
+}
+
+HWTEST_F(FfiUtilTest, DecodePersistedHostBindingStatusKeepsEnrolledParameters, TestSize.Level1)
+{
+    MockGuard guard;
+    PersistedHostBindingStatusFfi ffi = {};
+    ffi.bindingId = INT32_123;
+    ffi.isTokenValid = true;
+    ffi.enrolledProtocolId = static_cast<uint16_t>(ProtocolId::VERSION_1);
+
+    PersistedHostBindingStatus status;
+    ASSERT_TRUE(DecodePersistedHostBindingStatus(ffi, status));
+    EXPECT_EQ(status.enrolledProtocolId, ProtocolId::VERSION_1);
 }
 
 } // namespace CompanionDeviceAuth

@@ -13,12 +13,17 @@
  * limitations under the License.
  */
 
+use crate::common::algorithm::SelectedAlgorithms;
 use crate::common::constants::{
-    AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel, SHARE_KEY_LEN, TOKEN_KEY_LEN,
+    AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel, SHARE_KEY_LEN,
+    TOKEN_KEY_LEN, is_valid_device_id_type,
 };
 use crate::entry::companion_device_auth_ffi::DeviceKeyFfi;
+use crate::log_e;
+use crate::traits::log_trace::RustFileId;
 use crate::String;
 use crate::Vec;
+pub(crate) const FILE_ID: u16 = RustFileId::DbManager as u16;
 
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct DeviceKey {
@@ -32,6 +37,10 @@ impl TryFrom<&DeviceKeyFfi> for DeviceKey {
     type Error = ErrorCode;
 
     fn try_from(ffi_key: &DeviceKeyFfi) -> Result<Self, ErrorCode> {
+        if !is_valid_device_id_type(ffi_key.device_id_type) {
+            log_e!("invalid device_id_type: {}", ffi_key.device_id_type);
+            return Err(ErrorCode::BadParam);
+        }
         let device_id = ffi_key.device_id.to_string()?;
         Ok(DeviceKey {
             device_id,
@@ -58,8 +67,17 @@ pub struct UserKey {
 // Host Binding Db
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "test-utils", derive(PartialEq))]
-pub struct HostBindingSk {
+pub struct HostBindingKeyMaterial {
+    pub selected_algorithms: SelectedAlgorithms,
     pub sk: [u8; SHARE_KEY_LEN],
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+pub struct SessionKeyParam {
+    pub session_key: Vec<u8>,
+    pub aead_algorithm: u16,
+    pub mac_algorithm: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -70,6 +88,8 @@ pub struct HostBinding {
     pub user_info: UserInfo,
     pub binding_time: u64,
     pub last_used_time: u64,
+    pub protocol_id: u16,
+    pub secure_protocol_id: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -100,8 +120,9 @@ pub struct CompanionDeviceCapability {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct CompanionDeviceSk {
+pub struct CompanionDeviceKeyMaterial {
     pub processor_type: ProcessorType,
+    pub selected_algorithms: SelectedAlgorithms,
     pub sk: [u8; SHARE_KEY_LEN],
 }
 
@@ -114,6 +135,8 @@ pub struct CompanionDevice {
     pub added_time: u64,
     pub is_valid: bool,
     pub capability_list: Vec<u16>,
+    pub protocol_id: u16,
+    pub secure_protocol_id: u16,
 }
 
 #[derive(Debug, Clone)]

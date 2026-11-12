@@ -32,6 +32,7 @@ pub enum RustFileId {
     // common/
     Constants = 0x0220,
     Types = 0x0221,
+    Algorithm = 0x0222,
     // impls/
     DefaultCompanionDeviceDbManager = 0x0230,
     DefaultHostBindingDbManager = 0x0231,
@@ -82,6 +83,7 @@ pub enum RustFileId {
     StorageIo = 0x02C6,
     TimeKeeper = 0x02C7,
     Logger = 0x02C8,
+    DbManager = 0x02C9,
     // utils/
     Attribute = 0x02D0,
     MessageCodec = 0x02D1,

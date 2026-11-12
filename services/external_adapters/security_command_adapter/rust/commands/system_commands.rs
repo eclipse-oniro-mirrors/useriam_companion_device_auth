@@ -17,7 +17,7 @@ extern crate alloc;
 
 use crate::commands::common_command::{companion_status_vec_to_ffi, host_binding_status_vec_to_ffi};
 use crate::common::constants::{
-    AuthCapabilityLevel, AuthTrustLevel, Capability, ErrorCode, ExecutorSecurityLevel, TOKEN_REFRESH_THRESHOLD,
+    AuthTrustLevel, Capability, ErrorCode, ExecutorSecurityLevel, LOCAL_EXECUTOR_MAX_ACL, TOKEN_REFRESH_THRESHOLD,
     TOKEN_VALID_PERIOD,
 };
 use crate::entry::companion_device_auth_ffi::{
@@ -51,7 +51,7 @@ use crate::entry::companion_device_auth_ffi::{
     HostSetCompanionInvalidInputFfi, HostSetCompanionInvalidOutputFfi, HostUpdateCompanionEnabledBusinessIdsInputFfi,
     HostUpdateCompanionEnabledBusinessIdsOutputFfi, HostUpdateCompanionStatusInputFfi,
     HostUpdateCompanionStatusOutputFfi, InitInputFfi, InitOutputFfi, Int32Array64Ffi, PersistedCompanionStatusFfi,
-    PersistedHostBindingStatusFfi, SetActiveUserInputFfi, SetActiveUserOutputFfi, UserKeyFfi,
+    PersistedHostBindingStatusFfi, SetActiveUserInputFfi, SetActiveUserOutputFfi, Uint16Array64Ffi, UserKeyFfi,
 };
 use crate::jobs::companion_device_db_helper;
 use crate::request::delegate_auth::companion_delegate_auth::CompanionDelegateAuthRequest;
@@ -97,7 +97,7 @@ pub fn get_executor_info(
     let key_pair = MiscManagerRegistry::get_mut().get_local_key_pair().map_err(|e| p!(e))?;
 
     output.esl = ExecutorSecurityLevel::Esl3 as i32;
-    output.max_template_acl = AuthCapabilityLevel::Acl3 as i32;
+    output.max_template_acl = LOCAL_EXECUTOR_MAX_ACL as i32;
     output.public_key = key_pair.pub_key.clone().try_into().map_err(|e| p!(e))?;
     Ok(())
 }
@@ -166,6 +166,8 @@ pub fn host_get_persisted_status(
                     device_user_name: DataArray256Ffi::try_from(device_profile.device_user_name)?,
                     device_name: DataArray256Ffi::try_from(device_profile.device_name)?,
                     device_sub_profile_name: DataArray256Ffi::try_from(device_profile.device_sub_profile_name)?,
+                    enrolled_protocol_id: device_info.protocol_id,
+                    capability_list: Uint16Array64Ffi::try_from(device_info.capability_list)?,
                 };
 
                 companion_status_list.push(companion_status);
@@ -547,6 +549,7 @@ pub fn companion_get_persisted_status(
             },
             host_device_key: DeviceKeyFfi::try_from(device_info.device_key)?,
             is_token_valid: HostBindingDbManagerRegistry::get().is_device_token_valid(device_info.binding_id)?,
+            enrolled_protocol_id: device_info.protocol_id,
         };
         binding_status_list.push(binding_status);
     }

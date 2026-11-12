@@ -13,7 +13,10 @@
  * limitations under the License.
  */
 
-use crate::common::constants::{ErrorCode, ProcessorType, HKDF_SALT_SIZE, SUPPORTED_PROTOCOL_VERSIONS};
+use crate::common::constants::{
+    ErrorCode, ProcessorType, HKDF_SALT_SIZE, validate_capability_list, validate_protocol_list,
+    validate_secure_protocol_id,
+};
 use crate::entry::companion_device_auth_ffi::CompanionProcessCheckInputFfi;
 use crate::jobs::host_binding_db_helper;
 use crate::jobs::message_crypto;
@@ -29,56 +32,56 @@ pub struct CompanionDeviceSyncStatusRequest {
     pub secure_protocol_id: u16,
     pub host_challenge: u64,
     pub salt: Vec<u8>,
-    pub expected_protocol_list: Vec<u16>,
-    pub expected_capability_list: Vec<u16>,
+    pub companion_protocol_list: Vec<u16>,
+    pub companion_capability_list: Vec<u16>,
 }
 
 impl CompanionDeviceSyncStatusRequest {
     pub fn new(input: &CompanionProcessCheckInputFfi) -> Result<Self, ErrorCode> {
+        validate_secure_protocol_id(input.secure_protocol_id)?;
         let salt_slice = input.salt.as_slice()?;
         if salt_slice.len() != HKDF_SALT_SIZE {
             log_e!("salt length mismatch: expected {}, got {}", HKDF_SALT_SIZE, salt_slice.len());
             return Err(ErrorCode::GeneralError);
         }
 
-        let protocol_list: Vec<u16> = input.protocol_list.try_into().map_err(|e| {
+        let companion_protocol_list: Vec<u16> = input.protocol_list.try_into().map_err(|e| {
             log_e!("protocol_list try_into fail: {:?}", e);
             ErrorCode::GeneralError
         })?;
-        let capability_list = input.capability_list.try_into().map_err(|e| {
-            log_e!("capability_list try_into fail: {:?}", e);
+        let companion_capability_list: Vec<u16> = input.companion_capability_list.try_into().map_err(|e| {
+            log_e!("companion_capability_list try_into fail: {:?}", e);
             ErrorCode::GeneralError
         })?;
 
-        // Validate that SA's protocol_list is a subset of TA's SUPPORTED_PROTOCOL_VERSIONS
-        for protocol in &protocol_list {
-            if !SUPPORTED_PROTOCOL_VERSIONS.contains(protocol) {
-                log_e!("protocol {} is not supported by TA, supported: {:?}", protocol, SUPPORTED_PROTOCOL_VERSIONS);
-                return Err(ErrorCode::GeneralError);
-            }
-        }
+        validate_protocol_list(&companion_protocol_list)?;
+        validate_capability_list(&companion_capability_list)?;
 
         Ok(CompanionDeviceSyncStatusRequest {
             binding_id: input.binding_id,
             secure_protocol_id: input.secure_protocol_id,
             host_challenge: input.challenge,
             salt: salt_slice.to_vec(),
-            expected_protocol_list: protocol_list,
-            expected_capability_list: capability_list,
+            companion_protocol_list,
+            companion_capability_list,
         })
     }
 
     fn encode_sec_status_sync_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrHostChallenge, self.host_challenge);
-        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.expected_protocol_list);
-        encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.expected_capability_list);
+        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.companion_protocol_list);
+        encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.companion_capability_list);
 
         let attribute_bytes = encrypt_attribute.to_bytes()?;
 
-        let session_key = host_binding_db_helper::get_session_key(self.binding_id, &self.salt)?;
-        let (encrypt_data, tag, iv) =
-            message_crypto::encrypt_sec_message(&attribute_bytes, &session_key).map_err(|e| p!(e))?;
+        let session_key_param = host_binding_db_helper::get_session_key(self.binding_id, &self.salt)?;
+        let (encrypt_data, tag, iv) = message_crypto::encrypt_sec_message(
+            session_key_param.aead_algorithm,
+            &attribute_bytes,
+            &session_key_param.session_key,
+        )
+        .map_err(|e| p!(e))?;
 
         let status_sync_reply = Box::new(SecCommonReply { tag, iv, encrypt_data });
         let output = status_sync_reply.encode(ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?)?;
@@ -102,6 +105,9 @@ impl Request for CompanionDeviceSyncStatusRequest {
             log_e!("param type is error");
             return Err(ErrorCode::BadParam);
         };
+
+        let persisted = host_binding_db_helper::get_binding_secure_protocol_id(self.binding_id)?;
+        self.secure_protocol_id = persisted;
 
         let reply_sec_message = self.encode_sec_status_sync_reply()?;
         ffi_output.sec_message.copy_from_vec(&reply_sec_message)?;

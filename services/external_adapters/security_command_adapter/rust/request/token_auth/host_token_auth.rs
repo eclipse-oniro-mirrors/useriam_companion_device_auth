@@ -14,8 +14,8 @@
  */
 
 use crate::common::constants::{
-    AuthCapabilityLevel, AuthTrustLevel, Capability, ErrorCode, ProcessorType, SecureProtocolId, CHALLENGE_LEN,
-    HKDF_SALT_SIZE,
+    AuthCapabilityLevel, AuthTrustLevel, Capability, ErrorCode, ProcessorType, CHALLENGE_LEN,
+    HKDF_SALT_SIZE, LOCAL_EXECUTOR_MAX_ACL, validate_secure_protocol_id,
 };
 use crate::entry::companion_device_auth_ffi::HostBeginTokenAuthInputFfi;
 use crate::jobs::companion_device_db_helper;
@@ -45,12 +45,15 @@ pub struct HostTokenAuthRequest {
     pub host_challenge: u64,
     pub atl: AuthTrustLevel,
     pub acl: AuthCapabilityLevel,
+    pub mac_algorithm: u16,
     pub salt: [u8; HKDF_SALT_SIZE],
     pub processor_type: ProcessorType,
 }
 
 impl HostTokenAuthRequest {
     pub fn new(input: &HostBeginTokenAuthInputFfi) -> Result<Self, ErrorCode> {
+        validate_secure_protocol_id(input.secure_protocol_id)?;
+
         let mut challenge = [0u8; CHALLENGE_LEN];
         CryptoEngineRegistry::get().secure_random(&mut challenge).map_err(|_| {
             log_e!("secure_random challenge fail");
@@ -73,6 +76,7 @@ impl HostTokenAuthRequest {
             host_challenge: u64::from_ne_bytes(challenge),
             atl: AuthTrustLevel::Atl0,
             acl: AuthCapabilityLevel::Acl0,
+            mac_algorithm: 0,
             salt,
             processor_type: ProcessorType::default(),
         })
@@ -98,13 +102,8 @@ impl HostTokenAuthRequest {
     }
 
     fn encode_sec_token_auth_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
-        self.processor_type = if self.auth_param.secure_protocol_id == SecureProtocolId::Default as u16 {
-            self.acl = AuthCapabilityLevel::Acl3;
-            ProcessorType::default()
-        } else {
-            log_e!("secure_protocol_id is not supported: {}", self.auth_param.secure_protocol_id);
-            return Err(ErrorCode::GeneralError);
-        };
+        self.processor_type = ProcessorType::from_secure_protocol_id(self.auth_param.secure_protocol_id)?;
+        self.acl = LOCAL_EXECUTOR_MAX_ACL;
         let token_info =
             CompanionDeviceDbManagerRegistry::get().get_token(self.auth_param.template_id, self.processor_type)?;
         let current_time = TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?;
@@ -113,18 +112,22 @@ impl HostTokenAuthRequest {
             return Err(ErrorCode::Timeout);
         }
 
-        let session_key = companion_device_db_helper::get_session_key(
+        let session_key_param = companion_device_db_helper::get_session_key(
             self.auth_param.template_id,
             token_info.processor_type,
             &self.salt,
         )?;
+        self.mac_algorithm = session_key_param.mac_algorithm;
 
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrHostChallenge, self.host_challenge);
 
-        let (encrypt_data, tag, iv) =
-            message_crypto::encrypt_sec_message(encrypt_attribute.to_bytes()?.as_slice(), &session_key)
-                .map_err(|e| p!(e))?;
+        let (encrypt_data, tag, iv) = message_crypto::encrypt_sec_message(
+            session_key_param.aead_algorithm,
+            encrypt_attribute.to_bytes()?.as_slice(),
+            &session_key_param.session_key,
+        )
+        .map_err(|e| p!(e))?;
 
         let auth_request = Box::new(SecCommonRequest { salt: self.salt, tag, iv, encrypt_data });
         auth_request.encode(self.processor_type)
@@ -147,7 +150,8 @@ impl HostTokenAuthRequest {
         data.extend_from_slice(&atl_bytes);
         data.extend_from_slice(&challenge_bytes);
 
-        let expected_hmac = CryptoEngineRegistry::get().hmac_sha256(&token_info.token, &data).map_err(|e| p!(e))?;
+        let expected_hmac = message_crypto::compute_mac(self.mac_algorithm, &token_info.token, &data)
+            .map_err(|e| p!(e))?;
         if output.hmac.len() != expected_hmac.len() {
             log_e!("mac len not match, {}:{}", output.hmac.len(), expected_hmac.len());
             return Err(ErrorCode::Fail);
@@ -208,6 +212,8 @@ impl Request for HostTokenAuthRequest {
 
         companion_device_db_helper::check_device_capability(self.auth_param.template_id, Capability::TokenAuth)?;
 
+        self.auth_param.secure_protocol_id =
+            companion_device_db_helper::get_device_secure_protocol_id(self.auth_param.template_id)?;
         self.decode_fwk_token_auth_request(ffi_input.fwk_message.as_slice()?)?;
         let sec_message = self.encode_sec_token_auth_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;

@@ -81,8 +81,6 @@ public:
 
 private:
     void RecomputeEffectiveBusinessIds();
-    static std::vector<BusinessId> IntersectBusinessIds(const std::vector<BusinessId> &hostSupportBusinessIds,
-        const std::vector<BusinessId> &deviceSupportedBusinessIds);
 
     std::vector<BusinessId> hostSupportBusinessIds_;
     std::vector<BusinessId> physicalCompanionBusinessIds_;

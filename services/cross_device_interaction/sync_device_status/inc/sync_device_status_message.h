@@ -60,8 +60,6 @@ void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
 
 std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attributes &attributes);
 
-bool DecodeSyncDeviceStatusReplyInner(const Attributes &attributes, SyncDeviceStatusReply &reply);
-
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

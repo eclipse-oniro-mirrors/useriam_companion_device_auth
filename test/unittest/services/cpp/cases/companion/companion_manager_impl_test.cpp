@@ -392,8 +392,8 @@ HWTEST_F(CompanionManagerImplTest, BeginAddCompanion_001, TestSize.Level0)
 
     BeginAddCompanionParams params;
     std::vector<uint8_t> outRequest;
-    uint16_t selectedAlgorithm;
-    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithm);
+    SelectedAlgorithms selectedAlgorithms;
+    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithms);
 
     EXPECT_EQ(ret, ResultCode::GENERAL_ERROR);
 }
@@ -409,8 +409,8 @@ HWTEST_F(CompanionManagerImplTest, BeginAddCompanion_002, TestSize.Level0)
     BeginAddCompanionParams params;
     params.hostDeviceKey.deviceUserId = USER_ID_999;
     std::vector<uint8_t> outRequest;
-    uint16_t selectedAlgorithm;
-    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithm);
+    SelectedAlgorithms selectedAlgorithms;
+    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithms);
 
     EXPECT_EQ(ret, ResultCode::GENERAL_ERROR);
 }
@@ -429,8 +429,8 @@ HWTEST_F(CompanionManagerImplTest, BeginAddCompanion_003, TestSize.Level0)
     params.requestId = UINT32_1;
     params.hostDeviceKey.deviceUserId = activeUserId_;
     std::vector<uint8_t> outRequest;
-    uint16_t selectedAlgorithm;
-    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithm);
+    SelectedAlgorithms selectedAlgorithms;
+    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithms);
 
     EXPECT_EQ(ret, ResultCode::GENERAL_ERROR);
 }
@@ -453,8 +453,8 @@ HWTEST_F(CompanionManagerImplTest, BeginAddCompanion_004, TestSize.Level0)
     params.requestId = UINT32_1;
     params.hostDeviceKey.deviceUserId = activeUserId_;
     std::vector<uint8_t> outRequest;
-    uint16_t selectedAlgorithm;
-    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithm);
+    SelectedAlgorithms selectedAlgorithms;
+    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithms);
 
     EXPECT_EQ(ret, ResultCode::GENERAL_ERROR);
 }
@@ -477,8 +477,8 @@ HWTEST_F(CompanionManagerImplTest, BeginAddCompanion_005, TestSize.Level0)
     params.requestId = UINT32_1;
     params.hostDeviceKey.deviceUserId = activeUserId_;
     std::vector<uint8_t> outRequest;
-    uint16_t selectedAlgorithm;
-    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithm);
+    SelectedAlgorithms selectedAlgorithms;
+    ResultCode ret = manager->BeginAddCompanion(params, outRequest, selectedAlgorithms);
 
     EXPECT_EQ(ret, ResultCode::SUCCESS);
 }
@@ -551,6 +551,7 @@ HWTEST_F(CompanionManagerImplTest, EndAddCompanion_004, TestSize.Level0)
         .WillOnce(DoAll(Invoke([](const HostEndAddCompanionInput &, HostEndAddCompanionOutput &secOutput) {
             secOutput.templateId = TEMPLATE_ID_12345;
             secOutput.fwkMsg = { UINT32_4, 6, 7, 8 };
+            secOutput.capabilityList = { static_cast<uint16_t>(Capability::DELEGATE_AUTH) };
         }),
             Return(ResultCode::SUCCESS)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
@@ -562,6 +563,18 @@ HWTEST_F(CompanionManagerImplTest, EndAddCompanion_004, TestSize.Level0)
     EXPECT_EQ(ret, ResultCode::SUCCESS);
     EXPECT_EQ(output.fwkMsg.size(), UINT32_4);
     EXPECT_FALSE(manager->GetCompanionStatus(TEMPLATE_ID_12345).has_value());
+    auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
+    ASSERT_NE(companion, nullptr);
+    // The negotiated intersection returned by the security layer seeds the enrolled pin.
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.capabilities,
+        std::vector<Capability> { Capability::DELEGATE_AUTH });
+    companion->SetAddedToIdm(true);
+    DeviceStatus deviceStatus = companion->GetStatus().companionDeviceStatus;
+    deviceStatus.isOnline = true;
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    companion->status_.companionDeviceStatus = deviceStatus;
+    EXPECT_TRUE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
+    EXPECT_FALSE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::DELEGATE_AUTH));
 }
 
 HWTEST_F(CompanionManagerImplTest, EndAddCompanion_005, TestSize.Level0)
@@ -1402,6 +1415,188 @@ HWTEST_F(CompanionManagerImplTest, OnTemplateListChanged_004, TestSize.Level0)
     auto companion = manager->FindCompanionByTemplateId(TEMPLATE_ID_12345);
     ASSERT_NE(companion, nullptr);
     EXPECT_TRUE(companion->IsAddedToIdm()); // Companion remains addedToIdm=true
+}
+
+namespace {
+DeviceStatus MakeOnlineStatus(const PersistedCompanionStatus &persistedStatus, std::vector<Capability> capabilities)
+{
+    DeviceStatus deviceStatus;
+    deviceStatus.deviceKey = persistedStatus.companionDeviceKey;
+    deviceStatus.deviceModelInfo = persistedStatus.deviceModelInfo;
+    deviceStatus.deviceUserName = persistedStatus.deviceUserName;
+    deviceStatus.deviceName = persistedStatus.deviceName;
+    deviceStatus.supportedBusinessIds = persistedStatus.supportedBusinessIds;
+    deviceStatus.deviceSubProfileName = persistedStatus.deviceSubProfileName;
+    deviceStatus.isOnline = true;
+    deviceStatus.capabilities = std::move(capabilities);
+    return deviceStatus;
+}
+} // namespace
+
+// The gate reads the enrolled pin seeded from persisted state; an online announcement
+// claiming a wider set does not widen it — capability growth only comes from re-enrollment.
+HWTEST_F(CompanionManagerImplTest, IsCapabilitySupported_001, TestSize.Level0)
+{
+    MockGuard guard;
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserKey_.userId = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    persistedStatus.capabilities = { Capability::TOKEN_AUTH };
+    DeviceStatus deviceStatus =
+        MakeOnlineStatus(persistedStatus, { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH });
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    EXPECT_TRUE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
+    EXPECT_FALSE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::DELEGATE_AUTH));
+    EXPECT_FALSE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::OBTAIN_TOKEN));
+}
+
+HWTEST_F(CompanionManagerImplTest, IsCapabilitySupported_004, TestSize.Level0)
+{
+    MockGuard guard;
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    EXPECT_FALSE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
+}
+
+// Configuration-source semantics stay permissive on empty lists; device capability sets
+// use the strict gate (IsCapabilitySupported), covered by its own cases below.
+HWTEST_F(CompanionManagerImplTest, HasCapability_001, TestSize.Level0)
+{
+    std::vector<Capability> empty;
+    EXPECT_TRUE(HasCapability(empty, Capability::TOKEN_AUTH));
+
+    std::vector<Capability> configured = { Capability::TOKEN_AUTH };
+    EXPECT_TRUE(HasCapability(configured, Capability::TOKEN_AUTH));
+    EXPECT_FALSE(HasCapability(configured, Capability::DELEGATE_AUTH));
+}
+
+// §10.2: SA restart to first sync — no device status announcement yet, the gate reads the
+// memory value seeded from the persisted authenticated value carried by PersistedCompanionStatus.
+HWTEST_F(CompanionManagerImplTest, IsCapabilitySupported_FallBackToPersisted_001, TestSize.Level0)
+{
+    MockGuard guard;
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserKey_.userId = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    persistedStatus.capabilities = { Capability::TOKEN_AUTH };
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    // No synced device status: the gate must use the persisted authenticated value.
+    EXPECT_TRUE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
+    EXPECT_FALSE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::DELEGATE_AUTH));
+}
+
+// §10.2: an offline announcement (no successful sync this session) carries a placeholder
+// capability field — the gate must keep the persisted-seeded memory value, not read the
+// placeholder as "synced empty".
+HWTEST_F(CompanionManagerImplTest, IsCapabilitySupported_FallBackToPersisted_002, TestSize.Level0)
+{
+    MockGuard guard;
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserKey_.userId = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    persistedStatus.capabilities = { Capability::TOKEN_AUTH };
+    DeviceStatus deviceStatus = MakeOnlineStatus(persistedStatus, {});
+    deviceStatus.isOnline = false;
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    EXPECT_TRUE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
+    EXPECT_FALSE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::DELEGATE_AUTH));
+}
+
+// §10.2: an empty persisted capability set stays closed even before the first sync.
+HWTEST_F(CompanionManagerImplTest, IsCapabilitySupported_EmptyPersisted_001, TestSize.Level0)
+{
+    MockGuard guard;
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserKey_.userId = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    persistedStatus.capabilities = {};
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    EXPECT_FALSE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
+    EXPECT_FALSE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::DELEGATE_AUTH));
+    EXPECT_FALSE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::OBTAIN_TOKEN));
+}
+
+// A synced announcement converging to a narrower set does not shrink the gate: the C++
+// mirror keeps the enrolled pin, and the per-round effective set is judged by the security
+// layer. Capability growth and shrink only take effect through re-enrollment.
+HWTEST_F(CompanionManagerImplTest, IsCapabilitySupported_SyncedShrinkKeepsEnrolledPin_001, TestSize.Level0)
+{
+    MockGuard guard;
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserKey_.userId = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    persistedStatus.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
+
+    // Synced announcement converges to a narrower set than the enrolled pin.
+    DeviceStatus deviceStatus = MakeOnlineStatus(persistedStatus, { Capability::TOKEN_AUTH });
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    EXPECT_TRUE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
+    EXPECT_TRUE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::DELEGATE_AUTH));
+}
+
+// An authenticated sync that converged to the empty set shrinks the per-round effective set
+// in the security layer only; the C++ mirror keeps the enrolled pin, so the gate stays open.
+HWTEST_F(CompanionManagerImplTest, IsCapabilitySupported_OnlineEmptyKeepsEnrolledPin_001, TestSize.Level0)
+{
+    MockGuard guard;
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserKey_.userId = activeUserId_;
+
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    persistedStatus.capabilities = { Capability::TOKEN_AUTH };
+    DeviceStatus deviceStatus = MakeOnlineStatus(persistedStatus, {});
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(deviceStatus));
+
+    std::vector<PersistedCompanionStatus> persistedList { persistedStatus };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    EXPECT_TRUE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
 }
 
 } // namespace
