@@ -379,7 +379,7 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionFullE2E_001, TestSize.Level0)
     HostGetInitKeyNegotiationRequestOutput initReqOutput = { { 0x01, 0x02, 0x03 } };
     HostBeginAddCompanionOutput beginCompOutput;
     beginCompOutput.addHostBindingRequest = { 0x04, 0x05, 0x06 };
-    beginCompOutput.selectedAlgorithms.kaAlgorithm = 1;
+    beginCompOutput.selectedAlgorithmsList.push_back(SelectedAlgorithms { .kaAlgorithm = 1 });
     HostEndAddCompanionOutput endCompOutput = { .fwkMsg = { 0x07, 0x08 },
         .templateId = 12345,
         .tokenData = { 0x09, 0x0A },
@@ -488,7 +488,7 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionEndAddCompanionFailedE2E_007, T
 
     HostBeginAddCompanionOutput beginCompOutput;
     beginCompOutput.addHostBindingRequest = { 0x04, 0x05, 0x06 };
-    beginCompOutput.selectedAlgorithms.kaAlgorithm = 1;
+    beginCompOutput.selectedAlgorithmsList.push_back(SelectedAlgorithms { .kaAlgorithm = 1 });
     EXPECT_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(beginCompOutput), Return(ResultCode::SUCCESS)));
     EXPECT_CALL(guard.GetSecurityAgent(), HostEndAddCompanion(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));

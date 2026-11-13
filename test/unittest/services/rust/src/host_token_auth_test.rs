@@ -68,8 +68,8 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
         user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         added_time: 123456,
         is_valid: true,
-        capability_list: vec![1, 2, 3],
-        protocol_id: 1,
+        enrolled_capability_list: vec![1, 2, 3],
+        enrolled_protocol_id: 1,
         secure_protocol_id: SecureProtocolId::Default as u16,
     }
 }
@@ -763,9 +763,9 @@ fn host_token_auth_request_end_test_get_local_key_pair_fail() {
 }
 
 #[test]
-fn host_token_auth_request_begin_test_pins_enrolled_secure_protocol_from_db() {
+fn host_token_auth_request_begin_test_uses_enrolled_secure_protocol_from_db() {
     let _guard = ut_registry_guard!();
-    log_i!("host_token_auth_request_begin_test_pins_enrolled_secure_protocol_from_db start");
+    log_i!("host_token_auth_request_begin_test_uses_enrolled_secure_protocol_from_db start");
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
@@ -799,7 +799,7 @@ fn host_token_auth_request_begin_test_pins_enrolled_secure_protocol_from_db() {
     let param = RequestParam::HostTokenAuthBegin(&input, &mut output);
     let result = request.begin(param);
     assert!(result.is_err());
-    // begin() re-reads the persisted enrolled pin from the DB and pins auth_param to it;
+    // begin() re-reads the persisted enrolled protocol from the DB and sets auth_param to it;
     // auth_param never carries the raw FFI input value.
     assert_eq!(request.auth_param.secure_protocol_id, SecureProtocolId::Default as u16);
 }

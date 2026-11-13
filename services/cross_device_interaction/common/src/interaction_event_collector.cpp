@@ -149,9 +149,9 @@ void InteractionEventCollector::SetCapabilityList(const std::vector<uint16_t> &c
     capabilityList_ = capabilityList;
 }
 
-void InteractionEventCollector::SetSelectedAlgorithms(const SelectedAlgorithms &selectedAlgorithms)
+void InteractionEventCollector::SetSelectedAlgorithms(const std::vector<SelectedAlgorithms> &selectedAlgorithmsList)
 {
-    selectedAlgorithms_ = selectedAlgorithms;
+    selectedAlgorithmsList_ = selectedAlgorithmsList;
 }
 
 void InteractionEventCollector::SetTemplateIdList(const std::vector<TemplateId> &templateIdList)
@@ -213,10 +213,16 @@ void InteractionEventCollector::BuildExtraInfoStep1(std::ostringstream &oss) con
     if (successAuthType_.has_value()) {
         oss << ";" << KEY_SUCCESS_AUTH_TYPE << ":" << *successAuthType_;
     }
-    if (selectedAlgorithms_.has_value()) {
-        oss << ";" << KEY_SELECTED_ALGORITHMS << ":ka=" << selectedAlgorithms_->kaAlgorithm
-            << ",kdf=" << selectedAlgorithms_->kdfAlgorithm << ",aead=" << selectedAlgorithms_->aeadAlgorithm
-            << ",mac=" << selectedAlgorithms_->macAlgorithm;
+    if (selectedAlgorithmsList_.has_value() && !selectedAlgorithmsList_->empty()) {
+        oss << ";" << KEY_SELECTED_ALGORITHMS << ":";
+        for (size_t i = 0; i < selectedAlgorithmsList_->size(); i++) {
+            const SelectedAlgorithms &selectedAlgorithms = (*selectedAlgorithmsList_)[i];
+            if (i != 0) {
+                oss << "|";
+            }
+            oss << "[ka=" << selectedAlgorithms.kaAlgorithm << ",kdf=" << selectedAlgorithms.kdfAlgorithm
+                << ",aead=" << selectedAlgorithms.aeadAlgorithm << ",mac=" << selectedAlgorithms.macAlgorithm << "]";
+        }
     }
     if (callerUserId_.has_value()) {
         oss << ";" << KEY_CALLER_USER_ID << ":" << *callerUserId_;

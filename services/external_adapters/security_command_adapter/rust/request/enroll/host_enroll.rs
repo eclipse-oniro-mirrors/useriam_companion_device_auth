@@ -24,9 +24,12 @@ use crate::common::constants::{
     same_elements,
     validate_capability_list,
     validate_protocol_list,
-    validate_secure_protocol_id,
+    validate_protocol_id,
 };
-use crate::entry::companion_device_auth_ffi::{HostGetInitKeyNegotiationInputFfi, SelectedAlgorithmsFfi};
+use crate::entry::companion_device_auth_ffi::{
+    HostGetInitKeyNegotiationInputFfi, SelectedAlgorithmsArrayFfi, SelectedAlgorithmsFfi,
+    MAX_PROCESSOR_NUM_PER_DEVICE_FFI,
+};
 use crate::jobs::{companion_device_db_helper, message_crypto};
 use crate::request::enroll::enroll_message::{
     FwkEnrollReply, FwkEnrollRequest, SecBindingReply, SecBindingReplyInfo, SecBindingRequest, SecKeyNegoReply,
@@ -52,6 +55,29 @@ pub struct KeyNegotialParam {
     pub companion_challenge: u64,
     pub key_pair: Option<KeyPair>,
     pub sk: Vec<u8>,
+}
+
+fn build_selected_algorithms_array(
+    key_negotial_params: &[KeyNegotialParam],
+) -> Result<SelectedAlgorithmsArrayFfi, ErrorCode> {
+    if key_negotial_params.len() > MAX_PROCESSOR_NUM_PER_DEVICE_FFI {
+        log_e!(
+            "key negotiation params exceed max processor num per device: {}",
+            key_negotial_params.len()
+        );
+        return Err(ErrorCode::GeneralError);
+    }
+    let mut selected_algorithms_array = SelectedAlgorithmsArrayFfi::default();
+    for (index, key_nego_param) in key_negotial_params.iter().enumerate() {
+        selected_algorithms_array.data[index] = SelectedAlgorithmsFfi {
+            ka_algorithm: key_nego_param.selected_algorithms.ka_algorithm,
+            kdf_algorithm: key_nego_param.selected_algorithms.kdf_algorithm,
+            aead_algorithm: key_nego_param.selected_algorithms.aead_algorithm,
+            mac_algorithm: key_nego_param.selected_algorithms.mac_algorithm,
+        };
+    }
+    selected_algorithms_array.len = key_negotial_params.len() as u32;
+    Ok(selected_algorithms_array)
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -84,6 +110,7 @@ pub struct HostDeviceEnrollRequest {
     pub host_protocol_list: Vec<u16>,
     pub host_capability_list: Vec<u16>,
     pub negotiated_capability_list: Option<Vec<u16>>,
+    pub companion_capability_list: Vec<u16>,
     pub device_model_info: String,
     pub device_name: String,
     pub device_user_name: String,
@@ -126,6 +153,7 @@ impl HostDeviceEnrollRequest {
             host_protocol_list: Vec::new(),
             host_capability_list: Vec::new(),
             negotiated_capability_list: None,
+            companion_capability_list: Vec::new(),
             device_model_info: String::new(),
             device_name: String::new(),
             device_user_name: String::new(),
@@ -225,8 +253,11 @@ impl HostDeviceEnrollRequest {
             key_pair: Some(key_pair.clone()),
             sk,
         };
+        // Request-level summary of the per-section SK rows; first section wins.
+        if self.key_negotial_param.is_empty() {
+            self.selected_algorithms = output.selected_algorithms;
+        }
         self.key_negotial_param.push(key_nego_param);
-        self.selected_algorithms = output.selected_algorithms;
         Ok(())
     }
 
@@ -384,24 +415,17 @@ impl HostDeviceEnrollRequest {
             return Err(ErrorCode::GeneralError);
         }
 
-        // Unified exchange leg (2026-11-11 ruling): symmetric to the
-        // companion-side recompute, recompute the protocol selection over the
-        // companion's encrypted-announced set in host priority order and verify
-        // it against the pinned selection. profile.protocols ⊇ protocolPriorityList
-        // is the locked-step invariant, so this mirrors the C++ NegotiateProtocol
-        // first-hit semantics; divergence means C++/TA priority drift or an
-        // anomalous reply.
         let expected_protocol_id = self
             .host_protocol_list
             .iter()
-            .find(|protocol| reply_info.protocol_list.contains(protocol))
+            .find(|protocol| reply_info.companion_protocol_list.contains(protocol))
             .copied();
         if expected_protocol_id != Some(self.selected_protocol_id) {
             log_e!(
-                "recomputed protocol {:?} differs from pinned selection {} (companion list: {:?})",
+                "recomputed protocol {:?} differs from selected protocol {} (companion list: {:?})",
                 expected_protocol_id,
                 self.selected_protocol_id,
-                reply_info.protocol_list
+                reply_info.companion_protocol_list
             );
             return Err(ErrorCode::ProtocolNegotiationFailed);
         }
@@ -413,11 +437,11 @@ impl HostDeviceEnrollRequest {
         )?;
 
         let negotiated =
-            intersect_lists_in_reference_order(&self.host_capability_list, &reply_info.capability_list);
-        if !same_elements(&negotiated, &reply_info.capability_list) {
+            intersect_lists_in_reference_order(&self.host_capability_list, &reply_info.companion_capability_list);
+        if !same_elements(&negotiated, &reply_info.companion_capability_list) {
             log_i!(
-                "announced capabilities {:?} exceed host offer {:?}, pinning the intersection {:?}",
-                reply_info.capability_list,
+                "announced capabilities {:?} exceed host offer {:?}, selecting the intersection {:?}",
+                reply_info.companion_capability_list,
                 self.host_capability_list,
                 negotiated
             );
@@ -431,6 +455,14 @@ impl HostDeviceEnrollRequest {
                 );
                 return Err(ErrorCode::CapabilityNegotiationFailed);
             }
+        }
+        if !same_elements(&reply_info.companion_capability_list, &self.companion_capability_list) {
+            log_e!(
+                "announced capability list {:?} differs from sync announcement {:?}",
+                reply_info.companion_capability_list,
+                self.companion_capability_list
+            );
+            return Err(ErrorCode::CapabilityNegotiationFailed);
         }
         self.negotiated_capability_list = Some(negotiated);
 
@@ -536,8 +568,8 @@ impl HostDeviceEnrollRequest {
             },
             added_time: TimeKeeperRegistry::get().get_rtc_time().map_err(|e| p!(e))?,
             is_valid: true,
-            capability_list: self.negotiated_capability_list.clone().unwrap_or_default(),
-            protocol_id: self.selected_protocol_id,
+            enrolled_capability_list: self.negotiated_capability_list.clone().unwrap_or_default(),
+            enrolled_protocol_id: self.selected_protocol_id,
             secure_protocol_id: self.secure_protocol_id,
         });
 
@@ -662,18 +694,20 @@ impl Request for HostDeviceEnrollRequest {
             return Err(ErrorCode::GeneralError);
         }
         validate_protocol_list(&self.host_protocol_list)?;
+        // 对端能力列表的同步通道副本（经 FFI 中继），仅用于与加密回包宣告做一致性比对，
+        // 不做本端支持集校验（对端新能力值合法出现，比对与成员无关）
+        self.companion_capability_list =
+            Vec::<u16>::try_from(ffi_input.companion_capability_list).map_err(|e| {
+                log_e!("Failed to convert companion_capability_list: {:?}", e);
+                ErrorCode::GeneralError
+            })?;
 
         self.decode_fwk_binding_request(ffi_input.fwk_message.as_slice()?)?;
         self.decode_sec_key_nego_reply(ffi_input.sec_message.as_slice()?)?;
 
         let sec_message = self.encode_sec_binding_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
-        ffi_output.selected_algorithms = SelectedAlgorithmsFfi {
-            ka_algorithm: self.selected_algorithms.ka_algorithm,
-            kdf_algorithm: self.selected_algorithms.kdf_algorithm,
-            aead_algorithm: self.selected_algorithms.aead_algorithm,
-            mac_algorithm: self.selected_algorithms.mac_algorithm,
-        };
+        ffi_output.selected_algorithms = build_selected_algorithms_array(&self.key_negotial_param)?;
         Ok(())
     }
 
@@ -684,7 +718,7 @@ impl Request for HostDeviceEnrollRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        validate_secure_protocol_id(ffi_input.companion_status.enrolled_protocol_id)?;
+        validate_protocol_id(ffi_input.companion_status.enrolled_protocol_id)?;
         self.selected_protocol_id = ffi_input.companion_status.enrolled_protocol_id;
 
         self.supported_business_ids = Vec::<i32>::try_from(ffi_input.supported_business_ids).map_err(|e| {
@@ -717,8 +751,8 @@ impl Request for HostDeviceEnrollRequest {
         let (capability_data, capability_len) = crate::commands::common_command::try_array_from_vec(
             self.negotiated_capability_list.clone().unwrap_or_default(),
         )?;
-        ffi_output.capability_list.data = capability_data;
-        ffi_output.capability_list.len = capability_len;
+        ffi_output.enrolled_capability_list.data = capability_data;
+        ffi_output.enrolled_capability_list.len = capability_len;
         Ok(())
     }
 }

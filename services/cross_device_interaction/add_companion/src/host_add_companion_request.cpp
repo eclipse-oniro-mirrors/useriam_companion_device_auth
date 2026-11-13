@@ -195,7 +195,7 @@ void HostAddCompanionRequest::OnConnected()
     ENSURE_OR_RETURN_DESC(GetDescription(), *secureProtocolIdOpt != SecureProtocolId::INVALID);
     secureProtocolId_ = *secureProtocolIdOpt;
 
-    bool captureRet = ValidateAndPinProtocol(*peerDeviceKeyOpt);
+    bool captureRet = ValidateAndSelectProtocol(*peerDeviceKeyOpt);
     ENSURE_OR_RETURN_DESC(GetDescription(), captureRet);
 
     eventCollector_.SetHostUserKey(UserKey { hostDeviceKey_.deviceUserId, hostDeviceKey_.deviceSubProfileId });
@@ -230,7 +230,7 @@ std::optional<SecureProtocolId> HostAddCompanionRequest::QuerySecureProtocolId(c
     return GetCrossDeviceCommManager().HostGetSecureProtocolId(peerDeviceKey);
 }
 
-bool HostAddCompanionRequest::ValidateAndPinProtocol(const DeviceKey &peerDeviceKey)
+bool HostAddCompanionRequest::ValidateAndSelectProtocol(const DeviceKey &peerDeviceKey)
 {
     auto deviceStatus = GetCrossDeviceCommManager().GetDeviceStatus(peerDeviceKey);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), deviceStatus.has_value(), false);
@@ -364,6 +364,9 @@ bool HostAddCompanionRequest::BuildBeginAddCompanionParams(const InitKeyNegotiat
     auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
     params.hostCapabilityList = localProfile.hostCapabilities;
     params.hostProtocolList = localProfile.protocols;
+    auto deviceStatus = GetCrossDeviceCommManager().GetDeviceStatus(*companionDeviceKey);
+    ENSURE_OR_RETURN_VAL(deviceStatus.has_value(), false);
+    params.companionCapabilityList = deviceStatus->capabilities;
     params.initKeyNegotiationReply = reply.extraInfo;
     return true;
 }
@@ -374,14 +377,14 @@ bool HostAddCompanionRequest::BeginAddCompanion(const InitKeyNegotiationReply &r
     BeginAddCompanionParams params;
     bool buildOk = BuildBeginAddCompanionParams(reply, params);
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), buildOk, false);
-    SelectedAlgorithms selectedAlgorithms;
-    ResultCode ret = GetCompanionManager().BeginAddCompanion(params, addHostBindingRequest, selectedAlgorithms);
+    std::vector<SelectedAlgorithms> selectedAlgorithmsList;
+    ResultCode ret = GetCompanionManager().BeginAddCompanion(params, addHostBindingRequest, selectedAlgorithmsList);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s BeginAddCompanion failed ret=%{public}d", GetDescription(), ret);
         errorGuard.UpdateErrorCode(ret);
         return false;
     }
-    eventCollector_.SetSelectedAlgorithms(selectedAlgorithms);
+    eventCollector_.SetSelectedAlgorithms(selectedAlgorithmsList);
     return true;
 }
 

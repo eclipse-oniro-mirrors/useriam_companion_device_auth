@@ -95,6 +95,10 @@ services/            → 核心服务实现
 
 ## 代码风格
 
+### 命名
+
+- **协议/能力字段带属主前缀**：本端列表按角色命名（`hostProtocolList`/`companionProtocolList`、`hostCapabilityList`/`companionCapabilityList`）；对端宣告、身份校验回包同样带属主前缀（如 `HostEndCompanionCheckOutput.companionCapabilityList`）。**绑定持久化值加 `enrolled_` 前缀**（`enrolledProtocolId`/`enrolledCapabilityList`，两侧 DB 结构与 FFI 镜像一致）；协商单值用 `negotiated`/`selected` 既有命名。泛型校验参数（`validate_protocol_list(protocol_list)` 等）不加前缀。
+
 ### 内存与指针安全
 
 - **所有分配必须进行空指针检查**：`std::make_shared`/`std::make_unique`/`new (std::nothrow)` 的结果必须创建后立即用 `ENSURE_OR_RETURN_VAL` 检查
@@ -184,7 +188,7 @@ TaskRunnerManager::GetInstance().PostOneShotTask("name", "ownerBundleName", Task
 
 host 用明文的 `SecKeyNegoRequest` 发全部支持的算法；companion 按 `SUPPORTED_*` 顺序逐角色选第一个交集值，任一角色没有交集就返回 20015。
 
-之后有三处比对，缺一不可：companion 在加密的 `SecBindingRequest` 里核对 host 回显的算法集合与明文收到的一致；host 收到选中值后核对它等于自己在本端优先序 ∩ 对端宣告集上重算的期望值，也等于本分节明文里的选中值。最后这条不能删——MAC 在 enroll 期不参与加解密，也不参与密钥派生，它是明文 MAC 被中途改掉的唯一防线。对端不宣告支持集（旧对端）时跳过重算这条，其余两条仍生效。
+之后有三处比对，缺一不可：companion 在加密的 `SecBindingRequest` 里核对 host 回显的算法集合与明文收到的一致；host 收到选中值后核对它等于自己在本端优先序 ∩ 对端宣告集上重算的期望值，也等于本分节明文里的选中值。最后这条不能删——MAC 在 enroll 期不参与加解密，也不参与密钥派生，它是明文 MAC 被中途改掉的唯一防线。
 
 算法只在录入时协商一次并保存，同步阶段不再协商。`secure_protocol_id` 只管消息格式、分节和同步复验，不含算法含义。不设打包的 crypto suite 版本号，算法演进靠逐参数机制。算法协商的线格式不兼容未支持四角色协商的旧对端，旧端初次绑定需双方同版本；存量绑定不受影响（算法在录入时定，之后读 SK 保存值）。
 
@@ -199,6 +203,7 @@ host 本地持本端能力列表参与求交，不在 `SecBindingRequest` 加密
 - **录入时固定能力列表**：落库的列表同时通过 `HostEndAddCompanionOutput.capabilityList` 返回给 C++ 建 Companion 内存镜像，镜像从创建起就和 DB 一致。
 - **保存后不再更新**：能力列表在录入时确定，之后不更新；**同步始终不写能力 DB**，要增加能力只能重新绑定（再次经过用户同意）。同步时，对端加密内层必须完整包含绑定时保存的能力；多宣告的能力不生效，实际仍使用保存的列表。缺少任何已保存能力都返回 20014 并作废凭证；已保存列表非空而对端宣告为空，也属于缺项。已保存列表为空时，空宣告合法。
 - **两端用同一份数据判断**：Rust `check_device_capability` 读 DB 里的持久化列表，必须明确包含所查能力，列表为空就拒绝；C++ `IsCapabilitySupported` 读内存镜像，同样要求明确包含，列表为空返回 false。设备状态更新始终保留内存中保存的列表，不采信同步通告，也不重读 DB。`HasCapability` 中"空集表示全支持"只用于 localProfile 配置来源，不能用来判断设备能力。
+- **enroll 时校验同步通告一致性**：host 把同步通道缓存的对端能力列表（proof 有效时为身份校验列表，否则明文回退）经 FFI 传入加密层，与 SecBindingReply 加密宣告做 `same_elements` 比对，分歧返回 20014 终止本轮、不落库（fail-closed；enroll 无存量凭证可作废）。对端能力配置在「上次同步」与「本次 enroll」之间变更会触发一次分歧，同步刷新后重试即可，与协议轴过期选值 → 20011 同类。比对用的 FFI 字段是对端数据中继，不做本端支持集校验。
 - "该设备当前没有可用的伴随校验能力"用空的能力列表表示，是否可用由界面/框架层决定，本层不拦截。
 
 ### sync 校验

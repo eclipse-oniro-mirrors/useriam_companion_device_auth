@@ -292,7 +292,7 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_003, TestSize.Level0)
     EXPECT_EQ(companion->GetStatus().companionDeviceStatus.lastSyncTimeMs, 100u);
 }
 
-HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_KeepsEnrolledPinCapabilities, TestSize.Level0)
+HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_KeepsEnrolledCapabilities, TestSize.Level0)
 {
     auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
     persistedStatus.capabilities = { Capability::TOKEN_AUTH };

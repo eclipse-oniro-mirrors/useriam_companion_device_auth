@@ -249,14 +249,14 @@ bool DeviceStatusManager::NegotiateSyncProtocol(DeviceStatusEntry &deviceStatus,
     if (!syncDeviceStatus.needSync) {
         return true;
     }
-    auto negotiatedProtocol = NegotiateProtocol(syncDeviceStatus.protocolIdList);
+    auto negotiatedProtocol = NegotiateProtocol(syncDeviceStatus.companionProtocolIdList);
     if (!negotiatedProtocol.has_value()) {
         IAM_LOGE("protocol negotiation failed: %{public}s", deviceKey.GetDesc().c_str());
         errorGuard.UpdateErrorCode(ResultCode::PROTOCOL_NEGOTIATION_FAILED);
         deviceStatus.OnSyncAbort();
         return false;
     }
-    deviceStatus.protocolId = negotiatedProtocol.value();
+    deviceStatus.negotiatedProtocolId = negotiatedProtocol.value();
     return true;
 }
 
@@ -267,7 +267,7 @@ void DeviceStatusManager::ApplySyncResult(DeviceStatusEntry &deviceStatus, const
     deviceStatus.deviceUserKey = syncDeviceStatus.deviceUserKey;
     deviceStatus.deviceSubProfileName = syncDeviceStatus.deviceSubProfileName;
     deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
-    deviceStatus.capabilities = syncDeviceStatus.capabilityList;
+    deviceStatus.capabilities = syncDeviceStatus.companionCapabilityList;
     deviceStatus.SetSyncCompanionBusinessIds(syncDeviceStatus.businessIdList);
 }
 

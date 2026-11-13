@@ -40,15 +40,15 @@ fn create_mock_host_binding(binding_id: i32, secure_protocol_id: u16) -> HostBin
         user_info: UserInfo { user_key: UserKey::default(), user_type: 0 },
         binding_time: 0,
         last_used_time: 0,
-        protocol_id: PROTOCOL_VERSION_1,
+        enrolled_protocol_id: PROTOCOL_VERSION_1,
         secure_protocol_id,
     }
 }
 
 fn create_valid_input(binding_id: i32, challenge: u64) -> CompanionProcessCheckInputFfi {
-    let mut protocol_list = Uint16Array64Ffi::default();
-    protocol_list.data[0] = PROTOCOL_VERSION_1;
-    protocol_list.len = 1;
+    let mut companion_protocol_list = Uint16Array64Ffi::default();
+    companion_protocol_list.data[0] = PROTOCOL_VERSION_1;
+    companion_protocol_list.len = 1;
 
     let mut companion_capability_list = Uint16Array64Ffi::default();
     companion_capability_list.data[0] = 0x01;
@@ -57,7 +57,7 @@ fn create_valid_input(binding_id: i32, challenge: u64) -> CompanionProcessCheckI
 
     CompanionProcessCheckInputFfi {
         binding_id,
-        protocol_list,
+        companion_protocol_list,
         companion_capability_list,
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [1u8; HKDF_SALT_SIZE], len: HKDF_SALT_SIZE as u32 },
@@ -114,7 +114,7 @@ fn companion_sync_status_request_new_test_companion_capability_list_convert_fail
 
     let input = CompanionProcessCheckInputFfi {
         binding_id: 123,
-        protocol_list: Uint16Array64Ffi::default(),
+        companion_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list,
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [1u8; HKDF_SALT_SIZE], len: HKDF_SALT_SIZE as u32 },

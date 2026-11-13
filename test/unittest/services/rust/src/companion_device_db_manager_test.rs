@@ -33,8 +33,8 @@ fn create_mock_companion_device() -> CompanionDevice {
         user_info: UserInfo { user_key: UserKey { user_id: 0, sub_profile_id: 0 }, user_type: 0 },
         added_time: 0,
         is_valid: false,
-        capability_list: Vec::new(),
-        protocol_id: 1,
+        enrolled_capability_list: Vec::new(),
+        enrolled_protocol_id: 1,
         secure_protocol_id: 0,
     }
 }

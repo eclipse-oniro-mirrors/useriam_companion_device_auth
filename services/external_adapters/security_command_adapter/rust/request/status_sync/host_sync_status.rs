@@ -36,9 +36,9 @@ pub struct HostDeviceSyncStatusRequest {
     pub host_challenge: u64,
     pub salt: [u8; HKDF_SALT_SIZE],
     pub template_id: u64,
-    pub secure_protocol_id: u16,
-    pub inner_protocol_list: Vec<u16>,
-    pub inner_capability_list: Vec<u16>,
+    // companion 宣告的列表，取自同步回包加密内层（区别于 C++ 侧的明文外层列表）
+    pub companion_protocol_list: Vec<u16>,
+    pub companion_capability_list: Vec<u16>,
 }
 
 impl HostDeviceSyncStatusRequest {
@@ -60,9 +60,8 @@ impl HostDeviceSyncStatusRequest {
             host_challenge: u64::from_ne_bytes(challenge),
             salt,
             template_id: 0,
-            secure_protocol_id: 0,
-            inner_protocol_list: Vec::new(),
-            inner_capability_list: Vec::new(),
+            companion_protocol_list: Vec::new(),
+            companion_capability_list: Vec::new(),
         })
     }
 
@@ -88,18 +87,18 @@ impl HostDeviceSyncStatusRequest {
             log_e!("Challenge verification failed");
             return Err(ErrorCode::GeneralError);
         }
-        let protocol_list = decrypt_attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
-        let capability_list = decrypt_attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
-        Ok((protocol_list, capability_list))
+        let companion_protocol_list = decrypt_attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
+        let companion_capability_list = decrypt_attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
+        Ok((companion_protocol_list, companion_capability_list))
     }
 
     fn decode_sec_status_sync_reply(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
         let device_capabilities =
             CompanionDeviceDbManagerRegistry::get_mut().read_device_capability_info(self.template_id)?;
-        let mut inner_protocol_list: Option<Vec<u16>> = None;
-        let mut inner_capability_list: Option<Vec<u16>> = None;
+        let mut companion_protocol_list: Option<Vec<u16>> = None;
+        let mut companion_capability_list: Option<Vec<u16>> = None;
         for device_capability in &device_capabilities {
-            let (protocol_list, capability_list) =
+            let (decoded_companion_protocol_list, decoded_companion_capability_list) =
                 self.decode_sec_status_sync_reply_message(device_capability.processor_type, sec_message).map_err(
                     |e| {
                         log_e!(
@@ -111,38 +110,38 @@ impl HostDeviceSyncStatusRequest {
                     },
                 )?;
 
-            if let Some(first) = &inner_protocol_list {
-                if !same_elements(&protocol_list, first) {
+            if let Some(first) = &companion_protocol_list {
+                if !same_elements(&decoded_companion_protocol_list, first) {
                     log_e!(
                         "protocol list differs across processor types: {:?} vs {:?}",
-                        protocol_list,
+                        decoded_companion_protocol_list,
                         first
                     );
                     self.invalidate_device();
                     return Err(ErrorCode::ProtocolNegotiationFailed);
                 }
             }
-            if let Some(first) = &inner_capability_list {
-                if !same_elements(&capability_list, first) {
+            if let Some(first) = &companion_capability_list {
+                if !same_elements(&decoded_companion_capability_list, first) {
                     log_e!(
                         "capability list differs across processor types: {:?} vs {:?}",
-                        capability_list,
+                        decoded_companion_capability_list,
                         first
                     );
                     self.invalidate_device();
                     return Err(ErrorCode::CapabilityNegotiationFailed);
                 }
             }
-            inner_protocol_list = Some(protocol_list);
-            inner_capability_list = Some(capability_list);
+            companion_protocol_list = Some(decoded_companion_protocol_list);
+            companion_capability_list = Some(decoded_companion_capability_list);
         }
 
-        let (Some(protocol_list), Some(capability_list)) = (inner_protocol_list, inner_capability_list) else {
+        let (Some(companion_protocol_list), Some(companion_capability_list)) = (companion_protocol_list, companion_capability_list) else {
             log_e!("no device capabilities found");
             return Err(ErrorCode::GeneralError);
         };
-        self.inner_protocol_list = protocol_list;
-        self.inner_capability_list = capability_list;
+        self.companion_protocol_list = companion_protocol_list;
+        self.companion_capability_list = companion_capability_list;
         Ok(())
     }
 
@@ -155,22 +154,22 @@ impl HostDeviceSyncStatusRequest {
         device_info: &crate::traits::db_manager::CompanionDevice,
     ) -> Result<Vec<u16>, ErrorCode> {
         let mut invalidate_guard = ScopeGuard::new(|| self.invalidate_device());
-        let inner_protocol_list = self.inner_protocol_list.clone();
-        if !inner_protocol_list.contains(&device_info.protocol_id) {
+        let companion_protocol_list = self.companion_protocol_list.clone();
+        if !companion_protocol_list.contains(&device_info.enrolled_protocol_id) {
             log_e!(
                 "authenticated protocol list {:?} does not cover enrolled protocol {}",
-                inner_protocol_list,
-                device_info.protocol_id
+                companion_protocol_list,
+                device_info.enrolled_protocol_id
             );
             return Err(ErrorCode::ProtocolNegotiationFailed);
         }
 
-        let persisted = device_info.capability_list.clone();
-        let effective = intersect_lists(&self.inner_capability_list, &persisted);
-        if !is_subset(&persisted, &self.inner_capability_list) {
+        let persisted = device_info.enrolled_capability_list.clone();
+        let effective = intersect_lists(&self.companion_capability_list, &persisted);
+        if !is_subset(&persisted, &self.companion_capability_list) {
             log_e!(
-                "authenticated capability list {:?} does not cover enrolled pin {:?}, template_id:{:04x}",
-                self.inner_capability_list,
+                "authenticated capability list {:?} does not cover the enrolled capability list {:?}, template_id:{:04x}",
+                self.companion_capability_list,
                 persisted,
                 self.template_id as u16
             );
@@ -215,12 +214,10 @@ impl Request for HostDeviceSyncStatusRequest {
         validate_secure_protocol_id(ffi_input.secure_protocol_id)?;
 
         self.template_id = ffi_input.template_id;
-        self.secure_protocol_id = companion_device_db_helper::get_device_secure_protocol_id(self.template_id)?;
 
         let device_info = CompanionDeviceDbManagerRegistry::get()
             .get_device(self.template_id)
             .map_err(|e| p!(e))?;
-
         if let Err(e) = self.decode_sec_status_sync_reply(ffi_input.sec_message.as_slice()?) {
             log_e!("proc status sync reply fail: {:?}", e);
             return Err(e);
@@ -230,8 +227,8 @@ impl Request for HostDeviceSyncStatusRequest {
 
         let (capability_data, capability_len) =
             crate::commands::common_command::try_array_from_vec(converged)?;
-        ffi_output.capability_list.data = capability_data;
-        ffi_output.capability_list.len = capability_len;
+        ffi_output.companion_capability_list.data = capability_data;
+        ffi_output.companion_capability_list.len = capability_len;
 
         Ok(())
     }

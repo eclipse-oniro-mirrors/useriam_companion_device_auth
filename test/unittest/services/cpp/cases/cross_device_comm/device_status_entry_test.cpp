@@ -104,7 +104,7 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
         static_cast<BusinessId>(3) };
     DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
 
-    entry.protocolId = ProtocolId::VERSION_1;
+    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
     entry.secureProtocolId = SecureProtocolId::DEFAULT;
     entry.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
     entry.SetSyncCompanionBusinessIds(hostBusinessIds);

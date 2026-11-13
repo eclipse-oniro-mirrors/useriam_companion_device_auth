@@ -189,13 +189,14 @@ HostBeginAddCompanionInput CompanionManagerImpl::BuildHostBeginAddCompanionInput
     input.secureProtocolId = params.secureProtocolId;
     input.hostCapabilityList = CapabilityConverter::ToUnderlyingVec(params.hostCapabilityList);
     input.hostProtocolList = ProtocolIdConverter::ToUnderlyingVec(params.hostProtocolList);
+    input.companionCapabilityList = CapabilityConverter::ToUnderlyingVec(params.companionCapabilityList);
     input.initKeyNegotiationReply = params.initKeyNegotiationReply;
     return input;
 }
 
 bool CompanionManagerImpl::ValidateBeginAddCompanionOutput(const HostBeginAddCompanionOutput &output)
 {
-    return !output.addHostBindingRequest.empty();
+    return !output.addHostBindingRequest.empty() && !output.selectedAlgorithmsList.empty();
 }
 
 ResultCode CompanionManagerImpl::InvokeHostBeginAddCompanion(const HostBeginAddCompanionInput &input,
@@ -205,7 +206,7 @@ ResultCode CompanionManagerImpl::InvokeHostBeginAddCompanion(const HostBeginAddC
 }
 
 ResultCode CompanionManagerImpl::BeginAddCompanion(const BeginAddCompanionParams &params,
-    std::vector<uint8_t> &outAddHostBindingRequest, SelectedAlgorithms &selectedAlgorithms)
+    std::vector<uint8_t> &outAddHostBindingRequest, std::vector<SelectedAlgorithms> &selectedAlgorithmsList)
 {
     IAM_LOGI("begin add companion, request id 0x%{public}08X", params.requestId);
 
@@ -234,7 +235,7 @@ ResultCode CompanionManagerImpl::BeginAddCompanion(const BeginAddCompanionParams
     }
 
     outAddHostBindingRequest.swap(output.addHostBindingRequest);
-    selectedAlgorithms = output.selectedAlgorithms;
+    selectedAlgorithmsList.swap(output.selectedAlgorithmsList);
 
     IAM_LOGI("begin add companion success, request id 0x%{public}08X", params.requestId);
     return ResultCode::SUCCESS;
@@ -352,7 +353,7 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
     PersistedCompanionStatus updatedStatus = input.companionStatus;
     updatedStatus.templateId = secOutput.templateId;
     updatedStatus.addedTime = secOutput.addedTime;
-    updatedStatus.capabilities = CapabilityConverter::FromUnderlyingVec(secOutput.capabilityList);
+    updatedStatus.capabilities = CapabilityConverter::FromUnderlyingVec(secOutput.enrolledCapabilityList);
 
     auto companion = Companion::Create(updatedStatus, false, weak_from_this());
     if (companion == nullptr) {

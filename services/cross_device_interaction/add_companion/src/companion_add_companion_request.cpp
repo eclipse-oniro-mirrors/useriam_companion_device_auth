@@ -72,9 +72,9 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
         return false;
     }
     auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
-    ResultCode negotiateRet = ValidateAndPinProtocol(localProfile, *initRequestOpt);
+    ResultCode negotiateRet = ValidateAndSelectProtocol(localProfile, *initRequestOpt);
     if (negotiateRet != ResultCode::SUCCESS) {
-        IAM_LOGE("%{public}s validate and pin protocol failed ret=%{public}d", GetDescription(), negotiateRet);
+        IAM_LOGE("%{public}s validate and select protocol failed ret=%{public}d", GetDescription(), negotiateRet);
         errorGuard.UpdateErrorCode(negotiateRet);
         return false;
     }
@@ -100,7 +100,7 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
     return true;
 }
 
-ResultCode CompanionAddCompanionRequest::ValidateAndPinProtocol(const LocalDeviceProfile &localProfile,
+ResultCode CompanionAddCompanionRequest::ValidateAndSelectProtocol(const LocalDeviceProfile &localProfile,
     const InitKeyNegotiationRequest &request)
 {
     if (std::find(localProfile.protocols.begin(), localProfile.protocols.end(), request.protocolId) ==
@@ -144,7 +144,7 @@ void CompanionAddCompanionRequest::ProcessCompanionInitKeyNegotiationOutput(
 {
     needCancelAddCompanion_ = true;
 
-    eventCollector_.SetSelectedAlgorithms(output.selectedAlgorithms);
+    eventCollector_.SetSelectedAlgorithms(std::vector<SelectedAlgorithms> { output.selectedAlgorithms });
 
     initKeyNegotiationReply = output.initKeyNegotiationReply;
 }

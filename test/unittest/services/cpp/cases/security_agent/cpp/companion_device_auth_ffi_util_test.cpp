@@ -201,10 +201,10 @@ HWTEST_F(FfiUtilTest, PersistedCompanionStatusCapabilityListRoundTrip, TestSize.
 
     PersistedCompanionStatusFfi ffi = {};
     EXPECT_TRUE(EncodePersistedCompanionStatus(status, ffi));
-    EXPECT_EQ(ffi.capabilityList.len, 3U);
-    EXPECT_EQ(ffi.capabilityList.data[0], static_cast<uint16_t>(Capability::DELEGATE_AUTH));
-    EXPECT_EQ(ffi.capabilityList.data[1], static_cast<uint16_t>(Capability::TOKEN_AUTH));
-    EXPECT_EQ(ffi.capabilityList.data[2], static_cast<uint16_t>(Capability::OBTAIN_TOKEN));
+    EXPECT_EQ(ffi.enrolledCapabilityList.len, 3U);
+    EXPECT_EQ(ffi.enrolledCapabilityList.data[0], static_cast<uint16_t>(Capability::DELEGATE_AUTH));
+    EXPECT_EQ(ffi.enrolledCapabilityList.data[1], static_cast<uint16_t>(Capability::TOKEN_AUTH));
+    EXPECT_EQ(ffi.enrolledCapabilityList.data[2], static_cast<uint16_t>(Capability::OBTAIN_TOKEN));
 
     PersistedCompanionStatus decoded;
     EXPECT_TRUE(DecodePersistedCompanionStatus(ffi, decoded));
@@ -747,21 +747,21 @@ HWTEST_F(FfiUtilTest, DecodeHostEndCompanionCheckOutput_001, TestSize.Level0)
 {
     MockGuard guard;
     HostEndCompanionCheckOutputFfi ffi = {};
-    ffi.capabilityList.len = 2;
-    ffi.capabilityList.data[0] = static_cast<uint16_t>(Capability::DELEGATE_AUTH);
-    ffi.capabilityList.data[1] = static_cast<uint16_t>(Capability::TOKEN_AUTH);
+    ffi.companionCapabilityList.len = 2;
+    ffi.companionCapabilityList.data[0] = static_cast<uint16_t>(Capability::DELEGATE_AUTH);
+    ffi.companionCapabilityList.data[1] = static_cast<uint16_t>(Capability::TOKEN_AUTH);
 
     HostEndCompanionCheckOutput output;
     EXPECT_TRUE(DecodeHostEndCompanionCheckOutput(ffi, output));
-    EXPECT_EQ(output.capabilityList.size(), 2U);
-    EXPECT_EQ(output.capabilityList[0], static_cast<uint16_t>(Capability::DELEGATE_AUTH));
-    EXPECT_EQ(output.capabilityList[1], static_cast<uint16_t>(Capability::TOKEN_AUTH));
+    EXPECT_EQ(output.companionCapabilityList.size(), 2U);
+    EXPECT_EQ(output.companionCapabilityList[0], static_cast<uint16_t>(Capability::DELEGATE_AUTH));
+    EXPECT_EQ(output.companionCapabilityList[1], static_cast<uint16_t>(Capability::TOKEN_AUTH));
 
     // Converged-empty is a legal authenticated result and must decode as an empty list.
     HostEndCompanionCheckOutputFfi emptyFfi = {};
     HostEndCompanionCheckOutput emptyOutput;
     EXPECT_TRUE(DecodeHostEndCompanionCheckOutput(emptyFfi, emptyOutput));
-    EXPECT_TRUE(emptyOutput.capabilityList.empty());
+    EXPECT_TRUE(emptyOutput.companionCapabilityList.empty());
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostGetInitKeyNegotiationInput_001, TestSize.Level0)
@@ -819,18 +819,30 @@ HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_001, TestSize.Level0)
     ffi.secMessage.len = 2;
     ffi.secMessage.data[0] = UINT8_0XDD;
     ffi.secMessage.data[1] = UINT8_0XEE;
-    ffi.selectedAlgorithms.kaAlgorithm = 1;
-    ffi.selectedAlgorithms.kdfAlgorithm = 2;
-    ffi.selectedAlgorithms.aeadAlgorithm = 3;
-    ffi.selectedAlgorithms.macAlgorithm = 4;
+    ffi.selectedAlgorithms.len = 1;
+    ffi.selectedAlgorithms.data[0].kaAlgorithm = 1;
+    ffi.selectedAlgorithms.data[0].kdfAlgorithm = 2;
+    ffi.selectedAlgorithms.data[0].aeadAlgorithm = 3;
+    ffi.selectedAlgorithms.data[0].macAlgorithm = 4;
 
     HostBeginAddCompanionOutput output;
     EXPECT_TRUE(DecodeHostBeginAddCompanionOutput(ffi, output));
     EXPECT_EQ(output.addHostBindingRequest.size(), 2U);
-    EXPECT_EQ(output.selectedAlgorithms.kaAlgorithm, 1U);
-    EXPECT_EQ(output.selectedAlgorithms.kdfAlgorithm, 2U);
-    EXPECT_EQ(output.selectedAlgorithms.aeadAlgorithm, 3U);
-    EXPECT_EQ(output.selectedAlgorithms.macAlgorithm, 4U);
+    ASSERT_EQ(output.selectedAlgorithmsList.size(), 1U);
+    EXPECT_EQ(output.selectedAlgorithmsList[0].kaAlgorithm, 1U);
+    EXPECT_EQ(output.selectedAlgorithmsList[0].kdfAlgorithm, 2U);
+    EXPECT_EQ(output.selectedAlgorithmsList[0].aeadAlgorithm, 3U);
+    EXPECT_EQ(output.selectedAlgorithmsList[0].macAlgorithm, 4U);
+}
+
+HWTEST_F(FfiUtilTest, DecodeHostBeginAddCompanionOutput_002, TestSize.Level0)
+{
+    MockGuard guard;
+    HostBeginAddCompanionOutputFfi ffi = {};
+    ffi.selectedAlgorithms.len = MAX_PROCESSOR_NUM_PER_DEVICE_FFI + 1;
+
+    HostBeginAddCompanionOutput output;
+    EXPECT_FALSE(DecodeHostBeginAddCompanionOutput(ffi, output));
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostEndAddCompanionInput_001, TestSize.Level0)
@@ -860,15 +872,15 @@ HWTEST_F(FfiUtilTest, DecodeHostEndAddCompanionOutput_001, TestSize.Level0)
     ffi.fwkMessage.len = 2;
     ffi.fwkMessage.data[0] = UINT8_0X77;
     ffi.fwkMessage.data[1] = UINT8_0X88;
-    ffi.capabilityList.len = 2;
-    ffi.capabilityList.data[0] = 1;
-    ffi.capabilityList.data[1] = 2;
+    ffi.enrolledCapabilityList.len = 2;
+    ffi.enrolledCapabilityList.data[0] = 1;
+    ffi.enrolledCapabilityList.data[1] = 2;
 
     HostEndAddCompanionOutput output;
     EXPECT_TRUE(DecodeHostEndAddCompanionOutput(ffi, output));
     EXPECT_EQ(output.templateId, 777U);
     EXPECT_EQ(output.fwkMsg.size(), 2U);
-    EXPECT_EQ(output.capabilityList, (std::vector<uint16_t> { 1, 2 }));
+    EXPECT_EQ(output.enrolledCapabilityList, (std::vector<uint16_t> { 1, 2 }));
 }
 
 HWTEST_F(FfiUtilTest, EncodeHostPreIssueTokenInput_001, TestSize.Level0)

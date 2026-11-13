@@ -557,7 +557,7 @@ void ModuleTestGuard::SetupEnrollSecurityAgentMocks(TemplateId templateId)
 
     HostBeginAddCompanionOutput beginCompOutput;
     beginCompOutput.addHostBindingRequest = { 0x04, 0x05, 0x06 };
-    beginCompOutput.selectedAlgorithms.kaAlgorithm = 1;
+    beginCompOutput.selectedAlgorithmsList.push_back(SelectedAlgorithms { .kaAlgorithm = 1 });
     EXPECT_CALL(GetSecurityAgent(), HostBeginAddCompanion(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(beginCompOutput), Return(ResultCode::SUCCESS)));
 
@@ -724,11 +724,9 @@ void ModuleTestGuard::SetupEndAddCompanionMock(TemplateId templateId)
     secOutput.atl = DEFAULT_ATL;
     secOutput.esl = DEFAULT_ESL;
     secOutput.addedTime = DEFAULT_ADDED_TIME;
-    // The enrolled capability pin is seeded only from the security-channel output
-    // (EndAddCompanion reads secOutput.capabilityList, not the input status). An empty
-    // list here leaves the mirror pin empty, and the strict runtime gate then rejects
-    // every host-side auth flow before it can open a connection.
-    secOutput.capabilityList = CapabilityConverter::ToUnderlyingVec(
+    // The selected capability list is seeded from the security-channel output, not the input status;
+    // an empty list here would make the runtime gate reject every host-side auth flow.
+    secOutput.enrolledCapabilityList = CapabilityConverter::ToUnderlyingVec(
         std::vector<Capability> { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN });
     EXPECT_CALL(GetSecurityAgent(), HostEndAddCompanion(_, _))
         .WillOnce(Invoke([secOutput](const HostEndAddCompanionInput &input, HostEndAddCompanionOutput &output) mutable {
@@ -741,14 +739,13 @@ void ModuleTestGuard::InjectDefaultSyncReply(const DeviceKey &companionDeviceKey
 {
     SyncDeviceStatusReply syncReply;
     syncReply.result = ResultCode::SUCCESS;
-    syncReply.protocolIdList = { ProtocolId::VERSION_1 };
-    syncReply.capabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
+    syncReply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncReply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
     syncReply.secureProtocolId = SecureProtocolId::DEFAULT;
     syncReply.companionDeviceKey = companionDeviceKey;
     syncReply.companionDeviceKey.deviceUserId = hostUserId;
     syncReply.deviceUserName = "test-user";
-    // A bound companion always returns a proof, and the secure layer can only succeed after
-    // decrypting it. The fixture has to carry one or the host rejects the round as an
+    // The fixture has to carry a proof, or the host rejects the round as an
     // unauthenticated success (PEER_SYNC_FAILED) instead of caching the device status.
     syncReply.companionCheckResponse = { 0x01 };
     InjectSyncDeviceStatusReply(GetChannel(), syncReply, companionDeviceKey);
@@ -932,8 +929,8 @@ void ModuleTestGuard::SetupHostSideSync(const std::string &companionDeviceId, Us
     SimulateDeviceOnline(companionDeviceId);
     SyncDeviceStatusReply syncReply;
     syncReply.result = ResultCode::SUCCESS;
-    syncReply.protocolIdList = { ProtocolId::VERSION_1 };
-    syncReply.capabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
+    syncReply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncReply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
     syncReply.secureProtocolId = SecureProtocolId::DEFAULT;
     syncReply.companionDeviceKey = MakeDeviceKey(companionDeviceId, hostUserId);
     syncReply.deviceUserName = "TestCompanion";

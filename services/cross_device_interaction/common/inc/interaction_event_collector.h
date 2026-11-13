@@ -60,7 +60,7 @@ public:
     void SetSelectedProtocolId(uint16_t selectedProtocolId);
     void SetSecureProtocolId(uint16_t secureProtocolId);
     void SetCapabilityList(const std::vector<uint16_t> &capabilityList);
-    void SetSelectedAlgorithms(const SelectedAlgorithms &selectedAlgorithms);
+    void SetSelectedAlgorithms(const std::vector<SelectedAlgorithms> &selectedAlgorithmsList);
     void SetTemplateIdList(const std::vector<TemplateId> &templateIdList);
     void AddTemplateAuthResult(TemplateId templateId, ResultCode result);
     void SetSuccessTemplateId(TemplateId templateId);
@@ -148,7 +148,7 @@ private:
     std::optional<uint16_t> selectedProtocolId_;
     std::optional<uint16_t> secureProtocolId_;
     std::optional<std::vector<uint16_t>> capabilityList_;
-    std::optional<SelectedAlgorithms> selectedAlgorithms_;
+    std::optional<std::vector<SelectedAlgorithms>> selectedAlgorithmsList_;
     std::optional<std::vector<TemplateId>> templateIdList_;
     std::string templateAuthResult_;
     std::optional<TemplateId> successTemplateId_;

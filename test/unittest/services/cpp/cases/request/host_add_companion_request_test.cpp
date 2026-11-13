@@ -185,10 +185,9 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_004, TestSize.Lev
     EXPECT_TRUE(*errorCalled);
 }
 
-// A stale discovery protocol (e.g. cached before a version rollback) that this build no longer
-// supports must fail enrollment before any negotiation starts: proceeding would lead the
-// companion to replace its existing binding row with one this build later rejects.
-HWTEST_F(HostAddCompanionRequestTest, ValidateAndPinProtocol_RejectsStaleDiscoveryProtocol, TestSize.Level0)
+// A stale discovery protocol this build no longer supports must fail enrollment before any
+// negotiation starts, or the companion would replace its binding with one this build rejects.
+HWTEST_F(HostAddCompanionRequestTest, ValidateAndSelectProtocol_RejectsStaleDiscoveryProtocol, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -203,7 +202,7 @@ HWTEST_F(HostAddCompanionRequestTest, ValidateAndPinProtocol_RejectsStaleDiscove
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(LOCAL_PROFILE));
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _)).Times(0);
 
-    EXPECT_FALSE(request->ValidateAndPinProtocol(COMPANION_DEVICE_KEY));
+    EXPECT_FALSE(request->ValidateAndSelectProtocol(COMPANION_DEVICE_KEY));
     EXPECT_EQ(request->selectedProtocolId_, ProtocolId::INVALID);
 }
 
@@ -415,10 +414,8 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_005, TestSize.Level0)
     EXPECT_TRUE(*errorCalled);
 }
 
-// v3 capability scheme: the C++ capture step no longer intersects capability sets — the
-// intersection happens in the security layer over the encrypted binding channel and an
-// empty result is legal there. A device announcing capabilities disjoint from the local
-// profile therefore must NOT fail OnConnected; the flow proceeds to the security layer.
+// Capability intersection happens in the security layer, and an empty result is legal there:
+// a device announcing capabilities disjoint from the local profile must not fail OnConnected.
 HWTEST_F(HostAddCompanionRequestTest, OnConnected_006, TestSize.Level0)
 {
     MockGuard guard;
@@ -454,9 +451,8 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_006, TestSize.Level0)
     EXPECT_TRUE(*errorCalled);
 }
 
-// A peer that negotiated a higher protocol version and advertises unknown extra capabilities on
-// top of the common ones binds at the higher version; unknown capabilities are filtered out of the
-// wire message instead of being forwarded to the secure layer.
+// A peer advertising unknown extra capabilities on top of the common ones still binds;
+// unknown values are filtered out of the wire message instead of reaching the secure layer.
 HWTEST_F(HostAddCompanionRequestTest, OnConnected_007, TestSize.Level0)
 {
     MockGuard guard;
@@ -554,16 +550,17 @@ HWTEST_F(HostAddCompanionRequestTest, HandleInitKeyNegotiationReply_001, TestSiz
     LocalDeviceProfile profile = { .protocols = { ProtocolId::VERSION_1 },
         .hostCapabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH } };
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(profile));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
     EXPECT_CALL(guard.GetCompanionManager(), BeginAddCompanion(_, _, _))
         .WillOnce(Invoke([&profile](const BeginAddCompanionParams &params, std::vector<uint8_t> &out,
-                             SelectedAlgorithms &selectedAlgorithms) {
-            // The host capability offer and protocol priority list travel with
-            // the begin-add params into the security layer (they are carried
-            // inside the encrypted binding request for companion recomputation).
+                             std::vector<SelectedAlgorithms> &selectedAlgorithmsList) {
+            // The capability offer and protocol priority list travel with the begin-add
+            // params into the encrypted binding request for companion recomputation.
             EXPECT_EQ(params.hostCapabilityList, profile.hostCapabilities);
             EXPECT_EQ(params.hostProtocolList, profile.protocols);
             out = { 4, 5, 6 };
-            selectedAlgorithms.kaAlgorithm = 1;
+            selectedAlgorithmsList.push_back(SelectedAlgorithms { .kaAlgorithm = 1 });
             return ResultCode::SUCCESS;
         }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::BEGIN_ADD_HOST_BINDING, _, _))
@@ -635,6 +632,8 @@ HWTEST_F(HostAddCompanionRequestTest, HandleInitKeyNegotiationReply_004, TestSiz
     InitKeyNegotiationReply replyMsg = { .result = ResultCode::SUCCESS, .extraInfo = { 1, 2, 3, 4 } };
     EncodeInitKeyNegotiationReply(replyMsg, reply);
 
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
     EXPECT_CALL(guard.GetCompanionManager(), BeginAddCompanion(_, _, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
 
     request->HandleInitKeyNegotiationReply(reply);
@@ -661,13 +660,15 @@ HWTEST_F(HostAddCompanionRequestTest, HandleInitKeyNegotiationReply_005, TestSiz
     InitKeyNegotiationReply replyMsg = { .result = ResultCode::SUCCESS, .extraInfo = { 1, 2, 3, 4 } };
     EncodeInitKeyNegotiationReply(replyMsg, reply);
 
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
     EXPECT_CALL(guard.GetCompanionManager(), BeginAddCompanion(_, _, _))
-        .WillOnce(Invoke(
-            [](const BeginAddCompanionParams &, std::vector<uint8_t> &out, SelectedAlgorithms &selectedAlgorithms) {
-                out = { 4, 5, 6 };
-                selectedAlgorithms.kaAlgorithm = 1;
-                return ResultCode::SUCCESS;
-            }));
+        .WillOnce(Invoke([](const BeginAddCompanionParams &, std::vector<uint8_t> &out,
+                             std::vector<SelectedAlgorithms> &selectedAlgorithmsList) {
+            out = { 4, 5, 6 };
+            selectedAlgorithmsList.push_back(SelectedAlgorithms { .kaAlgorithm = 1 });
+            return ResultCode::SUCCESS;
+        }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::BEGIN_ADD_HOST_BINDING, _, _))
         .WillOnce(Return(false));
 

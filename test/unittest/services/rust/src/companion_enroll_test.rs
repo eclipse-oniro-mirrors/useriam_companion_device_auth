@@ -75,9 +75,8 @@ fn create_valid_binding_request(pub_key: &[u8], challenge: u64) -> Vec<u8> {
     encrypt_attribute.set_string(AttributeKey::AttrDeviceId, "host_device".to_string());
     encrypt_attribute.set_i32(AttributeKey::AttrUserId, 100);
     encrypt_attribute.set_u64(AttributeKey::AttrHostChallenge, challenge);
-    // The tests drive the request against the default (empty) algorithm table,
-    // so the echoed lists stay empty; the protocol priority [1] recomputes
-    // to the pinned selection.
+    // Default (empty) algorithm table, so the echoed lists stay empty; the
+    // protocol priority [1] recomputes to the selected protocol.
     encrypt_attribute.set_u16_slice(AttributeKey::AttrKaAlgoList, &[]);
     encrypt_attribute.set_u16_slice(AttributeKey::AttrKdfAlgoList, &[]);
     encrypt_attribute.set_u16_slice(AttributeKey::AttrAeadAlgoList, &[]);
@@ -162,7 +161,7 @@ fn companion_enroll_request_new_test_selected_protocol_invalid_rejected() {
     let mut input = generate_companion_init_key_negotiation_input_ffi();
     let request = CompanionDeviceEnrollRequest::new(&input).unwrap();
     assert_eq!(request.selected_protocol_id, PROTOCOL_VERSION_1);
-    assert_eq!(request.protocol_list, vec![PROTOCOL_VERSION_1]);
+    assert_eq!(request.companion_protocol_list, vec![PROTOCOL_VERSION_1]);
 
     input.selected_protocol_id = PROTOCOL_ID_INVALID;
     assert_eq!(CompanionDeviceEnrollRequest::new(&input).unwrap_err(), ErrorCode::GeneralError);
@@ -780,9 +779,9 @@ fn companion_enroll_request_end_test_store_token_fail() {
     assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
-// §5.1 companion side: the binding reply announces the local capability set B as-is.
-// The TA never reads any host offer — convergence is host-side business.
-// The host algorithm sets exactly as the companion received them over the plaintext nego channel.
+// The binding reply announces the local capability set as-is (convergence is host-side
+// business) and echoes the host algorithm sets exactly as received over the plaintext
+// nego channel.
 fn create_host_algorithms() -> CryptoAlgorithms {
     CryptoAlgorithms {
         ka_algorithms: vec![KaAlgoType::X25519 as u16],
@@ -814,7 +813,7 @@ fn create_full_binding_request(
         encrypt_attribute.set_u16_slice(AttributeKey::AttrMacAlgoList, &host_algorithms.mac_algorithms);
     }
     // Unified exchange leg: the host announces its protocol priority list
-    // inside the encrypted request; [1] recomputes to the pinned selection.
+    // inside the encrypted request; [1] recomputes to the selected protocol.
     encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &[PROTOCOL_VERSION_1]);
 
     let encrypt_data = encrypt_attribute.to_bytes().unwrap();

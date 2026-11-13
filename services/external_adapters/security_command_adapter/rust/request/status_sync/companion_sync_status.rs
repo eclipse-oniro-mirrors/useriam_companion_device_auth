@@ -45,8 +45,8 @@ impl CompanionDeviceSyncStatusRequest {
             return Err(ErrorCode::GeneralError);
         }
 
-        let companion_protocol_list: Vec<u16> = input.protocol_list.try_into().map_err(|e| {
-            log_e!("protocol_list try_into fail: {:?}", e);
+        let companion_protocol_list: Vec<u16> = input.companion_protocol_list.try_into().map_err(|e| {
+            log_e!("companion_protocol_list try_into fail: {:?}", e);
             ErrorCode::GeneralError
         })?;
         let companion_capability_list: Vec<u16> = input.companion_capability_list.try_into().map_err(|e| {

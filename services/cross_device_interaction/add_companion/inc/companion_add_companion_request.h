@@ -49,7 +49,8 @@ private:
         const InitKeyNegotiationRequest &request, std::vector<uint8_t> &initKeyNegotiationReply);
     bool SendInitKeyNegotiationReply(ResultCode result, const std::vector<uint8_t> &initKeyNegotiationReply);
     void SendErrorReply(ResultCode result);
-    ResultCode ValidateAndPinProtocol(const LocalDeviceProfile &localProfile, const InitKeyNegotiationRequest &request);
+    ResultCode ValidateAndSelectProtocol(const LocalDeviceProfile &localProfile,
+        const InitKeyNegotiationRequest &request);
 
     CompanionInitKeyNegotiationInput BuildCompanionInitKeyNegotiationInput(const LocalDeviceProfile &localProfile,
         const std::vector<uint8_t> &initKeyNegotiationRequest);

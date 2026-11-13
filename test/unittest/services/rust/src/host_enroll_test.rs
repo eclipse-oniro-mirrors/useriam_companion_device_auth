@@ -107,8 +107,8 @@ fn create_binding_reply_with_companion_algorithms(
         esl,
         track_ability_level: 0,
         challenge: 0,
-        protocol_list: protocol.to_vec(),
-        capability_list: capability.to_vec(),
+        companion_protocol_list: protocol.to_vec(),
+        companion_capability_list: capability.to_vec(),
         selected_algorithms,
         companion_supported_algorithms,
     };
@@ -217,8 +217,8 @@ fn mock_enrolled_device() -> CompanionDevice {
         user_info: UserInfo { user_key: UserKey::default(), user_type: 0 },
         added_time: 0,
         is_valid: true,
-        capability_list: vec![1, 2, 3],
-        protocol_id: 1,
+        enrolled_capability_list: vec![1, 2, 3],
+        enrolled_protocol_id: 1,
         secure_protocol_id: 0,
     }
 }
@@ -314,6 +314,7 @@ fn host_enroll_request_begin_test_wrong_input_type() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -350,6 +351,7 @@ fn host_enroll_request_begin_test_schedule_id_mismatch() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -386,6 +388,7 @@ fn host_enroll_request_begin_test_atl_try_from_fail() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -422,6 +425,7 @@ fn host_enroll_request_begin_test_capability_value_not_support() {
         secure_protocol_id: 1,
         host_capability_list,
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -458,6 +462,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_try_from_fail() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -494,6 +499,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_invalid() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -530,6 +536,7 @@ fn host_enroll_request_begin_test_sec_message_decode_fail() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -569,6 +576,7 @@ fn host_enroll_request_begin_test_generate_key_pair_fail() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -609,6 +617,7 @@ fn host_enroll_request_begin_test_x25519_ecdh_fail() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -650,6 +659,7 @@ fn host_enroll_request_begin_test_hkdf_fail() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -692,6 +702,7 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -723,6 +734,7 @@ fn host_enroll_request_end_test_wrong_input_type() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -965,10 +977,8 @@ fn host_enroll_request_end_test_protocol_list_mismatch() {
     assert_eq!(result, Err(ErrorCode::ProtocolNegotiationFailed));
 }
 
-// The reply covers the pinned selection, yet a higher-priority protocol in the
-// companion set wins the recompute: the pinned selection diverges from the
-// encrypted-announced offer, i.e. C++/TA preference drift. The old membership
-// check accepted this; the unified-exchange recompute must reject it with 20011.
+// The selected protocol is 1, yet the recompute over the encrypted-announced offer
+// picks the higher-priority protocol 2: C++/TA preference drift, rejected with 20011.
 #[test]
 fn host_enroll_request_end_test_protocol_recompute_divergence_rejected() {
     let _guard = ut_registry_guard!();
@@ -983,7 +993,7 @@ fn host_enroll_request_end_test_protocol_recompute_divergence_rejected() {
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
-    // Host priority order prefers protocol 2; the pinned selection is protocol 1.
+    // Host priority order prefers protocol 2; the companion's selection is protocol 1.
     request.host_protocol_list = vec![2u16, PROTOCOL_VERSION_1];
 
     let sec_message = create_valid_binding_reply(
@@ -1109,7 +1119,7 @@ fn host_enroll_request_end_test_companion_support_set_without_intersection_rejec
 }
 
 // The companion announces its local set as-is; values beyond the host offer are cut by the
-// host-side convergence, the round succeeds and the pin is the intersection.
+// host-side convergence, the round succeeds and the selection is the intersection.
 #[test]
 fn host_enroll_request_end_test_capability_beyond_offer_clamped() {
     let _guard = ut_registry_guard!();
@@ -1154,10 +1164,11 @@ fn host_enroll_request_end_test_capability_beyond_offer_clamped() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = [Capability::TokenAuth as u16, Capability::Invalid as u16].to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
-    // TokenAuth is covered by the offer, Invalid is not: the pin keeps only TokenAuth.
+    // TokenAuth is covered by the offer, Invalid is not: the selection keeps only TokenAuth.
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
@@ -1181,8 +1192,8 @@ fn host_enroll_request_end_test_capability_beyond_offer_clamped() {
     let result = request.end(param);
     assert_eq!(result, Ok(()));
     assert_eq!(added_devices.borrow().len(), 1);
-    assert_eq!(added_devices.borrow()[0].capability_list, vec![Capability::TokenAuth as u16]);
-    assert_eq!(output.capability_list.data[..output.capability_list.len as usize], [Capability::TokenAuth as u16][..]);
+    assert_eq!(added_devices.borrow()[0].enrolled_capability_list, vec![Capability::TokenAuth as u16]);
+    assert_eq!(output.enrolled_capability_list.data[..output.enrolled_capability_list.len as usize], [Capability::TokenAuth as u16][..]);
 }
 
 #[test]
@@ -1293,10 +1304,10 @@ fn host_enroll_request_end_test_empty_capability_list() {
     let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Ok(()));
-    // Empty intersection is persisted as an empty pin and returned for the Companion image.
+    // Empty intersection is persisted as an empty selection and returned for the Companion image.
     assert_eq!(added_devices.borrow().len(), 1);
-    assert!(added_devices.borrow()[0].capability_list.is_empty());
-    assert_eq!(output.capability_list.len, 0);
+    assert!(added_devices.borrow()[0].enrolled_capability_list.is_empty());
+    assert_eq!(output.enrolled_capability_list.len, 0);
 }
 
 // A proper subset (order-insensitive, duplicates ignored) passes and the persisted value
@@ -1352,6 +1363,7 @@ fn host_enroll_request_end_test_capability_strict_subset_passes() {
     // Unordered subset of the offer with a duplicate entry.
     let negotiated = [Capability::TokenAuth as u16, Capability::DelegateAuth as u16,
         Capability::TokenAuth as u16];
+    request.companion_capability_list = negotiated.to_vec();
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
@@ -1376,10 +1388,10 @@ fn host_enroll_request_end_test_capability_strict_subset_passes() {
     assert_eq!(result, Ok(()));
     // Canonicalized intersection: sorted, deduplicated; persisted and returned in lockstep.
     assert_eq!(added_devices.borrow().len(), 1);
-    assert_eq!(added_devices.borrow()[0].capability_list,
+    assert_eq!(added_devices.borrow()[0].enrolled_capability_list,
         vec![Capability::DelegateAuth as u16, Capability::TokenAuth as u16]);
     assert_eq!(
-        output.capability_list.data[..output.capability_list.len as usize],
+        output.enrolled_capability_list.data[..output.enrolled_capability_list.len as usize],
         [Capability::DelegateAuth as u16, Capability::TokenAuth as u16][..]
     );
 }
@@ -1443,7 +1455,7 @@ fn host_enroll_request_end_test_capability_absent_fails() {
 
 // Replies across processor types must agree on the negotiated capability set. Only
 // ProcessorType::Default exists today, so the "earlier processor already negotiated"
-// state is seeded directly, exactly like the legacy divergence test did.
+// state is seeded directly.
 #[test]
 fn host_enroll_request_end_test_capability_diverges_across_processor_types() {
     let _guard = ut_registry_guard!();
@@ -1500,6 +1512,7 @@ fn host_enroll_request_end_test_secure_random_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
 
     mock_crypto_engine = MockCryptoEngine::new();
@@ -1553,6 +1566,7 @@ fn host_enroll_request_end_test_get_rtc_time_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl0;
 
@@ -1611,6 +1625,7 @@ fn host_enroll_request_end_test_add_device_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
@@ -1670,6 +1685,7 @@ fn host_enroll_request_end_test_add_token_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
@@ -1733,6 +1749,7 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
@@ -1783,6 +1800,7 @@ fn host_enroll_request_end_test_get_session_key_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
@@ -1851,6 +1869,7 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
@@ -1887,9 +1906,8 @@ fn host_enroll_request_end_test_higher_version_companion_accepted() {
     mock_set_time_keeper();
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
-    // A distinctive error code proves the flow got past list verification and reached template-id
-    // generation; if verification rejected the higher-version lists, end() would return
-    // GeneralError before touching the database.
+    // A distinctive error code proves the flow got past list verification and reached
+    // template-id generation instead of failing earlier with GeneralError.
     mock_companion_device_db_manager
         .expect_generate_unique_template_id()
         .returning(|| Err(ErrorCode::NotFound));
@@ -1901,13 +1919,13 @@ fn host_enroll_request_end_test_higher_version_companion_accepted() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
-    // The companion advertises a newer protocol version on top of the one this host
-    // negotiated; the protocol check only requires the selected version, so it is
-    // accepted. The capability pin is the announced set intersected with our own offer —
-    // values beyond the offer are cut (see the beyond-offer test).
+    // The companion advertises a newer protocol on top of the negotiated one (accepted: the
+    // check only requires the selected version); the selected capability list is the announced set
+    // intersected with our own offer.
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
@@ -1989,6 +2007,7 @@ fn host_enroll_request_end_test_capability_echo_subset_persists_intersection() {
     request.enroll_param.companion_device_key = create_device_key("companion_device", COMPANION_USER_ID);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.companion_capability_list = [Capability::TokenAuth as u16].to_vec();
     request.host_protocol_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
@@ -2067,6 +2086,7 @@ fn host_enroll_request_begin_test_selected_algorithm_not_offered() {
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
         host_protocol_list: create_host_protocol_list_ffi(),
+        companion_capability_list: Uint16Array64Ffi::default(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 

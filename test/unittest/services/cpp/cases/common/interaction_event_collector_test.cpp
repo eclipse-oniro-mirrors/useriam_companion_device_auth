@@ -73,8 +73,20 @@ HWTEST_F(InteractionEventCollectorTest, SetSelectedAlgorithms_001, TestSize.Leve
     selectedAlgorithms.kdfAlgorithm = 6;
     selectedAlgorithms.aeadAlgorithm = 7;
     selectedAlgorithms.macAlgorithm = 8;
-    collector.SetSelectedAlgorithms(selectedAlgorithms);
-    EXPECT_NE(collector.GetExtraInfo().find("selectedAlgorithms:ka=5,kdf=6,aead=7,mac=8"), std::string::npos);
+    collector.SetSelectedAlgorithms(std::vector<SelectedAlgorithms> { selectedAlgorithms });
+    EXPECT_NE(collector.GetExtraInfo().find("selectedAlgorithms:[ka=5,kdf=6,aead=7,mac=8]"), std::string::npos);
+}
+
+HWTEST_F(InteractionEventCollectorTest, SetSelectedAlgorithms_002, TestSize.Level0)
+{
+    InteractionEventCollector collector("test");
+    SelectedAlgorithms first;
+    first.kaAlgorithm = 5;
+    SelectedAlgorithms second;
+    second.macAlgorithm = 8;
+    collector.SetSelectedAlgorithms(std::vector<SelectedAlgorithms> { first, second });
+    EXPECT_NE(collector.GetExtraInfo().find("selectedAlgorithms:[ka=5,kdf=0,aead=0,mac=0]|[ka=0,kdf=0,aead=0,mac=8]"),
+        std::string::npos);
 }
 
 HWTEST_F(InteractionEventCollectorTest, SetCallerUserId_001, TestSize.Level0)
@@ -107,11 +119,11 @@ HWTEST_F(InteractionEventCollectorTest, SetCallerUserId_EncodedInFixedOrder, Tes
     // Set in reverse order to verify encoding is independent of call order
     collector.SetEsl(1);
     collector.SetCallerUserId(50);
-    collector.SetSelectedAlgorithms(SelectedAlgorithms { .kaAlgorithm = 5 });
+    collector.SetSelectedAlgorithms(std::vector<SelectedAlgorithms> { SelectedAlgorithms { .kaAlgorithm = 5 } });
 
     const auto extra = collector.GetExtraInfo();
     // callerUserId is encoded right after selectedAlgorithms and before ESL
-    EXPECT_LT(extra.find("selectedAlgorithms:ka=5,kdf=0,aead=0,mac=0"), extra.find("callerUserId:50"));
+    EXPECT_LT(extra.find("selectedAlgorithms:[ka=5,kdf=0,aead=0,mac=0]"), extra.find("callerUserId:50"));
     EXPECT_LT(extra.find("callerUserId:50"), extra.find("ESL:1"));
 }
 
@@ -137,11 +149,11 @@ HWTEST_F(InteractionEventCollectorTest, SetCallerUserType_EncodedRightAfterCalle
     collector.SetEsl(1);
     collector.SetCallerUserType("normal");
     collector.SetCallerUserId(100);
-    collector.SetSelectedAlgorithms(SelectedAlgorithms { .kaAlgorithm = 5 });
+    collector.SetSelectedAlgorithms(std::vector<SelectedAlgorithms> { SelectedAlgorithms { .kaAlgorithm = 5 } });
 
     const auto extra = collector.GetExtraInfo();
     // callerUserType is encoded immediately after callerUserId, and both stay before ESL.
-    EXPECT_LT(extra.find("selectedAlgorithms:ka=5,kdf=0,aead=0,mac=0"), extra.find("callerUserId:100"));
+    EXPECT_LT(extra.find("selectedAlgorithms:[ka=5,kdf=0,aead=0,mac=0]"), extra.find("callerUserId:100"));
     EXPECT_LT(extra.find("callerUserId:100"), extra.find("callerUserType:normal"));
     EXPECT_LT(extra.find("callerUserType:normal"), extra.find("ESL:1"));
 }
@@ -428,7 +440,7 @@ HWTEST_F(InteractionEventCollectorTest, Report_WithAllFieldsSet, TestSize.Level0
     collector.SetBindingId(42);
     collector.SetContextId(99999);
     collector.SetSuccessAuthType(4);
-    collector.SetSelectedAlgorithms(SelectedAlgorithms { .kaAlgorithm = 10 });
+    collector.SetSelectedAlgorithms(std::vector<SelectedAlgorithms> { SelectedAlgorithms { .kaAlgorithm = 10 } });
     collector.SetEsl(2);
     collector.SetProtocolIdList({ 100 });
     collector.SetCapabilityList({ 200 });

@@ -42,8 +42,8 @@ fn create_test_companion_device(template_id: u64, device_id: &str, user_id: i32)
         user_info: UserInfo { user_key: UserKey { user_id, sub_profile_id: 0 }, user_type: 1 },
         added_time: 1000,
         is_valid: true,
-        capability_list: vec![1, 2, 3],
-        protocol_id: 1,
+        enrolled_capability_list: vec![1, 2, 3],
+        enrolled_protocol_id: 1,
         secure_protocol_id: 0,
     }
 }
@@ -698,7 +698,7 @@ fn default_companion_device_db_manager_read_device_db_test_success() {
     parcel.write_i32(0);
     parcel.write_u64(1000);
     parcel.write_u32(1);
-    // capability_list
+    // enrolled_capability_list
     parcel.write_i32(3);
     parcel.write_u16(1);
     parcel.write_u16(2);
@@ -717,7 +717,7 @@ fn default_companion_device_db_manager_read_device_db_test_success() {
     assert!(result.is_ok());
     assert_eq!(manager.companion_device_infos.len(), 1);
     assert!(manager.get_device(123).is_ok());
-    assert_eq!(manager.get_device(123).unwrap().protocol_id, PROTOCOL_ID_INVALID);
+    assert_eq!(manager.get_device(123).unwrap().enrolled_protocol_id, PROTOCOL_ID_INVALID);
 }
 
 #[test]
@@ -1745,7 +1745,7 @@ fn default_companion_device_db_manager_read_db_test_protocol_roundtrip() {
 
     let mut manager = DefaultCompanionDeviceDbManager::new();
     let mut device_info = create_test_companion_device(123, "device1", 100);
-    device_info.protocol_id = NON_DEFAULT_PROTOCOL_ID;
+    device_info.enrolled_protocol_id = NON_DEFAULT_PROTOCOL_ID;
 
     let written_db = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
     {
@@ -1782,7 +1782,7 @@ fn default_companion_device_db_manager_read_db_test_protocol_roundtrip() {
         StorageIoRegistry::set(Box::new(mock_storage_io));
         assert!(reloaded.read_device_db().is_ok());
     }
-    assert_eq!(reloaded.get_device(123).unwrap().protocol_id, NON_DEFAULT_PROTOCOL_ID);
+    assert_eq!(reloaded.get_device(123).unwrap().enrolled_protocol_id, NON_DEFAULT_PROTOCOL_ID);
 }
 
 #[test]

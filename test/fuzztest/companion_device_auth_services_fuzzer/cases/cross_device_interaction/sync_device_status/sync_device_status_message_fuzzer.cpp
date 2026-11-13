@@ -41,12 +41,12 @@ static void FuzzEncodeSyncDeviceStatusRequest(FuzzedDataProvider &fuzzData)
     uint8_t protoListSize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t j = 0; j < protoListSize; ++j) {
         ProtocolId pid = static_cast<ProtocolId>(fuzzData.ConsumeIntegral<uint32_t>());
-        request.protocolIdList.push_back(pid);
+        request.hostProtocolIdList.push_back(pid);
     }
     uint8_t capListSize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t j = 0; j < capListSize; ++j) {
         Capability cap = static_cast<Capability>(fuzzData.ConsumeIntegral<uint32_t>());
-        request.capabilityList.push_back(cap);
+        request.hostCapabilityList.push_back(cap);
     }
     request.hostDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);
     request.hostDeviceKey.deviceId = GenerateFuzzString(fuzzData, TEST_VAL64);
@@ -75,12 +75,12 @@ static void FuzzEncodeSyncDeviceStatusReply(FuzzedDataProvider &fuzzData)
     uint8_t protoListSize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t j = 0; j < protoListSize; ++j) {
         ProtocolId pid = static_cast<ProtocolId>(fuzzData.ConsumeIntegral<uint32_t>());
-        reply.protocolIdList.push_back(pid);
+        reply.companionProtocolIdList.push_back(pid);
     }
     uint8_t capListSize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t j = 0; j < capListSize; ++j) {
         Capability cap = static_cast<Capability>(fuzzData.ConsumeIntegral<uint32_t>());
-        reply.capabilityList.push_back(cap);
+        reply.companionCapabilityList.push_back(cap);
     }
     reply.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint32_t>());
     reply.companionDeviceKey.idType = GenerateFuzzDeviceIdType(fuzzData);

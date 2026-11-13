@@ -88,8 +88,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_001, TestSize.Level
     handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -148,8 +148,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_003, TestSize.Level
     handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -179,8 +179,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_004, TestSize.Level
     handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -221,8 +221,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_CheckFailurePropaga
     ASSERT_NE(handler_, nullptr);
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -262,8 +262,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_EmptyProofDespiteSu
     ASSERT_NE(handler_, nullptr);
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1 },
         .challenge = 0 };
@@ -304,8 +304,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_SecureProtocolNotSu
     handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -349,16 +349,15 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_BoundAnnouncesCurre
     ASSERT_NE(handler_, nullptr);
 
     LocalDeviceProfile profile = profile_;
-    // Decode enforces only the field's presence; which secure protocol values the host can
-    // consume is judged inside its Rust security layer. The echo is verified with DEFAULT, the
-    // only value the current host build accepts.
+    // Decode enforces only the field's presence; consumption is judged in the Rust security
+    // layer. The echo is verified with DEFAULT, the only value this build accepts.
     constexpr auto newSecureProtocol = SecureProtocolId::DEFAULT;
     profile.companionSecureProtocolId = newSecureProtocol;
     HostBindingStatus bindingStatus = hostBindingStatus_;
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -402,8 +401,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_006, TestSize.Level
     handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -435,8 +434,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_007, TestSize.Level
     handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -466,8 +465,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_EncodesUserTypePref
     handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -504,8 +503,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_PublishesPeerSynced
     handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -547,9 +546,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_PublishesPeerSynced
     EXPECT_EQ(idType, static_cast<int32_t>(hostDeviceKey_.idType));
 }
 
-// A higher-version host offering only protocols this device does not support must fail negotiation
-// explicitly instead of silently proceeding; the error reply lets the host map to a retryable
-// failure without invalidating its binding.
+// A host offering only unsupported protocols fails negotiation explicitly; the error reply
+// lets the host map it to a retryable failure without invalidating its binding.
 HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_ProtocolNegotiationFailed, TestSize.Level0)
 {
     MockGuard guard;
@@ -557,8 +555,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_ProtocolNegotiation
     handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { PROTOCOL_VERSION_2 },
-        .capabilityList = { Capability::TOKEN_AUTH },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { PROTOCOL_VERSION_2 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -595,8 +593,9 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_NegotiatesIntersect
     hostBindingStatus_.enrolledProtocolId = ProtocolId::VERSION_1;
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1, PROTOCOL_VERSION_2 },
-        .capabilityList = { Capability::TOKEN_AUTH, UNSUPPORTED_CAPABILITY_ID },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1,
+                                                            PROTOCOL_VERSION_2 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH, UNSUPPORTED_CAPABILITY_ID },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -630,7 +629,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_NegotiatesIntersect
 
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
     EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
-    EXPECT_EQ(capturedInput.protocolList, std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
+    EXPECT_EQ(capturedInput.companionProtocolList,
+        std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
     EXPECT_EQ(capturedInput.companionCapabilityList,
         std::vector<uint16_t> { static_cast<uint16_t>(Capability::TOKEN_AUTH) });
     std::vector<uint8_t> proof;
@@ -642,10 +642,9 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_NegotiatesIntersect
     EXPECT_EQ(outerCapabilityList, std::vector<uint16_t> { static_cast<uint16_t>(Capability::TOKEN_AUTH) });
 }
 
-// A bound host re-validates at the version its binding was enrolled with: even when both sides
-// support a higher common version, the selection is pinned to the enrolled one and the reply
-// echoes exactly it, so the host's own pick cannot drift to a newer version.
-HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_PinsSelectionToEnrolledProtocol, TestSize.Level0)
+// A bound host re-validates at the enrolled version: even when both sides support a higher
+// common version, the enrolled selection is kept and the reply echoes exactly it.
+HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_KeepsSelectionAtEnrolledProtocol, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -658,8 +657,9 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_PinsSelectionToEnro
     hostBindingStatus.enrolledProtocolId = ProtocolId::VERSION_1;
 
     Attributes request;
-    SyncDeviceStatusRequest syncDeviceStatusRequest = { .protocolIdList = { ProtocolId::VERSION_1, PROTOCOL_VERSION_2 },
-        .capabilityList = { Capability::TOKEN_AUTH, UNSUPPORTED_CAPABILITY_ID },
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1,
+                                                            PROTOCOL_VERSION_2 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH, UNSUPPORTED_CAPABILITY_ID },
         .hostDeviceKey = hostDeviceKey_,
         .salt = { 1, 2, 3 },
         .challenge = 0 };
@@ -678,7 +678,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_PinsSelectionToEnro
 
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
     EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
-    EXPECT_EQ(capturedInput.protocolList, std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
+    EXPECT_EQ(capturedInput.companionProtocolList,
+        std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
 
     // The identifier attributes are injected by the transport layer, not by the message encoder;
     // add them before decoding, mirroring what the receiving side sees on the wire.
@@ -686,8 +687,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_PinsSelectionToEnro
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
     auto decodedReply = DecodeSyncDeviceStatusReply(reply);
     EXPECT_TRUE(decodedReply.has_value());
-    EXPECT_EQ(decodedReply->protocolIdList, std::vector<ProtocolId> { ProtocolId::VERSION_1 });
-    EXPECT_EQ(decodedReply->capabilityList, std::vector<Capability> { Capability::TOKEN_AUTH });
+    EXPECT_EQ(decodedReply->companionProtocolIdList, std::vector<ProtocolId> { ProtocolId::VERSION_1 });
+    EXPECT_EQ(decodedReply->companionCapabilityList, std::vector<Capability> { Capability::TOKEN_AUTH });
     EXPECT_EQ(capturedInput.companionCapabilityList,
         std::vector<uint16_t> { static_cast<uint16_t>(Capability::TOKEN_AUTH) });
 }
@@ -700,8 +701,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, NegotiateSyncParameters_UsesEnrol
     LocalDeviceProfile profile = profile_;
     profile.protocols = { PROTOCOL_VERSION_2, ProtocolId::VERSION_1 };
     SyncDeviceStatusRequest request;
-    request.protocolIdList = profile.protocols;
-    request.capabilityList = profile.companionCapabilities;
+    request.hostProtocolIdList = profile.protocols;
+    request.hostCapabilityList = profile.companionCapabilities;
     ErrorGuard errorGuard([](ResultCode) {});
     for (auto enrolled : profile.protocols) {
         auto binding = hostBindingStatus_;
@@ -722,15 +723,15 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, NegotiateSyncParameters_DoesNotRe
     LocalDeviceProfile profile = profile_;
     profile.protocols = { ProtocolId::VERSION_1, PROTOCOL_VERSION_2 };
     SyncDeviceStatusRequest request;
-    request.protocolIdList = { ProtocolId::VERSION_1 };
-    request.capabilityList = profile.companionCapabilities;
+    request.hostProtocolIdList = { ProtocolId::VERSION_1 };
+    request.hostCapabilityList = profile.companionCapabilities;
     ResultCode error = GENERAL_ERROR;
     {
         ErrorGuard errorGuard([&error](ResultCode code) { error = code; });
         EXPECT_FALSE(handler->NegotiateSyncParameters(request, profile, binding, errorGuard).has_value());
     }
     EXPECT_EQ(error, PROTOCOL_NEGOTIATION_FAILED);
-    request.protocolIdList = profile.protocols;
+    request.hostProtocolIdList = profile.protocols;
     {
         ErrorGuard errorGuard([&error](ResultCode code) { error = code; });
         EXPECT_FALSE(handler->NegotiateSyncParameters(request, profile_, binding, errorGuard).has_value());
@@ -738,9 +739,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, NegotiateSyncParameters_DoesNotRe
     EXPECT_EQ(error, PROTOCOL_NEGOTIATION_FAILED);
 }
 
-// The enroll path always persists a real protocol, so INVALID marks a corrupted binding row:
-// it must be rejected against any offer instead of re-negotiating from what the host announces
-// (a corrupt row must not drift to the offer; re-enrollment heals it).
+// The enroll path always persists a real protocol, so INVALID marks a corrupted binding row
+// and must be rejected against any offer instead of re-negotiating from the announcement.
 HWTEST_F(CompanionSyncDeviceStatusHandlerTest, NegotiateSyncParameters_RejectsBindingWithoutEnrolledProtocol,
     TestSize.Level0)
 {
@@ -749,8 +749,8 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, NegotiateSyncParameters_RejectsBi
     auto binding = hostBindingStatus_;
     binding.enrolledProtocolId = ProtocolId::INVALID;
     SyncDeviceStatusRequest request;
-    request.protocolIdList = profile_.protocols;
-    request.capabilityList = profile_.companionCapabilities;
+    request.hostProtocolIdList = profile_.protocols;
+    request.hostCapabilityList = profile_.companionCapabilities;
     ResultCode error = GENERAL_ERROR;
     {
         ErrorGuard errorGuard([&error](ResultCode code) { error = code; });

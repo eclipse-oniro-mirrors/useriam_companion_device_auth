@@ -64,6 +64,8 @@ private:
     ResultCode ValidateReplyParameters(const SyncDeviceStatusReply &reply) const;
     HostEndCompanionCheckInput BuildHostEndCompanionCheckInput(TemplateId templateId,
         const SyncDeviceStatusReply &reply) const;
+    SyncDeviceStatus BuildSyncDeviceStatus(const SyncDeviceStatusReply &reply, bool hasProof,
+        const std::vector<Capability> &authenticatedCapabilities) const;
     void CollectSyncDeviceStatusEventInfo(const LocalDeviceProfile &localProfile);
     void UpdateCompanionUserIdAndSubProfileId(const UserKey &companionUserKey);
 

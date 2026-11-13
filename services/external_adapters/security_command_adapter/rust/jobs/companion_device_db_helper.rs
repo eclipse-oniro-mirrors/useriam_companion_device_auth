@@ -28,7 +28,7 @@ pub fn check_device_capability(template_id: u64, required_capability: Capability
     })?;
 
     let capability_value = required_capability as u16;
-    if !device_info.capability_list.contains(&capability_value) {
+    if !device_info.enrolled_capability_list.contains(&capability_value) {
         log_e!(
             "Device does not have required capability, template_id:{:04x}, required:{:?}",
             template_id as u16,

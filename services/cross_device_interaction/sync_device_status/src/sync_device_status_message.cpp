@@ -30,9 +30,9 @@ namespace CompanionDeviceAuth {
 void EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes)
 {
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
-        ProtocolIdConverter::ToUnderlyingVec(request.protocolIdList));
+        ProtocolIdConverter::ToUnderlyingVec(request.hostProtocolIdList));
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
-        CapabilityConverter::ToUnderlyingVec(request.capabilityList));
+        CapabilityConverter::ToUnderlyingVec(request.hostCapabilityList));
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostDeviceKey.deviceSubProfileId);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_SALT, request.salt);
@@ -41,11 +41,13 @@ void EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attri
 
 std::optional<SyncDeviceStatusRequest> DecodeSyncDeviceStatusRequest(const Attributes &attributes)
 {
-    std::vector<uint16_t> protocolList;
-    bool getProtocolListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocolList);
+    std::vector<uint16_t> hostProtocolList;
+    bool getProtocolListRet =
+        attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, hostProtocolList);
     ENSURE_OR_RETURN_VAL(getProtocolListRet, std::nullopt);
-    std::vector<uint16_t> capabilityList;
-    bool getCapabilityListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
+    std::vector<uint16_t> hostCapabilityList;
+    bool getCapabilityListRet =
+        attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, hostCapabilityList);
     ENSURE_OR_RETURN_VAL(getCapabilityListRet, std::nullopt);
     auto hostDeviceKey = DecodeHostDeviceKey(attributes);
     ENSURE_OR_RETURN_VAL(hostDeviceKey.has_value(), std::nullopt);
@@ -56,8 +58,8 @@ std::optional<SyncDeviceStatusRequest> DecodeSyncDeviceStatusRequest(const Attri
     ENSURE_OR_RETURN_VAL(getSaltRet, std::nullopt);
     bool getChallengeRet = attributes.GetUint64Value(Attributes::ATTR_CDA_SA_CHALLENGE, request.challenge);
     ENSURE_OR_RETURN_VAL(getChallengeRet, std::nullopt);
-    request.protocolIdList = ProtocolIdConverter::FromUnderlyingVec(protocolList);
-    request.capabilityList = CapabilityConverter::FromUnderlyingVec(capabilityList);
+    request.hostProtocolIdList = ProtocolIdConverter::FromUnderlyingVec(hostProtocolList);
+    request.hostCapabilityList = CapabilityConverter::FromUnderlyingVec(hostCapabilityList);
     return request;
 }
 
@@ -65,9 +67,9 @@ void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
-        ProtocolIdConverter::ToUnderlyingVec(reply.protocolIdList));
+        ProtocolIdConverter::ToUnderlyingVec(reply.companionProtocolIdList));
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
-        CapabilityConverter::ToUnderlyingVec(reply.capabilityList));
+        CapabilityConverter::ToUnderlyingVec(reply.companionCapabilityList));
     attributes.SetInt32ArrayValue(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST,
         BusinessIdConverter::ToUnderlyingVec(reply.businessIdList));
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, reply.companionDeviceKey.deviceUserId);
@@ -93,11 +95,13 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
         return reply;
     }
 
-    std::vector<uint16_t> protocolList;
-    bool getProtocolListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocolList);
+    std::vector<uint16_t> companionProtocolList;
+    bool getProtocolListRet =
+        attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, companionProtocolList);
     ENSURE_OR_RETURN_VAL(getProtocolListRet, std::nullopt);
-    std::vector<uint16_t> capabilityList;
-    bool getCapabilityListRet = attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
+    std::vector<uint16_t> companionCapabilityList;
+    bool getCapabilityListRet =
+        attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, companionCapabilityList);
     ENSURE_OR_RETURN_VAL(getCapabilityListRet, std::nullopt);
     std::vector<int32_t> businessIdList;
     if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST)) {
@@ -123,8 +127,8 @@ std::optional<SyncDeviceStatusReply> DecodeSyncDeviceStatusReply(const Attribute
     bool getExtraInfoRet =
         attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
-    reply.protocolIdList = ProtocolIdConverter::FromUnderlyingVec(protocolList);
-    reply.capabilityList = CapabilityConverter::FromUnderlyingVec(capabilityList);
+    reply.companionProtocolIdList = ProtocolIdConverter::FromUnderlyingVec(companionProtocolList);
+    reply.companionCapabilityList = CapabilityConverter::FromUnderlyingVec(companionCapabilityList);
     reply.businessIdList = BusinessIdConverter::FromUnderlyingVec(businessIdList);
     reply.secureProtocolId = SecureProtocolIdConverter::FromUnderlying(secureProtocolId);
     return reply;

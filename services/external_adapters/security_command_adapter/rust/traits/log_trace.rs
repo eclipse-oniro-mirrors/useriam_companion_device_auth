@@ -153,9 +153,10 @@ pub fn file_id_to_name(file_id: u16) -> &'static str {
         // commands/ — CommonCommand, SystemCommands
         0x0210 => "common_command.rs",
         0x0211 => "system_commands.rs",
-        // common/ — Constants, Types
+        // common/ — Constants, Types, Algorithm
         0x0220 => "constants.rs",
         0x0221 => "types.rs",
+        0x0222 => "algorithm.rs",
         // impls/ — Default*DbManager .. HilogLogger
         0x0230 => "default_companion_device_db_manager.rs",
         0x0231 => "default_host_binding_db_manager.rs",
@@ -206,6 +207,7 @@ pub fn file_id_to_name(file_id: u16) -> &'static str {
         0x02C6 => "storage_io.rs",
         0x02C7 => "time_keeper.rs",
         0x02C8 => "logger.rs",
+        0x02C9 => "db_manager.rs",
         // utils/
         0x02D0 => "attribute.rs",
         0x02D1 => "message_codec.rs",

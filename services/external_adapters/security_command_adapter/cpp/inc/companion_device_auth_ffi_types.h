@@ -40,6 +40,8 @@ extern "C" {
 
 #define MAX_USER_NUM_FFI 5
 
+#define MAX_PROCESSOR_NUM_PER_DEVICE_FFI 2
+
 #define MAX_DATA_LEN_32 32
 
 #define MAX_DATA_LEN_64 64
@@ -219,6 +221,11 @@ typedef struct SelectedAlgorithmsFfi {
     uint16_t macAlgorithm;
 } SelectedAlgorithmsFfi;
 
+typedef struct SelectedAlgorithmsArrayFfi {
+    struct SelectedAlgorithmsFfi data[MAX_PROCESSOR_NUM_PER_DEVICE_FFI];
+    uint32_t len;
+} SelectedAlgorithmsArrayFfi;
+
 typedef struct UserKeyFfi {
     int32_t userId;
     int32_t subProfileId;
@@ -238,7 +245,7 @@ typedef struct PersistedCompanionStatusFfi {
     struct DataArray256Ffi deviceName;
     struct DataArray256Ffi deviceSubProfileIdName;
     uint16_t enrolledProtocolId;
-    struct Uint16Array64Ffi capabilityList;
+    struct Uint16Array64Ffi enrolledCapabilityList;
 } PersistedCompanionStatusFfi;
 
 typedef struct PersistedHostBindingStatusFfi {

@@ -53,8 +53,8 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedSta
 
     SyncDeviceStatus syncStatus;
     syncStatus.needSync = true;
-    syncStatus.protocolIdList = { ProtocolId::VERSION_1 };
-    syncStatus.capabilityList = { Capability::TOKEN_AUTH };
+    syncStatus.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncStatus.companionCapabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "tester";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
@@ -228,8 +228,8 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultFailureMarksEntryAndSkipsNotif
 
     SyncDeviceStatus syncStatus;
     syncStatus.needSync = true;
-    syncStatus.protocolIdList = { ProtocolId::VERSION_1 };
-    syncStatus.capabilityList = { Capability::TOKEN_AUTH };
+    syncStatus.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncStatus.companionCapabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "tester";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
     ctx.manager->HandleSyncResult(deviceKey, 0, GENERAL_ERROR, syncStatus);
@@ -289,8 +289,8 @@ HWTEST_F(DeviceStatusManagerTest, AttachOrStartDeviceSyncStartsRequestAndHandles
     ctx.manager->AttachOrStartDeviceSync(physicalStatus.physicalDeviceKey, SyncTriggerReason::RESYNC);
     uint64_t attemptId = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey).inProgressAttemptId;
     SyncDeviceStatus syncStatus;
-    syncStatus.protocolIdList = { ProtocolId::VERSION_1 };
-    syncStatus.capabilityList = { Capability::TOKEN_AUTH };
+    syncStatus.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncStatus.companionCapabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "remote-user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
     ctx.manager->HandleSyncResult(deviceKey, attemptId, SUCCESS, syncStatus);
@@ -319,8 +319,8 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_IgnoresDeviceUserId, TestSize
 
     int32_t reportedDeviceUserId = activeUserId_ + 1;
     SyncDeviceStatus syncStatus;
-    syncStatus.protocolIdList = { ProtocolId::VERSION_1 };
-    syncStatus.capabilityList = { Capability::TOKEN_AUTH };
+    syncStatus.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncStatus.companionCapabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
     syncStatus.deviceUserKey = UserKey { reportedDeviceUserId, INVALID_SUB_PROFILE_ID };
@@ -341,8 +341,8 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_DeviceNotInCache, TestSize.Le
     nonExistentKey.deviceUserId = activeUserId_;
 
     SyncDeviceStatus syncStatus;
-    syncStatus.protocolIdList = { ProtocolId::VERSION_1 };
-    syncStatus.capabilityList = { Capability::TOKEN_AUTH };
+    syncStatus.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncStatus.companionCapabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
@@ -383,7 +383,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_EmptySyncStatus, TestSize.Lev
     EXPECT_TRUE(syncedEntry.isSynced);
     EXPECT_FALSE(syncedEntry.isSyncInProgress);
     // Verify default values for empty sync
-    EXPECT_EQ(ProtocolId::INVALID, syncedEntry.protocolId);
+    EXPECT_EQ(ProtocolId::INVALID, syncedEntry.negotiatedProtocolId);
     EXPECT_TRUE(syncedEntry.capabilities.empty());
     auto result = ctx.manager->GetDeviceStatus(deviceKey);
     ASSERT_TRUE(result.has_value());
@@ -404,8 +404,8 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocol, TestSize.Le
 
     SyncDeviceStatus syncStatus;
     syncStatus.needSync = true;
-    syncStatus.protocolIdList = { static_cast<ProtocolId>(INT32_999) };
-    syncStatus.capabilityList = { Capability::TOKEN_AUTH };
+    syncStatus.companionProtocolIdList = { static_cast<ProtocolId>(INT32_999) };
+    syncStatus.companionCapabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
@@ -443,7 +443,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocolKeepsSyncTime
 
     SyncDeviceStatus syncStatus;
     syncStatus.needSync = true;
-    syncStatus.protocolIdList = { static_cast<ProtocolId>(INT32_999) };
+    syncStatus.companionProtocolIdList = { static_cast<ProtocolId>(INT32_999) };
     ctx.manager->HandleSyncResult(deviceKey, 0, SUCCESS, syncStatus);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
@@ -601,8 +601,8 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonCapabilities, TestSiz
     SyncDeviceStatus syncStatus;
     syncStatus.needSync = true;
     // Use incompatible protocol to trigger sync failure
-    syncStatus.protocolIdList = { static_cast<ProtocolId>(INT32_999) };
-    syncStatus.capabilityList = { Capability::DELEGATE_AUTH };
+    syncStatus.companionProtocolIdList = { static_cast<ProtocolId>(INT32_999) };
+    syncStatus.companionCapabilityList = { Capability::DELEGATE_AUTH };
     syncStatus.deviceUserName = "user";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 

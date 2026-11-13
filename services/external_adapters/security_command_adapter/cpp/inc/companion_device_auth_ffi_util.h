@@ -32,6 +32,8 @@ namespace CompanionDeviceAuth {
 bool EncodeDeviceKey(const DeviceKey &key, DeviceKeyFfi &ffi);
 bool DecodeDeviceKey(const DeviceKeyFfi &ffi, DeviceKey &key);
 bool DecodeSelectedAlgorithms(const SelectedAlgorithmsFfi &ffi, SelectedAlgorithms &algorithms);
+bool DecodeSelectedAlgorithmsArray(const SelectedAlgorithmsArrayFfi &ffi,
+    std::vector<SelectedAlgorithms> &algorithmsList);
 bool EncodePersistedCompanionStatus(const PersistedCompanionStatus &status, PersistedCompanionStatusFfi &ffi);
 bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, PersistedCompanionStatus &status);
 bool DecodePersistedCompanionStatusList(const CompanionStatusArrayFfi &ffi,

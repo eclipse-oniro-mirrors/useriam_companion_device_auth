@@ -345,10 +345,13 @@ static void FuzzDecodeHostBeginAddCompanionOutput(FuzzedDataProvider &fuzzData)
     for (uint32_t i = 0; i < ffi.secMessage.len && i < TEST_VAL1024; ++i) {
         ffi.secMessage.data[i] = fuzzData.ConsumeIntegral<uint8_t>();
     }
-    ffi.selectedAlgorithms.kaAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
-    ffi.selectedAlgorithms.kdfAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
-    ffi.selectedAlgorithms.aeadAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
-    ffi.selectedAlgorithms.macAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
+    ffi.selectedAlgorithms.len = fuzzData.ConsumeIntegralInRange<uint32_t>(0, MAX_PROCESSOR_NUM_PER_DEVICE_FFI);
+    for (uint32_t i = 0; i < ffi.selectedAlgorithms.len; ++i) {
+        ffi.selectedAlgorithms.data[i].kaAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
+        ffi.selectedAlgorithms.data[i].kdfAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
+        ffi.selectedAlgorithms.data[i].aeadAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
+        ffi.selectedAlgorithms.data[i].macAlgorithm = fuzzData.ConsumeIntegral<uint16_t>();
+    }
 
     HostBeginAddCompanionOutput output;
     (void)DecodeHostBeginAddCompanionOutput(ffi, output);

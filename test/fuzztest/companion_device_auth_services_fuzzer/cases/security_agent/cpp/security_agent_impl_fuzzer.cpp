@@ -117,7 +117,7 @@ static void FuzzCompanionProcessCheck(std::shared_ptr<ISecurityAgent> &agent, Fu
     CompanionProcessCheckInput input;
     uint8_t protocolCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < protocolCount; ++i) {
-        input.protocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
+        input.companionProtocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
     }
     CompanionProcessCheckOutput output;
     agent->CompanionProcessCheck(input, output);

@@ -22,7 +22,7 @@ use crate::utils::message_codec::MessageCodec;
 use crate::utils::message_codec::MessageSignParam;
 use crate::utils::{Attribute, AttributeKey};
 use crate::String;
-use crate::{log_e, p, vec, Box, Vec};
+use crate::{log_e, p, Box, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::EnrollMessage as u16;
 #[derive(Debug, Clone, PartialEq)]
 pub struct FwkEnrollRequest {
@@ -273,8 +273,8 @@ pub struct SecBindingReplyInfo {
     pub esl: i32,
     pub track_ability_level: i32,
     pub challenge: u64,
-    pub protocol_list: Vec<u16>,
-    pub capability_list: Vec<u16>,
+    pub companion_protocol_list: Vec<u16>,
+    pub companion_capability_list: Vec<u16>,
     pub selected_algorithms: SelectedAlgorithms,
     pub companion_supported_algorithms: CryptoAlgorithms,
 }
@@ -288,8 +288,8 @@ impl SecBindingReplyInfo {
         attribute.set_i32(AttributeKey::AttrEsl, self.esl);
         attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, self.track_ability_level);
         attribute.set_u64(AttributeKey::AttrHostChallenge, self.challenge);
-        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.protocol_list);
-        attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.capability_list);
+        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.companion_protocol_list);
+        attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.companion_capability_list);
         attribute.set_u16(AttributeKey::AttrKaAlgoList, self.selected_algorithms.ka_algorithm);
         attribute.set_u16(AttributeKey::AttrKdfAlgoList, self.selected_algorithms.kdf_algorithm);
         attribute.set_u16(AttributeKey::AttrAeadAlgoList, self.selected_algorithms.aead_algorithm);
@@ -321,8 +321,8 @@ impl SecBindingReplyInfo {
         let esl = attribute.get_i32(AttributeKey::AttrEsl).map_err(|e| p!(e))?;
         let track_ability_level = attribute.get_i32(AttributeKey::AttrTrackAbilityLevel).map_err(|e| p!(e))?;
         let challenge = attribute.get_u64(AttributeKey::AttrHostChallenge).map_err(|e| p!(e))?;
-        let protocol_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
-        let capability_list =
+        let companion_protocol_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
+        let companion_capability_list =
             attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
         let selected_ka_algorithm = attribute.get_u16(AttributeKey::AttrKaAlgoList).map_err(|e| p!(e))?;
         let selected_kdf_algorithm = attribute.get_u16(AttributeKey::AttrKdfAlgoList).map_err(|e| p!(e))?;
@@ -349,8 +349,8 @@ impl SecBindingReplyInfo {
             esl,
             track_ability_level,
             challenge,
-            protocol_list,
-            capability_list,
+            companion_protocol_list,
+            companion_capability_list,
             selected_algorithms: SelectedAlgorithms {
                 ka_algorithm: selected_ka_algorithm,
                 kdf_algorithm: selected_kdf_algorithm,

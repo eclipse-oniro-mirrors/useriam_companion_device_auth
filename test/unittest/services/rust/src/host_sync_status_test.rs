@@ -40,11 +40,11 @@ use crate::ut_registry_guard;
 use crate::utils::{Attribute, AttributeKey};
 use std::boxed::Box;
 
-fn create_valid_sync_reply_message(challenge: u64, protocol_list: &[u16], capability_list: &[u16]) -> Vec<u8> {
+fn create_valid_sync_reply_message(challenge: u64, companion_protocol_list: &[u16], companion_capability_list: &[u16]) -> Vec<u8> {
     let mut encrypt_attribute = Attribute::new();
     encrypt_attribute.set_u64(AttributeKey::AttrHostChallenge, challenge);
-    encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, protocol_list);
-    encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, capability_list);
+    encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, companion_protocol_list);
+    encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, companion_capability_list);
 
     let encrypt_data = encrypt_attribute.to_bytes().unwrap();
     let tag = [1u8; AES_GCM_TAG_SIZE];
@@ -58,7 +58,7 @@ fn create_mock_companion_device() -> CompanionDevice {
     create_mock_companion_device_with_capabilities(vec![1, 2, 3])
 }
 
-fn create_mock_companion_device_with_capabilities(capability_list: Vec<u16>) -> CompanionDevice {
+fn create_mock_companion_device_with_capabilities(enrolled_capability_list: Vec<u16>) -> CompanionDevice {
     CompanionDevice {
         template_id: 123,
         device_key: DeviceKey {
@@ -70,8 +70,8 @@ fn create_mock_companion_device_with_capabilities(capability_list: Vec<u16>) -> 
         user_info: UserInfo { user_key: UserKey { user_id: 100, sub_profile_id: 0 }, user_type: 0 },
         added_time: 123456,
         is_valid: true,
-        capability_list,
-        protocol_id: 1,
+        enrolled_capability_list,
+        enrolled_protocol_id: 1,
         secure_protocol_id: 1,
     }
 }
@@ -417,12 +417,12 @@ fn host_sync_status_request_end_test_protocol_list_mismatch() {
     assert_eq!(result, Err(ErrorCode::ProtocolNegotiationFailed));
 }
 
-// An authenticated capability announcement entirely outside the enrolled pin is a parameter
+// An authenticated capability announcement entirely outside the enrolled capability list is a parameter
 // divergence: fail the check and invalidate the credential.
 #[test]
-fn host_sync_status_request_end_test_capability_outside_pin_fails_and_invalidates() {
+fn host_sync_status_request_end_test_capability_outside_enrolled_list_fails_and_invalidates() {
     let _guard = ut_registry_guard!();
-    log_i!("host_sync_status_request_end_test_capability_outside_pin_fails_and_invalidates start");
+    log_i!("host_sync_status_request_end_test_capability_outside_enrolled_list_fails_and_invalidates start");
 
     let update_device_calls = std::rc::Rc::new(std::cell::Cell::new(0u32));
     set_up_sync_db_mock(update_device_calls.clone());
@@ -501,7 +501,7 @@ fn host_sync_status_request_end_test_enrolled_protocol_mismatch() {
     mock_companion_device_db_manager.expect_get_device().returning(|| {
         // Binding enrolled at a protocol this build does not speak.
         let mut device = create_mock_companion_device();
-        device.protocol_id = HIGHER_PROTOCOL_VERSION;
+        device.enrolled_protocol_id = HIGHER_PROTOCOL_VERSION;
         Ok(device)
     });
     mock_companion_device_db_manager.expect_update_device().returning(move || {
@@ -529,9 +529,8 @@ fn host_sync_status_request_end_test_enrolled_protocol_mismatch() {
     assert_eq!(update_device_calls.get(), 1);
 }
 
-// An authenticated divergence invalidates the binding regardless of the announced user key: the
-// verdict is produced after the proof decrypted and the challenge verified, so it must not depend
-// on which user key the discovery cache happens to hold.
+// An authenticated divergence (found after the proof verified) invalidates the binding
+// regardless of which user key the discovery cache holds.
 #[test]
 fn host_sync_status_request_end_test_untrusted_user_key_still_invalidates() {
     let _guard = ut_registry_guard!();
@@ -556,7 +555,7 @@ fn host_sync_status_request_end_test_untrusted_user_key_still_invalidates() {
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| {
         let mut device = create_mock_companion_device();
-        device.protocol_id = HIGHER_PROTOCOL_VERSION;
+        device.enrolled_protocol_id = HIGHER_PROTOCOL_VERSION;
         Ok(device)
     });
     mock_companion_device_db_manager.expect_update_device().returning(move || {
@@ -627,9 +626,9 @@ fn host_sync_status_request_end_test_get_device_fail() {
 }
 
 #[test]
-fn host_sync_status_request_end_test_empty_inner_protocol_list() {
+fn host_sync_status_request_end_test_empty_companion_protocol_list() {
     let _guard = ut_registry_guard!();
-    log_i!("host_sync_status_request_end_test_empty_inner_protocol_list start");
+    log_i!("host_sync_status_request_end_test_empty_companion_protocol_list start");
 
     mock_set_crypto_engine();
     let update_device_calls = std::rc::Rc::new(std::cell::Cell::new(0u32));
@@ -755,7 +754,7 @@ fn host_sync_status_request_end_test_secure_protocol_not_supported()
 }
 
 // ============================================================================
-// Capability-axis judgements on the sync reply (design §6)
+// Capability-axis judgements on the sync reply
 // ============================================================================
 
 fn set_up_sync_db_mock(update_device_calls: std::rc::Rc<std::cell::Cell<u32>>) {
@@ -809,16 +808,15 @@ fn run_sync_end(sec_message: Vec<u8>) -> (Result<(), ErrorCode>, HostEndCompanio
 }
 
 fn output_capability_values(output: &HostEndCompanionCheckOutputFfi) -> Vec<u16> {
-    output.capability_list.data[..output.capability_list.len as usize].to_vec()
+    output.companion_capability_list.data[..output.companion_capability_list.len as usize].to_vec()
 }
 
-// The capability pin is frozen at enrollment: an authenticated announcement growing beyond the
-// pin is clipped by the intersection — the round succeeds with the pin as the effective set and
-// nothing is written. Re-enrollment is the only way to widen the pin.
+// The selected capability list is frozen at enrollment: an announcement growing beyond it is
+// clipped, nothing is written, and re-enrollment is the only way to widen it.
 #[test]
-fn host_sync_status_request_end_test_capability_growth_clamped_to_pin() {
+fn host_sync_status_request_end_test_capability_growth_clamped_to_selected_list() {
     let _guard = ut_registry_guard!();
-    log_i!("host_sync_status_request_end_test_capability_growth_clamped_to_pin start");
+    log_i!("host_sync_status_request_end_test_capability_growth_clamped_to_selected_list start");
 
     let update_device_calls = std::rc::Rc::new(std::cell::Cell::new(0u32));
     let persisted: Vec<u16> = vec![Capability::DelegateAuth as u16, Capability::TokenAuth as u16];
@@ -834,7 +832,7 @@ fn host_sync_status_request_end_test_capability_growth_clamped_to_pin() {
     assert_eq!(update_device_calls.get(), 0);
 }
 
-// Partial overlap leaves part of the enrolled pin uncovered: fail instead of returning only the
+// Partial overlap leaves part of the enrolled capability list uncovered: fail instead of returning only the
 // intersection, and invalidate the diverged credential.
 #[test]
 fn host_sync_status_request_end_test_capability_partial_overlap_fails_and_invalidates() {
@@ -856,7 +854,7 @@ fn host_sync_status_request_end_test_capability_partial_overlap_fails_and_invali
     assert_eq!(update_device_calls.get(), 1);
 }
 
-// A strict subset of the enrolled pin is also a divergence: fail the check and invalidate the
+// A strict subset of the enrolled capability list is also a divergence: fail the check and invalidate the
 // credential rather than accepting a shrunk effective capability set.
 #[test]
 fn host_sync_status_request_end_test_capability_shrink_fails_and_invalidates() {
@@ -874,7 +872,7 @@ fn host_sync_status_request_end_test_capability_shrink_fails_and_invalidates() {
     assert_eq!(update_device_calls.get(), 1);
 }
 
-// An empty announcement cannot cover a non-empty enrolled pin: fail and invalidate instead of
+// An empty announcement cannot cover a non-empty enrolled capability list: fail and invalidate instead of
 // converging to an empty effective set.
 #[test]
 fn host_sync_status_request_end_test_empty_announcement_fails_and_invalidates() {
@@ -891,11 +889,11 @@ fn host_sync_status_request_end_test_empty_announcement_fails_and_invalidates() 
     assert_eq!(update_device_calls.get(), 1);
 }
 
-// An empty enrolled pin is a valid no-capability binding and is covered by an empty announcement.
+// An empty enrolled capability list is a valid no-capability binding and is covered by an empty announcement.
 #[test]
-fn host_sync_status_request_end_test_empty_pin_allows_empty_announcement() {
+fn host_sync_status_request_end_test_empty_enrolled_list_allows_empty_announcement() {
     let _guard = ut_registry_guard!();
-    log_i!("host_sync_status_request_end_test_empty_pin_allows_empty_announcement start");
+    log_i!("host_sync_status_request_end_test_empty_enrolled_list_allows_empty_announcement start");
 
     let update_device_calls = std::rc::Rc::new(std::cell::Cell::new(0u32));
     set_up_sync_db_mock_with_device(
@@ -910,12 +908,12 @@ fn host_sync_status_request_end_test_empty_pin_allows_empty_announcement() {
     assert_eq!(update_device_calls.get(), 0);
 }
 
-// The pin never changes after enrollment: a successful round never writes the DB. The bare
+// The enrolled capability list never changes after enrollment: a successful round never writes the DB. The bare
 // mock has no update_device expectation, so any write panics the test.
 #[test]
-fn host_sync_status_request_end_test_success_never_writes_capability_pin() {
+fn host_sync_status_request_end_test_success_never_writes_capability_selection() {
     let _guard = ut_registry_guard!();
-    log_i!("host_sync_status_request_end_test_success_never_writes_capability_pin start");
+    log_i!("host_sync_status_request_end_test_success_never_writes_capability_selection start");
 
     mock_set_crypto_engine();
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
@@ -941,9 +939,8 @@ fn host_sync_status_request_end_test_success_never_writes_capability_pin() {
     assert_eq!(output_capability_values(&output), ALL_CAPABILITIES.to_vec());
 }
 
-// Multi-processor spec: the reply is decoded once per enrolled processor row and the
-// negotiated lists must agree across rows. ProcessorType has a single variant today, so both
-// rows decode the same section; a genuine cross-processor divergence needs a second variant.
+// The reply is decoded once per enrolled processor row and the negotiated lists must agree
+// across rows; ProcessorType has a single variant today, so both rows decode the same section.
 #[test]
 fn host_sync_status_request_end_test_multi_processor_sections_consistent() {
     let _guard = ut_registry_guard!();
