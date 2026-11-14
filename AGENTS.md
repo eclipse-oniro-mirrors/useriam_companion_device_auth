@@ -204,6 +204,7 @@ host 本地持本端能力列表参与求交，不在 `SecBindingRequest` 加密
 - **保存后不再更新**：能力列表在录入时确定，之后不更新；**同步始终不写能力 DB**，要增加能力只能重新绑定（再次经过用户同意）。同步时，对端加密内层必须完整包含绑定时保存的能力；多宣告的能力不生效，实际仍使用保存的列表。缺少任何已保存能力都返回 20014 并作废凭证；已保存列表非空而对端宣告为空，也属于缺项。已保存列表为空时，空宣告合法。
 - **两端用同一份数据判断**：Rust `check_device_capability` 读 DB 里的持久化列表，必须明确包含所查能力，列表为空就拒绝；C++ `IsCapabilitySupported` 读内存镜像，同样要求明确包含，列表为空返回 false。设备状态更新始终保留内存中保存的列表，不采信同步通告，也不重读 DB。`HasCapability` 中"空集表示全支持"只用于 localProfile 配置来源，不能用来判断设备能力。
 - **enroll 时校验同步通告一致性**：host 把同步通道缓存的对端能力列表（proof 有效时为身份校验列表，否则明文回退）经 FFI 传入加密层，与 SecBindingReply 加密宣告做 `same_elements` 比对，分歧返回 20014 终止本轮、不落库（fail-closed；enroll 无存量凭证可作废）。对端能力配置在「上次同步」与「本次 enroll」之间变更会触发一次分歧，同步刷新后重试即可，与协议轴过期选值 → 20011 同类。比对用的 FFI 字段是对端数据中继，不做本端支持集校验。
+- **能力不含 TOKEN_AUTH 时 enroll 只预置不激活**：enroll 仍生成并下发 token（旧 companion 不容忍空 token 节，照发保跨版本兼容）；协商后的能力列表不含 TokenAuth（含空列表）时，host 收到回包后用 `IsCapabilitySupported` 跳过 token ATL 激活，token 存而不可用。enroll 发 token 只是预发，不是授权点，使用与补发/刷新由 issue_token/refresh/token_auth 既有 capability 门禁把关。
 - "该设备当前没有可用的伴随校验能力"用空的能力列表表示，是否可用由界面/框架层决定，本层不拦截。
 
 ### sync 校验
