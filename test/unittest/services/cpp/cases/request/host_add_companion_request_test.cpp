@@ -819,7 +819,37 @@ HWTEST_F(HostAddCompanionRequestTest, HandleEndAddHostBindingReply_001, TestSize
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->templateId_ = TEMPLATE_ID;
 
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _, true)).WillOnce(Return(true));
+
+    Attributes reply;
+    EndAddHostBindingReply replyMsg = { .result = ResultCode::SUCCESS };
+    EncodeEndAddHostBindingReply(replyMsg, reply);
+
+    request->HandleEndAddHostBindingReply(reply);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*successCalled);
+}
+
+HWTEST_F(HostAddCompanionRequestTest, HandleEndAddHostBindingReply_006_TokenAuthNotNegotiated, TestSize.Level0)
+{
+    // TokenAuth not in the negotiated capability list: token activation is skipped,
+    // but the enrollment still completes with success.
+    MockGuard guard;
+
+    auto successCalled = std::make_shared<bool>(false);
+    auto callback = [successCalled](ResultCode result, const std::vector<uint8_t> &) {
+        if (result == ResultCode::SUCCESS) {
+            *successCalled = true;
+        }
+    };
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+    request->templateId_ = TEMPLATE_ID;
+
+    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(false));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _, true)).Times(0);
 
     Attributes reply;
     EndAddHostBindingReply replyMsg = { .result = ResultCode::SUCCESS };

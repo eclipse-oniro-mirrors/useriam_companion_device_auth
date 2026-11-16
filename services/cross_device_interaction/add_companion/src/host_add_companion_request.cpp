@@ -564,8 +564,12 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
     }
 
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
-    GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, tokenAuthAtl_, true);
-    IAM_LOGI("%{public}s token activated successfully", GetDescription());
+    if (GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::TOKEN_AUTH)) {
+        GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, tokenAuthAtl_, true);
+        IAM_LOGI("%{public}s token activated successfully", GetDescription());
+    } else {
+        IAM_LOGI("%{public}s TokenAuth not negotiated, skip token activation", GetDescription());
+    }
 
     errorGuard.Cancel();
     CompleteWithSuccess();
