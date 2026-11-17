@@ -115,6 +115,7 @@ const int32_t FRAMEWORKS_NOT_FOUND = 32600002;
 const int32_t FRAMEWORKS_INVALID_PARAMS = 32600003;
 const std::string USE_USER_IDM_PERMISSION = "ohos.permission.USE_USER_IDM";
 const std::string ACCESS_USER_AUTH_INTERNAL_PERMISSION = "ohos.permission.ACCESS_USER_AUTH_INTERNAL";
+constexpr size_t MAX_ARRAY_LENGTH = 90 * 1024;
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

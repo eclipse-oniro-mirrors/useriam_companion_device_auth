@@ -193,6 +193,7 @@ impl DefaultCompanionDeviceDbManager {
             parcel.write_i32(supported_business_id);
         }
         parcel.write_string(&base_info.device_sub_profile_name);
+        parcel.write_string(&base_info.icon_file_name);
     }
 
     fn deserialize_device_profile(parcel: &mut Parcel) -> Result<CompanionDeviceProfile, ErrorCode> {
@@ -232,6 +233,7 @@ impl DefaultCompanionDeviceDbManager {
         }
 
         let device_sub_profile_name = parcel.read_string().map_err(|e| p!(e))?;
+        let icon_file_name = parcel.read_string().map_err(|e| p!(e))?;
 
         Ok(CompanionDeviceProfile {
             device_model_info,
@@ -241,6 +243,7 @@ impl DefaultCompanionDeviceDbManager {
             device_type,
             supported_business_ids,
             device_sub_profile_name,
+            icon_file_name,
         })
     }
 

@@ -61,6 +61,7 @@ struct EndAddCompanionOutput {
     Atl atl;
     int32_t esl;
     TemplateId templateId;
+    std::vector<Capability> enrolledCapabilityList; // Negotiated capability list persisted at enrollment
 };
 
 class ICompanionManager : public NoCopyable {

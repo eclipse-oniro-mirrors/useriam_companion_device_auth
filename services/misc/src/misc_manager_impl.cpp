@@ -32,6 +32,7 @@
 #include "adapter_manager.h"
 #include "callback_death_recipient.h"
 #include "cda_secure_vector.h"
+#include "common_defines.h"
 #include "ipc_passcode_submit_callback_stub.h"
 #include "ipc_set_device_select_result_callback_stub.h"
 #include "parameter.h"
@@ -76,6 +77,11 @@ public:
         std::lock_guard<std::recursive_mutex> guard(mutex_);
         if (!handler_) {
             IAM_LOGE("handler is invalid");
+            return ERR_INVALID_VALUE;
+        }
+        if (ipcDeviceSelectResult.hasSelectionContext &&
+            ipcDeviceSelectResult.selectionContext.size() > MAX_ARRAY_LENGTH) {
+            IAM_LOGE("selectionContext too large: %{public}zu", ipcDeviceSelectResult.selectionContext.size());
             return ERR_INVALID_VALUE;
         }
         std::vector<DeviceKey> deviceKeys = ConvertIpcDeviceSelectResultToDeviceKeys(ipcDeviceSelectResult);

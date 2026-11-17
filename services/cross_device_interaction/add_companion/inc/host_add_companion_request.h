@@ -24,6 +24,7 @@
 #include <nlohmann/json.hpp>
 
 #include "add_companion_message.h"
+#include "companion_icon_store.h"
 #include "companion_manager.h"
 #include "error_guard.h"
 #include "outbound_request.h"
@@ -51,7 +52,8 @@ protected:
     bool RequireSyncedDevice() const override;
 
 private:
-    void HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices);
+    void HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices,
+        const std::optional<std::vector<uint8_t>> &selectionContext);
     bool BeginAddCompanion(const InitKeyNegotiationReply &reply, std::vector<uint8_t> &addHostBindingRequest,
         ErrorGuard &errorGuard);
     void HandleInitKeyNegotiationReply(const Attributes &reply);
@@ -76,10 +78,11 @@ private:
 
     std::vector<uint8_t> fwkMsg_;
     uint32_t tokenId_ = 0;
-    std::string additionalInfo_; // Store additionalInfo for parsing
+    std::string additionalInfo_;
     std::vector<uint8_t> addCompanionFwkMsg_ {};
-    std::vector<uint8_t> pendingTokenData_ {}; // Token data for EndAddHostBinding message
-    Atl tokenAuthAtl_ = 0;                     // ATL level of token auth
+    std::vector<uint8_t> pendingTokenData_ {};
+    Atl tokenAuthAtl_ = 0;
+    std::vector<Capability> enrolledCapabilityList_ {};
     bool needCancelCompanionAdd_ = false;
     bool enrollmentSucceeded_ = false;
     bool deviceSelectResultHandled_ = false;
@@ -88,6 +91,7 @@ private:
     SecureProtocolId secureProtocolId_ = SecureProtocolId::INVALID;
     std::vector<BusinessId> enabledBusinessIdsFromAdditionalInfo_; // Parsed from additionalInfo
     ProtocolId selectedProtocolId_ { ProtocolId::INVALID };
+    std::optional<CompanionIcon> companionIcon_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

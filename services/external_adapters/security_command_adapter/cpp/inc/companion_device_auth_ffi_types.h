@@ -244,6 +244,7 @@ typedef struct PersistedCompanionStatusFfi {
     struct DataArray256Ffi deviceUserName;
     struct DataArray256Ffi deviceName;
     struct DataArray256Ffi deviceSubProfileIdName;
+    struct DataArray128Ffi iconFileName;
     uint16_t enrolledProtocolId;
     struct Uint16Array64Ffi enrolledCapabilityList;
 } PersistedCompanionStatusFfi;

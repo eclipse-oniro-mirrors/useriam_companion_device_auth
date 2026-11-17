@@ -28,6 +28,7 @@
 #include "cda_json_helper.h"
 #include "common_defines.h"
 #include "common_message.h"
+#include "companion_icon_store.h"
 #include "companion_manager.h"
 #include "error_guard.h"
 #include "fwk_common.h"
@@ -132,17 +133,18 @@ bool HostAddCompanionRequest::OnStart([[maybe_unused]] ErrorGuard &errorGuard)
 
     bool selectorSet = GetMiscManager().GetDeviceDeviceSelectResult(tokenId_, SelectPurpose::SELECT_ADD_DEVICE,
         [weakSelf = weak_from_this()](const std::vector<DeviceKey> &selectedDevices,
-            const std::optional<std::vector<uint8_t>> &_) {
+            const std::optional<std::vector<uint8_t>> &selectionContext) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
-            self->HandleDeviceSelectResult(selectedDevices);
+            self->HandleDeviceSelectResult(selectedDevices, selectionContext);
         });
     ENSURE_OR_RETURN_DESC_VAL(GetDescription(), selectorSet, false);
     eventCollector_.EnterWait(HostAddCompanionStages::WAIT_DEVICE_SELECT);
     return true;
 }
 
-void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices)
+void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceKey> &selectedDevices,
+    const std::optional<std::vector<uint8_t>> &selectionContext)
 {
     ENSURE_OR_RETURN_DESC(GetDescription(), !deviceSelectResultHandled_);
     deviceSelectResultHandled_ = true;
@@ -153,6 +155,20 @@ void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceK
         return;
     }
     ErrorGuard errorGuard([this](ResultCode result) { CompleteWithError(result); });
+
+    if (selectionContext.has_value()) {
+        CompanionIcon icon;
+        ResultCode parseRet = ParseIconSelectionContext(*selectionContext, icon);
+        if (parseRet != ResultCode::SUCCESS) {
+            IAM_LOGE("%{public}s invalid icon selectionContext ret=%{public}d", GetDescription(),
+                static_cast<int32_t>(parseRet));
+            errorGuard.UpdateErrorCode(ResultCode::INVALID_PARAMETERS);
+            return;
+        }
+        companionIcon_ = std::move(icon);
+    } else {
+        IAM_LOGI("%{public}s selectionContext absent, no icon to store", GetDescription());
+    }
 
     if (selectedDevices.size() != 1) {
         IAM_LOGE("%{public}s unexpected number of devices selected: %{public}zu", GetDescription(),
@@ -444,6 +460,7 @@ std::optional<PersistedCompanionStatus> HostAddCompanionRequest::BuildPersistedC
     companionStatus.deviceSubProfileName = deviceStatus.deviceSubProfileName;
     companionStatus.isValid = true;
     companionStatus.enrolledProtocolId = selectedProtocolId_;
+    companionStatus.iconFileName = companionIcon_.value_or(CompanionIcon{}).fileName;
     return companionStatus;
 }
 
@@ -471,6 +488,7 @@ void HostAddCompanionRequest::ProcessEndAddCompanionOutput(const EndAddCompanion
     fwkMsg = output.fwkMsg;
     pendingTokenData_ = output.tokenData;
     tokenAuthAtl_ = output.atl;
+    enrolledCapabilityList_ = output.enrolledCapabilityList;
 
     eventCollector_.SetTemplateIdList({ templateId });
     eventCollector_.SetAtl(output.atl);
@@ -509,6 +527,14 @@ ResultCode HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingRep
     enrollmentSucceeded_ = true;
 
     ProcessEndAddCompanionOutput(output, fwkMsg);
+    if (companionIcon_.has_value()) {
+        // The binding is already persisted; an icon write failure must not flip the enrollment result.
+        ResultCode saveRet = SaveIconToDirectory(BuildIconDirectory(hostDeviceKey_.deviceUserId), *companionIcon_);
+        if (saveRet != ResultCode::SUCCESS) {
+            IAM_LOGE("%{public}s SaveIcon failed ret=%{public}d, keep enrollment result", GetDescription(),
+                static_cast<int32_t>(saveRet));
+        }
+    }
     return ResultCode::SUCCESS;
 }
 
@@ -564,7 +590,9 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
     }
 
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
-    if (GetCompanionManager().IsCapabilitySupported(*templateId_, Capability::TOKEN_AUTH)) {
+    bool tokenAuthNegotiated = std::find(enrolledCapabilityList_.begin(), enrolledCapabilityList_.end(),
+        Capability::TOKEN_AUTH) != enrolledCapabilityList_.end();
+    if (tokenAuthNegotiated) {
         GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, tokenAuthAtl_, true);
         IAM_LOGI("%{public}s token activated successfully", GetDescription());
     } else {

@@ -15,6 +15,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "mock_guard.h"
 #include "mock_request.h"
@@ -116,7 +117,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_001, TestSize.Lev
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
 
     std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
-    ASSERT_NO_THROW(request->HandleDeviceSelectResult(selectedDevices));
+    ASSERT_NO_THROW(request->HandleDeviceSelectResult(selectedDevices, std::nullopt));
 }
 
 HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_002, TestSize.Level0)
@@ -135,7 +136,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_002, TestSize.Lev
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(false));
 
     std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
-    request->HandleDeviceSelectResult(selectedDevices);
+    request->HandleDeviceSelectResult(selectedDevices, std::nullopt);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(*errorCalled);
@@ -155,7 +156,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_003, TestSize.Lev
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
     std::vector<DeviceKey> selectedDevices = {};
-    request->HandleDeviceSelectResult(selectedDevices);
+    request->HandleDeviceSelectResult(selectedDevices, std::nullopt);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(*errorCalled);
@@ -179,7 +180,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_004, TestSize.Lev
 
     DeviceKey invalidKey = { .deviceId = "invalid_user_device", .deviceUserId = INVALID_USER_ID };
     std::vector<DeviceKey> selectedDevices = { invalidKey };
-    request->HandleDeviceSelectResult(selectedDevices);
+    request->HandleDeviceSelectResult(selectedDevices, std::nullopt);
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(*errorCalled);
@@ -818,8 +819,10 @@ HWTEST_F(HostAddCompanionRequestTest, HandleEndAddHostBindingReply_001, TestSize
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->templateId_ = TEMPLATE_ID;
+    // The activation gate reads the negotiated list carried by the enrollment reply
+    // (in-memory mirror is not readable before the template is added to IDM).
+    request->enrolledCapabilityList_ = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
 
-    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(true));
     EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _, true)).WillOnce(Return(true));
 
     Attributes reply;
@@ -847,8 +850,9 @@ HWTEST_F(HostAddCompanionRequestTest, HandleEndAddHostBindingReply_006_TokenAuth
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->templateId_ = TEMPLATE_ID;
+    // Negotiated list without TokenAuth (an empty list behaves the same): activation must be skipped.
+    request->enrolledCapabilityList_ = { Capability::DELEGATE_AUTH };
 
-    EXPECT_CALL(guard.GetCompanionManager(), IsCapabilitySupported(_, Capability::TOKEN_AUTH)).WillOnce(Return(false));
     EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, _, true)).Times(0);
 
     Attributes reply;

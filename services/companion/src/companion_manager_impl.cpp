@@ -28,6 +28,7 @@
 #include "adapter_manager.h"
 #include "cda_scope_guard.h"
 #include "companion.h"
+#include "companion_icon_store.h"
 #include "event_manager_adapter.h"
 #include "host_remove_host_binding_request.h"
 #include "relative_timer.h"
@@ -260,6 +261,7 @@ void CompanionManagerImpl::ProcessEndAddCompanionOutput(const HostEndAddCompanio
     output.tokenData = secOutput.tokenData;
     output.atl = secOutput.atl;
     output.esl = secOutput.esl;
+    output.enrolledCapabilityList = CapabilityConverter::FromUnderlyingVec(secOutput.enrolledCapabilityList);
 }
 
 ResultCode CompanionManagerImpl::InvokeHostEndAddCompanion(const HostEndAddCompanionInput &input,
@@ -639,13 +641,37 @@ ResultCode CompanionManagerImpl::AddCompanionInternal(const std::shared_ptr<Comp
 
 ResultCode CompanionManagerImpl::RemoveCompanionInternal(TemplateId templateId)
 {
+    std::optional<std::string> removedIconFileName;
+    UserId userId = INVALID_USER_ID;
     // clang-format off
     companions_.erase(std::remove_if(companions_.begin(), companions_.end(),
-        [templateId](const std::shared_ptr<Companion> &companion) {
-            return companion != nullptr && companion->GetTemplateId() == templateId;
+        [templateId, &removedIconFileName, &userId](const std::shared_ptr<Companion> &companion) {
+            if (companion != nullptr && companion->GetTemplateId() == templateId) {
+                removedIconFileName = companion->GetIconFileName();
+                userId = companion->GetHostUserKey().userId;
+                return true;
+            }
+            return false;
         }),
         companions_.end());
     // clang-format on
+    if (!removedIconFileName.has_value() || removedIconFileName->empty() || userId == INVALID_USER_ID) {
+        return ResultCode::SUCCESS;
+    }
+    const std::string &iconFileName = *removedIconFileName;
+    bool stillReferenced = std::any_of(companions_.begin(), companions_.end(),
+        [&iconFileName, userId](const std::shared_ptr<Companion> &companion) {
+            return companion != nullptr && companion->GetHostUserKey().userId == userId &&
+                companion->GetIconFileName() == iconFileName;
+        });
+    if (stillReferenced) {
+        return ResultCode::SUCCESS;
+    }
+    ResultCode ret = DeleteIconFromDirectory(BuildIconDirectory(userId), iconFileName);
+    if (ret != ResultCode::SUCCESS) {
+        IAM_LOGE("delete icon %{public}s failed ret=%{public}d, keep going", iconFileName.c_str(),
+            static_cast<int32_t>(ret));
+    }
     return ResultCode::SUCCESS;
 }
 

@@ -31,7 +31,8 @@ use crate::entry::companion_device_auth_ffi::{
     CompanionPreIssueTokenOutputFfi, CompanionProcessCheckInputFfi, CompanionProcessCheckOutputFfi,
     CompanionProcessIssueTokenInputFfi, CompanionProcessIssueTokenOutputFfi, CompanionProcessTokenAuthInputFfi,
     CompanionProcessTokenAuthOutputFfi, CompanionRemoveHostBindingInputFfi, CompanionRemoveHostBindingOutputFfi,
-    CompanionRevokeTokenInputFfi, CompanionRevokeTokenOutputFfi, DataArray1024Ffi, DataArray256Ffi, DeviceKeyFfi,
+    CompanionRevokeTokenInputFfi, CompanionRevokeTokenOutputFfi, DataArray128Ffi, DataArray1024Ffi, DataArray256Ffi,
+    DeviceKeyFfi,
     GetExecutorInfoInputFfi, GetExecutorInfoOutputFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
     HostBeginCompanionCheckInputFfi, HostBeginCompanionCheckOutputFfi, HostBeginDelegateAuthInputFfi,
     HostBeginDelegateAuthOutputFfi, HostBeginIssueTokenInputFfi, HostBeginIssueTokenOutputFfi,
@@ -166,6 +167,7 @@ pub fn host_get_persisted_status(
                     device_user_name: DataArray256Ffi::try_from(device_profile.device_user_name)?,
                     device_name: DataArray256Ffi::try_from(device_profile.device_name)?,
                     device_sub_profile_name: DataArray256Ffi::try_from(device_profile.device_sub_profile_name)?,
+                    icon_file_name: DataArray128Ffi::try_from(device_profile.icon_file_name)?,
                     enrolled_protocol_id: device_info.enrolled_protocol_id,
                     enrolled_capability_list: Uint16Array64Ffi::try_from(device_info.enrolled_capability_list)?,
                 };

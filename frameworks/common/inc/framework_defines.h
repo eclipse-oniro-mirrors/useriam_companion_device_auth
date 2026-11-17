@@ -28,7 +28,6 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 constexpr size_t UINT64_BYTE_SIZE = 8;
 constexpr uint8_t UINT8_BYTE_MASK = 0xFF;
-constexpr size_t MAX_ARRAY_LENGTH = 20 * 1024;
 constexpr int MAX_STRING_LENGTH = 65536;
 constexpr int32_t ATL1 = 10000;
 constexpr int32_t ATL2 = 20000;

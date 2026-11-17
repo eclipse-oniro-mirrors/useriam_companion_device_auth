@@ -104,6 +104,9 @@ bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, Pers
     if (!DecodeDataArrayToString(ffi.deviceSubProfileIdName, status.deviceSubProfileName)) {
         return false;
     }
+    if (!DecodeDataArrayToString(ffi.iconFileName, status.iconFileName)) {
+        return false;
+    }
     status.enrolledProtocolId = static_cast<ProtocolId>(ffi.enrolledProtocolId);
     if (!FfiArrayToVector(ffi.enrolledCapabilityList, status.capabilities)) {
         IAM_LOGE("failed to decode capability list");
@@ -139,7 +142,8 @@ bool EncodePersistedCompanionStatus(const PersistedCompanionStatus &status, Pers
     if (!EncodeStringToDataArray(status.deviceModelInfo, ffi.deviceModelInfo, "device model info") ||
         !EncodeStringToDataArray(status.deviceUserName, ffi.deviceUserName, "device user name") ||
         !EncodeStringToDataArray(status.deviceName, ffi.deviceName, "device name") ||
-        !EncodeStringToDataArray(status.deviceSubProfileName, ffi.deviceSubProfileIdName, "device sub profile name")) {
+        !EncodeStringToDataArray(status.deviceSubProfileName, ffi.deviceSubProfileIdName, "device sub profile name") ||
+        !EncodeStringToDataArray(status.iconFileName, ffi.iconFileName, "icon file name")) {
         return false;
     }
     ffi.enrolledProtocolId = static_cast<uint16_t>(status.enrolledProtocolId);

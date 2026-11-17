@@ -61,6 +61,11 @@ public:
         return status_.companionDeviceStatus.deviceKey;
     }
 
+    const std::string &GetIconFileName() const
+    {
+        return status_.iconFileName;
+    }
+
     CompanionStatus GetStatus() const
     {
         return status_;

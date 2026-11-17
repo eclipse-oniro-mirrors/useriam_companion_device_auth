@@ -301,6 +301,7 @@ struct PersistedCompanionStatus {
     std::string deviceName {};
     DeviceType deviceType { DeviceType::INVALID };
     std::string deviceSubProfileName {};
+    std::string iconFileName {};
     ProtocolId enrolledProtocolId { ProtocolId::VERSION_1 };
     std::vector<Capability> capabilities {};
 };
@@ -324,6 +325,7 @@ struct CompanionStatus {
         companionDeviceStatus.deviceSubProfileName = persistedStatus.deviceSubProfileName;
         companionDeviceStatus.protocolId = persistedStatus.enrolledProtocolId;
         companionDeviceStatus.capabilities = persistedStatus.capabilities;
+        iconFileName = persistedStatus.iconFileName;
         enrolledProtocolId = persistedStatus.enrolledProtocolId;
         tokenAuthAtl = std::nullopt;
         return *this;
@@ -344,6 +346,7 @@ struct CompanionStatus {
         persistedStatus.deviceType = companionDeviceStatus.deviceType;
         persistedStatus.supportedBusinessIds = companionDeviceStatus.supportedBusinessIds;
         persistedStatus.deviceSubProfileName = companionDeviceStatus.deviceSubProfileName;
+        persistedStatus.iconFileName = iconFileName;
         persistedStatus.enrolledProtocolId = enrolledProtocolId;
         persistedStatus.capabilities = companionDeviceStatus.capabilities;
         return persistedStatus;
@@ -363,6 +366,7 @@ struct CompanionStatus {
     std::optional<Atl> tokenAuthAtl { std::nullopt };
     std::vector<BusinessId> enabledBusinessIds {};
     int64_t addedTime { 0 };
+    std::string iconFileName {};
     ProtocolId enrolledProtocolId { ProtocolId::INVALID };
 };
 

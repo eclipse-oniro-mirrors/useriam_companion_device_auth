@@ -303,6 +303,7 @@ pub struct PersistedCompanionStatusFfi {
     pub device_user_name: DataArray256Ffi,
     pub device_name: DataArray256Ffi,
     pub device_sub_profile_name: DataArray256Ffi,
+    pub icon_file_name: DataArray128Ffi,
     pub enrolled_protocol_id: u16,
     pub enrolled_capability_list: Uint16Array64Ffi,
 }

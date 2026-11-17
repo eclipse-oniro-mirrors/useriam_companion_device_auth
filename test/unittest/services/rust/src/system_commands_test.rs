@@ -93,6 +93,7 @@ fn create_mock_companion_device_profile() -> CompanionDeviceProfile {
         device_type: 0,
         supported_business_ids: vec![1, 2, 3],
         device_sub_profile_name: String::new(),
+        icon_file_name: String::new(),
     }
 }
 

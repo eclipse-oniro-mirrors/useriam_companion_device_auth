@@ -97,7 +97,7 @@ static void FuzzHandleDeviceSelectResult(std::shared_ptr<HostAddCompanionRequest
     if (!selectedDevices.empty() && fuzzData.ConsumeBool()) {
         selectedDevices[0].deviceUserId = INVALID_USER_ID;
     }
-    request->HandleDeviceSelectResult(selectedDevices);
+    request->HandleDeviceSelectResult(selectedDevices, std::nullopt);
 }
 
 static void FuzzHandleInitKeyNegotiationReply(std::shared_ptr<HostAddCompanionRequest> &request,
