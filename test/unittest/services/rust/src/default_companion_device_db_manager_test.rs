@@ -57,6 +57,7 @@ fn create_test_base_info() -> CompanionDeviceProfile {
         supported_business_ids: vec![1, 2, 3],
         device_type: 0,
         device_sub_profile_name: String::new(),
+        icon_file_name: String::new(),
     }
 }
 
@@ -1013,6 +1014,7 @@ fn default_companion_device_db_manager_read_device_profile_test_success() {
     parcel.write_i32(0); // device_type
     parcel.write_i32(0); // supported_business_ids_len
     parcel.write_string(""); // device_sub_profile_name
+    parcel.write_string(""); // icon_file_name
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -1023,6 +1025,34 @@ fn default_companion_device_db_manager_read_device_profile_test_success() {
     let manager = DefaultCompanionDeviceDbManager::new();
     let result = manager.read_device_profile(123);
     assert!(result.is_ok());
+}
+
+#[test]
+fn default_companion_device_db_manager_read_device_profile_test_icon_file_name_round_trip() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_device_db_manager_read_device_profile_test_icon_file_name_round_trip start");
+
+    let mut parcel = Parcel::new();
+    parcel.write_i32(0);
+    parcel.write_string("TestModel");
+    parcel.write_string("TestDevice");
+    parcel.write_string("TestUser");
+    parcel.write_i32(0); // business_ids_len
+    parcel.write_i32(0); // device_type
+    parcel.write_i32(0); // supported_business_ids_len
+    parcel.write_string(""); // device_sub_profile_name
+    parcel.write_string("watch_logo.png"); // icon_file_name
+
+    let serialized_data = parcel.as_slice().to_vec();
+
+    let mut mock_storage_io = MockStorageIo::new();
+    mock_storage_io.expect_read().returning(move || Ok(serialized_data.clone()));
+    StorageIoRegistry::set(Box::new(mock_storage_io));
+
+    let manager = DefaultCompanionDeviceDbManager::new();
+    let result = manager.read_device_profile(123);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().icon_file_name, "watch_logo.png");
 }
 
 #[test]

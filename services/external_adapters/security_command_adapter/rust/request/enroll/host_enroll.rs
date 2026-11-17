@@ -118,6 +118,7 @@ pub struct HostDeviceEnrollRequest {
     pub selected_algorithms: SelectedAlgorithms,
     pub supported_business_ids: Vec<i32>,
     pub device_sub_profile_name: String,
+    pub icon_file_name: String,
 }
 
 impl HostDeviceEnrollRequest {
@@ -166,6 +167,7 @@ impl HostDeviceEnrollRequest {
             },
             supported_business_ids: Vec::new(),
             device_sub_profile_name: String::new(),
+            icon_file_name: String::new(),
         })
     }
 
@@ -581,6 +583,7 @@ impl HostDeviceEnrollRequest {
             device_type: self.device_type,
             supported_business_ids: self.supported_business_ids.clone(),
             device_sub_profile_name: self.device_sub_profile_name.clone(),
+            icon_file_name: self.icon_file_name.clone(),
         });
 
         let mut capability_infos: Vec<CompanionDeviceCapability> = Vec::new();
@@ -732,6 +735,7 @@ impl Request for HostDeviceEnrollRequest {
         self.device_type = ffi_input.companion_status.device_type;
         self.device_sub_profile_name =
             ffi_input.companion_status.device_sub_profile_name.to_string().unwrap_or_default();
+        self.icon_file_name = ffi_input.companion_status.icon_file_name.to_string().unwrap_or_default();
 
         self.decode_sec_binding_reply(ffi_input.sec_message.as_slice()?)?;
         let device_info = self.store_device_info()?;

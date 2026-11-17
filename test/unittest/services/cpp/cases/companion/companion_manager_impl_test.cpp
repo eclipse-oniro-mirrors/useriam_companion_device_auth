@@ -13,12 +13,19 @@
  * limitations under the License.
  */
 
+#include <cstdint>
+#include <fstream>
+
+#include <unistd.h>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "mock_guard.h"
 
+#include "companion_icon_store.h"
 #include "companion_manager_impl.h"
+#include "directory_ex.h"
 #include "host_issue_token_request.h"
 #include "host_remove_host_binding_request.h"
 #include "host_sync_device_status_request.h"
@@ -37,6 +44,7 @@ constexpr UserId USER_ID_100 = 100;
 constexpr UserId USER_ID_200 = 200;
 constexpr UserId USER_ID_999 = 999;
 constexpr TemplateId TEMPLATE_ID_12345 = 12345;
+constexpr TemplateId TEMPLATE_ID_12346 = 12346;
 constexpr BusinessId BUSINESS_ID_1 = static_cast<BusinessId>(1);
 constexpr BusinessId BUSINESS_ID_2 = static_cast<BusinessId>(2);
 constexpr BusinessId BUSINESS_ID_3 = static_cast<BusinessId>(3);
@@ -47,6 +55,8 @@ constexpr uint32_t UINT32_4 = 4;
 const DeviceKey MOCK_COMPANION_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
     .deviceId = "mock_companion_device_id",
     .deviceUserId = 200 };
+// Each Companion::Initialize() subscribes device status once; a reload of two companions subscribes twice.
+constexpr int32_t RELOAD_TWO_COMPANIONS_SUBSCRIBE_CALLS = 2;
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
@@ -71,6 +81,45 @@ PersistedCompanionStatus MakePersistedStatus(TemplateId templateId, UserId hostU
     status.deviceUserName = "TestUser";
     status.deviceName = "TestDevice";
     return status;
+}
+
+// Default action mocks for host-side lifecycle tests: every host action succeeds while the
+// requests themselves run for real.
+void SetupHostCompanionActionMocks(MockGuard &guard, UserId activeUserId)
+{
+    EXPECT_CALL(guard.GetUserKeyManager(), SubscribeUnlockedActiveUserKey(_))
+        .Times(AtMost(1))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetUserKeyManager(), GetUnlockedActiveUserkey())
+        .WillByDefault(Return(UserKey { activeUserId, INVALID_SUB_PROFILE_ID }));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .Times(AtMost(RELOAD_TWO_COMPANIONS_SUBSCRIBE_CALLS))
+        .WillRepeatedly(Invoke([]() { return MakeSubscription(); }));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+    ON_CALL(guard.GetSecurityAgent(), HostBeginAddCompanion(_, _))
+        .WillByDefault(DoAll(Invoke([](const HostBeginAddCompanionInput &, HostBeginAddCompanionOutput &output) {
+            output.addHostBindingRequest = { UINT32_1, UINT32_2, INT32_3, UINT32_4 };
+        }),
+            Return(ResultCode::SUCCESS)));
+    ON_CALL(guard.GetSecurityAgent(), HostEndAddCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSecurityAgent(), HostRemoveCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionStatus(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSecurityAgent(), HostUpdateCompanionEnabledBusinessIds(_))
+        .WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetSecurityAgent(), HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
+    ON_CALL(guard.GetRequestFactory(), CreateHostRemoveHostBindingRequest(_, _, _, _))
+        .WillByDefault(Invoke([](const UserKey &hostUserKey, TemplateId templateId, const DeviceKey &companionDeviceKey,
+                                  ConnectionMode connectionMode) {
+            return std::make_shared<HostRemoveHostBindingRequest>(hostUserKey, templateId, companionDeviceKey,
+                connectionMode);
+        }));
+    ON_CALL(guard.GetRequestFactory(), CreateHostIssueTokenRequest(_, _, _, _))
+        .WillByDefault(Invoke([](const UserKey &hostUserKey, TemplateId templateId, uint32_t lockStateAuthTypeValue,
+                                  const std::vector<uint8_t> &fwkUnlockMsg) {
+            return std::make_shared<HostIssueTokenRequest>(hostUserKey, templateId, lockStateAuthTypeValue,
+                fwkUnlockMsg, MOCK_COMPANION_DEVICE_KEY);
+        }));
+    ON_CALL(guard.GetRequestManager(), Start(_)).WillByDefault(Return(true));
 }
 
 class CompanionManagerImplTest : public Test {
@@ -1596,6 +1645,52 @@ HWTEST_F(CompanionManagerImplTest, IsCapabilitySupported_OnlineEmptyKeepsEnrolle
     manager->Reload(persistedList, activeTemplateIds);
 
     EXPECT_TRUE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
+}
+
+HWTEST_F(CompanionManagerImplTest, Remove_CompanionIconCleanup_RefCount, TestSize.Level0)
+{
+    MockGuard guard;
+    // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+    SetupHostCompanionActionMocks(guard, activeUserId_);
+
+    std::string iconRoot = "/data/local/tmp/cda_icon_mgr_test_" + std::to_string(static_cast<int32_t>(getpid()));
+    ForceRemoveDirectory(iconRoot);
+    SetIconStoreRootForTest(iconRoot);
+    std::string iconDir = BuildIconDirectory(activeUserId_);
+
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    auto status1 = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    status1.iconFileName = "watch.png";
+    auto status2 = MakePersistedStatus(TEMPLATE_ID_12346, activeUserId_, "device-2", USER_ID_200);
+    status2.iconFileName = "watch.png";
+    std::vector<PersistedCompanionStatus> persistedList = { status1, status2 };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345, TEMPLATE_ID_12346 };
+    manager->Reload(persistedList, activeTemplateIds);
+    ASSERT_EQ(UINT32_2, manager->GetAllCompanionStatus().size());
+
+    EXPECT_EQ(SaveIconToDirectory(iconDir, { "watch.png", { 1, 2, 3 } }), ResultCode::SUCCESS);
+
+    // Removing one of two references keeps the shared icon file.
+    EXPECT_EQ(manager->RemoveCompanion(TEMPLATE_ID_12345, false, ConnectionMode::BACKGROUND), ResultCode::SUCCESS);
+    EXPECT_EQ(UINT32_1, manager->GetAllCompanionStatus().size());
+    {
+        std::ifstream kept(iconDir + "/watch.png");
+        EXPECT_TRUE(kept.good());
+    }
+
+    // Removing the last reference deletes it.
+    EXPECT_EQ(manager->RemoveCompanion(TEMPLATE_ID_12346, false, ConnectionMode::BACKGROUND), ResultCode::SUCCESS);
+    EXPECT_EQ(0u, manager->GetAllCompanionStatus().size());
+    {
+        std::ifstream gone(iconDir + "/watch.png");
+        EXPECT_FALSE(gone.good());
+    }
+
+    SetIconStoreRootForTest(ICON_STORE_ROOT);
+    ForceRemoveDirectory(iconRoot);
 }
 
 } // namespace
