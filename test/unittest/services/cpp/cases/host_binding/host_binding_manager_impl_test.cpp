@@ -292,6 +292,38 @@ HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusByDeviceUser_001, TestS
     EXPECT_EQ(12345, status->bindingId);
 }
 
+// sub-profiles are independent device instances: a same-user different-sub-profile query
+// must not hit the binding
+HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusByDeviceUser_003, TestSize.Level0)
+{
+    MockGuard guard;
+    int32_t activeUserId_ = 100;
+    (void)activeUserId_;
+    auto manager = CreateManager(guard, activeUserId_);
+    ASSERT_NE(nullptr, manager);
+
+    auto persistedStatus = MakePersistedStatus(12345, activeUserId_, "device-1", 200);
+    persistedStatus.companionUserKey.subProfileId = 1;
+    auto binding = HostBinding::Create(persistedStatus);
+    ASSERT_NE(nullptr, binding);
+
+    ResultCode ret = manager->AddBindingInternal(binding);
+    EXPECT_EQ(ResultCode::SUCCESS, ret);
+
+    DeviceKey deviceKey;
+    deviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
+    deviceKey.deviceId = "device-1";
+    deviceKey.deviceUserId = 200;
+
+    EXPECT_FALSE(manager->GetHostBindingStatus(UserKey { activeUserId_, 2 }, deviceKey).has_value());
+    EXPECT_FALSE(
+        manager->GetHostBindingStatus(UserKey { activeUserId_, INVALID_SUB_PROFILE_ID }, deviceKey).has_value());
+
+    auto status = manager->GetHostBindingStatus(UserKey { activeUserId_, 1 }, deviceKey);
+    ASSERT_TRUE(status.has_value());
+    EXPECT_EQ(12345, status->bindingId);
+}
+
 HWTEST_F(HostBindingManagerImplTest, GetHostBindingStatusByDeviceUser_002, TestSize.Level0)
 {
     MockGuard guard;

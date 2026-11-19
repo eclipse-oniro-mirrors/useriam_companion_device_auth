@@ -20,14 +20,14 @@ use crate::common::constants::*;
 
 const PROTOCOL_VERSION_1: u16 = 1;
 use crate::entry::companion_device_auth_ffi::{
+    BindingSignatureProofFfi,
     CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi, DataArray32Ffi,
     Uint16Array64Ffi,
 };
 use crate::log_i;
 use crate::request::status_sync::companion_sync_status::CompanionDeviceSyncStatusRequest;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, UserInfo, UserKey};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
@@ -56,6 +56,7 @@ fn create_valid_input(binding_id: i32, challenge: u64) -> CompanionProcessCheckI
     companion_capability_list.len = 2;
 
     CompanionProcessCheckInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id,
         companion_protocol_list,
         companion_capability_list,
@@ -71,7 +72,7 @@ fn companion_sync_status_request_new_test_unsupported_secure_protocol_id() {
     log_i!("companion_sync_status_request_new_test_unsupported_secure_protocol_id start");
 
     let mut input = create_valid_input(123, 0);
-    input.secure_protocol_id = 2;
+    input.secure_protocol_id = 3;
     let result = CompanionDeviceSyncStatusRequest::new(&input);
     assert_eq!(result, Err(ErrorCode::SecureProtocolNotSupported));
 }
@@ -113,6 +114,7 @@ fn companion_sync_status_request_new_test_companion_capability_list_convert_fail
     companion_capability_list.len = 65;
 
     let input = CompanionProcessCheckInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         companion_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list,
@@ -173,6 +175,7 @@ fn companion_sync_status_request_begin_test_wrong_input_type() {
     let mut request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
 
     let wrong_input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
@@ -193,14 +196,11 @@ fn companion_sync_status_request_begin_test_encrypt_sec_message_fail() {
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(create_mock_host_binding(123, SecureProtocolId::Default as u16)));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
@@ -227,14 +227,11 @@ fn companion_sync_status_request_begin_test_binding_without_persisted_secure_pro
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(create_mock_host_binding(123, 0)));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
@@ -269,14 +266,11 @@ fn companion_sync_status_request_begin_test_uses_enrolled_secure_protocol() {
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(create_mock_host_binding(123, SecureProtocolId::Default as u16)));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 

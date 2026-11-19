@@ -18,6 +18,7 @@
 
 #include <optional>
 
+#include "binding_signature_message.h"
 #include "cda_attributes.h"
 #include "common_defines.h"
 #include "service_common.h"
@@ -30,6 +31,7 @@ struct TokenAuthRequest {
     DeviceKey hostDeviceKey {};
     UserKey companionUserKey;
     std::vector<uint8_t> extraInfo;
+    std::optional<BindingSignatureProof> bindingSignatureProof;
 };
 
 // Companion -> Host

@@ -18,6 +18,7 @@
 
 #include "mock_guard.h"
 
+#include "binding_signature_message.h"
 #include "companion_token_auth_handler.h"
 #include "token_auth_message.h"
 
@@ -28,6 +29,9 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
+
+// P-256 DER signature upper bound; enforced by the Rust crypto layer, message layer does not clamp.
+constexpr size_t BINDING_SIGNATURE_VALUE_MAX_LEN = 72;
 
 class CompanionTokenAuthHandlerTest : public Test {
 protected:
@@ -59,13 +63,24 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_001, TestSize.Level0)
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(tokenAuthRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, tokenAuthRequest.hostDeviceKey.deviceId);
+    request.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, "token_auth_connection");
+    std::vector<uint8_t> bindingSignatureChallenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0xAB);
+    std::vector<uint8_t> bindingSignatureValue(BINDING_SIGNATURE_VALUE_MAX_LEN, 0xCD);
+    AttachBindingSignatureAttributes(bindingSignatureChallenge, bindingSignatureValue, request);
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), IsAuthMaintainActive()).WillOnce(Return(true));
     EXPECT_CALL(guard.GetHostBindingManager(), GetHostBindingStatus(_, _))
         .WillOnce(Return(std::make_optional(hostBindingStatus_)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::DEFAULT));
-    EXPECT_CALL(guard.GetSecurityAgent(), CompanionProcessTokenAuth(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    CompanionProcessTokenAuthInput capturedInput = {};
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionProcessTokenAuth(_, _))
+        .WillOnce(Invoke(
+            [&capturedInput](const CompanionProcessTokenAuthInput &input, CompanionProcessTokenAuthOutput &output) {
+                capturedInput = input;
+                output.tokenAuthReply = { 1 };
+                return ResultCode::SUCCESS;
+            }));
 
     Attributes reply;
     handler_->HandleRequest(request, reply);
@@ -73,6 +88,8 @@ HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_001, TestSize.Level0)
     int32_t result = -1;
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result));
     EXPECT_EQ(result, static_cast<int32_t>(ResultCode::SUCCESS));
+    EXPECT_EQ(capturedInput.bindingSignatureProof.challenge, bindingSignatureChallenge);
+    EXPECT_EQ(capturedInput.bindingSignatureProof.signature, bindingSignatureValue);
 }
 
 HWTEST_F(CompanionTokenAuthHandlerTest, HandleRequest_LocalCapabilityNotSupported, TestSize.Level0)

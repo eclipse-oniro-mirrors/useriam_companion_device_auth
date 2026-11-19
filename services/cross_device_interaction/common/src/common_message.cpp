@@ -56,7 +56,49 @@ bool DecodeDeviceKey(const Attributes &attributes, Attributes::AttributeKey user
     }
     return true;
 }
+
+bool DecodeUserKey(const Attributes &attributes, Attributes::AttributeKey userIdKey,
+    Attributes::AttributeKey subProfileIdKey, UserKey &userKey)
+{
+    if (!attributes.GetInt32Value(userIdKey, userKey.userId)) {
+        IAM_LOGE("Get user id failed");
+        return false;
+    }
+    if (attributes.HasAttribute(subProfileIdKey)) {
+        if (!attributes.GetInt32Value(subProfileIdKey, userKey.subProfileId)) {
+            IAM_LOGE("Get sub profile id failed");
+            return false;
+        }
+    } else {
+        userKey.subProfileId = INVALID_SUB_PROFILE_ID;
+    }
+    return true;
+}
 } // namespace
+
+std::optional<UserKey> DecodeHostUserKey(const Attributes &attributes)
+{
+    UserKey userKey = {};
+    // clang-format off
+    if (!DecodeUserKey(attributes, Attributes::ATTR_CDA_SA_HOST_USER_ID,
+        Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, userKey)) {
+        // clang-format on
+        return std::nullopt;
+    }
+    return userKey;
+}
+
+std::optional<UserKey> DecodeCompanionUserKey(const Attributes &attributes)
+{
+    UserKey userKey = {};
+    // clang-format off
+    if (!DecodeUserKey(attributes, Attributes::ATTR_CDA_SA_COMPANION_USER_ID,
+        Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, userKey)) {
+        // clang-format on
+        return std::nullopt;
+    }
+    return userKey;
+}
 
 std::optional<DeviceKey> DecodeHostDeviceKey(const Attributes &attributes)
 {
@@ -82,6 +124,18 @@ std::optional<DeviceKey> DecodeCompanionDeviceKey(const Attributes &attributes)
     return deviceKey;
 }
 
+bool HasHostUserKey(const Attributes &attributes)
+{
+    return attributes.HasAttribute(Attributes::ATTR_CDA_SA_HOST_USER_ID) &&
+        attributes.HasAttribute(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID);
+}
+
+bool HasCompanionUserKey(const Attributes &attributes)
+{
+    return attributes.HasAttribute(Attributes::ATTR_CDA_SA_COMPANION_USER_ID) &&
+        attributes.HasAttribute(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID);
+}
+
 void EncodeHostDeviceKey(const DeviceKey &deviceKey, Attributes &attributes)
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, deviceKey.deviceUserId);
@@ -92,6 +146,18 @@ void EncodeCompanionDeviceKey(const DeviceKey &deviceKey, Attributes &attributes
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, deviceKey.deviceUserId);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, deviceKey.deviceSubProfileId);
+}
+
+void EncodeHostUserKey(const UserKey &userKey, Attributes &attributes)
+{
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, userKey.userId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, userKey.subProfileId);
+}
+
+void EncodeCompanionUserKey(const UserKey &userKey, Attributes &attributes)
+{
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, userKey.userId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, userKey.subProfileId);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

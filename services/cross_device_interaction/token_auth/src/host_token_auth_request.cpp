@@ -165,7 +165,7 @@ bool HostTokenAuthRequest::SendTokenAuthRequest(const std::vector<uint8_t> &toke
     EncodeTokenAuthRequest(requestMsg, request);
     eventCollector_.EnterWait(HostTokenAuthStages::WAIT_TOKEN_AUTH_REPLY);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::TOKEN_AUTH, request,
+    bool sendRet = SendMessage(MessageType::TOKEN_AUTH, std::move(request),
         [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);

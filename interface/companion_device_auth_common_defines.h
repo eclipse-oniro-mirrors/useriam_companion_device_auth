@@ -62,6 +62,8 @@ struct ClientDeviceStatus {
     std::vector<int32_t> supportedBusinessIds;
     /* Friendly name assigned to the device sub profile. */
     std::string deviceSubProfileName;
+    /* Max auth trust level the device can reach. */
+    int32_t maxAuthTrustLevel;
 };
 
 /**

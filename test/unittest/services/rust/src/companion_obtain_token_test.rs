@@ -18,6 +18,7 @@ const FILE_ID: u16 = TestFileId::CompanionObtainTokenTest as u16;
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
+    BindingSignatureProofFfi,
     CompanionBeginObtainTokenInputFfi, CompanionEndObtainTokenInputFfi, CompanionProcessTokenAuthInputFfi,
     DataArray1024Ffi, PROPERTY_MODE_UNFREEZE,
 };
@@ -26,8 +27,7 @@ use crate::request::jobs::common_message::SecIssueToken;
 use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainTokenRequest;
 use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenRequest;
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, UserInfo, UserKey};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
@@ -169,6 +169,7 @@ fn companion_obtain_token_request_begin_test_wrong_input_type() {
     let mut request = CompanionDeviceObtainTokenRequest::new(&input).unwrap();
 
     let wrong_input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
@@ -365,14 +366,11 @@ fn companion_obtain_token_request_begin_test_aes_gcm_encrypt_fail() {
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(mock_enrolled_binding()));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
@@ -578,7 +576,7 @@ fn companion_obtain_token_request_new_test_unsupported_secure_protocol_id() {
         request_id: 1,
         binding_id: 123,
         fwk_message: DataArray1024Ffi::default(),
-        secure_protocol_id: 2,
+        secure_protocol_id: 3,
         sec_message: DataArray1024Ffi::default(),
     };
 

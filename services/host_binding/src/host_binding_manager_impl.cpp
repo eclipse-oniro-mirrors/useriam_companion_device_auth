@@ -326,7 +326,7 @@ std::shared_ptr<HostBinding> HostBindingManagerImpl::FindBindingByDeviceUser(con
         [userKey, &deviceKey](const std::shared_ptr<HostBinding> &binding) {
             ENSURE_OR_RETURN_VAL(binding != nullptr, false);
             const auto &key = binding->GetHostDeviceKey();
-            return binding->GetCompanionUserId() == userKey.userId && key == deviceKey;
+            return binding->GetCompanionUserKey() == userKey && key == deviceKey;
         });
 
     return (it != bindings_.end()) ? *it : nullptr;
@@ -343,7 +343,7 @@ ResultCode HostBindingManagerImpl::AddBindingInternal(const std::shared_ptr<Host
     ENSURE_OR_RETURN_VAL(binding != nullptr, ResultCode::GENERAL_ERROR);
 
     BindingId bindingId = binding->GetBindingId();
-    UserKey userKey { binding->GetCompanionUserId(), binding->GetCompanionSubProfileId() };
+    const UserKey &userKey = binding->GetCompanionUserKey();
     const DeviceKey &deviceKey = binding->GetHostDeviceKey();
 
     if (FindBindingById(bindingId) != nullptr) {
@@ -415,6 +415,12 @@ void HostBindingManagerImpl::StartObtainTokenRequests(const UserKey &activeUserK
 
     for (const auto &binding : bindings_) {
         ENSURE_OR_CONTINUE(binding != nullptr);
+
+        if (binding->IsBindingSignatureRequired()) {
+            IAM_LOGI("binding %{public}s carries a binding signature key, obtain token not support",
+                GET_MASKED_NUM_STRING(binding->GetBindingId()).c_str());
+            continue;
+        }
 
         BindingId bindingId = binding->GetBindingId();
         const DeviceKey &hostDeviceKey = binding->GetHostDeviceKey();

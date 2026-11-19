@@ -361,8 +361,9 @@ HWTEST_F(LocalDeviceStatusManagerTest, GetLocalDeviceKey_003, TestSize.Level0)
     EXPECT_FALSE(deviceKeyOpt.has_value());
 }
 
-// Lockstep invariants of the local profile: every prioritized protocol must be published in
-// protocols, and the priority floor (last entry) must stay the version every peer understands.
+// Lockstep invariants of the local profile: hostProtocols is the unconditional host priority
+// order; companionProtocols is the companion supported set whose floor (last entry) must stay
+// the version every peer understands.
 HWTEST_F(LocalDeviceStatusManagerTest, ProfileInvariants_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -384,12 +385,13 @@ HWTEST_F(LocalDeviceStatusManagerTest, ProfileInvariants_001, TestSize.Level0)
     ASSERT_NE(manager, nullptr);
 
     const auto &profile = manager->profile_;
-    // protocols is the single ordered source: members = supported set, order = priority.
-    EXPECT_FALSE(profile.protocols.empty());
-    for (const auto &protocol : profile.protocols) {
+    // hostProtocols is unconditional: V2 preferred, V1 as the priority floor.
+    EXPECT_EQ(profile.hostProtocols, (std::vector<ProtocolId> { ProtocolId::VERSION_2, ProtocolId::VERSION_1 }));
+    EXPECT_FALSE(profile.companionProtocols.empty());
+    for (const auto &protocol : profile.companionProtocols) {
         EXPECT_NE(protocol, ProtocolId::INVALID) << "invalid protocol published";
     }
-    EXPECT_EQ(profile.protocols.back(), ProtocolId::VERSION_1);
+    EXPECT_EQ(profile.companionProtocols.back(), ProtocolId::VERSION_1);
     EXPECT_FALSE(profile.hostCapabilities.empty());
     EXPECT_FALSE(profile.companionCapabilities.empty());
 }

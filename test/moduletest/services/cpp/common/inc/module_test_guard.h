@@ -249,6 +249,11 @@ public:
     // Host-side: SetSubscribeMode + SimulateDeviceOnline + build sync reply + inject + drain.
     void SetupHostSideSync(const std::string &companionDeviceId, UserId hostUserId);
 
+    // Host-side: settle the pairing sync round the add-companion flow runs between device
+    // selection and opening the connection. Inject a sync reply for the round's SYNC message
+    // (the round must be on the wire already) and drain.
+    void SettlePairingSyncRound(const DeviceKey &companionDeviceKey);
+
     // Real Executor access - call this for E2E tests instead of direct singleton access
     std::shared_ptr<FwkIAuthExecutorHdi> GetExecutor();
 

@@ -19,7 +19,6 @@ use crate::jobs::host_binding_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::token_auth_message::SecAuthReply;
-use crate::traits::crypto_engine::CryptoEngineRegistry;
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
 use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};

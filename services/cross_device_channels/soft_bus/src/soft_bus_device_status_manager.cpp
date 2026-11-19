@@ -381,6 +381,7 @@ bool SoftBusDeviceStatusManager::ConvertToPhysicalDevices(const std::vector<DmDe
             .networkId = networkId,
             .deviceType = deviceType,
             .useSyncDeviceName = true,
+            .maxAuthTrustLevel = SOFT_BUS_CHANNEL_DEFAULT_AUTH_TRUST_LEVEL,
         };
         IAM_LOGI("physical device status: networkId=%{public}s, udid=%{public}s, modelInfo=%{public}s, "
                  "osVersion=%{public}s, isAuthMaintainActive=%{public}s",

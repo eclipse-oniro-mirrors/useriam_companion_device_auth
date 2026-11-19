@@ -19,8 +19,7 @@ const FILE_ID: u16 = TestFileId::HostBindingDbHelperTest as u16;
 use crate::common::constants::*;
 use crate::jobs::host_binding_db_helper::{add_host_binding, update_host_binding_last_used_time};
 use crate::log_i;
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, UserInfo, UserKey};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSignaturePubKey, HostBindingSk, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
 use crate::ut_registry_guard;
@@ -54,18 +53,44 @@ fn add_host_binding_test() {
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let device_info = create_mock_host_binding(456);
-    let sk_info = HostBindingKeyMaterial {
+    let sk_info = HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     };
 
-    let result = add_host_binding(&device_info, &sk_info);
+    let result = add_host_binding(&device_info, &sk_info, None);
     assert!(result.is_ok());
+}
+
+// A failed signature key write rolls the half-written binding back: no V1 ghost row survives.
+#[test]
+fn add_host_binding_test_signature_key_write_fail_rolls_back() {
+    let _guard = ut_registry_guard!();
+    log_i!("add_host_binding_test_signature_key_write_fail_rolls_back start");
+
+    let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
+    mock_host_binding_db_manager.expect_get_device_by_device_key().returning(|| Err(ErrorCode::NotFound));
+    mock_host_binding_db_manager.expect_add_device().returning(|| Ok(None));
+    mock_host_binding_db_manager.expect_write_binding_signature_key().returning(|| Err(ErrorCode::GeneralError));
+    mock_host_binding_db_manager.expect_remove_device().returning(|| Ok(create_mock_host_binding(456)));
+    HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
+
+    let device_info = create_mock_host_binding(456);
+    let sk_info = HostBindingSk {
+        sk: [0u8; SHARE_KEY_LEN],
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
+    };
+    let binding_signature_key = HostBindingSignaturePubKey {
+        alg_id: P256,
+        pub_key: vec![0x04u8; BINDING_SIGNATURE_PUB_KEY_LEN],
+    };
+
+    let result = add_host_binding(&device_info, &sk_info, Some(&binding_signature_key));
+    assert_eq!(result, Err(ErrorCode::GeneralError));
 }
 
 #[test]

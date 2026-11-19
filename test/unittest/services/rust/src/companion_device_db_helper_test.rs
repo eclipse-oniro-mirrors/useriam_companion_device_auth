@@ -53,6 +53,7 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
         enrolled_capability_list: vec![1, 2, 3],
         enrolled_protocol_id: 1,
         secure_protocol_id: 0,
+        max_auth_trust_level: AuthTrustLevel::Atl0,
     }
 }
 

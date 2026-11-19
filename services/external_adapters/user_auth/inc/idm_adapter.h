@@ -38,6 +38,7 @@ public:
     virtual std::vector<uint64_t> GetUserTemplates(int32_t userId) = 0;
     virtual std::unique_ptr<Subscription> SubscribeUserTemplateChange(int32_t userId,
         TemplateChangeCallback callback) = 0;
+    virtual bool RefreshAndGetUserTemplates(int32_t userId, std::vector<uint64_t> &templateIds) = 0;
 
 #ifndef ENABLE_TEST
 protected:

@@ -69,9 +69,14 @@ companionDeviceAuth::DeviceStatus CompanionDeviceAuthAniHelper::ConvertDeviceSta
     if (!clientDeviceStatus.deviceSubProfileName.empty()) {
         deviceSubProfileName = taihe::optional<taihe::string>(std::in_place, clientDeviceStatus.deviceSubProfileName);
     }
+    taihe::optional<TaiheUserAuth::AuthTrustLevel> maxAuthTrustLevel = std::nullopt;
+    if (IsAuthTrustLevelValid(clientDeviceStatus.maxAuthTrustLevel)) {
+        maxAuthTrustLevel = taihe::optional<TaiheUserAuth::AuthTrustLevel>(std::in_place,
+            ConvertAuthTrustLevel(clientDeviceStatus.maxAuthTrustLevel));
+    }
     companionDeviceAuth::DeviceStatus result { deviceKey, clientDeviceStatus.deviceUserName,
         clientDeviceStatus.deviceModelInfo, clientDeviceStatus.deviceName, clientDeviceStatus.isOnline,
-        supportedBusinessIds, deviceSubProfileName };
+        supportedBusinessIds, deviceSubProfileName, maxAuthTrustLevel };
     return result;
 }
 
@@ -88,8 +93,6 @@ companionDeviceAuth::TemplateStatus CompanionDeviceAuthAniHelper::ConvertTemplat
         if (IsAuthTrustLevelValid(atl)) {
             authTrustLevel =
                 ::taihe::optional<TaiheUserAuth::AuthTrustLevel>(std::in_place, ConvertAuthTrustLevel(atl));
-        } else {
-            IAM_LOGE("invalid authTrustLevel:%{public}d, treat as absent", atl);
         }
     }
     companionDeviceAuth::TemplateStatus result { templateId, clientTemplateStatus.isConfirmed,
@@ -193,12 +196,6 @@ TaiheUserAuth::AuthTrustLevel CompanionDeviceAuthAniHelper::ConvertAuthTrustLeve
             IAM_LOGE("fail to convert atl");
             return TaiheUserAuth::AuthTrustLevel::key_t::ATL1;
     }
-}
-
-bool CompanionDeviceAuthAniHelper::IsAuthTrustLevelValid(int32_t authTrustLevel)
-{
-    return (
-        (authTrustLevel == ATL1) || (authTrustLevel == ATL2) || (authTrustLevel == ATL3) || (authTrustLevel == ATL4));
 }
 
 void CompanionDeviceAuthAniHelper::ThrowBusinessError(int32_t error)

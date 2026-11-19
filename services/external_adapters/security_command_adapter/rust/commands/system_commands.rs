@@ -21,39 +21,45 @@ use crate::common::constants::{
     TOKEN_VALID_PERIOD,
 };
 use crate::entry::companion_device_auth_ffi::{
-    CompanionBeginAddHostBindingInputFfi, CompanionBeginAddHostBindingOutputFfi, CompanionBeginDelegateAuthInputFfi,
+    BindingSignatureProofFfi, CompanionBeginAddHostBindingInputFfi, CompanionBeginAddHostBindingOutputFfi,
+    CompanionBeginDelegateAuthInputFfi,
     CompanionBeginDelegateAuthOutputFfi, CompanionBeginObtainTokenInputFfi, CompanionBeginObtainTokenOutputFfi,
     CompanionCancelIssueTokenInputFfi, CompanionCancelIssueTokenOutputFfi, CompanionCancelObtainTokenInputFfi,
     CompanionCancelObtainTokenOutputFfi, CompanionEndAddHostBindingInputFfi, CompanionEndAddHostBindingOutputFfi,
     CompanionEndDelegateAuthInputFfi, CompanionEndDelegateAuthOutputFfi, CompanionEndObtainTokenInputFfi,
-    CompanionEndObtainTokenOutputFfi, CompanionGetPersistedStatusInputFfi, CompanionGetPersistedStatusOutputFfi,
-    CompanionInitKeyNegotiationInputFfi, CompanionInitKeyNegotiationOutputFfi, CompanionPreIssueTokenInputFfi,
-    CompanionPreIssueTokenOutputFfi, CompanionProcessCheckInputFfi, CompanionProcessCheckOutputFfi,
-    CompanionProcessIssueTokenInputFfi, CompanionProcessIssueTokenOutputFfi, CompanionProcessTokenAuthInputFfi,
-    CompanionProcessTokenAuthOutputFfi, CompanionRemoveHostBindingInputFfi, CompanionRemoveHostBindingOutputFfi,
-    CompanionRevokeTokenInputFfi, CompanionRevokeTokenOutputFfi, DataArray128Ffi, DataArray1024Ffi, DataArray256Ffi,
-    DeviceKeyFfi,
-    GetExecutorInfoInputFfi, GetExecutorInfoOutputFfi, HostBeginAddCompanionInputFfi, HostBeginAddCompanionOutputFfi,
-    HostBeginCompanionCheckInputFfi, HostBeginCompanionCheckOutputFfi, HostBeginDelegateAuthInputFfi,
-    HostBeginDelegateAuthOutputFfi, HostBeginIssueTokenInputFfi, HostBeginIssueTokenOutputFfi,
-    HostBeginTokenAuthInputFfi, HostBeginTokenAuthOutputFfi, HostCancelAddCompanionInputFfi,
-    HostCancelAddCompanionOutputFfi, HostCancelCompanionCheckInputFfi, HostCancelCompanionCheckOutputFfi,
-    HostCancelDelegateAuthInputFfi, HostCancelDelegateAuthOutputFfi, HostCancelIssueTokenInputFfi,
-    HostCancelIssueTokenOutputFfi, HostCancelObtainTokenInputFfi, HostCancelObtainTokenOutputFfi,
-    HostCheckTemplateEnrolledInputFfi, HostCheckTemplateEnrolledOutputFfi, HostEndAddCompanionInputFfi,
-    HostEndAddCompanionOutputFfi, HostEndCompanionCheckInputFfi, HostEndCompanionCheckOutputFfi,
-    HostEndDelegateAuthInputFfi, HostEndDelegateAuthOutputFfi, HostEndIssueTokenInputFfi, HostEndIssueTokenOutputFfi,
-    HostEndTokenAuthInputFfi, HostEndTokenAuthOutputFfi, HostGetInitKeyNegotiationInputFfi,
-    HostGetInitKeyNegotiationOutputFfi, HostGetPersistedStatusInputFfi, HostGetPersistedStatusOutputFfi,
-    HostPreIssueTokenInputFfi, HostPreIssueTokenOutputFfi, HostProcessObtainTokenInputFfi,
-    HostProcessObtainTokenOutputFfi, HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
-    HostRefreshTokenInputFfi, HostRefreshTokenOutputFfi, HostRegisterFinishInputFfi, HostRegisterFinishOutputFfi,
-    HostRemoveCompanionInputFfi, HostRemoveCompanionOutputFfi, HostRevokeTokenInputFfi, HostRevokeTokenOutputFfi,
-    HostSetCompanionInvalidInputFfi, HostSetCompanionInvalidOutputFfi, HostUpdateCompanionEnabledBusinessIdsInputFfi,
+    CompanionEndObtainTokenOutputFfi, CompanionGenerateBindingSignatureChallengeInputFfi,
+    CompanionGenerateBindingSignatureChallengeOutputFfi, CompanionGetPersistedStatusInputFfi,
+    CompanionGetPersistedStatusOutputFfi, CompanionInitKeyNegotiationInputFfi, CompanionInitKeyNegotiationOutputFfi,
+    CompanionPreIssueTokenInputFfi, CompanionPreIssueTokenOutputFfi, CompanionProcessCheckInputFfi,
+    CompanionProcessCheckOutputFfi, CompanionProcessIssueTokenInputFfi, CompanionProcessIssueTokenOutputFfi,
+    CompanionProcessTokenAuthInputFfi, CompanionProcessTokenAuthOutputFfi, CompanionPurgeBindingSignatureChallengeInputFfi,
+    CompanionPurgeBindingSignatureChallengeOutputFfi, CompanionRemoveHostBindingInputFfi,
+    CompanionRemoveHostBindingOutputFfi, CompanionRevokeTokenInputFfi, CompanionRevokeTokenOutputFfi,
+    DataArray128Ffi, DataArray1024Ffi, DataArray256Ffi,
+    DeviceKeyFfi, GetExecutorInfoInputFfi, GetExecutorInfoOutputFfi, HostBeginAddCompanionInputFfi,
+    HostBeginAddCompanionOutputFfi, HostBeginCompanionCheckInputFfi, HostBeginCompanionCheckOutputFfi,
+    HostBeginDelegateAuthInputFfi, HostBeginDelegateAuthOutputFfi, HostBeginIssueTokenInputFfi,
+    HostBeginIssueTokenOutputFfi, HostBeginTokenAuthInputFfi, HostBeginTokenAuthOutputFfi, HostBindingSignInputFfi,
+    HostBindingSignOutputFfi, HostCancelAddCompanionInputFfi, HostCancelAddCompanionOutputFfi,
+    HostCancelCompanionCheckInputFfi, HostCancelCompanionCheckOutputFfi, HostCancelDelegateAuthInputFfi,
+    HostCancelDelegateAuthOutputFfi, HostCancelIssueTokenInputFfi, HostCancelIssueTokenOutputFfi,
+    HostCancelObtainTokenInputFfi, HostCancelObtainTokenOutputFfi, HostCheckTemplateEnrolledInputFfi,
+    HostCheckTemplateEnrolledOutputFfi, HostEndAddCompanionInputFfi, HostEndAddCompanionOutputFfi,
+    HostEndCompanionCheckInputFfi, HostEndCompanionCheckOutputFfi, HostEndDelegateAuthInputFfi,
+    HostEndDelegateAuthOutputFfi, HostEndIssueTokenInputFfi, HostEndIssueTokenOutputFfi, HostEndTokenAuthInputFfi,
+    HostEndTokenAuthOutputFfi, HostGetInitKeyNegotiationInputFfi, HostGetInitKeyNegotiationOutputFfi,
+    HostGetPersistedStatusInputFfi, HostGetPersistedStatusOutputFfi, HostPreIssueTokenInputFfi,
+    HostPreIssueTokenOutputFfi, HostProcessObtainTokenInputFfi, HostProcessObtainTokenOutputFfi,
+    HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi, HostRefreshTokenInputFfi,
+    HostRefreshTokenOutputFfi, HostRegisterFinishInputFfi, HostRegisterFinishOutputFfi, HostRemoveCompanionInputFfi,
+    HostRemoveCompanionOutputFfi, HostRevokeTokenInputFfi, HostRevokeTokenOutputFfi, HostSetCompanionInvalidInputFfi,
+    HostSetCompanionInvalidOutputFfi, HostUpdateCompanionEnabledBusinessIdsInputFfi,
     HostUpdateCompanionEnabledBusinessIdsOutputFfi, HostUpdateCompanionStatusInputFfi,
     HostUpdateCompanionStatusOutputFfi, InitInputFfi, InitOutputFfi, Int32Array64Ffi, PersistedCompanionStatusFfi,
     PersistedHostBindingStatusFfi, SetActiveUserInputFfi, SetActiveUserOutputFfi, Uint16Array64Ffi, UserKeyFfi,
 };
+use crate::jobs::binding_challenge_pool;
+use crate::jobs::binding_signature_crypto;
 use crate::jobs::companion_device_db_helper;
 use crate::request::delegate_auth::companion_delegate_auth::CompanionDelegateAuthRequest;
 use crate::request::delegate_auth::host_delegate_auth::HostDelegateAuthRequest;
@@ -170,6 +176,7 @@ pub fn host_get_persisted_status(
                     icon_file_name: DataArray128Ffi::try_from(device_profile.icon_file_name)?,
                     enrolled_protocol_id: device_info.enrolled_protocol_id,
                     enrolled_capability_list: Uint16Array64Ffi::try_from(device_info.enrolled_capability_list)?,
+                    max_auth_trust_level: device_info.max_auth_trust_level as i32,
                 };
 
                 companion_status_list.push(companion_status);
@@ -563,6 +570,7 @@ pub fn companion_process_check(
     input: &CompanionProcessCheckInputFfi,
     output: &mut CompanionProcessCheckOutputFfi,
 ) -> Result<(), ErrorCode> {
+    verify_binding_signature_proof(input.binding_id, &input.binding_signature_proof)?;
     let mut sync_status_request = CompanionDeviceSyncStatusRequest::new(input)?;
     sync_status_request.begin(RequestParam::CompanionSyncStatus(input, output))?;
     Ok(())
@@ -613,6 +621,7 @@ pub fn companion_pre_issue_token(
     input: &CompanionPreIssueTokenInputFfi,
     output: &mut CompanionPreIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
+    verify_binding_signature_proof(input.binding_id, &input.binding_signature_proof)?;
     let mut issue_token_request = CompanionDeviceIssueTokenRequest::new(input)?;
     issue_token_request.begin(RequestParam::CompanionIssueTokenBegin(input, output))?;
     RequestManagerRegistry::get_mut().add_request(Box::new(issue_token_request))?;
@@ -625,6 +634,7 @@ pub fn companion_process_issue_token(
     output: &mut CompanionProcessIssueTokenOutputFfi,
 ) -> Result<(), ErrorCode> {
     let mut issue_token_request = RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
+    verify_binding_signature_proof(input.binding_id, &input.binding_signature_proof)?;
     issue_token_request.end(RequestParam::CompanionIssueTokenEnd(input, output))?;
     Ok(())
 }
@@ -643,6 +653,7 @@ pub fn companion_process_token_auth(
     input: &CompanionProcessTokenAuthInputFfi,
     output: &mut CompanionProcessTokenAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
+    verify_binding_signature_proof(input.binding_id, &input.binding_signature_proof)?;
     let mut token_auth_request = CompanionTokenAuthRequest::new(input)?;
     token_auth_request.begin(RequestParam::CompanionTokenAuthBegin(input, output))?;
     Ok(())
@@ -661,6 +672,7 @@ pub fn companion_begin_delegate_auth(
     input: &CompanionBeginDelegateAuthInputFfi,
     output: &mut CompanionBeginDelegateAuthOutputFfi,
 ) -> Result<(), ErrorCode> {
+    verify_binding_signature_proof(input.binding_id, &input.binding_signature_proof)?;
     let mut delegate_auth_request = CompanionDelegateAuthRequest::new(input)?;
     delegate_auth_request.begin(RequestParam::CompanionDelegateAuthBegin(input, output))?;
     RequestManagerRegistry::get_mut().add_request(Box::new(delegate_auth_request))?;
@@ -705,4 +717,39 @@ pub fn companion_cancel_obtain_token(
 ) -> Result<(), ErrorCode> {
     RequestManagerRegistry::get_mut().remove_request(input.request_id)?;
     Ok(())
+}
+
+pub fn host_binding_sign(
+    input: &HostBindingSignInputFfi,
+    output: &mut HostBindingSignOutputFfi,
+) -> Result<(), ErrorCode> {
+    let sign = binding_signature_crypto::host_binding_sign(input.template_id, input.challenge.as_slice()?)?;
+    output.signature.copy_from_vec(&sign)?;
+    Ok(())
+}
+
+pub fn companion_generate_binding_signature_challenge(
+    _input: &CompanionGenerateBindingSignatureChallengeInputFfi,
+    output: &mut CompanionGenerateBindingSignatureChallengeOutputFfi,
+) -> Result<(), ErrorCode> {
+    let challenge = binding_signature_crypto::generate_challenge()?;
+    binding_challenge_pool::insert(challenge.as_slice())?;
+    output.challenge.copy_from_vec(&challenge)?;
+    Ok(())
+}
+
+pub fn companion_purge_binding_signature_challenge(
+    input: &CompanionPurgeBindingSignatureChallengeInputFfi,
+    _output: &mut CompanionPurgeBindingSignatureChallengeOutputFfi,
+) -> Result<(), ErrorCode> {
+    binding_challenge_pool::purge(input.challenge.as_slice()?);
+    Ok(())
+}
+
+fn verify_binding_signature_proof(binding_id: i32, proof: &BindingSignatureProofFfi) -> Result<(), ErrorCode> {
+    binding_signature_crypto::verify_binding_signature(
+        binding_id,
+        proof.challenge.as_slice()?,
+        proof.signature.as_slice()?,
+    )
 }

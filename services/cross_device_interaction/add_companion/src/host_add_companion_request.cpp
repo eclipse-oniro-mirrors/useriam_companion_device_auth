@@ -182,6 +182,13 @@ void HostAddCompanionRequest::HandleDeviceSelectResult(const std::vector<DeviceK
         selectedDevices[0].GetDesc().c_str());
     ENSURE_OR_RETURN(selectedDevices[0].deviceUserId != INVALID_USER_ID);
 
+    auto status = GetCrossDeviceCommManager().GetDeviceStatus(selectedDevices[0]);
+    ENSURE_OR_RETURN_DESC(GetDescription(), status.has_value());
+    // Re-adding is a fresh binding: consume the discovery-view candidate each sync recomputes
+    // from full support lists, not the binding view pinning the old credential's version.
+    ENSURE_OR_RETURN_DESC(GetDescription(), status->freshBindingProtocolId != ProtocolId::INVALID);
+    selectedProtocolId_ = status->freshBindingProtocolId;
+
     if (!OpenConnection()) {
         IAM_LOGE("%{public}s OpenConnection failed", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::COMMUNICATION_ERROR);
@@ -211,7 +218,7 @@ void HostAddCompanionRequest::OnConnected()
     ENSURE_OR_RETURN_DESC(GetDescription(), *secureProtocolIdOpt != SecureProtocolId::INVALID);
     secureProtocolId_ = *secureProtocolIdOpt;
 
-    bool captureRet = ValidateAndSelectProtocol(*peerDeviceKeyOpt);
+    bool captureRet = ValidateAndSelectProtocol();
     ENSURE_OR_RETURN_DESC(GetDescription(), captureRet);
 
     eventCollector_.SetHostUserKey(UserKey { hostDeviceKey_.deviceUserId, hostDeviceKey_.deviceSubProfileId });
@@ -246,20 +253,18 @@ std::optional<SecureProtocolId> HostAddCompanionRequest::QuerySecureProtocolId(c
     return GetCrossDeviceCommManager().HostGetSecureProtocolId(peerDeviceKey);
 }
 
-bool HostAddCompanionRequest::ValidateAndSelectProtocol(const DeviceKey &peerDeviceKey)
+bool HostAddCompanionRequest::ValidateAndSelectProtocol()
 {
-    auto deviceStatus = GetCrossDeviceCommManager().GetDeviceStatus(peerDeviceKey);
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), deviceStatus.has_value(), false);
-    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), deviceStatus->protocolId != ProtocolId::INVALID, false);
+    ENSURE_OR_RETURN_DESC_VAL(GetDescription(), selectedProtocolId_ != ProtocolId::INVALID, false);
 
     auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
-    if (std::find(localProfile.protocols.begin(), localProfile.protocols.end(), deviceStatus->protocolId) ==
-        localProfile.protocols.end()) {
+    if (std::find(localProfile.hostProtocols.begin(), localProfile.hostProtocols.end(), selectedProtocolId_) ==
+        localProfile.hostProtocols.end()) {
         IAM_LOGE("%{public}s negotiated protocol %{public}hu is not locally supported", GetDescription(),
-            static_cast<uint16_t>(deviceStatus->protocolId));
+            static_cast<uint16_t>(selectedProtocolId_));
+        selectedProtocolId_ = ProtocolId::INVALID;
         return false;
     }
-    selectedProtocolId_ = deviceStatus->protocolId;
     IAM_LOGI("%{public}s negotiated protocol=%{public}hu", GetDescription(),
         static_cast<uint16_t>(selectedProtocolId_));
     return true;
@@ -271,6 +276,7 @@ ResultCode HostAddCompanionRequest::SecurityAgentGetInitKeyNegotiationRequest(
     HostGetInitKeyNegotiationRequestInput input = {
         .requestId = GetRequestId(),
         .secureProtocolId = secureProtocolId_,
+        .selectedProtocolId = selectedProtocolId_,
     };
     HostGetInitKeyNegotiationRequestOutput output = {};
     ResultCode ret = GetSecurityAgent().HostGetInitKeyNegotiationRequest(input, output);
@@ -286,13 +292,13 @@ ResultCode HostAddCompanionRequest::SecurityAgentGetInitKeyNegotiationRequest(
 ResultCode HostAddCompanionRequest::SendInitKeyNegotiationRequest(const std::vector<uint8_t> &initKeyNegotiationRequest)
 {
     InitKeyNegotiationRequest initRequest { .hostDeviceKey = hostDeviceKey_,
-        .protocolId = selectedProtocolId_,
+        .selectedProtocolId = selectedProtocolId_,
         .extraInfo = initKeyNegotiationRequest };
     Attributes request = {};
     EncodeInitKeyNegotiationRequest(initRequest, request);
     eventCollector_.EnterWait(HostAddCompanionStages::WAIT_INIT_KEY_NEG_REPLY);
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::INIT_KEY_NEGOTIATION,
-        request, [weakSelf = weak_from_this()](const Attributes &reply) {
+    bool sendRet = SendMessage(MessageType::INIT_KEY_NEGOTIATION, std::move(request),
+        [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleInitKeyNegotiationReply(reply);
@@ -352,8 +358,8 @@ void HostAddCompanionRequest::HandleInitKeyNegotiationReply(const Attributes &re
     EncodeBeginAddHostBindingRequest(beginRequest, request);
     eventCollector_.EnterWait(HostAddCompanionStages::WAIT_BEGIN_ADD_BINDING_REPLY);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::BEGIN_ADD_HOST_BINDING,
-        request, [weakSelf = weak_from_this()](const Attributes &message) {
+    bool sendRet = SendMessage(MessageType::BEGIN_ADD_HOST_BINDING, std::move(request),
+        [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleBeginAddHostBindingReply(message);
@@ -379,10 +385,8 @@ bool HostAddCompanionRequest::BuildBeginAddCompanionParams(const InitKeyNegotiat
     params.secureProtocolId = secureProtocolId_;
     auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
     params.hostCapabilityList = localProfile.hostCapabilities;
-    params.hostProtocolList = localProfile.protocols;
-    auto deviceStatus = GetCrossDeviceCommManager().GetDeviceStatus(*companionDeviceKey);
-    ENSURE_OR_RETURN_VAL(deviceStatus.has_value(), false);
-    params.companionCapabilityList = deviceStatus->capabilities;
+    params.hostProtocolIdList = { selectedProtocolId_ };
+    ENSURE_OR_RETURN_VAL(GetCrossDeviceCommManager().GetDeviceStatus(*companionDeviceKey).has_value(), false);
     params.initKeyNegotiationReply = reply.extraInfo;
     return true;
 }
@@ -460,7 +464,8 @@ std::optional<PersistedCompanionStatus> HostAddCompanionRequest::BuildPersistedC
     companionStatus.deviceSubProfileName = deviceStatus.deviceSubProfileName;
     companionStatus.isValid = true;
     companionStatus.enrolledProtocolId = selectedProtocolId_;
-    companionStatus.iconFileName = companionIcon_.value_or(CompanionIcon{}).fileName;
+    companionStatus.iconFileName = companionIcon_.value_or(CompanionIcon {}).fileName;
+    companionStatus.maxAuthTrustLevel = deviceStatus.maxAuthTrustLevel;
     return companionStatus;
 }
 
@@ -552,8 +557,8 @@ bool HostAddCompanionRequest::SendEndAddHostBindingRequest(ResultCode result)
     EncodeEndAddHostBindingRequest(requestMsg, request);
     eventCollector_.EnterWait(HostAddCompanionStages::WAIT_END_ADD_BINDING_REPLY);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::END_ADD_HOST_BINDING,
-        request, [weakSelf = weak_from_this()](const Attributes &message) {
+    bool sendRet = SendMessage(MessageType::END_ADD_HOST_BINDING, std::move(request),
+        [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleEndAddHostBindingReply(message);
@@ -590,8 +595,10 @@ void HostAddCompanionRequest::HandleEndAddHostBindingReply(const Attributes &rep
     }
 
     ENSURE_OR_RETURN_DESC(GetDescription(), templateId_.has_value());
+    // clang-format off
     bool tokenAuthNegotiated = std::find(enrolledCapabilityList_.begin(), enrolledCapabilityList_.end(),
         Capability::TOKEN_AUTH) != enrolledCapabilityList_.end();
+    // clang-format on
     if (tokenAuthNegotiated) {
         GetCompanionManager().SetCompanionTokenAuthAtl(*templateId_, tokenAuthAtl_, true);
         IAM_LOGI("%{public}s token activated successfully", GetDescription());

@@ -25,6 +25,7 @@
 #include "nocopyable.h"
 
 #include "iam_common_defines.h"
+#include "security_agent.h"
 
 #include "cda_attributes.h"
 #include "cross_device_common.h"
@@ -72,6 +73,15 @@ struct CompanionDelegateAuthParam {
     WidgetAuthParam widgetAuthParam;
 };
 
+struct CompanionDelegateAuthParams {
+    std::string connectionName;
+    UserKey companionUserKey;
+    DeviceKey hostDeviceKey;
+    std::vector<uint8_t> startDelegateAuthRequest;
+    CompanionDelegateAuthParam delegateAuthParam;
+    BindingSignatureProof bindingSignatureProof {};
+};
+
 class IRequestFactory : public NoCopyable {
 public:
     virtual ~IRequestFactory() = default;
@@ -98,9 +108,7 @@ public:
         const Attributes &request, OnMessageReply &&replyCallback, const DeviceKey &companionDeviceKey) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionObtainTokenRequest(const DeviceKey &hostDeviceKey,
         uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) = 0;
-    virtual std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
-        const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-        const std::vector<uint8_t> &startDelegateAuthRequest, const CompanionDelegateAuthParam &delegateAuthParam) = 0;
+    virtual std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const CompanionDelegateAuthParams &params) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey, const std::string &triggerReason) = 0;
     virtual std::shared_ptr<IRequest> CreateCompanionRequestResyncRequest(

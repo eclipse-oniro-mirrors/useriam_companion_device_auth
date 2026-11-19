@@ -19,18 +19,16 @@ use crate::common::algorithm::{
 };
 use crate::common::constants::{
     AuthCapabilityLevel, AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, SecureProtocolId,
-    TrackAbilityLevel, CHALLENGE_LEN, HKDF_SALT_SIZE, TOKEN_VALID_PERIOD,
-    intersect_lists_in_reference_order,
-    same_elements,
-    validate_capability_list,
-    validate_protocol_list,
+    TrackAbilityLevel, CHALLENGE_LEN, HKDF_SALT_SIZE,
+    PROTOCOL_VERSION_2, SUPPORTED_BINDING_SIGNATURE_ALGORITHMS, TOKEN_VALID_PERIOD,
+    intersect_lists_in_reference_order, same_elements, validate_capability_list, validate_protocol_list,
     validate_protocol_id,
 };
 use crate::entry::companion_device_auth_ffi::{
-    HostGetInitKeyNegotiationInputFfi, SelectedAlgorithmsArrayFfi, SelectedAlgorithmsFfi,
-    MAX_PROCESSOR_NUM_PER_DEVICE_FFI,
+    HostEndAddCompanionOutputFfi, HostGetInitKeyNegotiationInputFfi, SelectedAlgorithmsArrayFfi,
+    SelectedAlgorithmsFfi, MAX_PROCESSOR_NUM_PER_DEVICE_FFI,
 };
-use crate::jobs::{companion_device_db_helper, message_crypto};
+use crate::jobs::{binding_signature_crypto, companion_device_db_helper, message_crypto};
 use crate::request::enroll::enroll_message::{
     FwkEnrollReply, FwkEnrollRequest, SecBindingReply, SecBindingReplyInfo, SecBindingRequest, SecKeyNegoReply,
     SecKeyNegoRequest,
@@ -39,7 +37,10 @@ use crate::request::jobs::common_message::SecIssueToken;
 use crate::request::jobs::token_helper;
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo, UserKey};
+use crate::traits::db_manager::{
+    CompanionDevice, CompanionDeviceSignPriKey, CompanionDeviceCapability, CompanionDeviceSk,
+    CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo, UserKey,
+};
 use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::TimeKeeperRegistry;
@@ -74,6 +75,7 @@ fn build_selected_algorithms_array(
             kdf_algorithm: key_nego_param.selected_algorithms.kdf_algorithm,
             aead_algorithm: key_nego_param.selected_algorithms.aead_algorithm,
             mac_algorithm: key_nego_param.selected_algorithms.mac_algorithm,
+            binding_signature_algorithm: key_nego_param.selected_algorithms.binding_signature_algorithm.unwrap_or(0),
         };
     }
     selected_algorithms_array.len = key_negotial_params.len() as u32;
@@ -102,15 +104,17 @@ pub struct HostDeviceEnrollRequest {
     pub key_negotial_param: Vec<KeyNegotialParam>,
     pub device_capability: Vec<DeviceCapability>,
     pub token_infos: Vec<DeviceTokenInfo>,
+    pub binding_signature_key_pair: Option<KeyPair>,
+    pub enable_binding_signature: bool,
+    pub host_binding_signature_algo_list: Vec<u16>,
     pub salt: [u8; HKDF_SALT_SIZE],
     pub host_challenge: u64,
     pub acl: AuthCapabilityLevel,
     pub atl: AuthTrustLevel,
     pub selected_protocol_id: u16,
-    pub host_protocol_list: Vec<u16>,
+    pub host_protocol_id_list: Vec<u16>,
     pub host_capability_list: Vec<u16>,
     pub negotiated_capability_list: Option<Vec<u16>>,
-    pub companion_capability_list: Vec<u16>,
     pub device_model_info: String,
     pub device_name: String,
     pub device_user_name: String,
@@ -119,6 +123,8 @@ pub struct HostDeviceEnrollRequest {
     pub supported_business_ids: Vec<i32>,
     pub device_sub_profile_name: String,
     pub icon_file_name: String,
+    pub max_auth_trust_level: AuthTrustLevel,
+    pub companion_max_atl: i32,
 }
 
 impl HostDeviceEnrollRequest {
@@ -135,6 +141,11 @@ impl HostDeviceEnrollRequest {
             ErrorCode::GeneralError
         })?;
 
+        validate_protocol_id(input.selected_protocol_id)?;
+        let enable_binding_signature = input.selected_protocol_id == PROTOCOL_VERSION_2;
+        let host_binding_signature_algo_list =
+            if enable_binding_signature { SUPPORTED_BINDING_SIGNATURE_ALGORITHMS.to_vec() } else { Vec::new() };
+
         Ok(HostDeviceEnrollRequest {
             request_id: input.request_id,
             secure_protocol_id: input.secure_protocol_id,
@@ -146,24 +157,29 @@ impl HostDeviceEnrollRequest {
             key_negotial_param: Vec::new(),
             device_capability: Vec::new(),
             token_infos: Vec::new(),
+            binding_signature_key_pair: None,
+            enable_binding_signature,
+            host_binding_signature_algo_list,
             host_challenge: u64::from_ne_bytes(challenge),
             salt,
             acl: AuthCapabilityLevel::Acl0,
             atl: AuthTrustLevel::Atl0,
             selected_protocol_id: 0,
-            host_protocol_list: Vec::new(),
+            host_protocol_id_list: Vec::new(),
             host_capability_list: Vec::new(),
             negotiated_capability_list: None,
-            companion_capability_list: Vec::new(),
             device_model_info: String::new(),
             device_name: String::new(),
             device_user_name: String::new(),
             device_type: 0,
+            max_auth_trust_level: AuthTrustLevel::Atl0,
+            companion_max_atl: 0,
             selected_algorithms: SelectedAlgorithms {
                 ka_algorithm: 0,
                 kdf_algorithm: 0,
                 aead_algorithm: 0,
                 mac_algorithm: 0,
+                binding_signature_algorithm: None,
             },
             supported_business_ids: Vec::new(),
             device_sub_profile_name: String::new(),
@@ -204,7 +220,10 @@ impl HostDeviceEnrollRequest {
 
     fn encode_sec_algo_nego_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let host_supported_algorithms = get_supported_algorithms();
-        let key_nego_request = Box::new(SecKeyNegoRequest { crypto_algorithms: host_supported_algorithms });
+        let key_nego_request = Box::new(SecKeyNegoRequest {
+            crypto_algorithms: host_supported_algorithms,
+            binding_signature_algorithm_list: self.host_binding_signature_algo_list.clone(),
+        });
         let output = match SecureProtocolId::try_from(self.secure_protocol_id).map_err(|e| p!(e))? {
             SecureProtocolId::Default => key_nego_request.encode(ProcessorType::default())?,
             _ => {
@@ -239,12 +258,8 @@ impl HostDeviceEnrollRequest {
         validate_selected_algorithms_supported(&output.selected_algorithms, &host_supported_algorithms)?;
         let key_pair =
             message_crypto::generate_key_pair(output.selected_algorithms.ka_algorithm).map_err(|e| p!(e))?;
-        let sk = message_crypto::key_agreement(
-            output.selected_algorithms.ka_algorithm,
-            &key_pair,
-            &output.pub_key,
-        )
-        .map_err(|e| {
+        let sk = message_crypto::key_agreement(output.selected_algorithms.ka_algorithm, &key_pair, &output.pub_key)
+            .map_err(|e| {
             log_e!("key agreement failed for {:?}: {:?}", processor_type, e);
             ErrorCode::GeneralError
         })?;
@@ -260,6 +275,45 @@ impl HostDeviceEnrollRequest {
             self.selected_algorithms = output.selected_algorithms;
         }
         self.key_negotial_param.push(key_nego_param);
+        Ok(())
+    }
+
+    fn adopt_binding_signature_algorithm(&mut self) -> Result<(), ErrorCode> {
+        let selected = self.selected_algorithms.binding_signature_algorithm;
+        if self.enable_binding_signature != selected.is_some() {
+            log_e!(
+                "binding signature enabled {} inconsistent with companion selection {:?}",
+                self.enable_binding_signature,
+                selected
+            );
+            return Err(ErrorCode::AlgorithmNegotiationFailed);
+        }
+        // enabled implies Some; a None selection means the feature is disabled on both ends
+        let Some(selected) = selected else {
+            return Ok(());
+        };
+        if !self.host_binding_signature_algo_list.contains(&selected) {
+            log_e!(
+                "companion binding signature selection {} is not offered locally {:?}",
+                selected,
+                self.host_binding_signature_algo_list
+            );
+            return Err(ErrorCode::AlgorithmNegotiationFailed);
+        }
+        if let Some(diverging) = self
+            .key_negotial_param
+            .iter()
+            .find(|param| param.selected_algorithms.binding_signature_algorithm != Some(selected))
+        {
+            log_e!(
+                "binding signature selection {} differs across processor types: {:?}",
+                selected,
+                diverging.selected_algorithms.binding_signature_algorithm
+            );
+            return Err(ErrorCode::AlgorithmNegotiationFailed);
+        }
+        let key_pair = binding_signature_crypto::generate_key_pair(selected)?;
+        self.binding_signature_key_pair = Some(key_pair);
         Ok(())
     }
 
@@ -282,7 +336,7 @@ impl HostDeviceEnrollRequest {
             return Err(ErrorCode::GeneralError);
         }
 
-        Ok(())
+        self.adopt_binding_signature_algorithm()
     }
 
     fn encode_sec_binding_request(&mut self) -> Result<Vec<u8>, ErrorCode> {
@@ -312,7 +366,15 @@ impl HostDeviceEnrollRequest {
             encrypt_attribute.set_u16_slice(AttributeKey::AttrKdfAlgoList, &host_supported_algorithms.kdf_algorithms);
             encrypt_attribute.set_u16_slice(AttributeKey::AttrAeadAlgoList, &host_supported_algorithms.aead_algorithms);
             encrypt_attribute.set_u16_slice(AttributeKey::AttrMacAlgoList, &host_supported_algorithms.mac_algorithms);
-            encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.host_protocol_list);
+            encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.host_protocol_id_list);
+            if let Some(algorithm) = self.selected_algorithms.binding_signature_algorithm {
+                let Some(binding_signature_key_pair) = self.binding_signature_key_pair.as_ref() else {
+                    log_e!("binding signature algorithm selected while key pair is absent");
+                    return Err(ErrorCode::GeneralError);
+                };
+                encrypt_attribute.set_u8_slice(AttributeKey::AttrBindingSignaturePublicKey, &binding_signature_key_pair.pub_key);
+                encrypt_attribute.set_u16(AttributeKey::AttrBindingSignatureAlgoId, algorithm);
+            }
             let (encrypt_data, tag, iv) = message_crypto::encrypt_sec_message(
                 key_nego_param.selected_algorithms.aead_algorithm,
                 encrypt_attribute.to_bytes()?.as_slice(),
@@ -352,7 +414,11 @@ impl HostDeviceEnrollRequest {
         let host_supported_algorithms = get_supported_algorithms();
         let candidates =
             intersect_algorithms_in_reference_order(&host_supported_algorithms, companion_supported_algorithms);
-        let expected = select_algorithms_by_priority(&host_supported_algorithms, &candidates)?;
+        let expected = select_algorithms_by_priority(
+            &host_supported_algorithms,
+            &candidates,
+            &self.host_binding_signature_algo_list,
+        )?;
         if encrypted_selected_algorithms != &expected {
             log_e!(
                 "encrypted selected algorithms {:?} differ from recomputed expectation {:?} over companion set {:?}",
@@ -418,7 +484,7 @@ impl HostDeviceEnrollRequest {
         }
 
         let expected_protocol_id = self
-            .host_protocol_list
+            .host_protocol_id_list
             .iter()
             .find(|protocol| reply_info.companion_protocol_list.contains(protocol))
             .copied();
@@ -432,11 +498,18 @@ impl HostDeviceEnrollRequest {
             return Err(ErrorCode::ProtocolNegotiationFailed);
         }
 
-        self.verify_selected_algorithms(
-            &reply_info.selected_algorithms,
-            &key_nego_param.selected_algorithms,
-            &reply_info.companion_supported_algorithms,
-        )?;
+        if self.selected_protocol_id == PROTOCOL_VERSION_2 {
+            self.verify_selected_algorithms(
+                &reply_info.selected_algorithms,
+                &key_nego_param.selected_algorithms,
+                &reply_info.companion_supported_algorithms,
+            )?;
+        } else {
+            log_i!(
+                "skip selected algorithms restatement check for old peer, protocol:{}",
+                self.selected_protocol_id
+            );
+        }
 
         let negotiated =
             intersect_lists_in_reference_order(&self.host_capability_list, &reply_info.companion_capability_list);
@@ -458,15 +531,20 @@ impl HostDeviceEnrollRequest {
                 return Err(ErrorCode::CapabilityNegotiationFailed);
             }
         }
-        if !same_elements(&reply_info.companion_capability_list, &self.companion_capability_list) {
-            log_e!(
-                "announced capability list {:?} differs from sync announcement {:?}",
-                reply_info.companion_capability_list,
-                self.companion_capability_list
-            );
-            return Err(ErrorCode::CapabilityNegotiationFailed);
-        }
         self.negotiated_capability_list = Some(negotiated);
+
+        if reply_info.companion_max_atl != 0 {
+            AuthTrustLevel::try_from(reply_info.companion_max_atl)?;
+            if self.companion_max_atl != 0 && self.companion_max_atl != reply_info.companion_max_atl {
+                log_e!(
+                    "max_atl differs across processor types: {} vs {}",
+                    self.companion_max_atl,
+                    reply_info.companion_max_atl
+                );
+                return Err(ErrorCode::CapabilityNegotiationFailed);
+            }
+            self.companion_max_atl = reply_info.companion_max_atl;
+        }
 
         key_nego_param.companion_challenge = output.challenge;
         self.update_aes_gcm_param(processor_type, &key_nego_param)?;
@@ -503,6 +581,20 @@ impl HostDeviceEnrollRequest {
             if let Err(e) = self.decode_sec_binding_reply_message(processor_type, sec_message) {
                 log_e!("parse binding reply message fail: processor_type: {:?}, result: {:?}", processor_type, e);
                 return Err(e);
+            }
+        }
+
+        if self.companion_max_atl != 0 {
+            let companion_atl = AuthTrustLevel::try_from(self.companion_max_atl)?;
+            if self.max_auth_trust_level == AuthTrustLevel::Atl0 {
+                self.max_auth_trust_level = companion_atl;
+            } else if self.max_auth_trust_level != companion_atl {
+                log_e!(
+                    "announced max_atl {} differs from sync announcement {}",
+                    self.companion_max_atl,
+                    self.max_auth_trust_level as i32
+                );
+                return Err(ErrorCode::CapabilityNegotiationFailed);
             }
         }
 
@@ -553,7 +645,7 @@ impl HostDeviceEnrollRequest {
             Box<CompanionDevice>,
             Box<CompanionDeviceProfile>,
             Vec<CompanionDeviceCapability>,
-            Vec<CompanionDeviceKeyMaterial>,
+            Vec<CompanionDeviceSk>,
         ),
         ErrorCode,
     > {
@@ -573,6 +665,7 @@ impl HostDeviceEnrollRequest {
             enrolled_capability_list: self.negotiated_capability_list.clone().unwrap_or_default(),
             enrolled_protocol_id: self.selected_protocol_id,
             secure_protocol_id: self.secure_protocol_id,
+            max_auth_trust_level: self.max_auth_trust_level,
         });
 
         let base_info = Box::new(CompanionDeviceProfile {
@@ -596,11 +689,13 @@ impl HostDeviceEnrollRequest {
             capability_infos.push(capability_info);
         }
 
-        let mut sk_infos: Vec<CompanionDeviceKeyMaterial> = Vec::new();
+        let mut sk_infos: Vec<CompanionDeviceSk> = Vec::new();
         for key_nego_param in &self.key_negotial_param {
-            let sk_info = CompanionDeviceKeyMaterial {
+            let sk_info = CompanionDeviceSk {
                 processor_type: key_nego_param.processor_type,
-                selected_algorithms: key_nego_param.selected_algorithms,
+                kdf_algorithm: key_nego_param.selected_algorithms.kdf_algorithm,
+                aead_algorithm: key_nego_param.selected_algorithms.aead_algorithm,
+                mac_algorithm: key_nego_param.selected_algorithms.mac_algorithm,
                 sk: key_nego_param.sk.clone().try_into().map_err(|e| {
                     log_e!("try_into fail: {:?}", e);
                     ErrorCode::GeneralError
@@ -612,19 +707,44 @@ impl HostDeviceEnrollRequest {
         Ok((device_info, base_info, capability_infos, sk_infos))
     }
 
+    fn build_binding_signature_key(&self) -> Result<Option<CompanionDeviceSignPriKey>, ErrorCode> {
+        let Some(binding_signature_key_pair) = self.binding_signature_key_pair.as_ref() else {
+            return Ok(None);
+        };
+        let Some(algorithm) = self.selected_algorithms.binding_signature_algorithm else {
+            log_e!("binding signature algorithm is absent while the key pair exists");
+            return Err(ErrorCode::GeneralError);
+        };
+        let expected_len = binding_signature_crypto::pri_key_len(algorithm)?;
+        if binding_signature_key_pair.pri_key.len() != expected_len {
+            log_e!("binding signature private key length invalid, pri:{} expected:{}",
+                binding_signature_key_pair.pri_key.len(), expected_len);
+            return Err(ErrorCode::GeneralError);
+        }
+        Ok(Some(CompanionDeviceSignPriKey {
+            alg_id: algorithm,
+            pri_key: binding_signature_key_pair.pri_key.clone(),
+        }))
+    }
+
     fn store_device_info(&mut self) -> Result<CompanionDevice, ErrorCode> {
         let (device_info, device_profile, capability_infos, sk_infos) = self.init_device_info()?;
+        let binding_signature_key = self.build_binding_signature_key()?;
         CompanionDeviceDbManagerRegistry::get_mut().add_device(
             &device_info,
             &device_profile,
             &capability_infos,
             &sk_infos,
+            binding_signature_key.as_ref(),
         )?;
         log_i!(
             "store device sk rows done, template_id:{:04x}, sk_rows:{}, algorithms:{:?}",
             device_info.template_id as u16,
             sk_infos.len(),
-            sk_infos.iter().map(|sk_info| sk_info.selected_algorithms.ka_algorithm).collect::<Vec<u16>>()
+            self.key_negotial_param
+                .iter()
+                .map(|param| param.selected_algorithms.ka_algorithm)
+                .collect::<Vec<u16>>()
         );
         Ok(*device_info)
     }
@@ -651,6 +771,31 @@ impl HostDeviceEnrollRequest {
 
         Ok(())
     }
+
+    fn complete_end(
+        &mut self,
+        device_info: &CompanionDevice,
+        ffi_output: &mut HostEndAddCompanionOutputFfi,
+    ) -> Result<(), ErrorCode> {
+        self.store_token(device_info.template_id)?;
+
+        let fwk_message = self.encode_fwk_binding_reply(0, device_info.template_id)?;
+        let sec_message = self.encode_sec_token_issue(device_info.template_id)?;
+        ffi_output.fwk_message.copy_from_vec(&fwk_message)?;
+        ffi_output.sec_message.copy_from_vec(&sec_message)?;
+        ffi_output.template_id = device_info.template_id;
+        let max_atl = self.token_infos.iter().map(|info| info.atl as i32).max().unwrap_or(self.atl as i32);
+        ffi_output.atl = max_atl;
+        let esl = self.device_capability.iter().map(|cap| cap.esl).max().unwrap_or(ExecutorSecurityLevel::Esl0);
+        ffi_output.esl = esl as i32;
+        ffi_output.added_time = device_info.added_time;
+        let (capability_data, capability_len) = crate::commands::common_command::try_array_from_vec(
+            self.negotiated_capability_list.clone().unwrap_or_default(),
+        )?;
+        ffi_output.enrolled_capability_list.data = capability_data;
+        ffi_output.enrolled_capability_list.len = capability_len;
+        Ok(())
+    }
 }
 
 impl Request for HostDeviceEnrollRequest {
@@ -667,7 +812,6 @@ impl Request for HostDeviceEnrollRequest {
 
         let sec_message = self.encode_sec_algo_nego_request()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
-
         Ok(())
     }
 
@@ -688,22 +832,15 @@ impl Request for HostDeviceEnrollRequest {
             ErrorCode::GeneralError
         })?;
         validate_capability_list(&self.host_capability_list)?;
-        self.host_protocol_list = Vec::<u16>::try_from(ffi_input.host_protocol_list).map_err(|e| {
-            log_e!("Failed to convert host_protocol_list: {:?}", e);
+        self.host_protocol_id_list = Vec::<u16>::try_from(ffi_input.host_protocol_id_list).map_err(|e| {
+            log_e!("Failed to convert host_protocol_id_list: {:?}", e);
             ErrorCode::GeneralError
         })?;
-        if self.host_protocol_list.is_empty() {
+        if self.host_protocol_id_list.is_empty() {
             log_e!("host protocol list is empty");
             return Err(ErrorCode::GeneralError);
         }
-        validate_protocol_list(&self.host_protocol_list)?;
-        // 对端能力列表的同步通道副本（经 FFI 中继），仅用于与加密回包宣告做一致性比对，
-        // 不做本端支持集校验（对端新能力值合法出现，比对与成员无关）
-        self.companion_capability_list =
-            Vec::<u16>::try_from(ffi_input.companion_capability_list).map_err(|e| {
-                log_e!("Failed to convert companion_capability_list: {:?}", e);
-                ErrorCode::GeneralError
-            })?;
+        validate_protocol_list(&self.host_protocol_id_list)?;
 
         self.decode_fwk_binding_request(ffi_input.fwk_message.as_slice()?)?;
         self.decode_sec_key_nego_reply(ffi_input.sec_message.as_slice()?)?;
@@ -723,6 +860,11 @@ impl Request for HostDeviceEnrollRequest {
 
         validate_protocol_id(ffi_input.companion_status.enrolled_protocol_id)?;
         self.selected_protocol_id = ffi_input.companion_status.enrolled_protocol_id;
+        self.max_auth_trust_level = AuthTrustLevel::try_from(ffi_input.companion_status.max_auth_trust_level)
+            .map_err(|_| {
+                log_e!("invalid max_auth_trust_level: {}", ffi_input.companion_status.max_auth_trust_level);
+                ErrorCode::BadParam
+            })?;
 
         self.supported_business_ids = Vec::<i32>::try_from(ffi_input.supported_business_ids).map_err(|e| {
             log_e!("Failed to convert supported_business_ids: {:?}", e);
@@ -738,25 +880,26 @@ impl Request for HostDeviceEnrollRequest {
         self.icon_file_name = ffi_input.companion_status.icon_file_name.to_string().unwrap_or_default();
 
         self.decode_sec_binding_reply(ffi_input.sec_message.as_slice()?)?;
+        if (self.selected_protocol_id == PROTOCOL_VERSION_2)
+            != self.selected_algorithms.binding_signature_algorithm.is_some()
+        {
+            log_e!(
+                "protocol {} is inconsistent with binding signature algorithm {:?}",
+                self.selected_protocol_id,
+                self.selected_algorithms.binding_signature_algorithm
+            );
+            return Err(ErrorCode::AlgorithmNegotiationFailed);
+        }
         let device_info = self.store_device_info()?;
-        self.store_token(device_info.template_id)?;
-
-        let fwk_message = self.encode_fwk_binding_reply(0, device_info.template_id)?;
-        let sec_message = self.encode_sec_token_issue(device_info.template_id)?;
-        ffi_output.fwk_message.copy_from_vec(&fwk_message)?;
-        ffi_output.sec_message.copy_from_vec(&sec_message)?;
-        ffi_output.template_id = device_info.template_id;
-        // Calculate the max ATL from token_infos
-        let max_atl = self.token_infos.iter().map(|info| info.atl as i32).max().unwrap_or(self.atl as i32);
-        ffi_output.atl = max_atl;
-        let esl = self.device_capability.iter().map(|cap| cap.esl).max().unwrap_or(ExecutorSecurityLevel::Esl0);
-        ffi_output.esl = esl as i32;
-        ffi_output.added_time = device_info.added_time;
-        let (capability_data, capability_len) = crate::commands::common_command::try_array_from_vec(
-            self.negotiated_capability_list.clone().unwrap_or_default(),
-        )?;
-        ffi_output.enrolled_capability_list.data = capability_data;
-        ffi_output.enrolled_capability_list.len = capability_len;
+        if let Err(err) = self.complete_end(&device_info, ffi_output) {
+            log_e!("complete_end fail, rollback device {:016x}, err:{:?}", device_info.template_id, err);
+            if let Err(remove_err) =
+                CompanionDeviceDbManagerRegistry::get_mut().remove_device(device_info.template_id)
+            {
+                log_e!("rollback fail, template_id:{:016x}, err:{:?}", device_info.template_id, remove_err);
+            }
+            return Err(err);
+        }
         Ok(())
     }
 }

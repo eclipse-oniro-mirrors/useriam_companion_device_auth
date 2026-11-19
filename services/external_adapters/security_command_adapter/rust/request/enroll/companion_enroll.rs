@@ -17,14 +17,15 @@ use crate::common::algorithm::{
     CryptoAlgorithms, SelectedAlgorithms, get_supported_algorithms, select_algorithms_by_priority,
 };
 use crate::common::constants::{
-    AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel, CHALLENGE_LEN,
-    HKDF_SALT_SIZE, PROTOCOL_ID_INVALID, same_elements,
-    validate_capability_list,
+    AuthTrustLevel, COMPANION_MAX_ATL, ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel,
+    CHALLENGE_LEN, HKDF_SALT_SIZE, PROTOCOL_ID_INVALID,
+    PROTOCOL_VERSION_2, same_elements, validate_capability_list,
     validate_protocol_list,
 };
 use crate::entry::companion_device_auth_ffi::{
     CompanionInitKeyNegotiationInputFfi, DeviceKeyFfi, PersistedHostBindingStatusFfi, SelectedAlgorithmsFfi, UserKeyFfi,
 };
+use crate::jobs::binding_signature_crypto;
 use crate::jobs::host_binding_db_helper;
 use crate::jobs::message_crypto;
 use crate::request::enroll::enroll_message::{
@@ -32,7 +33,9 @@ use crate::request::enroll::enroll_message::{
 };
 use crate::request::jobs::common_message::SecIssueToken;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair};
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, HostBindingToken, UserInfo, UserKey};
+use crate::traits::db_manager::{
+    DeviceKey, HostBinding, HostBindingSk, HostBindingSignaturePubKey, HostBindingToken, UserInfo, UserKey,
+};
 use crate::traits::host_binding_db_manager::HostBindingDbManagerRegistry;
 use crate::traits::log_trace::RustFileId;
 use crate::traits::request_manager::{Request, RequestParam};
@@ -73,6 +76,9 @@ pub struct CompanionDeviceEnrollRequest {
     pub binding_param: BindingParam,
     pub session_key: Vec<u8>,
     pub sk: Vec<u8>,
+    pub binding_signature_pub_key: Vec<u8>,
+    pub binding_signature_alg_id: u16,
+    pub host_binding_signature_algo_list: Vec<u16>,
     pub binding_id: i32,
     pub token_info: TokenInfo,
     pub host_algorithms: CryptoAlgorithms,
@@ -125,6 +131,9 @@ impl CompanionDeviceEnrollRequest {
             binding_param: BindingParam { public_key: Vec::new(), host_challenge: 0, salt: [0u8; HKDF_SALT_SIZE] },
             session_key: Vec::new(),
             sk: Vec::new(),
+            binding_signature_pub_key: Vec::new(),
+            binding_signature_alg_id: 0,
+            host_binding_signature_algo_list: Vec::new(),
             binding_id: 0,
             token_info: TokenInfo { token: Vec::new(), atl: AuthTrustLevel::Atl0 },
             host_algorithms: CryptoAlgorithms::default(),
@@ -133,6 +142,7 @@ impl CompanionDeviceEnrollRequest {
                 kdf_algorithm: 0,
                 aead_algorithm: 0,
                 mac_algorithm: 0,
+                binding_signature_algorithm: None,
             },
         })
     }
@@ -155,13 +165,17 @@ impl CompanionDeviceEnrollRequest {
         let processor_type = ProcessorType::from_secure_protocol_id(self.secure_protocol_id)?;
         let output = SecKeyNegoRequest::decode(sec_message, processor_type)?;
         self.host_algorithms = output.crypto_algorithms;
+        self.host_binding_signature_algo_list = output.binding_signature_algorithm_list.clone();
         Ok(())
     }
 
     fn encode_sec_key_nego_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let companion_supported_algorithms = get_supported_algorithms();
-        let selected_algorithms =
-            select_algorithms_by_priority(&companion_supported_algorithms, &self.host_algorithms)?;
+        let selected_algorithms = select_algorithms_by_priority(
+            &companion_supported_algorithms,
+            &self.host_algorithms,
+            &self.host_binding_signature_algo_list,
+        )?;
         let key_pair = message_crypto::generate_key_pair(selected_algorithms.ka_algorithm).map_err(|e| p!(e))?;
         self.key_nego_param.key_pair = Some(key_pair.clone());
 
@@ -175,7 +189,7 @@ impl CompanionDeviceEnrollRequest {
         Ok(output)
     }
 
-    fn init_device_info(&mut self) -> Result<(Box<HostBinding>, Box<HostBindingKeyMaterial>), ErrorCode> {
+    fn init_device_info(&mut self) -> Result<(Box<HostBinding>, Box<HostBindingSk>), ErrorCode> {
         let binding_id = HostBindingDbManagerRegistry::get().generate_unique_binding_id().map_err(|e| p!(e))?;
         let device_info = Box::new(HostBinding {
             binding_id,
@@ -193,8 +207,10 @@ impl CompanionDeviceEnrollRequest {
             secure_protocol_id: self.secure_protocol_id,
         });
 
-        let sk_info = Box::new(HostBindingKeyMaterial {
-            selected_algorithms: self.selected_algorithms,
+        let sk_info = Box::new(HostBindingSk {
+            kdf_algorithm: self.selected_algorithms.kdf_algorithm,
+            aead_algorithm: self.selected_algorithms.aead_algorithm,
+            mac_algorithm: self.selected_algorithms.mac_algorithm,
             sk: self.sk.clone().try_into().map_err(|e| {
                 log_e!("try_into fail: {:?}", e);
                 ErrorCode::GeneralError
@@ -286,20 +302,59 @@ impl CompanionDeviceEnrollRequest {
             return Err(ErrorCode::GeneralError);
         }
 
-        self.verify_encrypted_host_algorithms(&decrypt_attribute)?;
+        if self.selected_protocol_id == PROTOCOL_VERSION_2 {
+            self.verify_encrypted_host_algorithms(&decrypt_attribute)?;
 
-        let host_protocol_list = decrypt_attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
-        let expected_protocol_id = host_protocol_list
-            .iter()
-            .find(|protocol| self.companion_protocol_list.contains(protocol))
-            .copied();
-        if expected_protocol_id != Some(self.selected_protocol_id) {
-            log_e!(
-                "recomputed protocol {:?} differs from selected protocol {}",
-                expected_protocol_id,
+            let host_protocol_id_list =
+                decrypt_attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
+            let expected_protocol_id = host_protocol_id_list
+                .iter()
+                .find(|protocol| self.companion_protocol_list.contains(protocol))
+                .copied();
+            if expected_protocol_id != Some(self.selected_protocol_id) {
+                log_e!(
+                    "recomputed protocol {:?} differs from selected protocol {}",
+                    expected_protocol_id,
+                    self.selected_protocol_id
+                );
+                return Err(ErrorCode::ProtocolNegotiationFailed);
+            }
+        } else {
+            log_i!(
+                "skip encrypted algorithm echo and protocol list checks for old peer, protocol:{}",
                 self.selected_protocol_id
             );
-            return Err(ErrorCode::ProtocolNegotiationFailed);
+        }
+
+        let binding_signature_pub_key_attr = decrypt_attribute.get_u8_slice(AttributeKey::AttrBindingSignaturePublicKey);
+        let binding_signature_algorithm = self.selected_algorithms.binding_signature_algorithm;
+        if binding_signature_algorithm.is_some() != binding_signature_pub_key_attr.is_ok() {
+            log_e!(
+                "binding signature pub key presence {} inconsistent with negotiated algorithm {:?}",
+                binding_signature_pub_key_attr.is_ok(),
+                binding_signature_algorithm
+            );
+            return Err(ErrorCode::AlgorithmNegotiationFailed);
+        }
+        if let Some(algorithm) = binding_signature_algorithm {
+            let binding_signature_pub_key = binding_signature_pub_key_attr.map_err(|e| p!(e))?;
+            let alg_id = decrypt_attribute.get_u16(AttributeKey::AttrBindingSignatureAlgoId).map_err(|e| p!(e))?;
+            if alg_id != algorithm {
+                log_e!("binding signature algo {} differs from the 0x0301 selection {}", alg_id, algorithm);
+                return Err(ErrorCode::AlgorithmNegotiationFailed);
+            }
+            binding_signature_crypto::check_pub_key(algorithm, binding_signature_pub_key)?;
+            self.binding_signature_pub_key = binding_signature_pub_key.to_vec();
+            self.binding_signature_alg_id = algorithm;
+        }
+
+        if (self.selected_protocol_id == PROTOCOL_VERSION_2) != !self.binding_signature_pub_key.is_empty() {
+            log_e!(
+                "protocol {} is inconsistent with binding signature state, alg:{}",
+                self.selected_protocol_id,
+                self.binding_signature_alg_id
+            );
+            return Err(ErrorCode::AlgorithmNegotiationFailed);
         }
 
         self.binding_param.host_challenge = output.challenge;
@@ -317,6 +372,7 @@ impl CompanionDeviceEnrollRequest {
             },
             esl: ExecutorSecurityLevel::Esl3 as i32,
             track_ability_level: TrackAbilityLevel::Tal4 as i32,
+            companion_max_atl: COMPANION_MAX_ATL as i32,
             challenge: self.binding_param.host_challenge,
             companion_protocol_list: self.companion_protocol_list.clone(),
             companion_capability_list: self.companion_capability_list.clone(),
@@ -375,11 +431,20 @@ impl CompanionDeviceEnrollRequest {
 
     fn store_device_info(&mut self) -> Result<(HostBinding, Option<i32>), ErrorCode> {
         let (device_info, sk_info) = self.init_device_info()?;
-        let replaced_binding_id = host_binding_db_helper::add_host_binding(&device_info, &sk_info)?;
+        let binding_signature_key = if self.binding_signature_pub_key.is_empty() {
+            None
+        } else {
+            Some(HostBindingSignaturePubKey {
+                alg_id: self.binding_signature_alg_id,
+                pub_key: self.binding_signature_pub_key.clone(),
+            })
+        };
+        let replaced_binding_id =
+            host_binding_db_helper::add_host_binding(&device_info, &sk_info, binding_signature_key.as_ref())?;
         log_i!(
             "store binding sk row done, binding_id:{}, ka_algorithm:{}",
             device_info.binding_id,
-            sk_info.selected_algorithms.ka_algorithm
+            self.selected_algorithms.ka_algorithm
         );
         Ok((*device_info, replaced_binding_id))
     }
@@ -405,6 +470,7 @@ impl Request for CompanionDeviceEnrollRequest {
             kdf_algorithm: self.selected_algorithms.kdf_algorithm,
             aead_algorithm: self.selected_algorithms.aead_algorithm,
             mac_algorithm: self.selected_algorithms.mac_algorithm,
+            binding_signature_algorithm: self.selected_algorithms.binding_signature_algorithm.unwrap_or(0),
         };
         Ok(())
     }

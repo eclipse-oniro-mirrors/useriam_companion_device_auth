@@ -46,7 +46,9 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 const size_t SIZE_100 = 100;
-}
+const size_t SIZE_64 = 64;
+const size_t SIZE_128 = 128;
+} // namespace
 
 class MockCompanionManager : public ICompanionManager {
 public:
@@ -95,6 +97,37 @@ public:
             statuses.push_back(status);
         }
         return statuses;
+    }
+
+    std::vector<CompanionStatus> FilterCompanionStatus(const UserKey &hostUserKey,
+        const PhysicalDeviceKey &companionDeviceKey, std::optional<ProtocolId> protocolId) override
+    {
+        (void)hostUserKey;
+        (void)companionDeviceKey;
+        (void)protocolId;
+        std::vector<CompanionStatus> statuses;
+        size_t count = fuzzData_.ConsumeIntegralInRange<size_t>(0, 10);
+        for (size_t i = 0; i < count; ++i) {
+            CompanionStatus status;
+            status.templateId = fuzzData_.ConsumeIntegral<TemplateId>();
+            status.hostUserKey.userId = fuzzData_.ConsumeIntegral<UserId>();
+            status.companionDeviceStatus.deviceKey.deviceId = GenerateRandomString(fuzzData_);
+            statuses.push_back(status);
+        }
+        return statuses;
+    }
+
+    bool IsBindingSignatureRequired(TemplateId templateId) override
+    {
+        (void)templateId;
+        return fuzzData_.ConsumeBool();
+    }
+
+    bool IsBindingSignatureRequired(const UserKey &hostUserKey, const DeviceKey &companionDeviceKey) override
+    {
+        (void)hostUserKey;
+        (void)companionDeviceKey;
+        return fuzzData_.ConsumeBool();
     }
 
     std::unique_ptr<Subscription> SubscribeCompanionDeviceStatusChange(
@@ -817,6 +850,26 @@ public:
         return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
     }
 
+    ResultCode HostBindingSign(const HostBindingSignInput &input, HostBindingSignOutput &output) override
+    {
+        (void)input;
+        output.signature = fuzzData_.ConsumeBytes<uint8_t>(fuzzData_.ConsumeIntegralInRange<size_t>(0, SIZE_128));
+        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
+    }
+
+    ResultCode CompanionGenerateBindingSignatureChallenge(
+        CompanionGenerateBindingSignatureChallengeOutput &output) override
+    {
+        output.challenge = fuzzData_.ConsumeBytes<uint8_t>(fuzzData_.ConsumeIntegralInRange<size_t>(0, SIZE_64));
+        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
+    }
+
+    ResultCode CompanionPurgeBindingSignatureChallenge(const std::vector<uint8_t> &challenge) override
+    {
+        (void)challenge;
+        return static_cast<ResultCode>(fuzzData_.ConsumeIntegral<uint32_t>());
+    }
+
     ResultCode HostCheckTemplateEnrolled(const HostCheckTemplateEnrolledInput &input,
         HostCheckTemplateEnrolledOutput &output) override
     {
@@ -1374,16 +1427,9 @@ public:
             : nullptr;
     }
 
-    std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
-        const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-        const std::vector<uint8_t> &startDelegateAuthRequest,
-        const CompanionDelegateAuthParam &delegateAuthParam) override
+    std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const CompanionDelegateAuthParams &params) override
     {
-        (void)connectionName;
-        (void)companionUserKey;
-        (void)hostDeviceKey;
-        (void)startDelegateAuthRequest;
-        (void)delegateAuthParam;
+        (void)params;
         return fuzzData_.ConsumeIntegral<uint32_t>() > 0
             ? std::make_shared<MockFuzzIRequest>(fuzzData_, requestCounter_++, 0)
             : nullptr;

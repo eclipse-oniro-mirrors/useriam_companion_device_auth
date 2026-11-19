@@ -117,6 +117,8 @@ fn command_id_test_try_from() {
     assert_eq!(CommandId::try_from(2013).unwrap(), CommandId::CompanionBeginObtainToken);
     assert_eq!(CommandId::try_from(2014).unwrap(), CommandId::CompanionEndObtainToken);
     assert_eq!(CommandId::try_from(2015).unwrap(), CommandId::CompanionCancelObtainToken);
+    assert_eq!(CommandId::try_from(2016).unwrap(), CommandId::CompanionGenerateBindingSignatureChallenge);
+    assert_eq!(CommandId::try_from(2017).unwrap(), CommandId::CompanionPurgeBindingSignatureChallenge);
     assert_eq!(CommandId::try_from(-1), Err(ErrorCode::BadParam));
 }
 

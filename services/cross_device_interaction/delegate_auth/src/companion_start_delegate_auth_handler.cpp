@@ -18,6 +18,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "binding_signature_message.h"
 #include "common_message.h"
 #include "delegate_auth_message.h"
 #include "error_guard.h"
@@ -61,14 +62,17 @@ void CompanionStartDelegateAuthHandler::HandleRequest(const Attributes &request,
     widgetAuthParam.navigationButtonText = startRequestOpt->navigationButtonText;
     CompanionDelegateAuthParam delegateAuthParam = {
         .remoteTokenId = startRequestOpt->remoteTokenId,
-        .widgetAuthParam = widgetAuthParam,
+        .widgetAuthParam = std::move(widgetAuthParam),
     };
-    // clang-format off
-    auto delegateAuthRequest = GetRequestFactory().CreateCompanionDelegateAuthRequest(connectionName,
-        startRequestOpt->companionUserKey,
-        startRequestOpt->hostDeviceKey, startRequestOpt->extraInfo,
-        delegateAuthParam);
-    // clang-format on
+    CompanionDelegateAuthParams params = {
+        .connectionName = std::move(connectionName),
+        .companionUserKey = startRequestOpt->companionUserKey,
+        .hostDeviceKey = startRequestOpt->hostDeviceKey,
+        .startDelegateAuthRequest = std::move(startRequestOpt->extraInfo),
+        .delegateAuthParam = std::move(delegateAuthParam),
+        .bindingSignatureProof = std::move(startRequestOpt->bindingSignatureProof).value_or(BindingSignatureProof {}),
+    };
+    auto delegateAuthRequest = GetRequestFactory().CreateCompanionDelegateAuthRequest(params);
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), delegateAuthRequest != nullptr);
 
     bool startRet = GetRequestManager().Start(delegateAuthRequest);

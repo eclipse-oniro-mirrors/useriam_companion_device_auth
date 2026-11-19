@@ -33,8 +33,7 @@ use crate::request::jobs::common_message::SecCommonReply;
 use crate::request::status_sync::host_sync_status::HostDeviceSyncStatusRequest;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, DeviceKey, UserInfo, UserKey};
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceSk, DeviceKey, UserInfo, UserKey};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
 use crate::utils::{Attribute, AttributeKey};
@@ -73,6 +72,7 @@ fn create_mock_companion_device_with_capabilities(enrolled_capability_list: Vec<
         enrolled_capability_list,
         enrolled_protocol_id: 1,
         secure_protocol_id: 1,
+        max_auth_trust_level: AuthTrustLevel::Atl0,
     }
 }
 
@@ -98,15 +98,12 @@ fn mock_set_companion_device_db_manager() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device()));
@@ -218,15 +215,12 @@ fn host_sync_status_request_end_test_decode_sec_message_fail() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device()));
@@ -327,15 +321,12 @@ fn host_sync_status_request_end_test_attribute_try_from_bytes_fail() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device()));
@@ -444,15 +435,12 @@ fn host_sync_status_request_end_test_success() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device()));
@@ -487,15 +475,12 @@ fn host_sync_status_request_end_test_enrolled_protocol_mismatch() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| {
@@ -542,15 +527,12 @@ fn host_sync_status_request_end_test_untrusted_user_key_still_invalidates() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| {
@@ -592,15 +574,12 @@ fn host_sync_status_request_end_test_get_device_fail() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| Err(ErrorCode::NotFound));
@@ -636,15 +615,12 @@ fn host_sync_status_request_end_test_empty_companion_protocol_list() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device()));
@@ -684,15 +660,12 @@ fn host_sync_status_request_end_test_duplicate_ids_are_set_equivalent() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device()));
@@ -738,7 +711,7 @@ fn host_sync_status_request_end_test_secure_protocol_not_supported()
     let sec_message = create_valid_sync_reply_message(0, &[PROTOCOL_VERSION_1], ALL_CAPABILITIES);
     // A future version and the INVALID sentinel are both unusable scalars: the round must fail
     // at the security-layer entry without touching the persisted binding.
-    for secure_protocol_id in [HIGHER_PROTOCOL_VERSION, SECURE_PROTOCOL_ID_INVALID] {
+    for secure_protocol_id in [HIGHER_PROTOCOL_VERSION + 1, SECURE_PROTOCOL_ID_INVALID] {
         let end_input = HostEndCompanionCheckInputFfi {
             request_id: 1,
             template_id: 123,
@@ -770,15 +743,12 @@ fn set_up_sync_db_mock_with_device(
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(move || Ok(device.clone()));
@@ -919,15 +889,12 @@ fn host_sync_status_request_end_test_success_never_writes_capability_selection()
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_expect_capability_rows(&mut mock_companion_device_db_manager);
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device()));
@@ -950,15 +917,12 @@ fn host_sync_status_request_end_test_multi_processor_sections_consistent() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| {
         let row = CompanionDeviceCapability {

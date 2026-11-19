@@ -18,6 +18,7 @@
 
 #include <optional>
 
+#include "binding_signature_message.h"
 #include "cda_attributes.h"
 #include "common_defines.h"
 #include "iam_common_defines.h"
@@ -35,6 +36,7 @@ struct StartDelegateAuthRequest {
     std::optional<uint32_t> remoteTokenId;
     std::vector<int32_t> authTypes;
     std::string navigationButtonText;
+    std::optional<BindingSignatureProof> bindingSignatureProof;
 };
 
 // Companion -> Host

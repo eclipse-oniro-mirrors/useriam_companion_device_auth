@@ -35,7 +35,6 @@ fn dummy_crypto_engine_test() {
     assert_eq!(dummy_crypto_engine.hmac_sha256(&[], &[]), Err(ErrorCode::GeneralError));
     assert_eq!(dummy_crypto_engine.sha256(&[]), Err(ErrorCode::GeneralError));
     assert_eq!(dummy_crypto_engine.secure_random(&mut []), Err(ErrorCode::GeneralError));
-    assert_eq!(dummy_crypto_engine.secure_random_with_check(&mut [], Box::new(|_| true)), Err(ErrorCode::GeneralError));
     assert!(dummy_crypto_engine.aes_gcm_encrypt(&[], &aes_gcm_param).is_err());
     assert_eq!(
         dummy_crypto_engine.aes_gcm_decrypt(
@@ -45,10 +44,6 @@ fn dummy_crypto_engine_test() {
         Err(ErrorCode::GeneralError)
     );
     assert_eq!(dummy_crypto_engine.hkdf(&[], &[]), Err(ErrorCode::GeneralError));
-    assert_eq!(
-        dummy_crypto_engine.p256_ecdh(&KeyPair::new(Vec::<u8>::new(), Vec::<u8>::new()), &[]),
-        Err(ErrorCode::GeneralError)
-    );
     assert_eq!(
         dummy_crypto_engine.x25519_ecdh(&KeyPair::new(Vec::<u8>::new(), Vec::<u8>::new()), &[]),
         Err(ErrorCode::GeneralError)

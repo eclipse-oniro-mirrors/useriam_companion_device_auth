@@ -128,6 +128,10 @@ public:
     ResultCode HostUpdateCompanionStatus(const HostUpdateCompanionStatusInput &input) override;
     ResultCode HostUpdateCompanionEnabledBusinessIds(const HostUpdateCompanionEnabledBusinessIdsInput &input) override;
     ResultCode HostSetCompanionInvalid(const HostSetCompanionInvalidInput &input) override;
+    ResultCode HostBindingSign(const HostBindingSignInput &input, HostBindingSignOutput &output) override;
+    ResultCode CompanionGenerateBindingSignatureChallenge(
+        CompanionGenerateBindingSignatureChallengeOutput &output) override;
+    ResultCode CompanionPurgeBindingSignatureChallenge(const std::vector<uint8_t> &challenge) override;
     ResultCode HostCheckTemplateEnrolled(const HostCheckTemplateEnrolledInput &input,
         HostCheckTemplateEnrolledOutput &output) override;
 

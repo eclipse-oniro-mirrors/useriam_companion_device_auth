@@ -158,6 +158,46 @@ std::vector<CompanionStatus> CompanionManagerImpl::GetAllCompanionStatus()
     return statusList;
 }
 
+std::vector<CompanionStatus> CompanionManagerImpl::FilterCompanionStatus(const UserKey &hostUserKey,
+    const PhysicalDeviceKey &companionDeviceKey, std::optional<ProtocolId> protocolId)
+{
+    std::vector<CompanionStatus> statusList;
+    for (const auto &companion : companions_) {
+        ENSURE_OR_CONTINUE(companion != nullptr);
+        if (!companion->IsAddedToIdm()) {
+            IAM_LOGI("template id %{public}s is not added to IDM", GET_MASKED_NUM_CSTR(companion->GetTemplateId()));
+            continue;
+        }
+        const auto companionStatus = companion->GetStatus();
+        if (companionStatus.hostUserKey != hostUserKey) {
+            continue;
+        }
+        if (companionStatus.companionDeviceStatus.deviceKey.AsPhysical() != companionDeviceKey) {
+            continue;
+        }
+        if (!companionStatus.isValid) {
+            continue;
+        }
+        if (protocolId.has_value() && companionStatus.enrolledProtocolId != *protocolId) {
+            continue;
+        }
+        statusList.push_back(companionStatus);
+    }
+    return statusList;
+}
+
+bool CompanionManagerImpl::IsBindingSignatureRequired(TemplateId templateId)
+{
+    auto companionStatus = GetCompanionStatus(templateId);
+    return companionStatus.has_value() && companionStatus->enrolledProtocolId == ProtocolId::VERSION_2;
+}
+
+bool CompanionManagerImpl::IsBindingSignatureRequired(const UserKey &hostUserKey, const DeviceKey &companionDeviceKey)
+{
+    auto companionStatus = GetCompanionStatus(hostUserKey, companionDeviceKey);
+    return companionStatus.has_value() && companionStatus->enrolledProtocolId == ProtocolId::VERSION_2;
+}
+
 std::unique_ptr<Subscription> CompanionManagerImpl::SubscribeCompanionDeviceStatusChange(
     OnCompanionDeviceStatusChange &&callback)
 {
@@ -189,8 +229,7 @@ HostBeginAddCompanionInput CompanionManagerImpl::BuildHostBeginAddCompanionInput
     input.fwkMsg = params.fwkMsg;
     input.secureProtocolId = params.secureProtocolId;
     input.hostCapabilityList = CapabilityConverter::ToUnderlyingVec(params.hostCapabilityList);
-    input.hostProtocolList = ProtocolIdConverter::ToUnderlyingVec(params.hostProtocolList);
-    input.companionCapabilityList = CapabilityConverter::ToUnderlyingVec(params.companionCapabilityList);
+    input.hostProtocolIdList = ProtocolIdConverter::ToUnderlyingVec(params.hostProtocolIdList);
     input.initKeyNegotiationReply = params.initKeyNegotiationReply;
     return input;
 }

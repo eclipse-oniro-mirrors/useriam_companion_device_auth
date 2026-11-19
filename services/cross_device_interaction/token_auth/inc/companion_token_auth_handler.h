@@ -35,7 +35,7 @@ protected:
 
 private:
     ResultCode ProcessTokenAuth(const TokenAuthRequest &tokenRequest, const HostBindingStatus &hostBindingStatus,
-        Attributes &reply);
+        const BindingSignatureProof &bindingSignatureProof, Attributes &reply);
     bool CheckLocalDeviceStatus(const std::string &connectionName, int32_t companionUserId,
         const InteractionDesc &desc);
 };

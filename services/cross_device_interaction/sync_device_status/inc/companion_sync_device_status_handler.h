@@ -16,9 +16,11 @@
 #ifndef COMPANION_DEVICE_AUTH_COMPANION_SYNC_DEVICE_STATUS_HANDLER_H
 #define COMPANION_DEVICE_AUTH_COMPANION_SYNC_DEVICE_STATUS_HANDLER_H
 
+#include "binding_signature_message.h"
 #include "error_guard.h"
 #include "host_binding_manager.h"
 #include "interaction_desc.h"
+#include "interaction_event_collector.h"
 #include "security_agent.h"
 #include "sync_device_status_message.h"
 #include "sync_incoming_message_handler.h"
@@ -37,8 +39,8 @@ protected:
     void HandleRequest(const Attributes &request, Attributes &reply) override;
 
 private:
-    std::optional<std::vector<ProtocolId>> NegotiateSyncParameters(const SyncDeviceStatusRequest &syncRequest,
-        const LocalDeviceProfile &localProfile, const std::optional<HostBindingStatus> &hostBindingStatus,
+    ResultCode NegotiateSyncParameters(const SyncDeviceStatusRequest &syncRequest,
+        const LocalDeviceProfile &localProfile, const std::optional<HostBindingStatus> &proofBindingStatus,
         ErrorGuard &errorGuard);
     ResultCode CompanionProcessCheck(const CompanionProcessCheckInput &input, const InteractionDesc &desc,
         std::vector<uint8_t> &outCompanionCheckResponse);
@@ -46,14 +48,16 @@ private:
         const LocalDeviceProfile &localProfile, const InteractionDesc &desc);
     void SetCompanionDeviceKeyUserId(SyncDeviceStatusReply &syncReply, const UserKey &companionUserKey);
     CompanionProcessCheckInput BuildCompanionProcessCheckInput(const HostBindingStatus &hostBindingStatus,
-        const SyncDeviceStatusRequest &syncRequest, const std::vector<ProtocolId> &negotiatedProtocolIdList,
-        const LocalDeviceProfile &localProfile);
+        const SyncDeviceStatusRequest &syncRequest, const std::vector<ProtocolId> &companionProtocolList,
+        const LocalDeviceProfile &localProfile, const BindingSignatureProof &bindingSignatureProof);
     UserKey QueryActiveUserKey();
     std::optional<HostBindingStatus> QueryHostBindingStatus(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey);
-    bool ProcessBoundHostCheck(const HostBindingStatus &hostBindingStatus, const SyncDeviceStatusRequest &syncRequest,
-        const std::vector<ProtocolId> &negotiatedProtocolIdList, const LocalDeviceProfile &localProfile,
-        const InteractionDesc &desc, ErrorGuard &errorGuard, SyncDeviceStatusReply &syncReply);
+    void GateBindingProofAgainstEnrolledProtocol(const SyncDeviceStatusRequest &syncRequest, InteractionDesc &desc,
+        InteractionEventCollector &eventCollector, std::optional<HostBindingStatus> &hostBindingStatus);
+    ResultCode ProcessBindingCheck(const SyncDeviceStatusRequest &syncRequest,
+        const std::optional<HostBindingStatus> &hostBindingStatus, const LocalDeviceProfile &localProfile,
+        const InteractionDesc &desc, SyncDeviceStatusReply &syncReply);
     void PublishPeerSyncedEvent(const DeviceKey &hostDeviceKey);
 };
 } // namespace CompanionDeviceAuth

@@ -183,15 +183,14 @@ static void FuzzCreateCompanionObtainTokenRequest(std::shared_ptr<RequestFactory
 static void FuzzCreateCompanionDelegateAuthRequest(std::shared_ptr<RequestFactoryImpl> &factory,
     FuzzedDataProvider &fuzzData)
 {
-    std::string connectionName = GenerateFuzzString(fuzzData, SIZE_64);
-    UserId companionUserId = fuzzData.ConsumeIntegral<UserId>();
-    DeviceKey hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
-    std::vector<uint8_t> startDelegateAuthRequest =
+    CompanionDelegateAuthParams params = {};
+    params.connectionName = GenerateFuzzString(fuzzData, SIZE_64);
+    params.companionUserKey = UserKey { fuzzData.ConsumeIntegral<UserId>(), INVALID_SUB_PROFILE_ID };
+    params.hostDeviceKey = GenerateFuzzDeviceKey(fuzzData);
+    params.startDelegateAuthRequest =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
-    CompanionDelegateAuthParam delegateAuthParam = { .remoteTokenId = fuzzData.ConsumeIntegral<uint32_t>() };
-    auto request =
-        factory->CreateCompanionDelegateAuthRequest(connectionName, UserKey { companionUserId, INVALID_SUB_PROFILE_ID },
-            hostDeviceKey, startDelegateAuthRequest, delegateAuthParam);
+    params.delegateAuthParam = { .remoteTokenId = fuzzData.ConsumeIntegral<uint32_t>() };
+    auto request = factory->CreateCompanionDelegateAuthRequest(params);
     (void)request;
 }
 

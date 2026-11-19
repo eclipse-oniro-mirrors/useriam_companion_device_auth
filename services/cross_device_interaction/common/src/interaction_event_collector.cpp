@@ -221,7 +221,8 @@ void InteractionEventCollector::BuildExtraInfoStep1(std::ostringstream &oss) con
                 oss << "|";
             }
             oss << "[ka=" << selectedAlgorithms.kaAlgorithm << ",kdf=" << selectedAlgorithms.kdfAlgorithm
-                << ",aead=" << selectedAlgorithms.aeadAlgorithm << ",mac=" << selectedAlgorithms.macAlgorithm << "]";
+                << ",aead=" << selectedAlgorithms.aeadAlgorithm << ",mac=" << selectedAlgorithms.macAlgorithm
+                << ",bindingSignature=" << selectedAlgorithms.bindingSignatureAlgorithm << "]";
         }
     }
     if (callerUserId_.has_value()) {

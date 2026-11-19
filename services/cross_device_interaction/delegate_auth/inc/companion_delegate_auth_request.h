@@ -31,9 +31,7 @@ namespace CompanionDeviceAuth {
 class CompanionDelegateAuthRequest : public std::enable_shared_from_this<CompanionDelegateAuthRequest>,
                                      public InboundRequest {
 public:
-    CompanionDelegateAuthRequest(const std::string &connectionName, const UserKey &companionUserKey,
-        const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
-        const CompanionDelegateAuthParam &delegateAuthParam);
+    explicit CompanionDelegateAuthRequest(const CompanionDelegateAuthParams &params);
     ~CompanionDelegateAuthRequest() override;
 
     bool CompanionBeginDelegateAuth();
@@ -51,7 +49,7 @@ private:
     bool ResolveBinding();
     std::optional<BindingId> QueryBindingIdFromHostBinding();
     bool SecurityAgentBeginDelegateAuth(uint64_t &challenge, Atl &atl);
-    CompanionDelegateAuthBeginInput BuildCompanionDelegateAuthBeginInput() const;
+    CompanionDelegateAuthBeginInput BuildCompanionDelegateAuthBeginInput();
     ResultCode SecurityAgentEndDelegateAuth(ResultCode resultCode, const std::vector<uint8_t> &authToken,
         CompanionDelegateAuthEndOutput &output);
     void HandleDelegateAuthResult(ResultCode resultCode, const std::vector<uint8_t> &extraInfo);
@@ -61,6 +59,7 @@ private:
     UserKey companionUserKey_;
     std::vector<uint8_t> startDelegateAuthRequest_;
     CompanionDelegateAuthParam delegateAuthParam_;
+    BindingSignatureProof bindingSignatureProof_;
     std::optional<uint64_t> contextId_ = std::nullopt;
     bool needEndDelegateAuth_ = false;
     SecureProtocolId secureProtocolId_ { SecureProtocolId::INVALID };

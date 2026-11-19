@@ -25,8 +25,8 @@
 
 #include "adapter_manager.h"
 #include "cda_attributes.h"
-#include "cda_scope_guard.h"
 #include "common_defines.h"
+#include "error_guard.h"
 #include "relative_timer.h"
 #include "service_common.h"
 #include "singleton_manager.h"
@@ -321,14 +321,19 @@ void MessageRouter::HandleRequest(const MessageHeader &header, const Attributes 
     ENSURE_OR_RETURN(connectionMgr_ != nullptr);
     connectionMgr_->RefreshLastActivityTime(header.connectionName);
 
-    ScopeGuard scopeGuard([weakSelf = weak_from_this(), header, channelId]() {
+    ErrorGuard errorGuard([weakSelf = weak_from_this(), header, channelId](ResultCode resultCode) {
         auto self = weakSelf.lock();
         ENSURE_OR_RETURN(self != nullptr);
-        self->SendErrorReply(header, channelId);
+        self->SendErrorReply(header, channelId, resultCode);
     });
 
     OnMessage callback = FindMessageSubscriber(header.connectionName, header.msgType);
-    ENSURE_OR_RETURN(callback != nullptr);
+    if (callback == nullptr) {
+        IAM_LOGE("no subscriber: conn=%{public}s, type=0x%{public}04x", header.connectionName.c_str(),
+            static_cast<uint16_t>(header.msgType));
+        errorGuard.UpdateErrorCode(ResultCode::TYPE_NOT_SUPPORT);
+        return;
+    }
 
     OnMessageReply replyCallback = [weakSelf = weak_from_this(), requestHeader = header, channelId](
                                        const Attributes &reply) {
@@ -345,10 +350,10 @@ void MessageRouter::HandleRequest(const MessageHeader &header, const Attributes 
                 cb(data, reply);
             }
         });
-    scopeGuard.Cancel();
+    errorGuard.Cancel();
 }
 
-void MessageRouter::SendErrorReply(const MessageHeader &requestHeader, ChannelId channelId)
+void MessageRouter::SendErrorReply(const MessageHeader &requestHeader, ChannelId channelId, ResultCode resultCode)
 {
     ENSURE_OR_RETURN(channelMgr_ != nullptr);
     auto channel = channelMgr_->GetChannelById(channelId);
@@ -358,14 +363,14 @@ void MessageRouter::SendErrorReply(const MessageHeader &requestHeader, ChannelId
     replyHeader.isReply = true;
 
     Attributes errorReply {};
-    errorReply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, GENERAL_ERROR);
+    errorReply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, resultCode);
 
     bool sendResult = channel->SendMessage(replyHeader.connectionName, EncodeMessage(replyHeader, errorReply));
     if (!sendResult) {
-        IAM_LOGE("failed to send error reply");
+        IAM_LOGE("failed to send error reply: result=%{public}d", resultCode);
         return;
     }
-    IAM_LOGI("error reply sent");
+    IAM_LOGI("error reply sent: seq=0x%{public}08X, result=%{public}d", requestHeader.messageSeq, resultCode);
 }
 
 void MessageRouter::SendReply(const MessageHeader &requestHeader, ChannelId channelId, const Attributes &reply)

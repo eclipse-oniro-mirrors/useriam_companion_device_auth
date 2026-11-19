@@ -49,6 +49,7 @@ bool DecodeSelectedAlgorithms(const SelectedAlgorithmsFfi &ffi, SelectedAlgorith
     algorithms.kdfAlgorithm = ffi.kdfAlgorithm;
     algorithms.aeadAlgorithm = ffi.aeadAlgorithm;
     algorithms.macAlgorithm = ffi.macAlgorithm;
+    algorithms.bindingSignatureAlgorithm = ffi.bindingSignatureAlgorithm;
     return true;
 }
 
@@ -112,6 +113,14 @@ bool DecodePersistedCompanionStatus(const PersistedCompanionStatusFfi &ffi, Pers
         IAM_LOGE("failed to decode capability list");
         return false;
     }
+    if (IsValidAtl(ffi.maxAuthTrustLevel)) {
+        status.maxAuthTrustLevel = ffi.maxAuthTrustLevel;
+    } else {
+        if (ffi.maxAuthTrustLevel != ATL0) {
+            IAM_LOGW("invalid maxAuthTrustLevel %{public}d, leave unset", ffi.maxAuthTrustLevel);
+        }
+        status.maxAuthTrustLevel = ATL0;
+    }
 
     return true;
 }
@@ -150,6 +159,7 @@ bool EncodePersistedCompanionStatus(const PersistedCompanionStatus &status, Pers
     if (!VectorToFfiArray(status.capabilities, ffi.enrolledCapabilityList, "capability list")) {
         return false;
     }
+    ffi.maxAuthTrustLevel = status.maxAuthTrustLevel;
 
     return true;
 }
@@ -238,6 +248,7 @@ bool EncodeHostGetInitKeyNegotiationInput(const HostGetInitKeyNegotiationRequest
 {
     ffi.requestId = input.requestId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
+    ffi.selectedProtocolId = static_cast<uint16_t>(input.selectedProtocolId);
     return true;
 }
 
@@ -265,11 +276,7 @@ bool EncodeHostBeginAddCompanionInput(const HostBeginAddCompanionInput &input, H
         return false;
     }
 
-    if (!VectorToFfiArray(input.hostProtocolList, ffi.hostProtocolList, "host protocol list")) {
-        return false;
-    }
-
-    if (!VectorToFfiArray(input.companionCapabilityList, ffi.companionCapabilityList, "companion capability list")) {
+    if (!VectorToFfiArray(input.hostProtocolIdList, ffi.hostProtocolIdList, "host protocol id list")) {
         return false;
     }
 
@@ -421,6 +428,38 @@ bool EncodeHostSetCompanionInvalidInput(const HostSetCompanionInvalidInput &inpu
     return true;
 }
 
+bool EncodeHostBindingSignInput(const HostBindingSignInput &input, HostBindingSignInputFfi &ffi)
+{
+    ffi.templateId = input.templateId;
+    return VectorToFfiArray(input.challenge, ffi.challenge, "binding signature challenge");
+}
+
+bool DecodeHostBindingSignOutput(const HostBindingSignOutputFfi &ffi, HostBindingSignOutput &output)
+{
+    return FfiArrayToVector(ffi.signature, output.signature);
+}
+
+bool DecodeCompanionGenerateBindingSignatureChallengeOutput(
+    const CompanionGenerateBindingSignatureChallengeOutputFfi &ffi,
+    CompanionGenerateBindingSignatureChallengeOutput &output)
+{
+    return FfiArrayToVector(ffi.challenge, output.challenge);
+}
+
+bool EncodeCompanionPurgeBindingSignatureChallengeInput(const std::vector<uint8_t> &challenge,
+    CompanionPurgeBindingSignatureChallengeInputFfi &ffi)
+{
+    return VectorToFfiArray(challenge, ffi.challenge, "binding signature challenge");
+}
+
+bool EncodeBindingSignatureProof(const BindingSignatureProof &proof, BindingSignatureProofFfi &ffi)
+{
+    if (!VectorToFfiArray(proof.challenge, ffi.challenge, "binding signature challenge")) {
+        return false;
+    }
+    return VectorToFfiArray(proof.signature, ffi.signature, "binding signature");
+}
+
 bool EncodeHostCheckTemplateEnrolledInput(const HostCheckTemplateEnrolledInput &input,
     HostCheckTemplateEnrolledInputFfi &ffi)
 {
@@ -527,7 +566,7 @@ bool EncodeCompanionProcessCheckInput(const CompanionProcessCheckInput &input, C
         return false;
     }
 
-    return true;
+    return EncodeBindingSignatureProof(input.bindingSignatureProof, ffi.bindingSignatureProof);
 }
 
 bool DecodeCompanionProcessCheckOutput(const CompanionProcessCheckOutputFfi &ffi, CompanionProcessCheckOutput &output)
@@ -618,7 +657,11 @@ bool EncodeCompanionPreIssueTokenInput(const CompanionPreIssueTokenInput &input,
     ffi.bindingId = input.bindingId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
 
-    return EncodeMessageArray(input.preIssueTokenRequest, ffi.secMessage);
+    if (!EncodeMessageArray(input.preIssueTokenRequest, ffi.secMessage)) {
+        return false;
+    }
+
+    return EncodeBindingSignatureProof(input.bindingSignatureProof, ffi.bindingSignatureProof);
 }
 
 bool DecodeCompanionPreIssueTokenOutput(const CompanionPreIssueTokenOutputFfi &ffi,
@@ -631,9 +674,14 @@ bool EncodeCompanionProcessIssueTokenInput(const CompanionProcessIssueTokenInput
     CompanionProcessIssueTokenInputFfi &ffi)
 {
     ffi.requestId = input.requestId;
+    ffi.bindingId = input.bindingId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
 
-    return EncodeMessageArray(input.issueTokenRequest, ffi.secMessage);
+    if (!EncodeMessageArray(input.issueTokenRequest, ffi.secMessage)) {
+        return false;
+    }
+
+    return EncodeBindingSignatureProof(input.bindingSignatureProof, ffi.bindingSignatureProof);
 }
 
 bool DecodeCompanionProcessIssueTokenOutput(const CompanionProcessIssueTokenOutputFfi &ffi,
@@ -649,7 +697,11 @@ bool EncodeCompanionProcessTokenAuthInput(const CompanionProcessTokenAuthInput &
     ffi.bindingId = input.bindingId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
 
-    return EncodeMessageArray(input.tokenAuthRequest, ffi.secMessage);
+    if (!EncodeMessageArray(input.tokenAuthRequest, ffi.secMessage)) {
+        return false;
+    }
+
+    return EncodeBindingSignatureProof(input.bindingSignatureProof, ffi.bindingSignatureProof);
 }
 
 bool DecodeCompanionProcessTokenAuthOutput(const CompanionProcessTokenAuthOutputFfi &ffi,
@@ -665,7 +717,11 @@ bool EncodeCompanionBeginDelegateAuthInput(const CompanionDelegateAuthBeginInput
     ffi.bindingId = input.bindingId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
 
-    return EncodeMessageArray(input.startDelegateAuthRequest, ffi.secMessage);
+    if (!EncodeMessageArray(input.startDelegateAuthRequest, ffi.secMessage)) {
+        return false;
+    }
+
+    return EncodeBindingSignatureProof(input.bindingSignatureProof, ffi.bindingSignatureProof);
 }
 
 bool DecodeCompanionBeginDelegateAuthOutput(const CompanionBeginDelegateAuthOutputFfi &ffi,

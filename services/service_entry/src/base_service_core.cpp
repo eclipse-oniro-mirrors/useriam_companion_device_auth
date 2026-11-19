@@ -271,6 +271,7 @@ ResultCode BaseServiceCore::GetTemplateStatus(int32_t localUserId, std::vector<I
             ipcDeviceStatus.supportedBusinessIds.push_back(static_cast<int>(id));
         }
         ipcDeviceStatus.deviceSubProfileName = status.companionDeviceStatus.deviceSubProfileName;
+        ipcDeviceStatus.maxAuthTrustLevel = status.companionDeviceStatus.maxAuthTrustLevel;
         ipcStatus.deviceStatus = ipcDeviceStatus;
         ipcStatus.hasAuthTrustLevel = status.tokenAuthAtl.has_value();
         ipcStatus.authTrustLevel = status.tokenAuthAtl.value_or(0);

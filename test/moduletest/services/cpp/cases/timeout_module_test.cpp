@@ -120,6 +120,10 @@ HWTEST_F(TimeoutModuleTest, SyncDeviceStatusTimeoutE2E_001, TestSize.Level0)
     ASSERT_TRUE(startRet) << "Failed to start HostSyncDeviceStatusRequest";
     DrainPendingTasks();
 
+    // 5.5 The fixture enrolls V1-only credentials: per the sync offer convergence design,
+    //     V1-only bindings skip the binding signature challenge round, so SYNC_DEVICE_STATUS
+    //     is the first message on the wire — the one left unanswered under test.
+
     // 6. Verify SYNC_DEVICE_STATUS message was sent
     auto allConnNames = guard.GetChannel().GetAllConnectionNames();
     ASSERT_FALSE(allConnNames.empty()) << "Expected a connection to be established";

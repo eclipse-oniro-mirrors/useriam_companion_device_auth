@@ -16,6 +16,7 @@
 #ifndef COMPANION_DEVICE_AUTH_OUTBOUND_REQUEST_H
 #define COMPANION_DEVICE_AUTH_OUTBOUND_REQUEST_H
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -33,6 +34,9 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
+
+class HostBindingProofObtainer;
+
 class OutboundRequest : public BaseRequest {
 public:
     OutboundRequest(RequestType requestType, ConnectionMode connectionMode, ScheduleId scheduleId, uint32_t timeoutMs);
@@ -55,6 +59,7 @@ protected:
     void SetPeerDeviceKey(const DeviceKey &peerDeviceKey);
     std::optional<DeviceKey> GetPeerDeviceKey() const override;
     const std::string &GetConnectionName() const;
+    bool SendMessage(MessageType msgType, Attributes request, OnMessageReply &&onMessageReply);
 
 private:
     void RunOnStart();
@@ -65,10 +70,13 @@ private:
 
     void HandleConnectionStatus(const std::string &connName, ConnectionStatus status, const std::string &reason);
     void HandleRequestAborted(const Attributes &request, std::function<void(const Attributes &)> onReply);
+    void HandleBindingSignatureResult(MessageType msgType, const std::shared_ptr<Attributes> &sharedRequest,
+        const std::shared_ptr<OnMessageReply> &sharedReply, ResultCode result);
 
     std::optional<DeviceKey> peerDeviceKey_;
     std::string connectionName_ = "";
     ConnectionMode connectionMode_;
+    std::shared_ptr<HostBindingProofObtainer> bindingProofObtainer_;
     std::unique_ptr<Subscription> peerDeviceSubscription_;
     std::unique_ptr<Subscription> connectionStatusSubscription_;
     std::unique_ptr<Subscription> requestAbortedSubscription_;

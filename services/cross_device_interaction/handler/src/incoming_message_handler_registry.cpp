@@ -18,6 +18,7 @@
 #include "iam_check.h"
 #include "iam_logger.h"
 
+#include "companion_get_binding_signature_challenge_handler.h"
 #include "companion_init_key_negotiation_handler.h"
 #include "companion_pre_issue_token_handler.h"
 #include "companion_remove_host_binding_handler.h"
@@ -75,6 +76,10 @@ bool IncomingMessageHandlerRegistry::RegisterHandlers()
     handlers_.push_back(handler);
 
     handler = std::make_shared<CompanionInitKeyNegotiationHandler>();
+    ENSURE_OR_RETURN_VAL(handler != nullptr, false);
+    handlers_.push_back(handler);
+
+    handler = std::make_shared<CompanionGetBindingSignatureChallengeHandler>();
     ENSURE_OR_RETURN_VAL(handler != nullptr, false);
     handlers_.push_back(handler);
 

@@ -393,6 +393,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionFullE2E_001, TestSize.Level0)
     DrainPendingTasks();
     guard.GetMiscManager().TestSimulateDeviceSelectResult(999, { MakeDeviceKey(deviceId, HOST_USER_ID) });
     DrainPendingTasks();
+    // The pairing flow runs a self-held sync round before opening the connection: settle it.
+    guard.SettlePairingSyncRound(MakeDeviceKey(deviceId, HOST_USER_ID));
     std::string connName = guard.GetAnyConnectionName();
     ASSERT_FALSE(connName.empty());
 
@@ -446,6 +448,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionBeginAddCompanionFailedE2E_006,
     DrainPendingTasks();
     guard.GetMiscManager().TestSimulateDeviceSelectResult(testTokenId, { MakeDeviceKey(deviceId, HOST_USER_ID) });
     DrainPendingTasks();
+    // The pairing flow runs a self-held sync round before opening the connection: settle it.
+    guard.SettlePairingSyncRound(MakeDeviceKey(deviceId, HOST_USER_ID));
 
     std::string connName = guard.GetAnyConnectionName();
     ASSERT_FALSE(connName.empty());
@@ -499,6 +503,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionEndAddCompanionFailedE2E_007, T
     DrainPendingTasks();
     guard.GetMiscManager().TestSimulateDeviceSelectResult(testTokenId, { MakeDeviceKey(deviceId, HOST_USER_ID) });
     DrainPendingTasks();
+    // The pairing flow runs a self-held sync round before opening the connection: settle it.
+    guard.SettlePairingSyncRound(MakeDeviceKey(deviceId, HOST_USER_ID));
 
     std::string connName = guard.GetAnyConnectionName();
     ASSERT_FALSE(connName.empty());

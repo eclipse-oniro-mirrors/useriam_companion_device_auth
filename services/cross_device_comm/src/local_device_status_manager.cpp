@@ -54,7 +54,12 @@ LocalDeviceStatusManager::LocalDeviceStatusManager(std::shared_ptr<ChannelManage
     const DeviceCapabilityInfo &deviceCapabilityInfo, bool hostBindingRevokeTokenOnInactive)
     : channelMgr_(channelMgr)
 {
-    profile_.protocols = { ProtocolId::VERSION_1 };
+    profile_.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+#ifdef ENABLE_COMPANION_V2
+    profile_.companionProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+#else
+    profile_.companionProtocols = { ProtocolId::VERSION_1 };
+#endif
     profile_.companionSecureProtocolId = SecureProtocolId::INVALID;
     profile_.hostCapabilities = deviceCapabilityInfo.hostLocalCapabilities;
     profile_.companionCapabilities = deviceCapabilityInfo.companionLocalCapabilities;

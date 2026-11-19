@@ -56,6 +56,9 @@ pub enum AttributeKey {
     AttrEncryptData = 300009,
     AttrTrackAbilityLevel = 300010,
     AttrHmac = 300011,
+    AttrBindingSignaturePublicKey = 300012,
+    AttrBindingSignatureAlgoId = 300013,
+    AttrMaxAtl = 300014,
     AttrHostChallenge = 300016,
     AttrCompanionChallenge = 300017,
     AttrSubProfileId = 300018,
@@ -66,6 +69,7 @@ pub enum AttributeKey {
     AttrKdfAlgoSupportList = 300023,
     AttrAeadAlgoSupportList = 300024,
     AttrMacAlgoSupportList = 300025,
+    AttrBindingSignatureAlgoList = 300026,
 }
 
 impl TryFrom<i32> for AttributeKey {
@@ -102,6 +106,9 @@ impl TryFrom<i32> for AttributeKey {
             300009 => Ok(AttributeKey::AttrEncryptData),
             300010 => Ok(AttributeKey::AttrTrackAbilityLevel),
             300011 => Ok(AttributeKey::AttrHmac),
+            300012 => Ok(AttributeKey::AttrBindingSignaturePublicKey),
+            300013 => Ok(AttributeKey::AttrBindingSignatureAlgoId),
+            300014 => Ok(AttributeKey::AttrMaxAtl),
             300016 => Ok(AttributeKey::AttrHostChallenge),
             300017 => Ok(AttributeKey::AttrCompanionChallenge),
             300018 => Ok(AttributeKey::AttrSubProfileId),
@@ -112,6 +119,7 @@ impl TryFrom<i32> for AttributeKey {
             300023 => Ok(AttributeKey::AttrKdfAlgoSupportList),
             300024 => Ok(AttributeKey::AttrAeadAlgoSupportList),
             300025 => Ok(AttributeKey::AttrMacAlgoSupportList),
+            300026 => Ok(AttributeKey::AttrBindingSignatureAlgoList),
             _ => Err(ErrorCode::GeneralError),
         }
     }

@@ -940,6 +940,24 @@ void ModuleTestGuard::SetupHostSideSync(const std::string &companionDeviceId, Us
     DrainPendingTasks();
 }
 
+void ModuleTestGuard::SettlePairingSyncRound(const DeviceKey &companionDeviceKey)
+{
+    // Same reply shape as SetupHostSideSync: the negotiated protocol is the round's
+    // first(host offer ∩ reply list) = VERSION_1, which the pairing flow then validates
+    // against the local host protocols before opening the connection.
+    SyncDeviceStatusReply syncReply;
+    syncReply.result = ResultCode::SUCCESS;
+    syncReply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncReply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
+    syncReply.secureProtocolId = SecureProtocolId::DEFAULT;
+    syncReply.companionDeviceKey = companionDeviceKey;
+    syncReply.deviceUserName = "TestCompanion";
+    // A proof-bearing reply is what a bound companion produces.
+    syncReply.companionCheckResponse = { 0x01 };
+    InjectSyncDeviceStatusReply(GetChannel(), syncReply, companionDeviceKey);
+    DrainPendingTasks();
+}
+
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

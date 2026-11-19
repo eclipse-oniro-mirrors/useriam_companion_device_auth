@@ -52,10 +52,7 @@ public:
         OnMessageReply &&replyCallback, const DeviceKey &companionDeviceKey) override;
     std::shared_ptr<IRequest> CreateCompanionObtainTokenRequest(const DeviceKey &hostDeviceKey,
         uint32_t lockStateAuthTypeValue, const std::vector<uint8_t> &fwkUnlockMsg) override;
-    std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const std::string &connectionName,
-        const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-        const std::vector<uint8_t> &startDelegateAuthRequest,
-        const CompanionDelegateAuthParam &delegateAuthParam) override;
+    std::shared_ptr<IRequest> CreateCompanionDelegateAuthRequest(const CompanionDelegateAuthParams &params) override;
     std::shared_ptr<IRequest> CreateCompanionRevokeTokenRequest(const UserKey &companionUserKey,
         const DeviceKey &hostDeviceKey, const std::string &triggerReason) override;
     std::shared_ptr<IRequest> CreateCompanionRequestResyncRequest(const PhysicalDeviceKey &hostPhysicalDeviceKey,

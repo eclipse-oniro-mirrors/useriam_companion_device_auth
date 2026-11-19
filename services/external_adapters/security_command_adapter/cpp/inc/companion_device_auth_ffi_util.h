@@ -81,6 +81,14 @@ bool EncodeHostUpdateCompanionEnabledBusinessIdsInput(const HostUpdateCompanionE
 
 bool EncodeHostSetCompanionInvalidInput(const HostSetCompanionInvalidInput &input,
     HostSetCompanionInvalidInputFfi &ffi);
+bool EncodeHostBindingSignInput(const HostBindingSignInput &input, HostBindingSignInputFfi &ffi);
+bool DecodeHostBindingSignOutput(const HostBindingSignOutputFfi &ffi, HostBindingSignOutput &output);
+bool DecodeCompanionGenerateBindingSignatureChallengeOutput(
+    const CompanionGenerateBindingSignatureChallengeOutputFfi &ffi,
+    CompanionGenerateBindingSignatureChallengeOutput &output);
+bool EncodeCompanionPurgeBindingSignatureChallengeInput(const std::vector<uint8_t> &challenge,
+    CompanionPurgeBindingSignatureChallengeInputFfi &ffi);
+bool EncodeBindingSignatureProof(const BindingSignatureProof &proof, BindingSignatureProofFfi &ffi);
 
 bool EncodeHostCheckTemplateEnrolledInput(const HostCheckTemplateEnrolledInput &input,
     HostCheckTemplateEnrolledInputFfi &ffi);

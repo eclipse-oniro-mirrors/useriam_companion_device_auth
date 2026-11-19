@@ -30,6 +30,12 @@ public:
     MOCK_METHOD(std::optional<CompanionStatus>, GetCompanionStatus,
         (const UserKey &hostUserKey, const DeviceKey &companionDeviceKey), (override));
     MOCK_METHOD(std::vector<CompanionStatus>, GetAllCompanionStatus, (), (override));
+    MOCK_METHOD(std::vector<CompanionStatus>, FilterCompanionStatus,
+        (const UserKey &hostUserKey, const PhysicalDeviceKey &companionDeviceKey, std::optional<ProtocolId> protocolId),
+        (override));
+    MOCK_METHOD(bool, IsBindingSignatureRequired, (TemplateId templateId), (override));
+    MOCK_METHOD(bool, IsBindingSignatureRequired, (const UserKey &hostUserKey, const DeviceKey &companionDeviceKey),
+        (override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeCompanionDeviceStatusChange,
         (OnCompanionDeviceStatusChange && callback), (override));
     MOCK_METHOD(void, UnsubscribeCompanionDeviceStatusChange, (SubscribeId subscriptionId), (override));

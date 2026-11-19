@@ -110,6 +110,7 @@ static void FuzzHandleSyncResult(std::shared_ptr<DeviceStatusManager> &mgr, Fuzz
         syncStatus.companionCapabilityList.push_back(static_cast<Capability>(fuzzData.ConsumeIntegral<uint8_t>()));
         syncStatus.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint8_t>());
         syncStatus.deviceUserName = GenerateFuzzString(fuzzData, TEST_VAL64);
+        syncStatus.maxAuthTrustLevel = static_cast<int32_t>(fuzzData.ConsumeIntegral<uint32_t>());
     }
     // else: empty syncStatus to test needSync=false scenario
     mgr->HandleSyncResult(deviceKey, requestId, resultCode, syncStatus);
@@ -132,17 +133,6 @@ static void FuzzUnsubscribeDeviceStatus(std::shared_ptr<DeviceStatusManager> &mg
     SubscribeId subscriptionId = fuzzData.ConsumeIntegral<SubscribeId>();
     bool result = mgr->UnsubscribeDeviceStatus(subscriptionId);
     (void)result;
-}
-
-static void FuzzNegotiateProtocol(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
-{
-    uint8_t protocolCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, FUZZ_MAX_PROTOCOLS_COUNT);
-    std::vector<ProtocolId> protocols;
-    for (uint8_t i = 0; i < protocolCount; ++i) {
-        protocols.push_back(static_cast<ProtocolId>(fuzzData.ConsumeIntegral<uint8_t>()));
-    }
-    auto protocolId = mgr->NegotiateProtocol(protocols);
-    (void)protocolId;
 }
 
 static void FuzzShouldMonitorDevice(std::shared_ptr<DeviceStatusManager> &mgr, FuzzedDataProvider &fuzzData)
@@ -223,7 +213,6 @@ static const DeviceStatusManagerFuzzFunction g_fuzzFuncs[] = {
     FuzzHandleSyncResult,
     FuzzEnsureOrResyncDevice,
     FuzzUnsubscribeDeviceStatus,
-    FuzzNegotiateProtocol,
     FuzzShouldMonitorDevice,
     FuzzHandleChannelDeviceStatusChange,
     FuzzReconcileDevices,

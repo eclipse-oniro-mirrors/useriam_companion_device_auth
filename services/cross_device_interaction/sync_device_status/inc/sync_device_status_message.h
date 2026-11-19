@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "binding_signature_message.h"
 #include "cda_attributes.h"
 #include "common_message.h"
 #include "service_common.h"
@@ -36,6 +37,8 @@ struct SyncDeviceStatusRequest {
     DeviceKey hostDeviceKey {};
     std::vector<uint8_t> salt;
     uint64_t challenge;
+    std::optional<BindingSignatureProof> bindingSignatureProof;
+    std::optional<UserKey> companionUserKey;
 };
 
 // Companion -> Host
@@ -50,6 +53,8 @@ struct SyncDeviceStatusReply {
     std::string deviceName;
     std::vector<uint8_t> companionCheckResponse;
     std::string deviceSubProfileName;
+    std::optional<Atl> maxAuthTrustLevel;
+    std::optional<UserKey> companionUserKey;
 };
 
 void EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes);

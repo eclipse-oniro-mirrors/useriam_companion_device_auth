@@ -28,6 +28,15 @@ pub const AES_GCM_IV_SIZE: usize = 12;
 pub const AES_GCM_AAD: &str = "CDA_AES_MSG_DATA";
 pub const TOKEN_KEY_LEN: usize = 32;
 pub const SHARE_KEY_LEN: usize = 32;
+pub const P256: u16 = 1;
+pub const SUPPORTED_BINDING_SIGNATURE_ALGORITHMS: &[u16] = &[P256];
+pub const BINDING_SIGNATURE_CHALLENGE_LEN: usize = 32;
+pub const BINDING_SIGNATURE_VALUE_MAX_LEN: usize = 256;
+pub const BINDING_SIGNATURE_PUB_KEY_LEN: usize = 65;
+pub const BINDING_SIGNATURE_PRI_KEY_LEN: usize = 32;
+pub const BINDING_SIGNATURE_P256_DER_MAX_LEN: usize = 72;
+pub const BINDING_SIGNATURE_POOL_CAPACITY: usize = 8;
+pub const BINDING_SIGNATURE_CHALLENGE_TTL_MS: u64 = 60 * 1000;
 pub const TOKEN_VALID_PERIOD: u64 = 4 * 60 * 60 * 1000; // 4 hours in ms
 pub const TOKEN_REFRESH_THRESHOLD: u64 = 60 * 60 * 1000; // 1 hour in ms
 pub const FWK_MSG_MAX_AGE_MS: u64 = 10_000; // 10 seconds in ms
@@ -58,6 +67,7 @@ pub enum ErrorCode {
     SecureProtocolNotSupported = 20013,
     CapabilityNegotiationFailed = 20014,
     AlgorithmNegotiationFailed = 20015,
+    BindingSignatureVerifyFailed = 20017,
 }
 
 impl TryFrom<i32> for ErrorCode {
@@ -80,6 +90,7 @@ impl TryFrom<i32> for ErrorCode {
             20013 => Ok(ErrorCode::SecureProtocolNotSupported),
             20014 => Ok(ErrorCode::CapabilityNegotiationFailed),
             20015 => Ok(ErrorCode::AlgorithmNegotiationFailed),
+            20017 => Ok(ErrorCode::BindingSignatureVerifyFailed),
             _ => {
                 log_e!("Invalid error code: {}", value);
                 Err(ErrorCode::BadParam)
@@ -174,6 +185,8 @@ impl TryFrom<i32> for AuthCapabilityLevel {
 }
 
 pub const LOCAL_EXECUTOR_MAX_ACL: AuthCapabilityLevel = AuthCapabilityLevel::Acl3;
+
+pub const COMPANION_MAX_ATL: AuthTrustLevel = AuthTrustLevel::Atl4;
 
 pub const DEVICE_ID_TYPE_UNIFIED_DEVICE_ID: i32 = 1;
 pub const DEVICE_ID_TYPE_VENDOR_BEGIN: i32 = 10000;
@@ -503,7 +516,9 @@ impl TryFrom<u16> for Capability {
 }
 
 pub const PROTOCOL_ID_INVALID: u16 = 0;
-pub const SUPPORTED_PROTOCOL_VERSIONS: &[u16] = &[1];
+pub const PROTOCOL_VERSION_1: u16 = 1;
+pub const PROTOCOL_VERSION_2: u16 = 2;
+pub const SUPPORTED_PROTOCOL_VERSIONS: &[u16] = &[PROTOCOL_VERSION_1, PROTOCOL_VERSION_2];
 
 pub const SUPPORTED_KA_ALGORITHMS: &[u16] = &[KaAlgoType::X25519 as u16];
 pub const SUPPORTED_KDF_ALGORITHMS: &[u16] = &[KdfAlgoType::HkdfSha256 as u16];

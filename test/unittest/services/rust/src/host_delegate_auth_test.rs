@@ -26,8 +26,7 @@ use crate::request::delegate_auth::host_delegate_auth::HostDelegateAuthRequest;
 use crate::request::jobs::common_message::SecCommonReply;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, DeviceKey, UserInfo, UserKey};
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceSk, DeviceKey, UserInfo, UserKey};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
@@ -97,15 +96,12 @@ fn mock_set_companion_device_db_manager() {
     });
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
@@ -126,6 +122,7 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
         enrolled_capability_list: vec![1, 2, 3],
         enrolled_protocol_id: 1,
         secure_protocol_id: 1,
+        max_auth_trust_level: AuthTrustLevel::Atl0,
     }
 }
 

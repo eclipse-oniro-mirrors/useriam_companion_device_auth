@@ -647,6 +647,74 @@ HWTEST_F(CompanionManagerImplTest, EndAddCompanion_005, TestSize.Level0)
     EXPECT_EQ(ret, ResultCode::GENERAL_ERROR);
 }
 
+// a V2-enrolled companion keeps its protocol across persistence and requires binding signatures
+HWTEST_F(CompanionManagerImplTest, EndAddCompanion_006, TestSize.Level0)
+{
+    MockGuard guard;
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserKey_.userId = activeUserId_;
+
+    EndAddCompanionInput input;
+    input.companionStatus = MakePersistedStatus(0, activeUserId_, "device-1", USER_ID_200);
+    input.companionStatus.enrolledProtocolId = ProtocolId::VERSION_2;
+    EndAddCompanionOutput output;
+
+    EXPECT_CALL(guard.GetSecurityAgent(), HostEndAddCompanion(_, _))
+        .WillOnce(DoAll(Invoke([](const HostEndAddCompanionInput &, HostEndAddCompanionOutput &secOutput) {
+            secOutput.templateId = TEMPLATE_ID_12345;
+        }),
+            Return(ResultCode::SUCCESS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+
+    ResultCode ret = manager->EndAddCompanion(input, output);
+    EXPECT_EQ(ret, ResultCode::SUCCESS);
+
+    manager->OnTemplateListChanged(activeUserId_, { TEMPLATE_ID_12345 });
+    auto companionStatus = manager->GetCompanionStatus(TEMPLATE_ID_12345);
+    ASSERT_TRUE(companionStatus.has_value());
+    EXPECT_EQ(companionStatus->enrolledProtocolId, ProtocolId::VERSION_2);
+    EXPECT_TRUE(manager->IsBindingSignatureRequired(TEMPLATE_ID_12345));
+}
+
+HWTEST_F(CompanionManagerImplTest, EndAddCompanion_007, TestSize.Level0)
+{
+    MockGuard guard;
+    guard.GetTimeKeeper().AdvanceSystemTime(5000);
+
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    manager->hostUserKey_.userId = activeUserId_;
+
+    EndAddCompanionInput input;
+    input.companionStatus = MakePersistedStatus(0, activeUserId_, "device-1", USER_ID_200);
+    EndAddCompanionOutput output;
+
+    EXPECT_CALL(guard.GetSecurityAgent(), HostEndAddCompanion(_, _))
+        .WillOnce(DoAll(Invoke([](const HostEndAddCompanionInput &, HostEndAddCompanionOutput &secOutput) {
+            secOutput.templateId = TEMPLATE_ID_12345;
+        }),
+            Return(ResultCode::SUCCESS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeDeviceStatus(_, _, _))
+        .WillOnce(Return(ByMove(MakeSubscription())));
+    ON_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillByDefault(Return(std::nullopt));
+
+    ResultCode ret = manager->EndAddCompanion(input, output);
+    EXPECT_EQ(ret, ResultCode::SUCCESS);
+
+    manager->OnTemplateListChanged(activeUserId_, { TEMPLATE_ID_12345 });
+    auto companionStatus = manager->GetCompanionStatus(TEMPLATE_ID_12345);
+    ASSERT_TRUE(companionStatus.has_value());
+    EXPECT_NE(companionStatus->enrolledProtocolId, ProtocolId::VERSION_2);
+    EXPECT_FALSE(manager->IsBindingSignatureRequired(TEMPLATE_ID_12345));
+}
+
 HWTEST_F(CompanionManagerImplTest, RemoveCompanion_001, TestSize.Level0)
 {
     MockGuard guard;

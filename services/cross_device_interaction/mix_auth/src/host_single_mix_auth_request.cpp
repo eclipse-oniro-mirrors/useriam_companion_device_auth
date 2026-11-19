@@ -73,7 +73,7 @@ void HostSingleMixAuthRequest::Start()
         CompleteWithError(ResultCode::COMMUNICATION_ERROR);
         return;
     }
-    GetCrossDeviceCommManager().EnsureDeviceSynced(FromDeviceKey(peerDeviceKey_),
+    GetCrossDeviceCommManager().EnsureDeviceSynced(peerDeviceKey_.AsPhysical(),
         [weakSelf = weak_from_this()](ResultCode resultCode) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);

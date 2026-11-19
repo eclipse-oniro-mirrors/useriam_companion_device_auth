@@ -48,13 +48,14 @@ namespace {
 bool ShouldInvalidateCachedSync(ResultCode resultCode)
 {
     return resultCode == PROTOCOL_NEGOTIATION_FAILED || resultCode == PEER_SYNC_FAILED ||
-        resultCode == SECURE_PROTOCOL_NOT_SUPPORTED;
+        resultCode == SECURE_PROTOCOL_NOT_SUPPORTED || resultCode == TYPE_NOT_SUPPORT;
 }
 
 bool ShouldStopRetry(ResultCode resultCode)
 {
     return resultCode == PROTOCOL_NEGOTIATION_FAILED || resultCode == PEER_SERVICE_NOT_AVAILABLE ||
-        resultCode == COORDINATOR_REJECTED || resultCode == SECURE_PROTOCOL_NOT_SUPPORTED || resultCode == NOT_ENROLLED;
+        resultCode == COORDINATOR_REJECTED || resultCode == SECURE_PROTOCOL_NOT_SUPPORTED ||
+        resultCode == NOT_ENROLLED || resultCode == TYPE_NOT_SUPPORT;
 }
 } // namespace
 
@@ -249,14 +250,14 @@ bool DeviceStatusManager::NegotiateSyncProtocol(DeviceStatusEntry &deviceStatus,
     if (!syncDeviceStatus.needSync) {
         return true;
     }
-    auto negotiatedProtocol = NegotiateProtocol(syncDeviceStatus.companionProtocolIdList);
-    if (!negotiatedProtocol.has_value()) {
+    deviceStatus.selectedProtocolId = static_cast<ProtocolId>(syncDeviceStatus.selectedProtocolId);
+    deviceStatus.freshBindingProtocolId = static_cast<ProtocolId>(syncDeviceStatus.freshBindingProtocolId);
+    if (deviceStatus.selectedProtocolId == ProtocolId::INVALID) {
         IAM_LOGE("protocol negotiation failed: %{public}s", deviceKey.GetDesc().c_str());
         errorGuard.UpdateErrorCode(ResultCode::PROTOCOL_NEGOTIATION_FAILED);
         deviceStatus.OnSyncAbort();
         return false;
     }
-    deviceStatus.negotiatedProtocolId = negotiatedProtocol.value();
     return true;
 }
 
@@ -267,7 +268,10 @@ void DeviceStatusManager::ApplySyncResult(DeviceStatusEntry &deviceStatus, const
     deviceStatus.deviceUserKey = syncDeviceStatus.deviceUserKey;
     deviceStatus.deviceSubProfileName = syncDeviceStatus.deviceSubProfileName;
     deviceStatus.secureProtocolId = syncDeviceStatus.secureProtocolId;
+    // capabilities reflect the concluded view (enrolled set for a re-validated binding,
+    // announcement otherwise).
     deviceStatus.capabilities = syncDeviceStatus.companionCapabilityList;
+    deviceStatus.syncMaxAuthTrustLevel = syncDeviceStatus.maxAuthTrustLevel;
     deviceStatus.SetSyncCompanionBusinessIds(syncDeviceStatus.businessIdList);
 }
 
@@ -347,7 +351,7 @@ std::unique_ptr<Subscription> DeviceStatusManager::SubscribeDeviceStatus(const D
     info.deviceKey = deviceKey; // specific device
     info.callback = std::move(callback);
     info.demand = demand;
-    PhysicalDeviceKey physicalKey = FromDeviceKey(deviceKey);
+    PhysicalDeviceKey physicalKey = deviceKey.AsPhysical();
     auto demandBefore = ResolveSyncDemandLevel(physicalKey);
     subscriptions_.push_back(std::move(info));
     auto demandAfter = ResolveSyncDemandLevel(physicalKey);
@@ -536,23 +540,6 @@ void DeviceStatusManager::EscalateSyncToForeground(DeviceStatusEntry &deviceStat
 
     AttachOrStartDeviceSync(deviceStatus.physicalDeviceKey, SyncTriggerReason::MODE_ESCALATION,
         deviceStatus.TakeCombinedSyncWaiter());
-}
-
-std::optional<ProtocolId> DeviceStatusManager::NegotiateProtocol(const std::vector<ProtocolId> &remoteProtocols)
-{
-    ENSURE_OR_RETURN_VAL(localDeviceStatusMgr_ != nullptr, std::nullopt);
-
-    auto localProfile = localDeviceStatusMgr_->GetLocalDeviceProfile();
-
-    for (const auto &localProtocol : localProfile.protocols) {
-        if (std::find(remoteProtocols.begin(), remoteProtocols.end(), localProtocol) != remoteProtocols.end()) {
-            IAM_LOGI("negotiated protocol: %{public}hu", localProtocol);
-            return localProtocol;
-        }
-    }
-
-    IAM_LOGE("no common protocol found");
-    return std::nullopt;
 }
 
 void DeviceStatusManager::NotifySubscribers()
@@ -757,7 +744,8 @@ bool DeviceStatusManager::UpdateExistingDevice(DeviceStatusEntry &deviceStatus, 
         deviceStatus.deviceModelInfo != status.deviceModelInfo || deviceStatus.deviceType != status.deviceType ||
         deviceStatus.atlRevokeDelayMs != status.atlRevokeDelayMs || deviceStatus.refreshToken != status.refreshToken ||
         deviceStatus.reportUnsynced != status.reportUnsynced || effectiveBusinessIdsChanged ||
-        deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive;
+        deviceStatus.isAuthMaintainActive != status.isAuthMaintainActive ||
+        deviceStatus.physicalMaxAuthTrustLevel != status.maxAuthTrustLevel;
     if (hasChange) {
         deviceStatus.channelId = status.channelId;
         deviceStatus.physicalDeviceName = status.deviceName;
@@ -767,6 +755,7 @@ bool DeviceStatusManager::UpdateExistingDevice(DeviceStatusEntry &deviceStatus, 
         deviceStatus.refreshToken = status.refreshToken;
         deviceStatus.reportUnsynced = status.reportUnsynced;
         deviceStatus.isAuthMaintainActive = status.isAuthMaintainActive;
+        deviceStatus.physicalMaxAuthTrustLevel = status.maxAuthTrustLevel;
     }
     if (policy == DeviceReconcilePolicy::REEVALUATE_ALL) {
         SyncDeviceIfNeeded(deviceStatus);

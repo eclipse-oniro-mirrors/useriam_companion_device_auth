@@ -61,6 +61,30 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenRequest_001, TestSize.L
     EXPECT_EQ(decoded.companionUserKey.subProfileId, request.companionUserKey.subProfileId);
 }
 
+HWTEST_F(IssueTokenMessageTest, EncodeDecodePreIssueTokenRequest_WithBindingSignature, TestSize.Level0)
+{
+    MockGuard guard;
+    PreIssueTokenRequest request = { .hostDeviceKey = hostDeviceKey_,
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = extraInfo_ };
+
+    Attributes attributes;
+    EncodePreIssueTokenRequest(request, attributes);
+    std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0xAB);
+    std::vector<uint8_t> signature = { 0xCD, 0xEF };
+    AttachBindingSignatureAttributes(challenge, signature, attributes);
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(request.hostDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
+
+    auto result = DecodePreIssueTokenRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(result->bindingSignatureProof.has_value());
+    EXPECT_EQ(result->bindingSignatureProof->challenge, challenge);
+    EXPECT_EQ(result->bindingSignatureProof->signature, signature);
+}
+
 HWTEST_F(IssueTokenMessageTest, DecodePreIssueTokenRequest_001, TestSize.Level0)
 {
     MockGuard guard;
@@ -168,6 +192,30 @@ HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_001, TestSize.Leve
     EXPECT_EQ(decoded.companionUserKey.userId, request.companionUserKey.userId);
     EXPECT_EQ(decoded.extraInfo, request.extraInfo);
     EXPECT_EQ(decoded.companionUserKey.subProfileId, request.companionUserKey.subProfileId);
+}
+
+HWTEST_F(IssueTokenMessageTest, EncodeDecodeIssueTokenRequest_WithBindingSignature, TestSize.Level0)
+{
+    MockGuard guard;
+    IssueTokenRequest request = { .hostDeviceKey = hostDeviceKey_,
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = extraInfo_ };
+
+    Attributes attributes;
+    EncodeIssueTokenRequest(request, attributes);
+    std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0xAB);
+    std::vector<uint8_t> signature = { 0xCD, 0xEF };
+    AttachBindingSignatureAttributes(challenge, signature, attributes);
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(request.hostDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
+
+    auto result = DecodeIssueTokenRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(result->bindingSignatureProof.has_value());
+    EXPECT_EQ(result->bindingSignatureProof->challenge, challenge);
+    EXPECT_EQ(result->bindingSignatureProof->signature, signature);
 }
 
 HWTEST_F(IssueTokenMessageTest, DecodeIssueTokenRequest_001, TestSize.Level0)

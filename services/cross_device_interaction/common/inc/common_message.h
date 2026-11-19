@@ -30,8 +30,17 @@ namespace CompanionDeviceAuth {
 std::optional<DeviceKey> DecodeHostDeviceKey(const Attributes &attributes);
 std::optional<DeviceKey> DecodeCompanionDeviceKey(const Attributes &attributes);
 
+std::optional<UserKey> DecodeHostUserKey(const Attributes &attributes);
+std::optional<UserKey> DecodeCompanionUserKey(const Attributes &attributes);
+
+bool HasHostUserKey(const Attributes &attributes);
+bool HasCompanionUserKey(const Attributes &attributes);
+
 void EncodeHostDeviceKey(const DeviceKey &deviceKey, Attributes &attributes);
 void EncodeCompanionDeviceKey(const DeviceKey &deviceKey, Attributes &attributes);
+
+void EncodeHostUserKey(const UserKey &userKey, Attributes &attributes);
+void EncodeCompanionUserKey(const UserKey &userKey, Attributes &attributes);
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

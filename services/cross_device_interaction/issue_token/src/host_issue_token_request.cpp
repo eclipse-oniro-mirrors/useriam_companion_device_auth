@@ -145,7 +145,7 @@ bool HostIssueTokenRequest::SendPreIssueTokenRequest(const std::vector<uint8_t> 
     EncodePreIssueTokenRequest(requestMsg, request);
     eventCollector_.EnterWait(HostIssueTokenStages::WAIT_PRE_ISSUE_TOKEN_REPLY);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::PRE_ISSUE_TOKEN, request,
+    bool sendRet = SendMessage(MessageType::PRE_ISSUE_TOKEN, std::move(request),
         [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
@@ -216,7 +216,7 @@ bool HostIssueTokenRequest::SendIssueTokenRequest(const std::vector<uint8_t> &is
     EncodeIssueTokenRequest(requestMsg, request);
     eventCollector_.EnterWait(HostIssueTokenStages::WAIT_ISSUE_TOKEN_REPLY);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::ISSUE_TOKEN, request,
+    bool sendRet = SendMessage(MessageType::ISSUE_TOKEN, std::move(request),
         [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);

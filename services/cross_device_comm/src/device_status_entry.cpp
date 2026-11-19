@@ -40,12 +40,13 @@ DeviceStatusEntry::DeviceStatusEntry(const PhysicalDeviceStatus &physicalStatus,
       physicalDeviceName(physicalStatus.deviceName),
       syncDeviceName(),
       useSyncDeviceName(physicalStatus.useSyncDeviceName),
-      negotiatedProtocolId(ProtocolId::INVALID),
+      selectedProtocolId(ProtocolId::INVALID),
       secureProtocolId(SecureProtocolId::INVALID),
       deviceType(physicalStatus.deviceType),
       capabilities(),
       isAuthMaintainActive(physicalStatus.isAuthMaintainActive),
       atlRevokeDelayMs(physicalStatus.atlRevokeDelayMs),
+      physicalMaxAuthTrustLevel(physicalStatus.maxAuthTrustLevel),
       refreshToken(physicalStatus.refreshToken),
       reportUnsynced(physicalStatus.reportUnsynced),
       isSynced(false),
@@ -75,12 +76,15 @@ DeviceStatusEntry::DeviceStatusEntry(DeviceStatusEntry &&other) noexcept
       syncDeviceName(std::move(other.syncDeviceName)),
       deviceSubProfileName(std::move(other.deviceSubProfileName)),
       useSyncDeviceName(other.useSyncDeviceName),
-      negotiatedProtocolId(other.negotiatedProtocolId),
+      selectedProtocolId(other.selectedProtocolId),
+      freshBindingProtocolId(other.freshBindingProtocolId),
       secureProtocolId(other.secureProtocolId),
       deviceType(other.deviceType),
       capabilities(std::move(other.capabilities)),
       isAuthMaintainActive(other.isAuthMaintainActive),
       atlRevokeDelayMs(other.atlRevokeDelayMs),
+      physicalMaxAuthTrustLevel(other.physicalMaxAuthTrustLevel),
+      syncMaxAuthTrustLevel(other.syncMaxAuthTrustLevel),
       refreshToken(other.refreshToken),
       reportUnsynced(other.reportUnsynced),
       isSynced(other.isSynced),
@@ -148,8 +152,11 @@ void DeviceStatusEntry::NotifySyncWaiters(ResultCode resultCode)
     IAM_LOGI("notify sync waiters: device=%{public}s, count=%{public}zu, resultCode=%{public}d",
         GET_MASKED_STR_CSTR(physicalDeviceKey.deviceId), syncWaiters.size(), static_cast<int32_t>(resultCode));
     OnDeviceSyncResult callback = TakeCombinedSyncWaiter();
-    TaskRunnerManager::GetInstance().PostTaskOnResident(
-        [resultCode, callback = std::move(callback)]() { callback(resultCode); });
+    TaskRunnerManager::GetInstance().PostTaskOnResident([resultCode, callback = std::move(callback)]() {
+        if (callback) {
+            callback(resultCode);
+        }
+    });
 }
 
 OnDeviceSyncResult DeviceStatusEntry::TakeCombinedSyncWaiter()
@@ -192,7 +199,8 @@ DeviceStatus DeviceStatusEntry::BuildDeviceStatus() const
     status.deviceName = GetDeviceName();
     status.deviceUserName = deviceUserName;
     status.deviceModelInfo = deviceModelInfo;
-    status.protocolId = negotiatedProtocolId;
+    status.selectedProtocolId = selectedProtocolId;
+    status.freshBindingProtocolId = freshBindingProtocolId;
     status.secureProtocolId = secureProtocolId;
     status.capabilities = capabilities;
     status.supportedBusinessIds = effectiveBusinessIds_;
@@ -200,6 +208,7 @@ DeviceStatus DeviceStatusEntry::BuildDeviceStatus() const
     status.isAuthMaintainActive = isAuthMaintainActive;
     status.deviceType = deviceType;
     status.atlRevokeDelayMs = atlRevokeDelayMs;
+    status.maxAuthTrustLevel = syncMaxAuthTrustLevel.value_or(physicalMaxAuthTrustLevel);
     status.refreshToken = refreshToken;
     status.lastSyncTimeMs = lastSyncTimeMs;
     return status;

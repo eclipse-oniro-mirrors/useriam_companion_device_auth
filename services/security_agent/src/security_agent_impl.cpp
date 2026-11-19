@@ -1062,6 +1062,70 @@ ResultCode SecurityAgentImpl::HostCheckTemplateEnrolled(const HostCheckTemplateE
     IAM_LOGI("success, enrolled=%{public}d", output.enrolled);
     return SUCCESS;
 }
+
+ResultCode SecurityAgentImpl::HostBindingSign(const HostBindingSignInput &input, HostBindingSignOutput &output)
+{
+    auto ffiInput = std::make_unique<HostBindingSignInputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
+    bool encodeRet = EncodeHostBindingSignInput(input, *ffiInput);
+    ENSURE_OR_RETURN_VAL(encodeRet, INVALID_PARAMETERS);
+
+    auto ffiOutput = std::make_unique<HostBindingSignOutputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
+
+    ResultCode invokeResult = GetSecurityCommandAdapter().InvokeCommand(CommandId::HOST_BINDING_SIGN,
+        reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(HostBindingSignInputFfi),
+        reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(HostBindingSignOutputFfi));
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
+
+    bool decodeRet = DecodeHostBindingSignOutput(*ffiOutput, output);
+    ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);
+
+    IAM_LOGI("success");
+    return SUCCESS;
+}
+
+ResultCode SecurityAgentImpl::CompanionGenerateBindingSignatureChallenge(
+    CompanionGenerateBindingSignatureChallengeOutput &output)
+{
+    auto ffiInput = std::make_unique<CompanionGenerateBindingSignatureChallengeInputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
+
+    auto ffiOutput = std::make_unique<CompanionGenerateBindingSignatureChallengeOutputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
+
+    ResultCode invokeResult =
+        GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_GENERATE_BINDING_SIGNATURE_CHALLENGE,
+            reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionGenerateBindingSignatureChallengeInputFfi),
+            reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionGenerateBindingSignatureChallengeOutputFfi));
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
+
+    bool decodeRet = DecodeCompanionGenerateBindingSignatureChallengeOutput(*ffiOutput, output);
+    ENSURE_OR_RETURN_VAL(decodeRet, GENERAL_ERROR);
+
+    IAM_LOGI("success");
+    return SUCCESS;
+}
+
+ResultCode SecurityAgentImpl::CompanionPurgeBindingSignatureChallenge(const std::vector<uint8_t> &challenge)
+{
+    auto ffiInput = std::make_unique<CompanionPurgeBindingSignatureChallengeInputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiInput != nullptr, GENERAL_ERROR);
+    bool encodeRet = EncodeCompanionPurgeBindingSignatureChallengeInput(challenge, *ffiInput);
+    ENSURE_OR_RETURN_VAL(encodeRet, INVALID_PARAMETERS);
+
+    auto ffiOutput = std::make_unique<CompanionPurgeBindingSignatureChallengeOutputFfi>();
+    ENSURE_OR_RETURN_VAL(ffiOutput != nullptr, GENERAL_ERROR);
+
+    ResultCode invokeResult =
+        GetSecurityCommandAdapter().InvokeCommand(CommandId::COMPANION_PURGE_BINDING_SIGNATURE_CHALLENGE,
+            reinterpret_cast<uint8_t *>(ffiInput.get()), sizeof(CompanionPurgeBindingSignatureChallengeInputFfi),
+            reinterpret_cast<uint8_t *>(ffiOutput.get()), sizeof(CompanionPurgeBindingSignatureChallengeOutputFfi));
+    ENSURE_OR_RETURN_VAL(invokeResult == SUCCESS, invokeResult);
+
+    IAM_LOGI("success");
+    return SUCCESS;
+}
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

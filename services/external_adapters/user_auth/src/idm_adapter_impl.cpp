@@ -67,7 +67,7 @@ public:
         TaskRunnerManager::GetInstance().PostTaskOnResident([weakAdapter = adapter_, userId]() {
             auto adapter = weakAdapter.lock();
             ENSURE_OR_RETURN(adapter != nullptr);
-            adapter->QueryAndUpdateCache(userId);
+            adapter->RefreshUserTemplates(userId);
         });
     }
 
@@ -139,7 +139,7 @@ void IdmAdapterImpl::OnUserIdmServiceReady()
     }
 
     for (int32_t userId : subscribedUsers) {
-        QueryAndUpdateCache(userId);
+        RefreshUserTemplates(userId);
     }
 
     IAM_LOGI("UserIDM service ready, processed %{public}zu subscribed users", subscribedUsers.size());
@@ -177,7 +177,7 @@ std::vector<uint64_t> IdmAdapterImpl::GetUserTemplates(int32_t userId)
     auto it = templateCache_.find(userId);
     if (it == templateCache_.end()) {
         IAM_LOGI("No cached templates for user %{public}d, querying and update cache", userId);
-        QueryAndUpdateCache(userId);
+        RefreshUserTemplates(userId);
         it = templateCache_.find(userId);
     }
 
@@ -199,7 +199,7 @@ std::unique_ptr<Subscription> IdmAdapterImpl::SubscribeUserTemplateChange(int32_
         subscriptionId);
 
     // Query initial template list
-    QueryAndUpdateCache(userId);
+    RefreshUserTemplates(userId);
 
     return std::make_unique<TemplateChangeSubscription>([weakThis = weak_from_this(), subscriptionId]() {
         auto self = weakThis.lock();
@@ -221,20 +221,19 @@ void IdmAdapterImpl::Unsubscribe(SubscribeId subscriptionId)
     IAM_LOGI("Unsubscribe: subscriptionId=0x%{public}016" PRIX64 "", subscriptionId);
 }
 
-void IdmAdapterImpl::QueryAndUpdateCache(int32_t userId)
+bool IdmAdapterImpl::RefreshAndGetUserTemplates(int32_t userId, std::vector<uint64_t> &templateIds)
 {
     std::vector<UserAuth::CredentialInfo> credentialInfoList;
     SetFirstCallerTokenID(IPCSkeleton::GetCallingTokenID());
     int32_t ret = UserIdmClient::GetInstance().GetCredentialInfoSync(userId, UserAuth::AuthType::COMPANION_DEVICE,
         credentialInfoList);
     SetFirstCallerTokenID(0);
-
     if (ret != ERR_OK) {
         IAM_LOGE("GetCredentialInfoSync failed for user %{public}d ret %{public}d", userId, ret);
-        return;
+        return false;
     }
 
-    std::vector<uint64_t> templateIds;
+    templateIds.clear();
     for (const auto &credInfo : credentialInfoList) {
         if (credInfo.authType != UserAuth::AuthType::COMPANION_DEVICE) {
             continue;
@@ -247,6 +246,13 @@ void IdmAdapterImpl::QueryAndUpdateCache(int32_t userId)
         IAM_LOGI("Templates changed for user %{public}d, count: %{public}zu", userId, templateIds.size());
         NotifyTemplateChange(userId, templateIds);
     }
+    return true;
+}
+
+void IdmAdapterImpl::RefreshUserTemplates(int32_t userId)
+{
+    std::vector<uint64_t> templateIds;
+    RefreshAndGetUserTemplates(userId, templateIds);
 }
 
 void IdmAdapterImpl::NotifyTemplateChange(int32_t userId, const std::vector<uint64_t> &templateIds)

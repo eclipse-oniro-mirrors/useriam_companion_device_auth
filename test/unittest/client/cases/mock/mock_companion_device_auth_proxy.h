@@ -43,17 +43,17 @@ namespace CompanionDeviceAuth {
  * @brief Mock implementation of ICompanionDeviceAuth interface for unit testing.
  *        This mock allows tests to simulate service responses without actual IPC communication.
  */
-class MockCompanionDeviceAuthProxy : public IRemoteBroker {
+class FakeCompanionDeviceAuthProxy : public IRemoteBroker {
 public:
-    MockCompanionDeviceAuthProxy() = default;
+    FakeCompanionDeviceAuthProxy() = default;
 
     // Constructor for BrokerCreator (required for iface_cast support)
-    explicit MockCompanionDeviceAuthProxy(const sptr<IRemoteObject> &object)
+    explicit FakeCompanionDeviceAuthProxy(const sptr<IRemoteObject> &object)
     {
         (void)object; // Ignore the object in mock
     }
 
-    ~MockCompanionDeviceAuthProxy() override = default;
+    ~FakeCompanionDeviceAuthProxy() override = default;
 
     // Mock all service interface methods
     MOCK_METHOD(int32_t, RegisterDeviceSelectCallback, (const sptr<IRemoteObject> &callback, int32_t &result));
@@ -92,7 +92,7 @@ private:
 
     // Broker delegator for automatic registration with BrokerRegistration
     // This enables iface_cast to find and instantiate this mock
-    static inline BrokerDelegator<MockCompanionDeviceAuthProxy> delegator_;
+    static inline BrokerDelegator<FakeCompanionDeviceAuthProxy> delegator_;
 };
 
 } // namespace CompanionDeviceAuth

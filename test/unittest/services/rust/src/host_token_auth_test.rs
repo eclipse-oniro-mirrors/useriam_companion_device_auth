@@ -27,8 +27,7 @@ use crate::request::token_auth::host_token_auth::HostTokenAuthRequest;
 use crate::request::token_auth::token_auth_message::SecAuthReply;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{CryptoEngineRegistry, KeyPair, MockCryptoEngine};
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceKeyMaterial, CompanionDeviceToken, DeviceKey, UserInfo, UserKey};
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceSk, CompanionDeviceToken, DeviceKey, UserInfo, UserKey};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
@@ -71,6 +70,7 @@ fn create_mock_companion_device(template_id: u64) -> CompanionDevice {
         enrolled_capability_list: vec![1, 2, 3],
         enrolled_protocol_id: 1,
         secure_protocol_id: SecureProtocolId::Default as u16,
+        max_auth_trust_level: AuthTrustLevel::Atl0,
     }
 }
 
@@ -529,15 +529,12 @@ fn host_token_auth_request_begin_test_aes_gcm_encrypt_fail() {
     mock_companion_device_db_manager.expect_get_token().returning(|| Ok(create_mock_companion_device_token(1000)));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
     mock_set_time_keeper(500);

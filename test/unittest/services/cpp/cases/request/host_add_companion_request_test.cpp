@@ -47,23 +47,16 @@ const DeviceStatus DEVICE_STATUS = {
     .deviceModelInfo = "TestModel",
     .deviceUserName = "TestUser",
     .deviceName = "TestDevice",
-    .protocolId = ProtocolId::VERSION_1,
+    .selectedProtocolId = ProtocolId::VERSION_1,
+    .freshBindingProtocolId = ProtocolId::VERSION_1,
     .secureProtocolId = SecureProtocolId::DEFAULT,
     .capabilities = { Capability::TOKEN_AUTH },
 };
 const LocalDeviceProfile LOCAL_PROFILE = {
-    .protocols = { ProtocolId::VERSION_1 },
+    .hostProtocols = { ProtocolId::VERSION_1 },
     .hostCapabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH },
     .companionCapabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH },
 };
-// Value reserved for a future VERSION_2 that ProtocolId does not define yet.
-constexpr ProtocolId PROTOCOL_VERSION_2 = static_cast<ProtocolId>(2);
-constexpr Capability UNKNOWN_CAPABILITY_ID = static_cast<Capability>(999);
-
-std::unique_ptr<Subscription> MakeSubscription()
-{
-    return std::make_unique<Subscription>([]() {});
-}
 
 class HostAddCompanionRequestTest : public Test {
 protected:
@@ -111,10 +104,15 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_001, TestSize.Lev
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeConnectionStatus(_, _)).Times(1);
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, MessageType::REQUEST_ABORTED, _))
-        .WillOnce(Return(ByMove(MakeSubscription())));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
+    // Selection reads the policy-vouched device status directly and opens the connection;
+    // the request drives no explicit pairing sync round.
+    DeviceStatus syncedStatus {};
+    syncedStatus.selectedProtocolId = ProtocolId::VERSION_2;
+    syncedStatus.freshBindingProtocolId = ProtocolId::VERSION_2;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(syncedStatus)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), EnsureDeviceSynced(_, _)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).Times(1);
 
     std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
     ASSERT_NO_THROW(request->HandleDeviceSelectResult(selectedDevices, std::nullopt));
@@ -124,16 +122,20 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_002, TestSize.Lev
 {
     MockGuard guard;
 
+    // A peer whose status the policy layer does not hold yet (never synced / not adopted)
+    // fails the selection cleanly; recovery is owned by the policy layer's own sync rounds.
     auto errorCalled = std::make_shared<bool>(false);
     auto callback = [errorCalled](ResultCode result, const std::vector<uint8_t> &) {
-        if (result == ResultCode::COMMUNICATION_ERROR) {
+        if (result == ResultCode::GENERAL_ERROR) {
             *errorCalled = true;
         }
     };
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(false));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), ResyncDevice(_)).Times(0);
 
     std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
     request->HandleDeviceSelectResult(selectedDevices, std::nullopt);
@@ -177,6 +179,7 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_004, TestSize.Lev
 
     // deviceUserId == INVALID_USER_ID must abort before a connection is opened
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), EnsureDeviceSynced(_, _)).Times(0);
 
     DeviceKey invalidKey = { .deviceId = "invalid_user_device", .deviceUserId = INVALID_USER_ID };
     std::vector<DeviceKey> selectedDevices = { invalidKey };
@@ -186,8 +189,94 @@ HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_004, TestSize.Lev
     EXPECT_TRUE(*errorCalled);
 }
 
-// A stale discovery protocol this build no longer supports must fail enrollment before any
-// negotiation starts, or the companion would replace its binding with one this build rejects.
+// The pairing is a fresh binding: it consumes the discovery-view candidate (freshBindingProtocolId,
+// recomputed each sync from full support lists) into selectedProtocolId_ and carries it on the wire
+// to the companion, ignoring the binding view (selectedProtocolId) that pins the old credential.
+HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_StatusCarriesFreshBindingProtocol, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+
+    DeviceStatus syncedStatus {};
+    syncedStatus.selectedProtocolId = ProtocolId::VERSION_1;
+    syncedStatus.freshBindingProtocolId = ProtocolId::VERSION_2;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(syncedStatus)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
+
+    std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
+    request->HandleDeviceSelectResult(selectedDevices, std::nullopt);
+
+    auto dualVersionProfile = LOCAL_PROFILE;
+    dualVersionProfile.hostProtocols = { ProtocolId::VERSION_1, ProtocolId::VERSION_2 };
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
+        .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
+        .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(dualVersionProfile));
+    EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _))
+        .WillOnce(
+            Invoke([](const HostGetInitKeyNegotiationRequestInput &, HostGetInitKeyNegotiationRequestOutput &output) {
+                output.initKeyNegotiationRequest = { 1, 2, 3 };
+                return ResultCode::SUCCESS;
+            }));
+    auto wireCarriesNegotiation = std::make_shared<bool>(false);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, MessageType::INIT_KEY_NEGOTIATION, _, _))
+        .WillOnce(
+            Invoke([wireCarriesNegotiation](const std::string &, MessageType, Attributes &msg, OnMessageReply &&) {
+                // Emulate the receiving-side MessageRouter stamping the sender identity into the payload
+                // (message_router.cpp) before handlers decode it.
+                Attributes receivedMsg = msg;
+                receivedMsg.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, HOST_DEVICE_KEY.deviceId);
+                receivedMsg.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+                    static_cast<int32_t>(HOST_DEVICE_KEY.idType));
+                auto decoded = DecodeInitKeyNegotiationRequest(receivedMsg);
+                if (decoded.has_value() && decoded->selectedProtocolId == ProtocolId::VERSION_2) {
+                    *wireCarriesNegotiation = true;
+                }
+                return true;
+            }));
+
+    request->OnConnected();
+    EXPECT_TRUE(*wireCarriesNegotiation);
+}
+
+// A policy-vouched device status without a valid fresh-binding protocol must fail the pairing
+// flow instead of opening a connection, even while the binding view still carries a value;
+// no resync is armed by the request itself.
+HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_InvalidCachedProtocolFails, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto errorCalled = std::make_shared<bool>(false);
+    auto callback = [errorCalled](ResultCode result, const std::vector<uint8_t> &) {
+        if (result == ResultCode::GENERAL_ERROR) {
+            *errorCalled = true;
+        }
+    };
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+
+    DeviceStatus staleStatus {};
+    staleStatus.selectedProtocolId = ProtocolId::VERSION_1;
+    staleStatus.freshBindingProtocolId = ProtocolId::INVALID;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(staleStatus)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), ResyncDevice(_)).Times(0);
+
+    std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
+    request->HandleDeviceSelectResult(selectedDevices, std::nullopt);
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*errorCalled);
+}
+
+// A round payload this build no longer supports must fail enrollment before any negotiation
+// starts, or the companion would replace its binding with one this build rejects.
 HWTEST_F(HostAddCompanionRequestTest, ValidateAndSelectProtocol_RejectsStaleDiscoveryProtocol, TestSize.Level0)
 {
     MockGuard guard;
@@ -196,15 +285,47 @@ HWTEST_F(HostAddCompanionRequestTest, ValidateAndSelectProtocol_RejectsStaleDisc
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
 
-    auto staleStatus = DEVICE_STATUS;
-    staleStatus.protocolId = PROTOCOL_VERSION_2; // not in LOCAL_PROFILE.protocols
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
-        .WillOnce(Return(std::make_optional(staleStatus)));
+    request->selectedProtocolId_ = ProtocolId::VERSION_2; // not in LOCAL_PROFILE.hostProtocols
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).Times(0);
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(LOCAL_PROFILE));
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _)).Times(0);
 
-    EXPECT_FALSE(request->ValidateAndSelectProtocol(COMPANION_DEVICE_KEY));
+    EXPECT_FALSE(request->ValidateAndSelectProtocol());
     EXPECT_EQ(request->selectedProtocolId_, ProtocolId::INVALID);
+}
+
+// Selected protocol comes only from the pairing round's payload: with no payload there is
+// nothing to select, and the device-level cache must not be consulted as a fallback.
+HWTEST_F(HostAddCompanionRequestTest, ValidateAndSelectProtocol_MissingRoundPayloadFails, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).Times(0);
+    EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _)).Times(0);
+
+    EXPECT_FALSE(request->ValidateAndSelectProtocol());
+    EXPECT_EQ(request->selectedProtocolId_, ProtocolId::INVALID);
+}
+
+HWTEST_F(HostAddCompanionRequestTest, ValidateAndSelectProtocol_AcceptsRoundPayload, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+
+    request->selectedProtocolId_ = ProtocolId::VERSION_1;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(LOCAL_PROFILE));
+
+    EXPECT_TRUE(request->ValidateAndSelectProtocol());
+    EXPECT_EQ(request->selectedProtocolId_, ProtocolId::VERSION_1);
 }
 
 HWTEST_F(HostAddCompanionRequestTest, OnConnected_001, TestSize.Level0)
@@ -215,6 +336,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_001, TestSize.Level0)
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
+    request->selectedProtocolId_ = ProtocolId::VERSION_1;
 
     // Need to open connection first to set connectionName_
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
@@ -224,8 +346,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_001, TestSize.Level0)
         .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
-        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).Times(0);
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(LOCAL_PROFILE));
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _))
         .WillOnce(
@@ -244,7 +365,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_001, TestSize.Level0)
                 receivedMsg.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
                     static_cast<int32_t>(HOST_DEVICE_KEY.idType));
                 auto decoded = DecodeInitKeyNegotiationRequest(receivedMsg);
-                if (decoded.has_value() && decoded->protocolId == ProtocolId::VERSION_1) {
+                if (decoded.has_value() && decoded->selectedProtocolId == ProtocolId::VERSION_1) {
                     *wireCarriesNegotiation = true;
                 }
                 return true;
@@ -321,6 +442,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_003, TestSize.Level0)
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
+    request->selectedProtocolId_ = ProtocolId::VERSION_1;
 
     // Need to open connection first to set connectionName_
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
@@ -330,8 +452,6 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_003, TestSize.Level0)
         .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
-        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(LOCAL_PROFILE));
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _))
         .WillOnce(Return(ResultCode::GENERAL_ERROR));
@@ -355,6 +475,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_004, TestSize.Level0)
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
+    request->selectedProtocolId_ = ProtocolId::VERSION_1;
 
     // Need to open connection first to set connectionName_
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
@@ -364,8 +485,6 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_004, TestSize.Level0)
         .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
-        .WillOnce(Return(std::make_optional(DEVICE_STATUS)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(LOCAL_PROFILE));
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _))
         .WillOnce(
@@ -382,6 +501,8 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_004, TestSize.Level0)
     EXPECT_TRUE(*errorCalled);
 }
 
+// The pairing round never delivered a negotiated protocol, so protocol capture must fail
+// instead of falling back to the device-level cache.
 HWTEST_F(HostAddCompanionRequestTest, OnConnected_005, TestSize.Level0)
 {
     MockGuard guard;
@@ -403,10 +524,8 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_005, TestSize.Level0)
         .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
-    auto notNegotiated = DEVICE_STATUS;
-    notNegotiated.protocolId = ProtocolId::INVALID;
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
-        .WillOnce(Return(std::make_optional(notNegotiated)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).Times(0);
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _)).Times(0);
 
     request->OnConnected();
@@ -430,6 +549,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_006, TestSize.Level0)
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
+    request->selectedProtocolId_ = ProtocolId::VERSION_1;
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
     ASSERT_TRUE(request->OpenConnection());
@@ -438,10 +558,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_006, TestSize.Level0)
         .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
-    auto noOverlap = DEVICE_STATUS;
-    noOverlap.capabilities = { Capability::OBTAIN_TOKEN };
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillOnce(Return(std::make_optional(noOverlap)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(LOCAL_PROFILE));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillRepeatedly(Return(LOCAL_PROFILE));
     // The flow must reach the security layer (past the capture step) and stop there.
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _))
         .WillOnce(Return(ResultCode::GENERAL_ERROR));
@@ -462,21 +579,17 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_007, TestSize.Level0)
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
+    request->selectedProtocolId_ = ProtocolId::VERSION_2;
 
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
     ASSERT_TRUE(request->OpenConnection());
 
-    auto higherVersionPeer = DEVICE_STATUS;
-    higherVersionPeer.protocolId = PROTOCOL_VERSION_2;
-    higherVersionPeer.capabilities = { Capability::TOKEN_AUTH, UNKNOWN_CAPABILITY_ID };
     auto dualVersionProfile = LOCAL_PROFILE;
-    dualVersionProfile.protocols = { ProtocolId::VERSION_1, PROTOCOL_VERSION_2 };
+    dualVersionProfile.hostProtocols = { ProtocolId::VERSION_1, ProtocolId::VERSION_2 };
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
         .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
         .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
-        .WillOnce(Return(std::make_optional(higherVersionPeer)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(dualVersionProfile));
     EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _))
         .WillOnce(
@@ -495,7 +608,7 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_007, TestSize.Level0)
                 receivedMsg.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
                     static_cast<int32_t>(HOST_DEVICE_KEY.idType));
                 auto decoded = DecodeInitKeyNegotiationRequest(receivedMsg);
-                if (decoded.has_value() && decoded->protocolId == PROTOCOL_VERSION_2) {
+                if (decoded.has_value() && decoded->selectedProtocolId == ProtocolId::VERSION_2) {
                     *wireCarriesNegotiation = true;
                 }
                 return true;
@@ -503,36 +616,6 @@ HWTEST_F(HostAddCompanionRequestTest, OnConnected_007, TestSize.Level0)
 
     request->OnConnected();
     EXPECT_TRUE(*wireCarriesNegotiation);
-}
-
-HWTEST_F(HostAddCompanionRequestTest, OnConnected_008, TestSize.Level0)
-{
-    MockGuard guard;
-
-    auto errorCalled = std::make_shared<bool>(false);
-    auto callback = [errorCalled](ResultCode result, const std::vector<uint8_t> &) {
-        if (result == ResultCode::GENERAL_ERROR) {
-            *errorCalled = true;
-        }
-    };
-    auto request =
-        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
-    request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
-
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).WillOnce(Return(true));
-    ASSERT_TRUE(request->OpenConnection());
-
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceKeyByConnectionName(_))
-        .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), HostGetSecureProtocolId(_))
-        .WillOnce(Return(std::make_optional(SecureProtocolId::DEFAULT)));
-    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_)).WillOnce(Return(std::nullopt));
-    EXPECT_CALL(guard.GetSecurityAgent(), HostGetInitKeyNegotiationRequest(_, _)).Times(0);
-
-    request->OnConnected();
-
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_TRUE(*errorCalled);
 }
 
 HWTEST_F(HostAddCompanionRequestTest, HandleInitKeyNegotiationReply_001, TestSize.Level0)
@@ -543,12 +626,13 @@ HWTEST_F(HostAddCompanionRequestTest, HandleInitKeyNegotiationReply_001, TestSiz
     auto request =
         std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
+    request->selectedProtocolId_ = ProtocolId::VERSION_1;
 
     Attributes reply;
     InitKeyNegotiationReply replyMsg = { .result = ResultCode::SUCCESS, .extraInfo = { 1, 2, 3, 4 } };
     EncodeInitKeyNegotiationReply(replyMsg, reply);
 
-    LocalDeviceProfile profile = { .protocols = { ProtocolId::VERSION_1 },
+    LocalDeviceProfile profile = { .hostProtocols = { ProtocolId::VERSION_1, ProtocolId::VERSION_2 },
         .hostCapabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH } };
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(profile));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
@@ -556,10 +640,10 @@ HWTEST_F(HostAddCompanionRequestTest, HandleInitKeyNegotiationReply_001, TestSiz
     EXPECT_CALL(guard.GetCompanionManager(), BeginAddCompanion(_, _, _))
         .WillOnce(Invoke([&profile](const BeginAddCompanionParams &params, std::vector<uint8_t> &out,
                              std::vector<SelectedAlgorithms> &selectedAlgorithmsList) {
-            // The capability offer and protocol priority list travel with the begin-add
-            // params into the encrypted binding request for companion recomputation.
+            // The broadcast carries the selected protocol alone (not the full capability-table
+            // list), keeping the companion's recompute anchored to the same value it was told.
             EXPECT_EQ(params.hostCapabilityList, profile.hostCapabilities);
-            EXPECT_EQ(params.hostProtocolList, profile.protocols);
+            EXPECT_EQ(params.hostProtocolIdList, std::vector<ProtocolId> { ProtocolId::VERSION_1 });
             out = { 4, 5, 6 };
             selectedAlgorithmsList.push_back(SelectedAlgorithms { .kaAlgorithm = 1 });
             return ResultCode::SUCCESS;

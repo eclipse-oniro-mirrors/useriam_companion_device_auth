@@ -27,6 +27,8 @@ constexpr StageId WAIT_BRING_ONLINE = 101;
 constexpr StageId DONE_BRING_ONLINE = 102;
 constexpr StageId WAIT_CONNECTION_OPEN = 103;
 constexpr StageId DONE_CONNECTION_OPEN = 104;
+constexpr StageId WAIT_BINDING_SIGNATURE = 105;
+constexpr StageId DONE_BINDING_SIGNATURE = 106;
 } // namespace CommonStages
 
 namespace HostDelegateAuthStages {

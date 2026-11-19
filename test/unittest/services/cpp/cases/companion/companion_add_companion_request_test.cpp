@@ -44,7 +44,7 @@ std::unique_ptr<Subscription> MakeSubscription()
 LocalDeviceProfile MakeCompanionProfile()
 {
     LocalDeviceProfile profile = {};
-    profile.protocols = { ProtocolId::VERSION_1 };
+    profile.companionProtocols = { ProtocolId::VERSION_1 };
     profile.companionCapabilities = { Capability::TOKEN_AUTH };
     return profile;
 }
@@ -70,7 +70,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_001, TestSize.Level0)
     Attributes initKeyNegoRequest;
     InitKeyNegotiationRequest initRequest;
     initRequest.hostDeviceKey = HOST_DEVICE_KEY;
-    initRequest.protocolId = ProtocolId::VERSION_1;
+    initRequest.selectedProtocolId = ProtocolId::VERSION_1;
     initRequest.extraInfo = { 1, 2, 1, 4 };
     EncodeInitKeyNegotiationRequest(initRequest, initKeyNegoRequest);
     initKeyNegoRequest.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
@@ -121,7 +121,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_NegotiationFailureReportsResu
 
     InitKeyNegotiationRequest initRequest;
     initRequest.hostDeviceKey = HOST_DEVICE_KEY;
-    initRequest.protocolId = UNSUPPORTED_PROTOCOL_ID;
+    initRequest.selectedProtocolId = UNSUPPORTED_PROTOCOL_ID;
     initRequest.extraInfo = { 1, 2, 1, 4 };
     Attributes initKeyNegoRequest;
     EncodeInitKeyNegotiationRequest(initRequest, initKeyNegoRequest);
@@ -172,7 +172,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_InitKeyNegoFailureReportsAlgo
 
     InitKeyNegotiationRequest initRequest;
     initRequest.hostDeviceKey = HOST_DEVICE_KEY;
-    initRequest.protocolId = ProtocolId::VERSION_1;
+    initRequest.selectedProtocolId = ProtocolId::VERSION_1;
     initRequest.extraInfo = { 1, 2, 1, 4 };
     Attributes initKeyNegoRequest;
     EncodeInitKeyNegotiationRequest(initRequest, initKeyNegoRequest);
@@ -895,7 +895,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_001, TestSi
         OnMessageReply(callback), HOST_DEVICE_KEY);
 
     InitKeyNegotiationRequest initRequest;
-    initRequest.protocolId = ProtocolId::VERSION_1;
+    initRequest.selectedProtocolId = ProtocolId::VERSION_1;
 
     EXPECT_EQ(request->ValidateAndSelectProtocol(negotiateProfile, initRequest), ResultCode::SUCCESS);
     EXPECT_EQ(request->selectedProtocolId_, ProtocolId::VERSION_1);
@@ -911,7 +911,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_002, TestSi
         OnMessageReply(callback), HOST_DEVICE_KEY);
 
     InitKeyNegotiationRequest initRequest;
-    initRequest.protocolId = UNSUPPORTED_PROTOCOL_ID;
+    initRequest.selectedProtocolId = UNSUPPORTED_PROTOCOL_ID;
 
     EXPECT_EQ(request->ValidateAndSelectProtocol(negotiateProfile, initRequest),
         ResultCode::PROTOCOL_NEGOTIATION_FAILED);
@@ -938,8 +938,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_004, TestSi
 {
     MockGuard guard;
     LocalDeviceProfile negotiateProfile = MakeCompanionProfile();
-    constexpr ProtocolId PROTOCOL_VERSION_2 = static_cast<ProtocolId>(2);
-    negotiateProfile.protocols = { PROTOCOL_VERSION_2, ProtocolId::VERSION_1 };
+    negotiateProfile.companionProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
 
     auto callback = [](const Attributes &) {};
     auto request = std::make_shared<CompanionAddCompanionRequest>(CONNECTION_NAME, Attributes(),
@@ -955,8 +954,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_005, TestSi
 {
     MockGuard guard;
     LocalDeviceProfile negotiateProfile = MakeCompanionProfile();
-    constexpr ProtocolId PROTOCOL_VERSION_2 = static_cast<ProtocolId>(2);
-    negotiateProfile.protocols = { PROTOCOL_VERSION_2 };
+    negotiateProfile.companionProtocols = { ProtocolId::VERSION_2 };
 
     auto callback = [](const Attributes &) {};
     auto request = std::make_shared<CompanionAddCompanionRequest>(CONNECTION_NAME, Attributes(),
@@ -980,7 +978,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, ValidateAndSelectProtocol_006, TestSi
         OnMessageReply(callback), HOST_DEVICE_KEY);
 
     InitKeyNegotiationRequest initRequest;
-    initRequest.protocolId = ProtocolId::INVALID;
+    initRequest.selectedProtocolId = ProtocolId::INVALID;
 
     EXPECT_EQ(request->ValidateAndSelectProtocol(negotiateProfile, initRequest),
         ResultCode::PROTOCOL_NEGOTIATION_FAILED);

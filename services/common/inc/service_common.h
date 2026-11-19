@@ -44,6 +44,7 @@ using BindingId = uint32_t;
 using SubscribeId = uint64_t;
 using Atl = int32_t;
 // Runtime token auth trust levels, aligned with userIAM userAuth AuthTrustLevel.
+constexpr Atl ATL0 = 0;
 constexpr Atl ATL1 = 10000;
 constexpr Atl ATL2 = 20000;
 constexpr Atl ATL3 = 30000;
@@ -86,6 +87,7 @@ inline bool HasCapability(const std::vector<Capability> &capabilities, Capabilit
 enum class ProtocolId : uint16_t {
     INVALID = 0,
     VERSION_1 = 1,
+    VERSION_2 = 2,
 };
 
 enum class SecureProtocolId : uint16_t {
@@ -130,6 +132,7 @@ struct SelectedAlgorithms {
     uint16_t kdfAlgorithm { 0 };
     uint16_t aeadAlgorithm { 0 };
     uint16_t macAlgorithm { 0 };
+    uint16_t bindingSignatureAlgorithm { 0 };
 };
 
 enum class MessageType : uint16_t {
@@ -173,7 +176,17 @@ enum class MessageType : uint16_t {
 
     // Request abort notification (0x0Dxx - auxiliary messages)
     REQUEST_ABORTED = 0x0D01,
+
+    // Binding signature challenge (0x0Exx - protocol V2)
+    GET_BINDING_SIGNATURE_CHALLENGE = 0x0E01,
 };
+
+inline bool IsBindingSignatureProtectedMessageType(MessageType msgType)
+{
+    return msgType == MessageType::SYNC_DEVICE_STATUS || msgType == MessageType::TOKEN_AUTH ||
+        msgType == MessageType::START_DELEGATE_AUTH || msgType == MessageType::PRE_ISSUE_TOKEN ||
+        msgType == MessageType::ISSUE_TOKEN;
+}
 
 enum class DeviceType : int32_t {
     INVALID = 0,
@@ -183,6 +196,33 @@ enum class DeviceType : int32_t {
     PC = 4,
     CAR = 5,
     UNKNOWN = 6,
+};
+
+class PhysicalDeviceKey {
+public:
+    PhysicalDeviceKey() = default;
+    ~PhysicalDeviceKey() = default;
+
+    bool operator==(const PhysicalDeviceKey &other) const
+    {
+        return idType == other.idType && deviceId == other.deviceId;
+    }
+
+    bool operator!=(const PhysicalDeviceKey &other) const
+    {
+        return !(*this == other);
+    }
+
+    bool operator<(const PhysicalDeviceKey &other) const
+    {
+        if (idType != other.idType) {
+            return idType < other.idType;
+        }
+        return deviceId < other.deviceId;
+    }
+
+    DeviceIdType idType { DeviceIdType::UNKNOWN };
+    std::string deviceId {};
 };
 
 class DeviceKey {
@@ -210,6 +250,19 @@ public:
             return deviceUserId < other.deviceUserId;
         }
         return deviceSubProfileId < other.deviceSubProfileId;
+    }
+
+    PhysicalDeviceKey AsPhysical() const
+    {
+        PhysicalDeviceKey physicalKey;
+        physicalKey.idType = idType;
+        physicalKey.deviceId = deviceId;
+        return physicalKey;
+    }
+
+    UserKey AsUserKey() const
+    {
+        return UserKey { deviceUserId, deviceSubProfileId };
     }
 
     std::string GetDesc() const
@@ -246,12 +299,13 @@ public:
     {
         return deviceKey == other.deviceKey && channelId == other.channelId &&
             deviceModelInfo == other.deviceModelInfo && deviceUserName == other.deviceUserName &&
-            deviceName == other.deviceName && protocolId == other.protocolId &&
-            secureProtocolId == other.secureProtocolId && capabilities == other.capabilities &&
-            supportedBusinessIds == other.supportedBusinessIds && isOnline == other.isOnline &&
-            isAuthMaintainActive == other.isAuthMaintainActive && deviceType == other.deviceType &&
-            atlRevokeDelayMs == other.atlRevokeDelayMs && refreshToken == other.refreshToken &&
-            lastSyncTimeMs == other.lastSyncTimeMs && deviceSubProfileName == other.deviceSubProfileName;
+            deviceName == other.deviceName && selectedProtocolId == other.selectedProtocolId &&
+            freshBindingProtocolId == other.freshBindingProtocolId && secureProtocolId == other.secureProtocolId &&
+            capabilities == other.capabilities && supportedBusinessIds == other.supportedBusinessIds &&
+            isOnline == other.isOnline && isAuthMaintainActive == other.isAuthMaintainActive &&
+            deviceType == other.deviceType && atlRevokeDelayMs == other.atlRevokeDelayMs &&
+            refreshToken == other.refreshToken && lastSyncTimeMs == other.lastSyncTimeMs &&
+            deviceSubProfileName == other.deviceSubProfileName && maxAuthTrustLevel == other.maxAuthTrustLevel;
     }
 
     DeviceKey deviceKey {};
@@ -259,7 +313,8 @@ public:
     std::string deviceModelInfo {};
     std::string deviceUserName {};
     std::string deviceName {};
-    ProtocolId protocolId { ProtocolId::INVALID };
+    ProtocolId selectedProtocolId { ProtocolId::INVALID };
+    ProtocolId freshBindingProtocolId { ProtocolId::INVALID };
     SecureProtocolId secureProtocolId { SecureProtocolId::INVALID };
     std::vector<Capability> capabilities {};
     std::vector<BusinessId> supportedBusinessIds {};
@@ -270,12 +325,12 @@ public:
     bool refreshToken { false };
     SteadyTimeMs lastSyncTimeMs { 0 };
     std::string deviceSubProfileName {};
+    Atl maxAuthTrustLevel { ATL0 };
 };
 
 struct LocalDeviceProfile {
-    // Ordered by selection priority: members are the supported set, order is the
-    // negotiation preference. Published members keep their relative order across versions.
-    std::vector<ProtocolId> protocols;
+    std::vector<ProtocolId> hostProtocols;
+    std::vector<ProtocolId> companionProtocols;
     SecureProtocolId companionSecureProtocolId { SecureProtocolId::INVALID };
     std::vector<Capability> hostCapabilities;
     std::vector<Capability> companionCapabilities;
@@ -304,6 +359,7 @@ struct PersistedCompanionStatus {
     std::string iconFileName {};
     ProtocolId enrolledProtocolId { ProtocolId::VERSION_1 };
     std::vector<Capability> capabilities {};
+    Atl maxAuthTrustLevel { ATL0 };
 };
 
 struct CompanionStatus {
@@ -323,9 +379,10 @@ struct CompanionStatus {
         companionDeviceStatus.deviceType = persistedStatus.deviceType;
         companionDeviceStatus.supportedBusinessIds = persistedStatus.supportedBusinessIds;
         companionDeviceStatus.deviceSubProfileName = persistedStatus.deviceSubProfileName;
-        companionDeviceStatus.protocolId = persistedStatus.enrolledProtocolId;
+        companionDeviceStatus.selectedProtocolId = persistedStatus.enrolledProtocolId;
         companionDeviceStatus.capabilities = persistedStatus.capabilities;
         iconFileName = persistedStatus.iconFileName;
+        companionDeviceStatus.maxAuthTrustLevel = persistedStatus.maxAuthTrustLevel;
         enrolledProtocolId = persistedStatus.enrolledProtocolId;
         tokenAuthAtl = std::nullopt;
         return *this;
@@ -349,6 +406,7 @@ struct CompanionStatus {
         persistedStatus.iconFileName = iconFileName;
         persistedStatus.enrolledProtocolId = enrolledProtocolId;
         persistedStatus.capabilities = companionDeviceStatus.capabilities;
+        persistedStatus.maxAuthTrustLevel = companionDeviceStatus.maxAuthTrustLevel;
         return persistedStatus;
     }
 
@@ -403,6 +461,9 @@ struct SyncDeviceStatus {
     UserKey deviceUserKey;
     std::string deviceName {};
     std::string deviceSubProfileName {};
+    std::optional<Atl> maxAuthTrustLevel {};
+    uint16_t selectedProtocolId { 0 };
+    uint16_t freshBindingProtocolId { 0 };
 };
 
 struct DeviceCapabilityInfo {

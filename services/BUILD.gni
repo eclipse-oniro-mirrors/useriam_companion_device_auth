@@ -21,6 +21,7 @@ companion_device_auth_service_include_dirs = [
   "cross_device_interaction/add_companion/inc",
   "cross_device_interaction/common/inc",
   "cross_device_interaction/handler/inc",
+  "cross_device_interaction/binding_signature/inc",
   "request/inc",
   "cross_device_interaction/delegate_auth/inc",
   "cross_device_interaction/issue_token/inc",
@@ -79,6 +80,10 @@ companion_device_auth_service_static_sources = [
   "cross_device_interaction/add_companion/src/companion_add_companion_request.cpp",
   "cross_device_interaction/add_companion/src/companion_init_key_negotiation_handler.cpp",
   "cross_device_interaction/add_companion/src/host_add_companion_request.cpp",
+  "cross_device_interaction/binding_signature/src/binding_signature_message.cpp",
+  "cross_device_interaction/binding_signature/src/companion_get_binding_signature_challenge_handler.cpp",
+  "cross_device_interaction/binding_signature/src/host_binding_proof_obtainer.cpp",
+  "cross_device_interaction/binding_signature/src/host_binding_signature_challenge_requester.cpp",
   "cross_device_interaction/common/src/base_request.cpp",
   "cross_device_interaction/common/src/common_message.cpp",
   "cross_device_interaction/common/src/inbound_request.cpp",
@@ -199,6 +204,10 @@ companion_device_auth_service_flags = [ "-DENABLE_LOG_TRACE" ]
 
 if (companion_device_auth_enable_auth_state_maintain_simulation) {
   companion_device_auth_service_flags += [ "-DAUTH_STATE_MAINTAIN_SIMULATION" ]
+}
+
+if (companion_device_auth_enable_companion_v2) {
+  companion_device_auth_service_flags += [ "-DENABLE_COMPANION_V2" ]
 }
 
 if (companion_device_auth_has_soft_bus_channel) {

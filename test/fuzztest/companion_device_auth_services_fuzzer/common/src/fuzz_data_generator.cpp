@@ -62,6 +62,7 @@ const FuzzAttrSpec g_fuzzAttrSpecs[] = {
     { Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, FUZZ_ATTR_INT32 },
     { Attributes::ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME, FUZZ_ATTR_STRING },
     { Attributes::ATTR_CDA_SA_ATL, FUZZ_ATTR_INT32 },
+    { Attributes::ATTR_CDA_SA_COMPANION_MAX_ATL, FUZZ_ATTR_INT32 },
     { Attributes::ATTR_CDA_SA_EXTRA_INFO, FUZZ_ATTR_UINT8_ARRAY },
     { Attributes::ATTR_CDA_SA_SALT, FUZZ_ATTR_UINT8_ARRAY },
     { Attributes::ATTR_CDA_SA_SELECT_CONTEXT, FUZZ_ATTR_UINT8_ARRAY },
@@ -300,7 +301,7 @@ DeviceStatus GenerateFuzzDeviceStatus(FuzzedDataProvider &fuzzData)
     status.deviceModelInfo = GenerateFuzzString(fuzzData, FUZZ_MAX_STRING_SIZE);
     status.deviceUserName = GenerateFuzzString(fuzzData, FUZZ_MAX_STRING_SIZE);
     status.deviceName = GenerateFuzzString(fuzzData, FUZZ_MAX_STRING_SIZE);
-    status.protocolId = GenerateFuzzProtocolId(fuzzData);
+    status.selectedProtocolId = GenerateFuzzProtocolId(fuzzData);
     status.secureProtocolId = GenerateFuzzSecureProtocolId(fuzzData);
     status.isOnline = fuzzData.ConsumeBool();
     if (fuzzData.ConsumeBool()) {
@@ -309,6 +310,13 @@ DeviceStatus GenerateFuzzDeviceStatus(FuzzedDataProvider &fuzzData)
     status.deviceType =
         static_cast<DeviceType>(fuzzData.ConsumeIntegralInRange<int32_t>(0, static_cast<int32_t>(DeviceType::UNKNOWN)));
     status.deviceSubProfileName = GenerateFuzzString(fuzzData, FUZZ_MAX_STRING_SIZE);
+    if (fuzzData.ConsumeBool()) {
+        // Mix legal ATL values with out-of-range ones so both the reported and the
+        // treated-as-absent paths are exercised.
+        static constexpr int32_t fuzzAtls[] = { ATL1, ATL2, ATL3, ATL4, 0, 56789 };
+        status.maxAuthTrustLevel =
+            fuzzAtls[fuzzData.ConsumeIntegralInRange<uint8_t>(0, sizeof(fuzzAtls) / sizeof(fuzzAtls[0]) - 1)];
+    }
 
     const uint8_t capabilitiesVal = 2;
     const uint8_t supportedBusinessIdsVal = 3;

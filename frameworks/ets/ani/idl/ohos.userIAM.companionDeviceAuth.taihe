@@ -52,6 +52,7 @@ struct DeviceStatus {
     isOnline: bool;
     supportedBusinessIds: Array<i32>;
     deviceSubProfileName: Optional<String>;
+    maxAuthTrustLevel: Optional<AuthTrustLevel>;
 }
 
 struct TemplateStatus {

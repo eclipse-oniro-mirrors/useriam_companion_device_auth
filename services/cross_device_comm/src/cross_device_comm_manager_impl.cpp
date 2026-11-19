@@ -181,7 +181,7 @@ void CrossDeviceCommManagerImpl::ResyncDevice(const PhysicalDeviceKey &physicalK
 bool CrossDeviceCommManagerImpl::IsPhysicalOnline(const DeviceKey &deviceKey)
 {
     ENSURE_OR_RETURN_VAL(deviceStatusMgr_ != nullptr, false);
-    return deviceStatusMgr_->IsPhysicalOnline(FromDeviceKey(deviceKey));
+    return deviceStatusMgr_->IsPhysicalOnline(deviceKey.AsPhysical());
 }
 
 std::optional<SteadyTimeMs> CrossDeviceCommManagerImpl::GetTemplateStatusSubscribeTimeMs() const

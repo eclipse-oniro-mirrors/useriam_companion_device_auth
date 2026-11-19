@@ -116,7 +116,7 @@ bool CompanionObtainTokenRequest::SendPreObtainTokenRequest()
     EncodePreObtainTokenRequest(preObtainTokenRequest, request);
     eventCollector_.EnterWait(CompanionObtainTokenStages::WAIT_PRE_OBTAIN_TOKEN_REPLY);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::PRE_OBTAIN_TOKEN, request,
+    bool sendRet = SendMessage(MessageType::PRE_OBTAIN_TOKEN, std::move(request),
         [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
@@ -232,7 +232,7 @@ bool CompanionObtainTokenRequest::SendObtainTokenRequest(const std::vector<uint8
     EncodeObtainTokenRequest(obtainRequest, request);
     eventCollector_.EnterWait(CompanionObtainTokenStages::WAIT_OBTAIN_TOKEN_REPLY);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::OBTAIN_TOKEN, request,
+    bool sendRet = SendMessage(MessageType::OBTAIN_TOKEN, std::move(request),
         [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);

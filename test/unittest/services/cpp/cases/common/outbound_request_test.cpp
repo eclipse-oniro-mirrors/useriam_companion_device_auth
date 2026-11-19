@@ -21,6 +21,7 @@
 
 #include "mock_guard.h"
 
+#include "binding_signature_message.h"
 #include "outbound_request.h"
 
 using namespace testing;
@@ -32,6 +33,8 @@ namespace CompanionDeviceAuth {
 namespace {
 
 constexpr uint32_t REQUEST_TIMEOUT_MS = 60000;
+// arbitrary byte length within the DER signature upper bound
+constexpr size_t TEST_BINDING_SIGNATURE_LEN = 64;
 
 const DeviceKey PEER_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
     .deviceId = "peer_device_id",
@@ -175,6 +178,20 @@ protected:
             }));
         ON_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
             .WillByDefault(Invoke([](const std::string &, MessageType, OnMessage &&) { return MakeSubscription(); }));
+    }
+
+    void SetupBindingSignatureMocks(MockGuard &guard, const std::vector<uint8_t> &signature)
+    {
+        CompanionStatus companionStatus = {};
+        companionStatus.companionDeviceStatus.deviceKey = PEER_DEVICE_KEY;
+        ON_CALL(guard.GetCompanionManager(), IsBindingSignatureRequired(An<TemplateId>())).WillByDefault(Return(true));
+        ON_CALL(guard.GetCompanionManager(), GetCompanionStatus(An<TemplateId>()))
+            .WillByDefault(Return(std::make_optional(companionStatus)));
+        ON_CALL(guard.GetSecurityAgent(), HostBindingSign(_, _))
+            .WillByDefault(Invoke([&signature](const HostBindingSignInput &, HostBindingSignOutput &output) {
+                output.signature = signature;
+                return ResultCode::SUCCESS;
+            }));
     }
 };
 
@@ -376,6 +393,67 @@ HWTEST_F(OutboundRequestTest, HandleConnectionStatus_DisconnectRequested_Complet
 
 // A failed demand subscription aborts bring-online with COMMUNICATION_ERROR instead of
 // proceeding and settling later with a misleading GENERAL_ERROR from the missing demand.
+// V2 protected sends acquire the challenge material once per request: the first protected send
+// runs the GET_BINDING_SIGNATURE_CHALLENGE round trip, later protected messages attach the
+// cached challenge+signature with no further GET.
+HWTEST_F(OutboundRequestTest, SendMessage_AcquiresBindingSignatureOnceAndReuses, TestSize.Level0)
+{
+    MockGuard guard;
+
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    const std::vector<uint8_t> signature(TEST_BINDING_SIGNATURE_LEN, 0xEE);
+
+    SetupBindingSignatureMocks(guard, signature);
+
+    int32_t getChallengeCount = 0;
+    std::vector<std::vector<uint8_t>> sentChallenges;
+    std::vector<std::vector<uint8_t>> sentSignatures;
+    ON_CALL(guard.GetCrossDeviceCommManager(), SendMessage(_, _, _, _))
+        .WillByDefault(
+            Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply &&onReply) {
+                if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                    ++getChallengeCount;
+                    GetBindingSignatureChallengeReply challengeReply = {};
+                    challengeReply.result = ResultCode::SUCCESS;
+                    challengeReply.companionUserKey =
+                        UserKey { PEER_DEVICE_KEY.deviceUserId, PEER_DEVICE_KEY.deviceSubProfileId };
+                    challengeReply.challenge = challenge;
+                    Attributes replyAttributes;
+                    EncodeGetBindingSignatureChallengeReply(challengeReply, replyAttributes);
+                    onReply(replyAttributes);
+                    return true;
+                }
+                std::vector<uint8_t> sentChallenge;
+                std::vector<uint8_t> sentSignature;
+                request.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE, sentChallenge);
+                request.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE, sentSignature);
+                sentChallenges.push_back(sentChallenge);
+                sentSignatures.push_back(sentSignature);
+                return true;
+            }));
+
+    auto request = std::make_shared<TestOutboundRequest>(ConnectionMode::BACKGROUND, false, true);
+    request->templateId_ = 1;
+
+    auto buildAttributes = []() {
+        Attributes attributes = {};
+        attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, 100);
+        attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, 0);
+        return attributes;
+    };
+    auto replyCb = [](const Attributes &) {};
+
+    EXPECT_TRUE(request->SendMessage(MessageType::PRE_ISSUE_TOKEN, buildAttributes(), replyCb));
+    EXPECT_TRUE(request->SendMessage(MessageType::ISSUE_TOKEN, buildAttributes(), replyCb));
+
+    EXPECT_EQ(getChallengeCount, 1);
+    ASSERT_EQ(sentChallenges.size(), static_cast<size_t>(2));
+    EXPECT_EQ(sentChallenges[0], challenge);
+    EXPECT_EQ(sentChallenges[1], challenge);
+    EXPECT_EQ(sentSignatures[0], signature);
+    EXPECT_EQ(sentSignatures[1], signature);
+}
+
 HWTEST_F(OutboundRequestTest, Start_FailedDemandSubscription_CompletesWithCommunicationError, TestSize.Level0)
 {
     MockGuard guard;

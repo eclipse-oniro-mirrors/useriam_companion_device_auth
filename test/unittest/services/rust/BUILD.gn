@@ -24,8 +24,11 @@ ohos_rust_unittest("rust_companion_device_auth_services_test") {
 
   # Local rust test source files
   sources = [
+    "src/algorithm_test.rs",
     "src/attribute_test.rs",
     "src/auth_token_test.rs",
+    "src/binding_challenge_pool_test.rs",
+    "src/binding_signature_crypto_test.rs",
     "src/common_command_test.rs",
     "src/common_message_test.rs",
     "src/companion_delegate_auth_test.rs",

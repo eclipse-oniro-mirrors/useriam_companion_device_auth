@@ -65,36 +65,6 @@ enum class DeviceStatusFilter : int32_t {
 
 using OnDeviceSyncResult = std::function<void(ResultCode resultCode)>;
 
-class PhysicalDeviceKey {
-public:
-    PhysicalDeviceKey() = default;
-    ~PhysicalDeviceKey() = default;
-
-    bool operator==(const PhysicalDeviceKey &other) const
-    {
-        return idType == other.idType && deviceId == other.deviceId;
-    }
-
-    bool operator<(const PhysicalDeviceKey &other) const
-    {
-        if (idType != other.idType) {
-            return idType < other.idType;
-        }
-        return deviceId < other.deviceId;
-    }
-
-    DeviceIdType idType { DeviceIdType::UNKNOWN };
-    std::string deviceId {};
-};
-
-inline PhysicalDeviceKey FromDeviceKey(const DeviceKey &deviceKey)
-{
-    PhysicalDeviceKey physicalKey;
-    physicalKey.idType = deviceKey.idType;
-    physicalKey.deviceId = deviceKey.deviceId;
-    return physicalKey;
-}
-
 struct PhysicalDeviceStatus {
 public:
     PhysicalDeviceKey physicalDeviceKey;
@@ -109,6 +79,7 @@ public:
     std::vector<BusinessId> supportedBusinessIds {};
     bool useSyncDeviceName { false };
     bool reportUnsynced { false };
+    Atl maxAuthTrustLevel { ATL0 };
 
     bool operator==(const PhysicalDeviceStatus &other) const
     {
@@ -117,7 +88,8 @@ public:
             networkId == other.networkId && isAuthMaintainActive == other.isAuthMaintainActive &&
             deviceType == other.deviceType && atlRevokeDelayMs == other.atlRevokeDelayMs &&
             refreshToken == other.refreshToken && supportedBusinessIds == other.supportedBusinessIds &&
-            useSyncDeviceName == other.useSyncDeviceName && reportUnsynced == other.reportUnsynced;
+            useSyncDeviceName == other.useSyncDeviceName && reportUnsynced == other.reportUnsynced &&
+            maxAuthTrustLevel == other.maxAuthTrustLevel;
     }
 };
 

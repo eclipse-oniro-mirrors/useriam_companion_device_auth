@@ -120,12 +120,12 @@ bool AvailableDeviceSubscription::MatchesRegisteredCompanion(const UserKey &acti
     if (deviceStatus.isOnline) {
         return GetCompanionManager().GetCompanionStatus(activeUserKey, deviceStatus.deviceKey).has_value();
     }
-    const PhysicalDeviceKey physicalKey = FromDeviceKey(deviceStatus.deviceKey);
+    const PhysicalDeviceKey physicalKey = deviceStatus.deviceKey.AsPhysical();
     for (const auto &companionStatus : GetCompanionManager().GetAllCompanionStatus()) {
         if (companionStatus.hostUserKey != activeUserKey) {
             continue;
         }
-        if (FromDeviceKey(companionStatus.companionDeviceStatus.deviceKey) == physicalKey) {
+        if (companionStatus.companionDeviceStatus.deviceKey.AsPhysical() == physicalKey) {
             return true;
         }
     }

@@ -16,9 +16,11 @@
 use crate::common::constants::{
     AuthTrustLevel, ErrorCode, SECURE_RANDOM_MAX_ATTEMPTS, SHARE_KEY_LEN, TOKEN_KEY_LEN,
 };
+use crate::jobs::binding_signature_crypto;
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, HostBindingToken, UserInfo, UserKey};
+use crate::traits::db_manager::{
+    DeviceKey, HostBinding, HostBindingSk, HostBindingSignaturePubKey, HostBindingToken, UserInfo, UserKey,
+};
 use crate::traits::host_binding_db_manager::{HostBindingDbManager, HostDeviceFilter};
 use crate::traits::log_trace::RustFileId;
 use crate::traits::storage_io::StorageIoRegistry;
@@ -35,6 +37,7 @@ pub const MAX_TOKEN_LENGTH: i32 = 32;
 pub const HOST_BINDING_DB: &str = "host_binding_db";
 pub const HOST_BINDING_SK: &str = "host_binding_sk";
 pub const HOST_BINDING_TOKEN: &str = "host_binding_token";
+pub const HOST_BINDING_SIGNATURE_PUB_KEY: &str = "host_binding_sign_pub_key";
 
 pub const MAX_DEVICE_NUM: usize = 5;
 pub const MAX_DEVICE_NUM_PER_USER: usize = 1;
@@ -180,33 +183,51 @@ impl DefaultHostBindingDbManager {
         Ok(host_binding_token)
     }
 
-    fn serialize_device_sk(sk_info: &HostBindingKeyMaterial, parcel: &mut Parcel) {
+    fn serialize_device_sk(sk_info: &HostBindingSk, parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
+        parcel.write_u16(sk_info.kdf_algorithm);
+        parcel.write_u16(sk_info.aead_algorithm);
+        parcel.write_u16(sk_info.mac_algorithm);
         parcel.write_bytes(&sk_info.sk);
-        parcel.write_u16(sk_info.selected_algorithms.ka_algorithm);
-        parcel.write_u16(sk_info.selected_algorithms.kdf_algorithm);
-        parcel.write_u16(sk_info.selected_algorithms.aead_algorithm);
-        parcel.write_u16(sk_info.selected_algorithms.mac_algorithm);
     }
 
-    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<HostBindingKeyMaterial, ErrorCode> {
+    fn serialize_binding_signature_key(binding_signature_key: &HostBindingSignaturePubKey, parcel: &mut Parcel) {
+        parcel.write_i32(CURRENT_VERSION);
+        parcel.write_u16(binding_signature_key.alg_id);
+        parcel.write_bytes(&binding_signature_key.pub_key);
+    }
+
+    fn deserialize_binding_signature_key(parcel: &mut Parcel) -> Result<HostBindingSignaturePubKey, ErrorCode> {
         let version = parcel.read_i32().map_err(|e| p!(e))?;
         if version > CURRENT_VERSION {
             log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
             return Err(ErrorCode::GeneralError);
         }
-        let mut sk = vec![0u8; SHARE_KEY_LEN];
-        parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
-        let ka_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
+        let alg_id = parcel.read_u16().map_err(|e| p!(e))?;
+        let mut pub_key = vec![0u8; binding_signature_crypto::pub_key_len(alg_id)?];
+        parcel.read_bytes(&mut pub_key).map_err(|e| p!(e))?;
+        Ok(HostBindingSignaturePubKey { alg_id, pub_key })
+    }
+
+    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<HostBindingSk, ErrorCode> {
+        let version = parcel.read_i32().map_err(|e| p!(e))?;
+        if version > CURRENT_VERSION {
+            log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
+            return Err(ErrorCode::GeneralError);
+        }
         let kdf_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
         let aead_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
         let mac_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
-        let sk_info = HostBindingKeyMaterial {
+        let mut sk = vec![0u8; SHARE_KEY_LEN];
+        parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
+        let sk_info = HostBindingSk {
+            kdf_algorithm,
+            aead_algorithm,
+            mac_algorithm,
             sk: sk.try_into().map_err(|e| {
                 log_e!("try_into fail: {:?}", e);
                 ErrorCode::GeneralError
             })?,
-            selected_algorithms: SelectedAlgorithms { ka_algorithm, kdf_algorithm, aead_algorithm, mac_algorithm },
         };
         Ok(sk_info)
     }
@@ -269,7 +290,7 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
     fn add_device(
         &mut self,
         device_info: &HostBinding,
-        sk_info: &HostBindingKeyMaterial,
+        sk_info: &HostBindingSk,
     ) -> Result<Option<i32>, ErrorCode> {
         log_i!("add_device start");
         if device_info.device_key.device_id.is_empty() {
@@ -345,6 +366,7 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
                 log_i!("Device removed successfully, binding_id: {:04x}", device.binding_id as u16);
                 let _ = self.delete_device_sk(device.binding_id);
                 let _ = self.delete_device_token(device.binding_id);
+                let _ = self.delete_binding_signature_key(device.binding_id);
                 Ok(device)
             },
         }
@@ -453,7 +475,7 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         StorageIoRegistry::get().exists(&filename)
     }
 
-    fn read_device_sk(&self, binding_id: i32) -> Result<HostBindingKeyMaterial, ErrorCode> {
+    fn read_device_sk(&self, binding_id: i32) -> Result<HostBindingSk, ErrorCode> {
         log_i!("read_device_sk start, binding_id:{:04x}", binding_id as u16);
         let filename = format!("{:x}_{}", binding_id, HOST_BINDING_SK);
         let sk_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
@@ -466,7 +488,7 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
         Self::deserialize_device_sk(&mut parcel)
     }
 
-    fn write_device_sk(&self, binding_id: i32, sk_info: &HostBindingKeyMaterial) -> Result<(), ErrorCode> {
+    fn write_device_sk(&self, binding_id: i32, sk_info: &HostBindingSk) -> Result<(), ErrorCode> {
         log_i!("write_device_sk start, binding_id:{:04x}", binding_id as u16);
         let filename = format!("{:x}_{}", binding_id, HOST_BINDING_SK);
         let mut parcel = Parcel::new();
@@ -477,6 +499,37 @@ impl HostBindingDbManager for DefaultHostBindingDbManager {
     fn delete_device_sk(&self, binding_id: i32) -> Result<(), ErrorCode> {
         log_i!("delete_device_sk start, binding_id:{:04x}", binding_id as u16);
         let filename = format!("{:x}_{}", binding_id, HOST_BINDING_SK);
+        StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))
+    }
+
+    fn read_binding_signature_key(&self, binding_id: i32) -> Result<HostBindingSignaturePubKey, ErrorCode> {
+        log_i!("read_binding_signature_key start, binding_id:{:04x}", binding_id as u16);
+        let filename = format!("{:x}_{}", binding_id, HOST_BINDING_SIGNATURE_PUB_KEY);
+        let binding_signature_key_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
+        if binding_signature_key_data.is_empty() {
+            log_i!("binding signature key is empty");
+            return Err(ErrorCode::GeneralError);
+        }
+
+        let mut parcel = Parcel::from(binding_signature_key_data);
+        Self::deserialize_binding_signature_key(&mut parcel)
+    }
+
+    fn write_binding_signature_key(
+        &self,
+        binding_id: i32,
+        binding_signature_key: &HostBindingSignaturePubKey,
+    ) -> Result<(), ErrorCode> {
+        log_i!("write_binding_signature_key start, binding_id:{:04x}", binding_id as u16);
+        let filename = format!("{:x}_{}", binding_id, HOST_BINDING_SIGNATURE_PUB_KEY);
+        let mut parcel = Parcel::new();
+        Self::serialize_binding_signature_key(binding_signature_key, &mut parcel);
+        StorageIoRegistry::get().write(&filename, parcel.as_slice()).map_err(|e| p!(e))
+    }
+
+    fn delete_binding_signature_key(&self, binding_id: i32) -> Result<(), ErrorCode> {
+        log_i!("delete_binding_signature_key start, binding_id:{:04x}", binding_id as u16);
+        let filename = format!("{:x}_{}", binding_id, HOST_BINDING_SIGNATURE_PUB_KEY);
         StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))
     }
 

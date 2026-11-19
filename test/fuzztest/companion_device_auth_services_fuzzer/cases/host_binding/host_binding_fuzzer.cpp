@@ -66,7 +66,7 @@ static void FuzzGetAllMethods(std::shared_ptr<HostBinding> &hostBinding, FuzzedD
 {
     (void)fuzzData;
     (void)hostBinding->GetBindingId();
-    (void)hostBinding->GetCompanionUserId();
+    (void)hostBinding->GetCompanionUserKey();
     (void)hostBinding->GetHostDeviceKey();
     (void)hostBinding->GetStatus();
     (void)hostBinding->GetDescription();

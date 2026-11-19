@@ -129,9 +129,17 @@ std::optional<RawMsgInfo> CaptureAndReply(FakeChannel &channel, const std::strin
 
 // Find a SYNC_DEVICE_STATUS request among all connections and inject a reply.
 // Used by host-side setup to populate device status (capabilities, device key, user name).
+// Services a pending GET_BINDING_SIGNATURE_CHALLENGE probe first (a sync round over a bound
+// device starts with it since the V2 sign flow), then replies to the SYNC message.
 // Returns true if a SYNC_DEVICE_STATUS request was found and replied to.
 bool InjectSyncDeviceStatusReply(FakeChannel &channel, const SyncDeviceStatusReply &syncReply,
     const DeviceKey &companionDeviceKey);
+
+// Find a GET_BINDING_SIGNATURE_CHALLENGE probe among all connections and inject a SUCCESS
+// reply carrying the binding's companion identity. The harness bindings are V1, so the host
+// resolves the identity and downgrades to an unprotected V1 sync. Caller drains afterwards.
+// Returns true if a challenge probe was found and replied to.
+bool InjectBindingSignatureChallengeReply(FakeChannel &channel, const DeviceKey &companionDeviceKey);
 
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

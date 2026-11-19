@@ -104,7 +104,7 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
         static_cast<BusinessId>(3) };
     DeviceStatusEntry entry(physicalStatus_, []() {}, hostBusinessIds);
 
-    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
+    entry.selectedProtocolId = ProtocolId::VERSION_1;
     entry.secureProtocolId = SecureProtocolId::DEFAULT;
     entry.capabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
     entry.SetSyncCompanionBusinessIds(hostBusinessIds);
@@ -122,7 +122,7 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_001, TestSize.Level0)
     EXPECT_EQ(status.channelId, ChannelId::SOFTBUS);
     EXPECT_EQ(status.deviceName, "TestDevice");
     EXPECT_EQ(status.deviceModelInfo, "TestModel");
-    EXPECT_EQ(status.protocolId, ProtocolId::VERSION_1);
+    EXPECT_EQ(status.selectedProtocolId, ProtocolId::VERSION_1);
     EXPECT_EQ(status.secureProtocolId, SecureProtocolId::DEFAULT);
     EXPECT_EQ(status.capabilities.size(), 2u);
     EXPECT_EQ(status.supportedBusinessIds.size(), 3u);
@@ -287,6 +287,57 @@ HWTEST_F(DeviceStatusEntryTest, SetSyncCompanionBusinessIds_Empty_DegradesToPhys
     EXPECT_TRUE(changed);
     EXPECT_EQ(entry.GetSupportedBusinessIds(),
         std::vector<BusinessId>({ static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) }));
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_MaxAuthTrustLevel_DefaultsToPhysical, TestSize.Level0)
+{
+    physicalStatus_.maxAuthTrustLevel = ATL2;
+
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    EXPECT_EQ(status.maxAuthTrustLevel, ATL2);
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_MaxAuthTrustLevel_SyncOverridesPhysical, TestSize.Level0)
+{
+    physicalStatus_.maxAuthTrustLevel = ATL2;
+
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.syncMaxAuthTrustLevel = ATL3;
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    EXPECT_EQ(status.maxAuthTrustLevel, ATL3);
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_MaxAuthTrustLevel_SyncResetFallsBackToPhysical, TestSize.Level0)
+{
+    physicalStatus_.maxAuthTrustLevel = ATL2;
+
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    entry.syncMaxAuthTrustLevel = ATL3;
+    entry.syncMaxAuthTrustLevel = std::nullopt; // peer stops reporting -> degrade to physical
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    EXPECT_EQ(status.maxAuthTrustLevel, ATL2);
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_MaxAuthTrustLevel_FallbackTierWhenUnreported, TestSize.Level0)
+{
+    physicalStatus_.maxAuthTrustLevel = ATL4; // SoftBus adapter-filled channel default
+
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    EXPECT_EQ(status.maxAuthTrustLevel, ATL4);
+}
+
+HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_MaxAuthTrustLevel_UnsetPropagatesWhenNoSourceReports, TestSize.Level0)
+{
+    DeviceStatusEntry entry(physicalStatus_, []() {});
+    DeviceStatus status = entry.BuildDeviceStatus();
+
+    EXPECT_EQ(status.maxAuthTrustLevel, ATL0);
 }
 
 // OnSyncFailure arms the backoff timer; firing it invokes the retry callback passed at

@@ -15,6 +15,8 @@
 
 #include "module_test_helpers.h"
 
+#include "binding_signature_message.h"
+
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
@@ -59,9 +61,60 @@ std::optional<RawMsgInfo> CaptureAndReply(FakeChannel &channel, const std::strin
     return msgInfo;
 }
 
+bool InjectBindingSignatureChallengeReply(FakeChannel &channel, const DeviceKey &companionDeviceKey)
+{
+    auto allConnNames = channel.GetAllConnectionNames();
+    for (const auto &connName : allConnNames) {
+        auto sentMsgs = channel.GetSentMessages(connName);
+        for (const auto &rawMsg : sentMsgs) {
+            Attributes attr(rawMsg);
+            uint16_t msgType = 0;
+            if (!attr.GetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE, msgType)) {
+                continue;
+            }
+            if (static_cast<MessageType>(msgType) != MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                continue;
+            }
+            uint32_t seq = 0;
+            attr.GetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, seq);
+
+            GetBindingSignatureChallengeReply challengeReply;
+            challengeReply.result = ResultCode::SUCCESS;
+            challengeReply.companionUserKey =
+                UserKey { companionDeviceKey.deviceUserId, companionDeviceKey.deviceSubProfileId };
+            challengeReply.challenge = std::vector<uint8_t>(BINDING_SIGNATURE_CHALLENGE_LEN, 0x01);
+
+            Attributes replyPayload;
+            EncodeGetBindingSignatureChallengeReply(challengeReply, replyPayload);
+            replyPayload.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+                static_cast<int32_t>(companionDeviceKey.idType));
+            replyPayload.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey.deviceId);
+
+            Attributes replyMsg(replyPayload.Serialize());
+            replyMsg.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connName);
+            replyMsg.SetUint32Value(Attributes::ATTR_CDA_SA_MSG_SEQ_NUM, seq);
+            replyMsg.SetBoolValue(Attributes::ATTR_CDA_SA_MSG_ACK, true);
+            replyMsg.SetUint16Value(Attributes::ATTR_CDA_SA_MSG_TYPE,
+                static_cast<uint16_t>(MessageType::GET_BINDING_SIGNATURE_CHALLENGE));
+
+            channel.ClearSentMessages();
+            channel.TestSimulateIncomingMessage(connName, replyMsg.Serialize());
+            return true;
+        }
+    }
+    return false;
+}
+
 bool InjectSyncDeviceStatusReply(FakeChannel &channel, const SyncDeviceStatusReply &syncReply,
     const DeviceKey &companionDeviceKey)
 {
+    // A sync round over a device with any valid binding starts with the challenge probe:
+    // answer it (host downgrades to an unprotected V1 sync) so the SYNC message that the
+    // scan below expects actually reaches the wire.
+    if (InjectBindingSignatureChallengeReply(channel, companionDeviceKey)) {
+        DrainPendingTasks();
+    }
+
     auto allConnNames = channel.GetAllConnectionNames();
     for (const auto &connName : allConnNames) {
         auto sentMsgs = channel.GetSentMessages(connName);

@@ -45,6 +45,8 @@ constexpr RustErrorCodeMapping RUST_ERROR_CODE_MAPPINGS[] = {
     { RustErrorCode::GENERAL_ERROR, ResultCode::GENERAL_ERROR },
     { RustErrorCode::TIMEOUT, ResultCode::TIMEOUT },
     { RustErrorCode::BAD_PARAM, ResultCode::INVALID_PARAMETERS },
+    { RustErrorCode::READ_PARCEL_ERROR, ResultCode::GENERAL_ERROR },
+    { RustErrorCode::WRITE_PARCEL_ERROR, ResultCode::GENERAL_ERROR },
     { RustErrorCode::NOT_FOUND, ResultCode::NOT_ENROLLED },
     { RustErrorCode::ID_EXISTS, ResultCode::INVALID_PARAMETERS },
     { RustErrorCode::EXCEED_LIMIT, ResultCode::EXCEED_LIMIT },
@@ -54,6 +56,7 @@ constexpr RustErrorCodeMapping RUST_ERROR_CODE_MAPPINGS[] = {
     { RustErrorCode::SECURE_PROTOCOL_NOT_SUPPORTED, ResultCode::SECURE_PROTOCOL_NOT_SUPPORTED },
     { RustErrorCode::CAPABILITY_NEGOTIATION_FAILED, ResultCode::CAPABILITY_NEGOTIATION_FAILED },
     { RustErrorCode::ALGORITHM_NEGOTIATION_FAILED, ResultCode::ALGORITHM_NEGOTIATION_FAILED },
+    { RustErrorCode::BINDING_SIGNATURE_VERIFY_FAILED, ResultCode::BINDING_SIGNATURE_VERIFY_FAILED },
 };
 } // namespace
 

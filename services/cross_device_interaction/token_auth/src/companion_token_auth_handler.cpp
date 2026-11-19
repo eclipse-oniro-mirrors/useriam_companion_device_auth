@@ -20,6 +20,7 @@
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
+#include "binding_signature_message.h"
 #include "cross_device_comm_manager.h"
 #include "error_guard.h"
 #include "host_binding_manager.h"
@@ -82,7 +83,9 @@ void CompanionTokenAuthHandler::HandleRequest(const Attributes &request, Attribu
     desc.SetBindingId(hostBindingStatus->bindingId);
     eventCollector.SetBindingId(hostBindingStatus->bindingId);
 
-    ResultCode ret = ProcessTokenAuth(tokenRequest, *hostBindingStatus, reply);
+    BindingSignatureProof bindingSignatureProof = tokenRequest.bindingSignatureProof.value_or(BindingSignatureProof {});
+
+    ResultCode ret = ProcessTokenAuth(tokenRequest, *hostBindingStatus, bindingSignatureProof, reply);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionProcessTokenAuth failed ret=%{public}d", desc.GetCStr(), ret);
         errorGuard.UpdateErrorCode(ret);
@@ -115,7 +118,7 @@ bool CompanionTokenAuthHandler::CheckLocalDeviceStatus(const std::string &connec
 }
 
 ResultCode CompanionTokenAuthHandler::ProcessTokenAuth(const TokenAuthRequest &tokenRequest,
-    const HostBindingStatus &hostBindingStatus, Attributes &reply)
+    const HostBindingStatus &hostBindingStatus, const BindingSignatureProof &bindingSignatureProof, Attributes &reply)
 {
     auto secureProtocolId = GetCrossDeviceCommManager().CompanionGetSecureProtocolId();
     ENSURE_OR_RETURN_VAL(secureProtocolId != SecureProtocolId::INVALID, ResultCode::GENERAL_ERROR);
@@ -124,6 +127,7 @@ ResultCode CompanionTokenAuthHandler::ProcessTokenAuth(const TokenAuthRequest &t
     input.bindingId = hostBindingStatus.bindingId;
     input.secureProtocolId = secureProtocolId;
     input.tokenAuthRequest = tokenRequest.extraInfo;
+    input.bindingSignatureProof = bindingSignatureProof;
 
     CompanionProcessTokenAuthOutput output = {};
     ResultCode ret = GetSecurityAgent().CompanionProcessTokenAuth(input, output);
