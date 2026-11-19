@@ -227,5 +227,5 @@ fn validate_secure_protocol_id_test() {
 
     assert_eq!(validate_secure_protocol_id(SecureProtocolId::Default as u16), Ok(()));
     assert_eq!(validate_secure_protocol_id(SECURE_PROTOCOL_ID_INVALID), Err(ErrorCode::SecureProtocolNotSupported));
-    assert_eq!(validate_secure_protocol_id(SecureProtocolId::Default as u16 + 1), Err(ErrorCode::SecureProtocolNotSupported));
+    assert_eq!(validate_secure_protocol_id(SecureProtocolId::Default as u16 + 2), Err(ErrorCode::SecureProtocolNotSupported));
 }

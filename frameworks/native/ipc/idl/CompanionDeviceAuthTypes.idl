@@ -59,6 +59,8 @@ struct IpcDeviceStatus {
     int[] supportedBusinessIds;
     /** Remote device sub profile name. */
     String deviceSubProfileName;
+    /** Max auth trust level the device can reach. */
+    int maxAuthTrustLevel;
 };
 
 /**

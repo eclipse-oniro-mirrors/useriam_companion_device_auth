@@ -25,8 +25,9 @@ use crate::impls::default_host_binding_db_manager::{
 };
 use crate::log_i;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, HostBindingToken, UserInfo, UserKey};
+use crate::traits::db_manager::{
+    DeviceKey, HostBinding, HostBindingSk, HostBindingSignaturePubKey, HostBindingToken, UserInfo, UserKey,
+};
 use crate::traits::host_binding_db_manager::{HostBindingDbManager, HostDeviceFilter};
 use crate::traits::storage_io::{MockStorageIo, StorageIoRegistry};
 use crate::ut_registry_guard;
@@ -68,15 +69,12 @@ fn create_test_host_binding_with_profile(
     }
 }
 
-fn create_test_sk_info(_sk: Vec<u8>) -> HostBindingKeyMaterial {
-    HostBindingKeyMaterial {
+fn create_test_sk_info(_sk: Vec<u8>) -> HostBindingSk {
+    HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }
 }
 
@@ -1257,11 +1255,10 @@ fn default_host_binding_db_manager_read_device_sk_test_success() {
 
     let mut parcel = Parcel::new();
     parcel.write_i32(0);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
     parcel.write_bytes(&[0u8; SHARE_KEY_LEN]);
-    parcel.write_u16(1);
-    parcel.write_u16(1);
-    parcel.write_u16(1);
-    parcel.write_u16(1);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -1274,10 +1271,9 @@ fn default_host_binding_db_manager_read_device_sk_test_success() {
     assert!(result.is_ok());
     let sk_info = result.unwrap();
     assert_eq!(sk_info.sk, [0u8; SHARE_KEY_LEN]);
-    assert_eq!(
-        sk_info.selected_algorithms,
-        SelectedAlgorithms { ka_algorithm: 1, kdf_algorithm: 1, aead_algorithm: 1, mac_algorithm: 1 }
-    );
+    assert_eq!(sk_info.kdf_algorithm, 1);
+    assert_eq!(sk_info.aead_algorithm, 1);
+    assert_eq!(sk_info.mac_algorithm, 1);
 }
 
 #[test]
@@ -1287,7 +1283,10 @@ fn default_host_binding_db_manager_read_device_sk_test_deserialize_miss_algorith
 
     let mut parcel = Parcel::new();
     parcel.write_i32(0);
-    parcel.write_bytes(&[0u8; SHARE_KEY_LEN]);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -1437,4 +1436,42 @@ fn default_host_binding_db_manager_delete_device_sk_test_storage_error() {
 
     let result = manager.delete_device_sk(123);
     assert_eq!(result, Err(ErrorCode::NotFound));
+}
+
+#[test]
+fn default_host_binding_db_manager_binding_signature_key_roundtrip_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_host_binding_db_manager_binding_signature_key_roundtrip_test start");
+
+    // stateful storage: the bytes written by write_binding_signature_key are served back to
+    // read_binding_signature_key, exercising the real serialize/deserialize pair
+    let shared: std::rc::Rc<std::cell::RefCell<Vec<u8>>> = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    let mut mock_storage_io = MockStorageIo::new();
+    mock_storage_io.expect_write().returning({
+        let shared = shared.clone();
+        move |_path, data| {
+            *shared.borrow_mut() = data.to_vec();
+            Ok(())
+        }
+    });
+    mock_storage_io.expect_read().returning({
+        let shared = shared.clone();
+        move || Ok(shared.borrow().clone())
+    });
+    mock_storage_io.expect_exists().returning(|| Ok(true));
+    StorageIoRegistry::set(Box::new(mock_storage_io));
+
+    let manager = DefaultHostBindingDbManager::new();
+    // companion side persists the algorithm and the 65B SEC1 public key
+    let mut pub_key = vec![0x04u8];
+    pub_key.extend([0x5Au8; BINDING_SIGNATURE_PUB_KEY_LEN - 1]);
+    let key = HostBindingSignaturePubKey { alg_id: P256, pub_key: pub_key.clone() };
+
+    assert!(manager.write_binding_signature_key(7, &key).is_ok());
+    let read = manager.read_binding_signature_key(7);
+    assert!(read.is_ok());
+    let read_key = read.unwrap();
+    assert_eq!(read_key.alg_id, P256);
+    assert_eq!(read_key.pub_key, pub_key);
+    assert_eq!(read_key.pub_key.first(), Some(&0x04));
 }

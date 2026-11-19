@@ -46,7 +46,6 @@ public:
     static std::vector<int32_t> ConvertArrayToInt32Vector(const taihe::array<int32_t> &input);
     static ClientDeviceKey ConvertAniDeviceKey(companionDeviceAuth::DeviceKey deviceKey);
     static ::ohos::userIAM::userAuth::userAuth::AuthTrustLevel ConvertAuthTrustLevel(int32_t authTrustLevel);
-    static bool IsAuthTrustLevelValid(int32_t authTrustLevel);
     static void ThrowBusinessError(int32_t error);
 
 private:

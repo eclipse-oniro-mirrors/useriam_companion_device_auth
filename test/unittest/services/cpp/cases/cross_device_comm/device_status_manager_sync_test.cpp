@@ -27,7 +27,7 @@ namespace CompanionDeviceAuth {
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedStatus, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.hostProtocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
 
     auto callbackInvoked = std::make_shared<bool>(false);
@@ -38,7 +38,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedSta
             callbackCount++;
             ASSERT_EQ(1u, statusList.size());
             EXPECT_EQ("device-1", statusList[0].deviceKey.deviceId);
-            EXPECT_EQ(ProtocolId::VERSION_1, statusList[0].protocolId);
+            EXPECT_EQ(ProtocolId::VERSION_1, statusList[0].selectedProtocolId);
             ASSERT_EQ(1u, statusList[0].capabilities.size());
             EXPECT_EQ(Capability::TOKEN_AUTH, statusList[0].capabilities[0]);
         });
@@ -57,6 +57,9 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultSuccessPropagatesNegotiatedSta
     syncStatus.companionCapabilityList = { Capability::TOKEN_AUTH };
     syncStatus.deviceUserName = "tester";
     syncStatus.secureProtocolId = SecureProtocolId::DEFAULT;
+    // The round payload carries the negotiated protocol (first(host offer ∩ reply list),
+    // computed by the sync request); the manager consumes it as the authoritative verdict.
+    syncStatus.selectedProtocolId = static_cast<uint16_t>(ProtocolId::VERSION_1);
 
     ctx.manager->HandleSyncResult(deviceKey, 0, SUCCESS, syncStatus);
 
@@ -244,7 +247,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResultFailureMarksEntryAndSkipsNotif
 HWTEST_F(DeviceStatusManagerTest, AttachOrStartDeviceSyncStartsRequestAndHandlesCallback, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.hostProtocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-sync", ChannelId::SOFTBUS, "DeviceSync");
@@ -366,7 +369,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_EmptySyncStatus, TestSize.Lev
             ASSERT_EQ(1u, statusList.size());
             EXPECT_EQ("device-empty-sync", statusList[0].deviceKey.deviceId);
             // Empty sync result should have default/empty values
-            EXPECT_EQ(ProtocolId::INVALID, statusList[0].protocolId);
+            EXPECT_EQ(ProtocolId::INVALID, statusList[0].selectedProtocolId);
             EXPECT_TRUE(statusList[0].capabilities.empty());
         });
     (void)subscription;
@@ -383,7 +386,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_EmptySyncStatus, TestSize.Lev
     EXPECT_TRUE(syncedEntry.isSynced);
     EXPECT_FALSE(syncedEntry.isSyncInProgress);
     // Verify default values for empty sync
-    EXPECT_EQ(ProtocolId::INVALID, syncedEntry.negotiatedProtocolId);
+    EXPECT_EQ(ProtocolId::INVALID, syncedEntry.selectedProtocolId);
     EXPECT_TRUE(syncedEntry.capabilities.empty());
     auto result = ctx.manager->GetDeviceStatus(deviceKey);
     ASSERT_TRUE(result.has_value());
@@ -392,7 +395,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_EmptySyncStatus, TestSize.Lev
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocol, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.hostProtocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-no-protocol", ChannelId::SOFTBUS, "Device");
@@ -422,7 +425,7 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocol, TestSize.Le
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonProtocolKeepsSyncTimeAndAbortsRetry, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.hostProtocols = { ProtocolId::VERSION_1 };
 
     constexpr uint64_t syncSteadyTimeMs = 98765;
     ctx.guard->GetTimeKeeper().SetSteadyTime(syncSteadyTimeMs);
@@ -491,10 +494,14 @@ HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_PeerSyncFailedInvalidatesCach
     EXPECT_FALSE(ctx.manager->GetDeviceStatus(deviceKey).has_value());
 }
 
-// Permanent local/peer conditions diagnosed by the host: terminal stop, cache dropped, no retry.
+// Permanent conditions: terminal stop, cache dropped, no retry. PROTOCOL_NEGOTIATION_FAILED /
+// SECURE_PROTOCOL_NOT_SUPPORTED are host-diagnosed capability gaps; TYPE_NOT_SUPPORT is the peer
+// answering that this sync message type has no subscriber — the peer cannot speak about its state
+// at all, so the cached verdict is untrustworthy and retrying cannot help until it is upgraded.
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_PermanentConditionsAbortAndInvalidateCache, TestSize.Level0)
 {
-    for (ResultCode code : { ResultCode::PROTOCOL_NEGOTIATION_FAILED, ResultCode::SECURE_PROTOCOL_NOT_SUPPORTED }) {
+    for (ResultCode code : { ResultCode::PROTOCOL_NEGOTIATION_FAILED, ResultCode::SECURE_PROTOCOL_NOT_SUPPORTED,
+             ResultCode::TYPE_NOT_SUPPORT }) {
         auto ctx = SetupTestContext();
         auto retryCount = std::make_shared<int>(0);
         bool onResultCalled = false;
@@ -588,7 +595,7 @@ HWTEST_F(DeviceStatusManagerTest, AttachOrStartDeviceSyncStartFailureKeepsCached
 HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_NoCommonCapabilities, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.hostProtocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-no-cap", ChannelId::SOFTBUS, "Device");

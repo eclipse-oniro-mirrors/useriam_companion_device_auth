@@ -14,12 +14,16 @@
  */
 
 use crate::common::constants::{
-    ErrorCode, ExecutorSecurityLevel, ProcessorType, SECURE_RANDOM_MAX_ATTEMPTS, SHARE_KEY_LEN, TrackAbilityLevel,
+    AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel, SECURE_RANDOM_MAX_ATTEMPTS,
+    SHARE_KEY_LEN,
 };
+use crate::jobs::binding_signature_crypto;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManager, CompanionDeviceFilter};
 use crate::traits::crypto_engine::CryptoEngineRegistry;
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo, UserKey};
+use crate::traits::db_manager::{
+    CompanionDevice, CompanionDeviceSignPriKey, CompanionDeviceCapability, CompanionDeviceSk,
+    CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo, UserKey,
+};
 use crate::traits::log_trace::RustFileId;
 use crate::traits::storage_io::StorageIoRegistry;
 use crate::utils::parcel::Parcel;
@@ -35,6 +39,7 @@ pub const COMPANION_DEVICE_DB: &str = "companion_device_db";
 pub const COMPANION_DEVICE_PROFILE: &str = "companion_device_profile";
 pub const COMPANION_DEVICE_CAPABILITY: &str = "companion_device_capability";
 pub const COMPANION_DEVICE_SK: &str = "companion_device_sk";
+pub const COMPANION_DEVICE_SIGN_PRI_KEY: &str = "companion_device_sign_pri_key";
 
 const MAX_DEVICE_NUM: usize = 1;
 const MAX_TOKEN_NUM: usize = 1;
@@ -113,6 +118,7 @@ impl DefaultCompanionDeviceDbManager {
             }
             parcel.write_u16(companion_device_info.enrolled_protocol_id);
             parcel.write_u16(companion_device_info.secure_protocol_id);
+            parcel.write_i32(companion_device_info.max_auth_trust_level as i32);
         }
     }
 
@@ -154,6 +160,11 @@ impl DefaultCompanionDeviceDbManager {
             }
             let enrolled_protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
             let secure_protocol_id = parcel.read_u16().map_err(|e| p!(e))?;
+            let max_auth_trust_level_raw = parcel.read_i32().map_err(|e| p!(e))?;
+            let max_auth_trust_level = AuthTrustLevel::try_from(max_auth_trust_level_raw).map_err(|_| {
+                log_e!("max_auth_trust_level is invalid: {}", max_auth_trust_level_raw);
+                ErrorCode::GeneralError
+            })?;
 
             let companion_device_info = CompanionDevice {
                 template_id,
@@ -170,6 +181,7 @@ impl DefaultCompanionDeviceDbManager {
                 enrolled_capability_list,
                 enrolled_protocol_id,
                 secure_protocol_id,
+                max_auth_trust_level,
             };
 
             self.companion_device_infos.push(companion_device_info);
@@ -285,21 +297,20 @@ impl DefaultCompanionDeviceDbManager {
         Ok(capability_infos)
     }
 
-    fn serialize_device_sk(sk_infos: &[CompanionDeviceKeyMaterial], parcel: &mut Parcel) {
+    fn serialize_device_sk(sk_infos: &[CompanionDeviceSk], parcel: &mut Parcel) {
         parcel.write_i32(CURRENT_VERSION);
         parcel.write_u32(sk_infos.len() as u32);
 
         for sk_info in sk_infos {
             parcel.write_i32(sk_info.processor_type as i32);
+            parcel.write_u16(sk_info.kdf_algorithm);
+            parcel.write_u16(sk_info.aead_algorithm);
+            parcel.write_u16(sk_info.mac_algorithm);
             parcel.write_bytes(&sk_info.sk);
-            parcel.write_u16(sk_info.selected_algorithms.ka_algorithm);
-            parcel.write_u16(sk_info.selected_algorithms.kdf_algorithm);
-            parcel.write_u16(sk_info.selected_algorithms.aead_algorithm);
-            parcel.write_u16(sk_info.selected_algorithms.mac_algorithm);
         }
     }
 
-    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<Vec<CompanionDeviceKeyMaterial>, ErrorCode> {
+    fn deserialize_device_sk(parcel: &mut Parcel) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
         let version = parcel.read_i32().map_err(|e| p!(e))?;
         if version > CURRENT_VERSION {
             log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
@@ -311,25 +322,26 @@ impl DefaultCompanionDeviceDbManager {
             log_e!("count is error, count:{}", count);
             return Err(ErrorCode::GeneralError);
         }
-        let mut sk_infos: Vec<CompanionDeviceKeyMaterial> = Vec::with_capacity(count);
+        let mut sk_infos: Vec<CompanionDeviceSk> = Vec::with_capacity(count);
 
         for _ in 0..count {
             let device_type_value = parcel.read_i32().map_err(|e| p!(e))?;
             let device_type = ProcessorType::try_from(device_type_value).map_err(|e| p!(e))?;
-            let mut sk = vec![0u8; SHARE_KEY_LEN];
-            parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
-            let ka_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
             let kdf_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
             let aead_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
             let mac_algorithm = parcel.read_u16().map_err(|e| p!(e))?;
+            let mut sk = vec![0u8; SHARE_KEY_LEN];
+            parcel.read_bytes(&mut sk).map_err(|e| p!(e))?;
 
-            let sk_info = CompanionDeviceKeyMaterial {
+            let sk_info = CompanionDeviceSk {
                 processor_type: device_type,
+                kdf_algorithm,
+                aead_algorithm,
+                mac_algorithm,
                 sk: sk.try_into().map_err(|e| {
                     log_e!("try_into fail: {:?}", e);
                     ErrorCode::GeneralError
                 })?,
-                selected_algorithms: SelectedAlgorithms { ka_algorithm, kdf_algorithm, aead_algorithm, mac_algorithm },
             };
             sk_infos.push(sk_info);
         }
@@ -350,17 +362,42 @@ impl DefaultCompanionDeviceDbManager {
         template_id: u64,
         base_info: &CompanionDeviceProfile,
         capability_info: &[CompanionDeviceCapability],
-        sk_info: &[CompanionDeviceKeyMaterial],
+        sk_info: &[CompanionDeviceSk],
+        binding_signature_key: Option<&CompanionDeviceSignPriKey>,
     ) -> Result<(), ErrorCode> {
         self.write_device_profile(template_id, base_info)?;
         self.write_device_capability_info(template_id, capability_info)?;
-        self.write_device_sk(template_id, sk_info)
+        self.write_device_sk(template_id, sk_info)?;
+        if let Some(binding_signature_key) = binding_signature_key {
+            self.write_device_binding_signature_key(template_id, binding_signature_key)?;
+        }
+        Ok(())
     }
 
     fn remove_device_extra_file(&self, template_id: u64) {
         let _ = self.delete_device_profile(template_id);
         let _ = self.delete_device_capability_info(template_id);
         let _ = self.delete_device_sk(template_id);
+        let _ = self.delete_device_binding_signature_key(template_id);
+    }
+
+    fn serialize_device_binding_signature_key(binding_signature_key: &CompanionDeviceSignPriKey, parcel: &mut Parcel) {
+        parcel.write_i32(CURRENT_VERSION);
+        parcel.write_u16(binding_signature_key.alg_id);
+        parcel.write_bytes(&binding_signature_key.pri_key);
+    }
+
+    fn deserialize_device_binding_signature_key(parcel: &mut Parcel) -> Result<CompanionDeviceSignPriKey, ErrorCode> {
+        let version = parcel.read_i32().map_err(|e| p!(e))?;
+        if version > CURRENT_VERSION {
+            log_e!("db_version is error, db_version:{}, current_version:{}", version, CURRENT_VERSION);
+            return Err(ErrorCode::GeneralError);
+        }
+
+        let alg_id = parcel.read_u16().map_err(|e| p!(e))?;
+        let mut pri_key = vec![0u8; binding_signature_crypto::pri_key_len(alg_id)?];
+        parcel.read_bytes(&mut pri_key).map_err(|e| p!(e))?;
+        Ok(CompanionDeviceSignPriKey { alg_id, pri_key })
     }
 }
 
@@ -370,7 +407,8 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
         device_info: &CompanionDevice,
         base_info: &CompanionDeviceProfile,
         capability_info: &[CompanionDeviceCapability],
-        sk_info: &[CompanionDeviceKeyMaterial],
+        sk_info: &[CompanionDeviceSk],
+        binding_signature_key: Option<&CompanionDeviceSignPriKey>,
     ) -> Result<(), ErrorCode> {
         log_i!("add_device start");
         if device_info.device_key.device_id.is_empty() {
@@ -388,7 +426,9 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
             return Err(ErrorCode::BadParam);
         }
 
-        if let Err(err) = self.write_device_extra_file(device_info.template_id, base_info, capability_info, sk_info) {
+        if let Err(err) =
+            self.write_device_extra_file(device_info.template_id, base_info, capability_info, sk_info, binding_signature_key)
+        {
             log_e!("write device extra file fail:{:?}", err);
             self.remove_device_extra_file(device_info.template_id);
             return Err(err);
@@ -634,7 +674,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
         Ok(())
     }
 
-    fn read_device_sk(&self, template_id: u64) -> Result<Vec<CompanionDeviceKeyMaterial>, ErrorCode> {
+    fn read_device_sk(&self, template_id: u64) -> Result<Vec<CompanionDeviceSk>, ErrorCode> {
         log_i!("read_device_sk start, template_id:{:04x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, COMPANION_DEVICE_SK);
         let sk_info_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
@@ -647,7 +687,7 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
         Self::deserialize_device_sk(&mut parcel)
     }
 
-    fn write_device_sk(&self, template_id: u64, sk_info: &[CompanionDeviceKeyMaterial]) -> Result<(), ErrorCode> {
+    fn write_device_sk(&self, template_id: u64, sk_info: &[CompanionDeviceSk]) -> Result<(), ErrorCode> {
         log_i!("write_device_sk start, template_id:{:04x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, COMPANION_DEVICE_SK);
         let mut parcel = Parcel::new();
@@ -659,6 +699,39 @@ impl CompanionDeviceDbManager for DefaultCompanionDeviceDbManager {
     fn delete_device_sk(&self, template_id: u64) -> Result<(), ErrorCode> {
         log_i!("delete_device_sk start, template_id:{:04x}", template_id as u16);
         let filename = format!("{:x}_{}", template_id, COMPANION_DEVICE_SK);
+        StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))?;
+        Ok(())
+    }
+
+    fn read_device_binding_signature_key(&self, template_id: u64) -> Result<CompanionDeviceSignPriKey, ErrorCode> {
+        log_i!("read_device_binding_signature_key start, template_id:{:016x}", template_id);
+        let filename = format!("{:x}_{}", template_id, COMPANION_DEVICE_SIGN_PRI_KEY);
+        let binding_signature_key_data: Vec<u8> = StorageIoRegistry::get().read(&filename).map_err(|e| p!(e))?;
+        if binding_signature_key_data.is_empty() {
+            log_i!("device binding signature key is empty");
+            return Err(ErrorCode::GeneralError);
+        }
+
+        let mut parcel = Parcel::from(binding_signature_key_data);
+        Self::deserialize_device_binding_signature_key(&mut parcel)
+    }
+
+    fn write_device_binding_signature_key(
+        &self,
+        template_id: u64,
+        binding_signature_key: &CompanionDeviceSignPriKey,
+    ) -> Result<(), ErrorCode> {
+        log_i!("write_device_binding_signature_key start, template_id:{:016x}", template_id);
+        let filename = format!("{:x}_{}", template_id, COMPANION_DEVICE_SIGN_PRI_KEY);
+        let mut parcel = Parcel::new();
+        Self::serialize_device_binding_signature_key(binding_signature_key, &mut parcel);
+        StorageIoRegistry::get().write(&filename, parcel.as_slice()).map_err(|e| p!(e))?;
+        Ok(())
+    }
+
+    fn delete_device_binding_signature_key(&self, template_id: u64) -> Result<(), ErrorCode> {
+        log_i!("delete_device_binding_signature_key start, template_id:{:04x}", template_id as u16);
+        let filename = format!("{:x}_{}", template_id, COMPANION_DEVICE_SIGN_PRI_KEY);
         StorageIoRegistry::get().delete(&filename).map_err(|e| p!(e))?;
         Ok(())
     }

@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -89,19 +90,28 @@ static void FuzzOp5(std::shared_ptr<HostSyncDeviceStatusRequest> &request, Fuzze
 static void FuzzOp6(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
     (void)fuzzData;
-    // Test SendSyncDeviceStatusRequest (protected method)
+    // Test ComposeSyncDeviceStatusRequest + SendSyncDeviceStatusRequest (protected methods)
     uint32_t saltSize = fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_SALT_LENGTH);
     std::vector<uint8_t> salt = fuzzData.ConsumeBytes<uint8_t>(saltSize);
     uint64_t challenge = fuzzData.ConsumeIntegral<uint64_t>();
-    (void)request->SendSyncDeviceStatusRequest(salt, challenge);
+    auto syncRequest = request->ComposeSyncDeviceStatusRequest(salt, challenge);
+    if (syncRequest != nullptr) {
+        request->SendSyncDeviceStatusRequest(syncRequest, std::nullopt);
+    }
 }
 
 static void FuzzOp7(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)
 {
-    (void)fuzzData;
     // Test HandleSyncDeviceStatusReply (protected method)
     Attributes reply = GenerateFuzzAttributes(fuzzData);
-    request->HandleSyncDeviceStatusReply(reply);
+    std::shared_ptr<Attributes> unsignedBasis;
+    if (fuzzData.ConsumeBool()) {
+        unsignedBasis = std::make_shared<Attributes>(GenerateFuzzAttributes(fuzzData));
+        if (unsignedBasis == nullptr) {
+            return;
+        }
+    }
+    request->HandleSyncDeviceStatusReply(reply, unsignedBasis);
 }
 
 static void FuzzOp8(std::shared_ptr<HostSyncDeviceStatusRequest> &request, FuzzedDataProvider &fuzzData)

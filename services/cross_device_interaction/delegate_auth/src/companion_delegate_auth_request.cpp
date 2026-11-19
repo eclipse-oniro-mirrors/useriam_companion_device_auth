@@ -39,13 +39,12 @@
 namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
-CompanionDelegateAuthRequest::CompanionDelegateAuthRequest(const std::string &connectionName,
-    const UserKey &companionUserKey, const DeviceKey &hostDeviceKey,
-    const std::vector<uint8_t> &startDelegateAuthRequest, const CompanionDelegateAuthParam &delegateAuthParam)
-    : InboundRequest(RequestType::COMPANION_DELEGATE_AUTH_REQUEST, connectionName, hostDeviceKey),
-      companionUserKey_(companionUserKey),
-      startDelegateAuthRequest_(startDelegateAuthRequest),
-      delegateAuthParam_(delegateAuthParam)
+CompanionDelegateAuthRequest::CompanionDelegateAuthRequest(const CompanionDelegateAuthParams &params)
+    : InboundRequest(RequestType::COMPANION_DELEGATE_AUTH_REQUEST, params.connectionName, params.hostDeviceKey),
+      companionUserKey_(params.companionUserKey),
+      startDelegateAuthRequest_(params.startDelegateAuthRequest),
+      delegateAuthParam_(params.delegateAuthParam),
+      bindingSignatureProof_(params.bindingSignatureProof)
 {
     eventCollector_.SetHostDeviceKey(PeerDeviceKey());
     eventCollector_.SetCompanionUserKey(companionUserKey_);
@@ -135,13 +134,14 @@ bool CompanionDelegateAuthRequest::CompanionBeginDelegateAuth()
     return true;
 }
 
-CompanionDelegateAuthBeginInput CompanionDelegateAuthRequest::BuildCompanionDelegateAuthBeginInput() const
+CompanionDelegateAuthBeginInput CompanionDelegateAuthRequest::BuildCompanionDelegateAuthBeginInput()
 {
     CompanionDelegateAuthBeginInput input = {};
     input.requestId = GetRequestId();
     input.bindingId = bindingId_;
     input.secureProtocolId = secureProtocolId_;
     input.startDelegateAuthRequest = startDelegateAuthRequest_;
+    input.bindingSignatureProof = std::move(bindingSignatureProof_);
     return input;
 }
 

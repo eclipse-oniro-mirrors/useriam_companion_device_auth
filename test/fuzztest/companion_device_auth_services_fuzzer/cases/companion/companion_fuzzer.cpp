@@ -85,7 +85,7 @@ static void FuzzDeviceStatusHandling(std::shared_ptr<Companion> &companion, Fuzz
         status.deviceModelInfo = GenerateFuzzString(fuzzData, TEST_VAL64);
         status.deviceUserName = GenerateFuzzString(fuzzData, TEST_VAL64);
         status.deviceName = GenerateFuzzString(fuzzData, TEST_VAL64);
-        status.protocolId = GenerateFuzzProtocolId(fuzzData);
+        status.selectedProtocolId = GenerateFuzzProtocolId(fuzzData);
         status.secureProtocolId = GenerateFuzzSecureProtocolId(fuzzData);
         status.isOnline = fuzzData.ConsumeBool();
         if (fuzzData.ConsumeBool()) {

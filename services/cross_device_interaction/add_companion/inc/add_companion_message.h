@@ -28,7 +28,7 @@ namespace CompanionDeviceAuth {
 // Host -> Companion
 struct InitKeyNegotiationRequest {
     DeviceKey hostDeviceKey {};
-    ProtocolId protocolId { ProtocolId::VERSION_1 };
+    ProtocolId selectedProtocolId { ProtocolId::VERSION_1 };
     std::vector<uint8_t> extraInfo;
 };
 

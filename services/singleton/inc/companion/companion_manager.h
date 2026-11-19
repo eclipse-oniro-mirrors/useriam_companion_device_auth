@@ -42,8 +42,7 @@ struct BeginAddCompanionParams {
     std::vector<uint8_t> fwkMsg;
     SecureProtocolId secureProtocolId;
     std::vector<Capability> hostCapabilityList;
-    std::vector<ProtocolId> hostProtocolList;
-    std::vector<Capability> companionCapabilityList;
+    std::vector<ProtocolId> hostProtocolIdList;
     std::vector<uint8_t> initKeyNegotiationReply;
 };
 
@@ -61,7 +60,7 @@ struct EndAddCompanionOutput {
     Atl atl;
     int32_t esl;
     TemplateId templateId;
-    std::vector<Capability> enrolledCapabilityList; // Negotiated capability list persisted at enrollment
+    std::vector<Capability> enrolledCapabilityList;
 };
 
 class ICompanionManager : public NoCopyable {
@@ -72,6 +71,11 @@ public:
     virtual std::optional<CompanionStatus> GetCompanionStatus(const UserKey &hostUserKey,
         const DeviceKey &companionDeviceKey) = 0;
     virtual std::vector<CompanionStatus> GetAllCompanionStatus() = 0;
+    virtual std::vector<CompanionStatus> FilterCompanionStatus(const UserKey &hostUserKey,
+        const PhysicalDeviceKey &companionDeviceKey, std::optional<ProtocolId> protocolId = std::nullopt) = 0;
+
+    virtual bool IsBindingSignatureRequired(TemplateId templateId) = 0;
+    virtual bool IsBindingSignatureRequired(const UserKey &hostUserKey, const DeviceKey &companionDeviceKey) = 0;
 
     virtual std::unique_ptr<Subscription> SubscribeCompanionDeviceStatusChange(
         OnCompanionDeviceStatusChange &&callback) = 0;

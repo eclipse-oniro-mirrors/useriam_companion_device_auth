@@ -197,6 +197,7 @@ int32_t CompanionDeviceAuthClientImpl::GetTemplateStatus(int32_t userId,
         clientDeviceStatus.isOnline = ipcTemplateStatus.deviceStatus.isOnline;
         clientDeviceStatus.supportedBusinessIds = ipcTemplateStatus.deviceStatus.supportedBusinessIds;
         clientDeviceStatus.deviceSubProfileName = ipcTemplateStatus.deviceStatus.deviceSubProfileName;
+        clientDeviceStatus.maxAuthTrustLevel = ipcTemplateStatus.deviceStatus.maxAuthTrustLevel;
 
         ClientTemplateStatus clientTemplateStatus {};
         clientTemplateStatus.templateId = ipcTemplateStatus.templateId;

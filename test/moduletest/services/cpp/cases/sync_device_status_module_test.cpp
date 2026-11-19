@@ -188,7 +188,7 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncNoTemplateE2E_001, TestSize.Level0)
         GetCrossDeviceCommManager().GetDeviceStatus(MakeDeviceKey("companion-test-device-001", HOST_USER));
     ASSERT_TRUE(deviceStatus.has_value());
     EXPECT_EQ(deviceStatus->deviceUserName, "CompanionUser");
-    EXPECT_EQ(deviceStatus->protocolId, ProtocolId::VERSION_1);
+    EXPECT_EQ(deviceStatus->selectedProtocolId, ProtocolId::VERSION_1);
     EXPECT_EQ(deviceStatus->secureProtocolId, SecureProtocolId::DEFAULT);
     EXPECT_FALSE(deviceStatus->capabilities.empty());
 }

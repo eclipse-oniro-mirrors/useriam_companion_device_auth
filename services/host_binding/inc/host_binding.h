@@ -43,21 +43,21 @@ public:
     {
         return status_.bindingId;
     }
-    int32_t GetCompanionUserId() const
+    const UserKey &GetCompanionUserKey() const
     {
-        return status_.companionUserKey.userId;
+        return status_.companionUserKey;
     }
     const DeviceKey &GetHostDeviceKey() const
     {
         return status_.hostDeviceStatus.deviceKey;
     }
-    int32_t GetCompanionSubProfileId() const
-    {
-        return status_.companionUserKey.subProfileId;
-    }
     const HostBindingStatus &GetStatus() const
     {
         return status_;
+    }
+    bool IsBindingSignatureRequired() const
+    {
+        return status_.enrolledProtocolId == ProtocolId::VERSION_2;
     }
     const char *GetDescription() const
     {

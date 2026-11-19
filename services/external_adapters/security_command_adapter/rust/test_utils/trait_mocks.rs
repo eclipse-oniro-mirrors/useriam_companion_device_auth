@@ -94,6 +94,7 @@ pub mod test_utils {
             HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
             let mock_request_manager = MockRequestManager::new();
             RequestManagerRegistry::set(Box::new(mock_request_manager));
+            crate::jobs::binding_challenge_pool::reset();
             Self { _lock_guard }
         }
     }

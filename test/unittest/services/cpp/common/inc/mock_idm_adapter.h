@@ -32,6 +32,7 @@ public:
     MOCK_METHOD(std::vector<uint64_t>, GetUserTemplates, (int32_t userId), (override));
     MOCK_METHOD(std::unique_ptr<Subscription>, SubscribeUserTemplateChange,
         (int32_t userId, TemplateChangeCallback callback), (override));
+    MOCK_METHOD(bool, RefreshAndGetUserTemplates, (int32_t userId, std::vector<uint64_t> &templateIds), (override));
 };
 
 } // namespace CompanionDeviceAuth

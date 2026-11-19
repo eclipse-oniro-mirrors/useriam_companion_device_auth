@@ -16,27 +16,30 @@
 use crate::commands::system_commands::{
     companion_begin_add_host_binding, companion_begin_delegate_auth, companion_begin_obtain_token,
     companion_cancel_issue_token, companion_cancel_obtain_token, companion_end_add_host_binding,
-    companion_end_delegate_auth, companion_end_obtain_token, companion_get_persisted_status,
-    companion_init_key_negotiation, companion_pre_issue_token, companion_process_check, companion_process_issue_token,
-    companion_process_token_auth, companion_remove_host_binding, companion_revoke_token, get_executor_info,
-    host_begin_add_companion, host_begin_companion_check, host_begin_delegate_auth, host_begin_issue_token,
-    host_begin_token_auth, host_cancel_add_companion, host_cancel_companion_check, host_cancel_delegate_auth,
-    host_cancel_issue_token, host_cancel_obtain_token, host_check_template_enrolled, host_end_add_companion,
-    host_end_companion_check, host_end_delegate_auth, host_end_issue_token, host_end_token_auth,
-    host_get_init_key_negotiation, host_get_persisted_status, host_on_register_finish, host_pre_issue_token,
-    host_process_obtain_token, host_process_pre_obtain_token, host_refresh_token, host_remove_companion,
-    host_revoke_token, host_set_companion_invalid, host_update_companion_enabled_business_ids,
-    host_update_companion_status, init, set_active_user_id,
+    companion_end_delegate_auth, companion_end_obtain_token, companion_generate_binding_signature_challenge,
+    companion_get_persisted_status, companion_init_key_negotiation, companion_pre_issue_token, companion_process_check,
+    companion_process_issue_token, companion_process_token_auth, companion_purge_binding_signature_challenge,
+    companion_remove_host_binding, companion_revoke_token,
+    get_executor_info, host_begin_add_companion, host_begin_companion_check,
+    host_begin_delegate_auth, host_begin_issue_token, host_begin_token_auth, host_binding_sign,
+    host_cancel_add_companion, host_cancel_companion_check, host_cancel_delegate_auth, host_cancel_issue_token,
+    host_cancel_obtain_token, host_check_template_enrolled, host_end_add_companion, host_end_companion_check,
+    host_end_delegate_auth, host_end_issue_token, host_end_token_auth, host_get_init_key_negotiation,
+    host_get_persisted_status, host_on_register_finish, host_pre_issue_token, host_process_obtain_token,
+    host_process_pre_obtain_token, host_refresh_token, host_remove_companion, host_revoke_token,
+    host_set_companion_invalid, host_update_companion_enabled_business_ids, host_update_companion_status, init,
+    set_active_user_id,
 };
 use crate::common::constants::ErrorCode;
 use crate::ensure_or_return_val;
 use crate::entry::companion_device_auth_ffi::CommandId::{
     CompanionBeginAddHostBinding, CompanionBeginDelegateAuth, CompanionBeginObtainToken, CompanionCancelIssueToken,
     CompanionCancelObtainToken, CompanionEndAddHostBinding, CompanionEndDelegateAuth, CompanionEndObtainToken,
-    CompanionGetPersistedStatus, CompanionInitKeyNegotiation, CompanionPreIssueToken, CompanionProcessCheck,
-    CompanionProcessIssueToken, CompanionProcessTokenAuth, CompanionRemoveHostBinding, CompanionRevokeToken,
-    GetExecutorInfo, HostBeginAddCompanion, HostBeginCompanionCheck, HostBeginDelegateAuth, HostBeginIssueToken,
-    HostBeginTokenAuth, HostCancelAddCompanion, HostCancelCompanionCheck, HostCancelDelegateAuth, HostCancelIssueToken,
+    CompanionGenerateBindingSignatureChallenge, CompanionGetPersistedStatus, CompanionInitKeyNegotiation,
+    CompanionPreIssueToken, CompanionProcessCheck, CompanionProcessIssueToken, CompanionProcessTokenAuth,
+    CompanionPurgeBindingSignatureChallenge, CompanionRemoveHostBinding, CompanionRevokeToken, GetExecutorInfo,
+    HostBeginAddCompanion, HostBeginCompanionCheck, HostBeginDelegateAuth, HostBeginIssueToken, HostBeginTokenAuth,
+    HostBindingSign, HostCancelAddCompanion, HostCancelCompanionCheck, HostCancelDelegateAuth, HostCancelIssueToken,
     HostCancelObtainToken, HostCheckTemplateEnrolled, HostEndAddCompanion, HostEndCompanionCheck, HostEndDelegateAuth,
     HostEndIssueToken, HostEndTokenAuth, HostGetInitKeyNegotiation, HostGetPersistedStatus, HostPreIssueToken,
     HostProcessObtainToken, HostProcessPreObtainToken, HostRefreshToken, HostRegisterFinish, HostRemoveCompanion,
@@ -167,6 +170,7 @@ fn handle_rust_command_inner(command_id: i32, input: &[u8], output: &mut [u8]) -
         [HostCancelObtainToken, host_cancel_obtain_token],
         [HostCheckTemplateEnrolled, host_check_template_enrolled],
         [HostRefreshToken, host_refresh_token],
+        [HostBindingSign, host_binding_sign],
         [CompanionGetPersistedStatus, companion_get_persisted_status],
         [CompanionProcessCheck, companion_process_check],
         [CompanionInitKeyNegotiation, companion_init_key_negotiation],
@@ -182,7 +186,9 @@ fn handle_rust_command_inner(command_id: i32, input: &[u8], output: &mut [u8]) -
         [CompanionEndDelegateAuth, companion_end_delegate_auth],
         [CompanionBeginObtainToken, companion_begin_obtain_token],
         [CompanionEndObtainToken, companion_end_obtain_token],
-        [CompanionCancelObtainToken, companion_cancel_obtain_token]
+        [CompanionCancelObtainToken, companion_cancel_obtain_token],
+        [CompanionGenerateBindingSignatureChallenge, companion_generate_binding_signature_challenge],
+        [CompanionPurgeBindingSignatureChallenge, companion_purge_binding_signature_challenge]
     ];
     for info in infos {
         if info.command_id as i32 == command_id {

@@ -149,7 +149,8 @@ static void FuzzSendErrorReply(std::shared_ptr<MessageRouter> &router, FuzzedDat
     requestHeader.isReply = fuzzData.ConsumeBool();
     requestHeader.msgType = static_cast<MessageType>(fuzzData.ConsumeIntegral<uint8_t>());
     ChannelId channelId = GenerateFuzzChannelId(fuzzData);
-    router->SendErrorReply(requestHeader, channelId);
+    ResultCode resultCode = static_cast<ResultCode>(fuzzData.ConsumeIntegral<int32_t>());
+    router->SendErrorReply(requestHeader, channelId, resultCode);
 }
 
 static void FuzzSendReply(std::shared_ptr<MessageRouter> &router, FuzzedDataProvider &fuzzData)

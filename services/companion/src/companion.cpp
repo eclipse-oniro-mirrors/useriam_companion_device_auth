@@ -118,6 +118,7 @@ void Companion::HandleDeviceStatusUpdate(const DeviceStatus &deviceStatus)
     ENSURE_OR_RETURN_DESC(GetDescription(), deviceStatus.deviceKey == status_.companionDeviceStatus.deviceKey);
     DeviceStatus updatedStatus = deviceStatus;
     updatedStatus.capabilities = status_.companionDeviceStatus.capabilities;
+    updatedStatus.maxAuthTrustLevel = status_.companionDeviceStatus.maxAuthTrustLevel;
 
     if (status_.companionDeviceStatus == updatedStatus) {
         return;
@@ -340,7 +341,22 @@ void Companion::HandleTemplateAddToIdmTimeout()
         return;
     }
 
-    IAM_LOGE("%{public}s template add to IDM failed", GetDescription());
+    std::vector<TemplateId> templateIds;
+    // clang-format off
+    if (!AdapterManager::GetInstance().GetIdmAdapter().RefreshAndGetUserTemplates(status_.hostUserKey.userId,
+        templateIds)) {
+        // clang-format on
+        IAM_LOGE("%{public}s IDM query failed", GetDescription());
+        return;
+    }
+
+    if (std::find(templateIds.begin(), templateIds.end(), status_.templateId) != templateIds.end()) {
+        IAM_LOGI("%{public}s template already in IDM, marking added", GetDescription());
+        SetAddedToIdm(true);
+        return;
+    } else {
+        IAM_LOGE("%{public}s template not added to IDM", GetDescription());
+    }
 
     TemplateId templateId = status_.templateId;
     TaskRunnerManager::GetInstance().PostTaskOnResident([weakManager = weakManager_, templateId]() {

@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-use crate::common::algorithm::SelectedAlgorithms;
 use crate::common::constants::{
     AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel, SHARE_KEY_LEN,
     TOKEN_KEY_LEN, is_valid_device_id_type,
@@ -52,7 +51,7 @@ impl TryFrom<&DeviceKeyFfi> for DeviceKey {
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
 pub struct UserInfo {
     pub user_key: UserKey,
     pub user_type: i32,
@@ -66,14 +65,16 @@ pub struct UserKey {
 
 // Host Binding Db
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
-pub struct HostBindingKeyMaterial {
-    pub selected_algorithms: SelectedAlgorithms,
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
+pub struct HostBindingSk {
+    pub kdf_algorithm: u16,
+    pub aead_algorithm: u16,
+    pub mac_algorithm: u16,
     pub sk: [u8; SHARE_KEY_LEN],
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
 pub struct SessionKeyParam {
     pub session_key: Vec<u8>,
     pub aead_algorithm: u16,
@@ -81,7 +82,7 @@ pub struct SessionKeyParam {
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
 pub struct HostBinding {
     pub device_key: DeviceKey,
     pub binding_id: i32,
@@ -93,15 +94,29 @@ pub struct HostBinding {
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
 pub struct HostBindingToken {
     pub token: [u8; TOKEN_KEY_LEN],
     pub atl: AuthTrustLevel,
 }
 
+#[derive(Debug, Clone)]
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
+pub struct CompanionDeviceSignPriKey {
+    pub alg_id: u16,
+    pub pri_key: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
+pub struct HostBindingSignaturePubKey {
+    pub alg_id: u16,
+    pub pub_key: Vec<u8>,
+}
+
 // Companion Device Db
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
 pub struct CompanionDeviceProfile {
     pub device_model_info: String,
     pub device_name: String,
@@ -121,14 +136,16 @@ pub struct CompanionDeviceCapability {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct CompanionDeviceKeyMaterial {
+pub struct CompanionDeviceSk {
     pub processor_type: ProcessorType,
-    pub selected_algorithms: SelectedAlgorithms,
+    pub kdf_algorithm: u16,
+    pub aead_algorithm: u16,
+    pub mac_algorithm: u16,
     pub sk: [u8; SHARE_KEY_LEN],
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
 pub struct CompanionDevice {
     pub template_id: u64,
     pub device_key: DeviceKey,
@@ -138,10 +155,11 @@ pub struct CompanionDevice {
     pub enrolled_capability_list: Vec<u16>,
     pub enrolled_protocol_id: u16,
     pub secure_protocol_id: u16,
+    pub max_auth_trust_level: AuthTrustLevel,
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "test-utils", derive(PartialEq))]
+#[cfg_attr(any(test, feature = "test-utils"), derive(PartialEq))]
 pub struct CompanionDeviceToken {
     pub template_id: u64,
     pub processor_type: ProcessorType,

@@ -25,7 +25,7 @@
 
 use crate::common::constants::*;
 use crate::common::types::*;
-use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, KeyPair, RandomChecker};
+use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, KeyPair};
 use crate::traits::event_manager::Event;
 use crate::Vec;
 use core::cell::{Cell, RefCell};
@@ -669,14 +669,16 @@ pub struct MockCryptoEngine {
     generate_ed25519_key_pair: Expectation0<Result<KeyPair, ErrorCode>>,
     ed25519_sign: ExpectationSlice2<Result<Vec<u8>, ErrorCode>>,
     ed25519_verify: ExpectationSlice2<Result<(), ErrorCode>>,
+    generate_p256_key_pair: Expectation0<Result<KeyPair, ErrorCode>>,
+    p256_check_pub_key: ExpectationSlice1<Result<(), ErrorCode>>,
+    p256_ecdsa_sign: ExpectationSlice2<Result<Vec<u8>, ErrorCode>>,
+    p256_ecdsa_verify: ExpectationSlice2<Result<(), ErrorCode>>,
     hmac_sha256: ExpectationSlice2<Result<Vec<u8>, ErrorCode>>,
     sha256: ExpectationSlice1<Result<Vec<u8>, ErrorCode>>,
     secure_random: ExpectationMutSlice1<Result<(), ErrorCode>>,
-    secure_random_with_check: Expectation0<Result<(), ErrorCode>>,
     aes_gcm_encrypt: ExpectationSliceAesGcmParam<Result<AesGcmResult, ErrorCode>>,
     aes_gcm_decrypt: ExpectationAesGcmResult<Result<Vec<u8>, ErrorCode>>,
     hkdf: ExpectationSlice2<Result<Vec<u8>, ErrorCode>>,
-    p256_ecdh: Expectation0<Result<Vec<u8>, ErrorCode>>,
     x25519_ecdh: Expectation0<Result<Vec<u8>, ErrorCode>>,
     generate_x25519_key_pair: Expectation0<Result<KeyPair, ErrorCode>>,
 }
@@ -688,14 +690,16 @@ impl MockCryptoEngine {
             generate_ed25519_key_pair: Expectation0::new(),
             ed25519_sign: ExpectationSlice2::new(),
             ed25519_verify: ExpectationSlice2::new(),
+            generate_p256_key_pair: Expectation0::new(),
+            p256_check_pub_key: ExpectationSlice1::new(),
+            p256_ecdsa_sign: ExpectationSlice2::new(),
+            p256_ecdsa_verify: ExpectationSlice2::new(),
             hmac_sha256: ExpectationSlice2::new(),
             sha256: ExpectationSlice1::new(),
             secure_random: ExpectationMutSlice1::new(),
-            secure_random_with_check: Expectation0::new(),
             aes_gcm_encrypt: ExpectationSliceAesGcmParam::new(),
             aes_gcm_decrypt: ExpectationAesGcmResult::new(),
             hkdf: ExpectationSlice2::new(),
-            p256_ecdh: Expectation0::new(),
             x25519_ecdh: Expectation0::new(),
             generate_x25519_key_pair: Expectation0::new(),
         }
@@ -713,6 +717,22 @@ impl MockCryptoEngine {
         &mut self.ed25519_verify
     }
 
+    pub fn expect_generate_p256_key_pair(&mut self) -> &mut Expectation0<Result<KeyPair, ErrorCode>> {
+        &mut self.generate_p256_key_pair
+    }
+
+    pub fn expect_p256_check_pub_key(&mut self) -> &mut ExpectationSlice1<Result<(), ErrorCode>> {
+        &mut self.p256_check_pub_key
+    }
+
+    pub fn expect_p256_ecdsa_sign(&mut self) -> &mut ExpectationSlice2<Result<Vec<u8>, ErrorCode>> {
+        &mut self.p256_ecdsa_sign
+    }
+
+    pub fn expect_p256_ecdsa_verify(&mut self) -> &mut ExpectationSlice2<Result<(), ErrorCode>> {
+        &mut self.p256_ecdsa_verify
+    }
+
     pub fn expect_hmac_sha256(&mut self) -> &mut ExpectationSlice2<Result<Vec<u8>, ErrorCode>> {
         &mut self.hmac_sha256
     }
@@ -725,10 +745,6 @@ impl MockCryptoEngine {
         &mut self.secure_random
     }
 
-    pub fn expect_secure_random_with_check(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
-        &mut self.secure_random_with_check
-    }
-
     pub fn expect_aes_gcm_encrypt(&mut self) -> &mut ExpectationSliceAesGcmParam<Result<AesGcmResult, ErrorCode>> {
         &mut self.aes_gcm_encrypt
     }
@@ -739,10 +755,6 @@ impl MockCryptoEngine {
 
     pub fn expect_hkdf(&mut self) -> &mut ExpectationSlice2<Result<Vec<u8>, ErrorCode>> {
         &mut self.hkdf
-    }
-
-    pub fn expect_p256_ecdh(&mut self) -> &mut Expectation0<Result<Vec<u8>, ErrorCode>> {
-        &mut self.p256_ecdh
     }
 
     pub fn expect_x25519_ecdh(&mut self) -> &mut Expectation0<Result<Vec<u8>, ErrorCode>> {
@@ -761,12 +773,29 @@ impl crate::traits::crypto_engine::CryptoEngine for MockCryptoEngine {
     }
 
     fn ed25519_sign(&self, _pri_key: &[u8], data: &[u8]) -> Result<Vec<u8>, ErrorCode> {
-        // Pass empty slice as first param since tests ignore it, pass actual data as second
+        // tests ignore the key param
         self.ed25519_sign.call(&[], data)
     }
 
     fn ed25519_verify(&self, _pub_key: &[u8], _data: &[u8], _sign: &[u8]) -> Result<(), ErrorCode> {
         self.ed25519_verify.call(&[], &[])
+    }
+
+    fn generate_p256_key_pair(&self) -> Result<KeyPair, ErrorCode> {
+        self.generate_p256_key_pair.call()
+    }
+
+    fn p256_check_pub_key(&self, pub_key: &[u8]) -> Result<(), ErrorCode> {
+        self.p256_check_pub_key.call(pub_key)
+    }
+
+    fn p256_ecdsa_sign(&self, _pri_key: &[u8], data: &[u8]) -> Result<Vec<u8>, ErrorCode> {
+        // tests ignore the key param
+        self.p256_ecdsa_sign.call(&[], data)
+    }
+
+    fn p256_ecdsa_verify(&self, _pub_key: &[u8], _data: &[u8], _sign: &[u8]) -> Result<(), ErrorCode> {
+        self.p256_ecdsa_verify.call(&[], &[])
     }
 
     fn hmac_sha256(&self, _hmac_key: &[u8], _data: &[u8]) -> Result<Vec<u8>, ErrorCode> {
@@ -781,10 +810,6 @@ impl crate::traits::crypto_engine::CryptoEngine for MockCryptoEngine {
         self.secure_random.call(out_buffer)
     }
 
-    fn secure_random_with_check(&self, _out_buffer: &mut [u8], _checker: RandomChecker) -> Result<(), ErrorCode> {
-        self.secure_random_with_check.call()
-    }
-
     fn aes_gcm_encrypt(&self, plaintext: &[u8], aes_gcm_param: &AesGcmParam) -> Result<AesGcmResult, ErrorCode> {
         self.aes_gcm_encrypt.call(plaintext, aes_gcm_param)
     }
@@ -795,10 +820,6 @@ impl crate::traits::crypto_engine::CryptoEngine for MockCryptoEngine {
 
     fn hkdf(&self, _salt: &[u8], _key: &[u8]) -> Result<Vec<u8>, ErrorCode> {
         self.hkdf.call(&[], &[])
-    }
-
-    fn p256_ecdh(&self, _key_pair: &KeyPair, _pub_key: &[u8]) -> Result<Vec<u8>, ErrorCode> {
-        self.p256_ecdh.call()
     }
 
     fn x25519_ecdh(&self, _key_pair: &KeyPair, _pub_key: &[u8]) -> Result<Vec<u8>, ErrorCode> {
@@ -880,9 +901,13 @@ pub struct MockCompanionDeviceDbManager {
         Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceCapability>, ErrorCode>>,
     write_device_capability_info: Expectation0<Result<(), ErrorCode>>,
     delete_device_capability_info: Expectation0<Result<(), ErrorCode>>,
-    read_device_sk: Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceKeyMaterial>, ErrorCode>>,
+    read_device_sk: Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode>>,
     write_device_sk: Expectation0<Result<(), ErrorCode>>,
     delete_device_sk: Expectation0<Result<(), ErrorCode>>,
+    read_device_binding_signature_key:
+        Expectation0<Result<crate::traits::db_manager::CompanionDeviceSignPriKey, ErrorCode>>,
+    write_device_binding_signature_key: Expectation0<Result<(), ErrorCode>>,
+    delete_device_binding_signature_key: Expectation0<Result<(), ErrorCode>>,
 }
 
 #[cfg(any(test, feature = "test-utils"))]
@@ -910,6 +935,9 @@ impl MockCompanionDeviceDbManager {
             read_device_sk: Expectation0::new(),
             write_device_sk: Expectation0::new(),
             delete_device_sk: Expectation0::new(),
+            read_device_binding_signature_key: Expectation0::new(),
+            write_device_binding_signature_key: Expectation0::new(),
+            delete_device_binding_signature_key: Expectation0::new(),
         }
     }
 
@@ -981,7 +1009,7 @@ impl MockCompanionDeviceDbManager {
     }
     pub fn expect_read_device_sk(
         &mut self,
-    ) -> &mut Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceKeyMaterial>, ErrorCode>> {
+    ) -> &mut Expectation0<Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode>> {
         &mut self.read_device_sk
     }
     pub fn expect_write_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
@@ -989,6 +1017,17 @@ impl MockCompanionDeviceDbManager {
     }
     pub fn expect_delete_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
         &mut self.delete_device_sk
+    }
+    pub fn expect_read_device_binding_signature_key(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::CompanionDeviceSignPriKey, ErrorCode>> {
+        &mut self.read_device_binding_signature_key
+    }
+    pub fn expect_write_device_binding_signature_key(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.write_device_binding_signature_key
+    }
+    pub fn expect_delete_device_binding_signature_key(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.delete_device_binding_signature_key
     }
 }
 
@@ -999,7 +1038,8 @@ impl crate::traits::companion_device_db_manager::CompanionDeviceDbManager for Mo
         device_info: &crate::traits::db_manager::CompanionDevice,
         _base_info: &crate::traits::db_manager::CompanionDeviceProfile,
         _capability_info: &[crate::traits::db_manager::CompanionDeviceCapability],
-        _sk_info: &[crate::traits::db_manager::CompanionDeviceKeyMaterial],
+        _sk_info: &[crate::traits::db_manager::CompanionDeviceSk],
+        _binding_signature_key: Option<&crate::traits::db_manager::CompanionDeviceSignPriKey>,
     ) -> Result<(), ErrorCode> {
         self.add_device.call()?;
         self.added_devices.borrow_mut().push(device_info.clone());
@@ -1084,18 +1124,34 @@ impl crate::traits::companion_device_db_manager::CompanionDeviceDbManager for Mo
     fn read_device_sk(
         &self,
         _template_id: u64,
-    ) -> Result<Vec<crate::traits::db_manager::CompanionDeviceKeyMaterial>, ErrorCode> {
+    ) -> Result<Vec<crate::traits::db_manager::CompanionDeviceSk>, ErrorCode> {
         self.read_device_sk.call()
     }
     fn write_device_sk(
         &self,
         _template_id: u64,
-        _sk_info: &[crate::traits::db_manager::CompanionDeviceKeyMaterial],
+        _sk_info: &[crate::traits::db_manager::CompanionDeviceSk],
     ) -> Result<(), ErrorCode> {
         self.write_device_sk.call()
     }
     fn delete_device_sk(&self, _template_id: u64) -> Result<(), ErrorCode> {
         self.delete_device_sk.call()
+    }
+    fn read_device_binding_signature_key(
+        &self,
+        _template_id: u64,
+    ) -> Result<crate::traits::db_manager::CompanionDeviceSignPriKey, ErrorCode> {
+        self.read_device_binding_signature_key.call()
+    }
+    fn write_device_binding_signature_key(
+        &self,
+        _template_id: u64,
+        _binding_signature_key: &crate::traits::db_manager::CompanionDeviceSignPriKey,
+    ) -> Result<(), ErrorCode> {
+        self.write_device_binding_signature_key.call()
+    }
+    fn delete_device_binding_signature_key(&self, _template_id: u64) -> Result<(), ErrorCode> {
+        self.delete_device_binding_signature_key.call()
     }
 }
 
@@ -1113,9 +1169,12 @@ pub struct MockHostBindingDbManager {
     write_device_token: Expectation0<Result<(), ErrorCode>>,
     delete_device_token: Expectation0<Result<(), ErrorCode>>,
     is_device_token_valid: Expectation0<Result<bool, ErrorCode>>,
-    read_device_sk: Expectation0<Result<crate::traits::db_manager::HostBindingKeyMaterial, ErrorCode>>,
+    read_device_sk: Expectation0<Result<crate::traits::db_manager::HostBindingSk, ErrorCode>>,
     write_device_sk: Expectation0<Result<(), ErrorCode>>,
     delete_device_sk: Expectation0<Result<(), ErrorCode>>,
+    read_binding_signature_key: Expectation0<Result<crate::traits::db_manager::HostBindingSignaturePubKey, ErrorCode>>,
+    write_binding_signature_key: Expectation0<Result<(), ErrorCode>>,
+    delete_binding_signature_key: Expectation0<Result<(), ErrorCode>>,
     get_device_list: Expectation0<Vec<crate::traits::db_manager::HostBinding>>,
     remove_devices_by_invalid_users: Expectation0<Vec<i32>>,
 }
@@ -1138,6 +1197,9 @@ impl MockHostBindingDbManager {
             read_device_sk: Expectation0::new(),
             write_device_sk: Expectation0::new(),
             delete_device_sk: Expectation0::new(),
+            read_binding_signature_key: Expectation0::new(),
+            write_binding_signature_key: Expectation0::new(),
+            delete_binding_signature_key: Expectation0::new(),
             get_device_list: Expectation0::new(),
             remove_devices_by_invalid_users: Expectation0::new(),
         }
@@ -1186,7 +1248,7 @@ impl MockHostBindingDbManager {
     }
     pub fn expect_read_device_sk(
         &mut self,
-    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostBindingKeyMaterial, ErrorCode>> {
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostBindingSk, ErrorCode>> {
         &mut self.read_device_sk
     }
     pub fn expect_write_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
@@ -1194,6 +1256,17 @@ impl MockHostBindingDbManager {
     }
     pub fn expect_delete_device_sk(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
         &mut self.delete_device_sk
+    }
+    pub fn expect_read_binding_signature_key(
+        &mut self,
+    ) -> &mut Expectation0<Result<crate::traits::db_manager::HostBindingSignaturePubKey, ErrorCode>> {
+        &mut self.read_binding_signature_key
+    }
+    pub fn expect_write_binding_signature_key(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.write_binding_signature_key
+    }
+    pub fn expect_delete_binding_signature_key(&mut self) -> &mut Expectation0<Result<(), ErrorCode>> {
+        &mut self.delete_binding_signature_key
     }
     pub fn expect_get_device_list(&mut self) -> &mut Expectation0<Vec<crate::traits::db_manager::HostBinding>> {
         &mut self.get_device_list
@@ -1208,7 +1281,7 @@ impl crate::traits::host_binding_db_manager::HostBindingDbManager for MockHostBi
     fn add_device(
         &mut self,
         _device_info: &crate::traits::db_manager::HostBinding,
-        _sk_info: &crate::traits::db_manager::HostBindingKeyMaterial,
+        _sk_info: &crate::traits::db_manager::HostBindingSk,
     ) -> Result<Option<i32>, ErrorCode> {
         self.add_device.call()
     }
@@ -1250,18 +1323,34 @@ impl crate::traits::host_binding_db_manager::HostBindingDbManager for MockHostBi
     fn is_device_token_valid(&self, _binding_id: i32) -> Result<bool, ErrorCode> {
         self.is_device_token_valid.call()
     }
-    fn read_device_sk(&self, _binding_id: i32) -> Result<crate::traits::db_manager::HostBindingKeyMaterial, ErrorCode> {
+    fn read_device_sk(&self, _binding_id: i32) -> Result<crate::traits::db_manager::HostBindingSk, ErrorCode> {
         self.read_device_sk.call()
     }
     fn write_device_sk(
         &self,
         _binding_id: i32,
-        _sk_info: &crate::traits::db_manager::HostBindingKeyMaterial,
+        _sk_info: &crate::traits::db_manager::HostBindingSk,
     ) -> Result<(), ErrorCode> {
         self.write_device_sk.call()
     }
     fn delete_device_sk(&self, _binding_id: i32) -> Result<(), ErrorCode> {
         self.delete_device_sk.call()
+    }
+    fn read_binding_signature_key(
+        &self,
+        _binding_id: i32,
+    ) -> Result<crate::traits::db_manager::HostBindingSignaturePubKey, ErrorCode> {
+        self.read_binding_signature_key.call()
+    }
+    fn write_binding_signature_key(
+        &self,
+        _binding_id: i32,
+        _binding_signature_key: &crate::traits::db_manager::HostBindingSignaturePubKey,
+    ) -> Result<(), ErrorCode> {
+        self.write_binding_signature_key.call()
+    }
+    fn delete_binding_signature_key(&self, _binding_id: i32) -> Result<(), ErrorCode> {
+        self.delete_binding_signature_key.call()
     }
     fn get_device_list(
         &self,

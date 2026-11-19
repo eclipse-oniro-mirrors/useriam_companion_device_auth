@@ -63,7 +63,7 @@ void HostRequestResyncHandler::HandleRequest(const Attributes &request, Attribut
     desc.SetDeviceId(companionDeviceKey);
     eventCollector.SetCompanionDeviceKey(companionDeviceKey);
 
-    GetCrossDeviceCommManager().ResyncDevice(FromDeviceKey(companionDeviceKey));
+    GetCrossDeviceCommManager().ResyncDevice(companionDeviceKey.AsPhysical());
 
     RequestDeviceResyncReply replyMsg = { .result = ResultCode::SUCCESS };
     EncodeRequestDeviceResyncReply(replyMsg, reply);

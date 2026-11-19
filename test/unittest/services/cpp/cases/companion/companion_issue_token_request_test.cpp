@@ -19,6 +19,7 @@
 #include "mock_guard.h"
 #include "mock_request.h"
 
+#include "binding_signature_message.h"
 #include "common_message.h"
 #include "companion_issue_token_request.h"
 #include "issue_token_message.h"
@@ -40,10 +41,20 @@ const DeviceKey COMPANION_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_
     .deviceId = "companion_device_id",
     .deviceUserId = COMPANION_USER_ID };
 const HostBindingStatus HOST_BINDING_STATUS = {};
+// P-256 DER signature upper bound; enforced by the Rust crypto layer, message layer does not clamp.
+constexpr size_t BINDING_SIGNATURE_VALUE_MAX_LEN = 72;
+const std::vector<uint8_t> BINDING_SIGNATURE_CHALLENGE(BINDING_SIGNATURE_CHALLENGE_LEN, 0xAB);
+const std::vector<uint8_t> BINDING_SIGNATURE_VALUE(BINDING_SIGNATURE_VALUE_MAX_LEN, 0xCD);
 
 std::unique_ptr<Subscription> MakeSubscription()
 {
     return std::make_unique<Subscription>([]() {});
+}
+
+void AttachBindingSignatureProof(const std::string &connectionName, Attributes &attrs)
+{
+    attrs.SetStringValue(Attributes::ATTR_CDA_SA_CONNECTION_NAME, connectionName);
+    AttachBindingSignatureAttributes(BINDING_SIGNATURE_CHALLENGE, BINDING_SIGNATURE_VALUE, attrs);
 }
 
 Attributes MakePreIssueTokenRequest()
@@ -59,6 +70,24 @@ Attributes MakePreIssueTokenRequest()
         .companionUserKey = UserKey { COMPANION_USER_ID },
         .extraInfo = { 1, 2, 3 } };
     EncodePreIssueTokenRequest(preIssueRequest, attrs);
+    AttachBindingSignatureProof(CONNECTION_NAME, attrs);
+    return attrs;
+}
+
+Attributes MakeIssueTokenRequestAttributes(bool withBindingSignatureProof)
+{
+    IssueTokenRequest issueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
+        .companionUserKey = UserKey { COMPANION_USER_ID },
+        .extraInfo = { 1, 2, 3 } };
+    Attributes attrs;
+    EncodeIssueTokenRequest(issueRequest, attrs);
+    // SRC_IDENTIFIER / SRC_IDENTIFIER_TYPE are decode-only: emulate the router fill-on-receive.
+    attrs.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(issueRequest.hostDeviceKey.idType));
+    attrs.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, issueRequest.hostDeviceKey.deviceId);
+    if (withBindingSignatureProof) {
+        AttachBindingSignatureProof(CONNECTION_NAME, attrs);
+    }
     return attrs;
 }
 
@@ -91,7 +120,14 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_001, TestSize.Level0)
         .WillOnce(Return(std::make_optional(HOST_BINDING_STATUS)));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), CompanionGetSecureProtocolId())
         .WillOnce(Return(SecureProtocolId::DEFAULT));
-    EXPECT_CALL(guard.GetSecurityAgent(), CompanionPreIssueToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    CompanionPreIssueTokenInput capturedInput = {};
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionPreIssueToken(_, _))
+        .WillOnce(
+            Invoke([&capturedInput](const CompanionPreIssueTokenInput &input, CompanionPreIssueTokenOutput &output) {
+                capturedInput = input;
+                output.preIssueTokenReply = { 1 };
+                return ResultCode::SUCCESS;
+            }));
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), SubscribeMessage(_, _, _))
         .WillOnce(Return(ByMove(MakeSubscription())));
 
@@ -106,6 +142,8 @@ HWTEST_F(CompanionIssueTokenRequestTest, OnStart_001, TestSize.Level0)
     EXPECT_TRUE(result);
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, static_cast<int32_t>(ResultCode::SUCCESS));
+    EXPECT_EQ(capturedInput.bindingSignatureProof.challenge, BINDING_SIGNATURE_CHALLENGE);
+    EXPECT_EQ(capturedInput.bindingSignatureProof.signature, BINDING_SIGNATURE_VALUE);
 }
 
 HWTEST_F(CompanionIssueTokenRequestTest, OnStart_LocalCapabilityNotSupported, TestSize.Level0)
@@ -474,14 +512,7 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_001, TestSize.L
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
 
-    IssueTokenRequest issueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
-        .companionUserKey = UserKey { COMPANION_USER_ID },
-        .extraInfo = { 1, 2, 3 } };
-    Attributes attrs;
-    EncodeIssueTokenRequest(issueRequest, attrs);
-    attrs.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(issueRequest.hostDeviceKey.idType));
-    attrs.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, issueRequest.hostDeviceKey.deviceId);
+    Attributes attrs = MakeIssueTokenRequestAttributes(true);
 
     auto replyCalled = std::make_shared<bool>(false);
     auto receivedResult = std::make_shared<int32_t>(-1);
@@ -492,13 +523,23 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_001, TestSize.L
         *receivedResult = static_cast<int32_t>(result.value().result);
     };
 
-    EXPECT_CALL(guard.GetSecurityAgent(), CompanionProcessIssueToken(_, _)).WillOnce(Return(ResultCode::SUCCESS));
+    CompanionProcessIssueTokenInput capturedInput = {};
+    EXPECT_CALL(guard.GetSecurityAgent(), CompanionProcessIssueToken(_, _))
+        .WillOnce(Invoke(
+            [&capturedInput](const CompanionProcessIssueTokenInput &input, CompanionProcessIssueTokenOutput &output) {
+                capturedInput = input;
+                output.issueTokenReply = { 1 };
+                return ResultCode::SUCCESS;
+            }));
     EXPECT_CALL(guard.GetHostBindingManager(), SetHostBindingTokenValid(_, _)).WillOnce(Return(true));
 
     request->HandleIssueTokenMessage(attrs, onMessageReply);
 
     EXPECT_TRUE(*replyCalled);
     EXPECT_EQ(*receivedResult, static_cast<int32_t>(ResultCode::SUCCESS));
+    EXPECT_EQ(capturedInput.bindingId, HOST_BINDING_STATUS.bindingId);
+    EXPECT_EQ(capturedInput.bindingSignatureProof.challenge, BINDING_SIGNATURE_CHALLENGE);
+    EXPECT_EQ(capturedInput.bindingSignatureProof.signature, BINDING_SIGNATURE_VALUE);
 }
 
 HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_002, TestSize.Level0)
@@ -565,14 +606,7 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_003, TestSize.L
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
 
-    IssueTokenRequest issueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
-        .companionUserKey = UserKey { COMPANION_USER_ID },
-        .extraInfo = { 1, 2, 3 } };
-    Attributes attrs;
-    EncodeIssueTokenRequest(issueRequest, attrs);
-    attrs.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(issueRequest.hostDeviceKey.idType));
-    attrs.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, issueRequest.hostDeviceKey.deviceId);
+    Attributes attrs = MakeIssueTokenRequestAttributes(false);
 
     // Count replies: the failure path must invoke onMessageReply exactly once. Regression guard against the old
     // double-send where a manual onMessageReply plus the errorGuard destructor emitted two failure replies.
@@ -617,14 +651,7 @@ HWTEST_F(CompanionIssueTokenRequestTest, HandleIssueTokenMessage_004, TestSize.L
     ErrorGuard errorGuard([](ResultCode) {});
     EXPECT_TRUE(request->OnStart(errorGuard));
 
-    IssueTokenRequest issueRequest = { .hostDeviceKey = HOST_DEVICE_KEY,
-        .companionUserKey = UserKey { COMPANION_USER_ID },
-        .extraInfo = { 1, 2, 3 } };
-    Attributes attrs;
-    EncodeIssueTokenRequest(issueRequest, attrs);
-    attrs.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(issueRequest.hostDeviceKey.idType));
-    attrs.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, issueRequest.hostDeviceKey.deviceId);
+    Attributes attrs = MakeIssueTokenRequestAttributes(false);
 
     auto replyCalled = std::make_shared<bool>(false);
     auto receivedResult = std::make_shared<int32_t>(-1);

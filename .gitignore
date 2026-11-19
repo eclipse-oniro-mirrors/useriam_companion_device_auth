@@ -12,3 +12,5 @@ build
 fuzz/corpus/
 .claude
 .opencode
+build_result.json
+test_result.json

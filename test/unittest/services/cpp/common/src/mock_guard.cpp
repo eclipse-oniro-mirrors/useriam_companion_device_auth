@@ -255,6 +255,8 @@ void MockGuard::SetupCrossDeviceCommManagerDefaults()
 
 void MockGuard::SetupCompanionManagerDefaults()
 {
+    // V1 pass-through semantics: outbound messages never require a binding signature by default.
+    ON_CALL(*companionManager_, IsBindingSignatureRequired(_)).WillByDefault(Return(false));
     ON_CALL(*companionManager_, GetCompanionStatus(_)).WillByDefault(Return(std::nullopt));
     ON_CALL(*companionManager_, GetCompanionStatus(_, _)).WillByDefault(Return(std::nullopt));
     ON_CALL(*companionManager_, GetAllCompanionStatus()).WillByDefault(Return(std::vector<CompanionStatus> {}));

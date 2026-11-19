@@ -18,6 +18,7 @@ mod common_command_test;
 mod system_commands_test;
 
 // common
+mod algorithm_test;
 mod constants_test;
 mod types_test;
 
@@ -35,6 +36,8 @@ mod default_time_keeper_test;
 mod openssl_crypto_engine_test;
 
 // jobs
+mod binding_challenge_pool_test;
+mod binding_signature_crypto_test;
 mod companion_device_db_helper_test;
 mod host_binding_db_helper_test;
 mod message_crypto_test;

@@ -47,6 +47,8 @@ pub enum RustFileId {
     HostBindingDbHelper = 0x0241,
     MessageCrypto = 0x0242,
     FwkMsgValidator = 0x0243,
+    BindingSignatureCrypto = 0x0244,
+    BindingChallengePool = 0x0245,
     // request/enroll/
     CompanionEnroll = 0x0250,
     HostEnroll = 0x0251,
@@ -142,6 +144,8 @@ pub enum TestFileId {
     StorageIoTest = 0x032D,
     TimeKeeperTest = 0x032E,
     AuthTokenTest = 0x032F,
+    BindingSignatureCryptoTest = 0x0330,
+    BindingChallengePoolTest = 0x0331,
 }
 
 /// Map a file_id back to its short filename for log output.
@@ -171,6 +175,8 @@ pub fn file_id_to_name(file_id: u16) -> &'static str {
         0x0241 => "host_binding_db_helper.rs",
         0x0242 => "message_crypto.rs",
         0x0243 => "fwk_msg_validator.rs",
+        0x0244 => "binding_signature_crypto.rs",
+        0x0245 => "binding_challenge_pool.rs",
         // request/enroll/ — CompanionEnroll, HostEnroll, EnrollMessage
         0x0250 => "companion_enroll.rs",
         0x0251 => "host_enroll.rs",
@@ -271,6 +277,8 @@ fn test_file_id_to_name(file_id: u16) -> &'static str {
         0x032D => "storage_io_test.rs",
         0x032E => "time_keeper_test.rs",
         0x032F => "auth_token_test.rs",
+        0x0330 => "binding_signature_crypto_test.rs",
+        0x0331 => "binding_challenge_pool_test.rs",
         _ => "unknown",
     }
 }

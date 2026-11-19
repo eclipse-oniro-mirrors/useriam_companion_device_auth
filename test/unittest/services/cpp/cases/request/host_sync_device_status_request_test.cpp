@@ -27,6 +27,7 @@
 #include "mock_user_key_manager.h"
 
 #include "adapter_manager.h"
+#include "binding_signature_message.h"
 #include "host_sync_device_status_request.h"
 #include "relative_timer.h"
 #include "service_converter.h"
@@ -42,16 +43,11 @@ namespace CompanionDeviceAuth {
 namespace {
 
 constexpr int32_t HOST_USER_ID = 100;
-// Value reserved for a future VERSION_2 that ProtocolId does not define yet.
-constexpr ProtocolId PROTOCOL_VERSION_2 = static_cast<ProtocolId>(2);
 const DeviceKey COMPANION_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
     .deviceId = "companion_device_id",
     .deviceUserId = 200 };
-const DeviceKey HOST_DEVICE_KEY = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
-    .deviceId = "host_device_id",
-    .deviceUserId = 100 };
 constexpr ConnectionMode CONNECTION_MODE = ConnectionMode::BACKGROUND;
-const LocalDeviceProfile PROFILE = { .protocols = { ProtocolId::VERSION_1 },
+const LocalDeviceProfile PROFILE = { .hostProtocols = { ProtocolId::VERSION_1 },
     .hostCapabilities = { Capability::TOKEN_AUTH },
     .companionCapabilities = { Capability::TOKEN_AUTH } };
 
@@ -73,10 +69,64 @@ CompanionStatus MakeBoundCompanionStatus()
 {
     CompanionStatus bound;
     bound.templateId = HOST_USER_ID;
+    bound.hostUserKey = UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID };
     bound.isValid = true;
     bound.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
     bound.enrolledProtocolId = ProtocolId::VERSION_1;
     return bound;
+}
+
+CompanionStatus MakeV2CompanionStatus()
+{
+    CompanionStatus status = {};
+    status.templateId = 1;
+    status.hostUserKey = UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID };
+    status.isValid = true;
+    status.enrolledProtocolId = ProtocolId::VERSION_2;
+    status.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    return status;
+}
+
+Attributes MakeReplyAttributes(const SyncDeviceStatusReply &replyData)
+{
+    Attributes reply;
+    EncodeSyncDeviceStatusReply(replyData, reply);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(replyData.companionDeviceKey.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, replyData.companionDeviceKey.deviceId);
+    return reply;
+}
+
+LocalDeviceProfile MakeDualProtocolProfile()
+{
+    auto profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    return profile;
+}
+
+void DeliverSyncReply(const OnMessageReply &callback, const SyncDeviceStatusReply &replyData)
+{
+    ASSERT_TRUE(callback);
+    callback(MakeReplyAttributes(replyData));
+    TaskRunnerManager::GetInstance().ExecuteAll();
+}
+
+void ReplyBindingSignatureChallenge(OnMessageReply &onReply, ResultCode result, const UserKey &companionUserKey,
+    const std::vector<uint8_t> &challenge)
+{
+    GetBindingSignatureChallengeReply challengeReply = {};
+    challengeReply.result = result;
+    challengeReply.companionUserKey = companionUserKey;
+    challengeReply.challenge = challenge;
+    Attributes replyAttributes;
+    EncodeGetBindingSignatureChallengeReply(challengeReply, replyAttributes);
+    onReply(replyAttributes);
+}
+
+std::shared_ptr<HostSyncDeviceStatusRequest> MakeDefaultRequest(SyncDeviceStatusCallback callback)
+{
+    return std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
 }
 
 class HostSyncDeviceStatusRequestTest : public Test {
@@ -114,8 +164,6 @@ public:
         ON_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
-        ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
-            .WillByDefault(Return(std::make_optional(HOST_DEVICE_KEY)));
         ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(PROFILE));
         ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillByDefault(Return(true));
         ON_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).WillByDefault(Return());
@@ -134,6 +182,125 @@ public:
     }
 
 protected:
+    // Make bindings visible to the host-scoped FilterCompanionStatus scan with the same
+    // narrowing the real manager applies: host user, physical peer device, validity, protocol.
+    void MakeStatusesVisible(std::vector<CompanionStatus> statuses)
+    {
+        ON_CALL(mockCompanionManager_, FilterCompanionStatus(_, _, _))
+            .WillByDefault(Invoke([statuses](const UserKey &hostUserKey, const PhysicalDeviceKey &physicalKey,
+                                      std::optional<ProtocolId> protocolId) {
+                std::vector<CompanionStatus> matches;
+                for (const auto &status : statuses) {
+                    if (status.hostUserKey != hostUserKey ||
+                        status.companionDeviceStatus.deviceKey.AsPhysical() != physicalKey || !status.isValid) {
+                        continue;
+                    }
+                    if (protocolId.has_value() && status.enrolledProtocolId != *protocolId) {
+                        continue;
+                    }
+                    matches.push_back(status);
+                }
+                return matches;
+            }));
+    }
+
+    // V2 candidate binding plus the challenge roundtrip/signature plumbing shared by V2 sync tests.
+    void AttachV2BindingSignatureMocks(const std::vector<uint8_t> &challenge, const std::vector<uint8_t> &signature,
+        bool &challengeResolveSucceeds, std::vector<uint8_t> &sentChallenge, std::vector<uint8_t> &sentSignature,
+        int32_t &sentCompanionUserId)
+    {
+        CompanionStatus v2Candidate = MakeV2CompanionStatus();
+        MakeStatusesVisible({ v2Candidate });
+        // identity resolution is the keyed GetCompanionStatus lookup
+        ON_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
+            .WillByDefault(Invoke([v2Candidate](const UserKey &hostUserKey, const DeviceKey &deviceKey) {
+                return (v2Candidate.hostUserKey == hostUserKey &&
+                           v2Candidate.companionDeviceStatus.deviceKey == deviceKey)
+                    ? std::make_optional(v2Candidate)
+                    : std::nullopt;
+            }));
+
+        ON_CALL(mockSecurityAgent_, HostBindingSign(_, _))
+            .WillByDefault(Invoke([&signature](const HostBindingSignInput &, HostBindingSignOutput &output) {
+                output.signature = signature;
+                return ResultCode::SUCCESS;
+            }));
+
+        // clang-format off
+        ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+            .WillByDefault(
+            Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply &&onReply) {
+                if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                    ReplyBindingSignatureChallenge(onReply,
+                        challengeResolveSucceeds ? ResultCode::SUCCESS : ResultCode::GENERAL_ERROR,
+                        UserKey { COMPANION_DEVICE_KEY.deviceUserId, COMPANION_DEVICE_KEY.deviceSubProfileId },
+                        challenge);
+                    return true;
+                }
+                EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+                request.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE, sentChallenge);
+                request.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE, sentSignature);
+                request.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, sentCompanionUserId);
+                return true;
+            }));
+        // clang-format on
+    }
+
+    void ExpectUserSwitchChallengeAndSync(int32_t nextUserId, const LocalDeviceProfile &profile,
+        const std::vector<uint8_t> &challenge, const std::vector<uint8_t> &signature, OnMessageReply &callback)
+    {
+        EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+            .WillOnce(Invoke(
+                [&, nextUserId](const std::string &, MessageType msgType, Attributes &, OnMessageReply &&onReply) {
+                    EXPECT_EQ(MessageType::GET_BINDING_SIGNATURE_CHALLENGE, msgType);
+                    ReplyBindingSignatureChallenge(onReply, ResultCode::SUCCESS,
+                        UserKey { nextUserId, INVALID_SUB_PROFILE_ID }, challenge);
+                    return true;
+                }))
+            .WillOnce(Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply reply) {
+                EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+                std::vector<uint16_t> protocols;
+                EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+                EXPECT_EQ(protocols, ProtocolIdConverter::ToUnderlyingVec(profile.hostProtocols));
+                std::vector<uint8_t> sentChallenge;
+                std::vector<uint8_t> sentSignature;
+                EXPECT_TRUE(
+                    request.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE, sentChallenge));
+                EXPECT_TRUE(request.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE, sentSignature));
+                EXPECT_EQ(challenge, sentChallenge);
+                EXPECT_EQ(signature, sentSignature);
+                callback = std::move(reply);
+                return true;
+            }));
+    }
+
+    void ExpectChallengeFailureDowngrade(OnMessageReply &downgradeCallback)
+    {
+        // clang-format off
+        ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+            .WillByDefault(
+            Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply &&onReply) {
+                if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                    GetBindingSignatureChallengeReply challengeReply = {};
+                    challengeReply.result = ResultCode::GENERAL_ERROR;
+                    Attributes replyAttributes;
+                    EncodeGetBindingSignatureChallengeReply(challengeReply, replyAttributes);
+                    onReply(replyAttributes);
+                    return true;
+                }
+                EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+                std::vector<uint16_t> protocols;
+                EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+                EXPECT_EQ(protocols,
+                    ProtocolIdConverter::ToUnderlyingVec(std::vector<ProtocolId> { ProtocolId::VERSION_1 }));
+                EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE));
+                EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE));
+                downgradeCallback = std::move(onReply);
+                return true;
+            }));
+        // clang-format on
+    }
+
     NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
     NiceMock<MockRequestManager> mockRequestManager_;
     NiceMock<MockCompanionManager> mockCompanionManager_;
@@ -146,13 +313,11 @@ protected:
 HWTEST_F(HostSyncDeviceStatusRequestTest, OnConnected_001, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
-        .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillOnce(Return(PROFILE));
+    // two reads on the discovery path: request composition and the send itself
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).Times(2).WillRepeatedly(Return(PROFILE));
     EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillOnce(Return(true));
 
     ASSERT_NO_THROW(request->OnConnected());
@@ -166,8 +331,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_001, TestSize.Leve
             *errorCalled = true;
         }
     };
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::FAIL));
 
@@ -177,63 +341,26 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_001, TestSize.Leve
     EXPECT_TRUE(*errorCalled);
 }
 
-HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_002, TestSize.Level0)
-{
-    auto errorCalled = std::make_shared<bool>(false);
-    auto callback = [errorCalled](ResultCode result, const SyncDeviceStatus &) {
-        if (result == ResultCode::COMMUNICATION_ERROR) {
-            *errorCalled = true;
-        }
-    };
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
-
-    EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
-
-    request->BeginCompanionCheck();
-
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_TRUE(*errorCalled);
-}
-
-HWTEST_F(HostSyncDeviceStatusRequestTest, BeginCompanionCheck_003, TestSize.Level0)
-{
-    auto errorCalled = std::make_shared<bool>(false);
-    auto callback = [errorCalled](ResultCode result, const SyncDeviceStatus &) {
-        if (result == ResultCode::COMMUNICATION_ERROR) {
-            *errorCalled = true;
-        }
-    };
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
-
-    EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_)).WillOnce(Return(std::nullopt));
-    EXPECT_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
-
-    request->BeginCompanionCheck();
-
-    TaskRunnerManager::GetInstance().ExecuteAll();
-    EXPECT_TRUE(*errorCalled);
-}
-
 HWTEST_F(HostSyncDeviceStatusRequestTest, SendSyncDeviceStatusRequest_001, TestSize.Level0)
 {
-    auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    // Since the V2 binding-signature gate the send failure is settled asynchronously: the call returns
+    // true and the COMMUNICATION_ERROR reaches the callback via the resident task runner.
+    auto errorCalled = std::make_shared<bool>(false);
+    auto callback = [errorCalled](ResultCode result, const SyncDeviceStatus &) {
+        if (result == ResultCode::COMMUNICATION_ERROR) {
+            *errorCalled = true;
+        }
+    };
+    auto request = MakeDefaultRequest(std::move(callback));
 
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceKeyByConnectionName(_))
-        .WillOnce(Return(std::make_optional(HOST_DEVICE_KEY)));
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillOnce(Return(PROFILE));
+    // two reads on the discovery path: request composition and the send itself
+    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).Times(2).WillRepeatedly(Return(PROFILE));
     EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).WillOnce(Return(false));
 
-    std::vector<uint8_t> salt;
-    uint64_t challenge = 0;
-    bool result = request->SendSyncDeviceStatusRequest(salt, challenge);
+    request->BeginCompanionCheck();
 
-    EXPECT_FALSE(result);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*errorCalled);
 }
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_001, TestSize.Level0)
@@ -244,24 +371,19 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_001, TestS
             *successCalled = true;
         }
     };
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
     request->cancelCompanionCheckGuard_ = std::make_unique<ScopeGuard>([]() {});
 
-    Attributes reply;
     auto syncDeviceStatusReply = MakeDefaultSyncDeviceStatusReply();
-    EncodeSyncDeviceStatusReply(syncDeviceStatusReply, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(syncDeviceStatusReply.companionDeviceKey.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusReply.companionDeviceKey.deviceId);
+    Attributes reply = MakeReplyAttributes(syncDeviceStatusReply);
 
     CompanionStatus companionStatus;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
 
-    request->hostProtocolIdList_ = PROFILE.protocols;
-    request->HandleSyncDeviceStatusReply(reply);
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(*successCalled);
@@ -275,12 +397,11 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_002, TestS
             *errorCalled = true;
         }
     };
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     Attributes reply;
-    request->hostProtocolIdList_ = PROFILE.protocols;
-    request->HandleSyncDeviceStatusReply(reply);
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(*errorCalled);
@@ -291,26 +412,22 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_003, TestS
     auto errorCalled = std::make_shared<bool>(false);
     // Generic peer failures collapse into PEER_SYNC_FAILED; terminal errors
     // (PROTOCOL_NEGOTIATION_FAILED, SECURE_PROTOCOL_NOT_SUPPORTED, NOT_ENROLLED) pass through
-    // verbatim so the caller aborts the retry.
+    // verbatim so the caller aborts the retry. NOT_ENROLLED and BINDING_SIGNATURE_VERIFY_FAILED
+    // additionally invalidate the round's authenticated credential (none on unsigned rounds).
     auto callback = [errorCalled](ResultCode result, const SyncDeviceStatus &) {
         if (result == ResultCode::PEER_SYNC_FAILED) {
             *errorCalled = true;
         }
     };
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
     request->cancelCompanionCheckGuard_ = std::make_unique<ScopeGuard>([]() {});
 
-    Attributes reply;
     auto syncDeviceStatusReply = MakeDefaultSyncDeviceStatusReply();
     syncDeviceStatusReply.result = ResultCode::GENERAL_ERROR;
-    EncodeSyncDeviceStatusReply(syncDeviceStatusReply, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(syncDeviceStatusReply.companionDeviceKey.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusReply.companionDeviceKey.deviceId);
+    Attributes reply = MakeReplyAttributes(syncDeviceStatusReply);
 
-    request->hostProtocolIdList_ = PROFILE.protocols;
-    request->HandleSyncDeviceStatusReply(reply);
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(*errorCalled);
@@ -324,25 +441,20 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_004, TestS
             *successCalled = true;
         }
     };
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
     request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
     request->cancelCompanionCheckGuard_ = std::make_unique<ScopeGuard>([]() {});
 
-    Attributes reply;
     auto syncDeviceStatusReply = MakeDefaultSyncDeviceStatusReply();
-    EncodeSyncDeviceStatusReply(syncDeviceStatusReply, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-        static_cast<int32_t>(syncDeviceStatusReply.companionDeviceKey.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusReply.companionDeviceKey.deviceId);
+    Attributes reply = MakeReplyAttributes(syncDeviceStatusReply);
 
     CompanionStatus companionStatus;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).WillOnce(Return(ResultCode::SUCCESS));
 
     request->cancelCompanionCheckGuard_ = nullptr;
-    request->hostProtocolIdList_ = PROFILE.protocols;
-    request->HandleSyncDeviceStatusReply(reply);
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
 
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(*successCalled);
@@ -351,23 +463,21 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_004, TestS
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_001, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::GENERAL_ERROR,
         .businessIdList = { BusinessId::DEFAULT } };
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     std::vector<Capability> authenticatedCapabilities;
-    request->EndCompanionCheck(syncDeviceStatusReply, request->QueryCompanionStatus(syncDeviceStatusReply),
-        authenticatedCapabilities);
+    request->EndCompanionCheck(syncDeviceStatusReply,
+        request->QueryCompanionStatus(syncDeviceStatusReply.companionDeviceKey.AsUserKey()), authenticatedCapabilities);
 }
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_002, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
         .businessIdList = { BusinessId::DEFAULT } };
@@ -375,15 +485,14 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_002, TestSize.Level0
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     std::vector<Capability> authenticatedCapabilities;
-    request->EndCompanionCheck(syncDeviceStatusReply, request->QueryCompanionStatus(syncDeviceStatusReply),
-        authenticatedCapabilities);
+    request->EndCompanionCheck(syncDeviceStatusReply,
+        request->QueryCompanionStatus(syncDeviceStatusReply.companionDeviceKey.AsUserKey()), authenticatedCapabilities);
 }
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_003, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
         .businessIdList = { BusinessId::DEFAULT },
@@ -396,8 +505,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_003, TestSize.Level0
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, "sync companion check failed")).Times(1);
 
     std::vector<Capability> authenticatedCapabilities;
-    request->EndCompanionCheck(syncDeviceStatusReply, request->QueryCompanionStatus(syncDeviceStatusReply),
-        authenticatedCapabilities);
+    request->EndCompanionCheck(syncDeviceStatusReply,
+        request->QueryCompanionStatus(syncDeviceStatusReply.companionDeviceKey.AsUserKey()), authenticatedCapabilities);
 }
 
 // The enrolled protocol lives in the security agent's DB and is compared there; the check still
@@ -405,11 +514,10 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_003, TestSize.Level0
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_DivergedProtocolEndsSecurityAgentRequest, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = { PROTOCOL_VERSION_2 },
+        .companionProtocolIdList = { ProtocolId::VERSION_2 },
         .businessIdList = { BusinessId::DEFAULT },
         .companionCheckResponse = { 1, 2, 3 } };
     syncDeviceStatusReply.companionDeviceKey = COMPANION_DEVICE_KEY;
@@ -421,46 +529,43 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_DivergedProtocolEnds
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, "sync protocol list diverged")).WillOnce(Return());
 
     std::vector<Capability> authenticatedCapabilities;
-    request->EndCompanionCheck(syncDeviceStatusReply, request->QueryCompanionStatus(syncDeviceStatusReply),
-        authenticatedCapabilities);
+    request->EndCompanionCheck(syncDeviceStatusReply,
+        request->QueryCompanionStatus(syncDeviceStatusReply.companionDeviceKey.AsUserKey()), authenticatedCapabilities);
 }
 
-// A proofless reply never reaches the security layer, so no divergence verdict can invalidate
-// the credential; the round falls through to the legacy empty-proof tolerance.
-HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_ProoflessReplySkipsSecureLayer, TestSize.Level0)
+// A proofless reply never reaches the security layer, so no divergence verdict can authenticate
+// the round; the credential is unconditionally invalidated, V1 and V2 alike.
+HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_ProoflessReplyInvalidatesCredential, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = { PROTOCOL_VERSION_2 },
+        .companionProtocolIdList = { ProtocolId::VERSION_2 },
         .businessIdList = { BusinessId::DEFAULT } };
     syncDeviceStatusReply.companionDeviceKey = COMPANION_DEVICE_KEY;
 
     CompanionStatus companionStatus;
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(companionStatus)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
-    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, "bound peer returned no proof")).Times(1);
 
     std::vector<Capability> authenticatedCapabilities;
-    request->EndCompanionCheck(syncDeviceStatusReply, request->QueryCompanionStatus(syncDeviceStatusReply),
-        authenticatedCapabilities);
+    request->EndCompanionCheck(syncDeviceStatusReply,
+        request->QueryCompanionStatus(syncDeviceStatusReply.companionDeviceKey.AsUserKey()), authenticatedCapabilities);
 }
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, CompleteWithError_001, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
     ASSERT_NO_THROW(request->CompleteWithError(ResultCode::SUCCESS));
 }
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, InvokeCallback_001, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     SyncDeviceStatus syncDeviceStatus;
     syncDeviceStatus.needSync = true;
@@ -470,8 +575,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, InvokeCallback_001, TestSize.Level0)
 HWTEST_F(HostSyncDeviceStatusRequestTest, InvokeCallback_002, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
     request->callback_ = nullptr;
 
     SyncDeviceStatus syncDeviceStatus;
@@ -482,8 +586,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, InvokeCallback_002, TestSize.Level0)
 HWTEST_F(HostSyncDeviceStatusRequestTest, GetWeakPtr_001, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     auto weakPtr = request->GetWeakPtr();
     EXPECT_FALSE(weakPtr.expired());
@@ -491,14 +594,12 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, GetWeakPtr_001, TestSize.Level0)
 
 HWTEST_F(HostSyncDeviceStatusRequestTest, BuildSyncDeviceStatusRequest_OffersFullProfile, TestSize.Level0)
 {
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [](ResultCode, const SyncDeviceStatus &) {});
+    auto request = MakeDefaultRequest([](ResultCode, const SyncDeviceStatus &) {});
     ASSERT_NE(request, nullptr);
-    LocalDeviceProfile profile = { .protocols = { PROTOCOL_VERSION_2, ProtocolId::VERSION_1 },
+    LocalDeviceProfile profile = { .hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 },
         .hostCapabilities = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH } };
     auto message = request->BuildSyncDeviceStatusRequest(profile, {}, 0);
-    EXPECT_EQ(message.hostProtocolIdList, profile.protocols);
+    EXPECT_EQ(message.hostProtocolIdList, profile.hostProtocols);
     EXPECT_EQ(message.hostCapabilityList, profile.hostCapabilities);
     EXPECT_EQ(message.hostDeviceKey.deviceUserId, HOST_USER_ID);
 }
@@ -506,43 +607,47 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, BuildSyncDeviceStatusRequest_OffersFul
 // The peer may announce beyond the local profile, the picker intersects.
 HWTEST_F(HostSyncDeviceStatusRequestTest, ValidateReplyParameters_AcceptsSuperset, TestSize.Level0)
 {
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [](ResultCode, const SyncDeviceStatus &) {});
+    auto request = MakeDefaultRequest([](ResultCode, const SyncDeviceStatus &) {});
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto reply = MakeDefaultSyncDeviceStatusReply();
-    reply.companionProtocolIdList = { PROTOCOL_VERSION_2, ProtocolId::VERSION_1 };
+    reply.companionProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
     reply.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
     EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
 }
 
+// A first sync against a device holding only a valid V1 binding skips the challenge roundtrip
+// entirely — there is nothing to sign, and no resolved identity can move the offer away from
+// {VERSION_1} (the legacy peer's TA would whole-list-reject a wider offer). The round dispatches
+// unprotected in a single message.
 HWTEST_F(HostSyncDeviceStatusRequestTest, FirstSync_SelectsReplyUserBindingInOneRound, TestSize.Level0)
 {
     DeviceKey unknownKey = COMPANION_DEVICE_KEY;
     unknownKey.deviceUserId = INVALID_USER_ID;
-    bool succeeded = false;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        unknownKey, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
-    ASSERT_NE(request, nullptr);
-    LocalDeviceProfile profile = PROFILE;
-    profile.protocols = { PROTOCOL_VERSION_2, ProtocolId::VERSION_1 };
+    CompanionStatus bound = MakeBoundCompanionStatus();
+    MakeStatusesVisible({ bound });
+
+    auto profile = MakeDualProtocolProfile();
     profile.hostCapabilities.push_back(Capability::DELEGATE_AUTH);
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
     OnMessageReply messageCallback;
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillOnce(Return(profile));
-    EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).Times(1);
     EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
-        .WillOnce(Invoke([&](const std::string &, MessageType, const Attributes &attributes, OnMessageReply callback) {
+        .WillOnce(Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply reply) {
+            EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
             std::vector<uint16_t> protocols;
-            EXPECT_TRUE(attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
-            EXPECT_EQ(protocols, ProtocolIdConverter::ToUnderlyingVec(profile.protocols));
-            messageCallback = std::move(callback);
+            EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+            EXPECT_EQ(protocols, std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
+            EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE));
+            EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE));
+            messageCallback = std::move(reply);
             return true;
         }));
-    CompanionStatus bound = MakeBoundCompanionStatus();
+    EXPECT_CALL(mockSecurityAgent_, HostBeginCompanionCheck(_, _)).Times(1);
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
-    EXPECT_CALL(mockCompanionManager_, GetAllCompanionStatus()).Times(0);
+    // valid-binding gate scan, then the V1-only shortcut scan; no challenge round follows
+    EXPECT_CALL(mockCompanionManager_, FilterCompanionStatus(_, _, _)).Times(2);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
         .WillOnce(Invoke([&](const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &output) {
@@ -551,15 +656,24 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FirstSync_SelectsReplyUserBindingInOne
                 CapabilityConverter::ToUnderlyingVec(MakeDefaultSyncDeviceStatusReply().companionCapabilityList);
             return SUCCESS;
         }));
+
+    bool succeeded = false;
+    std::vector<Capability> receivedCapabilities;
+    uint16_t selectedProtocolId = 0;
+    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
+        unknownKey, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
+        [&](ResultCode result, const SyncDeviceStatus &status) {
+            succeeded = result == SUCCESS;
+            receivedCapabilities = status.companionCapabilityList;
+            selectedProtocolId = status.selectedProtocolId;
+        });
+    ASSERT_NE(request, nullptr);
     request->OnConnected();
-    ASSERT_TRUE(messageCallback);
-    Attributes reply;
-    EncodeSyncDeviceStatusReply(MakeDefaultSyncDeviceStatusReply(), reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    messageCallback(reply);
     TaskRunnerManager::GetInstance().ExecuteAll();
+    DeliverSyncReply(messageCallback, MakeDefaultSyncDeviceStatusReply());
     EXPECT_TRUE(succeeded);
+    EXPECT_EQ(receivedCapabilities, MakeDefaultSyncDeviceStatusReply().companionCapabilityList);
+    EXPECT_EQ(selectedProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_1));
 }
 
 // An unoffered announced version on the plaintext outer list fails the structural pre-filter
@@ -569,22 +683,20 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_RejectsUno
     TestSize.Level0)
 {
     ResultCode received = SUCCESS;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
+    auto request = MakeDefaultRequest([&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
-    message.companionProtocolIdList = { PROTOCOL_VERSION_2 };
+    message.companionProtocolIdList = { ProtocolId::VERSION_2 };
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, PROTOCOL_NEGOTIATION_FAILED);
 }
@@ -595,11 +707,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_Capability
     TestSize.Level0)
 {
     ResultCode received = GENERAL_ERROR;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
+    auto request = MakeDefaultRequest([&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).WillOnce(Return(CAPABILITY_NEGOTIATION_FAILED));
@@ -608,7 +718,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_Capability
     EncodeSyncDeviceStatusReply(MakeDefaultSyncDeviceStatusReply(), reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
 }
@@ -620,14 +730,13 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_ConsumesAu
 {
     bool succeeded = false;
     std::vector<Capability> receivedCapabilities;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&succeeded, &receivedCapabilities](ResultCode result, const SyncDeviceStatus &status) {
+    auto request =
+        MakeDefaultRequest([&succeeded, &receivedCapabilities](ResultCode result, const SyncDeviceStatus &status) {
             succeeded = result == SUCCESS;
             receivedCapabilities = status.companionCapabilityList;
         });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
@@ -643,31 +752,30 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_ConsumesAu
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
     EXPECT_EQ(receivedCapabilities, std::vector<Capability> { Capability::TOKEN_AUTH });
 }
 
-// When the security layer returns no authenticated value (legacy empty-proof round), the
-// plaintext announcement stays in effect for the in-memory sync result.
+// When the round cannot be verified (empty proof under a live credential), the credential is
+// invalidated but the plaintext announcement still feeds the in-memory sync result: an empty
+// capability table must never enter the cache.
 HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_FallsBackToPlainAnnouncement, TestSize.Level0)
 {
     bool succeeded = false;
     std::vector<Capability> receivedCapabilities;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&succeeded, &receivedCapabilities](ResultCode result, const SyncDeviceStatus &status) {
+    auto request =
+        MakeDefaultRequest([&succeeded, &receivedCapabilities](ResultCode result, const SyncDeviceStatus &status) {
             succeeded = result == SUCCESS;
             receivedCapabilities = status.companionCapabilityList;
         });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
-    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
-    // Legacy peer: a proofless reply never consults the secure layer; the round is accepted
-    // as a legacy empty-proof reply.
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(bound.templateId, "bound peer returned no proof")).Times(1);
+    // A proofless reply never consults the secure layer; the round is accepted but unverifiable.
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
     message.companionCheckResponse.clear();
@@ -675,7 +783,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_FallsBackT
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
     EXPECT_EQ(receivedCapabilities, std::vector<Capability> { Capability::TOKEN_AUTH });
@@ -690,22 +798,20 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, PeerCheckErrorPreservesBindingAndCance
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).Times(0);
 
     // In every case the binding is preserved and the security agent-side check is cancelled;
-    // terminal errors keep their code so the caller aborts the retry.
+    // terminal errors keep their code so the caller aborts the retry. NOT_ENROLLED and a
+    // binding-signature rejection invalidate the credential and have their own tests below.
     const std::pair<ResultCode, ResultCode> peerErrorExpectations[] = {
         { GENERAL_ERROR, PEER_SYNC_FAILED },
         { PROTOCOL_NEGOTIATION_FAILED, PROTOCOL_NEGOTIATION_FAILED },
-        { NOT_ENROLLED, NOT_ENROLLED },
     };
     for (auto [peerResult, expectedReport] : peerErrorExpectations) {
         ResultCode received = SUCCESS;
         bool callbackCalled = false;
-        auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-            COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-            [&](ResultCode result, const SyncDeviceStatus &status) {
-                callbackCalled = true;
-                received = result;
-                EXPECT_FALSE(status.needSync);
-            });
+        auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+            callbackCalled = true;
+            received = result;
+            EXPECT_FALSE(status.needSync);
+        });
         ASSERT_NE(request, nullptr);
         OnMessageReply callback;
         EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
@@ -728,6 +834,251 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, PeerCheckErrorPreservesBindingAndCance
     }
 }
 
+// A binding-signature rejection names the peer's current user: the local credential for that
+// user is invalidated, and the round still completes with the error.
+HWTEST_F(HostSyncDeviceStatusRequestTest, PeerBindingSignatureRejectionInvalidatesCredential, TestSize.Level0)
+{
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    const std::vector<uint8_t> signature(64, 0xEE);
+    CompanionStatus v2Bound = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Bound });
+    ON_CALL(mockSecurityAgent_, HostBindingSign(_, _))
+        .WillByDefault(Invoke([&signature](const HostBindingSignInput &, HostBindingSignOutput &output) {
+            output.signature = signature;
+            return ResultCode::SUCCESS;
+        }));
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(Invoke([&](const std::string &, MessageType msgType, Attributes &, OnMessageReply &&onReply) {
+            if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                ReplyBindingSignatureChallenge(onReply, ResultCode::SUCCESS,
+                    UserKey { COMPANION_DEVICE_KEY.deviceUserId, COMPANION_DEVICE_KEY.deviceSubProfileId }, challenge);
+                return true;
+            }
+            return true;
+        }));
+
+    ResultCode received = SUCCESS;
+    bool callbackCalled = false;
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        callbackCalled = true;
+        received = result;
+        EXPECT_FALSE(status.needSync);
+    });
+    ASSERT_NE(request, nullptr);
+    // The rejection reply carries the peer user identity: invalidation settles that user's
+    // credential. Two lookups happen: the challenge-round identity match and the invalidation.
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
+        .Times(2)
+        .WillRepeatedly(Return(std::make_optional(v2Bound)));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(v2Bound.templateId, "peer rejected binding signature"))
+        .Times(1);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).Times(1);
+
+    request->OnConnected();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).Times(0);
+    Attributes reply;
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(BINDING_SIGNATURE_VERIFY_FAILED));
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, COMPANION_DEVICE_KEY.deviceUserId);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, COMPANION_DEVICE_KEY.deviceSubProfileId);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(received, BINDING_SIGNATURE_VERIFY_FAILED);
+}
+
+// A NOT_ENROLLED reply on a signed round is the peer's deterministic refusal naming its current
+// user: the credential is invalidated with the same single-user settlement as a signature rejection,
+// and the round fails with the peer's code — no in-request redo send.
+HWTEST_F(HostSyncDeviceStatusRequestTest, PeerNotEnrolledRejectionInvalidatesCredential, TestSize.Level0)
+{
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    const std::vector<uint8_t> signature(64, 0xEE);
+    CompanionStatus v2Bound = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Bound });
+    ON_CALL(mockSecurityAgent_, HostBindingSign(_, _))
+        .WillByDefault(Invoke([&signature](const HostBindingSignInput &, HostBindingSignOutput &output) {
+            output.signature = signature;
+            return ResultCode::SUCCESS;
+        }));
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(Invoke([&](const std::string &, MessageType msgType, Attributes &, OnMessageReply &&onReply) {
+            if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                ReplyBindingSignatureChallenge(onReply, ResultCode::SUCCESS,
+                    UserKey { COMPANION_DEVICE_KEY.deviceUserId, COMPANION_DEVICE_KEY.deviceSubProfileId }, challenge);
+                return true;
+            }
+            return true;
+        }));
+
+    ResultCode received = SUCCESS;
+    bool callbackCalled = false;
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        callbackCalled = true;
+        received = result;
+        EXPECT_FALSE(status.needSync);
+    });
+    ASSERT_NE(request, nullptr);
+    // Two lookups happen: the challenge-round identity match and the invalidation.
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
+        .Times(2)
+        .WillRepeatedly(Return(std::make_optional(v2Bound)));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(v2Bound.templateId, "peer rejected binding signature"))
+        .Times(1);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).Times(1);
+
+    request->OnConnected();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).Times(0);
+    Attributes reply;
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(NOT_ENROLLED));
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, COMPANION_DEVICE_KEY.deviceUserId);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, COMPANION_DEVICE_KEY.deviceSubProfileId);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(received, NOT_ENROLLED);
+}
+
+// A refusal that carries no peer identity cannot locate a user: nothing is invalidated and the
+// round fails with the peer's code (legacy peers and early error paths reply without identity).
+HWTEST_F(HostSyncDeviceStatusRequestTest, PeerNotEnrolledReplyWithoutIdentityKeepsCredential, TestSize.Level0)
+{
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    const std::vector<uint8_t> signature(64, 0xEE);
+    CompanionStatus v2Bound = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Bound });
+    ON_CALL(mockSecurityAgent_, HostBindingSign(_, _))
+        .WillByDefault(Invoke([&signature](const HostBindingSignInput &, HostBindingSignOutput &output) {
+            output.signature = signature;
+            return ResultCode::SUCCESS;
+        }));
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(Invoke([&](const std::string &, MessageType msgType, Attributes &, OnMessageReply &&onReply) {
+            if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                ReplyBindingSignatureChallenge(onReply, ResultCode::SUCCESS,
+                    UserKey { COMPANION_DEVICE_KEY.deviceUserId, COMPANION_DEVICE_KEY.deviceSubProfileId }, challenge);
+                return true;
+            }
+            return true;
+        }));
+
+    ResultCode received = SUCCESS;
+    bool callbackCalled = false;
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        callbackCalled = true;
+        received = result;
+        EXPECT_FALSE(status.needSync);
+    });
+    ASSERT_NE(request, nullptr);
+    // Only the challenge-round identity match happens; no identity means no invalidation lookup.
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(v2Bound)));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).Times(1);
+
+    request->OnConnected();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).Times(0);
+    Attributes reply;
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(NOT_ENROLLED));
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(received, NOT_ENROLLED);
+}
+
+// A refusal naming a user with no local credential invalidates nothing: invalidation only ever
+// settles the named user's row, never the round's credential.
+HWTEST_F(HostSyncDeviceStatusRequestTest, PeerNotEnrolledReplyWithForeignIdentityKeepsCredential, TestSize.Level0)
+{
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    const std::vector<uint8_t> signature(64, 0xEE);
+    CompanionStatus v2Bound = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Bound });
+    ON_CALL(mockSecurityAgent_, HostBindingSign(_, _))
+        .WillByDefault(Invoke([&signature](const HostBindingSignInput &, HostBindingSignOutput &output) {
+            output.signature = signature;
+            return ResultCode::SUCCESS;
+        }));
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(Invoke([&](const std::string &, MessageType msgType, Attributes &, OnMessageReply &&onReply) {
+            if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                ReplyBindingSignatureChallenge(onReply, ResultCode::SUCCESS,
+                    UserKey { COMPANION_DEVICE_KEY.deviceUserId, COMPANION_DEVICE_KEY.deviceSubProfileId }, challenge);
+                return true;
+            }
+            return true;
+        }));
+
+    ResultCode received = SUCCESS;
+    bool callbackCalled = false;
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        callbackCalled = true;
+        received = result;
+        EXPECT_FALSE(status.needSync);
+    });
+    ASSERT_NE(request, nullptr);
+    // The challenge-round match finds the credential; the invalidation lookup for the named
+    // foreign user finds nothing, so the credential survives.
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
+        .WillOnce(Return(std::make_optional(v2Bound)))
+        .WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).Times(1);
+
+    request->OnConnected();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).Times(0);
+    Attributes reply;
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(NOT_ENROLLED));
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, COMPANION_DEVICE_KEY.deviceUserId + 1);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, COMPANION_DEVICE_KEY.deviceSubProfileId);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(received, NOT_ENROLLED);
+}
+
+// A NOT_ENROLLED reply is terminal on any round: the round fails with the peer's code and no
+// in-request redo is sent. On an unsigned round there is no authenticated identity, so nothing
+// is invalidated; the signed-round invalidation case has its own test above.
+HWTEST_F(HostSyncDeviceStatusRequestTest, NotEnrolledReplyFailsRoundWithoutRedo, TestSize.Level0)
+{
+    ResultCode received = SUCCESS;
+    bool callbackCalled = false;
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        callbackCalled = true;
+        received = result;
+        EXPECT_FALSE(status.needSync);
+    });
+    ASSERT_NE(request, nullptr);
+    std::vector<OnMessageReply> syncReplies;
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .Times(1)
+        .WillRepeatedly(Invoke([&](const std::string &, MessageType, const Attributes &, OnMessageReply reply) {
+            syncReplies.push_back(std::move(reply));
+            return true;
+        }));
+    EXPECT_CALL(mockSecurityAgent_, HostCancelCompanionCheck(_)).Times(1);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+
+    request->OnConnected();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    ASSERT_EQ(syncReplies.size(), 1U); // no credentials: unsigned discovery round
+
+    Attributes notEnrolled;
+    notEnrolled.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::NOT_ENROLLED));
+    syncReplies[0](notEnrolled); // terminal: round fails, no redo send
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(received, ResultCode::NOT_ENROLLED);
+    EXPECT_EQ(syncReplies.size(), 1U);
+}
+
 // The terminal secure-protocol error passes through verbatim so the caller aborts the retry;
 // this path never invalidates the template.
 HWTEST_F(HostSyncDeviceStatusRequestTest, PeerCheckSecureProtocolErrorPassesThrough, TestSize.Level0)
@@ -740,13 +1091,11 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, PeerCheckSecureProtocolErrorPassesThro
 
     ResultCode received = SUCCESS;
     bool callbackCalled = false;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&](ResultCode result, const SyncDeviceStatus &status) {
-            callbackCalled = true;
-            received = result;
-            EXPECT_FALSE(status.needSync);
-        });
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        callbackCalled = true;
+        received = result;
+        EXPECT_FALSE(status.needSync);
+    });
     ASSERT_NE(request, nullptr);
     OnMessageReply callback;
     EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
@@ -770,9 +1119,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, PeerCheckSecureProtocolErrorPassesThro
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_TerminalSecureProtocolErrorInvalidatesTemplate,
     TestSize.Level0)
 {
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [](ResultCode, const SyncDeviceStatus &) {});
+    auto request = MakeDefaultRequest([](ResultCode, const SyncDeviceStatus &) {});
     ASSERT_NE(request, nullptr);
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
         .WillOnce(Return(std::make_optional(CompanionStatus {})));
@@ -780,43 +1127,42 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_TerminalSecureProtoc
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, "sync companion check failed")).Times(1);
     std::vector<Capability> authenticatedCapabilities;
     request->EndCompanionCheck(MakeDefaultSyncDeviceStatusReply(),
-        request->QueryCompanionStatus(MakeDefaultSyncDeviceStatusReply()), authenticatedCapabilities);
+        request->QueryCompanionStatus(MakeDefaultSyncDeviceStatusReply().companionDeviceKey.AsUserKey()),
+        authenticatedCapabilities);
 }
 
 // Rule 6 enforced structurally: a proofless reply is never handed to the secure layer, so no
-// secure-layer outcome — success or failure — can authenticate the round.
+// secure-layer outcome — success or failure — can authenticate the round; it invalidates instead.
 HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_EmptyProofNeverConsultsSecureLayer, TestSize.Level0)
 {
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [](ResultCode, const SyncDeviceStatus &) {});
+    auto request = MakeDefaultRequest([](ResultCode, const SyncDeviceStatus &) {});
     ASSERT_NE(request, nullptr);
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
         .WillOnce(Return(std::make_optional(CompanionStatus {})));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
-    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, "bound peer returned no proof")).Times(1);
     auto reply = MakeDefaultSyncDeviceStatusReply();
     reply.companionCheckResponse.clear();
     std::vector<Capability> authenticatedCapabilities;
-    request->EndCompanionCheck(reply, request->QueryCompanionStatus(reply), authenticatedCapabilities);
+    request->EndCompanionCheck(reply, request->QueryCompanionStatus(reply.companionDeviceKey.AsUserKey()),
+        authenticatedCapabilities);
 }
 
-// A legacy empty-proof acceptance under a claimed, not-yet-known user key completes the round
-// and learns the announced key for routing only; no failure path reads the cache for
-// invalidation authority.
-HWTEST_F(HostSyncDeviceStatusRequestTest, LegacyEmptyProofLearnsUserKeyForRoutingOnly, TestSize.Level0)
+// An empty-proof round under a claimed, not-yet-known user key completes the round, learns the
+// announced key for routing, and invalidates the credential the claimed identity resolves to:
+// an unverifiable round is never tolerated as proof of a live binding.
+HWTEST_F(HostSyncDeviceStatusRequestTest, EmptyProofLearnsUserKeyAndInvalidatesCredential, TestSize.Level0)
 {
     constexpr int32_t CLAIMED_USER_ID = 201;
     bool succeeded = false;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
+    auto request = MakeDefaultRequest(
         [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
-    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(bound.templateId, "bound peer returned no proof")).Times(1);
     auto message = MakeDefaultSyncDeviceStatusReply();
     message.companionDeviceKey.deviceUserId = CLAIMED_USER_ID;
     message.companionCheckResponse.clear();
@@ -824,21 +1170,21 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, LegacyEmptyProofLearnsUserKeyForRoutin
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
     EXPECT_EQ(request->companionDeviceKey_.deviceUserId, CLAIMED_USER_ID);
 }
 
-// Two consecutive unauthenticated rounds never invalidate a binding, even after round 1
-// learned the claimed user key into the cache and round 2 fails under the same key.
-HWTEST_F(HostSyncDeviceStatusRequestTest, UnauthenticatedRoundsNeverInvalidate, TestSize.Level0)
+// Two consecutive unauthenticated rounds each invalidate the credential their claimed identity
+// resolves to; the rounds themselves still complete so discovery keeps flowing.
+HWTEST_F(HostSyncDeviceStatusRequestTest, UnauthenticatedRoundsInvalidateEachRound, TestSize.Level0)
 {
     constexpr int32_t CLAIMED_USER_ID = 201;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillRepeatedly(Return(std::make_optional(bound)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
-    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(bound.templateId, "bound peer returned no proof")).Times(2);
     auto sendReply = [](const std::shared_ptr<HostSyncDeviceStatusRequest> &target) {
         auto message = MakeDefaultSyncDeviceStatusReply();
         message.companionDeviceKey.deviceUserId = CLAIMED_USER_ID;
@@ -848,23 +1194,19 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UnauthenticatedRoundsNeverInvalidate, 
         reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
             static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
         reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-        target->HandleSyncDeviceStatusReply(reply);
+        target->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
         TaskRunnerManager::GetInstance().ExecuteAll();
     };
 
-    // Round 1 (cold cache): the empty-proof round is accepted and learns user 201 for routing.
     bool firstSucceeded = false;
-    auto first = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
+    auto first = MakeDefaultRequest(
         [&firstSucceeded](ResultCode result, const SyncDeviceStatus &) { firstSucceeded = result == SUCCESS; });
     ASSERT_NE(first, nullptr);
-    first->hostProtocolIdList_ = PROFILE.protocols;
+    first->sentProtocolIdList_ = PROFILE.hostProtocols;
     sendReply(first);
     EXPECT_TRUE(firstSucceeded);
     EXPECT_EQ(first->companionDeviceKey_.deviceUserId, CLAIMED_USER_ID);
 
-    // Round 2 (cache washed to user 201): the same unauthenticated failure must still not
-    // invalidate the binding.
     auto washedKey = COMPANION_DEVICE_KEY;
     washedKey.deviceUserId = CLAIMED_USER_ID;
     bool secondSucceeded = false;
@@ -872,12 +1214,13 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UnauthenticatedRoundsNeverInvalidate, 
         washedKey, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
         [&secondSucceeded](ResultCode result, const SyncDeviceStatus &) { secondSucceeded = result == SUCCESS; });
     ASSERT_NE(second, nullptr);
-    second->hostProtocolIdList_ = PROFILE.protocols;
+    second->sentProtocolIdList_ = PROFILE.hostProtocols;
     sendReply(second);
     EXPECT_TRUE(secondSucceeded);
 }
 
-// Both endpoints may support V1 and V2 while different users enrolled at different versions.
+// Both endpoints may support V1 and V2 while different users enrolled at different versions: the
+// resolved identity maps to the V2 credential, so the round is signed and restores the full offer.
 HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchUsesReplyBindingAndFullOffer, TestSize.Level0)
 {
     constexpr int32_t NEXT_USER_ID = 201;
@@ -886,27 +1229,27 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchUsesReplyBindingAndFullOffer
     activeKey.deviceUserId = NEXT_USER_ID;
     auto activeBinding = MakeBoundCompanionStatus();
     activeBinding.companionDeviceStatus.deviceKey = activeKey;
-    activeBinding.enrolledProtocolId = PROTOCOL_VERSION_2;
+    activeBinding.enrolledProtocolId = ProtocolId::VERSION_2;
     auto profile = PROFILE;
-    profile.protocols.push_back(PROTOCOL_VERSION_2);
-    bool succeeded = false;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(hostUser, COMPANION_DEVICE_KEY, CONNECTION_MODE,
-        SyncTriggerReason::EXTERNAL_REFRESH,
-        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
-    ASSERT_NE(request, nullptr);
-    OnMessageReply callback;
-    EXPECT_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillOnce(Return(profile));
-    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
-        .WillOnce(Invoke([&](const std::string &, MessageType, const Attributes &attributes, OnMessageReply reply) {
-            std::vector<uint16_t> protocols;
-            EXPECT_TRUE(attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
-            EXPECT_EQ(protocols, ProtocolIdConverter::ToUnderlyingVec(profile.protocols));
-            callback = std::move(reply);
-            return true;
+    profile.hostProtocols.push_back(ProtocolId::VERSION_2);
+    MakeStatusesVisible({ activeBinding });
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    const std::vector<uint8_t> signature(64, 0xEE);
+    ON_CALL(mockSecurityAgent_, HostBindingSign(_, _))
+        .WillByDefault(Invoke([&signature](const HostBindingSignInput &, HostBindingSignOutput &output) {
+            output.signature = signature;
+            return ResultCode::SUCCESS;
         }));
-    EXPECT_CALL(mockCompanionManager_, GetAllCompanionStatus()).Times(0);
+
+    OnMessageReply callback;
+    ExpectUserSwitchChallengeAndSync(NEXT_USER_ID, profile, challenge, signature, callback);
+    // valid-binding gate scan and V2-only gate scan; identity resolution and the reply binding
+    // lookup both go through the keyed GetCompanionStatus
+    EXPECT_CALL(mockCompanionManager_, FilterCompanionStatus(_, _, _)).Times(2);
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(hostUser, activeKey))
-        .WillOnce(Return(std::make_optional(activeBinding)));
+        .WillRepeatedly(Return(std::make_optional(activeBinding)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
         .WillOnce(Invoke([&](const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &output) {
             EXPECT_EQ(input.templateId, activeBinding.templateId);
@@ -915,17 +1258,18 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchUsesReplyBindingAndFullOffer
             return SUCCESS;
         }));
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+
+    bool succeeded = false;
+    auto request = std::make_shared<HostSyncDeviceStatusRequest>(hostUser, COMPANION_DEVICE_KEY, CONNECTION_MODE,
+        SyncTriggerReason::EXTERNAL_REFRESH,
+        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
+    ASSERT_NE(request, nullptr);
     request->OnConnected();
-    ASSERT_TRUE(callback);
+    TaskRunnerManager::GetInstance().ExecuteAll();
     auto message = MakeDefaultSyncDeviceStatusReply();
     message.companionDeviceKey = activeKey;
-    message.companionProtocolIdList = { PROTOCOL_VERSION_2 };
-    Attributes reply;
-    EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(activeKey.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, activeKey.deviceId);
-    callback(reply);
-    TaskRunnerManager::GetInstance().ExecuteAll();
+    message.companionProtocolIdList = { ProtocolId::VERSION_2 };
+    DeliverSyncReply(callback, message);
     EXPECT_TRUE(succeeded);
     EXPECT_EQ(request->companionDeviceKey_.deviceUserId, NEXT_USER_ID);
 }
@@ -939,21 +1283,21 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DiscoveryDoesNotBorrowAnotherHostUsers
         SyncTriggerReason::EXTERNAL_REFRESH,
         [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
-    EXPECT_CALL(mockCompanionManager_, GetAllCompanionStatus()).Times(0);
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+    EXPECT_CALL(mockCompanionManager_, FilterCompanionStatus(_, _, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(hostUser, COMPANION_DEVICE_KEY))
         .WillOnce(Return(std::nullopt));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
-    message.companionProtocolIdList.push_back(PROTOCOL_VERSION_2);
+    message.companionProtocolIdList.push_back(ProtocolId::VERSION_2);
     message.companionCapabilityList.push_back(Capability::DELEGATE_AUTH);
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
 }
@@ -969,41 +1313,43 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchToUnboundUserAllowsDiscovery
         SyncTriggerReason::EXTERNAL_REFRESH,
         [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
-    EXPECT_CALL(mockCompanionManager_, GetAllCompanionStatus()).Times(0);
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+    EXPECT_CALL(mockCompanionManager_, FilterCompanionStatus(_, _, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(hostUser, activeKey)).WillOnce(Return(std::nullopt));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
     message.companionDeviceKey = activeKey;
-    message.companionProtocolIdList.push_back(PROTOCOL_VERSION_2);
+    message.companionProtocolIdList.push_back(ProtocolId::VERSION_2);
     message.companionCapabilityList.push_back(Capability::DELEGATE_AUTH);
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
     EXPECT_EQ(request->companionDeviceKey_.deviceUserId, NEXT_USER_ID);
 }
 
-// A trusted-key empty-proof round keeps the credential: without a verifiable proof the
-// ambiguity is resolved in favor of the binding; discovery proceeds and the announced user
-// key is learned for routing only.
-HWTEST_F(HostSyncDeviceStatusRequestTest, MissingPeerBindingKeepsCredentialButAllowsDiscovery, TestSize.Level0)
+// An empty-proof round under a live credential invalidates it (the round is unverifiable) but
+// still completes, so discovery proceeds with the announced full capability list.
+HWTEST_F(HostSyncDeviceStatusRequestTest, MissingPeerBindingInvalidatesCredentialButAllowsDiscovery, TestSize.Level0)
 {
     bool succeeded = false;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
+    std::vector<Capability> receivedCapabilities;
+    auto request =
+        MakeDefaultRequest([&succeeded, &receivedCapabilities](ResultCode result, const SyncDeviceStatus &status) {
+            succeeded = result == SUCCESS;
+            receivedCapabilities = status.companionCapabilityList;
+        });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
-    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(bound.templateId, "bound peer returned no proof")).Times(1);
     auto message = MakeDefaultSyncDeviceStatusReply();
     message.companionCapabilityList.push_back(Capability::DELEGATE_AUTH);
     message.companionCheckResponse.clear();
@@ -1011,9 +1357,10 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, MissingPeerBindingKeepsCredentialButAl
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
+    EXPECT_EQ(receivedCapabilities, (std::vector<Capability> { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH }));
 }
 
 // A failed proof verification invalidates the binding regardless of which user the reply
@@ -1022,11 +1369,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FailedProofInvalidatesAndRoundStillSuc
 {
     constexpr int32_t NEXT_USER_ID = 201;
     ResultCode received = GENERAL_ERROR;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
+    auto request = MakeDefaultRequest([&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).WillOnce(Return(GENERAL_ERROR));
@@ -1037,7 +1382,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FailedProofInvalidatesAndRoundStillSuc
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
     EXPECT_EQ(request->companionDeviceKey_.deviceUserId, NEXT_USER_ID);
@@ -1046,8 +1391,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FailedProofInvalidatesAndRoundStillSuc
 HWTEST_F(HostSyncDeviceStatusRequestTest, GetMaxConcurrency_001, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     EXPECT_EQ(request->GetMaxConcurrency(), 100);
 }
@@ -1055,8 +1399,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, GetMaxConcurrency_001, TestSize.Level0
 HWTEST_F(HostSyncDeviceStatusRequestTest, ShouldCancelOnNewRequest_001, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     auto newRequest = std::make_shared<MockIRequest>(RequestType::HOST_SYNC_DEVICE_STATUS_REQUEST);
     bool result = request->ShouldCancelOnNewRequest(*newRequest, 0);
@@ -1069,8 +1412,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, ShouldCancelOnNewRequest_001, TestSize
 HWTEST_F(HostSyncDeviceStatusRequestTest, RequireSyncedDevice_IsFalse, TestSize.Level0)
 {
     auto callback = [](ResultCode, const SyncDeviceStatus &) {};
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH, std::move(callback));
+    auto request = MakeDefaultRequest(std::move(callback));
 
     EXPECT_FALSE(request->RequireSyncedDevice());
 }
@@ -1079,17 +1421,15 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, RequireSyncedDevice_IsFalse, TestSize.
 // the specific negotiation code instead of falling through to the security layer.
 HWTEST_F(HostSyncDeviceStatusRequestTest, ValidateReplyParameters_RejectsEmptyIntersection, TestSize.Level0)
 {
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [](ResultCode, const SyncDeviceStatus &) {});
+    auto request = MakeDefaultRequest([](ResultCode, const SyncDeviceStatus &) {});
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto reply = MakeDefaultSyncDeviceStatusReply();
     reply.companionProtocolIdList.clear();
     EXPECT_EQ(request->ValidateReplyParameters(reply), PROTOCOL_NEGOTIATION_FAILED);
-    reply.companionProtocolIdList = { PROTOCOL_VERSION_2 };
+    reply.companionProtocolIdList = { ProtocolId::VERSION_2 };
     EXPECT_EQ(request->ValidateReplyParameters(reply), PROTOCOL_NEGOTIATION_FAILED);
-    reply.companionProtocolIdList = PROFILE.protocols;
+    reply.companionProtocolIdList = { ProtocolId::VERSION_1 };
     EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
 }
 
@@ -1099,11 +1439,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DivergedListWithUntrustedUserKeyStillI
 {
     constexpr int32_t CLAIMED_USER_ID = 201;
     ResultCode received = SUCCESS;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
+    auto request = MakeDefaultRequest([&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).WillOnce(Return(PROTOCOL_NEGOTIATION_FAILED));
@@ -1114,7 +1452,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DivergedListWithUntrustedUserKeyStillI
     EncodeSyncDeviceStatusReply(message, reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
     EXPECT_EQ(request->companionDeviceKey_.deviceUserId, CLAIMED_USER_ID);
@@ -1125,11 +1463,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DivergedListWithUntrustedUserKeyStillI
 HWTEST_F(HostSyncDeviceStatusRequestTest, FutureSecureProtocolInvalidatesTemplate, TestSize.Level0)
 {
     ResultCode received = GENERAL_ERROR;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
+    auto request = MakeDefaultRequest([&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).WillOnce(Return(SECURE_PROTOCOL_NOT_SUPPORTED));
@@ -1139,7 +1475,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FutureSecureProtocolInvalidatesTemplat
     reply.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, 2); // future version
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
 }
@@ -1149,11 +1485,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FutureSecureProtocolInvalidatesTemplat
 HWTEST_F(HostSyncDeviceStatusRequestTest, DivergedEnrolledProtocolInvalidatesWithReason, TestSize.Level0)
 {
     ResultCode received = GENERAL_ERROR;
-    auto request = std::make_shared<HostSyncDeviceStatusRequest>(UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID },
-        COMPANION_DEVICE_KEY, CONNECTION_MODE, SyncTriggerReason::EXTERNAL_REFRESH,
-        [&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
+    auto request = MakeDefaultRequest([&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
     ASSERT_NE(request, nullptr);
-    request->hostProtocolIdList_ = PROFILE.protocols;
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto bound = MakeBoundCompanionStatus();
     EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).WillOnce(Return(PROTOCOL_NEGOTIATION_FAILED));
@@ -1162,9 +1496,707 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DivergedEnrolledProtocolInvalidatesWit
     EncodeSyncDeviceStatusReply(MakeDefaultSyncDeviceStatusReply(), reply);
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
-    request->HandleSyncDeviceStatusReply(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
+}
+
+// V2 companion binding: the outbound SYNC is protected — the resolved-identity challenge round
+// trip and HostBindingSign attach the binding signature attributes to the outgoing message; a
+// GENERAL_ERROR resolve (legacy peer on an unknown message) downgrades to an unprotected V1
+// offer without ever reaching HostBindingSign or touching the credentials.
+HWTEST_F(HostSyncDeviceStatusRequestTest, SendSyncDeviceStatusRequest_002, TestSize.Level0)
+{
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    const std::vector<uint8_t> signature(64, 0xEE);
+    bool challengeResolveSucceeds = true;
+    std::vector<uint8_t> sentChallenge;
+    std::vector<uint8_t> sentSignature;
+    int32_t sentCompanionUserId = 0;
+    AttachV2BindingSignatureMocks(challenge, signature, challengeResolveSucceeds, sentChallenge, sentSignature,
+        sentCompanionUserId);
+
+    auto callback = [](ResultCode, const SyncDeviceStatus &) {};
+    auto request = MakeDefaultRequest(std::move(callback));
+
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_EQ(challenge, sentChallenge);
+    EXPECT_EQ(signature, sentSignature);
+    EXPECT_EQ(COMPANION_DEVICE_KEY.deviceUserId, sentCompanionUserId);
+
+    // dispatched internal-error reply downgrades: the SYNC goes out unprotected with {VERSION_1},
+    // HostBindingSign never runs, no credential is invalidated at challenge time
+    challengeResolveSucceeds = false;
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+
+    OnMessageReply downgradeCallback;
+    ExpectChallengeFailureDowngrade(downgradeCallback);
+
+    auto errorCalled = std::make_shared<bool>(false);
+    auto errorCallback = [errorCalled](ResultCode result, const SyncDeviceStatus &) {
+        if (result == ResultCode::GENERAL_ERROR) {
+            *errorCalled = true;
+        }
+    };
+    auto failing = MakeDefaultRequest(std::move(errorCallback));
+    failing->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    DeliverSyncReply(downgradeCallback, MakeDefaultSyncDeviceStatusReply());
+    EXPECT_FALSE(*errorCalled);
+}
+
+// The downgrade round's own reply is judged by the same empty-proof rule: a GENERAL_ERROR
+// challenge followed by a proofless SUCCESS reply invalidates the credential while the round
+// itself still completes (rule 5 combined with ruling 4 — the phantom-scenario cost).
+HWTEST_F(HostSyncDeviceStatusRequestTest, DowngradedRoundEmptyProofInvalidatesButRoundSucceeds, TestSize.Level0)
+{
+    CompanionStatus v2Bound = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Bound });
+    LocalDeviceProfile profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    OnMessageReply messageCallback;
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillOnce(Invoke([&](const std::string &, MessageType msgType, Attributes &, OnMessageReply &&onReply) {
+            EXPECT_EQ(MessageType::GET_BINDING_SIGNATURE_CHALLENGE, msgType);
+            GetBindingSignatureChallengeReply challengeReply = {};
+            challengeReply.result = ResultCode::GENERAL_ERROR;
+            Attributes replyAttributes;
+            EncodeGetBindingSignatureChallengeReply(challengeReply, replyAttributes);
+            onReply(replyAttributes);
+            return true;
+        }))
+        .WillOnce(Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply reply) {
+            EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+            std::vector<uint16_t> protocols;
+            EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+            EXPECT_EQ(protocols, std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
+            EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE));
+            EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE));
+            messageCallback = std::move(reply);
+            return true;
+        }));
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(v2Bound)));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(v2Bound.templateId, "bound peer returned no proof")).Times(1);
+
+    bool succeeded = false;
+    auto request = MakeDefaultRequest(
+        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
+    ASSERT_NE(request, nullptr);
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    ASSERT_TRUE(messageCallback);
+    auto replyData = MakeDefaultSyncDeviceStatusReply();
+    replyData.companionCheckResponse.clear();
+    Attributes reply;
+    EncodeSyncDeviceStatusReply(replyData, reply);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    messageCallback(reply);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(succeeded);
+}
+
+// NOT_ENROLLED from the challenge round is a definitive state answer (ruling 2026-11-19), not a
+// transport failure — but the reply names no user, and only the peer's current user may be
+// invalidated. The round is redone as an unsigned discovery sync whose reply names the current
+// user: that one credential is invalidated by the empty-proof rule, while another peer user's
+// credential that has not come online survives untouched.
+HWTEST_F(HostSyncDeviceStatusRequestTest, NotEnrolledChallengeReplyInvalidatesV2Candidate, TestSize.Level0)
+{
+    CompanionStatus v2Candidate = MakeV2CompanionStatus();
+    CompanionStatus offlineUser = MakeV2CompanionStatus();
+    offlineUser.templateId = 2;
+    offlineUser.companionDeviceStatus.deviceKey.deviceUserId = 201;
+    MakeStatusesVisible({ v2Candidate, offlineUser });
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(Invoke([](const std::string &, MessageType msgType, Attributes &, OnMessageReply &&onReply) {
+            if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                GetBindingSignatureChallengeReply challengeReply = {};
+                challengeReply.result = ResultCode::NOT_ENROLLED;
+                Attributes replyAttributes;
+                EncodeGetBindingSignatureChallengeReply(challengeReply, replyAttributes);
+                onReply(replyAttributes);
+                return true;
+            }
+            EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+            SyncDeviceStatusReply replyData = MakeDefaultSyncDeviceStatusReply();
+            replyData.companionCheckResponse.clear();
+            onReply(MakeReplyAttributes(replyData));
+            return true;
+        }));
+
+    bool succeeded = false;
+    auto request = MakeDefaultRequest(
+        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
+    ASSERT_NE(request, nullptr);
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
+    // the redo reply names the current user (200): only that credential is invalidated, by the
+    // empty-proof rule; the offline user's row is never swept by the challenge answer
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(v2Candidate)));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(v2Candidate.templateId, "bound peer returned no proof"))
+        .Times(1);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(Ne(v2Candidate.templateId), _)).Times(0);
+
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(succeeded);
+}
+
+// A TYPE_NOT_SUPPORT resolve (old peer SA has no handler; the router's raw error reply passes
+// through the requester mapping) downgrades this round to unprotected V1 sync: the SYNC keeps the
+// trimmed {VERSION_1} offer without signature attributes and the V2 candidate survives.
+HWTEST_F(HostSyncDeviceStatusRequestTest, UnsupportedChallengeMessageDowngradesToV1Sync, TestSize.Level0)
+{
+    CompanionStatus v2Candidate = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Candidate });
+
+    OnMessageReply messageCallback;
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(
+            Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply &&onReply) {
+                if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                    GetBindingSignatureChallengeReply challengeReply = {};
+                    challengeReply.result = ResultCode::TYPE_NOT_SUPPORT;
+                    Attributes replyAttributes;
+                    EncodeGetBindingSignatureChallengeReply(challengeReply, replyAttributes);
+                    onReply(replyAttributes);
+                    return true;
+                }
+                EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+                std::vector<uint16_t> protocols;
+                EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+                EXPECT_EQ(protocols,
+                    ProtocolIdConverter::ToUnderlyingVec(std::vector<ProtocolId> { ProtocolId::VERSION_1 }));
+                EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE));
+                EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE));
+                messageCallback = std::move(onReply);
+                return true;
+            }));
+
+    ResultCode received = SUCCESS;
+    auto request = MakeDefaultRequest([&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
+    ASSERT_NE(request, nullptr);
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(messageCallback != nullptr);
+    EXPECT_EQ(received, SUCCESS);
+}
+
+// A dispatched LOCKED reply is retryable: the round fails without invalidating the candidate.
+HWTEST_F(HostSyncDeviceStatusRequestTest, LockedChallengeReplyDoesNotInvalidateV2Candidate, TestSize.Level0)
+{
+    CompanionStatus v2Candidate = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Candidate });
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(Invoke([](const std::string &, MessageType, Attributes &, OnMessageReply &&onReply) {
+            GetBindingSignatureChallengeReply challengeReply = {};
+            challengeReply.result = ResultCode::LOCKED;
+            Attributes replyAttributes;
+            EncodeGetBindingSignatureChallengeReply(challengeReply, replyAttributes);
+            onReply(replyAttributes);
+            return true;
+        }));
+
+    ResultCode received = SUCCESS;
+    auto request = MakeDefaultRequest([&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
+    ASSERT_NE(request, nullptr);
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_EQ(received, LOCKED);
+}
+
+// A matched V2 binding answered with SUCCESS and an empty proof means the round is unverifiable:
+// the template is invalidated, the sync round itself still succeeds.
+HWTEST_F(HostSyncDeviceStatusRequestTest, V2BoundPeerEmptyProofInvalidates, TestSize.Level0)
+{
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    const std::vector<uint8_t> signature(64, 0xEE);
+    CompanionStatus v2Bound = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Bound });
+    ON_CALL(mockSecurityAgent_, HostBindingSign(_, _))
+        .WillByDefault(Invoke([&signature](const HostBindingSignInput &, HostBindingSignOutput &output) {
+            output.signature = signature;
+            return ResultCode::SUCCESS;
+        }));
+
+    OnMessageReply messageCallback;
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(Invoke([&](const std::string &, MessageType msgType, Attributes &, OnMessageReply &&onReply) {
+            if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                ReplyBindingSignatureChallenge(onReply, ResultCode::SUCCESS,
+                    UserKey { COMPANION_DEVICE_KEY.deviceUserId, COMPANION_DEVICE_KEY.deviceSubProfileId }, challenge);
+                return true;
+            }
+            EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+            messageCallback = std::move(onReply);
+            return true;
+        }));
+
+    bool succeeded = false;
+    auto request = MakeDefaultRequest(
+        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
+    ASSERT_NE(request, nullptr);
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillRepeatedly(Return(std::make_optional(v2Bound)));
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(v2Bound.templateId, "bound peer returned no proof")).Times(1);
+
+    request->OnConnected();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    ASSERT_TRUE(messageCallback);
+    auto replyData = MakeDefaultSyncDeviceStatusReply();
+    replyData.companionCheckResponse.clear();
+    Attributes reply;
+    EncodeSyncDeviceStatusReply(replyData, reply);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    messageCallback(reply);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(succeeded);
+}
+
+// A matched V2 identity overrides the trimmed base offer: the dispatched SYNC carries the full
+// host protocol list and the reply validates against that full list.
+HWTEST_F(HostSyncDeviceStatusRequestTest, MatchedV2IdentityRestoresFullOffer, TestSize.Level0)
+{
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    const std::vector<uint8_t> signature(64, 0xEE);
+    CompanionStatus v2Bound = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Bound });
+    ON_CALL(mockSecurityAgent_, HostBindingSign(_, _))
+        .WillByDefault(Invoke([&signature](const HostBindingSignInput &, HostBindingSignOutput &output) {
+            output.signature = signature;
+            return ResultCode::SUCCESS;
+        }));
+    auto profile = MakeDualProtocolProfile();
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    OnMessageReply messageCallback;
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(
+            Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply &&onReply) {
+                if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                    ReplyBindingSignatureChallenge(onReply, ResultCode::SUCCESS,
+                        UserKey { COMPANION_DEVICE_KEY.deviceUserId, COMPANION_DEVICE_KEY.deviceSubProfileId },
+                        challenge);
+                    return true;
+                }
+                EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+                std::vector<uint16_t> protocols;
+                EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+                EXPECT_EQ(protocols, ProtocolIdConverter::ToUnderlyingVec(profile.hostProtocols));
+                messageCallback = std::move(onReply);
+                return true;
+            }));
+
+    bool succeeded = false;
+    auto request = MakeDefaultRequest(
+        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
+    ASSERT_NE(request, nullptr);
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillRepeatedly(Return(std::make_optional(v2Bound)));
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
+        .WillOnce(Invoke([](const HostEndCompanionCheckInput &, HostEndCompanionCheckOutput &output) {
+            output.companionCapabilityList =
+                CapabilityConverter::ToUnderlyingVec(MakeDefaultSyncDeviceStatusReply().companionCapabilityList);
+            return SUCCESS;
+        }));
+
+    request->OnConnected();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    auto replyData = MakeDefaultSyncDeviceStatusReply();
+    replyData.companionProtocolIdList = { ProtocolId::VERSION_2 };
+    DeliverSyncReply(messageCallback, replyData);
+    EXPECT_TRUE(succeeded);
+}
+
+// An unmatched challenge identity with no local credential restores the full offer: the round is
+// discovery for the resolved identity and is not trimmed for another user's binding.
+HWTEST_F(HostSyncDeviceStatusRequestTest, UnmatchedChallengeIdentityRestoresFullOffer, TestSize.Level0)
+{
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    CompanionStatus v2Candidate = MakeV2CompanionStatus();
+    MakeStatusesVisible({ v2Candidate });
+    LocalDeviceProfile profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    OnMessageReply messageCallback;
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(
+            Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply &&onReply) {
+                if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                    ReplyBindingSignatureChallenge(onReply, ResultCode::SUCCESS,
+                        UserKey { 999, INVALID_SUB_PROFILE_ID }, challenge);
+                    return true;
+                }
+                EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+                std::vector<uint16_t> protocols;
+                EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+                EXPECT_EQ(protocols, ProtocolIdConverter::ToUnderlyingVec(profile.hostProtocols));
+                messageCallback = std::move(onReply);
+                return true;
+            }));
+
+    auto request = MakeDefaultRequest([](ResultCode, const SyncDeviceStatus &) {});
+    ASSERT_NE(request, nullptr);
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
+
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(messageCallback != nullptr);
+}
+
+// An unmatched identity that still maps to a local V1 credential keeps the trimmed {VERSION_1}
+// offer: the peer proves that binding and a legacy whole-list validation must not see V2.
+HWTEST_F(HostSyncDeviceStatusRequestTest, UnmatchedChallengeIdentityWithV1BindingKeepsTrimmedOffer, TestSize.Level0)
+{
+    const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0x5A);
+    CompanionStatus v2Candidate = MakeV2CompanionStatus();
+    CompanionStatus v1Bound = {};
+    v1Bound.templateId = 2;
+    v1Bound.hostUserKey = UserKey { HOST_USER_ID, INVALID_SUB_PROFILE_ID };
+    v1Bound.isValid = true;
+    v1Bound.enrolledProtocolId = ProtocolId::VERSION_1;
+    v1Bound.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    v1Bound.companionDeviceStatus.deviceKey.deviceUserId = 999;
+    v1Bound.companionDeviceStatus.deviceKey.deviceSubProfileId = INVALID_SUB_PROFILE_ID;
+    MakeStatusesVisible({ v2Candidate, v1Bound });
+    // the keyed identity lookup must hit the V1 row for the challenge-resolved user
+    ON_CALL(mockCompanionManager_, GetCompanionStatus(_, _))
+        .WillByDefault(Invoke([v1Bound](const UserKey &hostUserKey, const DeviceKey &deviceKey) {
+            return (v1Bound.hostUserKey == hostUserKey && v1Bound.companionDeviceStatus.deviceKey == deviceKey)
+                ? std::make_optional(v1Bound)
+                : std::nullopt;
+        }));
+    LocalDeviceProfile profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    OnMessageReply messageCallback;
+    ON_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillByDefault(
+            Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply &&onReply) {
+                if (msgType == MessageType::GET_BINDING_SIGNATURE_CHALLENGE) {
+                    ReplyBindingSignatureChallenge(onReply, ResultCode::SUCCESS,
+                        UserKey { 999, INVALID_SUB_PROFILE_ID }, challenge);
+                    return true;
+                }
+                EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+                std::vector<uint16_t> protocols;
+                EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+                EXPECT_EQ(protocols,
+                    ProtocolIdConverter::ToUnderlyingVec(std::vector<ProtocolId> { ProtocolId::VERSION_1 }));
+                messageCallback = std::move(onReply);
+                return true;
+            }));
+
+    auto request = MakeDefaultRequest([](ResultCode, const SyncDeviceStatus &) {});
+    ASSERT_NE(request, nullptr);
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
+
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(messageCallback != nullptr);
+}
+
+// Invalid credentials stay invalid: an invalid-only device holds no valid binding, so the
+// challenge gate stays shut and the round goes out as an unprotected full-offer discovery.
+HWTEST_F(HostSyncDeviceStatusRequestTest, InvalidOnlyBindingSendsDiscoveryRound, TestSize.Level0)
+{
+    CompanionStatus invalidated = MakeBoundCompanionStatus();
+    invalidated.isValid = false;
+    MakeStatusesVisible({ invalidated });
+    LocalDeviceProfile profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    OnMessageReply messageCallback;
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillOnce(Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply reply) {
+            EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+            std::vector<uint16_t> protocols;
+            EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+            EXPECT_EQ(protocols, ProtocolIdConverter::ToUnderlyingVec(profile.hostProtocols));
+            EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE));
+            EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE));
+            messageCallback = std::move(reply);
+            return true;
+        }));
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+    // the invalid credential resolves for the reply, but it must never be re-reported
+    // (no repeated system fault) and its flag must not flip
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(invalidated)));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    // only the valid-binding gate enumerates; the invalid credential drops out and no further scan follows
+    EXPECT_CALL(mockCompanionManager_, FilterCompanionStatus(_, _, _)).Times(1);
+
+    bool succeeded = false;
+    auto request = MakeDefaultRequest(
+        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
+    ASSERT_NE(request, nullptr);
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    ASSERT_TRUE(messageCallback);
+    auto replyData = MakeDefaultSyncDeviceStatusReply();
+    replyData.companionCheckResponse.clear();
+    Attributes reply;
+    EncodeSyncDeviceStatusReply(replyData, reply);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    messageCallback(reply);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(succeeded);
+}
+
+// Rule 10: two host users bound to the same watch user at different versions. Host user Y's
+// sync must not be hijacked by host user X's V2 candidate: the host-scoped scan only sees Y's
+// own V1 credential, so the round goes out unprotected in one message with the offer trimmed
+// to {VERSION_1} — no challenge roundtrip, no signing.
+HWTEST_F(HostSyncDeviceStatusRequestTest, MultiHostUserSyncNotHijackedByOtherHostsV2Candidate, TestSize.Level0)
+{
+    constexpr int32_t OTHER_HOST_USER_ID = 101;
+    UserKey yHostUser { OTHER_HOST_USER_ID, INVALID_SUB_PROFILE_ID };
+    CompanionStatus xBinding = MakeV2CompanionStatus();
+    CompanionStatus yBinding = {};
+    yBinding.templateId = 2;
+    yBinding.hostUserKey = yHostUser;
+    yBinding.isValid = true;
+    yBinding.enrolledProtocolId = ProtocolId::VERSION_1;
+    yBinding.companionDeviceStatus.deviceKey = COMPANION_DEVICE_KEY;
+    MakeStatusesVisible({ xBinding, yBinding });
+    auto profile = MakeDualProtocolProfile();
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    OnMessageReply messageCallback;
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillOnce(Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply reply) {
+            EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+            std::vector<uint16_t> protocols;
+            EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+            EXPECT_EQ(protocols, std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
+            EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE));
+            EXPECT_FALSE(request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE));
+            messageCallback = std::move(reply);
+            return true;
+        }));
+    EXPECT_CALL(mockSecurityAgent_, HostBindingSign(_, _)).Times(0);
+    // host-scoped valid gate and V1-only shortcut; X's V2 candidate is invisible to Y's scans
+    EXPECT_CALL(mockCompanionManager_, FilterCompanionStatus(_, _, _)).Times(2);
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(yHostUser, _))
+        .WillRepeatedly(Return(std::make_optional(yBinding)));
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
+        .WillOnce(Invoke([](const HostEndCompanionCheckInput &input, HostEndCompanionCheckOutput &output) {
+            EXPECT_EQ(input.templateId, 2);
+            output.companionCapabilityList =
+                CapabilityConverter::ToUnderlyingVec(MakeDefaultSyncDeviceStatusReply().companionCapabilityList);
+            return SUCCESS;
+        }));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+
+    bool succeeded = false;
+    auto request = std::make_shared<HostSyncDeviceStatusRequest>(yHostUser, COMPANION_DEVICE_KEY, CONNECTION_MODE,
+        SyncTriggerReason::EXTERNAL_REFRESH,
+        [&succeeded](ResultCode result, const SyncDeviceStatus &) { succeeded = result == SUCCESS; });
+    ASSERT_NE(request, nullptr);
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    DeliverSyncReply(messageCallback, MakeDefaultSyncDeviceStatusReply());
+    EXPECT_TRUE(succeeded);
+}
+
+// Card 9: the host holds no credential while the watch answers a discovery round over a
+// lingering V1 binding; the cache takes the announced full capability list (never empty) and
+// the negotiated value follows the actually-sent offer.
+HWTEST_F(HostSyncDeviceStatusRequestTest, DiscoveryRoundCachesFullAnnouncedCapabilities, TestSize.Level0)
+{
+    LocalDeviceProfile profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    profile.hostCapabilities.push_back(Capability::DELEGATE_AUTH);
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    OnMessageReply messageCallback;
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _))
+        .WillOnce(Invoke([&](const std::string &, MessageType msgType, Attributes &request, OnMessageReply reply) {
+            EXPECT_EQ(MessageType::SYNC_DEVICE_STATUS, msgType);
+            std::vector<uint16_t> protocols;
+            EXPECT_TRUE(request.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocols));
+            EXPECT_EQ(protocols, ProtocolIdConverter::ToUnderlyingVec(profile.hostProtocols));
+            messageCallback = std::move(reply);
+            return true;
+        }));
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+
+    bool succeeded = false;
+    std::vector<Capability> receivedCapabilities;
+    uint16_t selectedProtocolId = 0;
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        succeeded = result == SUCCESS;
+        receivedCapabilities = status.companionCapabilityList;
+        selectedProtocolId = status.selectedProtocolId;
+    });
+    ASSERT_NE(request, nullptr);
+    request->BeginCompanionCheck();
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    ASSERT_TRUE(messageCallback);
+    auto message = MakeDefaultSyncDeviceStatusReply();
+    message.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    message.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
+    Attributes reply;
+    EncodeSyncDeviceStatusReply(message, reply);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    messageCallback(reply);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(succeeded);
+    EXPECT_EQ(receivedCapabilities, (std::vector<Capability> { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH }));
+    EXPECT_EQ(selectedProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_1));
+}
+
+// A failed verification invalidates the credential, so the round concludes as a discovery round:
+// version and capabilities are published from the same discovery state, never a half-mix of an
+// authenticated version with an empty capability set.
+HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_CheckFailureConcludesAsDiscovery, TestSize.Level0)
+{
+    auto successCalled = std::make_shared<bool>(false);
+    std::vector<Capability> receivedCapabilities;
+    auto callback = [&successCalled, &receivedCapabilities](ResultCode result, const SyncDeviceStatus &status) {
+        if (result == ResultCode::SUCCESS) {
+            *successCalled = true;
+            receivedCapabilities = status.companionCapabilityList;
+        }
+    };
+    auto request = MakeDefaultRequest(std::move(callback));
+    request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
+    request->cancelCompanionCheckGuard_ = std::make_unique<ScopeGuard>([]() {});
+
+    auto syncDeviceStatusReply = MakeDefaultSyncDeviceStatusReply();
+    Attributes reply = MakeReplyAttributes(syncDeviceStatusReply);
+
+    auto bound = MakeBoundCompanionStatus();
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(bound.templateId, "sync companion check failed")).Times(1);
+
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_TRUE(*successCalled);
+    EXPECT_EQ(receivedCapabilities, syncDeviceStatusReply.companionCapabilityList);
+}
+
+// A credential invalidated mid-round must not publish a binding view, and no make-up message is
+// added: the round concludes from this very reply, with freshBinding computed over the FULL host
+// profile against the peer's complete support set — complete even though the round's offer was
+// narrowed to {V1} by the now-dead credential.
+HWTEST_F(HostSyncDeviceStatusRequestTest, InvalidatedRoundPublishesFreshBindingFromFullSupportSet, TestSize.Level0)
+{
+    LocalDeviceProfile profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    EXPECT_CALL(mockCrossDeviceCommManager_, SendMessage(_, _, _, _)).Times(0);
+
+    auto bound = MakeBoundCompanionStatus();
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(bound.templateId, "bound peer returned no proof")).Times(1);
+
+    bool succeeded = false;
+    std::vector<Capability> receivedCapabilities;
+    uint16_t selectedProtocolId = 0;
+    uint16_t freshBindingProtocolId = 0;
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        succeeded = result == SUCCESS;
+        receivedCapabilities = status.companionCapabilityList;
+        selectedProtocolId = status.selectedProtocolId;
+        freshBindingProtocolId = status.freshBindingProtocolId;
+    });
+    ASSERT_NE(request, nullptr);
+    // the failed round ran under a credential-restricted offer
+    request->sentProtocolIdList_ = { ProtocolId::VERSION_1 };
+
+    auto replyData = MakeDefaultSyncDeviceStatusReply();
+    replyData.companionCheckResponse.clear();
+    replyData.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
+    replyData.companionProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    Attributes reply;
+    EncodeSyncDeviceStatusReply(replyData, reply);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_TRUE(succeeded);
+    EXPECT_EQ(selectedProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_2));
+    EXPECT_EQ(freshBindingProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_2));
+    EXPECT_EQ(receivedCapabilities, (std::vector<Capability> { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH }));
+}
+
+// A re-validated binding pins selected at its enrolled version while freshBinding still reflects
+// the full support set: both values coexist in one snapshot (scenario: valid V1 binding, both
+// sides support V2).
+HWTEST_F(HostSyncDeviceStatusRequestTest, AuthenticatedRoundKeepsEnrolledWhileFreshBindingTracksFullSet,
+    TestSize.Level0)
+{
+    LocalDeviceProfile profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    auto bound = MakeBoundCompanionStatus();
+    bound.enrolledProtocolId = ProtocolId::VERSION_1;
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillOnce(Return(std::make_optional(bound)));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
+        .WillOnce(Invoke([](const HostEndCompanionCheckInput &, HostEndCompanionCheckOutput &output) {
+            output.companionCapabilityList = { static_cast<uint16_t>(Capability::TOKEN_AUTH) };
+            return SUCCESS;
+        }));
+
+    bool succeeded = false;
+    std::vector<Capability> receivedCapabilities;
+    uint16_t selectedProtocolId = 0;
+    uint16_t freshBindingProtocolId = 0;
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        succeeded = result == SUCCESS;
+        receivedCapabilities = status.companionCapabilityList;
+        selectedProtocolId = status.selectedProtocolId;
+        freshBindingProtocolId = status.freshBindingProtocolId;
+    });
+    ASSERT_NE(request, nullptr);
+    // V1-credential round: the offer was narrowed to {V1} before dispatch
+    request->sentProtocolIdList_ = { ProtocolId::VERSION_1 };
+
+    auto replyData = MakeDefaultSyncDeviceStatusReply();
+    replyData.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
+    replyData.companionProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    Attributes reply;
+    EncodeSyncDeviceStatusReply(replyData, reply);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_TRUE(succeeded);
+    EXPECT_EQ(selectedProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_1));
+    EXPECT_EQ(freshBindingProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_2));
+    // the authenticated capability set wins over the announcement for the binding view
+    EXPECT_EQ(receivedCapabilities, std::vector<Capability> { Capability::TOKEN_AUTH });
 }
 
 } // namespace

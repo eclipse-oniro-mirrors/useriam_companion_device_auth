@@ -21,6 +21,7 @@
 #include "iam_logger.h"
 
 #include "adapter_manager.h"
+#include "binding_signature_message.h"
 #include "common_message.h"
 #include "error_guard.h"
 #include "host_binding_manager.h"
@@ -129,7 +130,8 @@ bool CompanionIssueTokenRequest::CompanionPreIssueToken(std::vector<uint8_t> &pr
     desc_.SetBindingId(bindingId_);
     eventCollector_.SetBindingId(bindingId_);
 
-    return SecurityAgentPreIssueToken(preIssueTokenReply);
+    return SecurityAgentPreIssueToken(preIssueRequest.bindingSignatureProof.value_or(BindingSignatureProof {}),
+        preIssueTokenReply);
 }
 
 SecureProtocolId CompanionIssueTokenRequest::QuerySecureProtocolId()
@@ -147,9 +149,10 @@ std::optional<BindingId> CompanionIssueTokenRequest::QueryBindingIdFromHostBindi
     return hostBindingStatus->bindingId;
 }
 
-bool CompanionIssueTokenRequest::SecurityAgentPreIssueToken(std::vector<uint8_t> &preIssueTokenReply)
+bool CompanionIssueTokenRequest::SecurityAgentPreIssueToken(const BindingSignatureProof &bindingSignatureProof,
+    std::vector<uint8_t> &preIssueTokenReply)
 {
-    auto input = BuildCompanionPreIssueTokenInput();
+    auto input = BuildCompanionPreIssueTokenInput(bindingSignatureProof);
     CompanionPreIssueTokenOutput output = {};
     ResultCode ret = GetSecurityAgent().CompanionPreIssueToken(input, output);
     if (ret != ResultCode::SUCCESS) {
@@ -161,13 +164,15 @@ bool CompanionIssueTokenRequest::SecurityAgentPreIssueToken(std::vector<uint8_t>
     return true;
 }
 
-CompanionPreIssueTokenInput CompanionIssueTokenRequest::BuildCompanionPreIssueTokenInput() const
+CompanionPreIssueTokenInput CompanionIssueTokenRequest::BuildCompanionPreIssueTokenInput(
+    const BindingSignatureProof &bindingSignatureProof) const
 {
     CompanionPreIssueTokenInput input = {};
     input.requestId = GetRequestId();
     input.bindingId = bindingId_;
     input.secureProtocolId = secureProtocolId_;
     input.preIssueTokenRequest = preIssueTokenRequest_;
+    input.bindingSignatureProof = bindingSignatureProof;
     return input;
 }
 
@@ -214,7 +219,8 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
     const auto &issueRequest = *issueRequestOpt;
 
     std::vector<uint8_t> issueTokenReply;
-    ResultCode ret = SecurityAgentCompanionIssueToken(issueRequest.extraInfo, issueTokenReply);
+    ResultCode ret = SecurityAgentCompanionIssueToken(
+        issueRequest.bindingSignatureProof.value_or(BindingSignatureProof {}), issueRequest.extraInfo, issueTokenReply);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s SecurityAgentCompanionIssueToken failed", GetDescription());
         errorGuard.UpdateErrorCode(ret);
@@ -231,13 +237,16 @@ void CompanionIssueTokenRequest::HandleIssueTokenMessage(const Attributes &reque
     CompleteWithSuccess();
 }
 
-ResultCode CompanionIssueTokenRequest::SecurityAgentCompanionIssueToken(const std::vector<uint8_t> &issueTokenRequest,
+ResultCode CompanionIssueTokenRequest::SecurityAgentCompanionIssueToken(
+    const BindingSignatureProof &bindingSignatureProof, const std::vector<uint8_t> &issueTokenRequest,
     std::vector<uint8_t> &issueTokenReply)
 {
     IAM_LOGI("%{public}s start", GetDescription());
     CompanionProcessIssueTokenInput input = { .requestId = GetRequestId(),
+        .bindingId = bindingId_,
         .secureProtocolId = secureProtocolId_,
-        .issueTokenRequest = issueTokenRequest };
+        .issueTokenRequest = issueTokenRequest,
+        .bindingSignatureProof = bindingSignatureProof };
 
     CompanionProcessIssueTokenOutput output = {};
     ResultCode ret = GetSecurityAgent().CompanionProcessIssueToken(input, output);

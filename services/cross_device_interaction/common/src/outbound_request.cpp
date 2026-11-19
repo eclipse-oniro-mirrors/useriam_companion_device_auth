@@ -22,8 +22,11 @@
 #include "relative_timer.h"
 #include "request_aborted_message.h"
 #include "request_stages.h"
+#include "security_agent.h"
 #include "singleton_manager.h"
 #include "task_runner_manager.h"
+
+#include "host_binding_proof_obtainer.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_OUTBOUND_REQUEST
@@ -76,7 +79,7 @@ void OutboundRequest::BringPeerOnline()
         CompleteWithError(ResultCode::COMMUNICATION_ERROR);
         return;
     }
-    GetCrossDeviceCommManager().EnsureDeviceSynced(FromDeviceKey(peerDeviceKey),
+    GetCrossDeviceCommManager().EnsureDeviceSynced(peerDeviceKey.AsPhysical(),
         [weakSelf = GetWeakPtr()](ResultCode resultCode) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
@@ -146,6 +149,7 @@ void OutboundRequest::Destroy()
     connectionStatusSubscription_.reset();
     requestAbortedSubscription_.reset();
     peerDeviceSubscription_.reset();
+    bindingProofObtainer_.reset();
     CloseConnection();
     BaseRequest::Destroy();
 }
@@ -163,6 +167,69 @@ std::optional<DeviceKey> OutboundRequest::GetPeerDeviceKey() const
 const std::string &OutboundRequest::GetConnectionName() const
 {
     return connectionName_;
+}
+
+bool OutboundRequest::SendMessage(MessageType msgType, Attributes request, OnMessageReply &&onMessageReply)
+{
+    ENSURE_OR_RETURN_VAL(onMessageReply != nullptr, false);
+    bool needBindingSignature = HostBindingProofObtainer::NeedBindingSignature(msgType, GetTemplateId());
+    bool alreadySigned =
+        msgType == MessageType::SYNC_DEVICE_STATUS && request.HasAttribute(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE);
+    if (!needBindingSignature || alreadySigned) {
+        return GetCrossDeviceCommManager().SendMessage(GetConnectionName(), msgType, request,
+            std::move(onMessageReply));
+    }
+
+    if (bindingProofObtainer_ != nullptr && bindingProofObtainer_->AttachProof(request)) {
+        return GetCrossDeviceCommManager().SendMessage(GetConnectionName(), msgType, request,
+            std::move(onMessageReply));
+    }
+
+    auto templateId = GetTemplateId();
+    ENSURE_OR_RETURN_VAL(templateId.has_value(), false);
+    auto sharedRequest = std::make_shared<Attributes>(std::move(request));
+    ENSURE_OR_RETURN_VAL(sharedRequest != nullptr, false);
+    auto sharedReply = std::make_shared<OnMessageReply>(std::move(onMessageReply));
+    ENSURE_OR_RETURN_VAL(sharedReply != nullptr, false);
+
+    if (bindingProofObtainer_ == nullptr) {
+        bindingProofObtainer_ = std::make_shared<HostBindingProofObtainer>();
+        ENSURE_OR_RETURN_VAL(bindingProofObtainer_ != nullptr, false);
+    }
+
+    eventCollector_.EnterWait(CommonStages::WAIT_BINDING_SIGNATURE);
+    bindingProofObtainer_->ObtainAndAttach(GetConnectionName(), *templateId, msgType, sharedRequest,
+        [weakSelf = GetWeakPtr(), msgType, sharedRequest, sharedReply](ResultCode result) {
+            auto self = weakSelf.lock();
+            ENSURE_OR_RETURN(self != nullptr);
+            self->HandleBindingSignatureResult(msgType, sharedRequest, sharedReply, result);
+        });
+    return true;
+}
+
+void OutboundRequest::HandleBindingSignatureResult(MessageType msgType,
+    const std::shared_ptr<Attributes> &sharedRequest, const std::shared_ptr<OnMessageReply> &sharedReply,
+    ResultCode result)
+{
+    ENSURE_OR_RETURN(sharedRequest != nullptr);
+    ENSURE_OR_RETURN(sharedReply != nullptr);
+    if (IsFinished()) {
+        return;
+    }
+    eventCollector_.ExitWait(CommonStages::DONE_BINDING_SIGNATURE);
+    if (result != ResultCode::SUCCESS) {
+        IAM_LOGE("%{public}s acquire binding signature failed ret:%{public}d", GetDescription(),
+            static_cast<int32_t>(result));
+        CompleteWithError(result);
+        return;
+    }
+    // clang-format off
+    if (!GetCrossDeviceCommManager().SendMessage(GetConnectionName(), msgType, *sharedRequest,
+        std::move(*sharedReply))) {
+        // clang-format on
+        IAM_LOGE("%{public}s send signed message failed", GetDescription());
+        CompleteWithError(ResultCode::COMMUNICATION_ERROR);
+    }
 }
 
 bool OutboundRequest::OpenConnection()

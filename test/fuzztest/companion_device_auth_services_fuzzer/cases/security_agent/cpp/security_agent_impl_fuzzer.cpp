@@ -30,6 +30,7 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 const size_t SIZE_T_1024 = 1024;
+const size_t SIZE_T_128 = 128;
 constexpr int32_t INT32_10 = 10;
 constexpr int32_t INT32_32 = 32;
 constexpr uint32_t SIZE_64 = 64;
@@ -112,6 +113,14 @@ static void FuzzHostCancelCompanionCheck(std::shared_ptr<ISecurityAgent> &agent,
     agent->HostCancelCompanionCheck(input);
 }
 
+static BindingSignatureProof GenerateFuzzBindingSignatureProof(FuzzedDataProvider &fuzzData)
+{
+    BindingSignatureProof proof;
+    proof.challenge = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_128));
+    proof.signature = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_128));
+    return proof;
+}
+
 static void FuzzCompanionProcessCheck(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
 {
     CompanionProcessCheckInput input;
@@ -119,6 +128,7 @@ static void FuzzCompanionProcessCheck(std::shared_ptr<ISecurityAgent> &agent, Fu
     for (uint8_t i = 0; i < protocolCount; ++i) {
         input.companionProtocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
     }
+    input.bindingSignatureProof = GenerateFuzzBindingSignatureProof(fuzzData);
     CompanionProcessCheckOutput output;
     agent->CompanionProcessCheck(input, output);
 }
@@ -128,6 +138,7 @@ static void FuzzHostGetInitKeyNegotiationRequest(std::shared_ptr<ISecurityAgent>
     HostGetInitKeyNegotiationRequestInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
+    input.selectedProtocolId = static_cast<ProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     HostGetInitKeyNegotiationRequestOutput output;
     agent->HostGetInitKeyNegotiationRequest(input, output);
 }
@@ -264,6 +275,7 @@ static void FuzzCompanionBeginDelegateAuth(std::shared_ptr<ISecurityAgent> &agen
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.startDelegateAuthRequest =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
+    input.bindingSignatureProof = GenerateFuzzBindingSignatureProof(fuzzData);
     CompanionDelegateAuthBeginOutput output;
     agent->CompanionBeginDelegateAuth(input, output);
 }
@@ -323,6 +335,7 @@ static void FuzzCompanionPreIssueToken(std::shared_ptr<ISecurityAgent> &agent, F
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.preIssueTokenRequest =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
+    input.bindingSignatureProof = GenerateFuzzBindingSignatureProof(fuzzData);
     CompanionPreIssueTokenOutput output;
     agent->CompanionPreIssueToken(input, output);
 }
@@ -331,8 +344,10 @@ static void FuzzCompanionProcessIssueToken(std::shared_ptr<ISecurityAgent> &agen
 {
     CompanionProcessIssueTokenInput input;
     input.requestId = fuzzData.ConsumeIntegral<uint32_t>();
+    input.bindingId = fuzzData.ConsumeIntegral<uint32_t>();
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     input.issueTokenRequest = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
+    input.bindingSignatureProof = GenerateFuzzBindingSignatureProof(fuzzData);
     CompanionProcessIssueTokenOutput output;
     agent->CompanionProcessIssueToken(input, output);
 }
@@ -424,6 +439,7 @@ static void FuzzCompanionProcessTokenAuth(std::shared_ptr<ISecurityAgent> &agent
 {
     CompanionProcessTokenAuthInput input;
     input.tokenAuthRequest = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_1024));
+    input.bindingSignatureProof = GenerateFuzzBindingSignatureProof(fuzzData);
     CompanionProcessTokenAuthOutput output;
     agent->CompanionProcessTokenAuth(input, output);
 }
@@ -487,6 +503,29 @@ static void FuzzHostRefreshToken(std::shared_ptr<ISecurityAgent> &agent, FuzzedD
     agent->HostRefreshToken(input, output);
 }
 
+static void FuzzHostBindingSign(std::shared_ptr<ISecurityAgent> &agent, FuzzedDataProvider &fuzzData)
+{
+    HostBindingSignInput input;
+    input.templateId = fuzzData.ConsumeIntegral<uint64_t>();
+    input.challenge = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_128));
+    HostBindingSignOutput output;
+    agent->HostBindingSign(input, output);
+}
+
+static void FuzzCompanionGenerateBindingSignatureChallenge(std::shared_ptr<ISecurityAgent> &agent,
+    FuzzedDataProvider &fuzzData)
+{
+    CompanionGenerateBindingSignatureChallengeOutput output;
+    agent->CompanionGenerateBindingSignatureChallenge(output);
+}
+
+static void FuzzCompanionPurgeBindingSignatureChallenge(std::shared_ptr<ISecurityAgent> &agent,
+    FuzzedDataProvider &fuzzData)
+{
+    auto challengeBytes = fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<size_t>(0, SIZE_T_128));
+    agent->CompanionPurgeBindingSignatureChallenge(challengeBytes);
+}
+
 static const SecurityAgentFuzzFunction g_fuzzFuncs[] = {
     FuzzSetActiveUser,
     FuzzHostGetExecutorInfo,
@@ -533,6 +572,9 @@ static const SecurityAgentFuzzFunction g_fuzzFuncs[] = {
     FuzzHostUpdateCompanionEnabledBusinessIds,
     FuzzHostCheckTemplateEnrolled,
     FuzzHostRefreshToken,
+    FuzzHostBindingSign,
+    FuzzCompanionGenerateBindingSignatureChallenge,
+    FuzzCompanionPurgeBindingSignatureChallenge,
 };
 
 constexpr uint8_t NUM_FUZZ_OPERATIONS = sizeof(g_fuzzFuncs) / sizeof(FuzzFunction);

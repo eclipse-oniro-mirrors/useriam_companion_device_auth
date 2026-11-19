@@ -32,12 +32,14 @@ use crate::entry::companion_device_auth_ffi::{
 };
 use crate::jobs::companion_device_db_helper;
 use crate::log_i;
-use crate::request::enroll::enroll_message::{SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply};
+use crate::request::enroll::enroll_message::{
+    SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply, SecKeyNegoRequest,
+};
 use crate::request::enroll::host_enroll::{HostDeviceEnrollRequest, KeyNegotialParam};
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceKeyMaterial, DeviceKey, UserInfo, UserKey};
+use crate::traits::db_manager::{CompanionDevice, CompanionDeviceSk, DeviceKey, UserInfo, UserKey};
 use crate::traits::misc_manager::{MiscManagerRegistry, MockMiscManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::traits::time_keeper::{MockTimeKeeper, TimeKeeperRegistry};
@@ -66,6 +68,7 @@ fn create_valid_key_nego_reply(challenge: u64) -> Vec<u8> {
             kdf_algorithm: 1,
             aead_algorithm: 1,
             mac_algorithm: 1,
+            binding_signature_algorithm: None,
         },
         challenge,
         pub_key: vec![1u8, 2, 3, 4, 5],
@@ -89,6 +92,34 @@ fn create_binding_reply_with_selected_algorithms(
         esl,
         selected_algorithms,
         crate::common::algorithm::get_supported_algorithms(),
+        0,
+    )
+}
+
+// Valid reply carrying a maxAtl announcement in the encrypted inner.
+fn create_valid_binding_reply_with_max_atl(
+    device_id: &str,
+    user_id: i32,
+    protocol: &[u16],
+    capability: &[u16],
+    esl: i32,
+    max_atl: i32,
+) -> Vec<u8> {
+    create_binding_reply_with_companion_algorithms(
+        device_id,
+        user_id,
+        protocol,
+        capability,
+        esl,
+        SelectedAlgorithms {
+            ka_algorithm: KaAlgoType::X25519 as u16,
+            kdf_algorithm: KdfAlgoType::HkdfSha256 as u16,
+            aead_algorithm: AeadAlgoType::Aes256Gcm as u16,
+            mac_algorithm: MacAlgoType::HmacSha256 as u16,
+            binding_signature_algorithm: None,
+        },
+        crate::common::algorithm::get_supported_algorithms(),
+        max_atl,
     )
 }
 
@@ -100,12 +131,14 @@ fn create_binding_reply_with_companion_algorithms(
     esl: i32,
     selected_algorithms: SelectedAlgorithms,
     companion_supported_algorithms: crate::common::algorithm::CryptoAlgorithms,
+    max_atl: i32,
 ) -> Vec<u8> {
     let reply_info = SecBindingReplyInfo {
         device_id: device_id.to_string(),
         user_key: UserKey { user_id, sub_profile_id: 0 },
         esl,
         track_ability_level: 0,
+        companion_max_atl: max_atl,
         challenge: 0,
         companion_protocol_list: protocol.to_vec(),
         companion_capability_list: capability.to_vec(),
@@ -139,6 +172,7 @@ fn create_valid_binding_reply(
             kdf_algorithm: KdfAlgoType::HkdfSha256 as u16,
             aead_algorithm: AeadAlgoType::Aes256Gcm as u16,
             mac_algorithm: MacAlgoType::HmacSha256 as u16,
+            binding_signature_algorithm: None,
         },
     )
 }
@@ -160,6 +194,31 @@ fn create_binding_reply_without_capability(device_id: &str, user_id: i32, protoc
     reply.encode(ProcessorType::Default).unwrap()
 }
 
+// Legacy layout (2026-10-14 baseline companion) 0x0303 encrypted reply: legacy fields only (no
+// selected-algorithm restatement, no support lists, no maxAtl).
+fn create_old_format_binding_reply(
+    device_id: &str,
+    user_id: i32,
+    protocol: &[u16],
+    capability: &[u16],
+    esl: i32,
+) -> Vec<u8> {
+    let mut attribute = Attribute::new();
+    attribute.set_string(AttributeKey::AttrDeviceId, device_id.to_string());
+    attribute.set_i32(AttributeKey::AttrUserId, user_id);
+    attribute.set_i32(AttributeKey::AttrSubProfileId, 0);
+    attribute.set_i32(AttributeKey::AttrEsl, esl);
+    attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, 0);
+    attribute.set_u64(AttributeKey::AttrHostChallenge, 0);
+    attribute.set_u16_slice(AttributeKey::AttrProtocolList, protocol);
+    attribute.set_u16_slice(AttributeKey::AttrCapabilityList, capability);
+
+    let encrypt_data = attribute.to_bytes().unwrap();
+    let reply =
+        SecBindingReply { challenge: 0, tag: [2u8; AES_GCM_TAG_SIZE], iv: [3u8; AES_GCM_IV_SIZE], encrypt_data };
+    reply.encode(ProcessorType::Default).unwrap()
+}
+
 fn create_key_negotial_param() -> KeyNegotialParam {
     KeyNegotialParam {
         processor_type: ProcessorType::Default,
@@ -168,6 +227,7 @@ fn create_key_negotial_param() -> KeyNegotialParam {
             kdf_algorithm: 1,
             aead_algorithm: 1,
             mac_algorithm: 1,
+            binding_signature_algorithm: None,
         },
         companion_challenge: 0,
         key_pair: Some(create_mock_key_pair()),
@@ -177,7 +237,7 @@ fn create_key_negotial_param() -> KeyNegotialParam {
 
 // Host protocol list (priority-ordered) announced inside the encrypted binding
 // request; begin() rejects an empty list.
-fn create_host_protocol_list_ffi() -> Uint16Array64Ffi {
+fn create_host_protocol_id_list_ffi() -> Uint16Array64Ffi {
     let mut list = Uint16Array64Ffi::default();
     list.data[0] = PROTOCOL_VERSION_1;
     list.len = 1;
@@ -220,6 +280,7 @@ fn mock_enrolled_device() -> CompanionDevice {
         enrolled_capability_list: vec![1, 2, 3],
         enrolled_protocol_id: 1,
         secure_protocol_id: 0,
+        max_auth_trust_level: AuthTrustLevel::Atl0,
     }
 }
 
@@ -232,7 +293,7 @@ fn host_enroll_request_prepare_test_wrong_input_type() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -251,7 +312,7 @@ fn host_enroll_request_prepare_test_secure_protocol_id_try_from_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 100 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 100, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -270,7 +331,7 @@ fn host_enroll_request_prepare_test_secure_protocol_id_invalid() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 0 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 0, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -299,7 +360,7 @@ fn host_enroll_request_begin_test_wrong_input_type() {
         .returning(|_, _| Ok(AesGcmResult { ciphertext: Vec::new(), authentication_tag: [0u8; 16] }));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -313,8 +374,7 @@ fn host_enroll_request_begin_test_wrong_input_type() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -337,7 +397,7 @@ fn host_enroll_request_begin_test_schedule_id_mismatch() {
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -350,8 +410,7 @@ fn host_enroll_request_begin_test_schedule_id_mismatch() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -374,7 +433,7 @@ fn host_enroll_request_begin_test_atl_try_from_fail() {
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -387,8 +446,7 @@ fn host_enroll_request_begin_test_atl_try_from_fail() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -407,7 +465,7 @@ fn host_enroll_request_begin_test_capability_value_not_support() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -424,8 +482,7 @@ fn host_enroll_request_begin_test_capability_value_not_support() {
         fwk_message: DataArray1024Ffi::default(),
         secure_protocol_id: 1,
         host_capability_list,
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -448,7 +505,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_try_from_fail() {
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 100 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 100, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -461,8 +518,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_try_from_fail() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -485,7 +541,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_invalid() {
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 0 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 0, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -498,8 +554,7 @@ fn host_enroll_request_begin_test_secure_protocol_id_invalid() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -522,7 +577,7 @@ fn host_enroll_request_begin_test_sec_message_decode_fail() {
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -535,8 +590,7 @@ fn host_enroll_request_begin_test_sec_message_decode_fail() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -560,7 +614,7 @@ fn host_enroll_request_begin_test_generate_key_pair_fail() {
     mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -575,8 +629,7 @@ fn host_enroll_request_begin_test_generate_key_pair_fail() {
         fwk_message: DataArray1024Ffi::try_from(fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -601,7 +654,7 @@ fn host_enroll_request_begin_test_x25519_ecdh_fail() {
     mock_crypto_engine.expect_x25519_ecdh().returning(|| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -616,8 +669,7 @@ fn host_enroll_request_begin_test_x25519_ecdh_fail() {
         fwk_message: DataArray1024Ffi::try_from(fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -643,7 +695,7 @@ fn host_enroll_request_begin_test_hkdf_fail() {
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -658,8 +710,7 @@ fn host_enroll_request_begin_test_hkdf_fail() {
         fwk_message: DataArray1024Ffi::try_from(fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -686,7 +737,7 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -701,8 +752,7 @@ fn host_enroll_request_begin_test_encrypt_sec_message_fail() {
         fwk_message: DataArray1024Ffi::try_from(fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -721,7 +771,7 @@ fn host_enroll_request_end_test_wrong_input_type() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -733,8 +783,7 @@ fn host_enroll_request_end_test_wrong_input_type() {
         fwk_message: DataArray1024Ffi::default(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::default(),
     };
 
@@ -753,12 +802,12 @@ fn host_enroll_request_end_test_sec_message_decode_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
 
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
@@ -776,7 +825,6 @@ fn host_enroll_request_end_test_sec_message_decode_fail() {
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
-
 #[test]
 fn host_enroll_request_end_test_hkdf_fail() {
     let _guard = ut_registry_guard!();
@@ -787,12 +835,12 @@ fn host_enroll_request_end_test_hkdf_fail() {
     mock_crypto_engine.expect_hkdf().returning(|_, _| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -829,12 +877,12 @@ fn host_enroll_request_end_test_decrypt_sec_message_fail() {
     mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_| Err(ErrorCode::GeneralError));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -867,13 +915,13 @@ fn host_enroll_request_end_test_device_id_mismatch() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
 
     let sec_message = create_valid_binding_reply(
         "wrong_device",
@@ -906,13 +954,13 @@ fn host_enroll_request_end_test_user_id_mismatch() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -945,13 +993,13 @@ fn host_enroll_request_end_test_protocol_list_mismatch() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -986,15 +1034,15 @@ fn host_enroll_request_end_test_protocol_recompute_divergence_rejected() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     // Host priority order prefers protocol 2; the companion's selection is protocol 1.
-    request.host_protocol_list = vec![2u16, PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![2u16, PROTOCOL_VERSION_1];
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -1020,7 +1068,8 @@ fn host_enroll_request_end_test_protocol_recompute_divergence_rejected() {
     assert_eq!(result, Err(ErrorCode::ProtocolNegotiationFailed));
 }
 
-// A tampered selected-algorithms echo (not matching the plaintext key nego reply) fails with 20015.
+// A tampered selected-algorithms echo (not matching the plaintext key nego reply) fails with
+// 20015. V2 peers only: a V1 (2026-10-14 baseline) peer restates nothing and the check is skipped.
 #[test]
 fn host_enroll_request_end_test_selected_algorithms_mismatch() {
     let _guard = ut_registry_guard!();
@@ -1028,18 +1077,18 @@ fn host_enroll_request_end_test_selected_algorithms_mismatch() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_2];
 
     let sec_message = create_binding_reply_with_selected_algorithms(
         "companion_device",
         100,
-        &[PROTOCOL_VERSION_1],
+        &[PROTOCOL_VERSION_2],
         ALL_CAPABILITIES,
         ExecutorSecurityLevel::Esl2 as i32,
         SelectedAlgorithms {
@@ -1047,12 +1096,13 @@ fn host_enroll_request_end_test_selected_algorithms_mismatch() {
             kdf_algorithm: KdfAlgoType::HkdfSha256 as u16,
             aead_algorithm: AeadAlgoType::Aes256Gcm as u16,
             mac_algorithm: MacAlgoType::HmacSha256 as u16,
+            binding_signature_algorithm: None,
         },
     );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi {
-            enrolled_protocol_id: PROTOCOL_VERSION_1,
+            enrolled_protocol_id: PROTOCOL_VERSION_2,
             ..Default::default()
         },
         secure_protocol_id: 1,
@@ -1066,7 +1116,8 @@ fn host_enroll_request_end_test_selected_algorithms_mismatch() {
     assert_eq!(result, Err(ErrorCode::AlgorithmNegotiationFailed));
 }
 
-// The recompute candidate set is host ∩ companion: an announced set with no overlap fails with 20015.
+// The recompute candidate set is host ∩ companion: an announced set with no overlap fails with
+// 20015 (V2 peers; the V1 old-format peer skips the recompute, see the tolerated test below).
 #[test]
 fn host_enroll_request_end_test_companion_support_set_without_intersection_rejected() {
     let _guard = ut_registry_guard!();
@@ -1074,18 +1125,18 @@ fn host_enroll_request_end_test_companion_support_set_without_intersection_rejec
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_2];
 
     let sec_message = create_binding_reply_with_companion_algorithms(
         "companion_device",
         100,
-        &[PROTOCOL_VERSION_1],
+        &[PROTOCOL_VERSION_2],
         ALL_CAPABILITIES,
         ExecutorSecurityLevel::Esl2 as i32,
         SelectedAlgorithms {
@@ -1093,6 +1144,7 @@ fn host_enroll_request_end_test_companion_support_set_without_intersection_rejec
             kdf_algorithm: KdfAlgoType::HkdfSha256 as u16,
             aead_algorithm: AeadAlgoType::Aes256Gcm as u16,
             mac_algorithm: MacAlgoType::HmacSha256 as u16,
+            binding_signature_algorithm: None,
         },
         crate::common::algorithm::CryptoAlgorithms {
             ka_algorithms: vec![UNOFFERED_ALGORITHM],
@@ -1100,6 +1152,78 @@ fn host_enroll_request_end_test_companion_support_set_without_intersection_rejec
             aead_algorithms: vec![AeadAlgoType::Aes256Gcm as u16],
             mac_algorithms: vec![MacAlgoType::HmacSha256 as u16],
         },
+        0,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_2,
+            ..Default::default()
+        },
+        secure_protocol_id: 1,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::AlgorithmNegotiationFailed));
+}
+
+// Legacy layout (2026-10-14 baseline companion) 0x0303 encrypted reply restates neither the
+// selected algorithm, support lists, nor maxAtl: with negotiated protocol V1 the recompute
+// comparison is skipped and the binding completes under legacy behavior (AGENTS.md rules 2/12).
+#[test]
+fn host_enroll_request_end_test_old_format_v1_tolerated() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_old_format_v1_tolerated start");
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
+        Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
+    });
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+    mock_set_misc_manager();
+    mock_set_time_keeper();
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
+    mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
+    mock_companion_device_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        }]));
+    let added_devices = mock_companion_device_db_manager.added_devices();
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_key_negotial_param());
+    request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
+    request.acl = AuthCapabilityLevel::Acl2;
+
+    let sec_message = create_old_format_binding_reply(
+        "companion_device",
+        100,
+        &[PROTOCOL_VERSION_1],
+        ALL_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
     );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
@@ -1115,7 +1239,10 @@ fn host_enroll_request_end_test_companion_support_set_without_intersection_rejec
     let mut output = HostEndAddCompanionOutputFfi::default();
     let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
-    assert_eq!(result, Err(ErrorCode::AlgorithmNegotiationFailed));
+    assert_eq!(result, Ok(()));
+    // SK rows keep the section algorithms negotiated over the plaintext 0x0301 channel.
+    assert_eq!(added_devices.borrow().len(), 1);
+    assert_eq!(added_devices.borrow()[0].enrolled_protocol_id, PROTOCOL_VERSION_1);
 }
 
 // The companion announces its local set as-is; values beyond the host offer are cut by the
@@ -1145,27 +1272,23 @@ fn host_enroll_request_end_test_capability_beyond_offer_clamped() {
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     let added_devices = mock_companion_device_db_manager.added_devices();
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = [Capability::TokenAuth as u16, Capability::Invalid as u16].to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     // TokenAuth is covered by the offer, Invalid is not: the selection keeps only TokenAuth.
@@ -1203,13 +1326,13 @@ fn host_enroll_request_end_test_unsupported_selected_protocol() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
 
     let sec_message = create_valid_binding_reply(
         "companion_device",
@@ -1260,26 +1383,23 @@ fn host_enroll_request_end_test_empty_capability_list() {
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     let added_devices = mock_companion_device_db_manager.added_devices();
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     let sec_message = create_valid_binding_reply(
@@ -1338,32 +1458,28 @@ fn host_enroll_request_end_test_capability_strict_subset_passes() {
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     let added_devices = mock_companion_device_db_manager.added_devices();
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     // Unordered subset of the offer with a duplicate entry.
     let negotiated = [Capability::TokenAuth as u16, Capability::DelegateAuth as u16,
         Capability::TokenAuth as u16];
-    request.companion_capability_list = negotiated.to_vec();
     let sec_message = create_valid_binding_reply(
         "companion_device",
         100,
@@ -1412,25 +1528,22 @@ fn host_enroll_request_end_test_capability_absent_fails() {
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     let sec_message =
@@ -1463,13 +1576,13 @@ fn host_enroll_request_end_test_capability_diverges_across_processor_types() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     // Simulate what an earlier processor type already negotiated.
     request.negotiated_capability_list = Some(vec![Capability::DelegateAuth as u16]);
 
@@ -1506,14 +1619,13 @@ fn host_enroll_request_end_test_secure_random_fail() {
     mock_crypto_engine.expect_secure_random().returning(|_| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
 
     mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Err(ErrorCode::GeneralError));
@@ -1560,14 +1672,13 @@ fn host_enroll_request_end_test_get_rtc_time_fail() {
     mock_time_keeper.expect_get_rtc_time().returning(|| Err(ErrorCode::GeneralError));
     TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl0;
 
     let sec_message = create_valid_binding_reply(
@@ -1619,14 +1730,13 @@ fn host_enroll_request_end_test_add_device_fail() {
     mock_companion_device_db_manager.expect_add_device().returning(|| Err(ErrorCode::GeneralError));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     let sec_message = create_valid_binding_reply(
@@ -1676,17 +1786,17 @@ fn host_enroll_request_end_test_add_token_fail() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
     mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_remove_device().returning(|| Ok(mock_enrolled_device()));
     mock_companion_device_db_manager.expect_add_token().returning(|| Err(ErrorCode::GeneralError));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     let sec_message = create_valid_binding_reply(
@@ -1736,6 +1846,7 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
     mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_remove_device().returning(|| Ok(mock_enrolled_device()));
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
@@ -1743,14 +1854,13 @@ fn host_enroll_request_end_test_fwk_message_encode_fail() {
     mock_misc_manager.expect_get_local_key_pair().returning(|| Err(ErrorCode::GeneralError));
     MiscManagerRegistry::set(Box::new(mock_misc_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     let sec_message = create_valid_binding_reply(
@@ -1790,18 +1900,18 @@ fn host_enroll_request_end_test_get_session_key_fail() {
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(mock_enrolled_device()));
     mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
     mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_remove_device().returning(|| Ok(mock_enrolled_device()));
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     mock_companion_device_db_manager.expect_read_device_sk().returning(|| Err(ErrorCode::NotFound));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     let sec_message = create_valid_binding_reply(
@@ -1848,29 +1958,26 @@ fn host_enroll_request_end_test_encrypt_issue_token_fail() {
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(mock_enrolled_device()));
     mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
     mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_remove_device().returning(|| Ok(mock_enrolled_device()));
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     let sec_message = create_valid_binding_reply(
@@ -1913,14 +2020,13 @@ fn host_enroll_request_end_test_higher_version_companion_accepted() {
         .returning(|| Err(ErrorCode::NotFound));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     // The companion advertises a newer protocol on top of the negotiated one (accepted: the
@@ -1986,29 +2092,26 @@ fn host_enroll_request_end_test_capability_echo_subset_persists_intersection() {
         .returning(move || devices_for_read.borrow().last().cloned().ok_or(ErrorCode::NotFound));
     mock_companion_device_db_manager
         .expect_read_device_sk()
-        .returning(|| Ok(vec![CompanionDeviceKeyMaterial {
+        .returning(|| Ok(vec![CompanionDeviceSk {
             processor_type: ProcessorType::Default,
             sk: [0u8; SHARE_KEY_LEN],
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-            },
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
         }]));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let input = HostGetInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: SecureProtocolId::Default as u16,
+        selected_protocol_id: 1,
     };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", COMPANION_USER_ID);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.companion_capability_list = [Capability::TokenAuth as u16].to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
     request.acl = AuthCapabilityLevel::Acl2;
 
     // Discovery offered all capabilities, but the authenticated reply grants only token auth.
@@ -2023,6 +2126,7 @@ fn host_enroll_request_end_test_capability_echo_subset_persists_intersection() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi {
             enrolled_protocol_id: PROTOCOL_VERSION_1,
+            max_auth_trust_level: AuthTrustLevel::Atl3 as i32,
             ..Default::default()
         },
         secure_protocol_id: SecureProtocolId::Default as u16,
@@ -2037,6 +2141,7 @@ fn host_enroll_request_end_test_capability_echo_subset_persists_intersection() {
     assert_eq!(added_devices.borrow().len(), 1);
     let persisted_device = added_devices.borrow()[0].clone();
     assert_eq!(persisted_device.template_id, TEMPLATE_ID);
+    assert_eq!(persisted_device.max_auth_trust_level, AuthTrustLevel::Atl3);
     assert_eq!(output.template_id, TEMPLATE_ID);
     assert!(!output.fwk_message.as_slice().unwrap().is_empty());
     assert!(!output.sec_message.as_slice().unwrap().is_empty());
@@ -2046,6 +2151,171 @@ fn host_enroll_request_end_test_capability_echo_subset_persists_intersection() {
     let mut reloaded_db_manager = MockCompanionDeviceDbManager::new();
     reloaded_db_manager.expect_get_device().returning(move || Ok(persisted_device.clone()));
     CompanionDeviceDbManagerRegistry::set(Box::new(reloaded_db_manager));
+}
+
+#[test]
+fn host_enroll_request_end_test_invalid_max_auth_trust_level_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_invalid_max_auth_trust_level_rejected start");
+
+    const COMPANION_USER_ID: i32 = 100;
+
+    mock_set_time_keeper();
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|result| Ok(result.ciphertext.clone()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    let added_devices = mock_companion_device_db_manager.added_devices();
+    mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi {
+        request_id: 1,
+        secure_protocol_id: SecureProtocolId::Default as u16,
+        selected_protocol_id: 1,
+    };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", COMPANION_USER_ID);
+    request.key_negotial_param.push(create_key_negotial_param());
+    request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
+
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        COMPANION_USER_ID,
+        &[PROTOCOL_VERSION_1],
+        ALL_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_1,
+            max_auth_trust_level: 12345,
+            ..Default::default()
+        },
+        secure_protocol_id: SecureProtocolId::Default as u16,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::BadParam));
+    assert_eq!(added_devices.borrow().len(), 0);
+}
+
+// The encrypted binding reply carries AttrMaxAtl: an announcement agreeing with the
+// FFI-relayed sync cache persists; a tier change between the last sync and this enroll
+// fails the round (20014); an invalid carried value fails the binding; a legacy reply
+// without the attribute falls back to the FFI value.
+#[test]
+fn host_enroll_request_end_test_companion_max_atl_announcement() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_companion_max_atl_announcement start");
+
+    const TEMPLATE_ID: u64 = 123;
+    const COMPANION_USER_ID: i32 = 100;
+
+    mock_set_time_keeper();
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|result| Ok(result.ciphertext.clone()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|bytes, _| Ok(AesGcmResult::new(bytes.to_vec(), [0u8; AES_GCM_TAG_SIZE])));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    let added_devices = mock_companion_device_db_manager.added_devices();
+    let devices_for_read = added_devices.clone();
+    mock_companion_device_db_manager
+        .expect_generate_unique_template_id()
+        .returning(|| Ok(TEMPLATE_ID));
+    mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
+    mock_companion_device_db_manager
+        .expect_get_device()
+        .returning(move || devices_for_read.borrow().last().cloned().ok_or(ErrorCode::NotFound));
+    mock_companion_device_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        }]));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let run_end = |max_atl_on_wire: i32, max_atl_from_ffi: i32| -> (Result<(), ErrorCode>, Option<CompanionDevice>) {
+        let input = HostGetInitKeyNegotiationInputFfi {
+            request_id: 1,
+            secure_protocol_id: SecureProtocolId::Default as u16,
+            selected_protocol_id: 1,
+        };
+        let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+        request.enroll_param.companion_device_key = create_device_key("companion_device", COMPANION_USER_ID);
+        request.key_negotial_param.push(create_key_negotial_param());
+        request.host_capability_list = ALL_CAPABILITIES.to_vec();
+        request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
+        request.acl = AuthCapabilityLevel::Acl2;
+
+        let sec_message = create_valid_binding_reply_with_max_atl(
+            "companion_device",
+            COMPANION_USER_ID,
+            &[PROTOCOL_VERSION_1],
+            &[Capability::TokenAuth as u16],
+            ExecutorSecurityLevel::Esl2 as i32,
+            max_atl_on_wire,
+        );
+        let end_input = HostEndAddCompanionInputFfi {
+            request_id: 1,
+            companion_status: PersistedCompanionStatusFfi {
+                enrolled_protocol_id: PROTOCOL_VERSION_1,
+                max_auth_trust_level: max_atl_from_ffi,
+                ..Default::default()
+            },
+            secure_protocol_id: SecureProtocolId::Default as u16,
+            supported_business_ids: Int32Array64Ffi::default(),
+            sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        };
+        let mut output = HostEndAddCompanionOutputFfi::default();
+        let result = request.end(RequestParam::HostEnrollEnd(&end_input, &mut output));
+        let persisted = added_devices.borrow().last().cloned();
+        (result, persisted)
+    };
+
+    // Agreeing announcement persists the announced tier.
+    let (result, persisted) = run_end(AuthTrustLevel::Atl2 as i32, AuthTrustLevel::Atl2 as i32);
+    assert_eq!(result, Ok(()));
+    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl2);
+
+    // Tier changed between the last sync and this enroll: fail the round.
+    let (result, persisted) = run_end(AuthTrustLevel::Atl2 as i32, AuthTrustLevel::Atl3 as i32);
+    assert_eq!(result, Err(ErrorCode::CapabilityNegotiationFailed));
+    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl2);
+
+    // Invalid carried value fails the binding.
+    let (result, persisted) = run_end(12345, AuthTrustLevel::Atl3 as i32);
+    assert_eq!(result, Err(ErrorCode::BadParam));
+    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl2);
+
+    // Legacy reply without the attribute falls back to the FFI value.
+    let (result, persisted) = run_end(0, AuthTrustLevel::Atl4 as i32);
+    assert_eq!(result, Ok(()));
+    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl4);
 }
 
 #[test]
@@ -2061,7 +2331,7 @@ fn host_enroll_request_begin_test_selected_algorithm_not_offered() {
     mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
 
@@ -2072,6 +2342,7 @@ fn host_enroll_request_begin_test_selected_algorithm_not_offered() {
             kdf_algorithm: 1,
             aead_algorithm: 1,
             mac_algorithm: 1,
+            binding_signature_algorithm: None,
         },
         challenge: 0,
         pub_key: vec![1u8, 2, 3, 4, 5],
@@ -2085,8 +2356,7 @@ fn host_enroll_request_begin_test_selected_algorithm_not_offered() {
         fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
         secure_protocol_id: 1,
         host_capability_list: Uint16Array64Ffi::default(),
-        host_protocol_list: create_host_protocol_list_ffi(),
-        companion_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
 
@@ -2103,13 +2373,13 @@ fn host_enroll_request_end_test_empty_reply_protocol_list_rejected() {
 
     mock_set_crypto_engine();
 
-    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1 };
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
 
     let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
     request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
     request.key_negotial_param.push(create_key_negotial_param());
     request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_list = vec![PROTOCOL_VERSION_1];
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
 
     // A higher-version or degenerate companion replying with no protocol at all must be rejected;
     // the host's expected list can never be covered by an empty offer.
@@ -2135,4 +2405,889 @@ fn host_enroll_request_end_test_empty_reply_protocol_list_rejected() {
     let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
     let result = request.end(param);
     assert_eq!(result, Err(ErrorCode::ProtocolNegotiationFailed));
+}
+
+// ===================== protocol V2 binding-signature tests =====================
+
+fn create_binding_reply_with_encrypt_data(encrypt_data: Vec<u8>) -> Vec<u8> {
+    let reply =
+        SecBindingReply { challenge: 0, tag: [2u8; AES_GCM_TAG_SIZE], iv: [3u8; AES_GCM_IV_SIZE], encrypt_data };
+    reply.encode(ProcessorType::Default).unwrap()
+}
+
+fn create_key_nego_reply_with_binding_signature_selection(binding_signature_algorithm: Option<u16>) -> Vec<u8> {
+    let reply = SecKeyNegoReply {
+        selected_algorithms: SelectedAlgorithms {
+            ka_algorithm: KaAlgoType::X25519 as u16,
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+            binding_signature_algorithm,
+        },
+        challenge: 0,
+        pub_key: vec![1u8, 2, 3, 4, 5],
+    };
+    reply.encode(ProcessorType::Default).unwrap()
+}
+
+fn create_binding_signature_key_pair() -> KeyPair {
+    // 65B SEC1 uncompressed P-256 point: 0x04 prefix followed by X and Y coordinates.
+    let mut pub_key = vec![0x04u8];
+    pub_key.extend([7u8; BINDING_SIGNATURE_PUB_KEY_LEN - 1]);
+    KeyPair { pub_key, pri_key: vec![8u8; BINDING_SIGNATURE_PRI_KEY_LEN] }
+}
+
+// Per-section snapshot after adopting the companion's binding-signature selection: the reply
+// decode carries it on every section (and the request-level summary).
+fn create_binding_signature_key_negotial_param() -> KeyNegotialParam {
+    let mut param = create_key_negotial_param();
+    param.selected_algorithms.binding_signature_algorithm = Some(P256);
+    param
+}
+
+fn create_binding_reply_with_binding_signature(
+    device_id: &str,
+    user_id: i32,
+    protocol: &[u16],
+    capability: &[u16],
+    esl: i32,
+) -> Vec<u8> {
+    create_binding_reply_with_selected_algorithms(
+        device_id,
+        user_id,
+        protocol,
+        capability,
+        esl,
+        // The 0x0302 reply restates the binding-signature selection like the four roles.
+        SelectedAlgorithms {
+            ka_algorithm: KaAlgoType::X25519 as u16,
+            kdf_algorithm: KdfAlgoType::HkdfSha256 as u16,
+            aead_algorithm: AeadAlgoType::Aes256Gcm as u16,
+            mac_algorithm: MacAlgoType::HmacSha256 as u16,
+            binding_signature_algorithm: Some(P256),
+        },
+    )
+}
+
+// Injects a mismatched algorithm restatement into the encrypted reply payload by hand to
+// prove the host rejects any value that disagrees with the adopted selection.
+fn create_binding_reply_with_foreign_alg_attribute(
+    device_id: &str,
+    user_id: i32,
+    protocol: &[u16],
+    capability: &[u16],
+    esl: i32,
+    alg_id: u16,
+) -> Vec<u8> {
+    let reply = SecBindingReply::decode(
+        &create_binding_reply_with_binding_signature(device_id, user_id, protocol, capability, esl),
+        ProcessorType::Default,
+    )
+    .unwrap();
+    let mut attribute = Attribute::try_from_bytes(&reply.encrypt_data).unwrap();
+    attribute.set_u16(AttributeKey::AttrBindingSignatureAlgoId, alg_id);
+    create_binding_reply_with_encrypt_data(attribute.to_bytes().unwrap())
+}
+
+#[test]
+fn host_enroll_request_prepare_test_binding_signature_algorithm_list() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_prepare_test_binding_signature_algorithm_list start");
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let enable_input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+    let mut enable_request = HostDeviceEnrollRequest::new(&enable_input).unwrap();
+    let mut enable_output = HostGetInitKeyNegotiationOutputFfi::default();
+    let param = RequestParam::HostKeyNego(&enable_input, &mut enable_output);
+    let result = enable_request.prepare(param);
+    assert!(result.is_ok());
+    let enable_wire = SecKeyNegoRequest::decode(&enable_output.sec_message.to_vec().unwrap(), ProcessorType::Default)
+        .unwrap();
+    assert_eq!(enable_wire.binding_signature_algorithm_list, vec![P256]);
+
+    let disable_input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
+    let mut disable_request = HostDeviceEnrollRequest::new(&disable_input).unwrap();
+    let mut disable_output = HostGetInitKeyNegotiationOutputFfi::default();
+    let param = RequestParam::HostKeyNego(&disable_input, &mut disable_output);
+    let result = disable_request.prepare(param);
+    assert!(result.is_ok());
+    let disable_wire = SecKeyNegoRequest::decode(&disable_output.sec_message.to_vec().unwrap(), ProcessorType::Default)
+        .unwrap();
+    assert!(disable_wire.binding_signature_algorithm_list.is_empty());
+}
+
+#[test]
+fn host_enroll_request_begin_test_binding_signature_adopt_success() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_begin_test_binding_signature_adopt_success start");
+
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
+    mock_crypto_engine.expect_generate_p256_key_pair().returning(|| Ok(create_binding_signature_key_pair()));
+    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|_, _| Ok(AesGcmResult { ciphertext: Vec::new(), authentication_tag: [0u8; 16] }));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+
+    let fwk_message = create_valid_fwk_enroll_message(1, AuthTrustLevel::Atl2 as i32);
+    let sec_message = create_key_nego_reply_with_binding_signature_selection(Some(P256));
+    let begin_input = HostBeginAddCompanionInputFfi {
+        request_id: 1,
+        schedule_id: 1,
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
+        secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
+    assert!(result.is_ok());
+    assert_eq!(request.selected_algorithms.binding_signature_algorithm, Some(P256));
+    let key_pair = request.binding_signature_key_pair.unwrap();
+    assert_eq!(key_pair.pub_key.len(), BINDING_SIGNATURE_PUB_KEY_LEN);
+    assert_eq!(key_pair.pub_key[0], 0x04);
+    assert_eq!(key_pair.pri_key, vec![8u8; BINDING_SIGNATURE_PRI_KEY_LEN]);
+}
+
+// The companion could never honestly select a value outside the shared support table; the
+// decode-level membership check rejects it before the adoption (tampered or bogus reply).
+#[test]
+fn host_enroll_request_begin_test_binding_signature_selection_not_supported_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_begin_test_binding_signature_selection_not_supported_rejected start");
+
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
+    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+
+    let fwk_message = create_valid_fwk_enroll_message(1, AuthTrustLevel::Atl2 as i32);
+    let sec_message = create_key_nego_reply_with_binding_signature_selection(Some(P256 + 1));
+    let begin_input = HostBeginAddCompanionInputFfi {
+        request_id: 1,
+        schedule_id: 1,
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
+        secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
+    assert_eq!(result, Err(ErrorCode::AlgorithmNegotiationFailed));
+}
+
+// A stripped 0x0301 reply (binding-signature attribute missing) decodes to None; an enabled
+// host must reject it — this is the silent-downgrade guard for the "companion selects, host
+// verifies" mode (the single-algorithm shape of the recalc row: a stripped plaintext host list
+// makes the companion honestly select none, which fails here).
+#[test]
+fn host_enroll_request_begin_test_binding_signature_selection_absent_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_begin_test_binding_signature_selection_absent_rejected start");
+
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
+    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+
+    let fwk_message = create_valid_fwk_enroll_message(1, AuthTrustLevel::Atl2 as i32);
+    let sec_message = create_key_nego_reply_with_binding_signature_selection(None);
+    let begin_input = HostBeginAddCompanionInputFfi {
+        request_id: 1,
+        schedule_id: 1,
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
+        secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
+    assert_eq!(request.begin(param), Err(ErrorCode::AlgorithmNegotiationFailed));
+}
+
+// An explicit wire 0 decodes to Some(0), distinct from absence: 0 is never a table member, so
+// the decode-level membership validation rejects it before adoption (same terminal error as
+// absence, independent log signature).
+#[test]
+fn host_enroll_request_begin_test_binding_signature_explicit_zero_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_begin_test_binding_signature_explicit_zero_rejected start");
+
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
+    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+
+    let fwk_message = create_valid_fwk_enroll_message(1, AuthTrustLevel::Atl2 as i32);
+    let sec_message = create_key_nego_reply_with_binding_signature_selection(Some(0));
+    let begin_input = HostBeginAddCompanionInputFfi {
+        request_id: 1,
+        schedule_id: 1,
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
+        secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
+    assert_eq!(request.begin(param), Err(ErrorCode::AlgorithmNegotiationFailed));
+}
+
+// Mirror of the disabled-host branch: a host with the axis disabled sent no list at 0x0301,
+// so the companion must select none — a carried selection is a protocol violation.
+#[test]
+fn host_enroll_request_begin_test_binding_signature_disabled_selection_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_begin_test_binding_signature_disabled_selection_rejected start");
+
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
+    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+
+    let fwk_message = create_valid_fwk_enroll_message(1, AuthTrustLevel::Atl2 as i32);
+    let sec_message = create_key_nego_reply_with_binding_signature_selection(Some(P256));
+    let begin_input = HostBeginAddCompanionInputFfi {
+        request_id: 1,
+        schedule_id: 1,
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
+        secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
+    assert_eq!(request.begin(param), Err(ErrorCode::AlgorithmNegotiationFailed));
+}
+
+#[test]
+fn host_enroll_request_begin_test_binding_signature_generate_key_pair_fail() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_begin_test_binding_signature_generate_key_pair_fail start");
+
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
+    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_generate_p256_key_pair().returning(|| Err(ErrorCode::GeneralError));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+
+    let fwk_message = create_valid_fwk_enroll_message(1, AuthTrustLevel::Atl2 as i32);
+    let sec_message = create_key_nego_reply_with_binding_signature_selection(Some(P256));
+    let begin_input = HostBeginAddCompanionInputFfi {
+        request_id: 1,
+        schedule_id: 1,
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
+        secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list: create_host_protocol_id_list_ffi(),
+        sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostBeginAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut output);
+    let result = request.begin(param);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+// The 0x0302 encrypted reply restates the binding-signature selection; a restated value that
+// disagrees with the adopted selection fails the enroll (first comparison of the machinery).
+#[test]
+fn host_enroll_request_end_test_binding_signature_reply_restatement_mismatch_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_binding_signature_reply_restatement_mismatch_rejected start");
+
+    mock_set_time_keeper();
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
+        Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
+    });
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
+    mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
+    mock_companion_device_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        }]));
+    mock_companion_device_db_manager.expect_write_device_binding_signature_key().returning(|| Ok(()));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_binding_signature_key_negotial_param());
+    request.acl = AuthCapabilityLevel::Acl2;
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_2];
+    request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.selected_algorithms.binding_signature_algorithm = Some(P256);
+    request.binding_signature_key_pair = Some(create_binding_signature_key_pair());
+
+    // The reply restates a value that disagrees with the adopted selection.
+    let sec_message = create_binding_reply_with_foreign_alg_attribute(
+        "companion_device",
+        100,
+        &[PROTOCOL_VERSION_2],
+        ALL_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
+        P256 + 1,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_2,
+            ..Default::default()
+        },
+        secure_protocol_id: 1,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    assert_eq!(request.end(param), Err(ErrorCode::AlgorithmNegotiationFailed));
+}
+
+#[test]
+fn host_enroll_request_end_test_binding_signature_store_key_success() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_binding_signature_store_key_success start");
+
+    mock_set_time_keeper();
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
+        Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
+    });
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
+    mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
+    mock_companion_device_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        }]));
+    mock_companion_device_db_manager.expect_write_device_binding_signature_key().returning(|| Ok(()));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_binding_signature_key_negotial_param());
+    request.acl = AuthCapabilityLevel::Acl2;
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_2];
+    request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.selected_algorithms.binding_signature_algorithm = Some(P256);
+    request.binding_signature_key_pair = Some(create_binding_signature_key_pair());
+
+    let sec_message = create_binding_reply_with_binding_signature(
+        "companion_device",
+        100,
+        &[PROTOCOL_VERSION_2],
+        ALL_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_2,
+            ..Default::default()
+        },
+        secure_protocol_id: 1,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert!(result.is_ok());
+}
+
+// The binding signature key is stored in the same add_device wave as the template and SK rows:
+// a failing wave fails the enrollment with no device record left behind.
+#[test]
+fn host_enroll_request_end_test_binding_signature_store_key_fail() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_binding_signature_store_key_fail start");
+
+    mock_set_time_keeper();
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
+    mock_companion_device_db_manager.expect_add_device().returning(|| Err(ErrorCode::GeneralError));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_binding_signature_key_negotial_param());
+    request.acl = AuthCapabilityLevel::Acl2;
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_2];
+    request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.selected_algorithms.binding_signature_algorithm = Some(P256);
+    request.binding_signature_key_pair = Some(create_binding_signature_key_pair());
+
+    let sec_message = create_binding_reply_with_binding_signature(
+        "companion_device",
+        100,
+        &[PROTOCOL_VERSION_2],
+        ALL_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_2,
+            ..Default::default()
+        },
+        secure_protocol_id: 1,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+// A V1 enrollment (binding signature disabled) succeeds without a binding signature key pair.
+#[test]
+fn host_enroll_request_end_test_v1_enrollment_succeeds() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_v1_enrollment_succeeds start");
+
+    mock_set_time_keeper();
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
+        Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
+    });
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
+    mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
+    mock_companion_device_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        }]));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_key_negotial_param());
+    request.acl = AuthCapabilityLevel::Acl2;
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
+    request.host_capability_list = ALL_CAPABILITIES.to_vec();
+
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        &[PROTOCOL_VERSION_1],
+        ALL_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_1,
+            ..Default::default()
+        },
+        secure_protocol_id: 1,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn host_enroll_request_end_test_binding_signature_key_length_invalid() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_binding_signature_key_length_invalid start");
+
+    mock_set_time_keeper();
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
+    mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_remove_device().returning(|| Ok(mock_enrolled_device()));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_binding_signature_key_negotial_param());
+    request.acl = AuthCapabilityLevel::Acl2;
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_2];
+    request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.selected_algorithms.binding_signature_algorithm = Some(P256);
+    // Mock key pair lengths do not match the binding-signature algorithm's key sizes.
+    request.binding_signature_key_pair = Some(create_mock_key_pair());
+
+    let sec_message = create_binding_reply_with_binding_signature(
+        "companion_device",
+        100,
+        &[PROTOCOL_VERSION_2],
+        ALL_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_2,
+            ..Default::default()
+        },
+        secure_protocol_id: 1,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+// Full V2 chain: the 0x0301 reply and the 0x0302 encrypted echo both carry the
+// binding-signature selection; the enroll must succeed and persist a V2 device row
+// together with the sign key pair. Before the binding-signature axis was excluded from
+// the recomputed expectation this configuration always failed with 20015.
+#[test]
+fn host_enroll_request_end_test_binding_signature_v2_full_chain_success() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_binding_signature_v2_full_chain_success start");
+
+    mock_set_time_keeper();
+    mock_set_misc_manager();
+
+    let mut mock_crypto_engine = MockCryptoEngine::new();
+    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+    mock_crypto_engine.expect_ed25519_sign().returning(|_, bytes| Ok(bytes.to_vec()));
+    mock_crypto_engine.expect_ed25519_verify().returning(|_, _| Ok(()));
+    mock_crypto_engine.expect_generate_p256_key_pair().returning(|| Ok(create_binding_signature_key_pair()));
+    mock_crypto_engine.expect_generate_x25519_key_pair().returning(|| Ok(create_mock_key_pair()));
+    mock_crypto_engine.expect_x25519_ecdh().returning(|| Ok([0u8; SHARE_KEY_LEN].to_vec()));
+    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|_aes_gcm_result| Ok(_aes_gcm_result.ciphertext.clone()));
+    mock_crypto_engine
+        .expect_aes_gcm_encrypt()
+        .returning(|data, _| Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] }));
+    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    let added_devices = mock_companion_device_db_manager.added_devices();
+    mock_companion_device_db_manager.expect_generate_unique_template_id().returning(|| Ok(123));
+    mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
+    mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
+    mock_companion_device_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        }]));
+    mock_companion_device_db_manager.expect_write_device_binding_signature_key().returning(|| Ok(()));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+
+    // begin(): real 0x0301 decode, binding-signature negotiation and binding-request encode.
+    let fwk_message = create_valid_fwk_enroll_message(1, AuthTrustLevel::Atl2 as i32);
+    let key_nego_reply = create_key_nego_reply_with_binding_signature_selection(Some(P256));
+    let mut host_protocol_id_list = create_host_protocol_id_list_ffi();
+    host_protocol_id_list.data[0] = PROTOCOL_VERSION_2;
+    let begin_input = HostBeginAddCompanionInputFfi {
+        request_id: 1,
+        schedule_id: 1,
+        host_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
+        fwk_message: DataArray1024Ffi::try_from(&fwk_message).unwrap(),
+        secure_protocol_id: 1,
+        host_capability_list: Uint16Array64Ffi::default(),
+        host_protocol_id_list,
+        sec_message: DataArray20000Ffi::try_from(key_nego_reply).unwrap(),
+    };
+
+    let mut begin_output = HostBeginAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollBegin(&begin_input, &mut begin_output);
+    assert!(request.begin(param).is_ok());
+    assert_eq!(request.selected_algorithms.binding_signature_algorithm, Some(P256));
+
+    // end(): the 0x0302 encrypted payload echoes the same selection.
+    let sec_message =
+        create_binding_reply_with_binding_signature("", 0, &[PROTOCOL_VERSION_2], &[], ExecutorSecurityLevel::Esl2 as i32);
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_2,
+            ..Default::default()
+        },
+        secure_protocol_id: 1,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    assert!(request.end(param).is_ok());
+    assert_eq!(added_devices.borrow().len(), 1);
+    assert_eq!(added_devices.borrow()[0].enrolled_protocol_id, PROTOCOL_VERSION_2);
+    let binding_signature_key_pair = request.binding_signature_key_pair.as_ref().unwrap();
+    assert_eq!(binding_signature_key_pair.pri_key.len(), BINDING_SIGNATURE_PRI_KEY_LEN);
+}
+
+// A V2 protocol with the binding-signature axis disabled must not persist a binding that
+// could never produce a challenge signature. The NotFound probe proves the failure
+// happens before any DB write.
+#[test]
+fn host_enroll_request_end_test_v2_protocol_without_binding_signature_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_v2_protocol_without_binding_signature_rejected start");
+
+    mock_set_crypto_engine();
+    mock_set_time_keeper();
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager
+        .expect_generate_unique_template_id()
+        .returning(|| Err(ErrorCode::NotFound));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 1 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_key_negotial_param());
+    request.acl = AuthCapabilityLevel::Acl2;
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_2];
+    request.host_capability_list = ALL_CAPABILITIES.to_vec();
+
+    let sec_message = create_valid_binding_reply(
+        "companion_device",
+        100,
+        &[PROTOCOL_VERSION_2],
+        ALL_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_2,
+            ..Default::default()
+        },
+        secure_protocol_id: 1,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::AlgorithmNegotiationFailed));
+}
+
+// Mirror invariant: a V1 binding never carries a sign key pair.
+#[test]
+fn host_enroll_request_end_test_v1_protocol_with_binding_signature_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_enroll_request_end_test_v1_protocol_with_binding_signature_rejected start");
+
+    mock_set_crypto_engine();
+    mock_set_time_keeper();
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager
+        .expect_generate_unique_template_id()
+        .returning(|| Err(ErrorCode::NotFound));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostGetInitKeyNegotiationInputFfi { request_id: 1, secure_protocol_id: 1, selected_protocol_id: 2 };
+
+    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
+    request.enroll_param.companion_device_key = create_device_key("companion_device", 100);
+    request.key_negotial_param.push(create_binding_signature_key_negotial_param());
+    request.acl = AuthCapabilityLevel::Acl2;
+    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
+    request.host_capability_list = ALL_CAPABILITIES.to_vec();
+    request.selected_algorithms.binding_signature_algorithm = Some(P256);
+    request.binding_signature_key_pair = Some(create_binding_signature_key_pair());
+
+    let sec_message = create_binding_reply_with_binding_signature(
+        "companion_device",
+        100,
+        &[PROTOCOL_VERSION_1],
+        ALL_CAPABILITIES,
+        ExecutorSecurityLevel::Esl2 as i32,
+    );
+    let end_input = HostEndAddCompanionInputFfi {
+        request_id: 1,
+        companion_status: PersistedCompanionStatusFfi {
+            enrolled_protocol_id: PROTOCOL_VERSION_1,
+            ..Default::default()
+        },
+        secure_protocol_id: 1,
+        supported_business_ids: Int32Array64Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+    };
+
+    let mut output = HostEndAddCompanionOutputFfi::default();
+    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::AlgorithmNegotiationFailed));
 }

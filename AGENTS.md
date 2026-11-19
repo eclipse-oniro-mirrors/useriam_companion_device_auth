@@ -146,8 +146,12 @@ TaskRunnerManager::GetInstance().PostOneShotTask("name", "ownerBundleName", Task
 
 `RequestManagerImpl::Remove` 由 `BaseRequest::Destroy` 经 `PostTaskOnResident` 延迟触发；常驻线程 `deque::erase` 时若该 `shared_ptr<IRequest>` 是最后一个引用，析构函数**同步在 erase 现场执行**。此时若析构链上的 `Subscription` cleanup 同步干了复杂活（典型：`UnsubscribeDeviceStatus → RefreshDeviceList` 改 `deviceStatusMap_`），就会破坏正被 erase 的堆，表现为 jemalloc `may double free`。为此两条硬规则：
 
-1. **每个 Request 在自己的 `Destroy()` 里释放所有 Subscription 成员**——调基类 `Destroy()` 前 `xxxSubscription_.reset()`。`Destroy()` 必先于析构执行（`Remove` 从 `Destroy` 内 PostTask），从而把 cleanup 移出 erase 现场。各层各管各的：`OutboundRequest`/`InboundRequest::Destroy` 释放本层 subscription，派生类释放自己的，`BaseRequest::Destroy` 已由 `StopTimeout` 释放 `timeoutSubscription_`。`Destroy()` 非虚，派生类靠 name-hiding 不要加 `override`；`Complete*` 里的非限定 `Destroy()` 会解析到最派生版本。
+1. **每个 Request 在自己的 `Destroy()` 里释放所有 Subscription 成员**——调基类 `Destroy()` 前 `xxxSubscription_.reset()`。`Destroy()` 必先于析构执行（`Remove` 从 `Destroy` 内 PostTask），从而把 cleanup 移出 erase 现场。各层各管各的：`OutboundRequest`/`InboundRequest::Destroy` 释放本层 subscription，派生类释放自己的，`BaseRequest::Destroy` 已由 `StopTimeout` 释放 `timeoutSubscription_`。`Destroy()` 为虚函数（`base_request.h` `virtual void Destroy()`），派生类覆写带 `override`、实现末尾调用基类版本；`Complete*` 里的非限定 `Destroy()` 经虚派发解析到最派生版本。
 2. **Subscription 的 cleanup lambda 只做本地 erase**（从所属 manager 容器移除/取消定时器后结束）。周边副作用（`RefreshDeviceList`、`NotifySubscribers`、observer 增删、外部 sysparam 解注册等）必须用 `PostTaskOnResident` 延迟，并捕获**所属 manager** 的 `weak_from_this()`（不是 Request 的），manager 比单个 Request 长命故 late-safe。合规模板：`SystemSettingsManagerImpl::SubscribeSettingsChange`、`AuthenticatorManager::SubscribeAuthenticatorStatus`。
+
+### 模板入 IDM 兜底定时器（companion.cpp）
+
+绑定创建时 `addedToIdm=false` 启动 30s 兜底定时器；超时处理 `HandleTemplateAddToIdmTimeout` 必须先同步查 IDM 真值（`IIdmAdapter::QueryUserTemplates`，refresh=true 时连 `templateCache_` 与订阅通知一起补——补的就是丢掉的那条 IDM 事件）：模板在→标记自愈；查询失败（通道/权限坏）→重挂定时器继续等。**未知真值绝不删绑定**——删除走 `RemoveCompanion(removeHostBinding=true)` 会通知对端同删，不可逆，且事件通道故障是环境问题不该由绑定承担。
 
 ## 跨设备消息兼容
 
@@ -161,8 +165,8 @@ TaskRunnerManager::GetInstance().PostOneShotTask("name", "ownerBundleName", Task
 6. **支持列表只能加值不能删值**：上线过的取值不能从支持列表里删。录入时保存的参数必须与后续交互保持一致；删值会导致存量绑定无法同步，也无法重新绑定。确实要删时，必须同时提供数据迁移或强制重新绑定。
 7. **同步回包的两层列表必须来自同一份数据**：加密内层列表和明文外层列表必须由发送方用同一份数据构造，不能"内层照抄对端的 offer"。
 8. **同步出错不能伪装成没绑定**：伴随有绑定但生成 proof 失败，要通过 `result` 返回错误，不能降成 `SUCCESS + 空 proof`；安全层返回成功也不行，服务层必须检查 proof 非空。只有真的没有绑定，才能返回成功加空 proof。旧对端的 `SUCCESS + 空 proof` 有歧义，主机要保留凭证、允许发现、记告警，不能拿它作废凭证。
-9. **作废凭证只有一个来源**：已定位绑定的复验轮里，`HostEndCompanionCheck` 返回任何非 SUCCESS（proof 不过、secureProtocolId 非法、参数对不上）都 `SetTemplateInvalid`，参数分歧的 20011/20014 用专属 reason，其余用通用 reason。作废只影响凭证，不影响本轮——`EndCompanionCheck` 返回 void，作废后本轮 sync 照样算成功。
-10. **发现和绑定复验分开**：同步请求发布本端完整的支持列表；收到回包后按当前主机用户和回包里的伴随用户找到绑定，再校验绑定时保存的参数。不能用缓存用户去裁剪发现请求。发现里的 secureProtocolId 表示新绑定将用的值，已有绑定的安全封装读 DB 里的持久化值。接受轮学到的用户编号只用于发现展示和重绑路由，不给任何信任；作废判定跟发现缓存热不热没关系。
+9. **作废凭证只有两个来源，且任何作废只允许命中对端当前用户一个凭证行**（挑战/错误回包不带身份，绝不按物理设备扫——对端未上线其余用户的凭证不受任何同步结果影响）：已定位绑定的复验轮里，`HostEndCompanionCheck` 返回任何非 SUCCESS（proof 不过、secureProtocolId 非法、参数对不上）都 `SetTemplateInvalid`，参数分歧的 20011/20014 用专属 reason，其余用通用 reason。作废只影响凭证，不影响本轮——`EndCompanionCheck` 返回 void，作废后本轮 sync 照样算成功。第二个来源是 V2 绑定的对端确定性拒绝——已匹配身份的 V2 绑定收到 SUCCESS+空 proof，或签名同步回包带 NOT_ENROLLED/BINDING_SIGNATURE_VERIFY_FAILED（作废身份恒取回包携带的对端用户身份：本地有该用户模板即作废，回包未携带身份或本地无模板则不作废，不与轮签名断言身份比对）；仅对端真实回包触发，传输失败（TIMEOUT）不作废。伴端侧的确定性拒绝由 sync handler 主动给出：断言身份==本端活跃用户且该用户无绑定 → NOT_ENROLLED（错误回包携带该用户身份），断言身份≠活跃用户仍按 discovery 降级（其余用户的绑定状态不可知，不拒绝）；绑定在场的失败回包一律携带本端活跃用户身份（含 BINDING_SIGNATURE_VERIFY_FAILED）。挑战轮回 NOT_ENROLLED **不直接作废**——回包无身份无法定位用户，只把本轮按 discovery 重发（每轮限一次），由重发回包携带的对端当前用户身份按上面两条单用户结算。挑战消息未被伴端处理（TYPE_NOT_SUPPORT：旧伴端 SA 无该消息 handler，router 裸错误回包透传或显式无分发标记）**不作废也不失败**——降级为本轮不受保护 V1 同步（offer 维持收敛值、不带签名），凭证保留、由回包路径兜底（已匹配身份的 V2 绑定收到 SUCCESS+空 proof 仍作废；身份对不上则凭证残留至重绑，期间每轮多一跳挑战 RTT，接受）。降级使伪造「未处理」回包不再直接作废凭证：健康 V2 对端会以 proof 参数分歧回错误码，本轮失败但凭证存活。
+10. **发现和绑定复验分开**：同步请求发布本端完整的支持列表（例外见「协议」节的同步 offer 收敛）；收到回包后按当前主机用户和回包里的伴随用户找到绑定，再校验绑定时保存的参数。不能用缓存用户去裁剪发现请求。发现里的 secureProtocolId 表示新绑定将用的值，已有绑定的安全封装读 DB 里的持久化值。接受轮学到的用户编号只用于发现展示和重绑路由，不给任何信任；作废判定跟发现缓存热不热没关系。
 11. **一个设备可以有多个 processor、多个 SK**：这是设计要求。一个对端设备可含多个 processor，enroll 时每个 processor 独立做 KA、写独立的 SK 行。安全消息按 processor 分节，一条消息可以载多节。host 侧 enroll/delegate/issue/obtain/sync 都要遍历 `read_device_capability_info` 逐节 decode，每一节都得解开，空表报错；不要用 device 行保存的参数把设备当成单个 processor，从而跳过这个循环。
 12. **改消息的 UT 必须有一条"不带新字段的旧格式 decode"用例**，模板见 `add_companion_message_test.cpp` 的空 attribute case。
 
@@ -178,23 +182,26 @@ TaskRunnerManager::GetInstance().PostOneShotTask("name", "ownerBundleName", Task
 
 顺序只在三处有意义，其余一律按集合比较（`IntersectList` 只保证去重，不保证顺序）：
 
-- `LocalDeviceProfile.protocols` —— 协议优先序
+- `LocalDeviceProfile.hostProtocols` —— host 侧协议优先序（恒含 VERSION_2 + VERSION_1，不受任何开关影响；`companionProtocols` 是 companion 支持集，V2 由 `companion_device_auth_enable_companion_v2` 门控）
 - 本端能力列表 —— 能力优先序
 - `SUPPORTED_KA/KDF/AEAD/MAC_ALGORITHMS` —— 算法各角色的优先序（两端共用一张表：成员是支持集，顺序是优先序）
+- `SUPPORTED_BINDING_SIGNATURE_ALGORITHMS` —— 绑定签名表，**顺序恒稳定：新算法只追加、不前插、不删除**（区别于四角色"新成员按优先序插入"）。本轴 host 重算未锚定对端支持集，前插会使新主机×旧伴随 enroll 全败；追加的算法在双端全量宣告下不会被选中，仅当 host 列表将来支持策略裁剪时生效。需改变生效算法时，先落地"加密回包重述伴随支持集"（照抄四角色 `*AlgoSupportList` 机制）再演进
 
-**已上线成员的相对顺序不能改**，改了正常升级就会互通失败；新成员按优先序插入，位置由它的优先级决定。宣告出去的列表本身只包含能接受的值——防"被逼选弱值"靠的是列表内容，重新比对防的是实现或偏好表跑偏。
+**已上线成员的相对顺序不能改**，改了正常升级就会互通失败；新成员按优先序插入，位置由它的优先级决定（绑定签名表例外：恒稳定，只追加）。宣告出去的列表本身只包含能接受的值——防"被逼选弱值"靠的是列表内容，重新比对防的是实现或偏好表跑偏。
 
 ### 算法
 
-host 用明文的 `SecKeyNegoRequest` 发全部支持的算法；companion 按 `SUPPORTED_*` 顺序逐角色选第一个交集值，任一角色没有交集就返回 20015。
+host 用明文的 `SecKeyNegoRequest` 发全部支持的算法；companion 按 `SUPPORTED_*` 顺序逐角色选第一个交集值，任一角色没有交集就返回 20015。绑定签名是第 5 个角色、选定方恒为 companion：host 列表空（V1 流程）选 `None`（未协商），否则按共享优先序表从 host 列表选第一个命中值，选定值随 0x0301 回包明文携带（请求列表/回包选定值复用同一 key，与四角色同款）。Rust 侧 `SelectedAlgorithms.binding_signature_algorithm` 为 `Option<u16>`，wire 上属性缺席 ↔ `None`。host fail-fast 采纳：enabled → 选定值必须是 `Some(非 0)` 且 ∈ 本端列表（缺席解码为 `None`、显式线 0 解码为 `Some(0)`，均拒绝——后者被 membership 校验拦下且日志可区分，防剥离明文回包静默降级为无签名绑定）；disabled → 选定值必须为 `None`。FFI/DB 边界保持 u16、0=未启用。
 
-之后有三处比对，缺一不可：companion 在加密的 `SecBindingRequest` 里核对 host 回显的算法集合与明文收到的一致；host 收到选中值后核对它等于自己在本端优先序 ∩ 对端宣告集上重算的期望值，也等于本分节明文里的选中值。最后这条不能删——MAC 在 enroll 期不参与加解密，也不参与密钥派生，它是明文 MAC 被中途改掉的唯一防线。
+之后有三处比对，缺一不可：companion 在加密的 `SecBindingRequest` 里核对 host 回显的算法集合与明文收到的一致（绑定签名轴为 echo 比对：算法 ID == 本端 0x0301 选定值）；host 收到选中值后核对它等于重算的期望值，也等于本分节明文里的选中值（0x0302 加密回包按 `selected_algorithms` 全五字段重述；绑定签名期望值 = `select(共享表序, 本端列表)` 独立重算，不锚定对端支持集——代价即上文的"顺序恒稳定"约束）。最后这条不能删——MAC 在 enroll 期不参与加解密，也不参与密钥派生，它是明文 MAC 被中途改掉的唯一防线；绑定签名轴同理，host 重算是"剥离明文 host 列表逼 companion 选弱值"的唯一防线。
 
 算法只在录入时协商一次并保存，同步阶段不再协商。`secure_protocol_id` 只管消息格式、分节和同步复验，不含算法含义。不设打包的 crypto suite 版本号，算法演进靠逐参数机制。算法协商的线格式不兼容未支持四角色协商的旧对端，旧端初次绑定需双方同版本；存量绑定不受影响（算法在录入时定，之后读 SK 保存值）。
 
 ### 协议
 
-host 的 C++ `NegotiateProtocol` 按本端 `protocols` 顺序选择双方都支持的第一个协议，明文宣告，并将本端完整优先顺序列表放进 `SecBindingRequest` 加密内层下发。两端都要重新计算并比对：companion 根据收到的 host 优先顺序和本端支持列表重算，结果必须等于本端已选中的协议；host 根据 companion 宣告的支持列表和本端优先顺序重算，结果必须等于绑定时保存的协议。任一端结果不一致都返回 20011。回包仍带一个单值回显。
+host 的 C++ `NegotiateProtocol` 按本端 `hostProtocols` 顺序选择双方都支持的第一个协议，明文宣告，并将本端完整优先顺序列表放进 `SecBindingRequest` 加密内层下发。两端都要重新计算并比对：companion 根据收到的 host 优先顺序和本端支持列表重算，结果必须等于本端已选中的协议；host 根据 companion 宣告的支持列表和本端优先顺序重算，结果必须等于绑定时保存的协议。任一端结果不一致都返回 20011。
+
+**同步 offer 收敛（旧对端兼容）**：offer 宽度在 sync 出门前按本端凭据一次决定（`FilterCompanionStatus` 逐档收窄）——无有效绑定发全量 `hostProtocols`；仅有效 V1 绑定收敛 `{VERSION_1}` 直发，**不跑挑战轮**（V1-only 无签名可取，身份分流两支同归 V1 收敛，不支持 V2 的设备零额外 RTT）；含有效 V2 绑定才跑挑战轮解析对端身份：匹配 V2 凭据 → 全量+签名，匹配 V1 凭据 → `{VERSION_1}`，不匹配任何本端凭据（含失效凭证）→ 全量发现，旧对端拒绝挑战（GENERAL_ERROR/TYPE_NOT_SUPPORT）→ `{VERSION_1}` 降级。原因：存量伴端把原始 offer 直接喂 TA，TA 按本端支持集（仅 V1）整表校验，offer 含未知值 → TA 拒绝 → 伴端裸 return 出空回包 → 新 host 解码失败、同步硬失败（每轮报错、isSynced 永不置位）——V1 收敛是对该代对端的互通生存条件，不是纵深防御；无本端绑定的伴端不做 proof（回 SUCCESS+空 proof），全量安全，host 对该形态的作废是正确漂移修复。V1 收敛不钉死发现/重绑版本：candidate（freshBindingProtocolId）恒按完整 `hostProtocols` 与回包完整支持集计算，与 offer 宽度无关。推论：V1 绑定升 V2 必须先解绑。
 
 ### 能力
 
@@ -207,6 +214,13 @@ host 本地持本端能力列表参与求交，不在 `SecBindingRequest` 加密
 - **能力不含 TOKEN_AUTH 时 enroll 只预置不激活**：enroll 仍生成并下发 token（旧 companion 不容忍空 token 节，照发保跨版本兼容）；协商后的能力列表不含 TokenAuth（含空列表）时，host 收到回包后按录入回传的 `enrolledCapabilityList` 成员判断跳过 token ATL 激活，token 存而不可用。enroll 发 token 只是预发，不是授权点，使用与补发/刷新由 issue_token/refresh/token_auth 既有 capability 门禁把关。
 - "该设备当前没有可用的伴随校验能力"用空的能力列表表示，是否可用由界面/框架层决定，本层不拦截。
 
+### maxAtl（设备最高校验信任等级）
+
+- **ATL0 未设置语义**：枚举含 `ATL0`（=0，未设置），未设置情况默认 ATL0，不再有全局 `COMPANION_MAX_AUTH_TRUST_LEVEL`。兜底档由渠道层自定义：soft_bus 定义 `SOFT_BUS_CHANNEL_DEFAULT_AUTH_TRUST_LEVEL`，SoftBus 适配层构造 `PhysicalDeviceStatus` 时填入；sync 回包的 `ATTR_CDA_SA_COMPANION_MAX_ATL=200035` 仅作录入交叉校验输入，不覆盖运行值（V1 对端不携带 → 保持物理值）。伴端不通告本端档位——`LocalDeviceProfile` 不定义该字段（勿恢复），sync 回包恒缺省 200035，host 侧由渠道物理值兜底。200035 的存在位只保留在消息层（`SyncDeviceStatusReply` 载体与 entry 缓存槽）。IDL `IpcDeviceStatus` 直传 int 不带 has 位；`ClientDeviceStatus` 同为裸 `int32_t`，0=ATL0=未设置；JS/ANI 对外校验 0/非法值视为缺省（optional 字段）。
+- **录入**：基准来自绑定回包加密内层 `AttrMaxAtl=300014`（伴随侧恒携带本端执行器档位）。host 侧校验枚举（非法本次绑定失败）、逐 processor 分节一致，且须与 FFI 传入的 sync 缓存值相等——分歧 20014（档位在上次同步与本次录入间变更，resync 后重试）；V1 对端不携带时用 FFI 值。
+- **同步**：maxAtl 与 capability 同款冻结——后续同步**不刷新**已绑定镜像（`Companion::HandleDeviceStatusUpdate` 保留录入基准，不写 DB），不参与加密内层复验（不参与安全决策，运行时以 TA 链路 token ATL 为准）；生效档变更只能重新绑定刷新。外层 200035 仍写入 entry 缓存槽，唯一消费方是录入时刻的 FFI 交叉校验输入。
+- **旧数据**：Rust DB 行 `Atl0`（旧「未上报」语义）FFI 解码侧保持 ATL0（未设置），非法值同样落 ATL0，不做迁移；生效档由重新绑定或渠道兜底刷新。
+
 ### sync 校验
 
 - **外层只检查结构，结论以加密内层为准**：`ValidateReplyParameters` 要求协议表非空、且与本端 offer 有交集，不满足就是本轮 `PROTOCOL_NEGOTIATION_FAILED`，**不作废凭证**。这条在所有路径上都生效，并排在安全层之前。这是有意为之：外层不做身份校验，被篡改也只会让本轮失败（isSynced=false、停止重试），不会作废凭证。
@@ -215,19 +229,28 @@ host 本地持本端能力列表参与求交，不在 `SecBindingRequest` 加密
 - 各 processor 分节解出的协议、能力列表必须集合相等，不一致按 20011 / 20014 报，Rust 侧作废。
 - 外层协议协商没交集只会让同步停下，和已校验过的绑定参数有分歧是两回事，不作废凭证。
 
+### 同步版本决策（candidate / selected）
+
+- 伴随回包 `companionProtocolIdList` 恒为本端完整 `companionProtocols`（`companion_sync_device_status_handler.cpp`）：不被 offer 裁剪、不被 enrolled 塌缩；有 proof 时加密内层与明文外层同源同一份列表。绑定状态只驱动密钥/验签/复验，不进版本决策。
+- host `freshBindingProtocolId = first(完整 hostProtocols ∩ 回包完整支持集)`（`ComputeFreshBindingProtocolId`）：**禁用本轮 offer（`hostProtocolIdList_`）计算**——V1 凭据轮 offer 被砍成 [1]，用它算出的不是完整支持集。交集空按 20011 处理，不回退历史值。
+- `selectedProtocolId` 状态驱动（`HandleSyncDeviceStatusReply`）：有效绑定且本轮复验通过 → 本地 enrolled；无有效绑定（无行/墓碑/本轮作废）→ candidate。作废轮以发现视图收尾，不在请求内部补发现轮——一次同步即含完整发现信息。
+- 能力与状态配套：绑定视图用录入能力，发现视图用广告能力（`entry.discoveryCapabilities` 分存）；candidate 与广告能力不得进入身份校验授权链路。
+- 为何：版本决策权单点在主机同步时刻——伴随残留不能钉死新绑定版本（删绑重配按当前能力上限），存量活绑定永不自动升级（selected 恒＝enrolled）。
+- 重绑消费发现视图：add companion 从 device status 读 `freshBindingProtocolId`（不发轮也正确——V1 绑定时代每轮同步已按完整列表算出 candidate），不读钉 enrolled 的 `selectedProtocolId`，故删绑→同窗口立即重配即按当前能力上限绑定，无需标脏机制（`EnsureDeviceSynced` 对 isSynced 短路不影响版本正确性）。
+
 ### 边界校验
 
 Rust 按 TA 模块对待，FFI 是信任边界：SA 传进来的 protocol/capability/algorithm 列表、selected、enrolled_protocol_id，以及既有绑定流程的 secure_protocol_id，都必须在边界按 TA 自己声明的支持集校验，不能因为 C++ 交集层已经过滤过就免检。DB 读取侧同理——`get_binding_secure_protocol_id` / `get_device_secure_protocol_id` 返回的持久化协议值就是要生效的值，返回前先过 `validate_secure_protocol_id`。
 
 校验只检查**值是否在本端支持列表中**，不在就拒绝，**不要求它等于绑定时保存的协议值**——按相等检查会在协议扩容后拒绝仍在正常交互的存量绑定。异常 DB 行（保存值是 0 或超出枚举范围）统一返回 20013。`device_id_type` 在 FFI 边界过 `is_valid_device_id_type`，必须是 `UNIFIED_DEVICE_ID(1)` 或不小于 `VENDOR_BEGIN(10000)` 的值，与 C++ `common_defines.h` 保持一致。本端执行器 ACL 用 `LOCAL_EXECUTOR_MAX_ACL`，别在流程里散写 `Acl3`。
 
-扩协议时 C++ `profile.protocols` 和 Rust `SUPPORTED_PROTOCOL_VERSIONS` 一起扩；扩能力时 C++ 列表和 Rust 枚举一起扩。
+扩协议时 C++ `hostProtocols`/`companionProtocols` 和 Rust `SUPPORTED_PROTOCOL_VERSIONS` 一起扩；扩能力时 C++ 列表和 Rust 枚举一起扩。
 
 ### 实现约束
 
-- **密码操作必须走 `message_crypto` 的分发函数**，不要在流程代码里直调原语或 engine 的具体算法方法：KA 走 `generate_key_pair`/`key_agreement`，对称走 `derive_session_key`/`encrypt_sec_message`/`decrypt_sec_message`/`compute_mac`，非法 id 在碰到 engine 之前就 fail-closed。分发层按意图命名（算法 id 是参数），实现层按算法命名（`encrypt_sec_message_aes256_gcm` 等，私有）。
+- **密码操作必须走 `message_crypto` 的分发函数**，不要在流程代码里直调原语或 engine 的具体算法方法：KA 走 `generate_key_pair`/`key_agreement`，对称走 `derive_session_key`/`encrypt_sec_message`/`decrypt_sec_message`/`compute_mac`，非法 id 在碰到 engine 之前就 fail-closed。分发层按意图命名（算法 id 是参数），实现层按算法命名（`encrypt_sec_message_aes256_gcm` 等，私有）。绑定签名轴同款收敛在 `jobs/binding_signature_crypto`（`check_pub_key`/`generate_key_pair`/`sign`/`verify`/`pub_key_len`/`pri_key_len`）；**密钥格式校验是 engine 能力**（`p256_check_pub_key`），enroll 流程代码不得内联长度/前缀检查，DB 读侧按 `pub_key_len`/`pri_key_len` 分配，不得写死长度。
 - **算法相关的都放 `common/algorithm.rs`**：`CryptoAlgorithms`/`SelectedAlgorithms` 以及选择、校验函数都在这里，别散到 db_manager 或 constants。
-- **SK 行整捆存 `SelectedAlgorithms`**（ka/kdf/aead/mac 四个 u16 放一个 struct），不要拆成平铺参数按位置传——四个同类型数值裸传一旦错位就是静默的密码学错误。ka 只用来自描述和审计（分发不读），kdf/aead/mac 供分发。
+- **SK 行只存分发会读的算法**：`CompanionDeviceSk`/`HostBindingSk` 平铺 `kdf_algorithm`/`aead_algorithm`/`mac_algorithm` 三个具名字段（`validate_sk_algorithms` 按同序校验），读路径经两个 `get_session_key` 供 KDF/AEAD/MAC 分发。ka 不落 SK 行——分发不读，自描述走协商期 `key_negotial_param` 与 enroll 日志/FFI 输出；绑定签名算法不落 SK 行——运行时以 key 行 `alg_id` 为准（`CompanionDeviceSignPriKey`/`HostBindingSignaturePubKey`，0=未启用 V1 绑定）。协商期仍整捆用 `SelectedAlgorithms`（五角色一个 struct，勿拆平铺参数按位置传），落库点在 enroll 构造处按具名字段拆三值。
 - **FFI 头是手工镜像的**：`companion_device_auth_ffi.h` 和 Rust 的 `#[repr(C)]` 结构必须同步改。
 
 ### 扩展算法或协议的检查项

@@ -18,6 +18,7 @@ const FILE_ID: u16 = TestFileId::CompanionTokenAuthTest as u16;
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
+    BindingSignatureProofFfi,
     CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi, DataArray32Ffi,
     Uint16Array64Ffi,
 };
@@ -25,8 +26,7 @@ use crate::log_i;
 use crate::request::jobs::common_message::SecCommonRequest;
 use crate::request::token_auth::companion_token_auth::CompanionTokenAuthRequest;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, HostBindingToken, UserInfo, UserKey};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
@@ -64,6 +64,7 @@ fn companion_token_auth_request_get_request_id_test() {
     log_i!("companion_token_auth_request_get_request_id_test start");
 
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
@@ -79,6 +80,7 @@ fn companion_token_auth_request_prepare_test_not_implemented() {
     log_i!("companion_token_auth_request_prepare_test_not_implemented start");
 
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
@@ -98,6 +100,7 @@ fn companion_token_auth_request_begin_test_wrong_input_type() {
     log_i!("companion_token_auth_request_begin_test_wrong_input_type start");
 
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
@@ -106,6 +109,7 @@ fn companion_token_auth_request_begin_test_wrong_input_type() {
     let mut request = CompanionTokenAuthRequest::new(&input).unwrap();
 
     let wrong_input = CompanionProcessCheckInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         challenge: 0,
@@ -134,6 +138,7 @@ fn companion_token_auth_request_begin_test_get_session_key_fail() {
 
     let sec_message = create_valid_auth_request_message(0);
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
@@ -156,14 +161,11 @@ fn companion_token_auth_request_begin_test_aes_gcm_decrypt_fail() {
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(mock_enrolled_binding()));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
@@ -174,6 +176,7 @@ fn companion_token_auth_request_begin_test_aes_gcm_decrypt_fail() {
 
     let sec_message = create_valid_auth_request_message(0);
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
@@ -196,14 +199,11 @@ fn companion_token_auth_request_begin_test_attribute_try_from_bytes_fail() {
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(mock_enrolled_binding()));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     mock_host_binding_db_manager
         .expect_read_device_token()
@@ -217,6 +217,7 @@ fn companion_token_auth_request_begin_test_attribute_try_from_bytes_fail() {
 
     let sec_message = create_valid_auth_request_message(0);
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
@@ -239,14 +240,11 @@ fn companion_token_auth_request_begin_test_get_challenge_fail() {
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(mock_enrolled_binding()));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
@@ -267,6 +265,7 @@ fn companion_token_auth_request_begin_test_get_challenge_fail() {
     let sec_message = request_msg.encode(ProcessorType::Default).unwrap();
 
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
@@ -294,20 +293,18 @@ fn companion_token_auth_request_begin_test_read_device_token_fail() {
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(mock_enrolled_binding()));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     mock_host_binding_db_manager.expect_read_device_token().returning(|| Err(ErrorCode::NotFound));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let sec_message = create_valid_auth_request_message(0);
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
@@ -330,14 +327,11 @@ fn companion_token_auth_request_begin_test_hmac_sha256_fail() {
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(mock_enrolled_binding()));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     mock_host_binding_db_manager
         .expect_read_device_token()
@@ -352,6 +346,7 @@ fn companion_token_auth_request_begin_test_hmac_sha256_fail() {
 
     let sec_message = create_valid_auth_request_message(0);
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
@@ -371,6 +366,7 @@ fn companion_token_auth_request_end_test_not_implemented() {
     log_i!("companion_token_auth_request_end_test_not_implemented start");
 
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
@@ -398,6 +394,7 @@ fn companion_token_auth_request_begin_test_uses_enrolled_secure_protocol() {
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
@@ -418,8 +415,9 @@ fn companion_token_auth_request_new_test_unsupported_secure_protocol_id() {
     log_i!("companion_token_auth_request_new_test_unsupported_secure_protocol_id start");
 
     let input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
-        secure_protocol_id: 2,
+        secure_protocol_id: 3,
         sec_message: DataArray1024Ffi::default(),
     };
 

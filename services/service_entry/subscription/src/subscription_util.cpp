@@ -40,6 +40,7 @@ IpcDeviceStatus ConvertToIpcDeviceStatus(const DeviceStatus &status)
         ipcStatus.supportedBusinessIds.push_back(static_cast<int>(id));
     }
     ipcStatus.deviceSubProfileName = status.deviceSubProfileName;
+    ipcStatus.maxAuthTrustLevel = status.maxAuthTrustLevel;
     return ipcStatus;
 }
 
@@ -77,7 +78,8 @@ bool IpcDeviceStatusEqual(const IpcDeviceStatus &lhs, const IpcDeviceStatus &rhs
         lhs.deviceKey.deviceSubProfileId == rhs.deviceKey.deviceSubProfileId &&
         lhs.deviceUserName == rhs.deviceUserName && lhs.deviceModelInfo == rhs.deviceModelInfo &&
         lhs.deviceName == rhs.deviceName && lhs.isOnline == rhs.isOnline &&
-        lhs.supportedBusinessIds == rhs.supportedBusinessIds && lhs.deviceSubProfileName == rhs.deviceSubProfileName;
+        lhs.supportedBusinessIds == rhs.supportedBusinessIds && lhs.deviceSubProfileName == rhs.deviceSubProfileName &&
+        lhs.maxAuthTrustLevel == rhs.maxAuthTrustLevel;
 }
 
 bool IpcDeviceStatusVectorEqual(const std::vector<IpcDeviceStatus> &lhs, const std::vector<IpcDeviceStatus> &rhs)

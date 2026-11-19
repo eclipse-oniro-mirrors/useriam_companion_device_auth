@@ -31,6 +31,8 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
 
+constexpr int32_t HOST_USER_ID = 100;
+
 class HostPreObtainTokenHandlerTest : public Test {
 public:
     DeviceKey companionDeviceKey_ = { .idType = DeviceIdType::UNIFIED_DEVICE_ID,
@@ -47,6 +49,7 @@ HWTEST_F(HostPreObtainTokenHandlerTest, HandleRequest_001, TestSize.Level0)
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(companionDeviceKey_.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey_.deviceId);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, HOST_USER_ID);
 
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &) { replyCalled = true; };
@@ -92,6 +95,7 @@ HWTEST_F(HostPreObtainTokenHandlerTest, HandleRequest_003, TestSize.Level0)
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(companionDeviceKey_.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey_.deviceId);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, HOST_USER_ID);
 
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &reply) {
@@ -118,6 +122,7 @@ HWTEST_F(HostPreObtainTokenHandlerTest, HandleRequest_004, TestSize.Level0)
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(companionDeviceKey_.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey_.deviceId);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, HOST_USER_ID);
 
     bool replyCalled = false;
     OnMessageReply onMessageReply = [&replyCalled](const Attributes &reply) {

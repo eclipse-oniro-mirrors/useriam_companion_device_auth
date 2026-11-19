@@ -76,8 +76,8 @@ void CompanionRevokeTokenRequest::SendRevokeTokenRequest()
     EncodeRevokeTokenRequest(requestMsg, request);
     eventCollector_.EnterWait(CompanionRevokeTokenStages::WAIT_REVOKE_TOKEN_REPLY);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::COMPANION_REVOKE_TOKEN,
-        request, [weakSelf = weak_from_this()](const Attributes &reply) {
+    bool sendRet = SendMessage(MessageType::COMPANION_REVOKE_TOKEN, std::move(request),
+        [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleRevokeTokenReply(reply);

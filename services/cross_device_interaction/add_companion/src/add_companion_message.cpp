@@ -29,10 +29,9 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 void EncodeInitKeyNegotiationRequest(const InitKeyNegotiationRequest &request, Attributes &attributes)
 {
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostDeviceKey.deviceSubProfileId);
+    EncodeHostDeviceKey(request.hostDeviceKey, attributes);
     attributes.SetUint16Value(Attributes::ATTR_CDA_SA_PROTOCOL_ID,
-        ProtocolIdConverter::ToUnderlying(request.protocolId));
+        ProtocolIdConverter::ToUnderlying(request.selectedProtocolId));
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
 }
 
@@ -47,9 +46,9 @@ std::optional<InitKeyNegotiationRequest> DecodeInitKeyNegotiationRequest(const A
         if (!attributes.GetUint16Value(Attributes::ATTR_CDA_SA_PROTOCOL_ID, protocolId)) {
             return std::nullopt;
         }
-        request.protocolId = ProtocolIdConverter::FromUnderlying(protocolId);
+        request.selectedProtocolId = ProtocolIdConverter::FromUnderlying(protocolId);
     } else {
-        request.protocolId = ProtocolId::VERSION_1;
+        request.selectedProtocolId = ProtocolId::VERSION_1;
     }
     if (!attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo)) {
         return std::nullopt;
@@ -83,18 +82,16 @@ std::optional<InitKeyNegotiationReply> DecodeInitKeyNegotiationReply(const Attri
 
 void EncodeBeginAddHostBindingRequest(const BeginAddHostBindingRequest &request, Attributes &attributes)
 {
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserKey.userId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionUserKey.subProfileId);
+    EncodeCompanionUserKey(request.companionUserKey, attributes);
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
 }
 
 std::optional<BeginAddHostBindingRequest> DecodeBeginAddHostBindingRequest(const Attributes &attributes)
 {
     BeginAddHostBindingRequest request = {};
-    bool getUserIdRet =
-        attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserKey.userId);
-    ENSURE_OR_RETURN_VAL(getUserIdRet, std::nullopt);
-    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionUserKey.subProfileId);
+    auto companionUserKeyOpt = DecodeCompanionUserKey(attributes);
+    ENSURE_OR_RETURN_VAL(companionUserKeyOpt.has_value(), std::nullopt);
+    request.companionUserKey = *companionUserKeyOpt;
     bool getExtraInfoRet = attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, std::nullopt);
     return request;
@@ -126,10 +123,8 @@ std::optional<BeginAddHostBindingReply> DecodeBeginAddHostBindingReply(const Att
 
 void EncodeEndAddHostBindingRequest(const EndAddHostBindingRequest &request, Attributes &attributes)
 {
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, request.hostDeviceKey.deviceUserId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_SUB_PROFILE_ID, request.hostDeviceKey.deviceSubProfileId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserKey.userId);
-    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionUserKey.subProfileId);
+    EncodeHostDeviceKey(request.hostDeviceKey, attributes);
+    EncodeCompanionUserKey(request.companionUserKey, attributes);
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(request.result));
     attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, request.extraInfo);
 }
@@ -140,10 +135,9 @@ std::optional<EndAddHostBindingRequest> DecodeEndAddHostBindingRequest(const Att
     auto hostKeyOpt = DecodeHostDeviceKey(attributes);
     ENSURE_OR_RETURN_VAL(hostKeyOpt.has_value(), std::nullopt);
     request.hostDeviceKey = *hostKeyOpt;
-    bool getCompanionUserIdRet =
-        attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, request.companionUserKey.userId);
-    ENSURE_OR_RETURN_VAL(getCompanionUserIdRet, std::nullopt);
-    attributes.GetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, request.companionUserKey.subProfileId);
+    auto companionUserKeyOpt = DecodeCompanionUserKey(attributes);
+    ENSURE_OR_RETURN_VAL(companionUserKeyOpt.has_value(), std::nullopt);
+    request.companionUserKey = *companionUserKeyOpt;
     int32_t result = 0;
     bool getResultRet = attributes.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result);
     ENSURE_OR_RETURN_VAL(getResultRet, std::nullopt);

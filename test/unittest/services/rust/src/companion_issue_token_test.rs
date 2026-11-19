@@ -18,6 +18,7 @@ const FILE_ID: u16 = TestFileId::CompanionIssueTokenTest as u16;
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
+    BindingSignatureProofFfi,
     CompanionPreIssueTokenInputFfi, CompanionProcessIssueTokenInputFfi, CompanionProcessTokenAuthInputFfi,
     DataArray1024Ffi,
 };
@@ -26,8 +27,7 @@ use crate::request::jobs::common_message::SecIssueToken;
 use crate::request::token_issue::companion_issue_token::CompanionDeviceIssueTokenRequest;
 use crate::request::token_issue::token_issue_message::SecPreIssueRequest;
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, MockCryptoEngine};
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, UserInfo, UserKey};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::request_manager::{Request, RequestParam};
 use crate::ut_registry_guard;
@@ -76,6 +76,7 @@ fn companion_issue_token_request_get_request_id_test() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -96,6 +97,7 @@ fn companion_issue_token_request_prepare_test_not_implemented() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -120,6 +122,7 @@ fn companion_issue_token_request_begin_test_wrong_input_type() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -129,6 +132,7 @@ fn companion_issue_token_request_begin_test_wrong_input_type() {
     let mut request = CompanionDeviceIssueTokenRequest::new(&input).unwrap();
 
     let wrong_input = CompanionProcessTokenAuthInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::default(),
@@ -160,6 +164,7 @@ fn companion_issue_token_request_begin_test_get_session_key_fail() {
     let sec_message = create_valid_pre_issue_request(&salt);
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -187,14 +192,11 @@ fn companion_issue_token_request_begin_test_hkdf_fail() {
     mock_host_binding_db_manager
         .expect_get_device_by_binding_id()
         .returning(|| Ok(mock_enrolled_binding()));
-    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingKeyMaterial {
+    mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }));
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
@@ -202,6 +204,7 @@ fn companion_issue_token_request_begin_test_hkdf_fail() {
     let sec_message = create_valid_pre_issue_request(&salt);
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -225,6 +228,7 @@ fn companion_issue_token_request_end_test_wrong_input_type() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -247,6 +251,7 @@ fn companion_issue_token_request_end_test_challenge_mismatch() {
     mock_set_crypto_engine();
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -259,6 +264,8 @@ fn companion_issue_token_request_end_test_challenge_mismatch() {
 
     let sec_message = create_valid_issue_token_message(0, AuthTrustLevel::Atl3 as i32, &request.session_key);
     let end_input = CompanionProcessIssueTokenInputFfi {
+        binding_id: 123,
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
@@ -278,6 +285,7 @@ fn companion_issue_token_request_end_test_atl_try_from_fail() {
     mock_set_crypto_engine();
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -290,6 +298,8 @@ fn companion_issue_token_request_end_test_atl_try_from_fail() {
 
     let sec_message = create_valid_issue_token_message(0, 99999, &request.session_key);
     let end_input = CompanionProcessIssueTokenInputFfi {
+        binding_id: 123,
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
@@ -313,6 +323,7 @@ fn companion_issue_token_request_end_test_store_token_fail() {
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -325,6 +336,8 @@ fn companion_issue_token_request_end_test_store_token_fail() {
 
     let sec_message = create_valid_issue_token_message(0, AuthTrustLevel::Atl3 as i32, &request.session_key);
     let end_input = CompanionProcessIssueTokenInputFfi {
+        binding_id: 123,
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
@@ -354,6 +367,7 @@ fn companion_issue_token_request_begin_test_uses_enrolled_secure_protocol() {
     HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
         secure_protocol_id: 1,
@@ -379,9 +393,10 @@ fn companion_issue_token_request_new_test_unsupported_secure_protocol_id() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let input = CompanionPreIssueTokenInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         request_id: 1,
         binding_id: 123,
-        secure_protocol_id: 2,
+        secure_protocol_id: 3,
         sec_message: DataArray1024Ffi::default(),
     };
 

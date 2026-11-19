@@ -95,7 +95,7 @@ private:
     void HandleMessageTimeout(uint32_t messageSeq);
 
     OnMessage FindMessageSubscriber(const std::string &connectionName, MessageType msgType);
-    void SendErrorReply(const MessageHeader &requestHeader, ChannelId channelId);
+    void SendErrorReply(const MessageHeader &requestHeader, ChannelId channelId, ResultCode resultCode);
     void SendReply(const MessageHeader &requestHeader, ChannelId channelId, const Attributes &reply);
 
     std::map<std::string, OnMessage> subscriptions_;

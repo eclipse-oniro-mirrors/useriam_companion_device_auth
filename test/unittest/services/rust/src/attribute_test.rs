@@ -58,6 +58,8 @@ fn attribute_key_test() {
     assert_eq!(AttributeKey::try_from(300011).unwrap(), AttributeKey::AttrHmac);
     assert_eq!(AttributeKey::try_from(300016).unwrap(), AttributeKey::AttrHostChallenge);
     assert_eq!(AttributeKey::try_from(300017).unwrap(), AttributeKey::AttrCompanionChallenge);
+    assert_eq!(AttributeKey::try_from(300026).unwrap(), AttributeKey::AttrBindingSignatureAlgoList);
+    assert_eq!(AttributeKey::try_from(100066), Err(ErrorCode::GeneralError));
     assert_eq!(AttributeKey::try_from(0), Err(ErrorCode::GeneralError));
 }
 

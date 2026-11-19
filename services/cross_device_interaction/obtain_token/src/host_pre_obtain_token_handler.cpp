@@ -54,6 +54,15 @@ void HostPreObtainTokenHandler::HandleRequest(const Attributes &request, OnMessa
     auto companionDeviceKeyOpt = DecodeCompanionDeviceKey(request);
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), companionDeviceKeyOpt.has_value());
 
+    auto hostUserKeyOpt = DecodeHostUserKey(request);
+    ENSURE_OR_RETURN_DESC(desc.GetCStr(), hostUserKeyOpt.has_value());
+    UserKey hostUserKey = *hostUserKeyOpt;
+    if (GetCompanionManager().IsBindingSignatureRequired(hostUserKey, *companionDeviceKeyOpt)) {
+        IAM_LOGE("%{public}s obtain token not allowed for V2 binding", desc.GetCStr());
+        errorGuard.UpdateErrorCode(ResultCode::GENERAL_ERROR);
+        return;
+    }
+
     auto obtainTokenRequest = GetRequestFactory().CreateHostObtainTokenRequest(connectionName, request,
         OnMessageReply(onMessageReply), *companionDeviceKeyOpt);
     ENSURE_OR_RETURN_DESC(desc.GetCStr(), obtainTokenRequest != nullptr);

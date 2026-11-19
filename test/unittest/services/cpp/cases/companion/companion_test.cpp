@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_cross_device_comm_manager.h"
+#include "mock_idm_adapter.h"
 #include "mock_security_agent.h"
 #include "mock_time_keeper.h"
 
@@ -84,7 +85,7 @@ DeviceStatus MakeDeviceStatus(const DeviceKey &deviceKey, bool isOnline = true, 
     status.deviceName = "TestDevice";
     status.deviceUserName = "TestUser";
     status.deviceModelInfo = "TestModel";
-    status.protocolId = ProtocolId::VERSION_1;
+    status.selectedProtocolId = ProtocolId::VERSION_1;
     status.supportedBusinessIds = supportedBusinessIds;
     return status;
 }
@@ -105,6 +106,9 @@ public:
         auto timeKeeper = std::make_shared<MockTimeKeeper>();
         AdapterManager::GetInstance().SetTimeKeeper(timeKeeper);
 
+        auto idmAdapter = std::shared_ptr<IIdmAdapter>(&mockIdmAdapter_, [](IIdmAdapter *) {});
+        AdapterManager::GetInstance().SetIdmAdapter(idmAdapter);
+
         mockCompanionManager_ = std::make_shared<MockCompanionManagerImpl>();
 
         ON_CALL(mockCrossDeviceCommManager_, SubscribeDeviceStatus(_, _, _))
@@ -113,6 +117,9 @@ public:
         ON_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(mockSecurityAgent_, HostUpdateCompanionStatus(_)).WillByDefault(Return(ResultCode::SUCCESS));
         ON_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillByDefault(Return());
+        ON_CALL(mockIdmAdapter_, GetUserTemplates(_)).WillByDefault(Return(std::vector<uint64_t> {}));
+        ON_CALL(mockIdmAdapter_, RefreshAndGetUserTemplates(_, _))
+            .WillByDefault(DoAll(SetArgReferee<1>(std::vector<uint64_t> {}), Return(true)));
     }
 
     void TearDown() override
@@ -133,6 +140,7 @@ public:
 protected:
     NiceMock<MockCrossDeviceCommManager> mockCrossDeviceCommManager_;
     NiceMock<MockSecurityAgent> mockSecurityAgent_;
+    NiceMock<MockIdmAdapter> mockIdmAdapter_;
     std::shared_ptr<MockCompanionManagerImpl> mockCompanionManager_;
 };
 
@@ -308,6 +316,45 @@ HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_KeepsEnrolledCapabilities, Test
 
     EXPECT_EQ(companion->GetStatus().companionDeviceStatus.capabilities,
         std::vector<Capability> { Capability::TOKEN_AUTH });
+}
+
+// The enrolled max auth trust level is frozen at binding; sync-reported tiers never
+// move it (ATL0 included), while ordinary fields keep updating.
+HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_KeepsEnrolledMaxAuthTrustLevel, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    persistedStatus.maxAuthTrustLevel = ATL3;
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.maxAuthTrustLevel, ATL3);
+
+    // Notify calls are deferred to TearDown's ExecuteAll (NotifySubscribers posts to the
+    // resident runner), so every expectation is matched after all declarations. gmock
+    // routes same-method calls to the newest matching expectation even when saturated,
+    // so the WillOnce expectations must retire on saturation and the never-call
+    // expectation must be declared first (it only takes a spurious third call).
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).Times(0);
+
+    // A sync-reported tier change is ignored: with maxAuthTrustLevel the only delta,
+    // the update is a no-op and notifies nobody. isOnline stays false because the
+    // persisted companion has not been synced yet.
+    auto reportedStatus = MakeDeviceStatus(persistedStatus.companionDeviceKey, false);
+    reportedStatus.supportedBusinessIds = persistedStatus.supportedBusinessIds;
+    reportedStatus.isAuthMaintainActive = std::nullopt;
+    reportedStatus.maxAuthTrustLevel = ATL2;
+    companion->HandleDeviceStatusUpdate(reportedStatus);
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.maxAuthTrustLevel, ATL3);
+
+    // Repeating the ignored report stays a no-op.
+    companion->HandleDeviceStatusUpdate(reportedStatus);
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.maxAuthTrustLevel, ATL3);
+
+    // Ordinary fields still update; the enrolled tier survives the refresh.
+    reportedStatus.deviceName = "RenamedDevice";
+    EXPECT_CALL(*mockCompanionManager_, NotifyCompanionStatusChange()).WillOnce(Return()).RetiresOnSaturation();
+    companion->HandleDeviceStatusUpdate(reportedStatus);
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.deviceName, "RenamedDevice");
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.maxAuthTrustLevel, ATL3);
 }
 
 HWTEST_F(CompanionTest, HandleDeviceStatusUpdate_MismatchedDeviceKey_Ignored, TestSize.Level0)
@@ -644,6 +691,41 @@ HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_003, TestSize.Level0)
     EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_, _, _)).Times(0);
 
     companionWithNullManager->HandleTemplateAddToIdmTimeout();
+}
+
+HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_004, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    EXPECT_FALSE(companion->IsAddedToIdm());
+
+    EXPECT_CALL(mockIdmAdapter_, RefreshAndGetUserTemplates(USER_ID_100, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_, _, _)).Times(0);
+
+    companion->HandleTemplateAddToIdmTimeout();
+
+    EXPECT_FALSE(companion->IsAddedToIdm());
+
+    companion->SetAddedToIdm(true);
+}
+
+HWTEST_F(CompanionTest, HandleTemplateAddToIdmTimeout_005, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    EXPECT_FALSE(companion->IsAddedToIdm());
+
+    EXPECT_CALL(mockIdmAdapter_, RefreshAndGetUserTemplates(USER_ID_100, _))
+        .WillOnce(DoAll(SetArgReferee<1>(std::vector<uint64_t> { TEMPLATE_ID_12345 }), Return(true)));
+    EXPECT_CALL(*mockCompanionManager_, RemoveCompanion(_, _, _)).Times(0);
+
+    companion->HandleTemplateAddToIdmTimeout();
+
+    EXPECT_TRUE(companion->IsAddedToIdm());
 }
 
 // --- HandleAuthMaintainActiveChanged tests ---

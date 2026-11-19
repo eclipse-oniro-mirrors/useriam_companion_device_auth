@@ -18,6 +18,7 @@ const FILE_ID: u16 = TestFileId::DefaultRequestManagerTest as u16;
 
 use crate::common::constants::*;
 use crate::entry::companion_device_auth_ffi::{
+    BindingSignatureProofFfi,
     CompanionProcessCheckInputFfi, DataArray1024Ffi, DataArray32Ffi, HostGetInitKeyNegotiationInputFfi,
     Uint16Array64Ffi, SALT_LEN_FFI,
 };
@@ -34,6 +35,7 @@ const MAX_REQUEST_NUM: usize = 50;
 
 fn create_test_companion_process_check_input_ffi(binding_id: i32) -> CompanionProcessCheckInputFfi {
     CompanionProcessCheckInputFfi {
+        binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id,
         companion_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list: Uint16Array64Ffi::default(),
@@ -44,7 +46,7 @@ fn create_test_companion_process_check_input_ffi(binding_id: i32) -> CompanionPr
 }
 
 fn create_test_host_get_init_key_negotiation_input_ffi(request_id: i32) -> HostGetInitKeyNegotiationInputFfi {
-    HostGetInitKeyNegotiationInputFfi { request_id, secure_protocol_id: 1 }
+    HostGetInitKeyNegotiationInputFfi { request_id, secure_protocol_id: 1, selected_protocol_id: 1 }
 }
 
 fn mock_set_crypto_engine() {

@@ -63,12 +63,15 @@ public:
     std::string syncDeviceName {};
     std::string deviceSubProfileName {};
     bool useSyncDeviceName { false };
-    ProtocolId negotiatedProtocolId { ProtocolId::INVALID };
+    ProtocolId selectedProtocolId { ProtocolId::INVALID };
+    ProtocolId freshBindingProtocolId { ProtocolId::INVALID };
     SecureProtocolId secureProtocolId { SecureProtocolId::INVALID };
     DeviceType deviceType { DeviceType::INVALID };
     std::vector<Capability> capabilities {};
     std::optional<bool> isAuthMaintainActive;
     std::optional<uint32_t> atlRevokeDelayMs;
+    Atl physicalMaxAuthTrustLevel { ATL0 };
+    std::optional<Atl> syncMaxAuthTrustLevel;
     bool refreshToken { false };
     bool reportUnsynced { false };
     bool isSynced { false };

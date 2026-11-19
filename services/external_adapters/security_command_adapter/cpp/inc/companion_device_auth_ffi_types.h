@@ -90,6 +90,7 @@ enum CommandId {
     HOST_CHECK_TEMPLATE_ENROLLED = 1027,
     HOST_REFRESH_TOKEN = 1028,
     HOST_SET_COMPANION_INVALID = 1029,
+    HOST_BINDING_SIGN = 1030,
     COMPANION_GET_PERSISTED_STATUS = 2000,
     COMPANION_PROCESS_CHECK = 2001,
     COMPANION_INIT_KEY_NEGOTIATION = 2002,
@@ -106,6 +107,8 @@ enum CommandId {
     COMPANION_BEGIN_OBTAIN_TOKEN = 2013,
     COMPANION_END_OBTAIN_TOKEN = 2014,
     COMPANION_CANCEL_OBTAIN_TOKEN = 2015,
+    COMPANION_GENERATE_BINDING_SIGNATURE_CHALLENGE = 2016,
+    COMPANION_PURGE_BINDING_SIGNATURE_CHALLENGE = 2017,
 };
 
 typedef struct RustCommandParam RustCommandParam;
@@ -219,6 +222,7 @@ typedef struct SelectedAlgorithmsFfi {
     uint16_t kdfAlgorithm;
     uint16_t aeadAlgorithm;
     uint16_t macAlgorithm;
+    uint16_t bindingSignatureAlgorithm;
 } SelectedAlgorithmsFfi;
 
 typedef struct SelectedAlgorithmsArrayFfi {
@@ -247,6 +251,7 @@ typedef struct PersistedCompanionStatusFfi {
     struct DataArray128Ffi iconFileName;
     uint16_t enrolledProtocolId;
     struct Uint16Array64Ffi enrolledCapabilityList;
+    int32_t maxAuthTrustLevel;
 } PersistedCompanionStatusFfi;
 
 typedef struct PersistedHostBindingStatusFfi {

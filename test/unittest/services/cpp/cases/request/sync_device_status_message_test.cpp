@@ -98,6 +98,31 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_002, TestSiz
     EXPECT_EQ(decoded.challenge, 0);
 }
 
+HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusRequest_WithBindingSignature, TestSize.Level0)
+{
+    SyncDeviceStatusRequest request = { .hostProtocolIdList = protocolIdList_,
+        .hostCapabilityList = capabilityList_,
+        .hostDeviceKey = hostDeviceKey_,
+        .salt = salt_,
+        .challenge = challenge_ };
+
+    Attributes attributes;
+    EncodeSyncDeviceStatusRequest(request, attributes);
+    std::vector<uint8_t> bindingChallenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0xAB);
+    std::vector<uint8_t> bindingSignature = { 0xCD, 0xEF };
+    AttachBindingSignatureAttributes(bindingChallenge, bindingSignature, attributes);
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(request.hostDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
+
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(result->bindingSignatureProof.has_value());
+    EXPECT_EQ(result->bindingSignatureProof->challenge, bindingChallenge);
+    EXPECT_EQ(result->bindingSignatureProof->signature, bindingSignature);
+}
+
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_001, TestSize.Level0)
 {
     Attributes attributes;
@@ -159,6 +184,49 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_005, TestSiz
     EXPECT_FALSE(result.has_value());
 }
 
+// Legacy-format request without the asserted peer identity decodes with the field absent
+// (unsigned discovery/V1 rounds never carry it).
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_WithoutCompanionUserKey_OldFormat, TestSize.Level0)
+{
+    Attributes attributes;
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
+        ProtocolIdConverter::ToUnderlyingVec(protocolIdList_));
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
+        CapabilityConverter::ToUnderlyingVec(capabilityList_));
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey_.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
+    attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_SALT, salt_);
+    attributes.SetUint64Value(Attributes::ATTR_CDA_SA_CHALLENGE, challenge_);
+
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_FALSE(result->companionUserKey.has_value());
+}
+
+// Signed rounds assert the peer identity via the companion user key attributes.
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_WithCompanionUserKey, TestSize.Level0)
+{
+    const UserKey companionUserKey = { 200, 1 };
+    Attributes attributes;
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
+        ProtocolIdConverter::ToUnderlyingVec(protocolIdList_));
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
+        CapabilityConverter::ToUnderlyingVec(capabilityList_));
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_HOST_USER_ID, hostDeviceKey_.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
+    attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_SALT, salt_);
+    attributes.SetUint64Value(Attributes::ATTR_CDA_SA_CHALLENGE, challenge_);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, companionUserKey.userId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, companionUserKey.subProfileId);
+
+    auto result = DecodeSyncDeviceStatusRequest(attributes);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(result->companionUserKey.has_value());
+    EXPECT_EQ(*result->companionUserKey, companionUserKey);
+}
+
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
@@ -215,6 +283,37 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_002, TestSize.
     EXPECT_EQ(decoded.result, reply.result);
 }
 
+// Old-format error reply (peer sends no identity attributes) decodes with the field absent:
+// the host falls back to the round's authenticated identity.
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_ErrorWithoutCompanionUserKey_OldFormat,
+    TestSize.Level0)
+{
+    Attributes attributes;
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::NOT_ENROLLED));
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result->result, ResultCode::NOT_ENROLLED);
+    EXPECT_FALSE(result->companionUserKey.has_value());
+}
+
+// Refusal replies name the peer's current user; the identity decodes on error results too.
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_ErrorWithCompanionUserKey, TestSize.Level0)
+{
+    const UserKey companionUserKey = { 200, 1 };
+    Attributes attributes;
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::NOT_ENROLLED));
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, companionUserKey.userId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, companionUserKey.subProfileId);
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result->result, ResultCode::NOT_ENROLLED);
+    ASSERT_TRUE(result->companionUserKey.has_value());
+    EXPECT_EQ(result->companionUserKey->userId, companionUserKey.userId);
+    EXPECT_EQ(result->companionUserKey->subProfileId, companionUserKey.subProfileId);
+}
+
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
@@ -242,6 +341,82 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.
     EXPECT_EQ(decoded.secureProtocolId, SecureProtocolId::DEFAULT);
     EXPECT_TRUE(decoded.deviceUserName.empty());
     EXPECT_TRUE(decoded.companionCheckResponse.empty());
+    EXPECT_FALSE(decoded.maxAuthTrustLevel.has_value());
+}
+
+HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_CarriesMaxAuthTrustLevel, TestSize.Level0)
+{
+    SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
+        .companionProtocolIdList = protocolIdList_,
+        .companionCapabilityList = capabilityList_,
+        .secureProtocolId = secureProtocolId_,
+        .companionDeviceKey = companionDeviceKey_,
+        .deviceUserName = deviceUserName_,
+        .companionCheckResponse = companionCheckResponse_,
+        .maxAuthTrustLevel = ATL3 };
+
+    Attributes attributes;
+    EncodeSyncDeviceStatusReply(reply, attributes);
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(reply.companionDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    SyncDeviceStatusReply decoded = result.value();
+
+    ASSERT_TRUE(decoded.maxAuthTrustLevel.has_value());
+    EXPECT_EQ(decoded.maxAuthTrustLevel.value(), ATL3);
+}
+
+// Old-format reply (peer does not send ATTR_CDA_SA_COMPANION_MAX_ATL) must decode successfully with the
+// field absent, and a nullopt encode must not put the key on the wire.
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_WithoutMaxAuthTrustLevel_OldFormat, TestSize.Level0)
+{
+    SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
+        .companionProtocolIdList = protocolIdList_,
+        .companionCapabilityList = capabilityList_,
+        .secureProtocolId = secureProtocolId_,
+        .companionDeviceKey = companionDeviceKey_,
+        .deviceUserName = deviceUserName_,
+        .companionCheckResponse = companionCheckResponse_ };
+
+    Attributes attributes;
+    EncodeSyncDeviceStatusReply(reply, attributes);
+
+    EXPECT_FALSE(attributes.HasAttribute(Attributes::ATTR_CDA_SA_COMPANION_MAX_ATL));
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(reply.companionDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_FALSE(result->maxAuthTrustLevel.has_value());
+}
+
+// A carried-but-invalid maxAtl marks the whole reply invalid (same as a missing USER_NAME).
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_InvalidMaxAuthTrustLevelFailsDecode, TestSize.Level0)
+{
+    SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
+        .companionProtocolIdList = protocolIdList_,
+        .companionCapabilityList = capabilityList_,
+        .secureProtocolId = secureProtocolId_,
+        .companionDeviceKey = companionDeviceKey_,
+        .deviceUserName = deviceUserName_,
+        .companionCheckResponse = companionCheckResponse_ };
+
+    Attributes attributes;
+    EncodeSyncDeviceStatusReply(reply, attributes);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_MAX_ATL, 12345); // not a legal ATL
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(reply.companionDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    EXPECT_FALSE(result.has_value());
 }
 
 // Decode enforces only the field's presence; consumption is judged in the Rust security layer,

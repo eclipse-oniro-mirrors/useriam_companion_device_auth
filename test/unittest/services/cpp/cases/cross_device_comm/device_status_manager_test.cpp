@@ -362,35 +362,92 @@ HWTEST_F(DeviceStatusManagerTest, HandleChannelDeviceStatusChange, TestSize.Leve
         ctx.manager->HandleChannelDeviceStatusChange(ChannelId::SOFTBUS, std::vector<PhysicalDeviceStatus> {}));
 }
 
-HWTEST_F(DeviceStatusManagerTest, NegotiateProtocol_MultipleProtocols, TestSize.Level0)
+HWTEST_F(DeviceStatusManagerTest, NegotiateSyncProtocol_RoundPayloadSingleVersion, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1, ProtocolId::INVALID };
 
-    std::vector<ProtocolId> remoteProtocols = { ProtocolId::VERSION_1, ProtocolId::INVALID };
-    auto result = ctx.manager->NegotiateProtocol(remoteProtocols);
+    auto status = MakePhysicalStatus("device-sync-proto-ok", ChannelId::SOFTBUS, "DeviceA");
+    DeviceStatusEntry entry(status, []() {});
+    DeviceKey deviceKey = entry.BuildDeviceKey();
 
-    EXPECT_TRUE(result.has_value());
-    EXPECT_EQ(ProtocolId::VERSION_1, result.value());
+    // offer=[1] + reply=[1]: the round's first(offer ∩ reply) is V1.
+    SyncDeviceStatus syncDeviceStatus {};
+    syncDeviceStatus.needSync = true;
+    syncDeviceStatus.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncDeviceStatus.selectedProtocolId = static_cast<uint16_t>(ProtocolId::VERSION_1);
+    syncDeviceStatus.secureProtocolId = SecureProtocolId::DEFAULT;
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    auto result = ctx.manager->NegotiateSyncProtocol(entry, deviceKey, syncDeviceStatus, errorGuard);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(ProtocolId::VERSION_1, entry.selectedProtocolId);
+}
+
+HWTEST_F(DeviceStatusManagerTest, NegotiateSyncProtocol_RoundPayloadDualVersion, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+
+    auto status = MakePhysicalStatus("device-sync-proto-dual", ChannelId::SOFTBUS, "DeviceB");
+    DeviceStatusEntry entry(status, []() {});
+    DeviceKey deviceKey = entry.BuildDeviceKey();
+
+    // offer=[2,1] + reply=[2,1]: the round's first(offer ∩ reply) is V2, not the reply head.
+    SyncDeviceStatus syncDeviceStatus {};
+    syncDeviceStatus.needSync = true;
+    syncDeviceStatus.companionProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    syncDeviceStatus.selectedProtocolId = static_cast<uint16_t>(ProtocolId::VERSION_2);
+    syncDeviceStatus.secureProtocolId = SecureProtocolId::DEFAULT;
+
+    ErrorGuard errorGuard([](ResultCode) {});
+    auto result = ctx.manager->NegotiateSyncProtocol(entry, deviceKey, syncDeviceStatus, errorGuard);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(ProtocolId::VERSION_2, entry.selectedProtocolId);
+}
+
+HWTEST_F(DeviceStatusManagerTest, NegotiateSyncProtocol_ProtocolNegotiationFailed, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+
+    auto status = MakePhysicalStatus("device-sync-proto-bad", ChannelId::SOFTBUS, "DeviceB");
+    DeviceStatusEntry entry(status, []() {});
+    DeviceKey deviceKey = entry.BuildDeviceKey();
+
+    // Round negotiated nothing (INVALID sentinel): the round must fail and leave INVALID, not the cached value.
+    entry.selectedProtocolId = ProtocolId::VERSION_1;
+    SyncDeviceStatus syncDeviceStatus {};
+    syncDeviceStatus.needSync = true;
+    syncDeviceStatus.companionProtocolIdList = { ProtocolId::INVALID };
+    syncDeviceStatus.secureProtocolId = SecureProtocolId::DEFAULT;
+
+    ResultCode settled = ResultCode::SUCCESS;
+    {
+        // ErrorGuard fires its handler at destruction: scope the guard so `settled` is
+        // observable before the assertions below read it.
+        ErrorGuard errorGuard([&settled](ResultCode result) { settled = result; });
+        auto result = ctx.manager->NegotiateSyncProtocol(entry, deviceKey, syncDeviceStatus, errorGuard);
+        EXPECT_FALSE(result);
+    }
+    EXPECT_EQ(ResultCode::PROTOCOL_NEGOTIATION_FAILED, settled);
+    EXPECT_EQ(ProtocolId::INVALID, entry.selectedProtocolId);
 }
 
 HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_MultipleSynced, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.hostProtocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.companionCapabilities = { Capability::TOKEN_AUTH };
 
     auto status1 = MakePhysicalStatus("device-all-1", ChannelId::SOFTBUS, "Device1");
     DeviceStatusEntry entry1(status1, []() {});
     entry1.isSynced = true;
-    entry1.negotiatedProtocolId = ProtocolId::VERSION_1;
+    entry1.selectedProtocolId = ProtocolId::VERSION_1;
     entry1.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(status1.physicalDeviceKey, std::move(entry1));
 
     auto status2 = MakePhysicalStatus("device-all-2", ChannelId::SOFTBUS, "Device2");
     DeviceStatusEntry entry2(status2, []() {});
     entry2.isSynced = true;
-    entry2.negotiatedProtocolId = ProtocolId::VERSION_1;
+    entry2.selectedProtocolId = ProtocolId::VERSION_1;
     entry2.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(status2.physicalDeviceKey, std::move(entry2));
 
@@ -456,7 +513,7 @@ HWTEST_F(DeviceStatusManagerTest, NotifySubscribers_WithNullCallback, TestSize.L
     auto status = MakePhysicalStatus("device-notify", ChannelId::SOFTBUS, "Device");
     DeviceStatusEntry entry(status, []() {});
     entry.isSynced = true;
-    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
+    entry.selectedProtocolId = ProtocolId::VERSION_1;
     entry.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(status.physicalDeviceKey, std::move(entry));
 
@@ -522,14 +579,14 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_DetectsReportUnsyncedChange
 HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_IncludesRefreshToken, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.hostProtocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.hostCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-get-refresh", ChannelId::SOFTBUS, "Device");
     physicalStatus.refreshToken = true;
     DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = true;
-    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
+    entry.selectedProtocolId = ProtocolId::VERSION_1;
     entry.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
@@ -543,14 +600,14 @@ HWTEST_F(DeviceStatusManagerTest, GetDeviceStatus_IncludesRefreshToken, TestSize
 HWTEST_F(DeviceStatusManagerTest, GetAllDeviceStatus_IncludesRefreshToken, TestSize.Level0)
 {
     auto ctx = SetupTestContext();
-    ctx.localStatusManager->profile_.protocols = { ProtocolId::VERSION_1 };
+    ctx.localStatusManager->profile_.hostProtocols = { ProtocolId::VERSION_1 };
     ctx.localStatusManager->profile_.hostCapabilities = { Capability::TOKEN_AUTH };
 
     auto physicalStatus = MakePhysicalStatus("device-all-refresh", ChannelId::SOFTBUS, "Device");
     physicalStatus.refreshToken = true;
     DeviceStatusEntry entry(physicalStatus, []() {});
     entry.isSynced = true;
-    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
+    entry.selectedProtocolId = ProtocolId::VERSION_1;
     entry.capabilities = { Capability::TOKEN_AUTH };
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
@@ -624,7 +681,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsChanged
     // Pre-existing entry, not yet synced (sync empty): effective is driven by the physical ids.
     DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
-    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
+    entry.selectedProtocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     auto updatedStatus = MakePhysicalStatus("device-biz-change", ChannelId::SOFTBUS, "Device");
@@ -653,7 +710,7 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchang
 
     DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
-    entry.negotiatedProtocolId = ProtocolId::VERSION_1;
+    entry.selectedProtocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
 
     EXPECT_CALL(*ctx.mockChannel, GetAllPhysicalDevices())
@@ -697,6 +754,55 @@ HWTEST_F(DeviceStatusManagerTest, ReconcileDevicesNotifiesCallbackWhenSyncingDev
     EXPECT_TRUE(onResultCalled);
     EXPECT_EQ(ResultCode::GENERAL_ERROR, notifiedResult);
     EXPECT_EQ(0u, ctx.manager->deviceStatusMap_.size());
+}
+
+// The pairing reads the negotiated protocol from the device status after the settle: a
+// successful round must leave entry.selectedProtocolId carrying exactly this round's value
+// when the waiters are notified.
+HWTEST_F(DeviceStatusManagerTest, HandleSyncResult_RoundPayloadReachesWaiters, TestSize.Level0)
+{
+    auto ctx = SetupTestContext();
+
+    auto physicalStatus = MakePhysicalStatus("device-payload-waiter", ChannelId::SOFTBUS, "Device");
+    DeviceStatusEntry entry(physicalStatus, []() {});
+    entry.isSyncInProgress = true;
+    entry.inProgressAttemptId = 42;
+    entry.selectedProtocolId = ProtocolId::VERSION_1; // stale cache from an earlier round
+
+    bool waiterSettled = false;
+    ResultCode waiterResult = ResultCode::GENERAL_ERROR;
+    std::optional<ProtocolId> waiterProtocol;
+    auto *manager = ctx.manager.get();
+    const PhysicalDeviceKey devicePhysicalKey = physicalStatus.physicalDeviceKey;
+    entry.syncWaiters.push_back(
+        [&waiterSettled, &waiterResult, &waiterProtocol, manager, devicePhysicalKey](ResultCode resultCode) {
+            waiterSettled = true;
+            waiterResult = resultCode;
+            // The pairing reads the negotiated value from the entry state at settle time.
+            waiterProtocol = manager->deviceStatusMap_.at(devicePhysicalKey).selectedProtocolId;
+        });
+    ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
+
+    SyncDeviceStatus syncDeviceStatus {};
+    syncDeviceStatus.needSync = true;
+    syncDeviceStatus.selectedProtocolId = static_cast<uint16_t>(ProtocolId::VERSION_2);
+    syncDeviceStatus.secureProtocolId = SecureProtocolId::DEFAULT;
+
+    DeviceKey deviceKey;
+    deviceKey.idType = physicalStatus.physicalDeviceKey.idType;
+    deviceKey.deviceId = physicalStatus.physicalDeviceKey.deviceId;
+    ctx.manager->HandleSyncResult(deviceKey, 42, ResultCode::SUCCESS, syncDeviceStatus);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_TRUE(waiterSettled);
+    EXPECT_EQ(ResultCode::SUCCESS, waiterResult);
+    ASSERT_TRUE(waiterProtocol.has_value());
+    EXPECT_EQ(ProtocolId::VERSION_2, waiterProtocol.value());
+
+    const auto &stored = ctx.manager->deviceStatusMap_.at(physicalStatus.physicalDeviceKey);
+    EXPECT_TRUE(stored.isSynced);
+    EXPECT_EQ(ProtocolId::VERSION_2, stored.selectedProtocolId);
+    EXPECT_FALSE(stored.isSyncInProgress);
 }
 
 } // namespace CompanionDeviceAuth

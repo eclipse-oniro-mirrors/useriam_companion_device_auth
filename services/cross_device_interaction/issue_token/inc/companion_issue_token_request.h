@@ -48,17 +48,19 @@ protected:
 
 private:
     void HandleIssueTokenMessage(const Attributes &request, OnMessageReply &onMessageReply);
-    ResultCode SecurityAgentCompanionIssueToken(const std::vector<uint8_t> &issueTokenRequest,
-        std::vector<uint8_t> &issueTokenReply);
+    ResultCode SecurityAgentCompanionIssueToken(const BindingSignatureProof &bindingSignatureProof,
+        const std::vector<uint8_t> &issueTokenRequest, std::vector<uint8_t> &issueTokenReply);
     bool CompanionPreIssueToken(std::vector<uint8_t> &preIssueTokenReply);
     void SendPreIssueTokenReply(ResultCode result, const std::vector<uint8_t> &preIssueTokenReply);
     void SendErrorReply(ResultCode result);
     void HandleAuthMaintainActiveChanged(bool isActive);
 
-    CompanionPreIssueTokenInput BuildCompanionPreIssueTokenInput() const;
+    CompanionPreIssueTokenInput BuildCompanionPreIssueTokenInput(
+        const BindingSignatureProof &bindingSignatureProof) const;
     SecureProtocolId QuerySecureProtocolId();
     std::optional<BindingId> QueryBindingIdFromHostBinding();
-    bool SecurityAgentPreIssueToken(std::vector<uint8_t> &preIssueTokenReply);
+    bool SecurityAgentPreIssueToken(const BindingSignatureProof &bindingSignatureProof,
+        std::vector<uint8_t> &preIssueTokenReply);
 
     Attributes request_;
     UserKey companionUserKey_;

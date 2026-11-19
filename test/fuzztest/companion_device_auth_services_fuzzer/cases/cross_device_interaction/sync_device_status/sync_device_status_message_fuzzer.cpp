@@ -91,6 +91,11 @@ static void FuzzEncodeSyncDeviceStatusReply(FuzzedDataProvider &fuzzData)
     reply.companionCheckResponse =
         fuzzData.ConsumeBytes<uint8_t>(fuzzData.ConsumeIntegralInRange<uint32_t>(0, FUZZ_MAX_MESSAGE_LENGTH));
     reply.deviceSubProfileName = GenerateFuzzString(fuzzData, TEST_VAL64);
+    static constexpr int32_t fuzzAtls[] = { ATL1, ATL2, ATL3, ATL4, 12345 };
+    uint8_t atlSelector = fuzzData.ConsumeIntegralInRange<uint8_t>(0, sizeof(fuzzAtls) / sizeof(fuzzAtls[0]));
+    if (atlSelector > 0) {
+        reply.maxAuthTrustLevel = fuzzAtls[atlSelector - 1];
+    }
 
     Attributes attr;
     EncodeSyncDeviceStatusReply(reply, attr);

@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "service_common.h"
@@ -84,6 +85,11 @@ struct HostCancelCompanionCheckInput {
     RequestId requestId;
 };
 
+struct BindingSignatureProof {
+    std::vector<uint8_t> challenge;
+    std::vector<uint8_t> signature;
+};
+
 struct CompanionProcessCheckInput {
     BindingId bindingId;
     std::vector<uint16_t> companionProtocolList;
@@ -91,6 +97,7 @@ struct CompanionProcessCheckInput {
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> salt;
     uint64_t challenge;
+    BindingSignatureProof bindingSignatureProof;
 };
 
 struct CompanionProcessCheckOutput {
@@ -105,6 +112,7 @@ struct CompanionCancelCheckInput {
 struct HostGetInitKeyNegotiationRequestInput {
     RequestId requestId;
     SecureProtocolId secureProtocolId;
+    ProtocolId selectedProtocolId { ProtocolId::INVALID };
 };
 
 struct HostGetInitKeyNegotiationRequestOutput {
@@ -119,7 +127,7 @@ struct HostBeginAddCompanionInput {
     std::vector<uint8_t> fwkMsg;
     SecureProtocolId secureProtocolId;
     std::vector<uint16_t> hostCapabilityList;
-    std::vector<uint16_t> hostProtocolList;
+    std::vector<uint16_t> hostProtocolIdList;
     std::vector<uint16_t> companionCapabilityList;
     std::vector<uint8_t> initKeyNegotiationReply;
 };
@@ -237,6 +245,7 @@ struct CompanionDelegateAuthBeginInput {
     BindingId bindingId;
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> startDelegateAuthRequest;
+    BindingSignatureProof bindingSignatureProof;
 };
 
 struct CompanionDelegateAuthBeginOutput {
@@ -296,6 +305,7 @@ struct CompanionPreIssueTokenInput {
     BindingId bindingId;
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> preIssueTokenRequest;
+    BindingSignatureProof bindingSignatureProof;
 };
 
 struct CompanionPreIssueTokenOutput {
@@ -304,8 +314,10 @@ struct CompanionPreIssueTokenOutput {
 
 struct CompanionProcessIssueTokenInput {
     RequestId requestId;
+    BindingId bindingId;
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> issueTokenRequest;
+    BindingSignatureProof bindingSignatureProof;
 };
 
 struct CompanionProcessIssueTokenOutput {
@@ -396,6 +408,7 @@ struct CompanionProcessTokenAuthInput {
     BindingId bindingId;
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> tokenAuthRequest;
+    BindingSignatureProof bindingSignatureProof;
 };
 
 struct CompanionProcessTokenAuthOutput {
@@ -430,6 +443,19 @@ struct HostUpdateCompanionEnabledBusinessIdsInput {
 
 struct HostSetCompanionInvalidInput {
     TemplateId templateId;
+};
+
+struct HostBindingSignInput {
+    TemplateId templateId;
+    std::vector<uint8_t> challenge;
+};
+
+struct HostBindingSignOutput {
+    std::vector<uint8_t> signature;
+};
+
+struct CompanionGenerateBindingSignatureChallengeOutput {
+    std::vector<uint8_t> challenge;
 };
 
 struct HostCheckTemplateEnrolledInput {
@@ -538,6 +564,10 @@ public:
     virtual ResultCode HostUpdateCompanionEnabledBusinessIds(
         const HostUpdateCompanionEnabledBusinessIdsInput &input) = 0;
     virtual ResultCode HostSetCompanionInvalid(const HostSetCompanionInvalidInput &input) = 0;
+    virtual ResultCode HostBindingSign(const HostBindingSignInput &input, HostBindingSignOutput &output) = 0;
+    virtual ResultCode CompanionGenerateBindingSignatureChallenge(
+        CompanionGenerateBindingSignatureChallengeOutput &output) = 0;
+    virtual ResultCode CompanionPurgeBindingSignatureChallenge(const std::vector<uint8_t> &challenge) = 0;
     virtual ResultCode HostRevokeToken(const HostRevokeTokenInput &input) = 0;
 
     // Companion — Host binding data management

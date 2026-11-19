@@ -39,7 +39,6 @@ public:
      * @brief The key to set attribute.
      */
     enum AttributeKey : uint32_t {
-        /** Signature, the value type is std::vector<uint8_t>. */
         ATTR_SIGNATURE = 100004,
 
         /** Companion device auth SA specific attributes begin from 200000 */
@@ -73,6 +72,9 @@ public:
         ATTR_CDA_SA_DEVICE_SUB_PROFILE_NAME = 200031,
         ATTR_CDA_SA_ATL = 200032,
         ATTR_CDA_SA_PROTOCOL_ID = 200033,
+        ATTR_CDA_SA_COMPANION_MAX_ATL = 200035,
+        ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE = 200036,
+        ATTR_CDA_SA_BINDING_SIGNATURE = 200037,
 
         /** Attributes inside device */
         ATTR_CDA_SA_SELECT_CONTEXT = 210000,

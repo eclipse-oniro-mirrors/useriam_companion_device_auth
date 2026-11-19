@@ -167,6 +167,12 @@ public:
         return std::make_unique<Subscription>([]() {});
     }
 
+    bool RefreshAndGetUserTemplates(int32_t userId, std::vector<uint64_t> &templateIds) override
+    {
+        templateIds = GetUserTemplates(userId);
+        return true;
+    }
+
 private:
     FuzzedDataProvider &fuzzData_ [[maybe_unused]];
 };

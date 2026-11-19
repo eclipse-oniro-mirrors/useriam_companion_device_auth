@@ -18,7 +18,6 @@ use crate::common::constants::{AES_GCM_IV_SIZE, AES_GCM_TAG_SIZE};
 use crate::log_e;
 use crate::singleton_registry;
 use crate::traits::log_trace::RustFileId;
-use crate::Box;
 pub(crate) const FILE_ID: u16 = RustFileId::CryptoEngine as u16;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -91,20 +90,20 @@ impl Drop for AesGcmResult {
     }
 }
 
-pub type RandomChecker = Box<dyn Fn(&[u8]) -> bool>;
-
 pub trait CryptoEngine {
     fn generate_ed25519_key_pair(&self) -> Result<KeyPair, ErrorCode>;
     fn ed25519_sign(&self, pri_key: &[u8], data: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
     fn ed25519_verify(&self, pub_key: &[u8], data: &[u8], sign: &[u8]) -> Result<(), ErrorCode>;
+    fn generate_p256_key_pair(&self) -> Result<KeyPair, ErrorCode>;
+    fn p256_check_pub_key(&self, pub_key: &[u8]) -> Result<(), ErrorCode>;
+    fn p256_ecdsa_sign(&self, pri_key: &[u8], data: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
+    fn p256_ecdsa_verify(&self, pub_key: &[u8], data: &[u8], sign: &[u8]) -> Result<(), ErrorCode>;
     fn hmac_sha256(&self, hmac_key: &[u8], data: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
     fn sha256(&self, data: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
     fn secure_random(&self, out_buffer: &mut [u8]) -> Result<(), ErrorCode>;
-    fn secure_random_with_check(&self, _out_buffer: &mut [u8], _checker: RandomChecker) -> Result<(), ErrorCode>;
     fn aes_gcm_encrypt(&self, plaintext: &[u8], aes_gcm_param: &AesGcmParam) -> Result<AesGcmResult, ErrorCode>;
     fn aes_gcm_decrypt(&self, aes_gcm_param: &AesGcmParam, result: &AesGcmResult) -> Result<crate::Vec<u8>, ErrorCode>;
     fn hkdf(&self, salt: &[u8], key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
-    fn p256_ecdh(&self, key_pair: &KeyPair, pub_key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
     fn x25519_ecdh(&self, key_pair: &KeyPair, pub_key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode>;
     fn generate_x25519_key_pair(&self) -> Result<KeyPair, ErrorCode>;
 }
@@ -127,6 +126,26 @@ impl CryptoEngine for DummyCryptoEngine {
         Err(ErrorCode::GeneralError)
     }
 
+    fn generate_p256_key_pair(&self) -> Result<KeyPair, ErrorCode> {
+        log_e!("not implemented");
+        Err(ErrorCode::GeneralError)
+    }
+
+    fn p256_check_pub_key(&self, _pub_key: &[u8]) -> Result<(), ErrorCode> {
+        log_e!("not implemented");
+        Err(ErrorCode::GeneralError)
+    }
+
+    fn p256_ecdsa_sign(&self, _pri_key: &[u8], _data: &[u8]) -> Result<crate::Vec<u8>, ErrorCode> {
+        log_e!("not implemented");
+        Err(ErrorCode::GeneralError)
+    }
+
+    fn p256_ecdsa_verify(&self, _pub_key: &[u8], _data: &[u8], _sign: &[u8]) -> Result<(), ErrorCode> {
+        log_e!("not implemented");
+        Err(ErrorCode::GeneralError)
+    }
+
     fn hmac_sha256(&self, _hmac_key: &[u8], _data: &[u8]) -> Result<crate::Vec<u8>, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
@@ -138,11 +157,6 @@ impl CryptoEngine for DummyCryptoEngine {
     }
 
     fn secure_random(&self, _buffer: &mut [u8]) -> Result<(), ErrorCode> {
-        log_e!("not implemented");
-        Err(ErrorCode::GeneralError)
-    }
-
-    fn secure_random_with_check(&self, _out_buffer: &mut [u8], _checker: RandomChecker) -> Result<(), ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }
@@ -162,11 +176,6 @@ impl CryptoEngine for DummyCryptoEngine {
     }
 
     fn hkdf(&self, _salt: &[u8], _key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode> {
-        log_e!("not implemented");
-        Err(ErrorCode::GeneralError)
-    }
-
-    fn p256_ecdh(&self, _key_pair: &KeyPair, _pub_key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode> {
         log_e!("not implemented");
         Err(ErrorCode::GeneralError)
     }

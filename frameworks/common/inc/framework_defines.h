@@ -34,6 +34,12 @@ constexpr int32_t ATL2 = 20000;
 constexpr int32_t ATL3 = 30000;
 constexpr int32_t ATL4 = 40000;
 
+inline bool IsAuthTrustLevelValid(int32_t authTrustLevel)
+{
+    return (
+        (authTrustLevel == ATL1) || (authTrustLevel == ATL2) || (authTrustLevel == ATL3) || (authTrustLevel == ATL4));
+}
+
 inline const std::map<int32_t, std::string> g_result2Str = {
     { static_cast<int32_t>(ResultCode::GENERAL_ERROR),
         "The system service is not working properly. Please try again later." },

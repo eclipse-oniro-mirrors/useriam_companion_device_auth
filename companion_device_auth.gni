@@ -13,10 +13,8 @@
 
 declare_args() {
   companion_device_auth_enable_auth_state_maintain_simulation = true
-}
-
-declare_args() {
   companion_device_auth_enable_multiple_os_account_sub_profiles = false
+  companion_device_auth_enable_companion_v2 = false
 }
 
 companion_device_auth_subsystem_name = "useriam"

@@ -41,7 +41,8 @@ public:
 
     std::vector<uint64_t> GetUserTemplates(int32_t userId) override;
     std::unique_ptr<Subscription> SubscribeUserTemplateChange(int32_t userId, TemplateChangeCallback callback) override;
-    void QueryAndUpdateCache(int32_t userId);
+    bool RefreshAndGetUserTemplates(int32_t userId, std::vector<uint64_t> &templateIds) override;
+    void RefreshUserTemplates(int32_t userId);
 
 private:
     IdmAdapterImpl();

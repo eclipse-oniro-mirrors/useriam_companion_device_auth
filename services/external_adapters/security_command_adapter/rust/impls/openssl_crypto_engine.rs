@@ -13,15 +13,16 @@
  * limitations under the License.
  */
 
-// This file uses std:: and can override the no_std config
-
-use crate::common::constants::ErrorCode;
+use crate::common::constants::{
+    ErrorCode, BINDING_SIGNATURE_PRI_KEY_LEN, BINDING_SIGNATURE_P256_DER_MAX_LEN, BINDING_SIGNATURE_PUB_KEY_LEN,
+};
 use crate::log_e;
-use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngine, KeyPair, RandomChecker};
+use crate::traits::crypto_engine::{AesGcmParam, AesGcmResult, CryptoEngine, KeyPair};
 use crate::vec;
 use crate::Vec;
 
 use crate::traits::log_trace::RustFileId;
+use core::cmp::Ordering;
 use openssl::bn::BigNumContext;
 use openssl::derive::Deriver;
 use openssl::ec::{EcGroup, EcKey, EcPoint};
@@ -46,6 +47,26 @@ impl Default for OpenSSLCryptoEngine {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn check_p256_pub_key(pub_key: &[u8]) -> Result<(), ErrorCode> {
+    if pub_key.len() != BINDING_SIGNATURE_PUB_KEY_LEN || pub_key.first() != Some(&0x04) {
+        log_e!("P-256 public key must be SEC1 uncompressed {}B, len:{}", BINDING_SIGNATURE_PUB_KEY_LEN, pub_key.len());
+        return Err(ErrorCode::GeneralError);
+    }
+    let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).map_err(|e| {
+        log_e!("Failed to create EC group for P-256: {}", e);
+        ErrorCode::GeneralError
+    })?;
+    let mut ctx = BigNumContext::new().map_err(|e| {
+        log_e!("Failed to create BigNum context: {}", e);
+        ErrorCode::GeneralError
+    })?;
+    if EcPoint::from_bytes(&group, pub_key, &mut ctx).is_err() {
+        log_e!("P-256 public key is not a valid curve point");
+        return Err(ErrorCode::GeneralError);
+    }
+    Ok(())
 }
 
 impl CryptoEngine for OpenSSLCryptoEngine {
@@ -117,6 +138,157 @@ impl CryptoEngine for OpenSSLCryptoEngine {
             })
     }
 
+    fn generate_p256_key_pair(&self) -> Result<KeyPair, ErrorCode> {
+        let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).map_err(|e| {
+            log_e!("Failed to create EC group for P-256: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let ec_key = EcKey::generate(&group).map_err(|e| {
+            log_e!("Failed to generate P-256 key pair: {}", e);
+            ErrorCode::GeneralError
+        })?;
+
+        let scalar = ec_key.private_key().to_vec();
+        if scalar.len() > BINDING_SIGNATURE_PRI_KEY_LEN || scalar.is_empty() {
+            log_e!("Invalid P-256 private key length: {}", scalar.len());
+            return Err(ErrorCode::GeneralError);
+        }
+        let mut pri_key = vec![0u8; BINDING_SIGNATURE_PRI_KEY_LEN];
+        pri_key[BINDING_SIGNATURE_PRI_KEY_LEN - scalar.len()..].copy_from_slice(&scalar);
+
+        let mut ctx = BigNumContext::new().map_err(|e| {
+            log_e!("Failed to create BigNum context: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let pub_key =
+            ec_key.public_key().to_bytes(&group, openssl::ec::PointConversionForm::UNCOMPRESSED, &mut ctx)
+                .map_err(|e| {
+                    log_e!("Failed to serialize P-256 public key: {}", e);
+                    ErrorCode::GeneralError
+                })?;
+        check_p256_pub_key(&pub_key)?;
+
+        Ok(KeyPair::new(pub_key, pri_key))
+    }
+
+    fn p256_check_pub_key(&self, pub_key: &[u8]) -> Result<(), ErrorCode> {
+        check_p256_pub_key(pub_key)
+    }
+
+    fn p256_ecdsa_sign(&self, pri_key: &[u8], data: &[u8]) -> Result<Vec<u8>, ErrorCode> {
+        if pri_key.len() != BINDING_SIGNATURE_PRI_KEY_LEN {
+            log_e!("P-256 private key must be 32 bytes, got: {}", pri_key.len());
+            return Err(ErrorCode::BadParam);
+        }
+
+        let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).map_err(|e| {
+            log_e!("Failed to create EC group for P-256: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let priv_bn = openssl::bn::BigNum::from_slice(pri_key).map_err(|e| {
+            log_e!("Failed to parse private key from bytes: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let mut ctx = BigNumContext::new().map_err(|e| {
+            log_e!("Failed to create BigNum context: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let mut order = openssl::bn::BigNum::new().map_err(|e| {
+            log_e!("Failed to create BigNum for group order: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        group.order(&mut order, &mut ctx).map_err(|e| {
+            log_e!("Failed to get P-256 group order: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        if pri_key.iter().all(|&b| b == 0) || priv_bn.ucmp(&order) != Ordering::Less {
+            log_e!("P-256 private key scalar out of range");
+            return Err(ErrorCode::BadParam);
+        }
+        let mut public_point = EcPoint::new(&group).map_err(|e| {
+            log_e!("Failed to create EC point: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        public_point.mul_generator(&group, &priv_bn, &ctx).map_err(|e| {
+            log_e!("Failed to derive public key: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let ec_key = EcKey::from_private_components(&group, &priv_bn, &public_point).map_err(|e| {
+            log_e!("Failed to create EC key from private components: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let pkey = PKey::from_ec_key(ec_key).map_err(|e| {
+            log_e!("Failed to create PKey from EC key: {}", e);
+            ErrorCode::GeneralError
+        })?;
+
+        let mut signer = Signer::new(MessageDigest::sha256(), &pkey).map_err(|e| {
+            log_e!("Failed to create ECDSA signer: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        signer.update(data).map_err(|e| {
+            log_e!("Failed to update ECDSA signature: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let sign = signer.sign_to_vec().map_err(|e| {
+            log_e!("Failed to finalize ECDSA signature: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        if sign.len() > BINDING_SIGNATURE_P256_DER_MAX_LEN {
+            log_e!("ECDSA signature too long: {}", sign.len());
+            return Err(ErrorCode::GeneralError);
+        }
+        Ok(sign)
+    }
+
+    fn p256_ecdsa_verify(&self, pub_key: &[u8], data: &[u8], sign: &[u8]) -> Result<(), ErrorCode> {
+        check_p256_pub_key(pub_key)?;
+        if sign.is_empty() || sign.len() > BINDING_SIGNATURE_P256_DER_MAX_LEN {
+            log_e!("ECDSA signature length invalid: {}", sign.len());
+            return Err(ErrorCode::GeneralError);
+        }
+
+        let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).map_err(|e| {
+            log_e!("Failed to create EC group for P-256: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let mut ctx = BigNumContext::new().map_err(|e| {
+            log_e!("Failed to create BigNum context: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let peer_point = EcPoint::from_bytes(&group, pub_key, &mut ctx).map_err(|e| {
+            log_e!("Failed to parse P-256 public key: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let ec_key = EcKey::from_public_key(&group, &peer_point).map_err(|e| {
+            log_e!("Failed to create EC key from public key: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        let pkey = PKey::from_ec_key(ec_key).map_err(|e| {
+            log_e!("Failed to create PKey from EC key: {}", e);
+            ErrorCode::GeneralError
+        })?;
+
+        let mut verifier = Verifier::new(MessageDigest::sha256(), &pkey).map_err(|e| {
+            log_e!("Failed to create ECDSA verifier: {}", e);
+            ErrorCode::GeneralError
+        })?;
+        verifier
+            .verify_oneshot(sign, data)
+            .map_err(|e| {
+                log_e!("Failed to verify ECDSA signature: {}", e);
+                ErrorCode::GeneralError
+            })
+            .and_then(|result| {
+                if result {
+                    Ok(())
+                } else {
+                    log_e!("ECDSA signature verification failed");
+                    Err(ErrorCode::GeneralError)
+                }
+            })
+    }
+
     fn hmac_sha256(&self, hmac_key: &[u8], data: &[u8]) -> Result<Vec<u8>, ErrorCode> {
         let pkey = PKey::hmac(hmac_key).map_err(|e| {
             log_e!("Failed to create HMAC key: {}", e);
@@ -153,19 +325,6 @@ impl CryptoEngine for OpenSSLCryptoEngine {
             log_e!("Failed to generate secure random bytes: {}", e);
             ErrorCode::GeneralError
         })
-    }
-
-    fn secure_random_with_check(&self, out_buffer: &mut [u8], checker: RandomChecker) -> Result<(), ErrorCode> {
-        const MAX_RETRY_TIME: u32 = 10;
-        for _i in 0..MAX_RETRY_TIME {
-            self.secure_random(out_buffer)?;
-            if checker(out_buffer) {
-                return Ok(());
-            }
-        }
-
-        log_e!("Failed to generate secure random bytes with check");
-        Err(ErrorCode::GeneralError)
     }
 
     fn aes_gcm_encrypt(&self, plaintext: &[u8], aes_gcm_param: &AesGcmParam) -> Result<AesGcmResult, ErrorCode> {
@@ -283,75 +442,6 @@ impl CryptoEngine for OpenSSLCryptoEngine {
         })?;
 
         Ok(out)
-    }
-
-    fn p256_ecdh(&self, key_pair: &KeyPair, pub_key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode> {
-        let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).map_err(|e| {
-            log_e!("Failed to create EC group for P-256: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let priv_bn = openssl::bn::BigNum::from_slice(&key_pair.pri_key).map_err(|e| {
-            log_e!("Failed to parse private key from bytes: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let mut public_point = EcPoint::new(&group).map_err(|e| {
-            log_e!("Failed to create EC point: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let mut ctx = BigNumContext::new().map_err(|e| {
-            log_e!("Failed to create BigNum context: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        public_point.mul_generator(&group, &priv_bn, &ctx).map_err(|e| {
-            log_e!("Failed to generate public key from private key: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let ec_key = EcKey::from_private_components(&group, &priv_bn, &public_point).map_err(|e| {
-            log_e!("Failed to create EC key from private components: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let private_pkey = PKey::from_ec_key(ec_key).map_err(|e| {
-            log_e!("Failed to create PKey from EC key: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let peer_point = EcPoint::from_bytes(&group, pub_key, &mut ctx).map_err(|e| {
-            log_e!("Failed to parse peer public key from bytes: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let peer_ec_key = EcKey::from_public_key(&group, &peer_point).map_err(|e| {
-            log_e!("Failed to create EC key from peer public key: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let peer_pkey = PKey::from_ec_key(peer_ec_key).map_err(|e| {
-            log_e!("Failed to create PKey from peer EC key: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let mut deriver = Deriver::new(&private_pkey).map_err(|e| {
-            log_e!("Failed to create key deriver: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        deriver.set_peer(&peer_pkey).map_err(|e| {
-            log_e!("Failed to set peer public key for ECDH: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        let shared_secret = deriver.derive_to_vec().map_err(|e| {
-            log_e!("Failed to derive shared secret via ECDH: {}", e);
-            ErrorCode::GeneralError
-        })?;
-
-        Ok(shared_secret)
     }
 
     fn x25519_ecdh(&self, key_pair: &KeyPair, pub_key: &[u8]) -> Result<crate::Vec<u8>, ErrorCode> {

@@ -115,6 +115,12 @@ public:
     MOCK_METHOD(ResultCode, HostUpdateCompanionEnabledBusinessIds,
         (const HostUpdateCompanionEnabledBusinessIdsInput &input), (override));
     MOCK_METHOD(ResultCode, HostSetCompanionInvalid, (const HostSetCompanionInvalidInput &input), (override));
+    MOCK_METHOD(ResultCode, HostBindingSign, (const HostBindingSignInput &input, HostBindingSignOutput &output),
+        (override));
+    MOCK_METHOD(ResultCode, CompanionGenerateBindingSignatureChallenge,
+        (CompanionGenerateBindingSignatureChallengeOutput & output), (override));
+    MOCK_METHOD(ResultCode, CompanionPurgeBindingSignatureChallenge, (const std::vector<uint8_t> &challenge),
+        (override));
     MOCK_METHOD(ResultCode, HostCheckTemplateEnrolled,
         (const HostCheckTemplateEnrolledInput &input, HostCheckTemplateEnrolledOutput &output), (override));
 

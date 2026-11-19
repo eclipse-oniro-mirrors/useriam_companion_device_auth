@@ -39,6 +39,13 @@ public:
         return it != templates_.end() ? it->second : std::vector<uint64_t> {};
     }
 
+    bool RefreshAndGetUserTemplates(int32_t userId, std::vector<uint64_t> &templateIds) override
+    {
+        auto it = templates_.find(userId);
+        templateIds = it != templates_.end() ? it->second : std::vector<uint64_t> {};
+        return true;
+    }
+
     std::unique_ptr<Subscription> SubscribeUserTemplateChange(int32_t userId, TemplateChangeCallback callback) override
     {
         callbacks_[userId].push_back(std::move(callback));

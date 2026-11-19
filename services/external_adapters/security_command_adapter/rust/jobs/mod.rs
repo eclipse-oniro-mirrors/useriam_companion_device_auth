@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+pub mod binding_challenge_pool;
+pub mod binding_signature_crypto;
 pub mod companion_device_db_helper;
 pub mod host_binding_db_helper;
 pub mod message_crypto;

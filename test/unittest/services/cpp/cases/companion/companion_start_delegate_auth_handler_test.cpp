@@ -59,13 +59,16 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_001, TestSize.Leve
     request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
         static_cast<int32_t>(startRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, startRequest.hostDeviceKey.deviceId);
+    std::vector<uint8_t> proofChallenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0xAB);
+    std::vector<uint8_t> proofSignature = { 5, 6, 7 };
+    request.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE_CHALLENGE, proofChallenge);
+    request.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_BINDING_SIGNATURE, proofSignature);
 
-    EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionDelegateAuthRequest(_, _, _, _, _))
-        .WillOnce(Invoke([](const std::string &connectionName, const UserKey &companionUserKey,
-                             const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
-                             const CompanionDelegateAuthParam &delegateAuthParam) {
-            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserKey, hostDeviceKey,
-                startDelegateAuthRequest, delegateAuthParam);
+    BindingSignatureProof capturedProof = {};
+    EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionDelegateAuthRequest(_))
+        .WillOnce(Invoke([&capturedProof](const CompanionDelegateAuthParams &params) {
+            capturedProof = params.bindingSignatureProof;
+            return std::make_shared<CompanionDelegateAuthRequest>(params);
         }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(true));
 
@@ -75,6 +78,8 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_001, TestSize.Leve
     int32_t result = 0;
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, result));
     EXPECT_EQ(result, static_cast<int32_t>(ResultCode::SUCCESS));
+    EXPECT_EQ(capturedProof.challenge, proofChallenge);
+    EXPECT_EQ(capturedProof.signature, proofSignature);
 }
 
 HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_002, TestSize.Level0)
@@ -109,7 +114,7 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_003, TestSize.Leve
         static_cast<int32_t>(startRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, startRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionDelegateAuthRequest(_, _, _, _, _)).WillOnce(Return(nullptr));
+    EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionDelegateAuthRequest(_)).WillOnce(Return(nullptr));
 
     Attributes reply;
     handler_->HandleRequest(request, reply);
@@ -135,12 +140,9 @@ HWTEST_F(CompanionStartDelegateAuthHandlerTest, HandleRequest_004, TestSize.Leve
         static_cast<int32_t>(startRequest.hostDeviceKey.idType));
     request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, startRequest.hostDeviceKey.deviceId);
 
-    EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionDelegateAuthRequest(_, _, _, _, _))
-        .WillOnce(Invoke([](const std::string &connectionName, const UserKey &companionUserKey,
-                             const DeviceKey &hostDeviceKey, const std::vector<uint8_t> &startDelegateAuthRequest,
-                             const CompanionDelegateAuthParam &delegateAuthParam) {
-            return std::make_shared<CompanionDelegateAuthRequest>(connectionName, companionUserKey, hostDeviceKey,
-                startDelegateAuthRequest, delegateAuthParam);
+    EXPECT_CALL(guard.GetRequestFactory(), CreateCompanionDelegateAuthRequest(_))
+        .WillOnce(Invoke([](const CompanionDelegateAuthParams &params) {
+            return std::make_shared<CompanionDelegateAuthRequest>(params);
         }));
     EXPECT_CALL(guard.GetRequestManager(), Start(_)).WillOnce(Return(false));
 

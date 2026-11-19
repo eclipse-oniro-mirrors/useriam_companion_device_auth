@@ -14,9 +14,8 @@
  */
 
 use crate::common::constants::{
-    AeadAlgoType, ErrorCode, KaAlgoType, KdfAlgoType, MacAlgoType, SUPPORTED_AEAD_ALGORITHMS,
-    SUPPORTED_KA_ALGORITHMS, SUPPORTED_KDF_ALGORITHMS, SUPPORTED_MAC_ALGORITHMS,
-    intersect_lists_in_reference_order,
+    ErrorCode, SUPPORTED_AEAD_ALGORITHMS, SUPPORTED_BINDING_SIGNATURE_ALGORITHMS, SUPPORTED_KA_ALGORITHMS,
+    SUPPORTED_KDF_ALGORITHMS, SUPPORTED_MAC_ALGORITHMS, intersect_lists_in_reference_order,
 };
 use crate::log_e;
 use crate::traits::log_trace::RustFileId;
@@ -31,31 +30,35 @@ pub struct CryptoAlgorithms {
     pub mac_algorithms: Vec<u16>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct SelectedAlgorithms {
     pub ka_algorithm: u16,
     pub kdf_algorithm: u16,
     pub aead_algorithm: u16,
     pub mac_algorithm: u16,
+    pub binding_signature_algorithm: Option<u16>,
 }
 
-pub fn validate_selected_algorithms(algorithms: &SelectedAlgorithms) -> core::result::Result<(), ErrorCode> {
+pub fn validate_sk_algorithms(
+    kdf_algorithm: u16,
+    aead_algorithm: u16,
+    mac_algorithm: u16,
+) -> core::result::Result<(), ErrorCode> {
     let checks = [
-        (algorithms.ka_algorithm, SUPPORTED_KA_ALGORITHMS),
-        (algorithms.kdf_algorithm, SUPPORTED_KDF_ALGORITHMS),
-        (algorithms.aead_algorithm, SUPPORTED_AEAD_ALGORITHMS),
-        (algorithms.mac_algorithm, SUPPORTED_MAC_ALGORITHMS),
+        (kdf_algorithm, SUPPORTED_KDF_ALGORITHMS, "kdf"),
+        (aead_algorithm, SUPPORTED_AEAD_ALGORITHMS, "aead"),
+        (mac_algorithm, SUPPORTED_MAC_ALGORITHMS, "mac"),
     ];
-    for (algorithm, supported_list) in checks {
+    for (algorithm, supported_list, role) in checks {
         if !supported_list.contains(&algorithm) {
             log_e!(
-                "persisted selected algorithm {} is not in the supported list {:?}, ka:{}, kdf:{}, aead:{}, mac:{}",
+                "persisted {} algorithm {} is not in the supported list {:?}, kdf:{}, aead:{}, mac:{}",
+                role,
                 algorithm,
                 supported_list,
-                algorithms.ka_algorithm,
-                algorithms.kdf_algorithm,
-                algorithms.aead_algorithm,
-                algorithms.mac_algorithm
+                kdf_algorithm,
+                aead_algorithm,
+                mac_algorithm
             );
             return Err(ErrorCode::SecureProtocolNotSupported);
         }
@@ -87,6 +90,7 @@ pub fn intersect_algorithms_in_reference_order(
 pub fn select_algorithms_by_priority(
     priority: &CryptoAlgorithms,
     candidates: &CryptoAlgorithms,
+    host_binding_signature_algo_list: &[u16],
 ) -> Result<SelectedAlgorithms, ErrorCode> {
     Ok(SelectedAlgorithms {
         ka_algorithm: select_algorithm_by_priority("ka", &priority.ka_algorithms, &candidates.ka_algorithms)?,
@@ -97,10 +101,15 @@ pub fn select_algorithms_by_priority(
             &candidates.aead_algorithms,
         )?,
         mac_algorithm: select_algorithm_by_priority("mac", &priority.mac_algorithms, &candidates.mac_algorithms)?,
+        binding_signature_algorithm: select_optional_algorithm(
+            "binding signature",
+            SUPPORTED_BINDING_SIGNATURE_ALGORITHMS,
+            host_binding_signature_algo_list,
+        )?,
     })
 }
 
-fn select_algorithm_by_priority(role: &str, prioritized: &[u16], candidates: &[u16]) -> Result<u16, ErrorCode> {
+pub(crate) fn select_algorithm_by_priority(role: &str, prioritized: &[u16], candidates: &[u16]) -> Result<u16, ErrorCode> {
     for algorithm in prioritized {
         if candidates.contains(algorithm) {
             return Ok(*algorithm);
@@ -108,6 +117,13 @@ fn select_algorithm_by_priority(role: &str, prioritized: &[u16], candidates: &[u
     }
     log_e!("no supported {} algorithm in candidates: {:?}, prioritized: {:?}", role, candidates, prioritized);
     Err(ErrorCode::AlgorithmNegotiationFailed)
+}
+
+pub fn select_optional_algorithm(role: &str, prioritized: &[u16], offered: &[u16]) -> Result<Option<u16>, ErrorCode> {
+    if offered.is_empty() {
+        return Ok(None);
+    }
+    select_algorithm_by_priority(role, prioritized, offered).map(Some)
 }
 
 pub fn validate_selected_algorithms_supported(
@@ -126,5 +142,24 @@ pub fn validate_selected_algorithms_supported(
             return Err(ErrorCode::AlgorithmNegotiationFailed);
         }
     }
-    Ok(())
+    validate_optional_algorithm_supported(
+        "binding signature",
+        SUPPORTED_BINDING_SIGNATURE_ALGORITHMS,
+        selected.binding_signature_algorithm,
+    )
+}
+
+pub fn validate_optional_algorithm_supported(
+    role: &str,
+    supported: &[u16],
+    selected: Option<u16>,
+) -> Result<(), ErrorCode> {
+    let Some(algorithm) = selected else {
+        return Ok(());
+    };
+    if supported.contains(&algorithm) {
+        return Ok(());
+    }
+    log_e!("selected {} algorithm {:?} is not in the supported list {:?}", role, selected, supported);
+    Err(ErrorCode::AlgorithmNegotiationFailed)
 }

@@ -67,6 +67,7 @@ int32_t IpcAvailableDeviceStatusCallbackService::OnAvailableDeviceStatusChange(
         clientDeviceStatus.isOnline = deviceStatus.isOnline;
         clientDeviceStatus.supportedBusinessIds = deviceStatus.supportedBusinessIds;
         clientDeviceStatus.deviceSubProfileName = deviceStatus.deviceSubProfileName;
+        clientDeviceStatus.maxAuthTrustLevel = deviceStatus.maxAuthTrustLevel;
 
         clientDeviceStatusList.push_back(clientDeviceStatus);
     }

@@ -78,6 +78,9 @@ private:
 #ifdef ENABLE_TEST
 void SingletonManagerImpl::Reset()
 {
+    if (requestManager_ != nullptr) {
+        requestManager_->CancelAll();
+    }
     companionManager_.reset();
     hostBindingManager_.reset();
     miscManager_.reset();

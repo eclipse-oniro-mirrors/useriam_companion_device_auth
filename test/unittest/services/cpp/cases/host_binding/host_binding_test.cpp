@@ -64,7 +64,7 @@ DeviceStatus MakeDeviceStatus(const DeviceKey &deviceKey, bool isOnline = true)
     status.deviceName = "TestDevice";
     status.deviceUserName = "TestUser";
     status.deviceModelInfo = "TestModel";
-    status.protocolId = ProtocolId::VERSION_1;
+    status.selectedProtocolId = ProtocolId::VERSION_1;
     return status;
 }
 
@@ -119,7 +119,7 @@ HWTEST_F(HostBindingTest, Create_001, TestSize.Level0)
 
     EXPECT_NE(nullptr, binding);
     EXPECT_EQ(UINT32_12345, binding->GetBindingId());
-    EXPECT_EQ(INT32_100, binding->GetCompanionUserId());
+    EXPECT_EQ(INT32_100, binding->GetCompanionUserKey().userId);
     EXPECT_EQ("test_device_id", binding->GetHostDeviceKey().deviceId);
 }
 
@@ -1005,7 +1005,7 @@ HWTEST_F(HostBindingTest, Create_PropagatesCompanionSubProfileId, TestSize.Level
     auto binding = HostBinding::Create(persistedStatus);
     ASSERT_NE(nullptr, binding);
 
-    EXPECT_EQ(binding->GetCompanionSubProfileId(), 42);
+    EXPECT_EQ(binding->GetCompanionUserKey().subProfileId, 42);
 }
 
 } // namespace

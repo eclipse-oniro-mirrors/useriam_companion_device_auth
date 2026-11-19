@@ -70,8 +70,8 @@ void CompanionRequestResyncRequest::SendRequestDeviceResyncRequest()
     Attributes request = {};
     EncodeRequestDeviceResyncRequest(requestMsg, request);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::REQUEST_DEVICE_RESYNC,
-        request, [weakSelf = weak_from_this()](const Attributes &reply) {
+    bool sendRet = SendMessage(MessageType::REQUEST_DEVICE_RESYNC, std::move(request),
+        [weakSelf = weak_from_this()](const Attributes &reply) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleRequestDeviceResyncReply(reply);

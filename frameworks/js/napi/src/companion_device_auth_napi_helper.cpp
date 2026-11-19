@@ -279,16 +279,39 @@ napi_value CompanionDeviceAuthNapiHelper::ConvertDeviceStatusToNapiValue(napi_en
         return nullptr;
     }
 
-    if (!deviceStatus.deviceSubProfileName.empty()) {
-        status =
-            SetStringPropertyUtf8(env, deviceStatusValue, "deviceSubProfileName", deviceStatus.deviceSubProfileName);
-        if (status != napi_ok) {
-            IAM_LOGE("SetStringPropertyUtf8 fail ret:%{public}d", status);
-            return nullptr;
-        }
+    status =
+        SetNonEmptyStringProperty(env, deviceStatusValue, "deviceSubProfileName", deviceStatus.deviceSubProfileName);
+    if (status != napi_ok) {
+        return nullptr;
+    }
+
+    status = SetMaxAtlProperty(env, deviceStatusValue, deviceStatus.maxAuthTrustLevel);
+    if (status != napi_ok) {
+        return nullptr;
     }
 
     return deviceStatusValue;
+}
+
+napi_status CompanionDeviceAuthNapiHelper::SetMaxAtlProperty(napi_env env, napi_value obj, int32_t maxAuthTrustLevel)
+{
+    if (maxAuthTrustLevel == 0) {
+        return napi_ok;
+    }
+    if (!IsAuthTrustLevelValid(maxAuthTrustLevel)) {
+        IAM_LOGE("invalid maxAuthTrustLevel:%{public}d, omit property", maxAuthTrustLevel);
+        return napi_ok;
+    }
+    return SetInt32Property(env, obj, "maxAuthTrustLevel", maxAuthTrustLevel);
+}
+
+napi_status CompanionDeviceAuthNapiHelper::SetNonEmptyStringProperty(napi_env env, napi_value obj, const char *name,
+    const std::string &value)
+{
+    if (value.empty()) {
+        return napi_ok;
+    }
+    return SetStringPropertyUtf8(env, obj, name, value);
 }
 
 napi_status CompanionDeviceAuthNapiHelper::SetDeviceKeyProperty(napi_env env, napi_value obj, const char *name,

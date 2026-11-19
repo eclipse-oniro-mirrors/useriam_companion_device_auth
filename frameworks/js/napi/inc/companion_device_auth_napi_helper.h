@@ -44,6 +44,9 @@ public:
     static napi_status SetUint8ArrayProperty(napi_env env, napi_value obj, const char *name,
         const std::vector<uint8_t> &value);
     static napi_status SetInt32Property(napi_env env, napi_value obj, const char *name, int32_t value);
+    static napi_status SetMaxAtlProperty(napi_env env, napi_value obj, int32_t maxAuthTrustLevel);
+    static napi_status SetNonEmptyStringProperty(napi_env env, napi_value obj, const char *name,
+        const std::string &value);
     static napi_status SetStringPropertyUtf8(napi_env env, napi_value obj, const std::string &name,
         const std::string &value);
     static napi_status SetBoolProperty(napi_env env, napi_value obj, const char *name, bool value);

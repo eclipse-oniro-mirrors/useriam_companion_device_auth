@@ -45,6 +45,11 @@ public:
     std::optional<CompanionStatus> GetCompanionStatus(const UserKey &hostUserKey,
         const DeviceKey &companionDeviceKey) override;
     std::vector<CompanionStatus> GetAllCompanionStatus() override;
+    std::vector<CompanionStatus> FilterCompanionStatus(const UserKey &hostUserKey,
+        const PhysicalDeviceKey &companionDeviceKey, std::optional<ProtocolId> protocolId) override;
+
+    bool IsBindingSignatureRequired(TemplateId templateId) override;
+    bool IsBindingSignatureRequired(const UserKey &hostUserKey, const DeviceKey &companionDeviceKey) override;
 
     std::unique_ptr<Subscription> SubscribeCompanionDeviceStatusChange(
         OnCompanionDeviceStatusChange &&callback) override;

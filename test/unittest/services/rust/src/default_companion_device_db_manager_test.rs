@@ -21,13 +21,15 @@ const NON_DEFAULT_PROTOCOL_ID: u16 = 7;
 
 use crate::common::constants::*;
 use crate::impls::default_companion_device_db_manager::{
-    COMPANION_DEVICE_DB, CURRENT_VERSION, DefaultCompanionDeviceDbManager,
+    COMPANION_DEVICE_DB, COMPANION_DEVICE_SIGN_PRI_KEY, CURRENT_VERSION, DefaultCompanionDeviceDbManager,
 };
 use crate::log_i;
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManager;
 use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceCapability, CompanionDeviceKeyMaterial, CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo, UserKey};
+use crate::traits::db_manager::{
+    CompanionDevice, CompanionDeviceSignPriKey, CompanionDeviceCapability, CompanionDeviceSk,
+    CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo, UserKey,
+};
 use crate::traits::storage_io::{MockStorageIo, StorageIoRegistry};
 use crate::ut_registry_guard;
 use crate::utils::parcel::Parcel;
@@ -45,6 +47,7 @@ fn create_test_companion_device(template_id: u64, device_id: &str, user_id: i32)
         enrolled_capability_list: vec![1, 2, 3],
         enrolled_protocol_id: 1,
         secure_protocol_id: 0,
+        max_auth_trust_level: AuthTrustLevel::Atl3,
     }
 }
 
@@ -69,16 +72,13 @@ fn create_test_capability_info() -> Vec<CompanionDeviceCapability> {
     }]
 }
 
-fn create_test_sk_info() -> Vec<CompanionDeviceKeyMaterial> {
-    vec![CompanionDeviceKeyMaterial {
+fn create_test_sk_info() -> Vec<CompanionDeviceSk> {
+    vec![CompanionDeviceSk {
         processor_type: ProcessorType::Default,
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     }]
 }
 
@@ -125,7 +125,7 @@ fn default_companion_device_db_manager_add_device_test_success() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let result = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let result = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
     assert!(result.is_ok());
     assert_eq!(manager.companion_device_infos.len(), 1);
     assert!(manager.get_device(123).is_ok());
@@ -142,7 +142,7 @@ fn default_companion_device_db_manager_add_device_test_empty_device_id() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let result = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let result = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
     assert_eq!(result, Err(ErrorCode::BadParam));
 }
 
@@ -160,13 +160,13 @@ fn default_companion_device_db_manager_add_device_test_reach_max() {
 
     for i in 0..MAX_DEVICE_NUM {
         let device_info = create_test_companion_device((100 + i) as u64, &format!("device{}", i), 100);
-        let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+        let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
     }
 
     assert_eq!(manager.companion_device_infos.len(), MAX_DEVICE_NUM);
 
     let new_device = create_test_companion_device(999, "new_device", 100);
-    let result = manager.add_device(&new_device, &base_info, &capability_info, &sk_info);
+    let result = manager.add_device(&new_device, &base_info, &capability_info, &sk_info, None);
     assert_eq!(result, Err(ErrorCode::ExceedLimit));
 }
 
@@ -186,7 +186,7 @@ fn default_companion_device_db_manager_add_device_test_write_extra_file_fail() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let result = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let result = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
     assert_eq!(result, Err(ErrorCode::GeneralError));
     assert_eq!(manager.companion_device_infos.len(), 0);
 }
@@ -213,7 +213,7 @@ fn default_companion_device_db_manager_add_device_test_write_db_fail() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let result = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let result = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
     assert_eq!(result, Err(ErrorCode::GeneralError));
     assert_eq!(manager.companion_device_infos.len(), 0);
 }
@@ -231,13 +231,14 @@ fn default_companion_device_db_manager_get_device_test_success() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
 
     let result = manager.get_device(123);
     assert!(result.is_ok());
     let retrieved_device = result.unwrap();
     assert_eq!(retrieved_device.template_id, 123);
     assert_eq!(retrieved_device.device_key.device_id, "device1");
+    assert_eq!(retrieved_device.max_auth_trust_level, AuthTrustLevel::Atl3);
 }
 
 #[test]
@@ -266,8 +267,8 @@ fn default_companion_device_db_manager_get_device_list_test_success() {
     let device_info1 = create_test_companion_device(123, "device1", 100);
     let device_info2 = create_test_companion_device(456, "device2", 200);
 
-    let _ = manager.add_device(&device_info1, &base_info, &capability_info, &sk_info);
-    let _ = manager.add_device(&device_info2, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info1, &base_info, &capability_info, &sk_info, None);
+    let _ = manager.add_device(&device_info2, &base_info, &capability_info, &sk_info, None);
 
     let filter = Box::new(|device: &CompanionDevice| device.user_info.user_key.user_id == 100);
     let devices = manager.get_device_list(filter);
@@ -299,7 +300,7 @@ fn default_companion_device_db_manager_remove_device_test_success() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
     assert_eq!(manager.companion_device_infos.len(), 1);
 
     let result = manager.remove_device(123);
@@ -336,7 +337,7 @@ fn default_companion_device_db_manager_remove_device_test_write_db_fail() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
     assert_eq!(manager.companion_device_infos.len(), 1);
 
     // Set up mock to fail on write
@@ -365,7 +366,7 @@ fn default_companion_device_db_manager_update_device_test_success() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
 
     let mut updated_device = device_info.clone();
     updated_device.is_valid = false;
@@ -406,7 +407,7 @@ fn default_companion_device_db_manager_update_device_test_write_db_fail() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
 
     // Set up mock to fail on write
     let mut mock_storage_io_fail = MockStorageIo::new();
@@ -467,7 +468,7 @@ fn default_companion_device_db_manager_generate_unique_template_id_test_collisio
     let base_info = create_test_base_info();
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
 
     let mut mock_crypto_engine = MockCryptoEngine::new();
     // First call returns 123 (collision), second call returns 200
@@ -532,7 +533,7 @@ fn default_companion_device_db_manager_generate_unique_template_id_test_max_atte
     let base_info = create_test_base_info();
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
 
     let result = manager.generate_unique_template_id();
     assert_eq!(result, Err(ErrorCode::GeneralError));
@@ -551,7 +552,7 @@ fn default_companion_device_db_manager_add_token_test_success() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
 
     let token_info = create_test_token_info(123);
     let result = manager.add_token(&token_info);
@@ -584,7 +585,7 @@ fn default_companion_device_db_manager_get_token_test_success() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
 
     let token_info = create_test_token_info(123);
     let _ = manager.add_token(&token_info);
@@ -620,7 +621,7 @@ fn default_companion_device_db_manager_remove_token_test_success() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
 
     let token_info = create_test_token_info(123);
     let _ = manager.add_token(&token_info);
@@ -655,7 +656,7 @@ fn default_companion_device_db_manager_update_token_test_success() {
     let capability_info = create_test_capability_info();
     let sk_info = create_test_sk_info();
 
-    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info);
+    let _ = manager.add_device(&device_info, &base_info, &capability_info, &sk_info, None);
 
     let token_info = create_test_token_info(123);
     let _ = manager.add_token(&token_info);
@@ -706,6 +707,7 @@ fn default_companion_device_db_manager_read_device_db_test_success() {
     parcel.write_u16(3);
     parcel.write_u16(PROTOCOL_ID_INVALID);
     parcel.write_u16(SECURE_PROTOCOL_ID_INVALID);
+    parcel.write_i32(AuthTrustLevel::Atl3 as i32);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -719,6 +721,42 @@ fn default_companion_device_db_manager_read_device_db_test_success() {
     assert_eq!(manager.companion_device_infos.len(), 1);
     assert!(manager.get_device(123).is_ok());
     assert_eq!(manager.get_device(123).unwrap().enrolled_protocol_id, PROTOCOL_ID_INVALID);
+    assert_eq!(manager.get_device(123).unwrap().max_auth_trust_level, AuthTrustLevel::Atl3);
+}
+
+#[test]
+fn default_companion_device_db_manager_read_device_db_test_invalid_max_atl() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_device_db_manager_read_device_db_test_invalid_max_atl start");
+
+    let mut parcel = Parcel::new();
+    parcel.write_i32(CURRENT_VERSION);
+    parcel.write_u32(1);
+    parcel.write_u64(123);
+    parcel.write_string("device1");
+    parcel.write_i32(1);
+    parcel.write_i32(100);
+    parcel.write_i32(0);
+    parcel.write_i32(100);
+    parcel.write_i32(1);
+    parcel.write_i32(0);
+    parcel.write_u64(1000);
+    parcel.write_u32(1);
+    parcel.write_i32(0);
+    parcel.write_u16(PROTOCOL_ID_INVALID);
+    parcel.write_u16(SECURE_PROTOCOL_ID_INVALID);
+    parcel.write_i32(12345);
+
+    let serialized_data = parcel.as_slice().to_vec();
+
+    let mut mock_storage_io = MockStorageIo::new();
+    mock_storage_io.expect_read().returning(move || Ok(serialized_data.clone()));
+    StorageIoRegistry::set(Box::new(mock_storage_io));
+
+    let mut manager = DefaultCompanionDeviceDbManager::new();
+    let result = manager.read_device_db();
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+    assert_eq!(manager.companion_device_infos.len(), 0);
 }
 
 #[test]
@@ -1520,11 +1558,10 @@ fn default_companion_device_db_manager_read_device_sk_test_success() {
     parcel.write_i32(0);
     parcel.write_i32(1);
     parcel.write_i32(ProcessorType::Default as i32);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
     parcel.write_bytes(&[0u8; TOKEN_KEY_LEN]);
-    parcel.write_u16(1);
-    parcel.write_u16(1);
-    parcel.write_u16(1);
-    parcel.write_u16(1);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -1537,10 +1574,9 @@ fn default_companion_device_db_manager_read_device_sk_test_success() {
     assert!(result.is_ok());
     let sk_infos = result.unwrap();
     assert_eq!(sk_infos.len(), 1);
-    assert_eq!(
-        sk_infos[0].selected_algorithms,
-        SelectedAlgorithms { ka_algorithm: 1, kdf_algorithm: 1, aead_algorithm: 1, mac_algorithm: 1 }
-    );
+    assert_eq!(sk_infos[0].kdf_algorithm, 1);
+    assert_eq!(sk_infos[0].aead_algorithm, 1);
+    assert_eq!(sk_infos[0].mac_algorithm, 1);
 }
 
 #[test]
@@ -1552,7 +1588,10 @@ fn default_companion_device_db_manager_read_device_sk_test_deserialize_miss_algo
     parcel.write_i32(0);
     parcel.write_i32(1);
     parcel.write_i32(ProcessorType::Default as i32);
-    parcel.write_bytes(&[0u8; TOKEN_KEY_LEN]);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
+    parcel.write_u16(1);
 
     let serialized_data = parcel.as_slice().to_vec();
 
@@ -1797,6 +1836,7 @@ fn default_companion_device_db_manager_read_db_test_protocol_roundtrip() {
             &create_test_base_info(),
             &create_test_capability_info(),
             &create_test_sk_info(),
+            None,
         );
         assert!(result.is_ok());
     }
@@ -1813,6 +1853,7 @@ fn default_companion_device_db_manager_read_db_test_protocol_roundtrip() {
         assert!(reloaded.read_device_db().is_ok());
     }
     assert_eq!(reloaded.get_device(123).unwrap().enrolled_protocol_id, NON_DEFAULT_PROTOCOL_ID);
+    assert_eq!(reloaded.get_device(123).unwrap().max_auth_trust_level, AuthTrustLevel::Atl3);
 }
 
 #[test]
@@ -1844,6 +1885,7 @@ fn default_companion_device_db_manager_read_db_test_security_params_roundtrip() 
             &create_test_base_info(),
             &create_test_capability_info(),
             &create_test_sk_info(),
+            None,
         );
         assert!(result.is_ok());
     }
@@ -1861,4 +1903,103 @@ fn default_companion_device_db_manager_read_db_test_security_params_roundtrip() 
     }
     let retrieved = reloaded.get_device(123).unwrap();
     assert_eq!(retrieved.secure_protocol_id, 1);
+}
+
+#[test]
+fn default_companion_device_db_manager_binding_signature_key_roundtrip_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_device_db_manager_binding_signature_key_roundtrip_test start");
+
+    // stateful storage: the bytes written by write_device_binding_signature_key are served
+    // back to read_device_binding_signature_key, exercising the real serialize/deserialize pair
+    let shared: std::rc::Rc<std::cell::RefCell<Vec<u8>>> = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    let mut mock_storage_io = MockStorageIo::new();
+    mock_storage_io.expect_write().returning({
+        let shared = shared.clone();
+        move |_path, data| {
+            *shared.borrow_mut() = data.to_vec();
+            Ok(())
+        }
+    });
+    mock_storage_io.expect_read().returning({
+        let shared = shared.clone();
+        move || Ok(shared.borrow().clone())
+    });
+    mock_storage_io.expect_exists().returning(|| Ok(true));
+    StorageIoRegistry::set(Box::new(mock_storage_io));
+
+    let manager = DefaultCompanionDeviceDbManager::new();
+    // host side persists the algorithm and the 32B private key only (no public key)
+    let key =
+        CompanionDeviceSignPriKey { alg_id: P256, pri_key: vec![0x77u8; BINDING_SIGNATURE_PRI_KEY_LEN] };
+
+    assert!(manager.write_device_binding_signature_key(0x1234, &key).is_ok());
+    let read = manager.read_device_binding_signature_key(0x1234);
+    assert!(read.is_ok());
+    let read_key = read.unwrap();
+    assert_eq!(read_key.alg_id, P256);
+    assert_eq!(read_key.pri_key, key.pri_key);
+}
+
+fn mock_storage_io_capture_writes(
+    written: &std::rc::Rc<std::cell::RefCell<Vec<String>>>,
+) {
+    let mut mock_storage_io = MockStorageIo::new();
+    mock_storage_io.expect_write().returning({
+        let written = written.clone();
+        move |path, _data| {
+            written.borrow_mut().push(path.to_string());
+            Ok(())
+        }
+    });
+    mock_storage_io.expect_exists().returning(|| Ok(true));
+    mock_storage_io.expect_read().returning(|| Ok(Vec::new()));
+    StorageIoRegistry::set(Box::new(mock_storage_io));
+}
+
+// The binding signature key file is written in the same add_device wave as the
+// profile/capability/SK files, under the template-scoped file name.
+#[test]
+fn default_companion_device_db_manager_add_device_binding_signature_key_test_written() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_device_db_manager_add_device_binding_signature_key_test_written start");
+
+    let written = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    mock_storage_io_capture_writes(&written);
+
+    let mut manager = DefaultCompanionDeviceDbManager::new();
+    let key = CompanionDeviceSignPriKey { alg_id: P256, pri_key: vec![0x77u8; BINDING_SIGNATURE_PRI_KEY_LEN] };
+
+    let result = manager.add_device(
+        &create_test_companion_device(0x1234, "device1", 100),
+        &create_test_base_info(),
+        &create_test_capability_info(),
+        &create_test_sk_info(),
+        Some(&key),
+    );
+    assert!(result.is_ok());
+    let expected = format!("{:x}_{}", 0x1234, COMPANION_DEVICE_SIGN_PRI_KEY);
+    assert!(written.borrow().iter().any(|path| path == &expected));
+}
+
+// A V1 enrollment passes None: the wave must not touch the signature key file.
+#[test]
+fn default_companion_device_db_manager_add_device_binding_signature_key_test_absent() {
+    let _guard = ut_registry_guard!();
+    log_i!("default_companion_device_db_manager_add_device_binding_signature_key_test_absent start");
+
+    let written = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    mock_storage_io_capture_writes(&written);
+
+    let mut manager = DefaultCompanionDeviceDbManager::new();
+
+    let result = manager.add_device(
+        &create_test_companion_device(0x1234, "device1", 100),
+        &create_test_base_info(),
+        &create_test_capability_info(),
+        &create_test_sk_info(),
+        None,
+    );
+    assert!(result.is_ok());
+    assert!(written.borrow().iter().all(|path| !path.contains(COMPANION_DEVICE_SIGN_PRI_KEY)));
 }

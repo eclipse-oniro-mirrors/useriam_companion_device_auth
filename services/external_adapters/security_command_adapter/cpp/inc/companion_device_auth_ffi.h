@@ -94,6 +94,7 @@ typedef struct PlaceHolderFfi HostCancelCompanionCheckOutputFfi;
 typedef struct HostGetInitKeyNegotiationInputFfi {
     int32_t requestId;
     uint16_t secureProtocolId;
+    uint16_t selectedProtocolId;
 } HostGetInitKeyNegotiationInputFfi;
 
 typedef struct HostGetInitKeyNegotiationOutputFfi {
@@ -108,8 +109,7 @@ typedef struct HostBeginAddCompanionInputFfi {
     struct DataArray1024Ffi fwkMessage;
     uint16_t secureProtocolId;
     struct Uint16Array64Ffi hostCapabilityList;
-    struct Uint16Array64Ffi hostProtocolList;
-    struct Uint16Array64Ffi companionCapabilityList;
+    struct Uint16Array64Ffi hostProtocolIdList;
     struct DataArray20000Ffi secMessage;
 } HostBeginAddCompanionInputFfi;
 
@@ -324,6 +324,11 @@ typedef struct CompanionGetPersistedStatusOutputFfi {
     struct HostBindingStatusArrayFfi bindingStatusList;
 } CompanionGetPersistedStatusOutputFfi;
 
+typedef struct BindingSignatureProofFfi {
+    struct DataArray32Ffi challenge;
+    struct DataArray128Ffi signature;
+} BindingSignatureProofFfi;
+
 typedef struct CompanionProcessCheckInputFfi {
     int32_t bindingId;
     struct Uint16Array64Ffi companionProtocolList;
@@ -331,6 +336,7 @@ typedef struct CompanionProcessCheckInputFfi {
     uint16_t secureProtocolId;
     struct DataArray32Ffi salt;
     uint64_t challenge;
+    struct BindingSignatureProofFfi bindingSignatureProof;
 } CompanionProcessCheckInputFfi;
 
 typedef struct CompanionProcessCheckOutputFfi {
@@ -387,6 +393,7 @@ typedef struct CompanionPreIssueTokenInputFfi {
     int32_t bindingId;
     uint16_t secureProtocolId;
     struct DataArray1024Ffi secMessage;
+    struct BindingSignatureProofFfi bindingSignatureProof;
 } CompanionPreIssueTokenInputFfi;
 
 typedef struct CompanionPreIssueTokenOutputFfi {
@@ -395,8 +402,10 @@ typedef struct CompanionPreIssueTokenOutputFfi {
 
 typedef struct CompanionProcessIssueTokenInputFfi {
     int32_t requestId;
+    int32_t bindingId;
     uint16_t secureProtocolId;
     struct DataArray1024Ffi secMessage;
+    struct BindingSignatureProofFfi bindingSignatureProof;
 } CompanionProcessIssueTokenInputFfi;
 
 typedef struct CompanionProcessIssueTokenOutputFfi {
@@ -414,6 +423,7 @@ typedef struct CompanionProcessTokenAuthInputFfi {
     int32_t bindingId;
     uint16_t secureProtocolId;
     struct DataArray1024Ffi secMessage;
+    struct BindingSignatureProofFfi bindingSignatureProof;
 } CompanionProcessTokenAuthInputFfi;
 
 typedef struct CompanionProcessTokenAuthOutputFfi {
@@ -431,6 +441,7 @@ typedef struct CompanionBeginDelegateAuthInputFfi {
     int32_t bindingId;
     uint16_t secureProtocolId;
     struct DataArray1024Ffi secMessage;
+    struct BindingSignatureProofFfi bindingSignatureProof;
 } CompanionBeginDelegateAuthInputFfi;
 
 typedef struct CompanionBeginDelegateAuthOutputFfi {
@@ -476,6 +487,27 @@ typedef struct CompanionCancelObtainTokenInputFfi {
 } CompanionCancelObtainTokenInputFfi;
 
 typedef struct PlaceHolderFfi CompanionCancelObtainTokenOutputFfi;
+
+typedef struct HostBindingSignInputFfi {
+    uint64_t templateId;
+    struct DataArray32Ffi challenge;
+} HostBindingSignInputFfi;
+
+typedef struct HostBindingSignOutputFfi {
+    struct DataArray128Ffi signature;
+} HostBindingSignOutputFfi;
+
+typedef struct PlaceHolderFfi CompanionGenerateBindingSignatureChallengeInputFfi;
+
+typedef struct CompanionGenerateBindingSignatureChallengeOutputFfi {
+    struct DataArray32Ffi challenge;
+} CompanionGenerateBindingSignatureChallengeOutputFfi;
+
+typedef struct CompanionPurgeBindingSignatureChallengeInputFfi {
+    struct DataArray32Ffi challenge;
+} CompanionPurgeBindingSignatureChallengeInputFfi;
+
+typedef struct PlaceHolderFfi CompanionPurgeBindingSignatureChallengeOutputFfi;
 
 int32_t init_rust_env(void);
 

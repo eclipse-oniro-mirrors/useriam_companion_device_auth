@@ -103,13 +103,15 @@ bool CompanionAddCompanionRequest::OnStart(ErrorGuard &errorGuard)
 ResultCode CompanionAddCompanionRequest::ValidateAndSelectProtocol(const LocalDeviceProfile &localProfile,
     const InitKeyNegotiationRequest &request)
 {
-    if (std::find(localProfile.protocols.begin(), localProfile.protocols.end(), request.protocolId) ==
-        localProfile.protocols.end()) {
+    // clang-format off
+    if (std::find(localProfile.companionProtocols.begin(), localProfile.companionProtocols.end(),
+        request.selectedProtocolId) == localProfile.companionProtocols.end()) {
+        // clang-format on
         IAM_LOGE("%{public}s host negotiated protocol %{public}hu is not supported locally", GetDescription(),
-            ProtocolIdConverter::ToUnderlying(request.protocolId));
+            ProtocolIdConverter::ToUnderlying(request.selectedProtocolId));
         return ResultCode::PROTOCOL_NEGOTIATION_FAILED;
     }
-    selectedProtocolId_ = request.protocolId;
+    selectedProtocolId_ = request.selectedProtocolId;
     return ResultCode::SUCCESS;
 }
 
@@ -119,7 +121,7 @@ CompanionInitKeyNegotiationInput CompanionAddCompanionRequest::BuildCompanionIni
     CompanionInitKeyNegotiationInput input = {};
     input.requestId = GetRequestId();
     input.secureProtocolId = secureProtocolId_;
-    input.companionProtocolList = ProtocolIdConverter::ToUnderlyingVec(localProfile.protocols);
+    input.companionProtocolList = ProtocolIdConverter::ToUnderlyingVec(localProfile.companionProtocols);
     input.companionCapabilityList = CapabilityConverter::ToUnderlyingVec(localProfile.companionCapabilities);
     input.selectedProtocolId = selectedProtocolId_;
     input.companionDeviceKey = companionDeviceKey_;

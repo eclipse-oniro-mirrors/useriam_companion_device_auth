@@ -76,6 +76,7 @@ int32_t IpcTemplateStatusCallbackService::OnTemplateStatusChange(
         clientDeviceStatus.isOnline = templateStatus.deviceStatus.isOnline;
         clientDeviceStatus.supportedBusinessIds = templateStatus.deviceStatus.supportedBusinessIds;
         clientDeviceStatus.deviceSubProfileName = templateStatus.deviceStatus.deviceSubProfileName;
+        clientDeviceStatus.maxAuthTrustLevel = templateStatus.deviceStatus.maxAuthTrustLevel;
 
         ClientTemplateStatus clientTemplateStatus;
         clientTemplateStatus.templateId = templateStatus.templateId;

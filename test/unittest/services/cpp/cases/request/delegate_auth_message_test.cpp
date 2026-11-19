@@ -101,6 +101,31 @@ HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_004, Test
     EXPECT_FALSE(decodedRequest.has_value());
 }
 
+HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthRequest_WithBindingSignature, TestSize.Level0)
+{
+    MockGuard guard;
+
+    StartDelegateAuthRequest request = { .hostDeviceKey = hostDeviceKey_,
+        .companionUserKey = UserKey { companionUserId_, 42 },
+        .extraInfo = extraInfo_ };
+
+    Attributes attributes;
+    EncodeStartDelegateAuthRequest(request, attributes);
+    std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0xAB);
+    std::vector<uint8_t> signature = { 0xCD, 0xEF };
+    AttachBindingSignatureAttributes(challenge, signature, attributes);
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(request.hostDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, request.hostDeviceKey.deviceId);
+
+    auto decodedRequest = DecodeStartDelegateAuthRequest(attributes);
+    ASSERT_TRUE(decodedRequest.has_value());
+    ASSERT_TRUE(decodedRequest->bindingSignatureProof.has_value());
+    EXPECT_EQ(decodedRequest->bindingSignatureProof->challenge, challenge);
+    EXPECT_EQ(decodedRequest->bindingSignatureProof->signature, signature);
+}
+
 HWTEST_F(DelegateAuthMessageTest, EncodeDecodeStartDelegateAuthReply_001, TestSize.Level0)
 {
     MockGuard guard;

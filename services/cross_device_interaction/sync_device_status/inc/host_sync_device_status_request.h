@@ -18,9 +18,12 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
+#include <vector>
 
 #include "cda_scope_guard.h"
 #include "companion_manager.h"
+#include "host_binding_signature_challenge_requester.h"
 #include "outbound_request.h"
 #include "security_agent.h"
 #include "sync_device_status_message.h"
@@ -31,6 +34,12 @@ namespace UserIam {
 namespace CompanionDeviceAuth {
 
 using SyncDeviceStatusCallback = std::function<void(ResultCode result, const SyncDeviceStatus &syncDeviceStatus)>;
+
+struct SignedSyncPayload {
+    UserKey companionUserKey;
+    std::vector<uint8_t> challenge;
+    std::vector<uint8_t> signature;
+};
 
 class HostSyncDeviceStatusRequest : public std::enable_shared_from_this<HostSyncDeviceStatusRequest>,
                                     public OutboundRequest {
@@ -52,11 +61,19 @@ private:
     void CompleteWithSuccess(const SyncDeviceStatus &syncDeviceStatus);
 
     void BeginCompanionCheck();
-    bool SendSyncDeviceStatusRequest(const std::vector<uint8_t> &salt, uint64_t challenge);
-    void HandleSyncDeviceStatusReply(const Attributes &reply);
-    void EndCompanionCheck(const SyncDeviceStatusReply &reply, const std::optional<CompanionStatus> &companionStatus,
+    std::shared_ptr<Attributes> ComposeSyncDeviceStatusRequest(const std::vector<uint8_t> &salt, uint64_t challenge);
+    void SendSyncDeviceStatusRequest(const std::shared_ptr<Attributes> &request,
+        std::optional<ProtocolId> selectedProtocolId, const std::optional<SignedSyncPayload> &payload = std::nullopt);
+    void HandleBindingSignatureChallengeResult(ResultCode resultCode,
+        const BindingSignatureChallengeResult &challengeResult, const std::shared_ptr<Attributes> &request);
+    void SignAndSendSyncRequest(const BindingSignatureChallengeResult &challengeResult, const CompanionStatus &matched,
+        const std::shared_ptr<Attributes> &request);
+    void HandleSyncDeviceStatusReply(const Attributes &reply, const std::shared_ptr<Attributes> &request);
+    void HandlePeerFailureReply(const SyncDeviceStatusReply &replyData, ErrorGuard &errorGuard);
+    bool EndCompanionCheck(const SyncDeviceStatusReply &reply, const std::optional<CompanionStatus> &companionStatus,
         std::vector<Capability> &outCapabilities);
-    std::optional<CompanionStatus> QueryCompanionStatus(const SyncDeviceStatusReply &reply) const;
+    std::optional<CompanionStatus> QueryCompanionStatus(const UserKey &companionUserKey) const;
+    void InvalidateCompanion(const std::optional<UserKey> &companionUserKey);
     ResultCode HostEndCompanionCheck(TemplateId templateId, const SyncDeviceStatusReply &reply,
         HostEndCompanionCheckOutput &output);
     SyncDeviceStatusRequest BuildSyncDeviceStatusRequest(const LocalDeviceProfile &localProfile,
@@ -64,18 +81,18 @@ private:
     ResultCode ValidateReplyParameters(const SyncDeviceStatusReply &reply) const;
     HostEndCompanionCheckInput BuildHostEndCompanionCheckInput(TemplateId templateId,
         const SyncDeviceStatusReply &reply) const;
-    SyncDeviceStatus BuildSyncDeviceStatus(const SyncDeviceStatusReply &reply, bool hasProof,
-        const std::vector<Capability> &authenticatedCapabilities) const;
-    void CollectSyncDeviceStatusEventInfo(const LocalDeviceProfile &localProfile);
+    SyncDeviceStatus BuildSyncDeviceStatus(const SyncDeviceStatusReply &reply,
+        const std::vector<Capability> &selectedCompanionCapabilityList, ProtocolId selectedProtocolId,
+        ProtocolId freshBindingProtocolId) const;
+    ProtocolId ComputeFreshBindingProtocolId(const std::vector<ProtocolId> &companionProtocolIdList) const;
     void UpdateCompanionUserIdAndSubProfileId(const UserKey &companionUserKey);
+    void InvokeCallback(ResultCode result, const SyncDeviceStatus &syncDeviceStatus);
 
     UserKey hostUserKey_;
     std::unique_ptr<ScopeGuard> cancelCompanionCheckGuard_;
     DeviceKey companionDeviceKey_;
     SyncDeviceStatusCallback callback_;
-    std::vector<ProtocolId> hostProtocolIdList_;
-
-    void InvokeCallback(ResultCode result, const SyncDeviceStatus &syncDeviceStatus);
+    std::vector<ProtocolId> sentProtocolIdList_;
 };
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

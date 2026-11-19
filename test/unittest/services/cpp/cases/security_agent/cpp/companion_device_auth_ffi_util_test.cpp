@@ -220,6 +220,37 @@ HWTEST_F(FfiUtilTest, PersistedCompanionStatusCapabilityListRoundTrip, TestSize.
     EXPECT_TRUE(decodedEmpty.capabilities.empty());
 }
 
+// The persisted max auth trust level round-trips through the FFI boundary; a legacy row
+// (0) and an invalid value both stay unset (ATL0).
+HWTEST_F(FfiUtilTest, PersistedCompanionStatusMaxAuthTrustLevelRoundTrip, TestSize.Level1)
+{
+    MockGuard guard;
+    PersistedCompanionStatus status;
+    status.maxAuthTrustLevel = ATL3;
+
+    PersistedCompanionStatusFfi ffi = {};
+    EXPECT_TRUE(EncodePersistedCompanionStatus(status, ffi));
+    EXPECT_EQ(ffi.maxAuthTrustLevel, ATL3);
+
+    PersistedCompanionStatus decoded;
+    EXPECT_TRUE(DecodePersistedCompanionStatus(ffi, decoded));
+    EXPECT_EQ(decoded.maxAuthTrustLevel, ATL3);
+
+    // Legacy row: 0 is the unset marker (ATL0) and decodes as unset.
+    PersistedCompanionStatusFfi legacyFfi = {};
+    legacyFfi.maxAuthTrustLevel = 0;
+    PersistedCompanionStatus decodedLegacy;
+    EXPECT_TRUE(DecodePersistedCompanionStatus(legacyFfi, decodedLegacy));
+    EXPECT_EQ(decodedLegacy.maxAuthTrustLevel, ATL0);
+
+    // Invalid value also decodes as unset (ATL0).
+    PersistedCompanionStatusFfi invalidFfi = {};
+    invalidFfi.maxAuthTrustLevel = 12345;
+    PersistedCompanionStatus decodedInvalid;
+    EXPECT_TRUE(DecodePersistedCompanionStatus(invalidFfi, decodedInvalid));
+    EXPECT_EQ(decodedInvalid.maxAuthTrustLevel, ATL0);
+}
+
 HWTEST_F(FfiUtilTest, DecodePersistedCompanionStatusLenValidationFalse, TestSize.Level1)
 {
     MockGuard guard;
@@ -770,10 +801,12 @@ HWTEST_F(FfiUtilTest, EncodeHostGetInitKeyNegotiationInput_001, TestSize.Level0)
     HostGetInitKeyNegotiationRequestInput input;
     input.requestId = 111;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
+    input.selectedProtocolId = ProtocolId::VERSION_2;
 
     HostGetInitKeyNegotiationInputFfi ffi = {};
     EncodeHostGetInitKeyNegotiationInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 111U);
+    EXPECT_EQ(ffi.selectedProtocolId, 2U);
 }
 
 HWTEST_F(FfiUtilTest, DecodeHostInitKeyNegotiationOutput_001, TestSize.Level0)
@@ -1332,11 +1365,17 @@ HWTEST_F(FfiUtilTest, EncodeCompanionPreIssueTokenInput_001, TestSize.Level0)
     input.bindingId = INT32_21000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
     input.preIssueTokenRequest = { UINT8_0X55, UINT8_0X66 };
+    input.bindingSignatureProof.challenge = { UINT8_0X11, UINT8_0X12 };
+    input.bindingSignatureProof.signature = { UINT8_0X22 };
 
     CompanionPreIssueTokenInputFfi ffi = {};
-    EncodeCompanionPreIssueTokenInput(input, ffi);
+    EXPECT_TRUE(EncodeCompanionPreIssueTokenInput(input, ffi));
     EXPECT_EQ(ffi.requestId, 20000U);
     EXPECT_EQ(ffi.bindingId, 21000U);
+    EXPECT_EQ(ffi.bindingSignatureProof.challenge.len, 2U);
+    EXPECT_EQ(ffi.bindingSignatureProof.challenge.data[0], UINT8_0X11);
+    EXPECT_EQ(ffi.bindingSignatureProof.signature.len, 1U);
+    EXPECT_EQ(ffi.bindingSignatureProof.signature.data[0], UINT8_0X22);
 }
 
 HWTEST_F(FfiUtilTest, DecodeCompanionPreIssueTokenOutput_001, TestSize.Level0)
@@ -1358,12 +1397,14 @@ HWTEST_F(FfiUtilTest, EncodeCompanionProcessIssueTokenInput_001, TestSize.Level0
     MockGuard guard;
     CompanionProcessIssueTokenInput input;
     input.requestId = INT32_22000;
+    input.bindingId = INT32_26000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
     input.issueTokenRequest = { UINT8_0XAA, UINT8_0XBB };
 
     CompanionProcessIssueTokenInputFfi ffi = {};
     EncodeCompanionProcessIssueTokenInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 22000U);
+    EXPECT_EQ(ffi.bindingId, 26000U);
 }
 
 HWTEST_F(FfiUtilTest, DecodeCompanionProcessIssueTokenOutput_001, TestSize.Level0)

@@ -34,6 +34,8 @@ companion_device_auth_rust_service_local_sources = [
   "impls/hilog_logger.rs",
   "impls/mod.rs",
   "impls/openssl_crypto_engine.rs",
+  "jobs/binding_challenge_pool.rs",
+  "jobs/binding_signature_crypto.rs",
   "jobs/companion_device_db_helper.rs",
   "jobs/host_binding_db_helper.rs",
   "jobs/message_crypto.rs",

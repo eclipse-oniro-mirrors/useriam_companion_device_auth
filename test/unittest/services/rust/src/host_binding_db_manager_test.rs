@@ -18,8 +18,7 @@ const FILE_ID: u16 = TestFileId::HostBindingDbManagerTest as u16;
 
 use crate::common::constants::*;
 use crate::log_i;
-use crate::common::algorithm::SelectedAlgorithms;
-use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingKeyMaterial, HostBindingToken, UserInfo, UserKey};
+use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, HostBindingToken, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{DummyHostBindingDbManager, HostBindingDbManager, HostDeviceFilter};
 use crate::ut_registry_guard;
 use std::boxed::Box;
@@ -39,14 +38,11 @@ fn dummy_host_binding_db_manager_test() {
         enrolled_protocol_id: 1,
         secure_protocol_id: 0,
     };
-    let sk_info = HostBindingKeyMaterial {
+    let sk_info = HostBindingSk {
         sk: [0u8; SHARE_KEY_LEN],
-        selected_algorithms: SelectedAlgorithms {
-            ka_algorithm: 1,
-            kdf_algorithm: 1,
-            aead_algorithm: 1,
-            mac_algorithm: 1,
-        },
+        kdf_algorithm: 1,
+        aead_algorithm: 1,
+        mac_algorithm: 1,
     };
     let token = HostBindingToken { token: [0u8; TOKEN_KEY_LEN], atl: AuthTrustLevel::Atl0 };
 

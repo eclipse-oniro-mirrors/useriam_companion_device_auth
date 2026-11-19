@@ -106,8 +106,6 @@ private:
 
     bool UnsubscribeDeviceStatus(SubscribeId subscriptionId);
 
-    std::optional<ProtocolId> NegotiateProtocol(const std::vector<ProtocolId> &remoteProtocols);
-
     bool ShouldMonitorDevice(const PhysicalDeviceKey &physicalKey);
     SyncDemandLevel ResolveSyncDemandLevel(const PhysicalDeviceKey &physicalKey);
 

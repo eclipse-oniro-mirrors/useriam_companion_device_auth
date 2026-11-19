@@ -16,7 +16,7 @@
 use crate::common::constants::{Capability, ErrorCode, ProcessorType, validate_secure_protocol_id};
 use crate::jobs::message_crypto;
 use crate::traits::companion_device_db_manager::CompanionDeviceDbManagerRegistry;
-use crate::common::algorithm::validate_selected_algorithms;
+use crate::common::algorithm::validate_sk_algorithms;
 use crate::traits::db_manager::{CompanionDevice, SessionKeyParam, UserKey};
 use crate::traits::log_trace::RustFileId;
 use crate::{log_e, log_i, p, Box, String, Vec};
@@ -103,14 +103,13 @@ pub fn get_session_key(
     let sk_infos = CompanionDeviceDbManagerRegistry::get_mut().read_device_sk(template_id).map_err(|e| p!(e))?;
     for sk_info in sk_infos {
         if sk_info.processor_type == processor_type {
-            validate_selected_algorithms(&sk_info.selected_algorithms)?;
+            validate_sk_algorithms(sk_info.kdf_algorithm, sk_info.aead_algorithm, sk_info.mac_algorithm)?;
             let session_key =
-                message_crypto::derive_session_key(sk_info.selected_algorithms.kdf_algorithm, salt, &sk_info.sk)
-                    .map_err(|e| p!(e))?;
+                message_crypto::derive_session_key(sk_info.kdf_algorithm, salt, &sk_info.sk).map_err(|e| p!(e))?;
             return Ok(SessionKeyParam {
                 session_key,
-                aead_algorithm: sk_info.selected_algorithms.aead_algorithm,
-                mac_algorithm: sk_info.selected_algorithms.mac_algorithm,
+                aead_algorithm: sk_info.aead_algorithm,
+                mac_algorithm: sk_info.mac_algorithm,
             });
         }
     }

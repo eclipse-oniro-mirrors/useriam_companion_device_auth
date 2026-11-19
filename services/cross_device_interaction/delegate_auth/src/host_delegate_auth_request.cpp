@@ -153,8 +153,8 @@ void HostDelegateAuthRequest::HostBeginDelegateAuth()
     EncodeStartDelegateAuthRequest(*startRequestOpt, request);
     eventCollector_.EnterWait(HostDelegateAuthStages::WAIT_DELEGATE_AUTH_REPLY);
 
-    bool sendRet = GetCrossDeviceCommManager().SendMessage(GetConnectionName(), MessageType::START_DELEGATE_AUTH,
-        request, [weakSelf = weak_from_this()](const Attributes &message) {
+    bool sendRet = SendMessage(MessageType::START_DELEGATE_AUTH, std::move(request),
+        [weakSelf = weak_from_this()](const Attributes &message) {
             auto self = weakSelf.lock();
             ENSURE_OR_RETURN(self != nullptr);
             self->HandleStartDelegateAuthReply(message);

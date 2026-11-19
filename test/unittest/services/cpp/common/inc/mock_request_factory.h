@@ -47,9 +47,7 @@ public:
         (const std::string &, const Attributes &, OnMessageReply &&, const DeviceKey &), (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionObtainTokenRequest,
         (const DeviceKey &, uint32_t, const std::vector<uint8_t> &), (override));
-    MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionDelegateAuthRequest,
-        (const std::string &, const UserKey &, const DeviceKey &, const std::vector<uint8_t> &,
-            const CompanionDelegateAuthParam &),
+    MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionDelegateAuthRequest, (const CompanionDelegateAuthParams &),
         (override));
     MOCK_METHOD(std::shared_ptr<IRequest>, CreateCompanionRevokeTokenRequest,
         (const UserKey &, const DeviceKey &, const std::string &), (override));
