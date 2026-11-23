@@ -41,7 +41,7 @@ pub struct HostDeviceObtainTokenRequest {
     pub token_infos: Vec<DeviceTokenInfo>,
     pub salt: [u8; HKDF_SALT_SIZE],
     pub host_challenge: u64,
-    pub atl: AuthTrustLevel,
+    pub outer_atl: AuthTrustLevel,
 }
 
 impl HostDeviceObtainTokenRequest {
@@ -61,7 +61,7 @@ impl HostDeviceObtainTokenRequest {
             token_infos: Vec::new(),
             salt,
             host_challenge: u64::from_ne_bytes(challenge),
-            atl: AuthTrustLevel::Atl0,
+            outer_atl: AuthTrustLevel::Atl0,
         })
     }
 
@@ -124,6 +124,7 @@ impl HostDeviceObtainTokenRequest {
     }
 
     fn decode_sec_token_obtain_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
+        companion_device_db_helper::check_device_capability(self.obtain_param.template_id, Capability::ObtainToken)?;
         let capability_infos =
             CompanionDeviceDbManagerRegistry::get_mut().read_device_capability_info(self.obtain_param.template_id)?;
         for capability_info in capability_infos {
@@ -138,6 +139,22 @@ impl HostDeviceObtainTokenRequest {
         }
 
         Ok(())
+    }
+
+    fn check_atl(&self, outer_atl: AuthTrustLevel) -> Result<AuthTrustLevel, ErrorCode> {
+        let first = self.token_infos.first().ok_or_else(|| {
+            log_e!("no decrypted section to check inner atl");
+            ErrorCode::GeneralError
+        })?;
+        if let Some(diff) = self.token_infos.iter().find(|info| info.atl != first.atl) {
+            log_e!("inner atl differs across processor types: {:?} vs {:?}", first.atl, diff.atl);
+            return Err(ErrorCode::GeneralError);
+        }
+        if first.atl != outer_atl {
+            log_e!("outer atl {:?} differs from inner atl {:?}", outer_atl, first.atl);
+            return Err(ErrorCode::GeneralError);
+        }
+        Ok(first.atl)
     }
 
     fn encode_sec_token_obtain_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
@@ -205,12 +222,15 @@ impl Request for HostDeviceObtainTokenRequest {
             return Err(ErrorCode::BadParam);
         };
 
-        self.atl = AuthTrustLevel::try_from(ffi_input.atl)?;
+        self.outer_atl = AuthTrustLevel::try_from(ffi_input.atl)?;
         self.decode_sec_token_obtain_request(ffi_input.sec_message.as_slice()?)?;
+
+        let inner_atl = self.check_atl(self.outer_atl)?;
+
         let sec_message = self.encode_sec_token_obtain_reply()?;
         self.store_token()?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
-        ffi_output.atl = ffi_input.atl;
+        ffi_output.atl = inner_atl as i32;
         Ok(())
     }
 }

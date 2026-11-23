@@ -57,7 +57,8 @@ struct EndAddCompanionInput {
 struct EndAddCompanionOutput {
     std::vector<uint8_t> fwkMsg;
     std::vector<uint8_t> tokenData;
-    Atl atl;
+    Atl tokenAtl;
+    Atl maxAtl;
     int32_t esl;
     TemplateId templateId;
     std::vector<Capability> enrolledCapabilityList;

@@ -40,7 +40,7 @@ use crate::request::token_issue::host_issue_token::HostDeviceIssueTokenRequest;
 use crate::request::token_issue::token_issue_message::SecPreIssueRequest;
 use crate::request::token_obtain::companion_obtain_token::CompanionDeviceObtainTokenRequest;
 use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenRequest;
-use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenRequest;
+use crate::request::token_obtain::token_obtain_message::{SecPreObtainTokenReply, SecPreObtainTokenRequest};
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::common::algorithm::{CryptoAlgorithms, SelectedAlgorithms};
@@ -114,6 +114,19 @@ fn create_mock_host_binding(binding_id: i32) -> HostBinding {
         enrolled_protocol_id: 1,
         secure_protocol_id: 1,
     }
+}
+
+fn create_valid_obtain_token_reply(atl: i32) -> Vec<u8> {
+    let mut encrypt_attribute = Attribute::new();
+    encrypt_attribute.set_u64(AttributeKey::AttrHostChallenge, 0);
+    encrypt_attribute.set_i32(AttributeKey::AttrAuthTrustLevel, atl);
+    let reply = SecPreObtainTokenReply {
+        challenge: 1,
+        tag: [1u8; AES_GCM_TAG_SIZE],
+        iv: [2u8; AES_GCM_IV_SIZE],
+        encrypt_data: encrypt_attribute.to_bytes().unwrap(),
+    };
+    reply.encode(ProcessorType::Default).unwrap()
 }
 
 fn create_mock_companion_device_capability() -> CompanionDeviceCapability {
@@ -1662,6 +1675,10 @@ fn host_revoke_token_test_success() {
     log_i!("host_revoke_token_test_success start");
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    mock_companion_device_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Ok(vec![create_mock_companion_device_capability()]));
     mock_companion_device_db_manager
         .expect_remove_token()
         .returning(|| Ok(create_mock_companion_device_token(AuthTrustLevel::Atl3)));
@@ -1678,8 +1695,9 @@ fn host_revoke_token_test_fail() {
     let _guard = ut_registry_guard!();
     log_i!("host_revoke_token_test_fail start");
 
+    // An unknown template is a real error: nothing is located, nothing is "already revoked".
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
-    mock_companion_device_db_manager.expect_remove_token().returning(|| Err(ErrorCode::NotFound));
+    mock_companion_device_db_manager.expect_get_device().returning(|| Err(ErrorCode::NotFound));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
     let input = HostRevokeTokenInputFfi { template_id: 123 };
@@ -2231,6 +2249,9 @@ fn host_process_obtain_token_test_success() {
     let mut mock_crypto_engine = MockCryptoEngine::new();
     mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
     mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+    mock_crypto_engine
+        .expect_aes_gcm_decrypt()
+        .returning(|result: &AesGcmResult| Ok(result.ciphertext.clone()));
     mock_crypto_engine.expect_aes_gcm_encrypt().returning(|data, _| {
         Ok(AesGcmResult { ciphertext: data.to_vec(), authentication_tag: [0u8; AES_GCM_TAG_SIZE] })
     });
@@ -2238,12 +2259,6 @@ fn host_process_obtain_token_test_success() {
 
     let pre_input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
     let mut obtain_token_request = HostDeviceObtainTokenRequest::new(&pre_input).unwrap();
-    obtain_token_request.token_infos.push(DeviceTokenInfo {
-        processor_type: ProcessorType::Default,
-        challenge: 0,
-        atl: AuthTrustLevel::Atl3,
-        token: [0u8; TOKEN_KEY_LEN].to_vec(),
-    });
 
     let mut mock_host_request_manager = MockRequestManager::new();
     mock_host_request_manager.expect_remove_request().returning(move || Ok(Box::new(obtain_token_request.clone())));
@@ -2251,7 +2266,9 @@ fn host_process_obtain_token_test_success() {
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
-    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Ok(Vec::new()));
+    mock_companion_device_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Ok(vec![create_mock_companion_device_capability()]));
     mock_companion_device_db_manager
         .expect_read_device_sk()
         .returning(|| Ok(vec![CompanionDeviceSk {
@@ -2272,7 +2289,8 @@ fn host_process_obtain_token_test_success() {
         request_id: 1,
         template_id: 123,
         secure_protocol_id: 1,
-        sec_message: DataArray1024Ffi::default(),
+        sec_message: DataArray1024Ffi::try_from(create_valid_obtain_token_reply(AuthTrustLevel::Atl3 as i32))
+            .unwrap(),
         atl: AuthTrustLevel::Atl3 as i32,
     };
     let mut output = HostProcessObtainTokenOutputFfi { sec_message: DataArray1024Ffi::default(), atl: 0 };

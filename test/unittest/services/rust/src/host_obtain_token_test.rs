@@ -22,6 +22,7 @@ use crate::entry::companion_device_auth_ffi::{
     HostProcessPreObtainTokenInputFfi, HostProcessPreObtainTokenOutputFfi,
 };
 use crate::log_i;
+use crate::request::jobs::token_helper::DeviceTokenInfo;
 use crate::request::token_obtain::host_obtain_token::HostDeviceObtainTokenRequest;
 use crate::request::token_obtain::token_obtain_message::SecPreObtainTokenReply;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
@@ -102,6 +103,25 @@ fn mock_set_companion_device_db_manager() {
         }]));
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
     mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+}
+
+// For rounds that must be rejected before storing: add_token is left unmocked, so an unexpected call panics the test.
+fn mock_set_companion_device_db_manager_without_add_token() {
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    mock_companion_device_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Ok(vec![create_mock_companion_device_capability()]));
+    mock_companion_device_db_manager
+        .expect_read_device_sk()
+        .returning(|| Ok(vec![CompanionDeviceSk {
+            processor_type: ProcessorType::Default,
+            sk: [0u8; SHARE_KEY_LEN],
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        }]));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 }
 
@@ -244,6 +264,7 @@ fn host_obtain_token_request_end_test_read_device_capability_info_fail() {
     CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
     mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Err(ErrorCode::NotFound));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
@@ -326,7 +347,7 @@ fn host_obtain_token_request_end_test_get_session_key_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -358,7 +379,7 @@ fn host_obtain_token_request_end_test_decrypt_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -386,7 +407,7 @@ fn host_obtain_token_request_end_test_challenge_mismatch() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -414,7 +435,7 @@ fn host_obtain_token_request_end_test_atl_try_from_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -449,7 +470,7 @@ fn host_obtain_token_request_end_test_secure_random_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -484,7 +505,7 @@ fn host_obtain_token_request_end_test_generate_token_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -518,7 +539,7 @@ fn host_obtain_token_request_end_test_sec_message_get_session_key_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -552,7 +573,7 @@ fn host_obtain_token_request_end_test_sec_message_encrypt_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -584,7 +605,7 @@ fn host_obtain_token_request_end_test_get_rtc_time_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -628,7 +649,7 @@ fn host_obtain_token_request_end_test_add_token_fail() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
@@ -656,11 +677,149 @@ fn host_obtain_token_request_end_test_success() {
         template_id: 123,
         secure_protocol_id: 1,
         sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-        atl: 0,
+        atl: AuthTrustLevel::Atl3 as i32,
     };
 
     let mut output = HostProcessObtainTokenOutputFfi::default();
     let param = RequestParam::HostObtainTokenEnd(&end_input, &mut output);
     let result = request.end(param);
     assert!(result.is_ok());
+    assert_eq!(output.atl, AuthTrustLevel::Atl3 as i32);
+}
+
+// The plaintext outer ATL must agree with the decrypted section value; a divergence rejects
+// the whole obtain round before anything is encoded or stored.
+#[test]
+fn host_obtain_token_request_end_test_outer_atl_divergence() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_obtain_token_request_end_test_outer_atl_divergence start");
+
+    mock_set_crypto_engine();
+    mock_set_time_keeper();
+    mock_set_companion_device_db_manager_without_add_token();
+
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
+
+    let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
+    request.host_challenge = 0;
+
+    let sec_message = create_valid_obtain_token_request(1, 0, AuthTrustLevel::Atl3 as i32);
+    let end_input = HostProcessObtainTokenInputFfi {
+        request_id: 1,
+        template_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: AuthTrustLevel::Atl2 as i32,
+    };
+
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = RequestParam::HostObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+// Every decrypted section must carry the same ATL. ProcessorType has a single variant, so a second section cannot
+// be put on the wire; a seeded token info stands in for that section.
+#[test]
+fn host_obtain_token_request_end_test_inner_atl_same_across_sections() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_obtain_token_request_end_test_inner_atl_same_across_sections start");
+
+    mock_set_crypto_engine();
+    mock_set_companion_device_db_manager();
+    mock_set_time_keeper();
+
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
+
+    let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
+    request.host_challenge = 0;
+    request.token_infos.push(DeviceTokenInfo {
+        processor_type: ProcessorType::Default,
+        challenge: 0,
+        atl: AuthTrustLevel::Atl3,
+        token: vec![0u8; TOKEN_KEY_LEN],
+    });
+
+    let sec_message = create_valid_obtain_token_request(1, 0, AuthTrustLevel::Atl3 as i32);
+    let end_input = HostProcessObtainTokenInputFfi {
+        request_id: 1,
+        template_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: AuthTrustLevel::Atl3 as i32,
+    };
+
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = RequestParam::HostObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert!(result.is_ok());
+    assert_eq!(output.atl, AuthTrustLevel::Atl3 as i32);
+}
+
+// The outer ATL equals the section on the wire, so only the cross-section check can reject the round.
+#[test]
+fn host_obtain_token_request_end_test_inner_atl_differs_across_sections() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_obtain_token_request_end_test_inner_atl_differs_across_sections start");
+
+    mock_set_crypto_engine();
+    mock_set_companion_device_db_manager_without_add_token();
+
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
+
+    let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
+    request.host_challenge = 0;
+    request.token_infos.push(DeviceTokenInfo {
+        processor_type: ProcessorType::Default,
+        challenge: 0,
+        atl: AuthTrustLevel::Atl2,
+        token: vec![0u8; TOKEN_KEY_LEN],
+    });
+
+    let sec_message = create_valid_obtain_token_request(1, 0, AuthTrustLevel::Atl3 as i32);
+    let end_input = HostProcessObtainTokenInputFfi {
+        request_id: 1,
+        template_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: AuthTrustLevel::Atl3 as i32,
+    };
+
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = RequestParam::HostObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
+}
+
+// An empty capability table has no section to decrypt and therefore no inner atl to check.
+#[test]
+fn host_obtain_token_request_end_test_empty_capability_table() {
+    let _guard = ut_registry_guard!();
+    log_i!("host_obtain_token_request_end_test_empty_capability_table start");
+
+    mock_set_crypto_engine();
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    mock_companion_device_db_manager.expect_read_device_capability_info().returning(|| Ok(Vec::new()));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let input = HostProcessPreObtainTokenInputFfi { request_id: 1, template_id: 123, secure_protocol_id: 1 };
+
+    let mut request = HostDeviceObtainTokenRequest::new(&input).unwrap();
+    request.host_challenge = 0;
+
+    let sec_message = create_valid_obtain_token_request(1, 0, AuthTrustLevel::Atl3 as i32);
+    let end_input = HostProcessObtainTokenInputFfi {
+        request_id: 1,
+        template_id: 123,
+        secure_protocol_id: 1,
+        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
+        atl: AuthTrustLevel::Atl3 as i32,
+    };
+
+    let mut output = HostProcessObtainTokenOutputFfi::default();
+    let param = RequestParam::HostObtainTokenEnd(&end_input, &mut output);
+    let result = request.end(param);
+    assert_eq!(result, Err(ErrorCode::GeneralError));
 }

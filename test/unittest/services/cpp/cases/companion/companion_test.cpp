@@ -1092,6 +1092,40 @@ HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_EnrollmentNotWorn_RefreshAtl_Ol
     EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
 }
 
+// Disabling the token always reaches the security layer, even when the token was never
+// activated (pre-provisioned at enrollment, mirror already empty).
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_DisableWithoutActivation_CleansSecurityLayer, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    // Pre-provisioned token without activation: in-memory ATL stays empty, but the disable
+    // still must clean the security-layer rows.
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillOnce(Return(ResultCode::SUCCESS));
+
+    companion->SetCompanionTokenAuthAtl(std::nullopt);
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+    testing::Mock::VerifyAndClearExpectations(&mockSecurityAgent_);
+}
+
+HWTEST_F(CompanionTest, SetCompanionTokenAuthAtl_DisableSecurityLayerFailure_LogsOnly, TestSize.Level0)
+{
+    auto persistedStatus = MakePersistedStatus(TEMPLATE_ID_12345, USER_ID_100, "test_device_id", USER_ID_200);
+    auto companion = Companion::Create(persistedStatus, false, mockCompanionManager_);
+    ASSERT_NE(nullptr, companion);
+
+    companion->status_.tokenAuthAtl = ATL2;
+
+    // The security-layer failure is log-only (SetCompanionTokenAuthAtl carries no result);
+    // the in-memory token is disabled either way, later disable paths re-clean the leftovers.
+    EXPECT_CALL(mockSecurityAgent_, HostRevokeToken(_)).WillOnce(Return(ResultCode::GENERAL_ERROR));
+
+    companion->SetCompanionTokenAuthAtl(std::nullopt);
+    EXPECT_FALSE(companion->GetStatus().tokenAuthAtl.has_value());
+    testing::Mock::VerifyAndClearExpectations(&mockSecurityAgent_);
+}
+
 } // namespace
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

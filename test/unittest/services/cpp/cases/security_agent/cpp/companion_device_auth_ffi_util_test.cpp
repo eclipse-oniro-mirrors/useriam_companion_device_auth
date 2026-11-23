@@ -902,6 +902,8 @@ HWTEST_F(FfiUtilTest, DecodeHostEndAddCompanionOutput_001, TestSize.Level0)
     MockGuard guard;
     HostEndAddCompanionOutputFfi ffi = {};
     ffi.templateId = 777;
+    ffi.tokenAtl = ATL1;
+    ffi.maxAtl = ATL4;
     ffi.fwkMessage.len = 2;
     ffi.fwkMessage.data[0] = UINT8_0X77;
     ffi.fwkMessage.data[1] = UINT8_0X88;
@@ -912,6 +914,8 @@ HWTEST_F(FfiUtilTest, DecodeHostEndAddCompanionOutput_001, TestSize.Level0)
     HostEndAddCompanionOutput output;
     EXPECT_TRUE(DecodeHostEndAddCompanionOutput(ffi, output));
     EXPECT_EQ(output.templateId, 777U);
+    EXPECT_EQ(output.tokenAtl, ATL1);
+    EXPECT_EQ(output.maxAtl, ATL4);
     EXPECT_EQ(output.fwkMsg.size(), 2U);
     EXPECT_EQ(output.enrolledCapabilityList, (std::vector<uint16_t> { 1, 2 }));
 }

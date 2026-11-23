@@ -100,6 +100,40 @@ fn auth_trust_level_test() {
 }
 
 #[test]
+fn get_atl_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("get_atl_test start");
+
+    // Full (acl, esl) matrix mirroring the driver's priority-ordered g_generationAtl table
+    // (drivers/peripheral/user_auth auth_level.c): the first row whose bounds are both met wins.
+    let expected = [
+        (AuthCapabilityLevel::Acl0, ExecutorSecurityLevel::Esl0, AuthTrustLevel::Atl0),
+        (AuthCapabilityLevel::Acl0, ExecutorSecurityLevel::Esl1, AuthTrustLevel::Atl0),
+        (AuthCapabilityLevel::Acl0, ExecutorSecurityLevel::Esl2, AuthTrustLevel::Atl0),
+        (AuthCapabilityLevel::Acl0, ExecutorSecurityLevel::Esl3, AuthTrustLevel::Atl0),
+        (AuthCapabilityLevel::Acl1, ExecutorSecurityLevel::Esl0, AuthTrustLevel::Atl1),
+        (AuthCapabilityLevel::Acl1, ExecutorSecurityLevel::Esl1, AuthTrustLevel::Atl1),
+        (AuthCapabilityLevel::Acl1, ExecutorSecurityLevel::Esl2, AuthTrustLevel::Atl2),
+        (AuthCapabilityLevel::Acl1, ExecutorSecurityLevel::Esl3, AuthTrustLevel::Atl2),
+        (AuthCapabilityLevel::Acl2, ExecutorSecurityLevel::Esl0, AuthTrustLevel::Atl1),
+        (AuthCapabilityLevel::Acl2, ExecutorSecurityLevel::Esl1, AuthTrustLevel::Atl2),
+        (AuthCapabilityLevel::Acl2, ExecutorSecurityLevel::Esl2, AuthTrustLevel::Atl3),
+        (AuthCapabilityLevel::Acl2, ExecutorSecurityLevel::Esl3, AuthTrustLevel::Atl3),
+        (AuthCapabilityLevel::Acl3, ExecutorSecurityLevel::Esl0, AuthTrustLevel::Atl1),
+        (AuthCapabilityLevel::Acl3, ExecutorSecurityLevel::Esl1, AuthTrustLevel::Atl2),
+        (AuthCapabilityLevel::Acl3, ExecutorSecurityLevel::Esl2, AuthTrustLevel::Atl4),
+        (AuthCapabilityLevel::Acl3, ExecutorSecurityLevel::Esl3, AuthTrustLevel::Atl4),
+    ];
+    for (acl, esl, atl) in expected {
+        assert_eq!(get_atl(acl, esl), atl);
+    }
+    assert_eq!(acl_from_esl(ExecutorSecurityLevel::Esl0), AuthCapabilityLevel::Acl0);
+    assert_eq!(acl_from_esl(ExecutorSecurityLevel::Esl1), AuthCapabilityLevel::Acl1);
+    assert_eq!(acl_from_esl(ExecutorSecurityLevel::Esl2), AuthCapabilityLevel::Acl2);
+    assert_eq!(acl_from_esl(ExecutorSecurityLevel::Esl3), AuthCapabilityLevel::Acl3);
+}
+
+#[test]
 fn device_type_test() {
     let _guard = ut_registry_guard!();
     log_i!("device_type_test start");

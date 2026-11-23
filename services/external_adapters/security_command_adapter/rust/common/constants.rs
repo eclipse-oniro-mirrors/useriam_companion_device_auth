@@ -186,7 +186,31 @@ impl TryFrom<i32> for AuthCapabilityLevel {
 
 pub const LOCAL_EXECUTOR_MAX_ACL: AuthCapabilityLevel = AuthCapabilityLevel::Acl3;
 
-pub const COMPANION_MAX_ATL: AuthTrustLevel = AuthTrustLevel::Atl4;
+pub fn acl_from_esl(esl: ExecutorSecurityLevel) -> AuthCapabilityLevel {
+    match esl {
+        ExecutorSecurityLevel::Esl0 => AuthCapabilityLevel::Acl0,
+        ExecutorSecurityLevel::Esl1 => AuthCapabilityLevel::Acl1,
+        ExecutorSecurityLevel::Esl2 => AuthCapabilityLevel::Acl2,
+        ExecutorSecurityLevel::Esl3 => AuthCapabilityLevel::Acl3,
+    }
+}
+
+pub fn get_atl(acl: AuthCapabilityLevel, esl: ExecutorSecurityLevel) -> AuthTrustLevel {
+    const GENERATION_ATL: [(AuthTrustLevel, AuthCapabilityLevel, ExecutorSecurityLevel); 6] = [
+        (AuthTrustLevel::Atl4, AuthCapabilityLevel::Acl3, ExecutorSecurityLevel::Esl2),
+        (AuthTrustLevel::Atl3, AuthCapabilityLevel::Acl2, ExecutorSecurityLevel::Esl2),
+        (AuthTrustLevel::Atl2, AuthCapabilityLevel::Acl2, ExecutorSecurityLevel::Esl1),
+        (AuthTrustLevel::Atl2, AuthCapabilityLevel::Acl1, ExecutorSecurityLevel::Esl2),
+        (AuthTrustLevel::Atl1, AuthCapabilityLevel::Acl1, ExecutorSecurityLevel::Esl0),
+        (AuthTrustLevel::Atl0, AuthCapabilityLevel::Acl0, ExecutorSecurityLevel::Esl0),
+    ];
+    for (atl, row_acl, row_esl) in GENERATION_ATL {
+        if esl >= row_esl && acl >= row_acl {
+            return atl;
+        }
+    }
+    AuthTrustLevel::Atl0
+}
 
 pub const DEVICE_ID_TYPE_UNIFIED_DEVICE_ID: i32 = 1;
 pub const DEVICE_ID_TYPE_VENDOR_BEGIN: i32 = 10000;
@@ -195,7 +219,7 @@ pub fn is_valid_device_id_type(device_id_type: i32) -> bool {
     device_id_type == DEVICE_ID_TYPE_UNIFIED_DEVICE_ID || device_id_type >= DEVICE_ID_TYPE_VENDOR_BEGIN
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug)]
 #[repr(i32)]
 #[derive(Default)]
 pub enum AuthTrustLevel {

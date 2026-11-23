@@ -11,6 +11,7 @@ build
 *.profraw
 fuzz/corpus/
 .claude
+.zcode
 .opencode
 build_result.json
 test_result.json

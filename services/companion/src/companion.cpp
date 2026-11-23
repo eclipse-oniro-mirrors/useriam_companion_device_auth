@@ -221,14 +221,14 @@ void Companion::SetCompanionTokenAuthAtl(std::optional<Atl> tokenAuthAtl, bool f
         GetOptionalString(oldTokenAuthAtl).c_str(), GetOptionalString(tokenAuthAtl).c_str());
 
     tokenTimeoutSubscription_.reset();
-    if (oldTokenAuthAtl.has_value() && !tokenAuthAtl.has_value()) {
+    if (!tokenAuthAtl.has_value()) {
         authMaintainInactiveTimer_.reset();
         HostRevokeTokenInput input = { status_.templateId };
         ResultCode ret = GetSecurityAgent().HostRevokeToken(input);
         if (ret != ResultCode::SUCCESS) {
             IAM_LOGE("%{public}s HostRevokeToken failed ret %{public}d", GetDescription(), ret);
         }
-    } else if (tokenAuthAtl.has_value()) {
+    } else {
         tokenTimeoutSubscription_ = RelativeTimer::GetInstance().Register(
             [weakSelf = weak_from_this()]() {
                 auto self = weakSelf.lock();

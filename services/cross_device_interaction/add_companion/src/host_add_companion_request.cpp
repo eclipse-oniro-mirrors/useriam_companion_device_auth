@@ -465,7 +465,6 @@ std::optional<PersistedCompanionStatus> HostAddCompanionRequest::BuildPersistedC
     companionStatus.isValid = true;
     companionStatus.enrolledProtocolId = selectedProtocolId_;
     companionStatus.iconFileName = companionIcon_.value_or(CompanionIcon {}).fileName;
-    companionStatus.maxAuthTrustLevel = deviceStatus.maxAuthTrustLevel;
     return companionStatus;
 }
 
@@ -492,11 +491,11 @@ void HostAddCompanionRequest::ProcessEndAddCompanionOutput(const EndAddCompanion
 
     fwkMsg = output.fwkMsg;
     pendingTokenData_ = output.tokenData;
-    tokenAuthAtl_ = output.atl;
+    tokenAuthAtl_ = output.tokenAtl;
     enrolledCapabilityList_ = output.enrolledCapabilityList;
 
     eventCollector_.SetTemplateIdList({ templateId });
-    eventCollector_.SetAtl(output.atl);
+    eventCollector_.SetAtl(output.maxAtl);
     eventCollector_.SetEsl(output.esl);
 
     // Update enabled business IDs if parsed from additionalInfo

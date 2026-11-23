@@ -28,18 +28,38 @@ use crate::String;
 use crate::{log_e, log_i, p, vec, Box, Vec};
 pub(crate) const FILE_ID: u16 = RustFileId::EnrollMessage as u16;
 
-fn legacy_algorithm_list(attribute: &Attribute, key: AttributeKey, legacy_algorithm: u16) -> Vec<u16> {
-    attribute.get_u16_vec(key).unwrap_or_else(|_| {
+fn legacy_algorithm(attribute: &Attribute, key: AttributeKey, legacy_algorithm: u16) -> Result<u16, ErrorCode> {
+    if !attribute.has(key) {
         log_i!("attribute {:?} absent, fallback to legacy algorithm {}", key, legacy_algorithm);
-        vec![legacy_algorithm]
-    })
+        return Ok(legacy_algorithm);
+    }
+    attribute.get_u16(key)
 }
 
-fn legacy_algorithm(attribute: &Attribute, key: AttributeKey, legacy_algorithm: u16) -> u16 {
-    attribute.get_u16(key).unwrap_or_else(|_| {
+fn legacy_algorithm_list(
+    attribute: &Attribute,
+    key: AttributeKey,
+    legacy_algorithm: u16,
+) -> Result<Vec<u16>, ErrorCode> {
+    if !attribute.has(key) {
         log_i!("attribute {:?} absent, fallback to legacy algorithm {}", key, legacy_algorithm);
-        legacy_algorithm
-    })
+        return Ok(vec![legacy_algorithm]);
+    }
+    attribute.get_u16_vec(key)
+}
+
+fn optional_algorithm(attribute: &Attribute, key: AttributeKey) -> Result<Option<u16>, ErrorCode> {
+    if !attribute.has(key) {
+        return Ok(None);
+    }
+    Ok(Some(attribute.get_u16(key)?))
+}
+
+fn optional_algorithm_list(attribute: &Attribute, key: AttributeKey) -> Result<Option<Vec<u16>>, ErrorCode> {
+    if !attribute.has(key) {
+        return Ok(None);
+    }
+    Ok(Some(attribute.get_u16_vec(key)?))
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -119,24 +139,30 @@ impl SecKeyNegoRequest {
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
         let ka_algorithm_list =
-            legacy_algorithm_list(&message_attribute, AttributeKey::AttrKaAlgoList, KaAlgoType::X25519 as u16);
+            legacy_algorithm_list(&message_attribute,
+                AttributeKey::AttrKaAlgoList,
+                KaAlgoType::X25519 as u16
+        )?;
         let kdf_algorithm_list = legacy_algorithm_list(
             &message_attribute,
             AttributeKey::AttrKdfAlgoList,
             KdfAlgoType::HkdfSha256 as u16,
-        );
+        )?;
         let aead_algorithm_list = legacy_algorithm_list(
             &message_attribute,
             AttributeKey::AttrAeadAlgoList,
             AeadAlgoType::Aes256Gcm as u16,
-        );
+        )?;
         let mac_algorithm_list = legacy_algorithm_list(
             &message_attribute,
             AttributeKey::AttrMacAlgoList,
             MacAlgoType::HmacSha256 as u16,
-        );
-        let binding_signature_algorithm_list =
-            message_attribute.get_u16_vec(AttributeKey::AttrBindingSignatureAlgoList).unwrap_or_default();
+        )?;
+        let binding_signature_algorithm_list = optional_algorithm_list(
+            &message_attribute,
+            AttributeKey::AttrBindingSignatureAlgoList,
+        )?
+        .unwrap_or_default();
         Ok(Box::new(Self {
             crypto_algorithms: CryptoAlgorithms {
                 ka_algorithms: ka_algorithm_list,
@@ -164,11 +190,11 @@ impl SecKeyNegoReply {
         attribute.set_u16(AttributeKey::AttrKdfAlgoList, self.selected_algorithms.kdf_algorithm);
         attribute.set_u16(AttributeKey::AttrAeadAlgoList, self.selected_algorithms.aead_algorithm);
         attribute.set_u16(AttributeKey::AttrMacAlgoList, self.selected_algorithms.mac_algorithm);
-        attribute.set_u64(AttributeKey::AttrCompanionChallenge, self.challenge);
-        attribute.set_u8_slice(AttributeKey::AttrPublicKey, &self.pub_key);
         if let Some(algorithm) = self.selected_algorithms.binding_signature_algorithm {
             attribute.set_u16(AttributeKey::AttrBindingSignatureAlgoList, algorithm);
         }
+        attribute.set_u64(AttributeKey::AttrCompanionChallenge, self.challenge);
+        attribute.set_u8_slice(AttributeKey::AttrPublicKey, &self.pub_key);
 
         let mut final_attribute = Attribute::new();
         final_attribute.set_u8_slice(message_type, attribute.to_bytes()?.as_slice());
@@ -181,29 +207,18 @@ impl SecKeyNegoReply {
         let message_data = attribute.get_u8_slice(message_type).map_err(|e| p!(e))?;
 
         let message_attribute = Attribute::try_from_bytes(message_data).map_err(|e| p!(e))?;
-        let selected_ka_algorithm =
-            legacy_algorithm(&message_attribute, AttributeKey::AttrKaAlgoList, KaAlgoType::X25519 as u16);
-        let selected_kdf_algorithm = legacy_algorithm(
-            &message_attribute,
-            AttributeKey::AttrKdfAlgoList,
-            KdfAlgoType::HkdfSha256 as u16,
-        );
-        let selected_aead_algorithm =
-            legacy_algorithm(&message_attribute, AttributeKey::AttrAeadAlgoList, AeadAlgoType::Aes256Gcm as u16);
-        let selected_mac_algorithm =
-            legacy_algorithm(&message_attribute, AttributeKey::AttrMacAlgoList, MacAlgoType::HmacSha256 as u16);
+        let attribute = &message_attribute;
+        let selected_algorithms = SelectedAlgorithms {
+            ka_algorithm: legacy_algorithm(attribute, AttributeKey::AttrKaAlgoList, KaAlgoType::X25519 as u16)?,
+            kdf_algorithm: legacy_algorithm(attribute, AttributeKey::AttrKdfAlgoList, KdfAlgoType::HkdfSha256 as u16)?,
+            aead_algorithm: legacy_algorithm(attribute, AttributeKey::AttrAeadAlgoList, AeadAlgoType::Aes256Gcm as u16)?,
+            mac_algorithm: legacy_algorithm(attribute, AttributeKey::AttrMacAlgoList, MacAlgoType::HmacSha256 as u16)?,
+            binding_signature_algorithm: optional_algorithm(attribute, AttributeKey::AttrBindingSignatureAlgoList)?,
+        };
         let challenge = message_attribute.get_u64(AttributeKey::AttrCompanionChallenge).map_err(|e| p!(e))?;
         let pub_key = message_attribute.get_u8_slice(AttributeKey::AttrPublicKey).map_err(|e| p!(e))?;
-        let selected_binding_signature_algorithm =
-            message_attribute.get_u16(AttributeKey::AttrBindingSignatureAlgoList).ok();
         Ok(Box::new(Self {
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: selected_ka_algorithm,
-                kdf_algorithm: selected_kdf_algorithm,
-                aead_algorithm: selected_aead_algorithm,
-                mac_algorithm: selected_mac_algorithm,
-                binding_signature_algorithm: selected_binding_signature_algorithm,
-            },
+            selected_algorithms,
             challenge,
             pub_key: pub_key.to_vec(),
         }))
@@ -323,7 +338,6 @@ pub struct SecBindingReplyInfo {
     pub user_key: UserKey,
     pub esl: i32,
     pub track_ability_level: i32,
-    pub companion_max_atl: i32,
     pub challenge: u64,
     pub companion_protocol_list: Vec<u16>,
     pub companion_capability_list: Vec<u16>,
@@ -339,9 +353,6 @@ impl SecBindingReplyInfo {
         attribute.set_i32(AttributeKey::AttrSubProfileId, self.user_key.sub_profile_id);
         attribute.set_i32(AttributeKey::AttrEsl, self.esl);
         attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, self.track_ability_level);
-        if self.companion_max_atl != 0 {
-            attribute.set_i32(AttributeKey::AttrMaxAtl, self.companion_max_atl);
-        }
         attribute.set_u64(AttributeKey::AttrHostChallenge, self.challenge);
         attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.companion_protocol_list);
         attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.companion_capability_list);
@@ -378,42 +389,38 @@ impl SecBindingReplyInfo {
         let sub_profile_id = attribute.get_i32(AttributeKey::AttrSubProfileId).map_err(|e| p!(e))?;
         let esl = attribute.get_i32(AttributeKey::AttrEsl).map_err(|e| p!(e))?;
         let track_ability_level = attribute.get_i32(AttributeKey::AttrTrackAbilityLevel).map_err(|e| p!(e))?;
-        let companion_max_atl = attribute.get_i32(AttributeKey::AttrMaxAtl).unwrap_or_default();
         let challenge = attribute.get_u64(AttributeKey::AttrHostChallenge).map_err(|e| p!(e))?;
         let companion_protocol_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
         let companion_capability_list =
             attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
-        let selected_ka_algorithm =
-            legacy_algorithm(&attribute, AttributeKey::AttrKaAlgoList, KaAlgoType::X25519 as u16);
-        let selected_kdf_algorithm =
-            legacy_algorithm(&attribute, AttributeKey::AttrKdfAlgoList, KdfAlgoType::HkdfSha256 as u16);
-        let selected_aead_algorithm =
-            legacy_algorithm(&attribute, AttributeKey::AttrAeadAlgoList, AeadAlgoType::Aes256Gcm as u16);
-        let selected_mac_algorithm =
-            legacy_algorithm(&attribute, AttributeKey::AttrMacAlgoList, MacAlgoType::HmacSha256 as u16);
-        let selected_binding_signature_algorithm =
-            attribute.get_u16(AttributeKey::AttrBindingSignatureAlgoId).ok();
+        let selected_algorithms = SelectedAlgorithms {
+            ka_algorithm: legacy_algorithm(&attribute, AttributeKey::AttrKaAlgoList, KaAlgoType::X25519 as u16)?,
+            kdf_algorithm: legacy_algorithm(&attribute, AttributeKey::AttrKdfAlgoList, KdfAlgoType::HkdfSha256 as u16)?,
+            aead_algorithm: legacy_algorithm(&attribute, AttributeKey::AttrAeadAlgoList, AeadAlgoType::Aes256Gcm as u16)?,
+            mac_algorithm: legacy_algorithm(&attribute, AttributeKey::AttrMacAlgoList, MacAlgoType::HmacSha256 as u16)?,
+            binding_signature_algorithm: optional_algorithm(&attribute, AttributeKey::AttrBindingSignatureAlgoId)?,
+        };
         let companion_supported_algorithms = CryptoAlgorithms {
             ka_algorithms: legacy_algorithm_list(
                 &attribute,
                 AttributeKey::AttrKaAlgoSupportList,
                 KaAlgoType::X25519 as u16,
-            ),
+            )?,
             kdf_algorithms: legacy_algorithm_list(
                 &attribute,
                 AttributeKey::AttrKdfAlgoSupportList,
                 KdfAlgoType::HkdfSha256 as u16,
-            ),
+            )?,
             aead_algorithms: legacy_algorithm_list(
                 &attribute,
                 AttributeKey::AttrAeadAlgoSupportList,
                 AeadAlgoType::Aes256Gcm as u16,
-            ),
+            )?,
             mac_algorithms: legacy_algorithm_list(
                 &attribute,
                 AttributeKey::AttrMacAlgoSupportList,
                 MacAlgoType::HmacSha256 as u16,
-            ),
+            )?,
         };
 
         Ok(Box::new(Self {
@@ -421,17 +428,10 @@ impl SecBindingReplyInfo {
             user_key: UserKey { user_id, sub_profile_id },
             esl,
             track_ability_level,
-            companion_max_atl,
             challenge,
             companion_protocol_list,
             companion_capability_list,
-            selected_algorithms: SelectedAlgorithms {
-                ka_algorithm: selected_ka_algorithm,
-                kdf_algorithm: selected_kdf_algorithm,
-                aead_algorithm: selected_aead_algorithm,
-                mac_algorithm: selected_mac_algorithm,
-                binding_signature_algorithm: selected_binding_signature_algorithm,
-            },
+            selected_algorithms,
             companion_supported_algorithms,
         }))
     }

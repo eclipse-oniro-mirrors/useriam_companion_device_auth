@@ -166,7 +166,8 @@ public:
             output.fwkMsg = fuzzData_.ConsumeBytes<uint8_t>(fwkMsgSize);
             size_t tokenSize = fuzzData_.ConsumeIntegralInRange<size_t>(32, FUZZ_MAX_TOKEN_LENGTH);
             output.tokenData = fuzzData_.ConsumeBytes<uint8_t>(tokenSize);
-            output.atl = fuzzData_.ConsumeIntegral<Atl>();
+            output.tokenAtl = fuzzData_.ConsumeIntegral<Atl>();
+            output.maxAtl = fuzzData_.ConsumeIntegral<Atl>();
             output.esl = fuzzData_.ConsumeIntegral<int32_t>();
         }
         return result;

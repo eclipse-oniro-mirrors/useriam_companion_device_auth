@@ -326,6 +326,9 @@ void MockGuard::SetupSecurityAgentDefaults()
         }));
     ON_CALL(*securityAgent_, HostGetInitKeyNegotiationRequest(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
     ON_CALL(*securityAgent_, HostBeginAddCompanion(_, _)).WillByDefault(Return(ResultCode::SUCCESS));
+    // SetCompanionTokenAuthAtl(nullopt) now always cleans the security layer, so disable paths
+    // hit this even without an activated token; default to success unless a test overrides it.
+    ON_CALL(*securityAgent_, HostRevokeToken(_)).WillByDefault(Return(ResultCode::SUCCESS));
 }
 
 void MockGuard::SetupEventManagerAdapterDefaults()

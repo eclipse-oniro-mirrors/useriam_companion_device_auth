@@ -14,12 +14,13 @@
  */
 
 use crate::common::algorithm::{
-    CryptoAlgorithms, SelectedAlgorithms, get_supported_algorithms, select_algorithms_by_priority,
+    CryptoAlgorithms, SelectedAlgorithms, get_supported_algorithms, same_offer_algorithms,
+    select_algorithms_by_priority,
 };
 use crate::common::constants::{
-    AuthTrustLevel, COMPANION_MAX_ATL, ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel,
+    AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel,
     CHALLENGE_LEN, HKDF_SALT_SIZE, PROTOCOL_ID_INVALID,
-    PROTOCOL_VERSION_2, same_elements, validate_capability_list,
+    PROTOCOL_VERSION_2, validate_capability_list,
     validate_protocol_list,
 };
 use crate::entry::companion_device_auth_ffi::{
@@ -221,33 +222,13 @@ impl CompanionDeviceEnrollRequest {
     }
 
     fn verify_encrypted_host_algorithms(&self, decrypt_attribute: &Attribute) -> Result<(), ErrorCode> {
-        let encrypted_ka_algorithms =
-            decrypt_attribute.get_u16_vec(AttributeKey::AttrKaAlgoList).map_err(|e| p!(e))?;
-        let encrypted_kdf_algorithms =
-            decrypt_attribute.get_u16_vec(AttributeKey::AttrKdfAlgoList).map_err(|e| p!(e))?;
-        let encrypted_aead_algorithms =
-            decrypt_attribute.get_u16_vec(AttributeKey::AttrAeadAlgoList).map_err(|e| p!(e))?;
-        let encrypted_mac_algorithms =
-            decrypt_attribute.get_u16_vec(AttributeKey::AttrMacAlgoList).map_err(|e| p!(e))?;
-        if !same_elements(&encrypted_ka_algorithms, &self.host_algorithms.ka_algorithms)
-            || !same_elements(&encrypted_kdf_algorithms, &self.host_algorithms.kdf_algorithms)
-            || !same_elements(&encrypted_aead_algorithms, &self.host_algorithms.aead_algorithms)
-            || !same_elements(&encrypted_mac_algorithms, &self.host_algorithms.mac_algorithms)
-        {
-            log_e!(
-                "encrypted host algorithms differ from plaintext negotiation, encrypted ka:{:?} kdf:{:?} aead:{:?} mac:{:?}, plaintext received ka:{:?} kdf:{:?} aead:{:?} mac:{:?}",
-                encrypted_ka_algorithms,
-                encrypted_kdf_algorithms,
-                encrypted_aead_algorithms,
-                encrypted_mac_algorithms,
-                self.host_algorithms.ka_algorithms,
-                self.host_algorithms.kdf_algorithms,
-                self.host_algorithms.aead_algorithms,
-                self.host_algorithms.mac_algorithms
-            );
-            return Err(ErrorCode::AlgorithmNegotiationFailed);
-        }
-        Ok(())
+        let echoed_algorithms = CryptoAlgorithms {
+            ka_algorithms: decrypt_attribute.get_u16_vec(AttributeKey::AttrKaAlgoList).map_err(|e| p!(e))?,
+            kdf_algorithms: decrypt_attribute.get_u16_vec(AttributeKey::AttrKdfAlgoList).map_err(|e| p!(e))?,
+            aead_algorithms: decrypt_attribute.get_u16_vec(AttributeKey::AttrAeadAlgoList).map_err(|e| p!(e))?,
+            mac_algorithms: decrypt_attribute.get_u16_vec(AttributeKey::AttrMacAlgoList).map_err(|e| p!(e))?,
+        };
+        same_offer_algorithms(&echoed_algorithms, &self.host_algorithms)
     }
 
     fn decode_sec_binding_request(&mut self, sec_message: &[u8]) -> Result<(), ErrorCode> {
@@ -372,7 +353,6 @@ impl CompanionDeviceEnrollRequest {
             },
             esl: ExecutorSecurityLevel::Esl3 as i32,
             track_ability_level: TrackAbilityLevel::Tal4 as i32,
-            companion_max_atl: COMPANION_MAX_ATL as i32,
             challenge: self.binding_param.host_challenge,
             companion_protocol_list: self.companion_protocol_list.clone(),
             companion_capability_list: self.companion_capability_list.clone(),

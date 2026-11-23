@@ -698,7 +698,6 @@ fn sec_binding_reply_info_binding_signature_round_trip() {
         user_key: UserKey { user_id: 100, sub_profile_id: 0 },
         esl: 0,
         track_ability_level: 0,
-        companion_max_atl: 0,
         challenge: 42,
         companion_protocol_list: vec![1],
         companion_capability_list: vec![1],
@@ -726,55 +725,6 @@ fn sec_binding_reply_info_binding_signature_round_trip() {
     assert_eq!(*decoded, make_info(Some(P256)));
 }
 
-// The maxAtl attribute of the binding reply is optional: a zero max_atl encodes without
-// the key (legacy format) and decodes back to 0; a carried tier round-trips.
-#[test]
-fn sec_binding_reply_info_max_atl_round_trip() {
-    let _guard = ut_registry_guard!();
-    log_i!("sec_binding_reply_info_max_atl_round_trip start");
-
-    let make_info = |max_atl: i32| {
-        crate::request::enroll::enroll_message::SecBindingReplyInfo {
-            device_id: crate::String::from("device"),
-            user_key: crate::traits::db_manager::UserKey { user_id: 1, sub_profile_id: 0 },
-            esl: 3,
-            track_ability_level: 4,
-            companion_max_atl: max_atl,
-            challenge: 5,
-            companion_protocol_list: vec![1],
-            companion_capability_list: vec![1],
-            selected_algorithms: crate::common::algorithm::SelectedAlgorithms {
-                ka_algorithm: 1,
-                kdf_algorithm: 1,
-                aead_algorithm: 1,
-                mac_algorithm: 1,
-                binding_signature_algorithm: None,
-            },
-            companion_supported_algorithms: crate::common::algorithm::CryptoAlgorithms {
-                ka_algorithms: vec![1],
-                kdf_algorithms: vec![1],
-                aead_algorithms: vec![1],
-                mac_algorithms: vec![1],
-            },
-        }
-    };
-
-    // Legacy format: zero max_atl puts no AttrMaxAtl on the wire, decode yields 0.
-    let encoded = make_info(0).encode().unwrap();
-    let attribute = crate::utils::Attribute::try_from_bytes(&encoded).unwrap();
-    assert!(attribute.get_i32(crate::utils::AttributeKey::AttrMaxAtl).is_err());
-    let decoded = crate::request::enroll::enroll_message::SecBindingReplyInfo::decode(&encoded).unwrap();
-    assert_eq!(decoded.companion_max_atl, 0);
-
-    // A carried tier round-trips.
-    let encoded = make_info(crate::common::constants::AuthTrustLevel::Atl3 as i32).encode().unwrap();
-    let decoded = crate::request::enroll::enroll_message::SecBindingReplyInfo::decode(&encoded).unwrap();
-    assert_eq!(decoded.companion_max_atl, crate::common::constants::AuthTrustLevel::Atl3 as i32);
-}
-
-// The capability attribute of the binding reply is mandatory (legacy field): an empty set is
-// legal, an omitted attribute fails to decode. The algorithm confirmation fields are optional
-// new fields (see sec_binding_reply_info_old_format_algorithm_fields_optional).
 #[test]
 fn sec_binding_reply_info_capability_list_round_trip() {
     let _guard = ut_registry_guard!();
@@ -786,7 +736,6 @@ fn sec_binding_reply_info_capability_list_round_trip() {
             user_key: crate::traits::db_manager::UserKey { user_id: 1, sub_profile_id: 0 },
             esl: 3,
             track_ability_level: 4,
-            companion_max_atl: 0,
             challenge: 5,
             companion_protocol_list: vec![1],
             companion_capability_list,
@@ -894,4 +843,80 @@ fn sec_binding_reply_info_old_format_algorithm_fields_optional() {
         aead_algorithms: vec![1],
         mac_algorithms: vec![1],
     });
+}
+
+// Optional fields fall back to legacy defaults only when ABSENT: a present attribute with a
+// malformed length must fail the decode instead of silently restoring the old value.
+#[test]
+fn sec_binding_reply_info_selected_algorithm_present_with_wrong_length_fails() {
+    let _guard = ut_registry_guard!();
+    log_i!("sec_binding_reply_info_selected_algorithm_present_with_wrong_length_fails start");
+
+    let mut attribute = Attribute::new();
+    attribute.set_string(AttributeKey::AttrDeviceId, crate::String::from("device"));
+    attribute.set_i32(AttributeKey::AttrUserId, 1);
+    attribute.set_i32(AttributeKey::AttrSubProfileId, 0);
+    attribute.set_i32(AttributeKey::AttrEsl, 3);
+    attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, 4);
+    attribute.set_u64(AttributeKey::AttrHostChallenge, 5);
+    attribute.set_u16_slice(AttributeKey::AttrProtocolList, &[1]);
+    attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &[1]);
+    // Odd-length buffer cannot be a u16.
+    attribute.set_u8_slice(AttributeKey::AttrKaAlgoList, &[1u8, 2u8, 3u8]);
+    let result = crate::request::enroll::enroll_message::SecBindingReplyInfo::decode(
+        attribute.to_bytes().unwrap().as_slice());
+    assert!(result.is_err());
+}
+
+#[test]
+fn sec_binding_reply_info_support_list_present_with_wrong_length_fails() {
+    let _guard = ut_registry_guard!();
+    log_i!("sec_binding_reply_info_support_list_present_with_wrong_length_fails start");
+
+    let mut attribute = Attribute::new();
+    attribute.set_string(AttributeKey::AttrDeviceId, crate::String::from("device"));
+    attribute.set_i32(AttributeKey::AttrUserId, 1);
+    attribute.set_i32(AttributeKey::AttrSubProfileId, 0);
+    attribute.set_i32(AttributeKey::AttrEsl, 3);
+    attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, 4);
+    attribute.set_u64(AttributeKey::AttrHostChallenge, 5);
+    attribute.set_u16_slice(AttributeKey::AttrProtocolList, &[1]);
+    attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &[1]);
+    attribute.set_u8_slice(AttributeKey::AttrKdfAlgoSupportList, &[9u8]);
+    let result = crate::request::enroll::enroll_message::SecBindingReplyInfo::decode(
+        attribute.to_bytes().unwrap().as_slice());
+    assert!(result.is_err());
+}
+
+// The binding signature algorithm id keeps the absent-vs-explicit-zero distinction on the wire.
+#[test]
+fn sec_binding_reply_info_binding_signature_absent_vs_explicit_zero() {
+    let _guard = ut_registry_guard!();
+    log_i!("sec_binding_reply_info_binding_signature_absent_vs_explicit_zero start");
+
+    let make_message = |algo: Option<u16>| {
+        let mut attribute = Attribute::new();
+        attribute.set_string(AttributeKey::AttrDeviceId, crate::String::from("device"));
+        attribute.set_i32(AttributeKey::AttrUserId, 1);
+        attribute.set_i32(AttributeKey::AttrSubProfileId, 0);
+        attribute.set_i32(AttributeKey::AttrEsl, 3);
+        attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, 4);
+        attribute.set_u64(AttributeKey::AttrHostChallenge, 5);
+        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &[1]);
+        attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &[1]);
+        if let Some(algo) = algo {
+            attribute.set_u16(AttributeKey::AttrBindingSignatureAlgoId, algo);
+        }
+        attribute.to_bytes().unwrap()
+    };
+
+    let decoded =
+        crate::request::enroll::enroll_message::SecBindingReplyInfo::decode(make_message(None).as_slice())
+            .unwrap();
+    assert_eq!(decoded.selected_algorithms.binding_signature_algorithm, None);
+
+    let decoded =
+        crate::request::enroll::enroll_message::SecBindingReplyInfo::decode(make_message(Some(0)).as_slice())
+            .unwrap();
+    assert_eq!(decoded.selected_algorithms.binding_signature_algorithm, Some(0));
 }
