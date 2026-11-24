@@ -22,7 +22,10 @@ use crate::jobs::companion_device_db_helper::{
 };
 use crate::log_i;
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
-use crate::traits::db_manager::{CompanionDevice, CompanionDeviceProfile, DeviceKey, UserInfo, UserKey};
+use crate::traits::db_manager::{
+    CompanionDevice, CompanionDeviceCapability, CompanionDeviceProfile, CompanionDeviceToken, DeviceKey, UserInfo,
+    UserKey,
+};
 use crate::ut_registry_guard;
 
 fn create_mock_companion_device_profile() -> CompanionDeviceProfile {
@@ -140,4 +143,99 @@ fn get_device_secure_protocol_id_test_out_of_domain_persisted_value_rejected() {
 
     let result = crate::jobs::companion_device_db_helper::get_device_secure_protocol_id(123);
     assert_eq!(result, Err(ErrorCode::SecureProtocolNotSupported));
+}
+
+// Token revocation is template-wide and idempotent: every processor row is cleaned, an absent
+// row means "already revoked", and a real delete error only logs and best-effort continues (the
+// result is report-only; leaked rows are covered by later disable paths or unbind cleanup); an
+// unknown template still fails.
+#[test]
+fn delete_companion_device_token_test_all_processor_rows_removed() {
+    let _guard = ut_registry_guard!();
+    log_i!("delete_companion_device_token_test_all_processor_rows_removed start");
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    mock_companion_device_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Ok(vec![CompanionDeviceCapability {
+            processor_type: ProcessorType::Default,
+            esl: ExecutorSecurityLevel::Esl3,
+            track_ability_level: TrackAbilityLevel::Tal1,
+        }]));
+    mock_companion_device_db_manager
+        .expect_remove_token()
+        .returning(|| {
+            Ok(CompanionDeviceToken {
+                template_id: 123,
+                processor_type: ProcessorType::Default,
+                token: [0u8; TOKEN_KEY_LEN],
+                atl: AuthTrustLevel::Atl2,
+                expire_time: 100,
+                issue_time: 50,
+            })
+        });
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let result = crate::jobs::companion_device_db_helper::delete_companion_device_token(123);
+    assert_eq!(result, Ok(()));
+}
+
+#[test]
+fn delete_companion_device_token_test_absent_row_is_success() {
+    let _guard = ut_registry_guard!();
+    log_i!("delete_companion_device_token_test_absent_row_is_success start");
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    mock_companion_device_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Ok(vec![CompanionDeviceCapability {
+            processor_type: ProcessorType::Default,
+            esl: ExecutorSecurityLevel::Esl3,
+            track_ability_level: TrackAbilityLevel::Tal1,
+        }]));
+    mock_companion_device_db_manager
+        .expect_remove_token()
+        .returning(|| Err(ErrorCode::NotFound));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let result = crate::jobs::companion_device_db_helper::delete_companion_device_token(123);
+    assert_eq!(result, Ok(()));
+}
+
+#[test]
+fn delete_companion_device_token_test_unknown_template_rejected() {
+    let _guard = ut_registry_guard!();
+    log_i!("delete_companion_device_token_test_unknown_template_rejected start");
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Err(ErrorCode::NotFound));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let result = crate::jobs::companion_device_db_helper::delete_companion_device_token(123);
+    assert_eq!(result, Err(ErrorCode::NotFound));
+}
+
+#[test]
+fn delete_companion_device_token_test_real_delete_error_best_effort_continues() {
+    let _guard = ut_registry_guard!();
+    log_i!("delete_companion_device_token_test_real_delete_error_best_effort_continues start");
+
+    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
+    mock_companion_device_db_manager.expect_get_device().returning(|| Ok(create_mock_companion_device(123)));
+    mock_companion_device_db_manager
+        .expect_read_device_capability_info()
+        .returning(|| Ok(vec![CompanionDeviceCapability {
+            processor_type: ProcessorType::Default,
+            esl: ExecutorSecurityLevel::Esl3,
+            track_ability_level: TrackAbilityLevel::Tal1,
+        }]));
+    mock_companion_device_db_manager
+        .expect_remove_token()
+        .returning(|| Err(ErrorCode::GeneralError));
+    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
+
+    let result = crate::jobs::companion_device_db_helper::delete_companion_device_token(123);
+    assert_eq!(result, Ok(()));
 }

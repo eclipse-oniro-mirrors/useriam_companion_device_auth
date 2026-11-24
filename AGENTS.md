@@ -151,7 +151,7 @@ TaskRunnerManager::GetInstance().PostOneShotTask("name", "ownerBundleName", Task
 
 ### 模板入 IDM 兜底定时器（companion.cpp）
 
-绑定创建时 `addedToIdm=false` 启动 30s 兜底定时器；超时处理 `HandleTemplateAddToIdmTimeout` 必须先同步查 IDM 真值（`IIdmAdapter::QueryUserTemplates`，refresh=true 时连 `templateCache_` 与订阅通知一起补——补的就是丢掉的那条 IDM 事件）：模板在→标记自愈；查询失败（通道/权限坏）→重挂定时器继续等。**未知真值绝不删绑定**——删除走 `RemoveCompanion(removeHostBinding=true)` 会通知对端同删，不可逆，且事件通道故障是环境问题不该由绑定承担。
+绑定创建时 `addedToIdm=false` 启动 30s 兜底定时器；超时处理 `HandleTemplateAddToIdmTimeout` 必须先同步查 IDM 真值（`IIdmAdapter::QueryUserTemplates`，refresh=true 时连 `templateCache_` 与订阅通知一起补——补的就是丢掉的那条 IDM 事件）：模板在→标记自愈；确认缺席→走既有删除流程；查询失败（通道/权限坏）→放行，不重挂、不删除（2026-11-20 用户裁定：失败即放弃本轮补查，绑定保留，等后续 IDM 通知或下次 SA 重启自愈——`ReloadCompanion` 重查 IDM 会重新推导 `addedToIdm`）。**未知真值绝不删绑定**——删除走 `RemoveCompanion(removeHostBinding=true)` 会通知对端同删，不可逆，且事件通道故障是环境问题不该由绑定承担。
 
 ## 跨设备消息兼容
 
@@ -162,13 +162,14 @@ TaskRunnerManager::GetInstance().PostOneShotTask("name", "ownerBundleName", Task
 3. **`ATTR_CDA_SA_PROTOCOL_ID` 缺省就是 `VERSION_1`**，不能改。新版本主机一定会带这个字段，缺省值代表"还没带协商字段的老对端能用的协议"。线上如果显式收到 INVALID(0)，按"协商了本端不支持的协议"报错。
 4. **本地 DB 不做兼容**：只有一种记录格式，新字段无条件读写，不写版本判断、不做旧格式回退、不做迁移。blob 头的 `CURRENT_VERSION` 恒为 0，只用来标格式和查损坏。格式变了就让旧数据作废——清掉重新绑定，不为旧数据写代码。
 5. **Rust 安全 blob 的编解码也按第 1、2 条审**：`security_command_adapter` 里的编解码结构解不出来，链路就断了。
-6. **支持列表只能加值不能删值**：上线过的取值不能从支持列表里删。录入时保存的参数必须与后续交互保持一致；删值会导致存量绑定无法同步，也无法重新绑定。确实要删时，必须同时提供数据迁移或强制重新绑定。
-7. **同步回包的两层列表必须来自同一份数据**：加密内层列表和明文外层列表必须由发送方用同一份数据构造，不能"内层照抄对端的 offer"。
-8. **同步出错不能伪装成没绑定**：伴随有绑定但生成 proof 失败，要通过 `result` 返回错误，不能降成 `SUCCESS + 空 proof`；安全层返回成功也不行，服务层必须检查 proof 非空。只有真的没有绑定，才能返回成功加空 proof。旧对端的 `SUCCESS + 空 proof` 有歧义，主机要保留凭证、允许发现、记告警，不能拿它作废凭证。
-9. **作废凭证只有两个来源，且任何作废只允许命中对端当前用户一个凭证行**（挑战/错误回包不带身份，绝不按物理设备扫——对端未上线其余用户的凭证不受任何同步结果影响）：已定位绑定的复验轮里，`HostEndCompanionCheck` 返回任何非 SUCCESS（proof 不过、secureProtocolId 非法、参数对不上）都 `SetTemplateInvalid`，参数分歧的 20011/20014 用专属 reason，其余用通用 reason。作废只影响凭证，不影响本轮——`EndCompanionCheck` 返回 void，作废后本轮 sync 照样算成功。第二个来源是 V2 绑定的对端确定性拒绝——已匹配身份的 V2 绑定收到 SUCCESS+空 proof，或签名同步回包带 NOT_ENROLLED/BINDING_SIGNATURE_VERIFY_FAILED（作废身份恒取回包携带的对端用户身份：本地有该用户模板即作废，回包未携带身份或本地无模板则不作废，不与轮签名断言身份比对）；仅对端真实回包触发，传输失败（TIMEOUT）不作废。伴端侧的确定性拒绝由 sync handler 主动给出：断言身份==本端活跃用户且该用户无绑定 → NOT_ENROLLED（错误回包携带该用户身份），断言身份≠活跃用户仍按 discovery 降级（其余用户的绑定状态不可知，不拒绝）；绑定在场的失败回包一律携带本端活跃用户身份（含 BINDING_SIGNATURE_VERIFY_FAILED）。挑战轮回 NOT_ENROLLED **不直接作废**——回包无身份无法定位用户，只把本轮按 discovery 重发（每轮限一次），由重发回包携带的对端当前用户身份按上面两条单用户结算。挑战消息未被伴端处理（TYPE_NOT_SUPPORT：旧伴端 SA 无该消息 handler，router 裸错误回包透传或显式无分发标记）**不作废也不失败**——降级为本轮不受保护 V1 同步（offer 维持收敛值、不带签名），凭证保留、由回包路径兜底（已匹配身份的 V2 绑定收到 SUCCESS+空 proof 仍作废；身份对不上则凭证残留至重绑，期间每轮多一跳挑战 RTT，接受）。降级使伪造「未处理」回包不再直接作废凭证：健康 V2 对端会以 proof 参数分歧回错误码，本轮失败但凭证存活。
-10. **发现和绑定复验分开**：同步请求发布本端完整的支持列表（例外见「协议」节的同步 offer 收敛）；收到回包后按当前主机用户和回包里的伴随用户找到绑定，再校验绑定时保存的参数。不能用缓存用户去裁剪发现请求。发现里的 secureProtocolId 表示新绑定将用的值，已有绑定的安全封装读 DB 里的持久化值。接受轮学到的用户编号只用于发现展示和重绑路由，不给任何信任；作废判定跟发现缓存热不热没关系。
-11. **一个设备可以有多个 processor、多个 SK**：这是设计要求。一个对端设备可含多个 processor，enroll 时每个 processor 独立做 KA、写独立的 SK 行。安全消息按 processor 分节，一条消息可以载多节。host 侧 enroll/delegate/issue/obtain/sync 都要遍历 `read_device_capability_info` 逐节 decode，每一节都得解开，空表报错；不要用 device 行保存的参数把设备当成单个 processor，从而跳过这个循环。
-12. **改消息的 UT 必须有一条"不带新字段的旧格式 decode"用例**，模板见 `add_companion_message_test.cpp` 的空 attribute case。
+6. **可选字段只在缺席时用旧格式默认值**：`Attribute::has` 判存在位；字段**在场但长度错误**必须向上传播解码错误，禁止 `unwrap_or`/`ok()` 把解码失败吞成旧值。旧格式 helper（四类算法列表/单值）返回 `Result`，缺席才回退 legacy 值；绑定签名选定值缺席为 `None`、显式 0 为 `Some(0)`，区别随后交给协商检查。
+7. **支持列表只能加值不能删值**：上线过的取值不能从支持列表里删。录入时保存的参数必须与后续交互保持一致；删值会导致存量绑定无法同步，也无法重新绑定。确实要删时，必须同时提供数据迁移或强制重新绑定。
+8. **同步回包的两层列表必须来自同一份数据**：加密内层列表和明文外层列表必须由发送方用同一份数据构造，不能"内层照抄对端的 offer"。
+9. **同步出错不能伪装成没绑定**：伴随有绑定但生成 proof 失败，要通过 `result` 返回错误，不能降成 `SUCCESS + 空 proof`；安全层返回成功也不行，服务层必须检查 proof 非空。只有真的没有绑定，才能返回成功加空 proof。旧对端的 `SUCCESS + 空 proof` 有歧义，主机要保留凭证、允许发现、记告警，不能拿它作废凭证。
+10. **作废凭证只有两个来源，且任何作废只允许命中对端当前用户一个凭证行**（挑战/错误回包不带身份，绝不按物理设备扫——对端未上线其余用户的凭证不受任何同步结果影响）：已定位绑定的复验轮里，`HostEndCompanionCheck` 返回任何非 SUCCESS（proof 不过、secureProtocolId 非法、参数对不上）都 `SetTemplateInvalid`，参数分歧的 20011/20014 用专属 reason，其余用通用 reason。作废只影响凭证，不影响本轮——`EndCompanionCheck` 返回 void，作废后本轮 sync 照样算成功。第二个来源是 V2 绑定的对端确定性拒绝——已匹配身份的 V2 绑定收到 SUCCESS+空 proof，或签名同步回包带 NOT_ENROLLED/BINDING_SIGNATURE_VERIFY_FAILED（作废身份恒取回包携带的对端用户身份：本地有该用户模板即作废，回包未携带身份或本地无模板则不作废，不与轮签名断言身份比对）；仅对端真实回包触发，传输失败（TIMEOUT）不作废。伴端侧的确定性拒绝由 sync handler 主动给出：断言身份==本端活跃用户且该用户无绑定 → NOT_ENROLLED（错误回包携带该用户身份），断言身份≠活跃用户仍按 discovery 降级（其余用户的绑定状态不可知，不拒绝）；绑定在场的失败回包一律携带本端活跃用户身份（含 BINDING_SIGNATURE_VERIFY_FAILED）。挑战轮回 NOT_ENROLLED **不直接作废**——回包无身份无法定位用户，只把本轮按 discovery 重发（每轮限一次），由重发回包携带的对端当前用户身份按上面两条单用户结算。挑战消息未被伴端处理（TYPE_NOT_SUPPORT：旧伴端 SA 无该消息 handler，router 裸错误回包透传或显式无分发标记）**不作废也不失败**——降级为本轮不受保护 V1 同步（offer 维持收敛值、不带签名），凭证保留、由回包路径兜底（已匹配身份的 V2 绑定收到 SUCCESS+空 proof 仍作废；身份对不上则凭证残留至重绑，期间每轮多一跳挑战 RTT，接受）。降级使伪造「未处理」回包不再直接作废凭证：健康 V2 对端会以 proof 参数分歧回错误码，本轮失败但凭证存活。
+11. **发现和绑定复验分开**：同步请求发布本端完整的支持列表（例外见「协议」节的同步 offer 收敛）；收到回包后按当前主机用户和回包里的伴随用户找到绑定，再校验绑定时保存的参数。不能用缓存用户去裁剪发现请求。发现里的 secureProtocolId 表示新绑定将用的值，已有绑定的安全封装读 DB 里的持久化值。接受轮学到的用户编号只用于发现展示和重绑路由，不给任何信任；作废判定跟发现缓存热不热没关系。
+12. **一个设备可以有多个 processor、多个 SK**：这是设计要求。一个对端设备可含多个 processor，enroll 时每个 processor 独立做 KA、写独立的 SK 行。安全消息按 processor 分节，一条消息可以载多节。host 侧 enroll/delegate/issue/obtain/sync 都要遍历 `read_device_capability_info` 逐节 decode，每一节都得解开，空表报错；不要用 device 行保存的参数把设备当成单个 processor，从而跳过这个循环。
+13. **改消息的 UT 必须有一条"不带新字段的旧格式 decode"用例**，模板见 `add_companion_message_test.cpp` 的空 attribute case。
 
 ## 协商
 
@@ -210,16 +211,24 @@ host 本地持本端能力列表参与求交，不在 `SecBindingRequest` 加密
 - **录入时固定能力列表**：落库的列表同时通过 `HostEndAddCompanionOutput.capabilityList` 返回给 C++ 建 Companion 内存镜像，镜像从创建起就和 DB 一致。
 - **保存后不再更新**：能力列表在录入时确定，之后不更新；**同步始终不写能力 DB**，要增加能力只能重新绑定（再次经过用户同意）。同步时，对端加密内层必须完整包含绑定时保存的能力；多宣告的能力不生效，实际仍使用保存的列表。缺少任何已保存能力都返回 20014 并作废凭证；已保存列表非空而对端宣告为空，也属于缺项。已保存列表为空时，空宣告合法。
 - **两端用同一份数据判断**：Rust `check_device_capability` 读 DB 里的持久化列表，必须明确包含所查能力，列表为空就拒绝；C++ `IsCapabilitySupported` 读内存镜像，同样要求明确包含，列表为空返回 false。设备状态更新始终保留内存中保存的列表，不采信同步通告，也不重读 DB。`HasCapability` 中"空集表示全支持"只用于 localProfile 配置来源，不能用来判断设备能力。
-- **enroll 时校验同步通告一致性**：host 把同步通道缓存的对端能力列表（proof 有效时为身份校验列表，否则明文回退）经 FFI 传入加密层，与 SecBindingReply 加密宣告做 `same_elements` 比对，分歧返回 20014 终止本轮、不落库（fail-closed；enroll 无存量凭证可作废）。对端能力配置在「上次同步」与「本次 enroll」之间变更会触发一次分歧，同步刷新后重试即可，与协议轴过期选值 → 20011 同类。比对用的 FFI 字段是对端数据中继，不做本端支持集校验。
+- **录入按本轮身份校验内层冻结（2026-11-21 改判，撤 2026-11-20 编号 1）**：冻结值 = 本轮 `SecBindingReply` 各分节宣告与本端列表求交，不做「上次同步宣告 vs 本轮宣告」的历史比对（原 announcedCapabilities 缓存、FFI 样本、same_elements 检查已回退）。理由：两侧同源（都是对端 localProfile 的投影），检查在伪造方向零贡献（样本只能让录入失败、不能让错误绑定通过）；存量绑定的漂移防线是同步复验（内层须完整包含 enrolled 能力 → 20014 + 作废），不依赖缓存。录入遇 20014（跨分节能力结果分歧）按错误结束当前请求，不触发 `ResyncDevice`，也不自行循环重录（2026-11-23 裁定：录入不消费同步缓存，重同步对下一次录入无贡献）。对端在发现与录入之间变更能力会直接按新能力冻结——这是接受的行为（重录本就带用户同意），不是缺陷。
 - **能力不含 TOKEN_AUTH 时 enroll 只预置不激活**：enroll 仍生成并下发 token（旧 companion 不容忍空 token 节，照发保跨版本兼容）；协商后的能力列表不含 TokenAuth（含空列表）时，host 收到回包后按录入回传的 `enrolledCapabilityList` 成员判断跳过 token ATL 激活，token 存而不可用。enroll 发 token 只是预发，不是授权点，使用与补发/刷新由 issue_token/refresh/token_auth 既有 capability 门禁把关。
 - "该设备当前没有可用的伴随校验能力"用空的能力列表表示，是否可用由界面/框架层决定，本层不拦截。
 
 ### maxAtl（设备最高校验信任等级）
 
-- **ATL0 未设置语义**：枚举含 `ATL0`（=0，未设置），未设置情况默认 ATL0，不再有全局 `COMPANION_MAX_AUTH_TRUST_LEVEL`。兜底档由渠道层自定义：soft_bus 定义 `SOFT_BUS_CHANNEL_DEFAULT_AUTH_TRUST_LEVEL`，SoftBus 适配层构造 `PhysicalDeviceStatus` 时填入；sync 回包的 `ATTR_CDA_SA_COMPANION_MAX_ATL=200035` 仅作录入交叉校验输入，不覆盖运行值（V1 对端不携带 → 保持物理值）。伴端不通告本端档位——`LocalDeviceProfile` 不定义该字段（勿恢复），sync 回包恒缺省 200035，host 侧由渠道物理值兜底。200035 的存在位只保留在消息层（`SyncDeviceStatusReply` 载体与 entry 缓存槽）。IDL `IpcDeviceStatus` 直传 int 不带 has 位；`ClientDeviceStatus` 同为裸 `int32_t`，0=ATL0=未设置；JS/ANI 对外校验 0/非法值视为缺省（optional 字段）。
-- **录入**：基准来自绑定回包加密内层 `AttrMaxAtl=300014`（伴随侧恒携带本端执行器档位）。host 侧校验枚举（非法本次绑定失败）、逐 processor 分节一致，且须与 FFI 传入的 sync 缓存值相等——分歧 20014（档位在上次同步与本次录入间变更，resync 后重试）；V1 对端不携带时用 FFI 值。
-- **同步**：maxAtl 与 capability 同款冻结——后续同步**不刷新**已绑定镜像（`Companion::HandleDeviceStatusUpdate` 保留录入基准，不写 DB），不参与加密内层复验（不参与安全决策，运行时以 TA 链路 token ATL 为准）；生效档变更只能重新绑定刷新。外层 200035 仍写入 entry 缓存槽，唯一消费方是录入时刻的 FFI 交叉校验输入。
-- **旧数据**：Rust DB 行 `Atl0`（旧「未上报」语义）FFI 解码侧保持 ATL0（未设置），非法值同样落 ATL0，不做迁移；生效档由重新绑定或渠道兜底刷新。
+- **档位语义**：`DeviceStatus.maxAuthTrustLevel` 是**录入前的展示数**，为合并视图 `syncMaxAuthTrustLevel.value_or(physicalMaxAuthTrustLevel)`，对外结构体只透出这一个字段（equality 也只比对它）。两个来源字段都在 `DeviceStatusEntry` 上、不进 `DeviceStatus`：`physicalMaxAuthTrustLevel` 来自渠道层状态（兜底）；`syncMaxAuthTrustLevel` 来自最近一次成功 sync 回包外层通告 `ATTR_CDA_SA_COMPANION_MAX_ATL=200035`——伴端 v2 构建（`companion_device_auth_enable_companion_v2`）通告 ATL2，V1-only 构建不带该字段（wire 可选，旧对端 decode 成功），缺席即回退 physical。链路：回包 decode → `SyncDeviceStatus.maxAuthTrustLevel` → `ApplySyncResult` 缓存进 entry → `BuildDeviceStatus` 导出合并值。
+- **录入时刻展示值 = 设备能力推导档**：绑定创建时镜像与 DB 设备行的 `max_auth_trust_level` 取 Rust enroll 的 `max_atl(device_capability)`——逐 processor 由宣告的 esl 按驱动 GetAtl 表（`acl_from_esl` → `get_atl`）推导后取最大，经 `HostEndAddCompanionOutputFfi.max_atl` 透出；`CompanionManagerImpl` 镜像初始化 `updatedStatus.maxAuthTrustLevel = secOutput.maxAtl`，Rust 侧落库同一值。框架下发的 token ATL 单独走 `token_atl`（`ffi_output.token_atl`），只用于 token 行。重启后 DB 查询回填（`DecodePersistedCompanionStatus` → `CompanionStatus::FromPersisted`）天然一致。
+- **C++ 协商值一律不落盘**：`BuildPersistedCompanionStatus` 不填 `maxAuthTrustLevel`；`PersistedCompanionStatus.maxAuthTrustLevel` 仅 DB 读回方向使用（重启镜像重建），Rust enroll 不读该 FFI 输入。
+- **Rust 无通告/决策概念**：加密内层 `AttrMaxAtl=300014`、`COMPANION_MAX_ATL` 常量、三源决策表、`physicalMaxAtl`/`syncAnnouncedMaxAtl`/`enrolledMaxAtl` FFI 面、`inner_max_atl` 跨节收集——全部不存在，勿引入。
+- 无任何安全门禁读展示档位（token 门禁走 100089 链路的 `tokenAuthAtl`）；镜像对外的档位覆盖语义见 `companion.cpp`（`HandleDeviceStatusUpdate` 恒用镜像值）。
+- **与原生 atl（`AttrAuthTrustLevel=100089`）的关系**：100089 的语义是「本次录入授予凭证/token 的档位」（policy，框架验签录入请求携带、随 SecIssueToken 加密下发、伴端存 tokenAuthAtl 门禁 token 操作）；maxAtl 是「设备能力上限」（capability，伴端自报）。方向相反，理论上授权 ≤ 能力，代码不做该比对，也不需要做。
+- **ATL0 未设置语义**：枚举含 `ATL0`（=0，未设置），未设置默认 ATL0，不再有全局 `COMPANION_MAX_AUTH_TRUST_LEVEL`。IDL `IpcDeviceStatus` 直传 int 不带 has 位；`ClientDeviceStatus` 同为裸 `int32_t`，0=ATL0=未设置；JS/ANI 对外校验 0/非法值视为缺省（optional 字段）。DB 行非法值落 ATL0（读侧枚举校验），不做迁移。
+
+### token 补取与撤销
+
+- **补取 ATL 以安全层为准**：`HostProcessObtainToken` 完成全部分节解密后，各节 token ATL 必须**全节相等**（不取最大值——各节值逐节解自对端，取最大会让内存门禁高于个别 token 行；与协议/能力列表的跨节一致性同款），分节不等或无分节（空能力表）即拒绝本轮；再与外层（明文请求携带的 atl）比对，合法值分歧即拒绝本轮——旧 token 与内存 ATL 均保留（编码/落库都在比对之后），一致才编码、落库并回填内层值，C++ 内存 `SetCompanionTokenAuthAtl` 用回填值。
+- **SetAtl(nullopt) 即禁用并销毁安全层凭证**：`SetCompanionTokenAuthAtl(nullopt)`（先禁用内存 token、清定时器并按变化通知）在禁用分支**无条件**按模板清理安全层**全部 processor** 的 token 行——不依赖镜像有无值，录入预置未激活的 token（能力不含 TOKEN_AUTH）同样被清理；Rust 侧幂等（已定位模板下没有 token 即为成功，重复请求重新核对并清剩余行，未知模板/读取失败按真实错误报）。伴端显式撤销（REVOKE_TOKEN 消息）与内部超时/离线/摘下、freeze、无效 ATL 等禁用路径走同一入口；清理失败仅记日志不上抛（2026-11-21 用户裁定：SetAtl 无返回值，回包恒 SUCCESS），泄露行由后续禁用路径或解绑清理兜底。
 
 ### sync 校验
 

@@ -35,7 +35,7 @@ use crate::log_i;
 use crate::request::enroll::enroll_message::{
     SecBindingReply, SecBindingReplyInfo, SecKeyNegoReply, SecKeyNegoRequest,
 };
-use crate::request::enroll::host_enroll::{HostDeviceEnrollRequest, KeyNegotialParam};
+use crate::request::enroll::host_enroll::{max_atl, DeviceCapability, HostDeviceEnrollRequest, KeyNegotialParam};
 use crate::traits::companion_device_db_manager::{CompanionDeviceDbManagerRegistry, MockCompanionDeviceDbManager};
 use crate::traits::crypto_engine::{AesGcmResult, CryptoEngineRegistry, KeyPair, MockCryptoEngine};
 use crate::common::algorithm::SelectedAlgorithms;
@@ -92,34 +92,6 @@ fn create_binding_reply_with_selected_algorithms(
         esl,
         selected_algorithms,
         crate::common::algorithm::get_supported_algorithms(),
-        0,
-    )
-}
-
-// Valid reply carrying a maxAtl announcement in the encrypted inner.
-fn create_valid_binding_reply_with_max_atl(
-    device_id: &str,
-    user_id: i32,
-    protocol: &[u16],
-    capability: &[u16],
-    esl: i32,
-    max_atl: i32,
-) -> Vec<u8> {
-    create_binding_reply_with_companion_algorithms(
-        device_id,
-        user_id,
-        protocol,
-        capability,
-        esl,
-        SelectedAlgorithms {
-            ka_algorithm: KaAlgoType::X25519 as u16,
-            kdf_algorithm: KdfAlgoType::HkdfSha256 as u16,
-            aead_algorithm: AeadAlgoType::Aes256Gcm as u16,
-            mac_algorithm: MacAlgoType::HmacSha256 as u16,
-            binding_signature_algorithm: None,
-        },
-        crate::common::algorithm::get_supported_algorithms(),
-        max_atl,
     )
 }
 
@@ -131,14 +103,12 @@ fn create_binding_reply_with_companion_algorithms(
     esl: i32,
     selected_algorithms: SelectedAlgorithms,
     companion_supported_algorithms: crate::common::algorithm::CryptoAlgorithms,
-    max_atl: i32,
 ) -> Vec<u8> {
     let reply_info = SecBindingReplyInfo {
         device_id: device_id.to_string(),
         user_key: UserKey { user_id, sub_profile_id: 0 },
         esl,
         track_ability_level: 0,
-        companion_max_atl: max_atl,
         challenge: 0,
         companion_protocol_list: protocol.to_vec(),
         companion_capability_list: capability.to_vec(),
@@ -1152,7 +1122,6 @@ fn host_enroll_request_end_test_companion_support_set_without_intersection_rejec
             aead_algorithms: vec![AeadAlgoType::Aes256Gcm as u16],
             mac_algorithms: vec![MacAlgoType::HmacSha256 as u16],
         },
-        0,
     );
     let end_input = HostEndAddCompanionInputFfi {
         request_id: 1,
@@ -2126,7 +2095,6 @@ fn host_enroll_request_end_test_capability_echo_subset_persists_intersection() {
         request_id: 1,
         companion_status: PersistedCompanionStatusFfi {
             enrolled_protocol_id: PROTOCOL_VERSION_1,
-            max_auth_trust_level: AuthTrustLevel::Atl3 as i32,
             ..Default::default()
         },
         secure_protocol_id: SecureProtocolId::Default as u16,
@@ -2141,6 +2109,7 @@ fn host_enroll_request_end_test_capability_echo_subset_persists_intersection() {
     assert_eq!(added_devices.borrow().len(), 1);
     let persisted_device = added_devices.borrow()[0].clone();
     assert_eq!(persisted_device.template_id, TEMPLATE_ID);
+    // Esl2 backs Acl2, so the capability-derived row tier is ATL3.
     assert_eq!(persisted_device.max_auth_trust_level, AuthTrustLevel::Atl3);
     assert_eq!(output.template_id, TEMPLATE_ID);
     assert!(!output.fwk_message.as_slice().unwrap().is_empty());
@@ -2153,73 +2122,36 @@ fn host_enroll_request_end_test_capability_echo_subset_persists_intersection() {
     CompanionDeviceDbManagerRegistry::set(Box::new(reloaded_db_manager));
 }
 
+// Multi-processor max: the device tier is the strongest tier any processor can back; an empty
+// capability list falls back to ATL0.
 #[test]
-fn host_enroll_request_end_test_invalid_max_auth_trust_level_rejected() {
+fn max_atl_aggregates_over_processors_test() {
     let _guard = ut_registry_guard!();
-    log_i!("host_enroll_request_end_test_invalid_max_auth_trust_level_rejected start");
+    log_i!("max_atl_aggregates_over_processors_test start");
 
-    const COMPANION_USER_ID: i32 = 100;
-
-    mock_set_time_keeper();
-    mock_set_misc_manager();
-
-    let mut mock_crypto_engine = MockCryptoEngine::new();
-    mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
-    mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
-    mock_crypto_engine.expect_aes_gcm_decrypt().returning(|result| Ok(result.ciphertext.clone()));
-    CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
-
-    let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
-    let added_devices = mock_companion_device_db_manager.added_devices();
-    mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
-    CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
-
-    let input = HostGetInitKeyNegotiationInputFfi {
-        request_id: 1,
-        secure_protocol_id: SecureProtocolId::Default as u16,
-        selected_protocol_id: 1,
-    };
-
-    let mut request = HostDeviceEnrollRequest::new(&input).unwrap();
-    request.enroll_param.companion_device_key = create_device_key("companion_device", COMPANION_USER_ID);
-    request.key_negotial_param.push(create_key_negotial_param());
-    request.host_capability_list = ALL_CAPABILITIES.to_vec();
-    request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
-
-    let sec_message = create_valid_binding_reply(
-        "companion_device",
-        COMPANION_USER_ID,
-        &[PROTOCOL_VERSION_1],
-        ALL_CAPABILITIES,
-        ExecutorSecurityLevel::Esl2 as i32,
-    );
-    let end_input = HostEndAddCompanionInputFfi {
-        request_id: 1,
-        companion_status: PersistedCompanionStatusFfi {
-            enrolled_protocol_id: PROTOCOL_VERSION_1,
-            max_auth_trust_level: 12345,
-            ..Default::default()
+    let capabilities = vec![
+        DeviceCapability {
+            processor_type: ProcessorType::Default,
+            esl: ExecutorSecurityLevel::Esl1,
+            track_ability_level: TrackAbilityLevel::default(),
         },
-        secure_protocol_id: SecureProtocolId::Default as u16,
-        supported_business_ids: Int32Array64Ffi::default(),
-        sec_message: DataArray1024Ffi::try_from(sec_message).unwrap(),
-    };
-
-    let mut output = HostEndAddCompanionOutputFfi::default();
-    let param = RequestParam::HostEnrollEnd(&end_input, &mut output);
-    let result = request.end(param);
-    assert_eq!(result, Err(ErrorCode::BadParam));
-    assert_eq!(added_devices.borrow().len(), 0);
+        DeviceCapability {
+            processor_type: ProcessorType::Default,
+            esl: ExecutorSecurityLevel::Esl3,
+            track_ability_level: TrackAbilityLevel::default(),
+        },
+    ];
+    assert_eq!(max_atl(&capabilities), AuthTrustLevel::Atl4);
+    assert_eq!(max_atl(&[]), AuthTrustLevel::Atl0);
 }
 
-// The encrypted binding reply carries AttrMaxAtl: an announcement agreeing with the
-// FFI-relayed sync cache persists; a tier change between the last sync and this enroll
-// fails the round (20014); an invalid carried value fails the binding; a legacy reply
-// without the attribute falls back to the FFI value.
+// The enrolled device-row tier is capability-derived: max over processors of
+// get_atl(acl_from_esl(esl), esl) from the SecBindingReplyInfo announcements. The token axis
+// travels separately as output.token_atl.
 #[test]
-fn host_enroll_request_end_test_companion_max_atl_announcement() {
+fn host_enroll_request_end_test_device_row_tier_from_esl_acl() {
     let _guard = ut_registry_guard!();
-    log_i!("host_enroll_request_end_test_companion_max_atl_announcement start");
+    log_i!("host_enroll_request_end_test_device_row_tier_from_esl_acl start");
 
     const TEMPLATE_ID: u64 = 123;
     const COMPANION_USER_ID: i32 = 100;
@@ -2239,15 +2171,11 @@ fn host_enroll_request_end_test_companion_max_atl_announcement() {
 
     let mut mock_companion_device_db_manager = MockCompanionDeviceDbManager::new();
     let added_devices = mock_companion_device_db_manager.added_devices();
-    let devices_for_read = added_devices.clone();
     mock_companion_device_db_manager
         .expect_generate_unique_template_id()
         .returning(|| Ok(TEMPLATE_ID));
     mock_companion_device_db_manager.expect_add_device().returning(|| Ok(()));
     mock_companion_device_db_manager.expect_add_token().returning(|| Ok(()));
-    mock_companion_device_db_manager
-        .expect_get_device()
-        .returning(move || devices_for_read.borrow().last().cloned().ok_or(ErrorCode::NotFound));
     mock_companion_device_db_manager
         .expect_read_device_sk()
         .returning(|| Ok(vec![CompanionDeviceSk {
@@ -2259,7 +2187,7 @@ fn host_enroll_request_end_test_companion_max_atl_announcement() {
         }]));
     CompanionDeviceDbManagerRegistry::set(Box::new(mock_companion_device_db_manager));
 
-    let run_end = |max_atl_on_wire: i32, max_atl_from_ffi: i32| -> (Result<(), ErrorCode>, Option<CompanionDevice>) {
+    let run_end = |esl: i32| -> (Result<(), ErrorCode>, Option<CompanionDevice>, HostEndAddCompanionOutputFfi) {
         let input = HostGetInitKeyNegotiationInputFfi {
             request_id: 1,
             secure_protocol_id: SecureProtocolId::Default as u16,
@@ -2270,21 +2198,18 @@ fn host_enroll_request_end_test_companion_max_atl_announcement() {
         request.key_negotial_param.push(create_key_negotial_param());
         request.host_capability_list = ALL_CAPABILITIES.to_vec();
         request.host_protocol_id_list = vec![PROTOCOL_VERSION_1];
-        request.acl = AuthCapabilityLevel::Acl2;
 
-        let sec_message = create_valid_binding_reply_with_max_atl(
+        let sec_message = create_valid_binding_reply(
             "companion_device",
             COMPANION_USER_ID,
             &[PROTOCOL_VERSION_1],
             &[Capability::TokenAuth as u16],
-            ExecutorSecurityLevel::Esl2 as i32,
-            max_atl_on_wire,
+            esl,
         );
         let end_input = HostEndAddCompanionInputFfi {
             request_id: 1,
             companion_status: PersistedCompanionStatusFfi {
                 enrolled_protocol_id: PROTOCOL_VERSION_1,
-                max_auth_trust_level: max_atl_from_ffi,
                 ..Default::default()
             },
             secure_protocol_id: SecureProtocolId::Default as u16,
@@ -2294,28 +2219,21 @@ fn host_enroll_request_end_test_companion_max_atl_announcement() {
         let mut output = HostEndAddCompanionOutputFfi::default();
         let result = request.end(RequestParam::HostEnrollEnd(&end_input, &mut output));
         let persisted = added_devices.borrow().last().cloned();
-        (result, persisted)
+        (result, persisted, output)
     };
 
-    // Agreeing announcement persists the announced tier.
-    let (result, persisted) = run_end(AuthTrustLevel::Atl2 as i32, AuthTrustLevel::Atl2 as i32);
+    // Esl2 backs Acl2: ATL3.
+    let (result, persisted, output) = run_end(ExecutorSecurityLevel::Esl2 as i32);
     assert_eq!(result, Ok(()));
-    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl2);
+    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl3);
+    assert_eq!(output.max_atl, AuthTrustLevel::Atl3 as i32);
+    assert_eq!(output.token_atl, AuthTrustLevel::Atl0 as i32);
 
-    // Tier changed between the last sync and this enroll: fail the round.
-    let (result, persisted) = run_end(AuthTrustLevel::Atl2 as i32, AuthTrustLevel::Atl3 as i32);
-    assert_eq!(result, Err(ErrorCode::CapabilityNegotiationFailed));
-    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl2);
-
-    // Invalid carried value fails the binding.
-    let (result, persisted) = run_end(12345, AuthTrustLevel::Atl3 as i32);
-    assert_eq!(result, Err(ErrorCode::BadParam));
-    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl2);
-
-    // Legacy reply without the attribute falls back to the FFI value.
-    let (result, persisted) = run_end(0, AuthTrustLevel::Atl4 as i32);
+    // Esl1 backs Acl1: ATL1.
+    let (result, persisted, output) = run_end(ExecutorSecurityLevel::Esl1 as i32);
     assert_eq!(result, Ok(()));
-    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl4);
+    assert_eq!(persisted.unwrap().max_auth_trust_level, AuthTrustLevel::Atl1);
+    assert_eq!(output.max_atl, AuthTrustLevel::Atl1 as i32);
 }
 
 #[test]

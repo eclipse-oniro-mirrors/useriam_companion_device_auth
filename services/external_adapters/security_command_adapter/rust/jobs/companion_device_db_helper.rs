@@ -62,7 +62,30 @@ pub fn get_companion_device_by_user_key(user_key: UserKey) -> Result<Vec<Compani
 }
 
 pub fn delete_companion_device_token(template_id: u64) -> Result<(), ErrorCode> {
-    CompanionDeviceDbManagerRegistry::get_mut().remove_token(template_id, ProcessorType::default())?;
+    CompanionDeviceDbManagerRegistry::get().get_device(template_id)?;
+    let capability_infos =
+        CompanionDeviceDbManagerRegistry::get_mut().read_device_capability_info(template_id)?;
+    for capability_info in &capability_infos {
+        match CompanionDeviceDbManagerRegistry::get_mut()
+            .remove_token(template_id, capability_info.processor_type)
+        {
+            Ok(_) | Err(ErrorCode::NotFound) => {
+                log_i!(
+                    "token row removed or already absent: template_id:{:04x}, processor_type:{:?}",
+                    template_id as u16,
+                    capability_info.processor_type
+                );
+            },
+            Err(e) => {
+                log_e!(
+                    "remove_token failed, best-effort continue: template_id:{:04x}, processor_type:{:?}, err:{:?}",
+                    template_id as u16,
+                    capability_info.processor_type,
+                    e
+                );
+            },
+        }
+    }
     Ok(())
 }
 

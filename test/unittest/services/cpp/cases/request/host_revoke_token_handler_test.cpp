@@ -136,7 +136,36 @@ HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_004, TestSize.Level0)
     int32_t replyResult = 0;
 
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
-    // Note: New implementation always returns SUCCESS after SetCompanionTokenAth
+    EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
+}
+
+// A security-layer cleanup failure is log-only: the reply is still SUCCESS because
+// SetCompanionTokenAuthAtl carries no result; later disable paths or the unbinding
+// cleanup re-clean the leftovers.
+HWTEST_F(HostRevokeTokenHandlerTest, HandleRequest_005, TestSize.Level0)
+{
+    MockGuard guard;
+    CreateDefaultHandler();
+    Attributes request;
+    RevokeTokenRequest revokeTokenRequest = { .hostUserKey = UserKey { 100, INVALID_SUB_PROFILE_ID },
+        .companionDeviceKey = companionDeviceKey_ };
+    EncodeRevokeTokenRequest(revokeTokenRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(revokeTokenRequest.companionDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, revokeTokenRequest.companionDeviceKey.deviceId);
+
+    EXPECT_CALL(guard.GetCompanionManager(), GetCompanionStatus(_, _))
+        .WillOnce(Return(std::make_optional(companionStatus_)));
+    EXPECT_CALL(guard.GetCompanionManager(), SetCompanionTokenAuthAtl(_, Eq(std::nullopt), _)).WillOnce(Return(false));
+
+    Attributes reply;
+    ErrorGuard errorGuard([&reply](ResultCode result) {
+        (void)reply.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(result));
+    });
+    handler_->HandleRequest(request, reply);
+    int32_t replyResult = 0;
+
+    EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
     EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
 }
 

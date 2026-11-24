@@ -21,8 +21,8 @@ use crate::common::constants::{
     AuthCapabilityLevel, AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, SecureProtocolId,
     TrackAbilityLevel, CHALLENGE_LEN, HKDF_SALT_SIZE,
     PROTOCOL_VERSION_2, SUPPORTED_BINDING_SIGNATURE_ALGORITHMS, TOKEN_VALID_PERIOD,
-    intersect_lists_in_reference_order, same_elements, validate_capability_list, validate_protocol_list,
-    validate_protocol_id,
+    acl_from_esl, get_atl, intersect_lists_in_reference_order, same_elements, validate_capability_list,
+    validate_protocol_list, validate_protocol_id,
 };
 use crate::entry::companion_device_auth_ffi::{
     HostEndAddCompanionOutputFfi, HostGetInitKeyNegotiationInputFfi, SelectedAlgorithmsArrayFfi,
@@ -110,7 +110,7 @@ pub struct HostDeviceEnrollRequest {
     pub salt: [u8; HKDF_SALT_SIZE],
     pub host_challenge: u64,
     pub acl: AuthCapabilityLevel,
-    pub atl: AuthTrustLevel,
+    pub token_atl: AuthTrustLevel,
     pub selected_protocol_id: u16,
     pub host_protocol_id_list: Vec<u16>,
     pub host_capability_list: Vec<u16>,
@@ -123,8 +123,14 @@ pub struct HostDeviceEnrollRequest {
     pub supported_business_ids: Vec<i32>,
     pub device_sub_profile_name: String,
     pub icon_file_name: String,
-    pub max_auth_trust_level: AuthTrustLevel,
-    pub companion_max_atl: i32,
+}
+
+pub fn max_atl(device_capabilities: &[DeviceCapability]) -> AuthTrustLevel {
+    device_capabilities
+        .iter()
+        .map(|capability| get_atl(acl_from_esl(capability.esl), capability.esl))
+        .max()
+        .unwrap_or(AuthTrustLevel::Atl0)
 }
 
 impl HostDeviceEnrollRequest {
@@ -163,7 +169,7 @@ impl HostDeviceEnrollRequest {
             host_challenge: u64::from_ne_bytes(challenge),
             salt,
             acl: AuthCapabilityLevel::Acl0,
-            atl: AuthTrustLevel::Atl0,
+            token_atl: AuthTrustLevel::Atl0,
             selected_protocol_id: 0,
             host_protocol_id_list: Vec::new(),
             host_capability_list: Vec::new(),
@@ -172,8 +178,6 @@ impl HostDeviceEnrollRequest {
             device_name: String::new(),
             device_user_name: String::new(),
             device_type: 0,
-            max_auth_trust_level: AuthTrustLevel::Atl0,
-            companion_max_atl: 0,
             selected_algorithms: SelectedAlgorithms {
                 ka_algorithm: 0,
                 kdf_algorithm: 0,
@@ -241,7 +245,7 @@ impl HostDeviceEnrollRequest {
             return Err(ErrorCode::GeneralError);
         }
 
-        self.atl = AuthTrustLevel::try_from(output.atl).map_err(|_| {
+        self.token_atl = AuthTrustLevel::try_from(output.atl).map_err(|_| {
             log_e!("Invalid ATL value: {}", output.atl);
             ErrorCode::GeneralError
         })?;
@@ -533,19 +537,6 @@ impl HostDeviceEnrollRequest {
         }
         self.negotiated_capability_list = Some(negotiated);
 
-        if reply_info.companion_max_atl != 0 {
-            AuthTrustLevel::try_from(reply_info.companion_max_atl)?;
-            if self.companion_max_atl != 0 && self.companion_max_atl != reply_info.companion_max_atl {
-                log_e!(
-                    "max_atl differs across processor types: {} vs {}",
-                    self.companion_max_atl,
-                    reply_info.companion_max_atl
-                );
-                return Err(ErrorCode::CapabilityNegotiationFailed);
-            }
-            self.companion_max_atl = reply_info.companion_max_atl;
-        }
-
         key_nego_param.companion_challenge = output.challenge;
         self.update_aes_gcm_param(processor_type, &key_nego_param)?;
 
@@ -559,15 +550,10 @@ impl HostDeviceEnrollRequest {
         self.token_infos.push(token_helper::generate_token(
             processor_type,
             key_nego_param.companion_challenge,
-            self.atl,
+            self.token_atl,
         )?);
 
-        let acl = match esl {
-            ExecutorSecurityLevel::Esl0 => AuthCapabilityLevel::Acl0,
-            ExecutorSecurityLevel::Esl1 => AuthCapabilityLevel::Acl1,
-            ExecutorSecurityLevel::Esl2 => AuthCapabilityLevel::Acl2,
-            ExecutorSecurityLevel::Esl3 => AuthCapabilityLevel::Acl3,
-        };
+        let acl = acl_from_esl(esl);
         if self.acl < acl {
             self.acl = acl;
         }
@@ -584,20 +570,6 @@ impl HostDeviceEnrollRequest {
             }
         }
 
-        if self.companion_max_atl != 0 {
-            let companion_atl = AuthTrustLevel::try_from(self.companion_max_atl)?;
-            if self.max_auth_trust_level == AuthTrustLevel::Atl0 {
-                self.max_auth_trust_level = companion_atl;
-            } else if self.max_auth_trust_level != companion_atl {
-                log_e!(
-                    "announced max_atl {} differs from sync announcement {}",
-                    self.companion_max_atl,
-                    self.max_auth_trust_level as i32
-                );
-                return Err(ErrorCode::CapabilityNegotiationFailed);
-            }
-        }
-
         Ok(())
     }
 
@@ -611,7 +583,7 @@ impl HostDeviceEnrollRequest {
             )?;
             let issue_token = SecIssueToken {
                 challenge: token_info.challenge,
-                atl: self.atl as i32,
+                atl: self.token_atl as i32,
                 token: token_info.token.clone(),
             };
             output.extend(issue_token.encrypt_issue_token(
@@ -665,7 +637,7 @@ impl HostDeviceEnrollRequest {
             enrolled_capability_list: self.negotiated_capability_list.clone().unwrap_or_default(),
             enrolled_protocol_id: self.selected_protocol_id,
             secure_protocol_id: self.secure_protocol_id,
-            max_auth_trust_level: self.max_auth_trust_level,
+            max_auth_trust_level: max_atl(&self.device_capability),
         });
 
         let base_info = Box::new(CompanionDeviceProfile {
@@ -759,7 +731,7 @@ impl HostDeviceEnrollRequest {
                     log_e!("try_into fail: {:?}", e);
                     ErrorCode::GeneralError
                 })?,
-                atl: self.atl,
+                atl: self.token_atl,
                 expire_time: issue_time.checked_add(TOKEN_VALID_PERIOD).ok_or_else(|| {
                     log_e!("expire_time overflow");
                     ErrorCode::GeneralError
@@ -784,8 +756,8 @@ impl HostDeviceEnrollRequest {
         ffi_output.fwk_message.copy_from_vec(&fwk_message)?;
         ffi_output.sec_message.copy_from_vec(&sec_message)?;
         ffi_output.template_id = device_info.template_id;
-        let max_atl = self.token_infos.iter().map(|info| info.atl as i32).max().unwrap_or(self.atl as i32);
-        ffi_output.atl = max_atl;
+        ffi_output.token_atl = self.token_atl as i32;
+        ffi_output.max_atl = max_atl(&self.device_capability) as i32;
         let esl = self.device_capability.iter().map(|cap| cap.esl).max().unwrap_or(ExecutorSecurityLevel::Esl0);
         ffi_output.esl = esl as i32;
         ffi_output.added_time = device_info.added_time;
@@ -860,11 +832,6 @@ impl Request for HostDeviceEnrollRequest {
 
         validate_protocol_id(ffi_input.companion_status.enrolled_protocol_id)?;
         self.selected_protocol_id = ffi_input.companion_status.enrolled_protocol_id;
-        self.max_auth_trust_level = AuthTrustLevel::try_from(ffi_input.companion_status.max_auth_trust_level)
-            .map_err(|_| {
-                log_e!("invalid max_auth_trust_level: {}", ffi_input.companion_status.max_auth_trust_level);
-                ErrorCode::BadParam
-            })?;
 
         self.supported_business_ids = Vec::<i32>::try_from(ffi_input.supported_business_ids).map_err(|e| {
             log_e!("Failed to convert supported_business_ids: {:?}", e);

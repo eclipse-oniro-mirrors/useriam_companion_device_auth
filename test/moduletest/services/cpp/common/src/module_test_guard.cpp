@@ -565,7 +565,8 @@ void ModuleTestGuard::SetupEnrollSecurityAgentMocks(TemplateId templateId)
     endCompOutput.fwkMsg = MOCK_FWK_MSG;
     endCompOutput.templateId = templateId;
     endCompOutput.tokenData = MOCK_TOKEN_DATA;
-    endCompOutput.atl = FLOW_ATL;
+    endCompOutput.tokenAtl = FLOW_ATL;
+    endCompOutput.maxAtl = FLOW_ATL;
     endCompOutput.esl = FLOW_ESL;
     endCompOutput.addedTime = FLOW_ADDED_TIME;
     EXPECT_CALL(GetSecurityAgent(), HostEndAddCompanion(_, _))
@@ -721,7 +722,8 @@ void ModuleTestGuard::SetupEndAddCompanionMock(TemplateId templateId)
     secOutput.fwkMsg = MOCK_FWK_MSG;
     secOutput.templateId = templateId;
     secOutput.tokenData = MOCK_TOKEN_DATA;
-    secOutput.atl = DEFAULT_ATL;
+    secOutput.tokenAtl = DEFAULT_ATL;
+    secOutput.maxAtl = DEFAULT_ATL;
     secOutput.esl = DEFAULT_ESL;
     secOutput.addedTime = DEFAULT_ADDED_TIME;
     // The selected capability list is seeded from the security-channel output, not the input status;

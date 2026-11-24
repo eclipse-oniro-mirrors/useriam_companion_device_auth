@@ -601,6 +601,7 @@ HWTEST_F(CompanionManagerImplTest, EndAddCompanion_004, TestSize.Level0)
         .WillOnce(DoAll(Invoke([](const HostEndAddCompanionInput &, HostEndAddCompanionOutput &secOutput) {
             secOutput.templateId = TEMPLATE_ID_12345;
             secOutput.fwkMsg = { UINT32_4, 6, 7, 8 };
+            secOutput.maxAtl = ATL2;
             secOutput.enrolledCapabilityList = { static_cast<uint16_t>(Capability::DELEGATE_AUTH) };
         }),
             Return(ResultCode::SUCCESS)));
@@ -618,6 +619,8 @@ HWTEST_F(CompanionManagerImplTest, EndAddCompanion_004, TestSize.Level0)
     // The negotiated intersection returned by the security layer seeds the enrolled capability list.
     EXPECT_EQ(companion->GetStatus().companionDeviceStatus.capabilities,
         std::vector<Capability> { Capability::DELEGATE_AUTH });
+    // The mirror tier comes from the security-layer device capability, not the caller-provided status.
+    EXPECT_EQ(companion->GetStatus().companionDeviceStatus.maxAuthTrustLevel, ATL2);
     companion->SetAddedToIdm(true);
     DeviceStatus deviceStatus = companion->GetStatus().companionDeviceStatus;
     deviceStatus.isOnline = true;

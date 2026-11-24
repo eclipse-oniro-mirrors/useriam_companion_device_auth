@@ -130,7 +130,8 @@ typedef struct HostEndAddCompanionOutputFfi {
     struct DataArray1024Ffi fwkMessage;
     struct DataArray1024Ffi secMessage;
     uint64_t templateId;
-    int32_t atl;
+    int32_t tokenAtl;
+    int32_t maxAtl;
     int32_t esl;
     uint64_t addedTime;
     struct Uint16Array64Ffi enrolledCapabilityList;

@@ -299,6 +299,7 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_MaxAuthTrustLevel_DefaultsToPh
     EXPECT_EQ(status.maxAuthTrustLevel, ATL2);
 }
 
+// A sync-announced tier overrides the channel (physical) tier in the merged view.
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_MaxAuthTrustLevel_SyncOverridesPhysical, TestSize.Level0)
 {
     physicalStatus_.maxAuthTrustLevel = ATL2;
@@ -308,8 +309,10 @@ HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_MaxAuthTrustLevel_SyncOverride
     DeviceStatus status = entry.BuildDeviceStatus();
 
     EXPECT_EQ(status.maxAuthTrustLevel, ATL3);
+    EXPECT_EQ(entry.physicalMaxAuthTrustLevel, ATL2);
 }
 
+// Peer stops announcing -> the merged view degrades back to the channel tier.
 HWTEST_F(DeviceStatusEntryTest, BuildDeviceStatus_MaxAuthTrustLevel_SyncResetFallsBackToPhysical, TestSize.Level0)
 {
     physicalStatus_.maxAuthTrustLevel = ATL2;

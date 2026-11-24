@@ -63,6 +63,9 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
     syncReply.companionCapabilityList = localProfile.companionCapabilities;
     syncReply.businessIdList = localProfile.companionSupportedBusinessIds;
     syncReply.secureProtocolId = localProfile.companionSecureProtocolId;
+#ifdef ENABLE_COMPANION_V2
+    syncReply.maxAuthTrustLevel = ATL2;
+#endif
     SetCompanionDeviceKeyUserId(syncReply, companionUserKey);
     syncReply.deviceUserName = GetUserKeyManager().GetActiveUserTypeName() + ":" + userNameOpt.value();
     syncReply.deviceName = GetSystemSettingsManager().GetSettingsValue(SettingKey::DisplayDeviceName);

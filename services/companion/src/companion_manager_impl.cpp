@@ -298,7 +298,8 @@ void CompanionManagerImpl::ProcessEndAddCompanionOutput(const HostEndAddCompanio
     output.templateId = secOutput.templateId;
     output.fwkMsg = secOutput.fwkMsg;
     output.tokenData = secOutput.tokenData;
-    output.atl = secOutput.atl;
+    output.tokenAtl = secOutput.tokenAtl;
+    output.maxAtl = secOutput.maxAtl;
     output.esl = secOutput.esl;
     output.enrolledCapabilityList = CapabilityConverter::FromUnderlyingVec(secOutput.enrolledCapabilityList);
 }
@@ -395,6 +396,7 @@ ResultCode CompanionManagerImpl::EndAddCompanion(const EndAddCompanionInput &inp
     updatedStatus.templateId = secOutput.templateId;
     updatedStatus.addedTime = secOutput.addedTime;
     updatedStatus.capabilities = CapabilityConverter::FromUnderlyingVec(secOutput.enrolledCapabilityList);
+    updatedStatus.maxAuthTrustLevel = secOutput.maxAtl;
 
     auto companion = Companion::Create(updatedStatus, false, weak_from_this());
     if (companion == nullptr) {

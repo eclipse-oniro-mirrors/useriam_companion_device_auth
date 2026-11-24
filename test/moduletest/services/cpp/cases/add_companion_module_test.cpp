@@ -383,7 +383,8 @@ HWTEST_F(AddCompanionModuleTest, HostAddCompanionFullE2E_001, TestSize.Level0)
     HostEndAddCompanionOutput endCompOutput = { .fwkMsg = { 0x07, 0x08 },
         .templateId = 12345,
         .tokenData = { 0x09, 0x0A },
-        .atl = 3,
+        .tokenAtl = 3,
+        .maxAtl = 3,
         .esl = 1 };
     SetupHostAddCompanionMocks(guard, initReqOutput, beginCompOutput, endCompOutput);
 

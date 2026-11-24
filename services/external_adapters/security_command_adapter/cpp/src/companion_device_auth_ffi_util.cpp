@@ -318,7 +318,8 @@ bool EncodeHostEndAddCompanionInput(const HostEndAddCompanionInput &input, HostE
 bool DecodeHostEndAddCompanionOutput(const HostEndAddCompanionOutputFfi &ffi, HostEndAddCompanionOutput &output)
 {
     output.templateId = ffi.templateId;
-    output.atl = ffi.atl;
+    output.tokenAtl = ffi.tokenAtl;
+    output.maxAtl = ffi.maxAtl;
     output.esl = ffi.esl;
     output.addedTime = ffi.addedTime;
     if (!DecodeMessageArray(ffi.fwkMessage, output.fwkMsg) || !DecodeMessageArray(ffi.secMessage, output.tokenData)) {

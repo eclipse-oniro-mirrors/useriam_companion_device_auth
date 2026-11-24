@@ -93,6 +93,7 @@ void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
     }
 }
 
+namespace {
 bool DecodeCompanionMaxAtl(const Attributes &attributes, std::optional<int32_t> &maxAuthTrustLevel)
 {
     maxAuthTrustLevel.reset();
@@ -107,7 +108,6 @@ bool DecodeCompanionMaxAtl(const Attributes &attributes, std::optional<int32_t> 
     return true;
 }
 
-namespace {
 bool DecodeSyncDeviceStatusReplySuccessFields(const Attributes &attributes, SyncDeviceStatusReply &reply)
 {
     std::vector<uint16_t> companionProtocolList;

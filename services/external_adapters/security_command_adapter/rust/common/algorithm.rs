@@ -15,7 +15,7 @@
 
 use crate::common::constants::{
     ErrorCode, SUPPORTED_AEAD_ALGORITHMS, SUPPORTED_BINDING_SIGNATURE_ALGORITHMS, SUPPORTED_KA_ALGORITHMS,
-    SUPPORTED_KDF_ALGORITHMS, SUPPORTED_MAC_ALGORITHMS, intersect_lists_in_reference_order,
+    SUPPORTED_KDF_ALGORITHMS, SUPPORTED_MAC_ALGORITHMS, intersect_lists_in_reference_order, same_elements,
 };
 use crate::log_e;
 use crate::traits::log_trace::RustFileId;
@@ -147,6 +147,27 @@ pub fn validate_selected_algorithms_supported(
         SUPPORTED_BINDING_SIGNATURE_ALGORITHMS,
         selected.binding_signature_algorithm,
     )
+}
+
+pub fn same_offer_algorithms(a: &CryptoAlgorithms, b: &CryptoAlgorithms) -> Result<(), ErrorCode> {
+    let checks = [
+        ("ka", &a.ka_algorithms, &b.ka_algorithms),
+        ("kdf", &a.kdf_algorithms, &b.kdf_algorithms),
+        ("aead", &a.aead_algorithms, &b.aead_algorithms),
+        ("mac", &a.mac_algorithms, &b.mac_algorithms),
+    ];
+    for (role, echoed, offered) in checks {
+        if !same_elements(echoed, offered) {
+            log_e!(
+                "encrypted {} algorithm offer {:?} differs from the plaintext negotiation {:?}",
+                role,
+                echoed,
+                offered
+            );
+            return Err(ErrorCode::AlgorithmNegotiationFailed);
+        }
+    }
+    Ok(())
 }
 
 pub fn validate_optional_algorithm_supported(

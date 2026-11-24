@@ -961,12 +961,6 @@ fn binding_reply_capability_list(sec_message: &[u8]) -> Vec<u16> {
     attribute.get_u16_vec(AttributeKey::AttrCapabilityList).unwrap()
 }
 
-fn binding_reply_max_atl(sec_message: &[u8]) -> i32 {
-    let reply = SecBindingReply::decode(sec_message, ProcessorType::Default).unwrap();
-    let attribute = Attribute::try_from_bytes(&reply.encrypt_data).unwrap();
-    attribute.get_i32(AttributeKey::AttrMaxAtl).unwrap()
-}
-
 #[test]
 fn companion_enroll_request_begin_test_replies_with_local_set() {
     let _guard = ut_registry_guard!();
@@ -983,19 +977,6 @@ fn companion_enroll_request_begin_test_replies_with_local_set() {
         vec![Capability::DelegateAuth as u16, Capability::TokenAuth as u16]);
 }
 
-// The binding reply always carries the TA-declared maxAtl ceiling in its encrypted inner.
-#[test]
-fn companion_enroll_request_begin_test_replies_with_max_atl() {
-    let _guard = ut_registry_guard!();
-    log_i!("companion_enroll_request_begin_test_replies_with_max_atl start");
-
-    let sec_message = run_companion_binding_begin(false);
-    assert_eq!(binding_reply_max_atl(&sec_message), COMPANION_MAX_ATL as i32);
-}
-
-// A binding request whose encrypted offer confirmation differs from the offer received over
-// the plaintext nego channel (e.g. an in-transit strip) fails the round with 20015. V2 peers
-// only: a V1 (2026-10-14 baseline) peer sends no confirmation at all and the check is skipped.
 #[test]
 fn companion_enroll_request_begin_test_host_algorithms_mismatch() {
     let _guard = ut_registry_guard!();

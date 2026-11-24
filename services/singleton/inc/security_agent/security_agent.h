@@ -149,7 +149,8 @@ struct HostEndAddCompanionOutput {
     std::vector<uint8_t> fwkMsg;
     TemplateId templateId;
     std::vector<uint8_t> tokenData;
-    Atl atl;
+    Atl tokenAtl;
+    Atl maxAtl;
     int32_t esl;
     int64_t addedTime;
     std::vector<uint16_t> enrolledCapabilityList;
