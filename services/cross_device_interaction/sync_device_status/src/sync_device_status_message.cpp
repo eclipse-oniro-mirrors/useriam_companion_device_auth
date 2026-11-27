@@ -16,6 +16,7 @@
 #include "sync_device_status_message.h"
 
 #include <optional>
+#include <utility>
 
 #include "iam_check.h"
 #include "iam_logger.h"
@@ -76,7 +77,7 @@ void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
 {
     attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
-        ProtocolIdConverter::ToUnderlyingVec(reply.companionProtocolIdList));
+        ProtocolIdConverter::ToUnderlyingVec(reply.companionProofProtocolIdList));
     attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
         CapabilityConverter::ToUnderlyingVec(reply.companionCapabilityList));
     attributes.SetInt32ArrayValue(Attributes::ATTR_CDA_SA_BUSINESS_ID_LIST,
@@ -91,6 +92,8 @@ void EncodeSyncDeviceStatusReply(const SyncDeviceStatusReply &reply, Attributes 
     if (reply.maxAuthTrustLevel.has_value()) {
         attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_MAX_ATL, reply.maxAuthTrustLevel.value());
     }
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_COMPANION_SUPPORTED_PROTOCOL_ID_LIST,
+        ProtocolIdConverter::ToUnderlyingVec(reply.companionSupportedProtocolIdList));
 }
 
 namespace {
@@ -110,9 +113,9 @@ bool DecodeCompanionMaxAtl(const Attributes &attributes, std::optional<int32_t> 
 
 bool DecodeSyncDeviceStatusReplySuccessFields(const Attributes &attributes, SyncDeviceStatusReply &reply)
 {
-    std::vector<uint16_t> companionProtocolList;
+    std::vector<uint16_t> companionProofProtocolList;
     bool getProtocolListRet =
-        attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, companionProtocolList);
+        attributes.GetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, companionProofProtocolList);
     ENSURE_OR_RETURN_VAL(getProtocolListRet, false);
     std::vector<uint16_t> companionCapabilityList;
     bool getCapabilityListRet =
@@ -145,7 +148,15 @@ bool DecodeSyncDeviceStatusReplySuccessFields(const Attributes &attributes, Sync
     bool getExtraInfoRet =
         attributes.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
     ENSURE_OR_RETURN_VAL(getExtraInfoRet, false);
-    reply.companionProtocolIdList = ProtocolIdConverter::FromUnderlyingVec(companionProtocolList);
+    reply.companionProofProtocolIdList = ProtocolIdConverter::FromUnderlyingVec(companionProofProtocolList);
+    reply.companionSupportedProtocolIdList = reply.companionProofProtocolIdList;
+    if (attributes.HasAttribute(Attributes::ATTR_CDA_SA_COMPANION_SUPPORTED_PROTOCOL_ID_LIST)) {
+        std::vector<uint16_t> supportedProtocolList;
+        bool getSupportedRet = attributes.GetUint16ArrayValue(
+            Attributes::ATTR_CDA_SA_COMPANION_SUPPORTED_PROTOCOL_ID_LIST, supportedProtocolList);
+        ENSURE_OR_RETURN_VAL(getSupportedRet, false);
+        reply.companionSupportedProtocolIdList = ProtocolIdConverter::FromUnderlyingVec(supportedProtocolList);
+    }
     reply.companionCapabilityList = CapabilityConverter::FromUnderlyingVec(companionCapabilityList);
     reply.businessIdList = BusinessIdConverter::FromUnderlyingVec(businessIdList);
     reply.secureProtocolId = SecureProtocolIdConverter::FromUnderlying(secureProtocolId);

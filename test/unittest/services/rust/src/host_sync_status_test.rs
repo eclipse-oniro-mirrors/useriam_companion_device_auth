@@ -39,10 +39,10 @@ use crate::ut_registry_guard;
 use crate::utils::{Attribute, AttributeKey};
 use std::boxed::Box;
 
-fn create_valid_sync_reply_message(challenge: u64, companion_protocol_list: &[u16], companion_capability_list: &[u16]) -> Vec<u8> {
+fn create_valid_sync_reply_message(challenge: u64, companion_proof_protocol_list: &[u16], companion_capability_list: &[u16]) -> Vec<u8> {
     let mut encrypt_attribute = Attribute::new();
     encrypt_attribute.set_u64(AttributeKey::AttrHostChallenge, challenge);
-    encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, companion_protocol_list);
+    encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, companion_proof_protocol_list);
     encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, companion_capability_list);
 
     let encrypt_data = encrypt_attribute.to_bytes().unwrap();
@@ -605,9 +605,9 @@ fn host_sync_status_request_end_test_get_device_fail() {
 }
 
 #[test]
-fn host_sync_status_request_end_test_empty_companion_protocol_list() {
+fn host_sync_status_request_end_test_empty_companion_proof_protocol_list() {
     let _guard = ut_registry_guard!();
-    log_i!("host_sync_status_request_end_test_empty_companion_protocol_list start");
+    log_i!("host_sync_status_request_end_test_empty_companion_proof_protocol_list start");
 
     mock_set_crypto_engine();
     let update_device_calls = std::rc::Rc::new(std::cell::Cell::new(0u32));

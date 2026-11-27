@@ -31,7 +31,7 @@ namespace CompanionDeviceAuth {
 enum LogTraceFileId : uint16_t {
     LOG_FILE_UNKNOWN = 0,
 
-    // services/external_adapters (0x010x–0x0110)
+    // services/external_adapters (0x010x–0x0110, 0x0113)
     LOG_FILE_CONSTANT_USER_KEY_MANAGER = 0x0100,
     LOG_FILE_DEFAULT_USER_KEY_MANAGER = 0x0101,
     LOG_FILE_SYSTEM_PARAM_MANAGER_IMPL = 0x0102,
@@ -49,6 +49,7 @@ enum LogTraceFileId : uint16_t {
     LOG_FILE_SYSTEM_SETTINGS_MANAGER_IMPL = 0x010E,
     LOG_FILE_RESULT_CODE_CONVERTER = 0x010F,
     LOG_FILE_APP_FOREGROUND_STATE_ADAPTER_IMPL = 0x0110,
+    LOG_FILE_FILE_STORAGE_ADAPTER_IMPL = 0x0113,
 
     // services/host_binding (0x011x)
     LOG_FILE_HOST_BINDING_MANAGER_IMPL = 0x0111,

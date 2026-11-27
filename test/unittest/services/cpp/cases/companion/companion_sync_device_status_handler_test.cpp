@@ -646,8 +646,10 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_SignedSyncAgainstV1
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
     auto decoded = DecodeSyncDeviceStatusReply(reply);
     ASSERT_TRUE(decoded.has_value());
-    EXPECT_EQ(decoded->companionProtocolIdList,
+    EXPECT_EQ(decoded->companionProofProtocolIdList,
         (std::vector<ProtocolId> { ProtocolId::VERSION_1, ProtocolId::VERSION_2 }));
+    // Nothing to prove for: the complete support set is announced in both protocol fields.
+    EXPECT_EQ(decoded->companionSupportedProtocolIdList, decoded->companionProofProtocolIdList);
     EXPECT_TRUE(decoded->companionCheckResponse.empty());
     std::vector<uint8_t> proof;
     ASSERT_TRUE(reply.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, proof));
@@ -836,8 +838,10 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_UnsignedSyncAgainst
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
     auto decoded = DecodeSyncDeviceStatusReply(reply);
     ASSERT_TRUE(decoded.has_value());
-    EXPECT_EQ(decoded->companionProtocolIdList,
+    EXPECT_EQ(decoded->companionProofProtocolIdList,
         (std::vector<ProtocolId> { ProtocolId::VERSION_1, ProtocolId::VERSION_2 }));
+    // Nothing to prove for: the complete support set is announced in both protocol fields.
+    EXPECT_EQ(decoded->companionSupportedProtocolIdList, decoded->companionProofProtocolIdList);
     EXPECT_TRUE(decoded->companionCheckResponse.empty());
     std::vector<uint8_t> proof;
     ASSERT_TRUE(reply.GetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, proof));
@@ -891,7 +895,7 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_UnsignedSyncAgainst
 
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
     EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
-    EXPECT_EQ(capturedInput.companionProtocolList,
+    EXPECT_EQ(capturedInput.companionProofProtocolList,
         std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
     EXPECT_TRUE(capturedInput.bindingSignatureProof.challenge.empty());
     EXPECT_TRUE(capturedInput.bindingSignatureProof.signature.empty());
@@ -900,10 +904,65 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_UnsignedSyncAgainst
     EXPECT_FALSE(proof.empty());
 }
 
-// A bound round announces the complete local support set even when a higher common version
-// exists: the companion never narrows the reply by the enrolled version or by the offer; the
-// inner proof list is the same complete set as the plaintext outer list.
-HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_BoundRoundRepliesFullSupportSet, TestSize.Level0)
+// A legacy host, or a current host holding a V1 credential, offers VERSION_1 alone: the proof lists
+// that alone (a legacy host rejects a proof list holding a value it does not know), and the outer
+// list mirrors the proof list so the plaintext and the encrypted list stay one data set. The
+// complete support set still leaves on its own field for the host's fresh-binding decision.
+HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_V1BindingProvesWithV1OfferAndAnnouncesCompleteSupportSet,
+    TestSize.Level0)
+{
+    MockGuard guard;
+
+    handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
+
+    LocalDeviceProfile profile = { .companionProtocols = { ProtocolId::VERSION_1, ProtocolId::VERSION_2 },
+        .companionSecureProtocolId = SecureProtocolId::DEFAULT,
+        .companionCapabilities = { Capability::TOKEN_AUTH } };
+    HostBindingStatus hostBindingStatus = hostBindingStatus_;
+    hostBindingStatus.enrolledProtocolId = ProtocolId::VERSION_1;
+
+    Attributes request;
+    SyncDeviceStatusRequest syncDeviceStatusRequest = { .hostProtocolIdList = { ProtocolId::VERSION_1 },
+        .hostCapabilityList = { Capability::TOKEN_AUTH, UNSUPPORTED_CAPABILITY_ID },
+        .hostDeviceKey = hostDeviceKey_,
+        .salt = { 1 },
+        .challenge = 0 };
+    EncodeSyncDeviceStatusRequest(syncDeviceStatusRequest, request);
+    request.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(syncDeviceStatusRequest.hostDeviceKey.idType));
+    request.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, syncDeviceStatusRequest.hostDeviceKey.deviceId);
+
+    CompanionProcessCheckInput capturedInput = {};
+    ExpectBoundSyncRequestMocks(guard, profile, hostBindingStatus, capturedInput);
+
+    Attributes reply;
+    ErrorGuard errorGuard([](ResultCode) {});
+    handler_->HandleRequest(request, reply);
+    int32_t replyResult = 0;
+
+    EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
+    EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
+    EXPECT_EQ(capturedInput.companionProofProtocolList,
+        std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
+
+    // The identifier attributes are injected by the transport layer, not by the message encoder;
+    // add them before decoding, mirroring what the receiving side sees on the wire.
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
+    auto decodedReply = DecodeSyncDeviceStatusReply(reply);
+    ASSERT_TRUE(decodedReply.has_value());
+    EXPECT_EQ(decodedReply->companionProofProtocolIdList, std::vector<ProtocolId> { ProtocolId::VERSION_1 });
+    EXPECT_EQ(decodedReply->companionSupportedProtocolIdList,
+        (std::vector<ProtocolId> { ProtocolId::VERSION_1, ProtocolId::VERSION_2 }));
+    EXPECT_EQ(decodedReply->companionCapabilityList, std::vector<Capability> { Capability::TOKEN_AUTH });
+    EXPECT_EQ(capturedInput.companionCapabilityList,
+        std::vector<uint16_t> { static_cast<uint16_t>(Capability::TOKEN_AUTH) });
+}
+
+// The proof list follows the host's offer, not the binding's version: a complete offer yields the
+// complete support set in the proof even against a V1 binding. Only a host without a valid
+// credential for this user sends that shape, and it does not verify the proof.
+HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_V1BindingProvesWithCompleteHostOffer, TestSize.Level0)
 {
     MockGuard guard;
 
@@ -937,25 +996,66 @@ HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_BoundRoundRepliesFu
 
     EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
     EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
-    EXPECT_EQ(capturedInput.companionProtocolList,
+    EXPECT_EQ(capturedInput.companionProofProtocolList,
         (std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1),
             static_cast<uint16_t>(ProtocolId::VERSION_2) }));
+    EXPECT_TRUE(capturedInput.bindingSignatureProof.signature.empty());
 
     // The identifier attributes are injected by the transport layer, not by the message encoder;
     // add them before decoding, mirroring what the receiving side sees on the wire.
     reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
     reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
     auto decodedReply = DecodeSyncDeviceStatusReply(reply);
-    EXPECT_TRUE(decodedReply.has_value());
-    EXPECT_EQ(decodedReply->companionProtocolIdList,
+    ASSERT_TRUE(decodedReply.has_value());
+    EXPECT_EQ(decodedReply->companionProofProtocolIdList,
         (std::vector<ProtocolId> { ProtocolId::VERSION_1, ProtocolId::VERSION_2 }));
-    EXPECT_EQ(decodedReply->companionCapabilityList, std::vector<Capability> { Capability::TOKEN_AUTH });
-    EXPECT_EQ(capturedInput.companionCapabilityList,
-        std::vector<uint16_t> { static_cast<uint16_t>(Capability::TOKEN_AUTH) });
+    EXPECT_EQ(decodedReply->companionSupportedProtocolIdList, decodedReply->companionProofProtocolIdList);
+}
+
+// A V2 binding is proven under a signed request, which only a host offering the complete set sends:
+// the proof lists the complete support set, the same data set inside and outside.
+HWTEST_F(CompanionSyncDeviceStatusHandlerTest, HandleRequest_V2BindingProvesWithCompleteSupportSet, TestSize.Level0)
+{
+    MockGuard guard;
+
+    handler_ = std::make_unique<CompanionSyncDeviceStatusHandler>();
+
+    LocalDeviceProfile profile = { .companionProtocols = { ProtocolId::VERSION_1, ProtocolId::VERSION_2 },
+        .companionSecureProtocolId = SecureProtocolId::DEFAULT,
+        .companionCapabilities = { Capability::TOKEN_AUTH } };
+    HostBindingStatus v2Binding = hostBindingStatus_;
+    v2Binding.enrolledProtocolId = ProtocolId::VERSION_2;
+
+    // The signed request satisfies the proof gate for a V2 binding.
+    Attributes request;
+    BuildV2IntersectionSyncRequest(request);
+
+    CompanionProcessCheckInput capturedInput = {};
+    ExpectBoundSyncRequestMocks(guard, profile, v2Binding, capturedInput);
+
+    Attributes reply;
+    ErrorGuard errorGuard([](ResultCode) {});
+    handler_->HandleRequest(request, reply);
+    int32_t replyResult = 0;
+
+    EXPECT_TRUE(reply.GetInt32Value(Attributes::ATTR_CDA_SA_RESULT, replyResult));
+    EXPECT_EQ(replyResult, static_cast<int32_t>(ResultCode::SUCCESS));
+    EXPECT_EQ(capturedInput.companionProofProtocolList,
+        (std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1),
+            static_cast<uint16_t>(ProtocolId::VERSION_2) }));
+    EXPECT_FALSE(capturedInput.bindingSignatureProof.signature.empty());
+
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(hostDeviceKey_.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, hostDeviceKey_.deviceId);
+    auto decodedReply = DecodeSyncDeviceStatusReply(reply);
+    ASSERT_TRUE(decodedReply.has_value());
+    EXPECT_EQ(decodedReply->companionProofProtocolIdList,
+        (std::vector<ProtocolId> { ProtocolId::VERSION_1, ProtocolId::VERSION_2 }));
+    EXPECT_EQ(decodedReply->companionSupportedProtocolIdList, decodedReply->companionProofProtocolIdList);
 }
 
 // The gate is the offer ∩ support intersection; any enrolled version covered by it passes, and the
-// binding row must not change the outcome — reply and proof always carry the full support set.
+// binding row must not change the outcome of the gate itself.
 HWTEST_F(CompanionSyncDeviceStatusHandlerTest, NegotiateSyncParameters_SucceedsForAnyEnrolledWithinIntersection,
     TestSize.Level0)
 {

@@ -14,19 +14,15 @@
  */
 
 #include <cstdint>
-#include <fstream>
-#include <iterator>
 #include <string>
 #include <vector>
-
-#include <unistd.h>
 
 #include <openssl/evp.h>
 
 #include <gtest/gtest.h>
 
 #include "companion_icon_store.h"
-#include "directory_ex.h"
+#include "mock_guard.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -34,17 +30,17 @@ using namespace OHOS;
 using namespace OHOS::UserIam::CompanionDeviceAuth;
 
 namespace {
+constexpr int32_t USER_ID = 100;
+constexpr int32_t ANOTHER_USER_ID = 1;
+const std::string ICON_DIR_OF_USER = "/data/service/el1/100/useriam/companion_device_auth/icons";
+const std::string ICON_DIR_OF_ANOTHER_USER = "/data/service/el1/1/useriam/companion_device_auth/icons";
+const std::vector<uint8_t> ICON_DATA = { 1, 2, 3, 4, 5 };
+
 std::string EncodeBase64(const std::vector<uint8_t> &data)
 {
     std::string out((data.size() + (BASE64_GROUP_BYTES - 1)) / BASE64_GROUP_BYTES * BASE64_GROUP_SIZE, '\0');
     EVP_EncodeBlock(reinterpret_cast<unsigned char *>(out.data()), data.data(), static_cast<int>(data.size()));
     return out;
-}
-
-std::vector<uint8_t> ReadFileAll(const std::string &path)
-{
-    std::ifstream file(path, std::ios::binary);
-    return std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 }
 
 std::vector<uint8_t> MakeJsonContext(const std::string &fileName, const std::string &base64Data)
@@ -53,21 +49,7 @@ std::vector<uint8_t> MakeJsonContext(const std::string &fileName, const std::str
     return std::vector<uint8_t>(json.begin(), json.end());
 }
 
-class CompanionIconStoreTest : public testing::Test {
-protected:
-    void SetUp() override
-    {
-        testDir_ = "/data/local/tmp/cda_icon_store_test_" + std::to_string(static_cast<int>(getpid()));
-        ForceRemoveDirectory(testDir_);
-    }
-
-    void TearDown() override
-    {
-        ForceRemoveDirectory(testDir_);
-    }
-
-    std::string testDir_;
-};
+class CompanionIconStoreTest : public testing::Test {};
 
 HWTEST_F(CompanionIconStoreTest, Parse_ValidContext_ReturnsFileNameAndData, TestSize.Level0)
 {
@@ -215,100 +197,76 @@ HWTEST_F(CompanionIconStoreTest, Parse_FileNameCharset_Passes, TestSize.Level0)
     EXPECT_EQ(icon.fileName, "a-b_9.PNG");
 }
 
-HWTEST_F(CompanionIconStoreTest, BuildIconDirectory_PerUserPath, TestSize.Level0)
+// The store owns naming and the per-user directory and hands the absolute path to the storage
+// adapter, which owns the file system.
+HWTEST_F(CompanionIconStoreTest, Save_HandsIconOfHostUserToStorageAdapter, TestSize.Level0)
 {
-    EXPECT_EQ(BuildIconDirectory(100), "/data/service/el1/100/useriam/companion_device_auth/icons");
-    EXPECT_EQ(BuildIconDirectory(1), "/data/service/el1/1/useriam/companion_device_auth/icons");
+    MockGuard guard;
+
+    EXPECT_EQ(SaveIcon(USER_ID, { "watch.png", ICON_DATA }), ResultCode::SUCCESS);
+    EXPECT_EQ(SaveIcon(ANOTHER_USER_ID, { "watch.png", ICON_DATA }), ResultCode::SUCCESS);
+
+    EXPECT_EQ(guard.GetFileStorageAdapter().GetSavedFiles(),
+        std::vector<MockFileStorageAdapter::SavedFile>(
+            { { ICON_DIR_OF_USER, "watch.png", ICON_DATA }, { ICON_DIR_OF_ANOTHER_USER, "watch.png", ICON_DATA } }));
 }
 
-HWTEST_F(CompanionIconStoreTest, Save_ToNestedNewDirectory_CreatesAndWrites, TestSize.Level0)
+// A storage failure comes back to the caller, which decides what it means for its own flow.
+HWTEST_F(CompanionIconStoreTest, Save_StorageFailure_IsPropagated, TestSize.Level0)
 {
-    CompanionIcon icon = { "icon.png", { 1, 2, 3, 4, 5 } };
-    std::string iconDir = testDir_ + "/level1/level2/icons";
-    EXPECT_EQ(SaveIconToDirectory(iconDir, icon), ResultCode::SUCCESS);
+    MockGuard guard;
+    guard.GetFileStorageAdapter().SetSaveResult(ResultCode::GENERAL_ERROR);
 
-    auto readBack = ReadFileAll(iconDir + "/icon.png");
-    std::vector<uint8_t> expect = { 1, 2, 3, 4, 5 };
-    EXPECT_EQ(readBack, expect);
+    EXPECT_EQ(SaveIcon(USER_ID, { "watch.png", ICON_DATA }), ResultCode::GENERAL_ERROR);
+    ASSERT_EQ(guard.GetFileStorageAdapter().GetSavedFiles().size(), 1u);
 }
 
-HWTEST_F(CompanionIconStoreTest, Save_SameName_ReplacesAtomically, TestSize.Level0)
+// A name that could escape the icon directory, or no host user at all, is refused before storage.
+HWTEST_F(CompanionIconStoreTest, Save_InvalidNameOrUser_NeverReachesStorage, TestSize.Level0)
 {
-    std::vector<uint8_t> first = { 1, 1, 1 };
-    std::vector<uint8_t> second = { 2, 2, 2, 2, 2, 2, 2, 2 };
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "icon.png", first }), ResultCode::SUCCESS);
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "icon.png", second }), ResultCode::SUCCESS);
+    MockGuard guard;
 
-    auto readBack = ReadFileAll(testDir_ + "/icon.png");
-    EXPECT_EQ(readBack, second);
-    std::ifstream tmpFile(testDir_ + "/icon.png.tmp");
-    EXPECT_FALSE(tmpFile.good());
+    EXPECT_EQ(SaveIcon(USER_ID, { "../escape.png", ICON_DATA }), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(SaveIcon(USER_ID, { "a/b.png", ICON_DATA }), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(SaveIcon(USER_ID, { "", ICON_DATA }), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(SaveIcon(USER_ID, { ".", ICON_DATA }), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(SaveIcon(USER_ID, { "..", ICON_DATA }), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(SaveIcon(USER_ID, { "icon.", ICON_DATA }), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(SaveIcon(INVALID_USER_ID, { "icon.png", ICON_DATA }), ResultCode::INVALID_PARAMETERS);
+
+    EXPECT_TRUE(guard.GetFileStorageAdapter().GetSavedFiles().empty());
 }
 
-HWTEST_F(CompanionIconStoreTest, Save_DistinctNames_Coexist, TestSize.Level0)
+HWTEST_F(CompanionIconStoreTest, Delete_HandsIconOfHostUserToStorageAdapter, TestSize.Level0)
 {
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "watch.png", { 0x0A } }), ResultCode::SUCCESS);
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "phone.png", { 0x0B } }), ResultCode::SUCCESS);
-    EXPECT_EQ(ReadFileAll(testDir_ + "/watch.png"), std::vector<uint8_t>({ 0x0A }));
-    EXPECT_EQ(ReadFileAll(testDir_ + "/phone.png"), std::vector<uint8_t>({ 0x0B }));
+    MockGuard guard;
+
+    EXPECT_EQ(DeleteIcon(USER_ID, "watch.png"), ResultCode::SUCCESS);
+
+    EXPECT_EQ(guard.GetFileStorageAdapter().GetDeletedFiles(),
+        std::vector<MockFileStorageAdapter::DeletedFile>({ { ICON_DIR_OF_USER, "watch.png" } }));
 }
 
-HWTEST_F(CompanionIconStoreTest, Save_EmptyData_WritesEmptyFile, TestSize.Level0)
+HWTEST_F(CompanionIconStoreTest, Delete_StorageFailure_IsPropagated, TestSize.Level0)
 {
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "icon.png", {} }), ResultCode::SUCCESS);
-    auto readBack = ReadFileAll(testDir_ + "/icon.png");
-    EXPECT_TRUE(readBack.empty());
+    MockGuard guard;
+    guard.GetFileStorageAdapter().SetDeleteResult(ResultCode::GENERAL_ERROR);
+
+    EXPECT_EQ(DeleteIcon(USER_ID, "watch.png"), ResultCode::GENERAL_ERROR);
+    ASSERT_EQ(guard.GetFileStorageAdapter().GetDeletedFiles().size(), 1u);
 }
 
-HWTEST_F(CompanionIconStoreTest, Save_InvalidFileName_Fails, TestSize.Level0)
+HWTEST_F(CompanionIconStoreTest, Delete_InvalidNameOrUser_NeverReachesStorage, TestSize.Level0)
 {
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "../escape.png", { 1 } }), ResultCode::INVALID_PARAMETERS);
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "a/b.png", { 1 } }), ResultCode::INVALID_PARAMETERS);
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "", { 1 } }), ResultCode::INVALID_PARAMETERS);
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { ".", { 1 } }), ResultCode::INVALID_PARAMETERS);
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "..", { 1 } }), ResultCode::INVALID_PARAMETERS);
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "icon.", { 1 } }), ResultCode::INVALID_PARAMETERS);
-}
+    MockGuard guard;
 
-HWTEST_F(CompanionIconStoreTest, Save_InvalidDirectory_Fails, TestSize.Level0)
-{
-    EXPECT_EQ(SaveIconToDirectory("", { "icon.png", { 1 } }), ResultCode::INVALID_PARAMETERS);
-}
+    EXPECT_EQ(DeleteIcon(USER_ID, "../escape.png"), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(DeleteIcon(USER_ID, "a/b.png"), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(DeleteIcon(USER_ID, ""), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(DeleteIcon(USER_ID, "."), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(DeleteIcon(USER_ID, "a..b"), ResultCode::INVALID_PARAMETERS);
+    EXPECT_EQ(DeleteIcon(INVALID_USER_ID, "icon.png"), ResultCode::INVALID_PARAMETERS);
 
-HWTEST_F(CompanionIconStoreTest, Delete_ExistingFile_RemovesIt, TestSize.Level0)
-{
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "icon.png", { 1, 2, 3 } }), ResultCode::SUCCESS);
-    EXPECT_EQ(DeleteIconFromDirectory(testDir_, "icon.png"), ResultCode::SUCCESS);
-    std::ifstream file(testDir_ + "/icon.png");
-    EXPECT_FALSE(file.good());
-}
-
-HWTEST_F(CompanionIconStoreTest, Delete_MissingFile_SucceedsIdempotent, TestSize.Level0)
-{
-    EXPECT_EQ(DeleteIconFromDirectory(testDir_, "absent.png"), ResultCode::SUCCESS);
-}
-
-HWTEST_F(CompanionIconStoreTest, Delete_DoesNotTouchOtherFiles, TestSize.Level0)
-{
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "watch.png", { 0x0A } }), ResultCode::SUCCESS);
-    EXPECT_EQ(SaveIconToDirectory(testDir_, { "phone.png", { 0x0B } }), ResultCode::SUCCESS);
-    EXPECT_EQ(DeleteIconFromDirectory(testDir_, "watch.png"), ResultCode::SUCCESS);
-    EXPECT_EQ(ReadFileAll(testDir_ + "/phone.png"), std::vector<uint8_t>({ 0x0B }));
-    std::ifstream file(testDir_ + "/watch.png");
-    EXPECT_FALSE(file.good());
-}
-
-HWTEST_F(CompanionIconStoreTest, Delete_InvalidName_Fails, TestSize.Level0)
-{
-    EXPECT_EQ(DeleteIconFromDirectory(testDir_, "../escape.png"), ResultCode::INVALID_PARAMETERS);
-    EXPECT_EQ(DeleteIconFromDirectory(testDir_, "a/b.png"), ResultCode::INVALID_PARAMETERS);
-    EXPECT_EQ(DeleteIconFromDirectory(testDir_, ""), ResultCode::INVALID_PARAMETERS);
-    EXPECT_EQ(DeleteIconFromDirectory(testDir_, "."), ResultCode::INVALID_PARAMETERS);
-    EXPECT_EQ(DeleteIconFromDirectory(testDir_, "a..b"), ResultCode::INVALID_PARAMETERS);
-}
-
-HWTEST_F(CompanionIconStoreTest, Delete_EmptyDirectory_Fails, TestSize.Level0)
-{
-    EXPECT_EQ(DeleteIconFromDirectory("", "icon.png"), ResultCode::INVALID_PARAMETERS);
+    EXPECT_TRUE(guard.GetFileStorageAdapter().GetDeletedFiles().empty());
 }
 } // namespace

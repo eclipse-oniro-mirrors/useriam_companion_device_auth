@@ -555,7 +555,8 @@ bool EncodeCompanionProcessCheckInput(const CompanionProcessCheckInput &input, C
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
     ffi.challenge = input.challenge;
 
-    if (!VectorToFfiArray(input.companionProtocolList, ffi.companionProtocolList, "companion protocol list")) {
+    const auto &proofList = input.companionProofProtocolList;
+    if (!VectorToFfiArray(proofList, ffi.companionProofProtocolList, "companion proof protocol list")) {
         return false;
     }
 
@@ -581,7 +582,8 @@ bool EncodeCompanionInitKeyNegotiationInput(const CompanionInitKeyNegotiationInp
     ffi.requestId = input.requestId;
     ffi.secureProtocolId = static_cast<uint16_t>(input.secureProtocolId);
 
-    if (!VectorToFfiArray(input.companionProtocolList, ffi.companionProtocolList, "companion protocol list")) {
+    const auto &supportedList = input.companionSupportedProtocolList;
+    if (!VectorToFfiArray(supportedList, ffi.companionSupportedProtocolList, "companion supported protocol list")) {
         return false;
     }
 

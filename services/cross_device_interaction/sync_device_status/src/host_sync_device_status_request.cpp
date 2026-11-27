@@ -141,7 +141,7 @@ void HostSyncDeviceStatusRequest::BeginCompanionCheck()
         .FilterCompanionStatus(hostUserKey_, companionDeviceKey_.AsPhysical(), ProtocolId::VERSION_2)
         .empty()) {
         // clang-format on
-        // V1-only: nothing to sign, and the legacy companion TA rejects any list containing V2
+        // V1-only: nothing to sign, and the legacy companion's Rust rejects any list containing V2
         IAM_LOGI("%{public}s v1-only credentials, unprotected v1 sync without challenge round", GetDescription());
         SendSyncDeviceStatusRequest(syncRequest, ProtocolId::VERSION_1);
         errorGuard.Cancel();
@@ -309,7 +309,7 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     const bool companionCheckOk = EndCompanionCheck(replyData, companionStatus, authenticatedCapabilities);
     UpdateCompanionUserIdAndSubProfileId(replyData.companionDeviceKey.AsUserKey());
 
-    ProtocolId freshBindingProtocolId = ComputeFreshBindingProtocolId(replyData.companionProtocolIdList);
+    ProtocolId freshBindingProtocolId = ComputeFreshBindingProtocolId(replyData.companionSupportedProtocolIdList);
     if (freshBindingProtocolId == ProtocolId::INVALID) {
         IAM_LOGE("%{public}s no common protocol with the announced support set", GetDescription());
         errorGuard.UpdateErrorCode(ResultCode::PROTOCOL_NEGOTIATION_FAILED);
@@ -325,8 +325,8 @@ void HostSyncDeviceStatusRequest::HandleSyncDeviceStatusReply(const Attributes &
     SyncDeviceStatus syncDeviceStatus =
         BuildSyncDeviceStatus(replyData, selectedCompanionCapabilityList, selectedProtocolId, freshBindingProtocolId);
 
-    eventCollector_.SetPeerProtocolIdList(
-        ProtocolIdConverter::ToUnderlyingVec(syncDeviceStatus.companionProtocolIdList));
+    eventCollector_.SetPeerSupportedProtocolIdList(
+        ProtocolIdConverter::ToUnderlyingVec(replyData.companionSupportedProtocolIdList));
     eventCollector_.SetSelectedProtocolId(ProtocolIdConverter::ToUnderlying(selectedProtocolId));
     eventCollector_.SetSecureProtocolId(static_cast<uint16_t>(syncDeviceStatus.secureProtocolId));
 
@@ -356,7 +356,6 @@ SyncDeviceStatus HostSyncDeviceStatusRequest::BuildSyncDeviceStatus(const SyncDe
 {
     SyncDeviceStatus syncDeviceStatus = {};
     syncDeviceStatus.needSync = true;
-    syncDeviceStatus.companionProtocolIdList = reply.companionProtocolIdList;
     syncDeviceStatus.companionCapabilityList = selectedCompanionCapabilityList;
     syncDeviceStatus.businessIdList = reply.businessIdList;
     syncDeviceStatus.secureProtocolId = reply.secureProtocolId;
@@ -399,10 +398,15 @@ void HostSyncDeviceStatusRequest::InvalidateCompanion(const std::optional<UserKe
 
 ResultCode HostSyncDeviceStatusRequest::ValidateReplyParameters(const SyncDeviceStatusReply &reply) const
 {
-    if (reply.companionProtocolIdList.empty()) {
+    if (reply.companionProofProtocolIdList.empty()) {
         return ResultCode::PROTOCOL_NEGOTIATION_FAILED;
     }
-    if (IntersectLists(reply.companionProtocolIdList, sentProtocolIdList_).empty()) {
+    if (IntersectLists(reply.companionProofProtocolIdList, sentProtocolIdList_).empty()) {
+        return ResultCode::PROTOCOL_NEGOTIATION_FAILED;
+    }
+    if (IntersectLists(reply.companionProofProtocolIdList, reply.companionSupportedProtocolIdList).size() !=
+        reply.companionProofProtocolIdList.size()) {
+        IAM_LOGE("%{public}s announced support set does not cover the proof list", GetDescription());
         return ResultCode::PROTOCOL_NEGOTIATION_FAILED;
     }
     return ResultCode::SUCCESS;
@@ -463,7 +467,7 @@ ResultCode HostSyncDeviceStatusRequest::HostEndCompanionCheck(TemplateId templat
 
 uint32_t HostSyncDeviceStatusRequest::GetMaxConcurrency() const
 {
-    return 100; // Spec: max 100 concurrent HostSyncDeviceStatusRequest (TA limited to 10 by CA)
+    return 100; // Spec: max 100 concurrent HostSyncDeviceStatusRequest (Rust limited to 10 by CA)
 }
 
 bool HostSyncDeviceStatusRequest::ShouldCancelOnNewRequest([[maybe_unused]] const IRequest &newRequest,
@@ -497,18 +501,18 @@ void HostSyncDeviceStatusRequest::UpdateCompanionUserIdAndSubProfileId(const Use
 }
 
 ProtocolId HostSyncDeviceStatusRequest::ComputeFreshBindingProtocolId(
-    const std::vector<ProtocolId> &companionProtocolIdList) const
+    const std::vector<ProtocolId> &companionSupportedProtocolIdList) const
 {
     auto localProfile = GetCrossDeviceCommManager().GetLocalDeviceProfile();
     for (const auto &hostProtocol : localProfile.hostProtocols) {
-        if (std::find(companionProtocolIdList.begin(), companionProtocolIdList.end(), hostProtocol) !=
-            companionProtocolIdList.end()) {
+        if (std::find(companionSupportedProtocolIdList.begin(), companionSupportedProtocolIdList.end(), hostProtocol) !=
+            companionSupportedProtocolIdList.end()) {
             return hostProtocol;
         }
     }
     IAM_LOGE("%{public}s no common protocol, hostProtocols:%{public}s companionProtocols:%{public}s", GetDescription(),
         GetVectorString(ProtocolIdConverter::ToUnderlyingVec(localProfile.hostProtocols)).c_str(),
-        GetVectorString(ProtocolIdConverter::ToUnderlyingVec(companionProtocolIdList)).c_str());
+        GetVectorString(ProtocolIdConverter::ToUnderlyingVec(companionSupportedProtocolIdList)).c_str());
     return ProtocolId::INVALID;
 }
 

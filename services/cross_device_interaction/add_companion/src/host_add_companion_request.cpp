@@ -533,7 +533,7 @@ ResultCode HostAddCompanionRequest::EndAddCompanion(const BeginAddHostBindingRep
     ProcessEndAddCompanionOutput(output, fwkMsg);
     if (companionIcon_.has_value()) {
         // The binding is already persisted; an icon write failure must not flip the enrollment result.
-        ResultCode saveRet = SaveIconToDirectory(BuildIconDirectory(hostDeviceKey_.deviceUserId), *companionIcon_);
+        ResultCode saveRet = SaveIcon(hostDeviceKey_.deviceUserId, *companionIcon_);
         if (saveRet != ResultCode::SUCCESS) {
             IAM_LOGE("%{public}s SaveIcon failed ret=%{public}d, keep enrollment result", GetDescription(),
                 static_cast<int32_t>(saveRet));

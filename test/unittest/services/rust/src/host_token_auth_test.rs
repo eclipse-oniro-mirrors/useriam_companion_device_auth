@@ -806,7 +806,7 @@ fn host_token_auth_request_new_test_secure_protocol_id_not_support() {
     let _guard = ut_registry_guard!();
     log_i!("host_token_auth_request_new_test_secure_protocol_id_not_support start");
 
-    // Boundary check: an FFI input protocol id outside the TA-declared support set is rejected
+    // Boundary check: an FFI input protocol id outside the Rust-declared support set is rejected
     // fail-closed before any state is touched (not even the challenge entropy is consumed).
     let input = HostBeginTokenAuthInputFfi {
         request_id: 1,

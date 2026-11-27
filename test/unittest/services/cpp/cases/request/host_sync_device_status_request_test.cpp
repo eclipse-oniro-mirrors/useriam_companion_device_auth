@@ -55,14 +55,44 @@ SyncDeviceStatusReply MakeDefaultSyncDeviceStatusReply()
 {
     return {
         .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = { ProtocolId::VERSION_1 },
+        .companionProofProtocolIdList = { ProtocolId::VERSION_1 },
         .companionCapabilityList = { Capability::TOKEN_AUTH },
         .businessIdList = { BusinessId::DEFAULT },
         .secureProtocolId = SecureProtocolId::DEFAULT,
         .companionDeviceKey = COMPANION_DEVICE_KEY,
         .deviceUserName = "test_user_name",
         .companionCheckResponse = { 1, 2, 3 },
+        .companionSupportedProtocolIdList = { ProtocolId::VERSION_1 },
     };
+}
+
+// Wire shape of a peer predating ATTR_CDA_SA_COMPANION_SUPPORTED_PROTOCOL_ID_LIST: the current
+// encoder always carries the field, so the old format is assembled by hand, without the key.
+Attributes EncodeOldPeerSyncDeviceStatusReply(const SyncDeviceStatusReply &reply)
+{
+    Attributes attributes;
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(reply.result));
+    std::vector<uint16_t> protocolIdList;
+    for (const auto &protocol : reply.companionProofProtocolIdList) {
+        protocolIdList.push_back(static_cast<uint16_t>(protocol));
+    }
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST, protocolIdList);
+    std::vector<uint16_t> capabilityList;
+    for (const auto &capability : reply.companionCapabilityList) {
+        capabilityList.push_back(static_cast<uint16_t>(capability));
+    }
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST, capabilityList);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, reply.companionDeviceKey.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID,
+        reply.companionDeviceKey.deviceSubProfileId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(reply.companionDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
+    attributes.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID,
+        static_cast<uint16_t>(reply.secureProtocolId));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, reply.deviceUserName);
+    attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, reply.companionCheckResponse);
+    return attributes;
 }
 
 CompanionStatus MakeBoundCompanionStatus()
@@ -109,6 +139,11 @@ void DeliverSyncReply(const OnMessageReply &callback, const SyncDeviceStatusRepl
     ASSERT_TRUE(callback);
     callback(MakeReplyAttributes(replyData));
     TaskRunnerManager::GetInstance().ExecuteAll();
+}
+
+void SetCompanionSrcIdentifier(Attributes &reply)
+{
+    SetCompanionSrcIdentifier(reply);
 }
 
 void ReplyBindingSignatureChallenge(OnMessageReply &onReply, ResultCode result, const UserKey &companionUserKey,
@@ -517,7 +552,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_DivergedProtocolEnds
     auto request = MakeDefaultRequest(std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = { ProtocolId::VERSION_2 },
+        .companionProofProtocolIdList = { ProtocolId::VERSION_2 },
         .businessIdList = { BusinessId::DEFAULT },
         .companionCheckResponse = { 1, 2, 3 } };
     syncDeviceStatusReply.companionDeviceKey = COMPANION_DEVICE_KEY;
@@ -541,7 +576,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EndCompanionCheck_ProoflessReplyInvali
     auto request = MakeDefaultRequest(std::move(callback));
 
     SyncDeviceStatusReply syncDeviceStatusReply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = { ProtocolId::VERSION_2 },
+        .companionProofProtocolIdList = { ProtocolId::VERSION_2 },
         .businessIdList = { BusinessId::DEFAULT } };
     syncDeviceStatusReply.companionDeviceKey = COMPANION_DEVICE_KEY;
 
@@ -611,14 +646,15 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, ValidateReplyParameters_AcceptsSuperse
     ASSERT_NE(request, nullptr);
     request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto reply = MakeDefaultSyncDeviceStatusReply();
-    reply.companionProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    reply.companionProofProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    reply.companionSupportedProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
     reply.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
     EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
 }
 
 // A first sync against a device holding only a valid V1 binding skips the challenge roundtrip
 // entirely — there is nothing to sign, and no resolved identity can move the offer away from
-// {VERSION_1} (the legacy peer's TA would whole-list-reject a wider offer). The round dispatches
+// {VERSION_1} (the legacy peer's Rust would whole-list-reject a wider offer). The round dispatches
 // unprotected in a single message.
 HWTEST_F(HostSyncDeviceStatusRequestTest, FirstSync_SelectsReplyUserBindingInOneRound, TestSize.Level0)
 {
@@ -691,11 +727,10 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_RejectsUno
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
-    message.companionProtocolIdList = { ProtocolId::VERSION_2 };
+    message.companionProofProtocolIdList = { ProtocolId::VERSION_2 };
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, PROTOCOL_NEGOTIATION_FAILED);
@@ -716,8 +751,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_Capability
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(bound.templateId, "sync capability list diverged")).Times(1);
     Attributes reply;
     EncodeSyncDeviceStatusReply(MakeDefaultSyncDeviceStatusReply(), reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
@@ -750,8 +784,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_ConsumesAu
     message.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -781,8 +814,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_FallsBackT
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -1168,8 +1200,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, EmptyProofLearnsUserKeyAndInvalidatesC
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -1191,9 +1222,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UnauthenticatedRoundsInvalidateEachRou
         message.companionCheckResponse.clear();
         Attributes reply;
         EncodeSyncDeviceStatusReply(message, reply);
-        reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
-            static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-        reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+        SetCompanionSrcIdentifier(reply);
         target->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
         TaskRunnerManager::GetInstance().ExecuteAll();
     };
@@ -1268,7 +1297,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchUsesReplyBindingAndFullOffer
     TaskRunnerManager::GetInstance().ExecuteAll();
     auto message = MakeDefaultSyncDeviceStatusReply();
     message.companionDeviceKey = activeKey;
-    message.companionProtocolIdList = { ProtocolId::VERSION_2 };
+    message.companionProofProtocolIdList = { ProtocolId::VERSION_2 };
+    message.companionSupportedProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
     DeliverSyncReply(callback, message);
     EXPECT_TRUE(succeeded);
     EXPECT_EQ(request->companionDeviceKey_.deviceUserId, NEXT_USER_ID);
@@ -1290,13 +1320,13 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DiscoveryDoesNotBorrowAnotherHostUsers
     EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
-    message.companionProtocolIdList.push_back(ProtocolId::VERSION_2);
+    message.companionProofProtocolIdList.push_back(ProtocolId::VERSION_2);
+    message.companionSupportedProtocolIdList = message.companionProofProtocolIdList;
     message.companionCapabilityList.push_back(Capability::DELEGATE_AUTH);
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -1320,13 +1350,13 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, UserSwitchToUnboundUserAllowsDiscovery
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
     auto message = MakeDefaultSyncDeviceStatusReply();
     message.companionDeviceKey = activeKey;
-    message.companionProtocolIdList.push_back(ProtocolId::VERSION_2);
+    message.companionProofProtocolIdList.push_back(ProtocolId::VERSION_2);
+    message.companionSupportedProtocolIdList = message.companionProofProtocolIdList;
     message.companionCapabilityList.push_back(Capability::DELEGATE_AUTH);
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -1355,8 +1385,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, MissingPeerBindingInvalidatesCredentia
     message.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -1380,8 +1409,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FailedProofInvalidatesAndRoundStillSuc
     message.companionDeviceKey.deviceUserId = NEXT_USER_ID;
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
@@ -1425,11 +1453,11 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, ValidateReplyParameters_RejectsEmptyIn
     ASSERT_NE(request, nullptr);
     request->sentProtocolIdList_ = PROFILE.hostProtocols;
     auto reply = MakeDefaultSyncDeviceStatusReply();
-    reply.companionProtocolIdList.clear();
+    reply.companionProofProtocolIdList.clear();
     EXPECT_EQ(request->ValidateReplyParameters(reply), PROTOCOL_NEGOTIATION_FAILED);
-    reply.companionProtocolIdList = { ProtocolId::VERSION_2 };
+    reply.companionProofProtocolIdList = { ProtocolId::VERSION_2 };
     EXPECT_EQ(request->ValidateReplyParameters(reply), PROTOCOL_NEGOTIATION_FAILED);
-    reply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    reply.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
     EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
 }
 
@@ -1450,8 +1478,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DivergedListWithUntrustedUserKeyStillI
     message.companionDeviceKey.deviceUserId = CLAIMED_USER_ID;
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
@@ -1473,8 +1500,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, FutureSecureProtocolInvalidatesTemplat
     Attributes reply;
     EncodeSyncDeviceStatusReply(MakeDefaultSyncDeviceStatusReply(), reply);
     reply.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, 2); // future version
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
@@ -1494,8 +1520,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DivergedEnrolledProtocolInvalidatesWit
     EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(bound.templateId, "sync protocol list diverged")).Times(1);
     Attributes reply;
     EncodeSyncDeviceStatusReply(MakeDefaultSyncDeviceStatusReply(), reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_EQ(received, SUCCESS);
@@ -1596,8 +1621,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DowngradedRoundEmptyProofInvalidatesBu
     replyData.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(replyData, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     messageCallback(reply);
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -1760,8 +1784,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, V2BoundPeerEmptyProofInvalidates, Test
     replyData.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(replyData, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     messageCallback(reply);
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -1816,7 +1839,8 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, MatchedV2IdentityRestoresFullOffer, Te
     request->OnConnected();
     TaskRunnerManager::GetInstance().ExecuteAll();
     auto replyData = MakeDefaultSyncDeviceStatusReply();
-    replyData.companionProtocolIdList = { ProtocolId::VERSION_2 };
+    replyData.companionProofProtocolIdList = { ProtocolId::VERSION_2 };
+    replyData.companionSupportedProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
     DeliverSyncReply(messageCallback, replyData);
     EXPECT_TRUE(succeeded);
 }
@@ -1954,8 +1978,7 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, InvalidOnlyBindingSendsDiscoveryRound,
     replyData.companionCheckResponse.clear();
     Attributes reply;
     EncodeSyncDeviceStatusReply(replyData, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     messageCallback(reply);
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -2054,12 +2077,11 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, DiscoveryRoundCachesFullAnnouncedCapab
     TaskRunnerManager::GetInstance().ExecuteAll();
     ASSERT_TRUE(messageCallback);
     auto message = MakeDefaultSyncDeviceStatusReply();
-    message.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    message.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
     message.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
     Attributes reply;
     EncodeSyncDeviceStatusReply(message, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     messageCallback(reply);
     TaskRunnerManager::GetInstance().ExecuteAll();
     EXPECT_TRUE(succeeded);
@@ -2134,11 +2156,11 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, InvalidatedRoundPublishesFreshBindingF
     auto replyData = MakeDefaultSyncDeviceStatusReply();
     replyData.companionCheckResponse.clear();
     replyData.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
-    replyData.companionProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    replyData.companionProofProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    replyData.companionSupportedProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
     Attributes reply;
     EncodeSyncDeviceStatusReply(replyData, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
 
@@ -2149,8 +2171,9 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, InvalidatedRoundPublishesFreshBindingF
 }
 
 // A re-validated binding pins selected at its enrolled version while freshBinding still reflects
-// the full support set: both values coexist in one snapshot (scenario: valid V1 binding, both
-// sides support V2).
+// the peer's complete support set: both values coexist in one snapshot (scenario: valid V1 binding,
+// both sides support V2). The peer proves with VERSION_1 alone and announces the complete set on
+// its own field; the published list is the complete set.
 HWTEST_F(HostSyncDeviceStatusRequestTest, AuthenticatedRoundKeepsEnrolledWhileFreshBindingTracksFullSet,
     TestSize.Level0)
 {
@@ -2184,19 +2207,181 @@ HWTEST_F(HostSyncDeviceStatusRequestTest, AuthenticatedRoundKeepsEnrolledWhileFr
 
     auto replyData = MakeDefaultSyncDeviceStatusReply();
     replyData.companionCapabilityList = { Capability::TOKEN_AUTH, Capability::DELEGATE_AUTH };
-    replyData.companionProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    replyData.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
+    replyData.companionSupportedProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
     Attributes reply;
     EncodeSyncDeviceStatusReply(replyData, reply);
-    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE, static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
-    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
+    SetCompanionSrcIdentifier(reply);
     request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
     TaskRunnerManager::GetInstance().ExecuteAll();
 
     EXPECT_TRUE(succeeded);
     EXPECT_EQ(selectedProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_1));
     EXPECT_EQ(freshBindingProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_2));
+    // the published protocol view is the peer's complete support set, reported via the event
+    EXPECT_NE(request->eventCollector_.GetExtraInfo().find("peerProtocolIdList:[2, 1]"), std::string::npos);
     // the authenticated capability set wins over the announcement for the binding view
     EXPECT_EQ(receivedCapabilities, std::vector<Capability> { Capability::TOKEN_AUTH });
+}
+
+// A peer that does not send the dedicated field (a peer predating it) announces its complete set in
+// the proof list field: decode defaults the support set to it, so freshBinding and the published
+// list both come from that list.
+HWTEST_F(HostSyncDeviceStatusRequestTest, FreshBindingFallsBackToProofListWithoutDedicatedSupportSet, TestSize.Level0)
+{
+    LocalDeviceProfile profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    auto bound = MakeBoundCompanionStatus();
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillRepeatedly(Return(std::make_optional(bound)));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
+        .WillRepeatedly(Invoke([](const HostEndCompanionCheckInput &, HostEndCompanionCheckOutput &output) {
+            output.companionCapabilityList = { static_cast<uint16_t>(Capability::TOKEN_AUTH) };
+            return SUCCESS;
+        }));
+
+    struct Scenario {
+        std::vector<ProtocolId> announced;
+        ProtocolId expectedFresh;
+        std::string expectedReported;
+    };
+    const std::vector<Scenario> scenarios = { { { ProtocolId::VERSION_1 }, ProtocolId::VERSION_1,
+                                                  "peerProtocolIdList:[1]" },
+        { { ProtocolId::VERSION_2, ProtocolId::VERSION_1 }, ProtocolId::VERSION_2, "peerProtocolIdList:[2, 1]" } };
+
+    for (const auto &scenario : scenarios) {
+        bool succeeded = false;
+        uint16_t selectedProtocolId = 0;
+        uint16_t freshBindingProtocolId = 0;
+        auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+            succeeded = result == SUCCESS;
+            selectedProtocolId = status.selectedProtocolId;
+            freshBindingProtocolId = status.freshBindingProtocolId;
+        });
+        ASSERT_NE(request, nullptr);
+        request->sentProtocolIdList_ = { ProtocolId::VERSION_1 };
+
+        auto replyData = MakeDefaultSyncDeviceStatusReply();
+        replyData.companionProofProtocolIdList = scenario.announced;
+        Attributes reply = EncodeOldPeerSyncDeviceStatusReply(replyData);
+        request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+        TaskRunnerManager::GetInstance().ExecuteAll();
+
+        EXPECT_TRUE(succeeded);
+        EXPECT_EQ(selectedProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_1));
+        EXPECT_EQ(freshBindingProtocolId, static_cast<uint16_t>(scenario.expectedFresh));
+        EXPECT_NE(request->eventCollector_.GetExtraInfo().find(scenario.expectedReported), std::string::npos);
+    }
+}
+
+// The support set is checked for structure only: it must cover the proof list. A failure fails the
+// round and leaves the credential alone. Decode defaults the field to the proof list for peers
+// predating the attribute, so a defaulted value passes trivially; the non-covering shape here is
+// exactly the carried-but-inconsistent one.
+HWTEST_F(HostSyncDeviceStatusRequestTest, ValidateReplyParameters_ChecksCarriedSupportSet, TestSize.Level0)
+{
+    auto request = MakeDefaultRequest([](ResultCode, const SyncDeviceStatus &) {});
+    ASSERT_NE(request, nullptr);
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+    // A defaulted support set equals the (already checked non-empty) proof list and passes.
+    auto reply = MakeDefaultSyncDeviceStatusReply();
+    reply.companionSupportedProtocolIdList = reply.companionProofProtocolIdList;
+    EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
+
+    // The proof list is {VERSION_1}: a support set without it is inconsistent.
+    reply.companionSupportedProtocolIdList = std::vector<ProtocolId> { ProtocolId::VERSION_2 };
+    EXPECT_EQ(request->ValidateReplyParameters(reply), PROTOCOL_NEGOTIATION_FAILED);
+
+    reply.companionSupportedProtocolIdList = std::vector<ProtocolId> { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
+}
+
+// A protocol value a later version may list and this host does not know.
+constexpr ProtocolId FUTURE_PROTOCOL_ID = static_cast<ProtocolId>(999);
+
+// A peer of a higher version may list protocols this host does not know. They are only ever looked
+// past: the round is judged by the values the two peers have in common.
+HWTEST_F(HostSyncDeviceStatusRequestTest, ValidateReplyParameters_ToleratesUnknownProtocolOfHigherVersionPeer,
+    TestSize.Level0)
+{
+    auto request = MakeDefaultRequest([](ResultCode, const SyncDeviceStatus &) {});
+    ASSERT_NE(request, nullptr);
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+
+    // The proof list narrows to what the host offered; the complete set reaches beyond it.
+    auto reply = MakeDefaultSyncDeviceStatusReply();
+    reply.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
+    reply.companionSupportedProtocolIdList = { ProtocolId::VERSION_1, ProtocolId::VERSION_2, FUTURE_PROTOCOL_ID };
+    EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
+
+    // An unknown value inside the proof list is judged the same way, by its place in the peer's set.
+    reply.companionProofProtocolIdList = { ProtocolId::VERSION_1, FUTURE_PROTOCOL_ID };
+    EXPECT_EQ(request->ValidateReplyParameters(reply), SUCCESS);
+}
+
+// With a higher-version peer the fresh binding protocol stays the best value both sides know; the
+// value only the peer knows rides along in the protocol list and picks nothing.
+HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_HigherVersionPeer_FreshBindingIsBestCommon,
+    TestSize.Level0)
+{
+    LocalDeviceProfile profile = PROFILE;
+    profile.hostProtocols = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    ON_CALL(mockCrossDeviceCommManager_, GetLocalDeviceProfile()).WillByDefault(Return(profile));
+
+    auto bound = MakeBoundCompanionStatus();
+    EXPECT_CALL(mockCompanionManager_, GetCompanionStatus(_, _)).WillRepeatedly(Return(std::make_optional(bound)));
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _))
+        .WillRepeatedly(Invoke([](const HostEndCompanionCheckInput &, HostEndCompanionCheckOutput &output) {
+            output.companionCapabilityList = { static_cast<uint16_t>(Capability::TOKEN_AUTH) };
+            return SUCCESS;
+        }));
+
+    bool succeeded = false;
+    uint16_t freshBindingProtocolId = 0;
+    auto request = MakeDefaultRequest([&](ResultCode result, const SyncDeviceStatus &status) {
+        succeeded = result == SUCCESS;
+        freshBindingProtocolId = status.freshBindingProtocolId;
+    });
+    ASSERT_NE(request, nullptr);
+    request->sentProtocolIdList_ = { ProtocolId::VERSION_1 };
+
+    auto replyData = MakeDefaultSyncDeviceStatusReply();
+    replyData.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
+    replyData.companionSupportedProtocolIdList = { FUTURE_PROTOCOL_ID, ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
+    Attributes reply;
+    EncodeSyncDeviceStatusReply(replyData, reply);
+    SetCompanionSrcIdentifier(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_TRUE(succeeded);
+    EXPECT_EQ(freshBindingProtocolId, static_cast<uint16_t>(ProtocolId::VERSION_2));
+    // the value only the peer knows rides along in the reported support set and picks nothing
+    EXPECT_NE(request->eventCollector_.GetExtraInfo().find("peerProtocolIdList:[999, 2, 1]"), std::string::npos);
+}
+
+// An inconsistent carried support set fails the structural pre-filter before the security layer
+// runs; the rejection fails the round but does not invalidate the binding.
+HWTEST_F(HostSyncDeviceStatusRequestTest, HandleSyncDeviceStatusReply_RejectsSupportSetNotCoveringProofList,
+    TestSize.Level0)
+{
+    ResultCode received = SUCCESS;
+    auto request = MakeDefaultRequest([&received](ResultCode result, const SyncDeviceStatus &) { received = result; });
+    ASSERT_NE(request, nullptr);
+    request->sentProtocolIdList_ = PROFILE.hostProtocols;
+    EXPECT_CALL(mockSecurityAgent_, HostEndCompanionCheck(_, _)).Times(0);
+    EXPECT_CALL(mockCompanionManager_, SetTemplateInvalid(_, _)).Times(0);
+    auto message = MakeDefaultSyncDeviceStatusReply();
+    message.companionSupportedProtocolIdList = std::vector<ProtocolId> { ProtocolId::VERSION_2 };
+    Attributes reply;
+    EncodeSyncDeviceStatusReply(message, reply);
+    SetCompanionSrcIdentifier(reply);
+    request->HandleSyncDeviceStatusReply(reply, std::make_shared<Attributes>());
+    TaskRunnerManager::GetInstance().ExecuteAll();
+    EXPECT_EQ(received, PROTOCOL_NEGOTIATION_FAILED);
 }
 
 } // namespace

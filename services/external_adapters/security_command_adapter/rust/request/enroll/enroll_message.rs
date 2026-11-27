@@ -15,7 +15,7 @@
 
 use crate::common::constants::{
     AeadAlgoType, ErrorCode, KaAlgoType, KdfAlgoType, MacAlgoType, ProcessorType, AES_GCM_IV_SIZE,
-    AES_GCM_TAG_SIZE, HKDF_SALT_SIZE,
+    AES_GCM_TAG_SIZE, HKDF_SALT_SIZE, INVALID_SUB_PROFILE_ID,
 };
 use crate::common::algorithm::{CryptoAlgorithms, SelectedAlgorithms};
 use crate::traits::db_manager::UserKey;
@@ -339,7 +339,7 @@ pub struct SecBindingReplyInfo {
     pub esl: i32,
     pub track_ability_level: i32,
     pub challenge: u64,
-    pub companion_protocol_list: Vec<u16>,
+    pub companion_reply_protocol_list: Vec<u16>,
     pub companion_capability_list: Vec<u16>,
     pub selected_algorithms: SelectedAlgorithms,
     pub companion_supported_algorithms: CryptoAlgorithms,
@@ -354,7 +354,7 @@ impl SecBindingReplyInfo {
         attribute.set_i32(AttributeKey::AttrEsl, self.esl);
         attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, self.track_ability_level);
         attribute.set_u64(AttributeKey::AttrHostChallenge, self.challenge);
-        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.companion_protocol_list);
+        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.companion_reply_protocol_list);
         attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.companion_capability_list);
         attribute.set_u16(AttributeKey::AttrKaAlgoList, self.selected_algorithms.ka_algorithm);
         attribute.set_u16(AttributeKey::AttrKdfAlgoList, self.selected_algorithms.kdf_algorithm);
@@ -386,11 +386,11 @@ impl SecBindingReplyInfo {
         let attribute = Attribute::try_from_bytes(decrypt_data).map_err(|e| p!(e))?;
         let device_id = attribute.get_string(AttributeKey::AttrDeviceId).map_err(|e| p!(e))?;
         let user_id = attribute.get_i32(AttributeKey::AttrUserId).map_err(|e| p!(e))?;
-        let sub_profile_id = attribute.get_i32(AttributeKey::AttrSubProfileId).map_err(|e| p!(e))?;
+        let sub_profile_id = attribute.get_i32_or_legacy(AttributeKey::AttrSubProfileId, INVALID_SUB_PROFILE_ID)?;
         let esl = attribute.get_i32(AttributeKey::AttrEsl).map_err(|e| p!(e))?;
         let track_ability_level = attribute.get_i32(AttributeKey::AttrTrackAbilityLevel).map_err(|e| p!(e))?;
         let challenge = attribute.get_u64(AttributeKey::AttrHostChallenge).map_err(|e| p!(e))?;
-        let companion_protocol_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
+        let companion_reply_protocol_list = attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
         let companion_capability_list =
             attribute.get_u16_vec(AttributeKey::AttrCapabilityList).map_err(|e| p!(e))?;
         let selected_algorithms = SelectedAlgorithms {
@@ -429,7 +429,7 @@ impl SecBindingReplyInfo {
             esl,
             track_ability_level,
             challenge,
-            companion_protocol_list,
+            companion_reply_protocol_list,
             companion_capability_list,
             selected_algorithms,
             companion_supported_algorithms,

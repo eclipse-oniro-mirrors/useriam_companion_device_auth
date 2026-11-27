@@ -184,10 +184,10 @@ HWTEST_F(InteractionEventCollectorTest, SetCapabilityList_001, TestSize.Level0)
     EXPECT_NE(collector.GetExtraInfo().find("capabilityList:[1]"), std::string::npos);
 }
 
-HWTEST_F(InteractionEventCollectorTest, SetPeerProtocolIdList_001, TestSize.Level0)
+HWTEST_F(InteractionEventCollectorTest, SetPeerSupportedProtocolIdList_001, TestSize.Level0)
 {
     InteractionEventCollector collector("test");
-    collector.SetPeerProtocolIdList({ 10 });
+    collector.SetPeerSupportedProtocolIdList({ 10 });
     EXPECT_NE(collector.GetExtraInfo().find("peerProtocolIdList:[10]"), std::string::npos);
 }
 
@@ -449,7 +449,7 @@ HWTEST_F(InteractionEventCollectorTest, Report_WithAllFieldsSet, TestSize.Level0
     collector.SetEsl(2);
     collector.SetProtocolIdList({ 100 });
     collector.SetCapabilityList({ 200 });
-    collector.SetPeerProtocolIdList({ 300 });
+    collector.SetPeerSupportedProtocolIdList({ 300 });
     collector.SetSelectedProtocolId(30);
     collector.SetSecureProtocolId(400);
     collector.AddTemplateAuthResult(555, ResultCode::SUCCESS);

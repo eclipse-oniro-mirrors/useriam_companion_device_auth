@@ -91,7 +91,7 @@ HWTEST_F(CompanionAddCompanionRequestTest, OnStart_001, TestSize.Level0)
     EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetLocalDeviceProfile()).WillOnce(Return(MakeCompanionProfile()));
     EXPECT_CALL(guard.GetSecurityAgent(), CompanionInitKeyNegotiation(_, _))
         .WillOnce(Invoke([](const CompanionInitKeyNegotiationInput &input, CompanionInitKeyNegotiationOutput &output) {
-            EXPECT_EQ(input.companionProtocolList,
+            EXPECT_EQ(input.companionSupportedProtocolList,
                 std::vector<uint16_t> { static_cast<uint16_t>(ProtocolId::VERSION_1) });
             EXPECT_EQ(input.companionCapabilityList,
                 std::vector<uint16_t> { static_cast<uint16_t>(Capability::TOKEN_AUTH) });

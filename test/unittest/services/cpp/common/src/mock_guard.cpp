@@ -34,6 +34,7 @@
 #include "mock_driver_manager_adapter.h"
 #include "mock_event_manager_adapter.h"
 #include "mock_executor_factory.h"
+#include "mock_file_storage_adapter.h"
 #include "mock_host_binding_manager.h"
 #include "mock_idm_adapter.h"
 #include "mock_misc_manager.h"
@@ -69,6 +70,9 @@ void MockGuard::CreateMocks()
     // AdapterManager mocks
     timeKeeper_ = std::make_shared<MockTimeKeeper>();
     AdapterManager::GetInstance().SetTimeKeeper(timeKeeper_);
+
+    fileStorageAdapter_ = std::make_shared<MockFileStorageAdapter>();
+    AdapterManager::GetInstance().SetFileStorageAdapter(fileStorageAdapter_);
 
     userAuthAdapter_ = std::make_shared<MockUserAuthAdapter>();
     AdapterManager::GetInstance().SetUserAuthAdapter(userAuthAdapter_);
@@ -409,10 +413,16 @@ MockGuard::~MockGuard()
     AdapterManager::GetInstance().SetEventManagerAdapter(nullptr);
     AdapterManager::GetInstance().SetSystemSettingsManager(nullptr);
     AdapterManager::GetInstance().SetAppForegroundStateAdapter(nullptr);
+    AdapterManager::GetInstance().SetFileStorageAdapter(nullptr);
     // The Reset() call above already cleared all shared_ptr references
 }
 
 // AdapterManager mock access methods
+
+MockFileStorageAdapter &MockGuard::GetFileStorageAdapter()
+{
+    return *fileStorageAdapter_;
+}
 
 MockTimeKeeper &MockGuard::GetTimeKeeper()
 {

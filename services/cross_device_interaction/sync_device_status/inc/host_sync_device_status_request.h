@@ -84,7 +84,7 @@ private:
     SyncDeviceStatus BuildSyncDeviceStatus(const SyncDeviceStatusReply &reply,
         const std::vector<Capability> &selectedCompanionCapabilityList, ProtocolId selectedProtocolId,
         ProtocolId freshBindingProtocolId) const;
-    ProtocolId ComputeFreshBindingProtocolId(const std::vector<ProtocolId> &companionProtocolIdList) const;
+    ProtocolId ComputeFreshBindingProtocolId(const std::vector<ProtocolId> &companionSupportedProtocolIdList) const;
     void UpdateCompanionUserIdAndSubProfileId(const UserKey &companionUserKey);
     void InvokeCallback(ResultCode result, const SyncDeviceStatus &syncDeviceStatus);
 

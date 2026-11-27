@@ -56,7 +56,7 @@ public:
     void SetBindingId(BindingId bindingId);
     void SetContextId(uint64_t contextId);
     void SetProtocolIdList(const std::vector<uint16_t> &protocolIdList);
-    void SetPeerProtocolIdList(const std::vector<uint16_t> &peerProtocolIdList);
+    void SetPeerSupportedProtocolIdList(const std::vector<uint16_t> &peerSupportedProtocolIdList);
     void SetSelectedProtocolId(uint16_t selectedProtocolId);
     void SetSecureProtocolId(uint16_t secureProtocolId);
     void SetCapabilityList(const std::vector<uint16_t> &capabilityList);
@@ -144,7 +144,7 @@ private:
     std::optional<BindingId> bindingId_;
     std::optional<uint64_t> contextId_;
     std::optional<std::vector<uint16_t>> protocolIdList_;
-    std::optional<std::vector<uint16_t>> peerProtocolIdList_;
+    std::optional<std::vector<uint16_t>> peerSupportedProtocolIdList_;
     std::optional<uint16_t> selectedProtocolId_;
     std::optional<uint16_t> secureProtocolId_;
     std::optional<std::vector<uint16_t>> capabilityList_;

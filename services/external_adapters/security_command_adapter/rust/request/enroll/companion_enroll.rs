@@ -19,8 +19,8 @@ use crate::common::algorithm::{
 };
 use crate::common::constants::{
     AuthTrustLevel, ErrorCode, ExecutorSecurityLevel, ProcessorType, TrackAbilityLevel,
-    CHALLENGE_LEN, HKDF_SALT_SIZE, PROTOCOL_ID_INVALID,
-    PROTOCOL_VERSION_2, validate_capability_list,
+    CHALLENGE_LEN, HKDF_SALT_SIZE, INVALID_SUB_PROFILE_ID, PROTOCOL_ID_INVALID, PROTOCOL_VERSION_1,
+    PROTOCOL_VERSION_2, intersect_lists_in_reference_order, validate_capability_list,
     validate_protocol_list,
 };
 use crate::entry::companion_device_auth_ffi::{
@@ -70,7 +70,7 @@ pub struct TokenInfo {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompanionDeviceEnrollRequest {
     pub secure_protocol_id: u16,
-    pub companion_protocol_list: Vec<u16>,
+    pub companion_supported_protocol_list: Vec<u16>,
     pub companion_capability_list: Vec<u16>,
     pub selected_protocol_id: u16,
     pub key_nego_param: KeyNegoParam,
@@ -84,6 +84,7 @@ pub struct CompanionDeviceEnrollRequest {
     pub token_info: TokenInfo,
     pub host_algorithms: CryptoAlgorithms,
     pub selected_algorithms: SelectedAlgorithms,
+    pub host_protocol_id_list: Vec<u16>,
 }
 
 impl CompanionDeviceEnrollRequest {
@@ -91,8 +92,8 @@ impl CompanionDeviceEnrollRequest {
         let host_device_key = DeviceKey::try_from(&input.host_device_key)?;
         let companion_device_key = DeviceKey::try_from(&input.companion_device_key)?;
 
-        let companion_protocol_list: Vec<u16> = input.companion_protocol_list.try_into().map_err(|e| {
-            log_e!("companion_protocol_list try_into fail: {:?}", e);
+        let companion_supported_protocol_list: Vec<u16> = input.companion_supported_protocol_list.try_into().map_err(|e| {
+            log_e!("companion_supported_protocol_list try_into fail: {:?}", e);
             ErrorCode::GeneralError
         })?;
         let companion_capability_list: Vec<u16> = input.companion_capability_list.try_into().map_err(|e| {
@@ -100,14 +101,14 @@ impl CompanionDeviceEnrollRequest {
             ErrorCode::GeneralError
         })?;
 
-        validate_protocol_list(&companion_protocol_list)?;
+        validate_protocol_list(&companion_supported_protocol_list)?;
         validate_capability_list(&companion_capability_list)?;
 
-        if input.selected_protocol_id == PROTOCOL_ID_INVALID || !companion_protocol_list.contains(&input.selected_protocol_id) {
+        if input.selected_protocol_id == PROTOCOL_ID_INVALID || !companion_supported_protocol_list.contains(&input.selected_protocol_id) {
             log_e!(
                 "selected protocol {} is invalid or not in the negotiated protocol list {:?}",
                 input.selected_protocol_id,
-                companion_protocol_list
+                companion_supported_protocol_list
             );
             return Err(ErrorCode::GeneralError);
         }
@@ -119,7 +120,7 @@ impl CompanionDeviceEnrollRequest {
         })?;
         Ok(Self {
             secure_protocol_id: input.secure_protocol_id,
-            companion_protocol_list,
+            companion_supported_protocol_list,
             companion_capability_list,
             selected_protocol_id: input.selected_protocol_id,
             key_nego_param: KeyNegoParam {
@@ -145,6 +146,7 @@ impl CompanionDeviceEnrollRequest {
                 mac_algorithm: 0,
                 binding_signature_algorithm: None,
             },
+            host_protocol_id_list: Vec::new(),
         })
     }
 
@@ -256,7 +258,9 @@ impl CompanionDeviceEnrollRequest {
         let decrypt_attribute = Attribute::try_from_bytes(&decrypt_data).map_err(|e| p!(e))?;
         let device_id = decrypt_attribute.get_string(AttributeKey::AttrDeviceId).map_err(|e| p!(e))?;
         let user_id = decrypt_attribute.get_i32(AttributeKey::AttrUserId).map_err(|e| p!(e))?;
-        let sub_profile_id = decrypt_attribute.get_i32(AttributeKey::AttrSubProfileId).map_err(|e| p!(e))?;
+        let sub_profile_id = decrypt_attribute
+            .get_i32_or_legacy(AttributeKey::AttrSubProfileId, INVALID_SUB_PROFILE_ID)
+            .map_err(|e| p!(e))?;
         let challenge = decrypt_attribute.get_u64(AttributeKey::AttrCompanionChallenge).map_err(|e| p!(e))?;
 
         if self.key_nego_param.host_device_key.device_id != device_id {
@@ -283,14 +287,16 @@ impl CompanionDeviceEnrollRequest {
             return Err(ErrorCode::GeneralError);
         }
 
+        self.host_protocol_id_list = decrypt_attribute
+            .get_u16_vec(AttributeKey::AttrProtocolList)
+            .unwrap_or(Vec::from([PROTOCOL_VERSION_1]));
+
         if self.selected_protocol_id == PROTOCOL_VERSION_2 {
             self.verify_encrypted_host_algorithms(&decrypt_attribute)?;
 
-            let host_protocol_id_list =
-                decrypt_attribute.get_u16_vec(AttributeKey::AttrProtocolList).map_err(|e| p!(e))?;
-            let expected_protocol_id = host_protocol_id_list
+            let expected_protocol_id = self.host_protocol_id_list
                 .iter()
-                .find(|protocol| self.companion_protocol_list.contains(protocol))
+                .find(|protocol| self.companion_supported_protocol_list.contains(protocol))
                 .copied();
             if expected_protocol_id != Some(self.selected_protocol_id) {
                 log_e!(
@@ -345,6 +351,20 @@ impl CompanionDeviceEnrollRequest {
     }
 
     fn encode_sec_binding_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
+        // A legacy host accepts only a reply list equal to its own, so the reply announces the
+        // companion set narrowed by the host's list (VERSION_1 alone when the host omits it).
+        let reply_protocol_list =
+            intersect_lists_in_reference_order(&self.companion_supported_protocol_list, &self.host_protocol_id_list);
+        if reply_protocol_list.is_empty() {
+            log_e!(
+                "reply protocol list is empty, companion list {:?}, host protocol list {:?}",
+                self.companion_supported_protocol_list,
+                self.host_protocol_id_list
+            );
+            return Err(ErrorCode::ProtocolNegotiationFailed);
+        }
+        validate_protocol_list(&reply_protocol_list)?;
+
         let reply_info = Box::new(SecBindingReplyInfo {
             device_id: self.key_nego_param.companion_device_key.device_id.clone(),
             user_key: UserKey {
@@ -354,7 +374,7 @@ impl CompanionDeviceEnrollRequest {
             esl: ExecutorSecurityLevel::Esl3 as i32,
             track_ability_level: TrackAbilityLevel::Tal4 as i32,
             challenge: self.binding_param.host_challenge,
-            companion_protocol_list: self.companion_protocol_list.clone(),
+            companion_reply_protocol_list: reply_protocol_list,
             companion_capability_list: self.companion_capability_list.clone(),
             selected_algorithms: self.selected_algorithms,
             companion_supported_algorithms: get_supported_algorithms(),

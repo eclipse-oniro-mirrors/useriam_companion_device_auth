@@ -123,6 +123,13 @@ bool TestServiceInitializer::InitializeSystemParamManager()
     return true;
 }
 
+bool TestServiceInitializer::InitializeFileStorageAdapter()
+{
+    fileStorageAdapter_ = std::make_shared<MockFileStorageAdapter>();
+    AdapterManager::GetInstance().SetFileStorageAdapter(fileStorageAdapter_);
+    return true;
+}
+
 bool TestServiceInitializer::InitializeUserKeyManager()
 {
     userKeyManager_ = std::make_shared<FakeUserKeyManager>();
@@ -741,7 +748,8 @@ void ModuleTestGuard::InjectDefaultSyncReply(const DeviceKey &companionDeviceKey
 {
     SyncDeviceStatusReply syncReply;
     syncReply.result = ResultCode::SUCCESS;
-    syncReply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncReply.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
+    syncReply.companionSupportedProtocolIdList = { ProtocolId::VERSION_1 };
     syncReply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH, Capability::OBTAIN_TOKEN };
     syncReply.secureProtocolId = SecureProtocolId::DEFAULT;
     syncReply.companionDeviceKey = companionDeviceKey;
@@ -931,7 +939,8 @@ void ModuleTestGuard::SetupHostSideSync(const std::string &companionDeviceId, Us
     SimulateDeviceOnline(companionDeviceId);
     SyncDeviceStatusReply syncReply;
     syncReply.result = ResultCode::SUCCESS;
-    syncReply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncReply.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
+    syncReply.companionSupportedProtocolIdList = { ProtocolId::VERSION_1 };
     syncReply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
     syncReply.secureProtocolId = SecureProtocolId::DEFAULT;
     syncReply.companionDeviceKey = MakeDeviceKey(companionDeviceId, hostUserId);
@@ -949,7 +958,8 @@ void ModuleTestGuard::SettlePairingSyncRound(const DeviceKey &companionDeviceKey
     // against the local host protocols before opening the connection.
     SyncDeviceStatusReply syncReply;
     syncReply.result = ResultCode::SUCCESS;
-    syncReply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    syncReply.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
+    syncReply.companionSupportedProtocolIdList = { ProtocolId::VERSION_1 };
     syncReply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
     syncReply.secureProtocolId = SecureProtocolId::DEFAULT;
     syncReply.companionDeviceKey = companionDeviceKey;

@@ -126,7 +126,7 @@ static void FuzzCompanionProcessCheck(std::shared_ptr<ISecurityAgent> &agent, Fu
     CompanionProcessCheckInput input;
     uint8_t protocolCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < protocolCount; ++i) {
-        input.companionProtocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
+        input.companionProofProtocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
     }
     input.bindingSignatureProof = GenerateFuzzBindingSignatureProof(fuzzData);
     CompanionProcessCheckOutput output;
@@ -189,7 +189,7 @@ static void FuzzCompanionInitKeyNegotiation(std::shared_ptr<ISecurityAgent> &age
     input.secureProtocolId = static_cast<SecureProtocolId>(fuzzData.ConsumeIntegral<uint16_t>());
     uint8_t protocolCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < protocolCount; ++i) {
-        input.companionProtocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
+        input.companionSupportedProtocolList.push_back(fuzzData.ConsumeIntegral<uint16_t>());
     }
     uint8_t capCount = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t i = 0; i < capCount; ++i) {

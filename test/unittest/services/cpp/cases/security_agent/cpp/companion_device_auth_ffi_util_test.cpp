@@ -1245,7 +1245,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_001, TestSize.Level
     CompanionInitKeyNegotiationInput input;
     input.requestId = 17000;
     input.secureProtocolId = SecureProtocolId::DEFAULT;
-    input.companionProtocolList = { 1 };
+    input.companionSupportedProtocolList = { 1 };
     input.companionCapabilityList = { 1, 2, 3 };
     input.hostDeviceKey.idType = DeviceIdType::UNIFIED_DEVICE_ID;
     input.hostDeviceKey.deviceUserId = 100;
@@ -1258,7 +1258,7 @@ HWTEST_F(FfiUtilTest, EncodeCompanionInitKeyNegotiationInput_001, TestSize.Level
     CompanionInitKeyNegotiationInputFfi ffi = {};
     EncodeCompanionInitKeyNegotiationInput(input, ffi);
     EXPECT_EQ(ffi.requestId, 17000U);
-    EXPECT_EQ(ffi.companionProtocolList.len, 1U);
+    EXPECT_EQ(ffi.companionSupportedProtocolList.len, 1U);
     EXPECT_EQ(ffi.companionCapabilityList.len, 3U);
 }
 

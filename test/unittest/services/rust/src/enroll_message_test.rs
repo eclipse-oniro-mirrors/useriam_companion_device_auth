@@ -699,7 +699,7 @@ fn sec_binding_reply_info_binding_signature_round_trip() {
         esl: 0,
         track_ability_level: 0,
         challenge: 42,
-        companion_protocol_list: vec![1],
+        companion_reply_protocol_list: vec![1],
         companion_capability_list: vec![1],
         selected_algorithms: SelectedAlgorithms { ka_algorithm: 1, kdf_algorithm: 1, aead_algorithm: 1, mac_algorithm: 1, binding_signature_algorithm },
         companion_supported_algorithms: CryptoAlgorithms {
@@ -737,7 +737,7 @@ fn sec_binding_reply_info_capability_list_round_trip() {
             esl: 3,
             track_ability_level: 4,
             challenge: 5,
-            companion_protocol_list: vec![1],
+            companion_reply_protocol_list: vec![1],
             companion_capability_list,
             selected_algorithms: crate::common::algorithm::SelectedAlgorithms {
                 ka_algorithm: 1,
@@ -919,4 +919,33 @@ fn sec_binding_reply_info_binding_signature_absent_vs_explicit_zero() {
         crate::request::enroll::enroll_message::SecBindingReplyInfo::decode(make_message(Some(0)).as_slice())
             .unwrap();
     assert_eq!(decoded.selected_algorithms.binding_signature_algorithm, Some(0));
+}
+
+// The sub-profile id is optional for old companions: an absent key decodes as no sub-profile, while
+// a carried key must decode cleanly (AGENTS.md rule 6).
+#[test]
+fn sec_binding_reply_info_sub_profile_id_absent_versus_malformed() {
+    let _guard = ut_registry_guard!();
+    log_i!("sec_binding_reply_info_sub_profile_id_absent_versus_malformed start");
+
+    let make_message = |sub_profile_id: Option<&[u8]>| {
+        let mut attribute = Attribute::new();
+        attribute.set_string(AttributeKey::AttrDeviceId, crate::String::from("device"));
+        attribute.set_i32(AttributeKey::AttrUserId, 1);
+        if let Some(sub_profile_id) = sub_profile_id {
+            attribute.set_u8_slice(AttributeKey::AttrSubProfileId, sub_profile_id);
+        }
+        attribute.set_i32(AttributeKey::AttrEsl, ExecutorSecurityLevel::Esl3 as i32);
+        attribute.set_i32(AttributeKey::AttrTrackAbilityLevel, TrackAbilityLevel::Tal4 as i32);
+        attribute.set_u64(AttributeKey::AttrHostChallenge, 1);
+        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &[1]);
+        attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &[1]);
+        attribute.to_bytes().unwrap()
+    };
+
+    let decoded = SecBindingReplyInfo::decode(make_message(None).as_slice()).unwrap();
+    assert_eq!(decoded.user_key.sub_profile_id, INVALID_SUB_PROFILE_ID);
+
+    // One byte: present, but not an i32.
+    assert!(SecBindingReplyInfo::decode(make_message(Some(&[0x01])).as_slice()).is_err());
 }

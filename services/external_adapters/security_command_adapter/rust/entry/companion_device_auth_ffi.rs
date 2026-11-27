@@ -459,7 +459,7 @@ pub struct HostEndCompanionCheckInputFfi {
     pub request_id: i32,
     pub template_id: u64,
     pub secure_protocol_id: u16,
-    pub sec_message: DataArray1024Ffi, /* per-processor sections: tag, iv, encrypt_data(host_challenge, companion_protocol_list, companion_capability_list) */
+    pub sec_message: DataArray1024Ffi, /* per-processor sections: tag, iv, encrypt_data(host_challenge, companion_proof_protocol_list, companion_capability_list) */
 }
 assert_max_size!(HostEndCompanionCheckInputFfi);
 
@@ -928,7 +928,7 @@ assert_max_size!(CompanionGetPersistedStatusOutputFfi);
 #[cfg_attr(any(test, feature = "test-utils"), derive(Debug, PartialEq))]
 pub struct CompanionProcessCheckInputFfi {
     pub binding_id: i32,
-    pub companion_protocol_list: Uint16Array64Ffi,
+    pub companion_proof_protocol_list: Uint16Array64Ffi,
     pub companion_capability_list: Uint16Array64Ffi,
     pub secure_protocol_id: u16,
     pub salt: DataArray32Ffi,
@@ -941,7 +941,7 @@ assert_max_size!(CompanionProcessCheckInputFfi);
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(any(test, feature = "test-utils"), derive(Debug, PartialEq))]
 pub struct CompanionProcessCheckOutputFfi {
-    pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(host_challenge, companion_protocol_list, companion_capability_list) */
+    pub sec_message: DataArray1024Ffi, /* tag, iv, encrypt_data(host_challenge, companion_proof_protocol_list, companion_capability_list) */
 }
 assert_max_size!(CompanionProcessCheckOutputFfi);
 
@@ -952,7 +952,7 @@ assert_max_size!(CompanionProcessCheckOutputFfi);
 pub struct CompanionInitKeyNegotiationInputFfi {
     pub request_id: i32,
     pub secure_protocol_id: u16,
-    pub companion_protocol_list: Uint16Array64Ffi,
+    pub companion_supported_protocol_list: Uint16Array64Ffi,
     pub companion_capability_list: Uint16Array64Ffi,
     pub selected_protocol_id: u16,
     pub companion_device_key: DeviceKeyFfi,
@@ -1349,13 +1349,6 @@ impl TryFrom<i32> for CommandId {
             },
         }
     }
-}
-
-#[repr(i32)]
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum CallerTypeFfi {
-    Ca = 0,
-    Ta = 1,
 }
 
 // CommonInputFfi: C++ → Rust control flags

@@ -121,7 +121,7 @@ CompanionInitKeyNegotiationInput CompanionAddCompanionRequest::BuildCompanionIni
     CompanionInitKeyNegotiationInput input = {};
     input.requestId = GetRequestId();
     input.secureProtocolId = secureProtocolId_;
-    input.companionProtocolList = ProtocolIdConverter::ToUnderlyingVec(localProfile.companionProtocols);
+    input.companionSupportedProtocolList = ProtocolIdConverter::ToUnderlyingVec(localProfile.companionProtocols);
     input.companionCapabilityList = CapabilityConverter::ToUnderlyingVec(localProfile.companionCapabilities);
     input.selectedProtocolId = selectedProtocolId_;
     input.companionDeviceKey = companionDeviceKey_;

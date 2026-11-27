@@ -32,7 +32,7 @@ pub struct CompanionDeviceSyncStatusRequest {
     pub secure_protocol_id: u16,
     pub host_challenge: u64,
     pub salt: Vec<u8>,
-    pub companion_protocol_list: Vec<u16>,
+    pub companion_proof_protocol_list: Vec<u16>,
     pub companion_capability_list: Vec<u16>,
 }
 
@@ -45,8 +45,8 @@ impl CompanionDeviceSyncStatusRequest {
             return Err(ErrorCode::GeneralError);
         }
 
-        let companion_protocol_list: Vec<u16> = input.companion_protocol_list.try_into().map_err(|e| {
-            log_e!("companion_protocol_list try_into fail: {:?}", e);
+        let companion_proof_protocol_list: Vec<u16> = input.companion_proof_protocol_list.try_into().map_err(|e| {
+            log_e!("companion_proof_protocol_list try_into fail: {:?}", e);
             ErrorCode::GeneralError
         })?;
         let companion_capability_list: Vec<u16> = input.companion_capability_list.try_into().map_err(|e| {
@@ -54,7 +54,7 @@ impl CompanionDeviceSyncStatusRequest {
             ErrorCode::GeneralError
         })?;
 
-        validate_protocol_list(&companion_protocol_list)?;
+        validate_protocol_list(&companion_proof_protocol_list)?;
         validate_capability_list(&companion_capability_list)?;
 
         Ok(CompanionDeviceSyncStatusRequest {
@@ -62,7 +62,7 @@ impl CompanionDeviceSyncStatusRequest {
             secure_protocol_id: input.secure_protocol_id,
             host_challenge: input.challenge,
             salt: salt_slice.to_vec(),
-            companion_protocol_list,
+            companion_proof_protocol_list,
             companion_capability_list,
         })
     }
@@ -70,7 +70,7 @@ impl CompanionDeviceSyncStatusRequest {
     fn encode_sec_status_sync_reply(&mut self) -> Result<Vec<u8>, ErrorCode> {
         let mut encrypt_attribute = Attribute::new();
         encrypt_attribute.set_u64(AttributeKey::AttrHostChallenge, self.host_challenge);
-        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.companion_protocol_list);
+        encrypt_attribute.set_u16_slice(AttributeKey::AttrProtocolList, &self.companion_proof_protocol_list);
         encrypt_attribute.set_u16_slice(AttributeKey::AttrCapabilityList, &self.companion_capability_list);
 
         let attribute_bytes = encrypt_attribute.to_bytes()?;

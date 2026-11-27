@@ -29,6 +29,7 @@
 #include "app_foreground_state_adapter.h"
 #include "driver_manager_adapter.h"
 #include "event_manager_adapter.h"
+#include "file_storage_adapter.h"
 #include "fuzz_data_generator.h"
 #include "fuzz_soft_bus_coordinator_adapter.h"
 #include "idm_adapter.h"
@@ -462,6 +463,26 @@ private:
     SteadyTimeMs steadyTimeMs_;
 };
 
+class MockFileStorageAdapter : public IFileStorageAdapter {
+public:
+    MockFileStorageAdapter() = default;
+
+    ResultCode SaveFile(const std::string &dir, const std::string &fileName, const std::vector<uint8_t> &data) override
+    {
+        (void)dir;
+        (void)fileName;
+        (void)data;
+        return ResultCode::SUCCESS;
+    }
+
+    ResultCode DeleteFile(const std::string &dir, const std::string &fileName) override
+    {
+        (void)dir;
+        (void)fileName;
+        return ResultCode::SUCCESS;
+    }
+};
+
 class MockSecurityCommandAdapter : public ISecurityCommandAdapter {
 public:
     MockSecurityCommandAdapter() = default;
@@ -517,6 +538,9 @@ bool InitializeAdapterManager(FuzzedDataProvider &fuzzData)
 
     auto timeKeeper = std::make_shared<MockTimeKeeper>();
     adapterMgr.SetTimeKeeper(timeKeeper);
+
+    auto fileStorageAdapter = std::make_shared<MockFileStorageAdapter>();
+    adapterMgr.SetFileStorageAdapter(fileStorageAdapter);
 
     auto securityCmdAdapter = std::make_shared<MockSecurityCommandAdapter>();
     adapterMgr.SetSecurityCommandAdapter(securityCmdAdapter);

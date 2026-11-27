@@ -555,7 +555,7 @@ pub const SUPPORTED_SECURE_PROTOCOLS: &[u16] = &[SecureProtocolId::Default as u1
 
 pub fn validate_secure_protocol_id(secure_protocol_id: u16) -> core::result::Result<(), ErrorCode> {
     if !SUPPORTED_SECURE_PROTOCOLS.contains(&secure_protocol_id) {
-        log_e!("secure protocol {} is not supported by TA, supported: {:?}", secure_protocol_id, SUPPORTED_SECURE_PROTOCOLS);
+        log_e!("secure protocol {} is not supported by security adapter, supported: {:?}", secure_protocol_id, SUPPORTED_SECURE_PROTOCOLS);
         return Err(ErrorCode::SecureProtocolNotSupported);
     }
     Ok(())
@@ -563,7 +563,7 @@ pub fn validate_secure_protocol_id(secure_protocol_id: u16) -> core::result::Res
 
 pub fn validate_protocol_id(protocol_id: u16) -> core::result::Result<(), ErrorCode> {
     if !SUPPORTED_PROTOCOL_VERSIONS.contains(&protocol_id) {
-        log_e!("protocol {} is not supported by TA, supported: {:?}", protocol_id, SUPPORTED_PROTOCOL_VERSIONS);
+        log_e!("protocol {} is not supported by security adapter, supported: {:?}", protocol_id, SUPPORTED_PROTOCOL_VERSIONS);
         return Err(ErrorCode::SecureProtocolNotSupported);
     }
     Ok(())
@@ -572,7 +572,7 @@ pub fn validate_protocol_id(protocol_id: u16) -> core::result::Result<(), ErrorC
 pub fn validate_protocol_list(protocol_list: &[u16]) -> core::result::Result<(), ErrorCode> {
     for protocol in protocol_list {
         if !SUPPORTED_PROTOCOL_VERSIONS.contains(protocol) {
-            log_e!("protocol {} is not supported by TA, supported: {:?}", protocol, SUPPORTED_PROTOCOL_VERSIONS);
+            log_e!("protocol {} is not supported by security adapter, supported: {:?}", protocol, SUPPORTED_PROTOCOL_VERSIONS);
             return Err(ErrorCode::GeneralError);
         }
     }
@@ -586,7 +586,7 @@ pub fn validate_capability_list(capability_list: &[u16]) -> core::result::Result
             Err(_) => false,
         };
         if !is_valid {
-            log_e!("capability {} is not supported by TA", capability);
+            log_e!("capability {} is not supported by security adapter", capability);
             return Err(ErrorCode::GeneralError);
         }
     }

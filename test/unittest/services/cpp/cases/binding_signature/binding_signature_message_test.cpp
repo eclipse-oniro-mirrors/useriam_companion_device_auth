@@ -223,7 +223,7 @@ HWTEST_F(BindingSignatureMessageTest, BindingSignatureMessageTest_BindingSignatu
 
 // Unsigned (V1) message: the absent challenge/signature pair is reported as not carried
 // and decode rejects it; consumers pass an empty proof and whether that is acceptable is
-// judged inside the TA by the enrolled binding.
+// judged inside the Rust module by the enrolled binding.
 HWTEST_F(BindingSignatureMessageTest, BindingSignatureMessageTest_BindingSignatureAttributesDecodeMissingProof,
     TestSize.Level0)
 {
@@ -263,7 +263,7 @@ HWTEST_F(BindingSignatureMessageTest, BindingSignatureMessageTest_BindingSignatu
     EXPECT_FALSE(bindingSignatureOpt.has_value());
 }
 
-// Over-length signature input passes through untouched; the FFI boundary and the TA reject it.
+// Over-length signature input passes through untouched; the FFI boundary and the Rust module reject it.
 HWTEST_F(BindingSignatureMessageTest, BindingSignatureMessageTest_BindingSignatureAttributesDecodeSignatureTooLong,
     TestSize.Level0)
 {

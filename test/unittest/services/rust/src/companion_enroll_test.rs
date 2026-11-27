@@ -59,14 +59,14 @@ fn create_mock_host_binding(binding_id: i32) -> HostBinding {
 }
 
 fn generate_companion_init_key_negotiation_input_ffi() -> CompanionInitKeyNegotiationInputFfi {
-    let mut companion_protocol_list = Uint16Array64Ffi::default();
-    companion_protocol_list.data[0] = PROTOCOL_VERSION_1;
-    companion_protocol_list.len = 1;
+    let mut companion_supported_protocol_list = Uint16Array64Ffi::default();
+    companion_supported_protocol_list.data[0] = PROTOCOL_VERSION_1;
+    companion_supported_protocol_list.len = 1;
 
     CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list,
+        companion_supported_protocol_list,
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -170,7 +170,7 @@ fn companion_enroll_request_new_test_selected_protocol_not_negotiated() {
 
     let mut input = generate_companion_init_key_negotiation_input_ffi();
     input.selected_protocol_id = PROTOCOL_VERSION_1;
-    input.companion_protocol_list = Uint16Array64Ffi::default();
+    input.companion_supported_protocol_list = Uint16Array64Ffi::default();
     assert_eq!(CompanionDeviceEnrollRequest::new(&input).unwrap_err(), ErrorCode::GeneralError);
 
     input = generate_companion_init_key_negotiation_input_ffi();
@@ -187,7 +187,7 @@ fn companion_enroll_request_new_test_selected_protocol_not_supported() {
 
     let mut input = generate_companion_init_key_negotiation_input_ffi();
     input.selected_protocol_id = u16::MAX;
-    input.companion_protocol_list.data[0] = input.selected_protocol_id;
+    input.companion_supported_protocol_list.data[0] = input.selected_protocol_id;
     assert_eq!(CompanionDeviceEnrollRequest::new(&input).unwrap_err(), ErrorCode::GeneralError);
 }
 
@@ -213,7 +213,7 @@ fn companion_enroll_request_new_test_selected_protocol_invalid_rejected() {
     let mut input = generate_companion_init_key_negotiation_input_ffi();
     let request = CompanionDeviceEnrollRequest::new(&input).unwrap();
     assert_eq!(request.selected_protocol_id, PROTOCOL_VERSION_1);
-    assert_eq!(request.companion_protocol_list, vec![PROTOCOL_VERSION_1]);
+    assert_eq!(request.companion_supported_protocol_list, vec![PROTOCOL_VERSION_1]);
 
     input.selected_protocol_id = PROTOCOL_ID_INVALID;
     assert_eq!(CompanionDeviceEnrollRequest::new(&input).unwrap_err(), ErrorCode::GeneralError);
@@ -267,7 +267,7 @@ fn companion_enroll_request_prepare_test_algorithm_not_supported() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -296,7 +296,7 @@ fn companion_enroll_request_prepare_test_generate_key_pair_fail() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -889,14 +889,23 @@ fn create_full_binding_request(
     request.encode(ProcessorType::Default).unwrap()
 }
 
-// Legacy layout (2026-10-14 baseline host) 0x0303 encrypted inner payload: only the four legacy
-// attributes (no algorithm echo, no protocol priority list, no binding signature).
-fn create_old_format_binding_request(pub_key: &[u8], challenge: u64) -> Vec<u8> {
+// Legacy layout (2026-10-14 baseline host) 0x0303 encrypted inner payload: the attributes every
+// host sends, the sub-profile id (`sub_profile_id` None leaves it out) and whatever `edit` adds,
+// such as a protocol list in any shape. No algorithm echo, no binding signature.
+fn create_legacy_binding_request(
+    pub_key: &[u8],
+    challenge: u64,
+    sub_profile_id: Option<i32>,
+    edit: impl FnOnce(&mut Attribute),
+) -> Vec<u8> {
     let mut encrypt_attribute = Attribute::new();
     encrypt_attribute.set_string(AttributeKey::AttrDeviceId, "host_device".to_string());
     encrypt_attribute.set_i32(AttributeKey::AttrUserId, 100);
-    encrypt_attribute.set_i32(AttributeKey::AttrSubProfileId, 0);
     encrypt_attribute.set_u64(AttributeKey::AttrCompanionChallenge, challenge);
+    if let Some(sub_profile_id) = sub_profile_id {
+        encrypt_attribute.set_i32(AttributeKey::AttrSubProfileId, sub_profile_id);
+    }
+    edit(&mut encrypt_attribute);
 
     let request = SecBindingRequest {
         pub_key: pub_key.to_vec(),
@@ -909,7 +918,13 @@ fn create_old_format_binding_request(pub_key: &[u8], challenge: u64) -> Vec<u8> 
     request.encode(ProcessorType::Default).unwrap()
 }
 
-fn run_companion_binding_begin(stray_capability_attr: bool) -> Vec<u8> {
+// The four legacy attributes a baseline host carries, sub-profile id included.
+fn create_old_format_binding_request(pub_key: &[u8], challenge: u64) -> Vec<u8> {
+    create_legacy_binding_request(pub_key, challenge, Some(0), |_| {})
+}
+
+// Mock registries for the companion binding leg: a fresh binding is created and stored.
+fn install_binding_mocks() {
     mock_set_crypto_engine();
 
     let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
@@ -921,12 +936,13 @@ fn run_companion_binding_begin(stray_capability_attr: bool) -> Vec<u8> {
     let mut mock_time_keeper = MockTimeKeeper::new();
     mock_time_keeper.expect_get_rtc_time().returning(|| Ok(1000));
     TimeKeeperRegistry::set(Box::new(mock_time_keeper));
+}
 
-    // Local product capabilities B.
-    let mut input = generate_companion_init_key_negotiation_input_ffi();
-    input.companion_capability_list = Uint16Array64Ffi::try_from(vec![Capability::DelegateAuth as u16,
-        Capability::TokenAuth as u16]).unwrap();
-    let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();
+// Installs the mock registries and returns the companion binding leg's request for `input`.
+fn make_binding_request(input: &CompanionInitKeyNegotiationInputFfi) -> CompanionDeviceEnrollRequest {
+    install_binding_mocks();
+
+    let mut request = CompanionDeviceEnrollRequest::new(input).unwrap();
     request.key_nego_param.key_pair = Some(create_mock_key_pair());
     request.key_nego_param.host_device_key.device_id = "host_device".to_string();
     request.key_nego_param.host_device_key.user_id = 100;
@@ -936,29 +952,39 @@ fn run_companion_binding_begin(stray_capability_attr: bool) -> Vec<u8> {
     request.selected_algorithms.kdf_algorithm = 1;
     request.selected_algorithms.aead_algorithm = 1;
     request.selected_algorithms.mac_algorithm = 1;
+    request
+}
 
-    let host_algorithms = create_host_algorithms();
-    let sec_message = create_full_binding_request(
-        &create_mock_key_pair().pub_key,
-        stray_capability_attr,
-        Some(&host_algorithms),
-    );
+fn run_binding_begin(mut request: CompanionDeviceEnrollRequest, sec_message: Vec<u8>) -> Result<Vec<u8>, ErrorCode> {
     let begin_input = CompanionBeginAddHostBindingInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
         sec_message: DataArray20000Ffi::try_from(sec_message).unwrap(),
     };
-
     let mut output = crate::entry::companion_device_auth_ffi::CompanionBeginAddHostBindingOutputFfi::default();
     let param = RequestParam::CompanionEnrollBegin(&begin_input, &mut output);
-    assert_eq!(request.begin(param), Ok(()));
-    output.sec_message.as_slice().unwrap().to_vec()
+    request.begin(param)?;
+    Ok(output.sec_message.as_slice().unwrap().to_vec())
 }
 
-fn binding_reply_capability_list(sec_message: &[u8]) -> Vec<u16> {
+// The companion binding leg with local product capabilities B and a full-layout request.
+fn run_companion_binding_begin(stray_capability_attr: bool) -> Vec<u8> {
+    let mut input = generate_companion_init_key_negotiation_input_ffi();
+    input.companion_capability_list = Uint16Array64Ffi::try_from(vec![Capability::DelegateAuth as u16,
+        Capability::TokenAuth as u16]).unwrap();
+    let sec_message = create_full_binding_request(
+        &create_mock_key_pair().pub_key,
+        stray_capability_attr,
+        Some(&create_host_algorithms()),
+    );
+    run_binding_begin(make_binding_request(&input), sec_message).unwrap()
+}
+
+// One u16 list of the binding reply's encrypted payload.
+fn binding_reply_list(sec_message: &[u8], key: AttributeKey) -> Vec<u16> {
     let reply = SecBindingReply::decode(sec_message, ProcessorType::Default).unwrap();
     let attribute = Attribute::try_from_bytes(&reply.encrypt_data).unwrap();
-    attribute.get_u16_vec(AttributeKey::AttrCapabilityList).unwrap()
+    attribute.get_u16_vec(key).unwrap()
 }
 
 #[test]
@@ -969,11 +995,11 @@ fn companion_enroll_request_begin_test_replies_with_local_set() {
     // B is announced as-is; a stray capability attribute in the request (no endpoint sends
     // one anymore) must not change the reply.
     let sec_message = run_companion_binding_begin(false);
-    assert_eq!(binding_reply_capability_list(&sec_message),
+    assert_eq!(binding_reply_list(&sec_message, AttributeKey::AttrCapabilityList),
         vec![Capability::DelegateAuth as u16, Capability::TokenAuth as u16]);
 
     let sec_message = run_companion_binding_begin(true);
-    assert_eq!(binding_reply_capability_list(&sec_message),
+    assert_eq!(binding_reply_list(&sec_message, AttributeKey::AttrCapabilityList),
         vec![Capability::DelegateAuth as u16, Capability::TokenAuth as u16]);
 }
 
@@ -985,7 +1011,7 @@ fn companion_enroll_request_begin_test_host_algorithms_mismatch() {
     mock_set_crypto_engine();
 
     let mut input = generate_companion_init_key_negotiation_input_ffi();
-    input.companion_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
+    input.companion_supported_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
     input.selected_protocol_id = PROTOCOL_VERSION_2;
 
     let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();
@@ -1062,6 +1088,76 @@ fn companion_enroll_request_begin_test_old_format_v1_tolerated() {
     assert_eq!(request.begin(param), Ok(()));
 }
 
+// Runs the V1 binding leg for a companion supporting `companion_supported_protocol_list` and returns the
+// protocol list of its reply.
+fn reply_protocol_list(companion_supported_protocol_list: &[u16], sec_message: Vec<u8>) -> Vec<u16> {
+    let mut input = generate_companion_init_key_negotiation_input_ffi();
+    input.companion_supported_protocol_list = Uint16Array64Ffi::try_from(companion_supported_protocol_list.to_vec()).unwrap();
+    let reply = run_binding_begin(make_binding_request(&input), sec_message).unwrap();
+    binding_reply_list(&reply, AttributeKey::AttrProtocolList)
+}
+
+// A legacy host accepts only a reply list equal to its own: without the host protocol list on the
+// wire the reply announces VERSION_1 alone even though the companion supports V2.
+#[test]
+fn companion_enroll_request_begin_test_reply_narrows_to_v1_for_legacy_host() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_enroll_request_begin_test_reply_narrows_to_v1_for_legacy_host start");
+
+    let support_set = [PROTOCOL_VERSION_2, PROTOCOL_VERSION_1];
+
+    let sec_message = create_old_format_binding_request(&create_mock_key_pair().pub_key, 0);
+    assert_eq!(reply_protocol_list(&support_set, sec_message), vec![PROTOCOL_VERSION_1]);
+
+    // ...and with VERSION_1 alone carried explicitly.
+    let sec_message = create_legacy_binding_request(&create_mock_key_pair().pub_key, 0, Some(0), |attribute| {
+        attribute.set_u16_slice(AttributeKey::AttrProtocolList, &[PROTOCOL_VERSION_1])
+    });
+    assert_eq!(reply_protocol_list(&support_set, sec_message), vec![PROTOCOL_VERSION_1]);
+}
+
+// A present but malformed host protocol list decodes as the legacy layout: it falls back to the
+// VERSION_1 default the same as when the list is absent, and the reply narrows to VERSION_1.
+#[test]
+fn companion_enroll_request_begin_test_malformed_host_protocol_list_falls_back_to_legacy() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_enroll_request_begin_test_malformed_host_protocol_list_falls_back_to_legacy start");
+
+    // One byte: not a whole number of u16 values.
+    let sec_message = create_legacy_binding_request(&create_mock_key_pair().pub_key, 0, Some(0), |attribute| {
+        attribute.set_u8_slice(AttributeKey::AttrProtocolList, &[0x01])
+    });
+    assert_eq!(reply_protocol_list(&[PROTOCOL_VERSION_1], sec_message), vec![PROTOCOL_VERSION_1]);
+}
+
+// The binding leg does not need the host to carry a sub-profile id: the SA hands in none for the
+// host device, and an absent key means none.
+#[test]
+fn companion_enroll_request_begin_test_sub_profile_id_absent_tolerated() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_enroll_request_begin_test_sub_profile_id_absent_tolerated start");
+
+    let mut request = make_binding_request(&generate_companion_init_key_negotiation_input_ffi());
+    request.key_nego_param.host_device_key.sub_profile_id = INVALID_SUB_PROFILE_ID;
+    let sec_message = create_legacy_binding_request(&create_mock_key_pair().pub_key, 0, None, |_| {});
+    assert!(run_binding_begin(request, sec_message).is_ok());
+}
+
+// A carried sub-profile id must decode cleanly: present is not absent (AGENTS.md rule 6).
+#[test]
+fn companion_enroll_request_begin_test_malformed_sub_profile_id_fails() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_enroll_request_begin_test_malformed_sub_profile_id_fails start");
+
+    let mut request = make_binding_request(&generate_companion_init_key_negotiation_input_ffi());
+    request.key_nego_param.host_device_key.sub_profile_id = INVALID_SUB_PROFILE_ID;
+    // One byte: not an i32.
+    let sec_message = create_legacy_binding_request(&create_mock_key_pair().pub_key, 0, None, |attribute| {
+        attribute.set_u8_slice(AttributeKey::AttrSubProfileId, &[0x01])
+    });
+    assert!(run_binding_begin(request, sec_message).is_err());
+}
+
 // The echoed algorithm keys stay mandatory for V2 peers: a request without them fails to decode.
 #[test]
 fn companion_enroll_request_begin_test_binding_request_without_host_algorithms_fails() {
@@ -1071,7 +1167,7 @@ fn companion_enroll_request_begin_test_binding_request_without_host_algorithms_f
     mock_set_crypto_engine();
 
     let mut input = generate_companion_init_key_negotiation_input_ffi();
-    input.companion_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
+    input.companion_supported_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
     input.selected_protocol_id = PROTOCOL_VERSION_2;
 
     let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();
@@ -1111,7 +1207,7 @@ fn companion_enroll_request_prepare_test_no_binding_signature_list_v1() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -1143,7 +1239,7 @@ fn companion_enroll_request_prepare_test_binding_signature_list_v2() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -1179,7 +1275,7 @@ fn companion_enroll_request_prepare_test_binding_signature_no_intersection() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -1373,7 +1469,7 @@ fn companion_enroll_request_begin_test_binding_signature_success() {
     TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
     let mut input = generate_companion_init_key_negotiation_input_ffi();
-    input.companion_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
+    input.companion_supported_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
     input.selected_protocol_id = PROTOCOL_VERSION_2;
 
     let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();
@@ -1429,7 +1525,7 @@ fn companion_enroll_request_begin_test_binding_signature_key_write_fail_rolls_ba
     TimeKeeperRegistry::set(Box::new(mock_time_keeper));
 
     let mut input = generate_companion_init_key_negotiation_input_ffi();
-    input.companion_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
+    input.companion_supported_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
     input.selected_protocol_id = PROTOCOL_VERSION_2;
 
     let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();
@@ -1473,7 +1569,7 @@ fn companion_enroll_request_begin_test_v2_protocol_without_binding_signature_rej
     mock_set_crypto_engine();
 
     let mut input = generate_companion_init_key_negotiation_input_ffi();
-    input.companion_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
+    input.companion_supported_protocol_list = Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_2]).unwrap();
     input.selected_protocol_id = PROTOCOL_VERSION_2;
 
     let mut request = CompanionDeviceEnrollRequest::new(&input).unwrap();

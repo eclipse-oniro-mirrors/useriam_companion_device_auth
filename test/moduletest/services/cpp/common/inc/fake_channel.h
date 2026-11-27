@@ -22,6 +22,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -108,8 +109,16 @@ public:
             // Mirror a coordinator denial: the quick checks pass (return true), then the
             // connection reports DISCONNECTED with the configured reason, like the real
             // ReportConnectionClosed path for an arbitration rejection.
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                closedConnections_.insert(connectionName);
+            }
             PostConnectionStatusAsync(connectionName, ConnectionStatus::DISCONNECTED, rejectReason);
             return true;
+        }
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            closedConnections_.erase(connectionName);
         }
         PostConnectionStatusAsync(connectionName, ConnectionStatus::CONNECTED, "test_connected");
         return true;
@@ -132,12 +141,19 @@ public:
         });
     }
 
-    void CloseConnection(const std::string &, const std::string &) override
+    // A closed connection refuses further sends, as the real channel does once its socket is gone.
+    void CloseConnection(const std::string &connectionName, const std::string &) override
     {
+        std::lock_guard<std::mutex> lock(mutex_);
+        closedConnections_.insert(connectionName);
     }
 
     void OnRemoteDisconnect(const std::string &connectionName, const std::string &reason) override
     {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            closedConnections_.insert(connectionName);
+        }
         if (connectionStatusCb_) {
             connectionStatusCb_(connectionName, ConnectionStatus::DISCONNECTED, reason);
         }
@@ -148,6 +164,9 @@ public:
     bool SendMessage(const std::string &connectionName, const std::vector<uint8_t> &rawMsg) override
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        if (closedConnections_.count(connectionName) != 0) {
+            return false;
+        }
         sentMessages_[connectionName].push_back(rawMsg);
         return true;
     }
@@ -221,6 +240,10 @@ public:
 
     void TestSimulateRemoteDisconnect(const std::string &connectionName, const std::string &reason)
     {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            closedConnections_.insert(connectionName);
+        }
         if (connectionStatusCb_) {
             connectionStatusCb_(connectionName, ConnectionStatus::DISCONNECTED, reason);
         }
@@ -228,6 +251,10 @@ public:
 
     void TestSimulateIncomingConnection(const std::string &connectionName, const PhysicalDeviceKey &remoteKey)
     {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            closedConnections_.erase(connectionName);
+        }
         if (incomingConnectionCb_) {
             incomingConnectionCb_(connectionName, remoteKey);
         }
@@ -264,6 +291,7 @@ private:
     bool isAuthMaintainActive_ = true; // Default to active for companion-side tests
     std::string rejectReason_;
     std::vector<PhysicalDeviceStatus> onlineDevices_;
+    std::set<std::string> closedConnections_; // closed since the last open; sends are refused
     std::map<std::string, std::vector<std::vector<uint8_t>>> sentMessages_;
     OnPhysicalDeviceStatusChange physicalDeviceStatusCb_;
     OnConnectionStatusChange connectionStatusCb_;

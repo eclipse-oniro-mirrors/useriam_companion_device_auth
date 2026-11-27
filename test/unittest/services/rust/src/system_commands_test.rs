@@ -2742,7 +2742,7 @@ fn companion_process_check_test_success() {
     let input = CompanionProcessCheckInputFfi {
         binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
-        companion_protocol_list: Uint16Array64Ffi::default(),
+        companion_proof_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
@@ -2768,7 +2768,7 @@ fn companion_process_check_test_request_begin_fail() {
     let input = CompanionProcessCheckInputFfi {
         binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
-        companion_protocol_list: Uint16Array64Ffi::default(),
+        companion_proof_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list: Uint16Array64Ffi::default(),
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [0u8; SALT_LEN_FFI], len: SALT_LEN_FFI as u32 },
@@ -2807,7 +2807,7 @@ fn companion_init_key_negotiation_test_success() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -2831,7 +2831,7 @@ fn companion_init_key_negotiation_test_request_new_fail() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -2855,7 +2855,7 @@ fn companion_init_key_negotiation_test_request_prepare_fail() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -2895,7 +2895,7 @@ fn companion_init_key_negotiation_test_add_request_fail() {
     let input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -2938,7 +2938,7 @@ fn companion_begin_add_host_binding_test_success() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -3034,7 +3034,7 @@ fn companion_begin_add_host_binding_test_replaced_binding() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -3131,7 +3131,7 @@ fn companion_begin_add_host_binding_test_request_begin_fail() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -3181,7 +3181,7 @@ fn companion_end_add_host_binding_test_success() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },
@@ -3239,7 +3239,7 @@ fn companion_end_add_host_binding_test_request_end_fail() {
     let init_input = CompanionInitKeyNegotiationInputFfi {
         request_id: 1,
         secure_protocol_id: 1,
-        companion_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
+        companion_supported_protocol_list: Uint16Array64Ffi::try_from(vec![PROTOCOL_VERSION_1]).unwrap(),
         companion_capability_list: Uint16Array64Ffi::default(),
         selected_protocol_id: PROTOCOL_VERSION_1,
         companion_device_key: DeviceKeyFfi { device_id_type: 1, ..Default::default() },

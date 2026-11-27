@@ -110,7 +110,7 @@ fn create_binding_reply_with_companion_algorithms(
         esl,
         track_ability_level: 0,
         challenge: 0,
-        companion_protocol_list: protocol.to_vec(),
+        companion_reply_protocol_list: protocol.to_vec(),
         companion_capability_list: capability.to_vec(),
         selected_algorithms,
         companion_supported_algorithms,
@@ -996,7 +996,7 @@ fn host_enroll_request_end_test_protocol_list_mismatch() {
 }
 
 // The selected protocol is 1, yet the recompute over the encrypted-announced offer
-// picks the higher-priority protocol 2: C++/TA preference drift, rejected with 20011.
+// picks the higher-priority protocol 2: C++/Rust preference drift, rejected with 20011.
 #[test]
 fn host_enroll_request_end_test_protocol_recompute_divergence_rejected() {
     let _guard = ut_registry_guard!();

@@ -332,7 +332,7 @@ typedef struct BindingSignatureProofFfi {
 
 typedef struct CompanionProcessCheckInputFfi {
     int32_t bindingId;
-    struct Uint16Array64Ffi companionProtocolList;
+    struct Uint16Array64Ffi companionProofProtocolList;
     struct Uint16Array64Ffi companionCapabilityList;
     uint16_t secureProtocolId;
     struct DataArray32Ffi salt;
@@ -347,7 +347,7 @@ typedef struct CompanionProcessCheckOutputFfi {
 typedef struct CompanionInitKeyNegotiationInputFfi {
     int32_t requestId;
     uint16_t secureProtocolId;
-    struct Uint16Array64Ffi companionProtocolList;
+    struct Uint16Array64Ffi companionSupportedProtocolList;
     struct Uint16Array64Ffi companionCapabilityList;
     uint16_t selectedProtocolId;
     struct DeviceKeyFfi companionDeviceKey;
