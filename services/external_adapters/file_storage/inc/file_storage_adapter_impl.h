@@ -34,10 +34,7 @@ public:
     ResultCode SaveFile(const std::string &dir, const std::string &fileName, const std::vector<uint8_t> &data) override;
     ResultCode DeleteFile(const std::string &dir, const std::string &fileName) override;
 
-    explicit FileStorageAdapterImpl(PrivateConstructTag) {}
-
-private:
-    struct PrivateConstructTag {};
+    FileStorageAdapterImpl() = default;
 };
 
 } // namespace CompanionDeviceAuth

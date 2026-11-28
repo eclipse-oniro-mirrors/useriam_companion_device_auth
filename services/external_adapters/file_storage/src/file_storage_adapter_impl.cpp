@@ -43,7 +43,7 @@ bool IsValidFileName(const std::string &fileName)
 
 std::shared_ptr<FileStorageAdapterImpl> FileStorageAdapterImpl::Create()
 {
-    auto adapter = std::make_shared<FileStorageAdapterImpl>(PrivateConstructTag {});
+    auto adapter = std::make_shared<FileStorageAdapterImpl>();
     ENSURE_OR_RETURN_VAL(adapter != nullptr, nullptr);
     return adapter;
 }

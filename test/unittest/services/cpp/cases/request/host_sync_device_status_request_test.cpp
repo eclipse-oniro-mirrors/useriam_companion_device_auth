@@ -143,7 +143,9 @@ void DeliverSyncReply(const OnMessageReply &callback, const SyncDeviceStatusRepl
 
 void SetCompanionSrcIdentifier(Attributes &reply)
 {
-    SetCompanionSrcIdentifier(reply);
+    reply.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(COMPANION_DEVICE_KEY.idType));
+    reply.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, COMPANION_DEVICE_KEY.deviceId);
 }
 
 void ReplyBindingSignatureChallenge(OnMessageReply &onReply, ResultCode result, const UserKey &companionUserKey,
