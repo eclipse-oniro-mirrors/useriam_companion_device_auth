@@ -59,7 +59,10 @@ std::optional<SyncDeviceStatusReply> CompanionSyncDeviceStatusHandler::BuildSync
 
     SyncDeviceStatusReply syncReply = {};
     syncReply.result = ResultCode::SUCCESS;
-    syncReply.companionProtocolIdList = localProfile.companionProtocols;
+    // Unbound discovery round: no proof exists, the proof-list field degenerates to the full
+    // announcement (legacy hosts negotiate on it). A bound round narrows it in ProcessBindingCheck.
+    syncReply.companionProofProtocolIdList = localProfile.companionProtocols;
+    syncReply.companionSupportedProtocolIdList = localProfile.companionProtocols;
     syncReply.companionCapabilityList = localProfile.companionCapabilities;
     syncReply.businessIdList = localProfile.companionSupportedBusinessIds;
     syncReply.secureProtocolId = localProfile.companionSecureProtocolId;
@@ -180,9 +183,15 @@ ResultCode CompanionSyncDeviceStatusHandler::ProcessBindingCheck(const SyncDevic
     if (!hostBindingStatus.has_value()) {
         return ResultCode::SUCCESS;
     }
+    // The proof lists what the host offered and this device supports: a legacy host only ever offers
+    // VERSION_1, so the proof never carries a value the legacy host's Rust rejects. The outer list
+    // mirrors it.
+    std::vector<ProtocolId> companionProofProtocolIdList =
+        IntersectLists(syncRequest.hostProtocolIdList, localProfile.companionProtocols);
+    syncReply.companionProofProtocolIdList = companionProofProtocolIdList;
     BindingSignatureProof bindingSignatureProof = syncRequest.bindingSignatureProof.value_or(BindingSignatureProof {});
     CompanionProcessCheckInput input = BuildCompanionProcessCheckInput(*hostBindingStatus, syncRequest,
-        localProfile.companionProtocols, localProfile, bindingSignatureProof);
+        companionProofProtocolIdList, localProfile, bindingSignatureProof);
     ResultCode checkRet = CompanionProcessCheck(input, desc, syncReply.companionCheckResponse);
     if (checkRet != ResultCode::SUCCESS) {
         IAM_LOGE("%{public}s CompanionProcessCheck failed ret=%{public}d", desc.GetCStr(), checkRet);
@@ -217,12 +226,12 @@ ResultCode CompanionSyncDeviceStatusHandler::NegotiateSyncParameters(const SyncD
 
 CompanionProcessCheckInput CompanionSyncDeviceStatusHandler::BuildCompanionProcessCheckInput(
     const HostBindingStatus &hostBindingStatus, const SyncDeviceStatusRequest &syncRequest,
-    const std::vector<ProtocolId> &companionProtocolList, const LocalDeviceProfile &localProfile,
+    const std::vector<ProtocolId> &companionProofProtocolIdList, const LocalDeviceProfile &localProfile,
     const BindingSignatureProof &bindingSignatureProof)
 {
     CompanionProcessCheckInput input = {};
     input.bindingId = hostBindingStatus.bindingId;
-    input.companionProtocolList = ProtocolIdConverter::ToUnderlyingVec(companionProtocolList);
+    input.companionProofProtocolList = ProtocolIdConverter::ToUnderlyingVec(companionProofProtocolIdList);
     input.companionCapabilityList = CapabilityConverter::ToUnderlyingVec(localProfile.companionCapabilities);
     input.secureProtocolId = localProfile.companionSecureProtocolId;
     input.salt = syncRequest.salt;

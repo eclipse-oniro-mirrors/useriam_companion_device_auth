@@ -106,9 +106,9 @@ static void FuzzSetCapabilityList(InteractionEventCollector &collector, FuzzedDa
     collector.SetCapabilityList(GenerateFuzzVector<uint16_t>(fuzzData, FUZZ_MAX_CAPABILITIES_COUNT));
 }
 
-static void FuzzSetPeerProtocolIdList(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
+static void FuzzSetPeerSupportedProtocolIdList(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
 {
-    collector.SetPeerProtocolIdList(GenerateFuzzVector<uint16_t>(fuzzData, FUZZ_MAX_PROTOCOLS_COUNT));
+    collector.SetPeerSupportedProtocolIdList(GenerateFuzzVector<uint16_t>(fuzzData, FUZZ_MAX_PROTOCOLS_COUNT));
 }
 
 static void FuzzSetSelectedProtocolId(InteractionEventCollector &collector, FuzzedDataProvider &fuzzData)
@@ -172,7 +172,7 @@ static const CollectorFuzzFunction g_fuzzFuncs[] = {
     FuzzSetEsl,
     FuzzSetProtocolIdList,
     FuzzSetCapabilityList,
-    FuzzSetPeerProtocolIdList,
+    FuzzSetPeerSupportedProtocolIdList,
     FuzzSetSelectedProtocolId,
     FuzzSetSecureProtocolId,
     FuzzAddTemplateAuthResult,

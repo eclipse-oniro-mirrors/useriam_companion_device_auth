@@ -16,7 +16,7 @@
 use crate::traits::log_trace::TestFileId;
 const FILE_ID: u16 = TestFileId::AttributeTest as u16;
 
-use crate::common::constants::ErrorCode;
+use crate::common::constants::{ErrorCode, INVALID_SUB_PROFILE_ID};
 use crate::log_i;
 use crate::ut_registry_guard;
 use crate::utils::parcel::Parcel;
@@ -138,6 +138,24 @@ fn i32_test() {
     assert_eq!(attribute.get_i32(AttributeKey::AttrResultCode), Err(ErrorCode::GeneralError));
     attribute.set_i32(AttributeKey::AttrResultCode, 0);
     assert!(attribute.get_i32(AttributeKey::AttrResultCode).is_ok());
+}
+
+#[test]
+fn i32_or_legacy_test() {
+    let _guard = ut_registry_guard!();
+    log_i!("i32_or_legacy_test start");
+
+    let key = AttributeKey::AttrResultCode;
+    let legacy = INVALID_SUB_PROFILE_ID;
+
+    let mut attribute = Attribute::new();
+    // Absent: the legacy value.
+    assert_eq!(attribute.get_i32_or_legacy(key, legacy), Ok(legacy));
+    attribute.set_i32(key, 1);
+    assert_eq!(attribute.get_i32_or_legacy(key, legacy), Ok(1));
+    // Carried but malformed: an error, never the legacy value.
+    attribute.set_u16(key, 0);
+    assert_eq!(attribute.get_i32_or_legacy(key, legacy), Err(ErrorCode::GeneralError));
 }
 
 #[test]

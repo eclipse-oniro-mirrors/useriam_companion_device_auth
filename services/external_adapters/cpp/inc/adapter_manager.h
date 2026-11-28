@@ -24,6 +24,7 @@
 #include "app_foreground_state_adapter.h"
 #include "driver_manager_adapter.h"
 #include "event_manager_adapter.h"
+#include "file_storage_adapter.h"
 #include "idm_adapter.h"
 #include "sa_manager_adapter.h"
 #include "security_command_adapter.h"
@@ -75,6 +76,9 @@ public:
     ISystemSettingsManager &GetSystemSettingsManager();
     void SetSystemSettingsManager(std::shared_ptr<ISystemSettingsManager> adapter);
 
+    IFileStorageAdapter &GetFileStorageAdapter();
+    void SetFileStorageAdapter(std::shared_ptr<IFileStorageAdapter> adapter);
+
 #ifdef ENABLE_TEST
     void Reset();
 #endif // ENABLE_TEST
@@ -96,6 +100,7 @@ private:
     std::shared_ptr<IUserKeyManager> userKeyManager_;
     std::shared_ptr<ISystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<IAppForegroundStateAdapter> appForegroundStateAdapter_;
+    std::shared_ptr<IFileStorageAdapter> fileStorageAdapter_;
 };
 
 inline IUserAuthAdapter &GetUserAuthAdapter()
@@ -151,6 +156,11 @@ inline IUserKeyManager &GetUserKeyManager()
 inline ISystemSettingsManager &GetSystemSettingsManager()
 {
     return AdapterManager::GetInstance().GetSystemSettingsManager();
+}
+
+inline IFileStorageAdapter &GetFileStorageAdapter()
+{
+    return AdapterManager::GetInstance().GetFileStorageAdapter();
 }
 
 } // namespace CompanionDeviceAuth

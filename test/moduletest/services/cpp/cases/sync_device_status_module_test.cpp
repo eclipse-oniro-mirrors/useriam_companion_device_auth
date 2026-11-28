@@ -172,7 +172,8 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncNoTemplateE2E_001, TestSize.Level0)
     EXPECT_FALSE(msgInfo->isReply);
     SyncDeviceStatusReply reply;
     reply.result = ResultCode::SUCCESS;
-    reply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    reply.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
+    reply.companionSupportedProtocolIdList = { ProtocolId::VERSION_1 };
     reply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
     reply.secureProtocolId = SecureProtocolId::DEFAULT;
     reply.companionDeviceKey = MakeDeviceKey("companion-test-device-001", 200);
@@ -255,7 +256,8 @@ HWTEST_F(SyncDeviceStatusModuleTest, HostSyncPreSyncWindowAndFlipE2E_001, TestSi
 
     SyncDeviceStatusReply reply;
     reply.result = ResultCode::SUCCESS;
-    reply.companionProtocolIdList = { ProtocolId::VERSION_1 };
+    reply.companionProofProtocolIdList = { ProtocolId::VERSION_1 };
+    reply.companionSupportedProtocolIdList = { ProtocolId::VERSION_1 };
     reply.companionCapabilityList = { Capability::DELEGATE_AUTH, Capability::TOKEN_AUTH };
     reply.secureProtocolId = SecureProtocolId::DEFAULT;
     reply.companionDeviceKey = MakeDeviceKey(deviceId, 200);

@@ -373,7 +373,6 @@ HWTEST_F(DeviceStatusManagerTest, NegotiateSyncProtocol_RoundPayloadSingleVersio
     // offer=[1] + reply=[1]: the round's first(offer ∩ reply) is V1.
     SyncDeviceStatus syncDeviceStatus {};
     syncDeviceStatus.needSync = true;
-    syncDeviceStatus.companionProtocolIdList = { ProtocolId::VERSION_1 };
     syncDeviceStatus.selectedProtocolId = static_cast<uint16_t>(ProtocolId::VERSION_1);
     syncDeviceStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
@@ -394,7 +393,6 @@ HWTEST_F(DeviceStatusManagerTest, NegotiateSyncProtocol_RoundPayloadDualVersion,
     // offer=[2,1] + reply=[2,1]: the round's first(offer ∩ reply) is V2, not the reply head.
     SyncDeviceStatus syncDeviceStatus {};
     syncDeviceStatus.needSync = true;
-    syncDeviceStatus.companionProtocolIdList = { ProtocolId::VERSION_2, ProtocolId::VERSION_1 };
     syncDeviceStatus.selectedProtocolId = static_cast<uint16_t>(ProtocolId::VERSION_2);
     syncDeviceStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
@@ -416,7 +414,6 @@ HWTEST_F(DeviceStatusManagerTest, NegotiateSyncProtocol_ProtocolNegotiationFaile
     entry.selectedProtocolId = ProtocolId::VERSION_1;
     SyncDeviceStatus syncDeviceStatus {};
     syncDeviceStatus.needSync = true;
-    syncDeviceStatus.companionProtocolIdList = { ProtocolId::INVALID };
     syncDeviceStatus.secureProtocolId = SecureProtocolId::DEFAULT;
 
     ResultCode settled = ResultCode::SUCCESS;
@@ -679,7 +676,8 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsChanged
     physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001), static_cast<BusinessId>(10002) };
 
     // Pre-existing entry, not yet synced (sync empty): effective is driven by the physical ids.
-    DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
+    DeviceStatusEntry entry(
+        physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
     entry.selectedProtocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));
@@ -708,7 +706,8 @@ HWTEST_F(DeviceStatusManagerTest, AddOrUpdateDevices_SupportedBusinessIdsUnchang
     auto physicalStatus = MakePhysicalStatus("device-biz-same", ChannelId::SOFTBUS, "Device");
     physicalStatus.supportedBusinessIds = { static_cast<BusinessId>(10001) };
 
-    DeviceStatusEntry entry(physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
+    DeviceStatusEntry entry(
+        physicalStatus, []() {}, ctx.manager->hostSupportBusinessIds_);
     entry.isSynced = true;
     entry.selectedProtocolId = ProtocolId::VERSION_1;
     ctx.manager->deviceStatusMap_.emplace(physicalStatus.physicalDeviceKey, std::move(entry));

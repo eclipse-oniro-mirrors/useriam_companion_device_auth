@@ -228,6 +228,22 @@ void AdapterManager::SetSystemSettingsManager(std::shared_ptr<ISystemSettingsMan
     systemSettingsManager_ = adapter;
 }
 
+IFileStorageAdapter &AdapterManager::GetFileStorageAdapter()
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    if (fileStorageAdapter_ == nullptr) {
+        IAM_LOGE("FileStorage adapter is not initialized");
+        AbortIfAdapterUninitialized("FileStorage");
+    }
+    return *fileStorageAdapter_;
+}
+
+void AdapterManager::SetFileStorageAdapter(std::shared_ptr<IFileStorageAdapter> adapter)
+{
+    CHECK_RUNNING_ON_RESIDENT_THREAD();
+    fileStorageAdapter_ = adapter;
+}
+
 void AdapterManager::AbortIfAdapterUninitialized(const char *adapterName)
 {
     IAM_LOGE("%{public}s adapter is not initialized, abort", adapterName);
@@ -248,6 +264,7 @@ void AdapterManager::Reset()
     userKeyManager_ = nullptr;
     systemSettingsManager_ = nullptr;
     appForegroundStateAdapter_ = nullptr;
+    fileStorageAdapter_ = nullptr;
 }
 #endif // ENABLE_TEST
 

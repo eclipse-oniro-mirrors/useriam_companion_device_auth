@@ -75,7 +75,7 @@ static void FuzzEncodeSyncDeviceStatusReply(FuzzedDataProvider &fuzzData)
     uint8_t protoListSize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t j = 0; j < protoListSize; ++j) {
         ProtocolId pid = static_cast<ProtocolId>(fuzzData.ConsumeIntegral<uint32_t>());
-        reply.companionProtocolIdList.push_back(pid);
+        reply.companionProofProtocolIdList.push_back(pid);
     }
     uint8_t capListSize = fuzzData.ConsumeIntegralInRange<uint8_t>(0, INT32_10);
     for (uint8_t j = 0; j < capListSize; ++j) {

@@ -44,7 +44,10 @@ struct SyncDeviceStatusRequest {
 // Companion -> Host
 struct SyncDeviceStatusReply {
     ResultCode result { ResultCode::GENERAL_ERROR };
-    std::vector<ProtocolId> companionProtocolIdList;
+    // Proof list: the round-scoped protocol set the companion answers with. In a bound round it
+    // mirrors the encrypted inner list (must stay identical, rule of proof-list duality); in an
+    // unbound discovery round no proof exists and it degenerates to the full announcement.
+    std::vector<ProtocolId> companionProofProtocolIdList;
     std::vector<Capability> companionCapabilityList;
     std::vector<BusinessId> businessIdList;
     SecureProtocolId secureProtocolId;
@@ -55,6 +58,10 @@ struct SyncDeviceStatusReply {
     std::string deviceSubProfileName;
     std::optional<Atl> maxAuthTrustLevel;
     std::optional<UserKey> companionUserKey;
+    // Complete support set: the companion's full protocol list, independent of this round's offer.
+    // Announcement only (plaintext, never proof material); decode falls back to the proof list
+    // for peers predating the dedicated attribute.
+    std::vector<ProtocolId> companionSupportedProtocolIdList;
 };
 
 void EncodeSyncDeviceStatusRequest(const SyncDeviceStatusRequest &request, Attributes &attributes);

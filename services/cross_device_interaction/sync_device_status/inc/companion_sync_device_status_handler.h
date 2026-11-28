@@ -48,7 +48,7 @@ private:
         const LocalDeviceProfile &localProfile, const InteractionDesc &desc);
     void SetCompanionDeviceKeyUserId(SyncDeviceStatusReply &syncReply, const UserKey &companionUserKey);
     CompanionProcessCheckInput BuildCompanionProcessCheckInput(const HostBindingStatus &hostBindingStatus,
-        const SyncDeviceStatusRequest &syncRequest, const std::vector<ProtocolId> &companionProtocolList,
+        const SyncDeviceStatusRequest &syncRequest, const std::vector<ProtocolId> &companionProofProtocolIdList,
         const LocalDeviceProfile &localProfile, const BindingSignatureProof &bindingSignatureProof);
     UserKey QueryActiveUserKey();
     std::optional<HostBindingStatus> QueryHostBindingStatus(const UserKey &companionUserKey,

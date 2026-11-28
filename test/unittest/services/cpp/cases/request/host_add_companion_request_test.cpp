@@ -38,9 +38,12 @@ const std::vector<uint8_t> FWK_MSG = { 1, 2, 3, 4 };
 constexpr uint32_t TOKEN_ID = 123;
 constexpr int32_t TEMPLATE_ID = 12345;
 const std::string ADDITIONAL_INFO = "";
+const std::vector<uint8_t> ICON_DATA = { 1, 2, 3, 4, 5 };
 
 const DeviceKey COMPANION_DEVICE_KEY = { .deviceId = "companion_device_id", .deviceUserId = 100 };
 const DeviceKey HOST_DEVICE_KEY = { .deviceId = "host_device_id", .deviceUserId = 100 };
+const std::string HOST_USER_ICON_DIR =
+    "/data/service/el1/" + std::to_string(HOST_DEVICE_KEY.deviceUserId) + "/useriam/companion_device_auth/icons";
 const DeviceStatus DEVICE_STATUS = {
     .deviceKey = COMPANION_DEVICE_KEY,
     .channelId = ChannelId::SOFTBUS,
@@ -1119,6 +1122,132 @@ HWTEST_F(HostAddCompanionRequestTest, EndAddCompanion_001, TestSize.Level0)
     EXPECT_EQ(result, ResultCode::SUCCESS);
     EXPECT_EQ(*persistedProtocolId, ProtocolId::VERSION_1);
     EXPECT_EQ(request->templateId_, TEMPLATE_ID);
+}
+
+// A request at the enrollment end: the peer is known and the protocol is selected.
+std::shared_ptr<HostAddCompanionRequest> MakeRequestAtEnrollEnd()
+{
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+    request->SetPeerDeviceKey(COMPANION_DEVICE_KEY);
+    request->hostDeviceKey_ = HOST_DEVICE_KEY;
+    request->selectedProtocolId_ = ProtocolId::VERSION_1;
+    return request;
+}
+
+// The peer is in range and its binding gets persisted.
+void ExpectEnrollEndToPersist(MockGuard &guard)
+{
+    DeviceStatus deviceStatus;
+    deviceStatus.supportedBusinessIds = { BusinessId::DEFAULT };
+    deviceStatus.capabilities = { Capability::TOKEN_AUTH };
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(deviceStatus)));
+    EXPECT_CALL(guard.GetCompanionManager(), EndAddCompanion(_, _))
+        .WillOnce(Invoke([](const EndAddCompanionInput &, EndAddCompanionOutput &output) {
+            output.templateId = TEMPLATE_ID;
+            return ResultCode::SUCCESS;
+        }));
+}
+
+// The icon picked during device selection is stored once the binding is persisted, under the icon
+// directory of the host user.
+HWTEST_F(HostAddCompanionRequestTest, EndAddCompanion_WithIcon_StoresItThroughFileStorage, TestSize.Level0)
+{
+    MockGuard guard;
+    ExpectEnrollEndToPersist(guard);
+    auto request = MakeRequestAtEnrollEnd();
+    ASSERT_NE(request, nullptr);
+    request->companionIcon_ = CompanionIcon { "watch.png", ICON_DATA };
+
+    BeginAddHostBindingReply reply;
+    std::vector<uint8_t> fwkMsg;
+    EXPECT_EQ(request->EndAddCompanion(reply, fwkMsg), ResultCode::SUCCESS);
+
+    EXPECT_EQ(guard.GetFileStorageAdapter().GetSavedFiles(),
+        std::vector<MockFileStorageAdapter::SavedFile>({ { HOST_USER_ICON_DIR, "watch.png", ICON_DATA } }));
+}
+
+// The binding is already persisted when the icon is stored: a failing write leaves the enrollment
+// result alone.
+HWTEST_F(HostAddCompanionRequestTest, EndAddCompanion_IconStoreFailure_KeepsEnrollmentResult, TestSize.Level0)
+{
+    MockGuard guard;
+    ExpectEnrollEndToPersist(guard);
+    guard.GetFileStorageAdapter().SetSaveResult(ResultCode::GENERAL_ERROR);
+    auto request = MakeRequestAtEnrollEnd();
+    ASSERT_NE(request, nullptr);
+    request->companionIcon_ = CompanionIcon { "watch.png", ICON_DATA };
+
+    BeginAddHostBindingReply reply;
+    std::vector<uint8_t> fwkMsg;
+    EXPECT_EQ(request->EndAddCompanion(reply, fwkMsg), ResultCode::SUCCESS);
+    EXPECT_EQ(request->templateId_, TEMPLATE_ID);
+}
+
+HWTEST_F(HostAddCompanionRequestTest, EndAddCompanion_WithoutIcon_StoresNothing, TestSize.Level0)
+{
+    MockGuard guard;
+    ExpectEnrollEndToPersist(guard);
+    auto request = MakeRequestAtEnrollEnd();
+    ASSERT_NE(request, nullptr);
+
+    BeginAddHostBindingReply reply;
+    std::vector<uint8_t> fwkMsg;
+    EXPECT_EQ(request->EndAddCompanion(reply, fwkMsg), ResultCode::SUCCESS);
+    EXPECT_TRUE(guard.GetFileStorageAdapter().GetSavedFiles().empty());
+}
+
+// The selection context carries the companion icon, kept until the enrollment end stores it.
+HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_WithIconContext_KeepsIcon, TestSize.Level0)
+{
+    MockGuard guard;
+
+    auto callback = [](ResultCode, const std::vector<uint8_t> &) {};
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+
+    // The device is in range with a usable protocol; the icon in the context is kept for the
+    // enrollment end.
+    DeviceStatus syncedStatus {};
+    syncedStatus.selectedProtocolId = ProtocolId::VERSION_1;
+    syncedStatus.freshBindingProtocolId = ProtocolId::VERSION_1;
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), GetDeviceStatus(_))
+        .WillOnce(Return(std::make_optional(syncedStatus)));
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), EnsureDeviceSynced(_, _)).Times(0);
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).Times(1);
+
+    std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
+    std::string contextJson = R"({"icon_file_name":"watch.png","icon_data":"AQIDBAU="})";
+    std::vector<uint8_t> context(contextJson.begin(), contextJson.end());
+    ASSERT_NO_THROW(request->HandleDeviceSelectResult(selectedDevices, context));
+
+    ASSERT_TRUE(request->companionIcon_.has_value());
+    EXPECT_EQ(request->companionIcon_->fileName, "watch.png");
+    EXPECT_EQ(request->companionIcon_->data, ICON_DATA);
+}
+
+// An icon that cannot be parsed fails the request before any connection is opened.
+HWTEST_F(HostAddCompanionRequestTest, HandleDeviceSelectResult_WithInvalidIconContext_Fails, TestSize.Level0)
+{
+    MockGuard guard;
+
+    ResultCode received = ResultCode::SUCCESS;
+    auto callback = [&received](ResultCode result, const std::vector<uint8_t> &) { received = result; };
+    auto request =
+        std::make_shared<HostAddCompanionRequest>(SCHEDULE_ID, FWK_MSG, TOKEN_ID, ADDITIONAL_INFO, std::move(callback));
+
+    EXPECT_CALL(guard.GetCrossDeviceCommManager(), OpenConnection(_, _, _)).Times(0);
+
+    std::vector<DeviceKey> selectedDevices = { COMPANION_DEVICE_KEY };
+    std::string contextJson = R"({"icon_file_name":"a/b.png","icon_data":"AQIDBAU="})";
+    std::vector<uint8_t> context(contextJson.begin(), contextJson.end());
+    request->HandleDeviceSelectResult(selectedDevices, context);
+    TaskRunnerManager::GetInstance().ExecuteAll();
+
+    EXPECT_EQ(received, ResultCode::INVALID_PARAMETERS);
+    EXPECT_FALSE(request->companionIcon_.has_value());
 }
 
 HWTEST_F(HostAddCompanionRequestTest, InvokeCallback_001, TestSize.Level0)

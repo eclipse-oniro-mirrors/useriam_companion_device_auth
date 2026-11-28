@@ -17,22 +17,16 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cerrno>
-#include <cstring>
-
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <string>
 
 #include <openssl/evp.h>
 
+#include "adapter_manager.h"
 #include "cda_json_helper.h"
 #include "cda_scope_guard.h"
-#include "directory_ex.h"
 #include "iam_check.h"
 #include "iam_logger.h"
 #include "service_common.h"
-#include "unique_fd.h"
 
 #define LOG_TAG "CDA_SA"
 #define LOG_FILE_ID LOG_FILE_COMPANION_ICON_STORE
@@ -41,12 +35,6 @@ namespace OHOS {
 namespace UserIam {
 namespace CompanionDeviceAuth {
 namespace {
-constexpr const char *ICON_FILE_NAME_KEY = "icon_file_name";
-constexpr const char *ICON_DATA_KEY = "icon_data";
-constexpr const char *ICON_TMP_SUFFIX = ".tmp";
-constexpr const char ICON_PATH_SEPARATOR = '/';
-
-std::string g_iconStoreRoot = ICON_STORE_ROOT;
 
 bool IsAllowedIconNameChar(char c)
 {
@@ -102,18 +90,12 @@ bool DecodeBase64(const std::string &text, std::vector<uint8_t> &data)
     data = std::move(decoded);
     return true;
 }
+
+std::string BuildIconDirectory(int32_t hostUserId)
+{
+    return "/data/service/el1/" + std::to_string(hostUserId) + "/useriam/companion_device_auth/icons";
+}
 } // namespace
-
-std::string BuildIconDirectory(int32_t userId)
-{
-    return std::string(g_iconStoreRoot) + ICON_PATH_SEPARATOR + std::to_string(userId) + ICON_PATH_SEPARATOR +
-        ICON_STORE_LEAF;
-}
-
-void SetIconStoreRootForTest(const std::string &root)
-{
-    g_iconStoreRoot = root;
-}
 
 ResultCode ParseIconSelectionContext(const std::vector<uint8_t> &context, CompanionIcon &icon)
 {
@@ -129,12 +111,12 @@ ResultCode ParseIconSelectionContext(const std::vector<uint8_t> &context, Compan
         return INVALID_PARAMETERS;
     }
     std::string fileName;
-    if (!GetJsonField(*json, ICON_FILE_NAME_KEY, fileName, MAX_ARRAY_LENGTH)) {
+    if (!GetJsonField(*json, "icon_file_name", fileName, MAX_ARRAY_LENGTH)) {
         IAM_LOGE("icon_file_name missing or not a string");
         return INVALID_PARAMETERS;
     }
     std::string base64Data;
-    if (!GetJsonField(*json, ICON_DATA_KEY, base64Data, MAX_ARRAY_LENGTH)) {
+    if (!GetJsonField(*json, "icon_data", base64Data, MAX_ARRAY_LENGTH)) {
         IAM_LOGE("icon_data missing or not a string");
         return INVALID_PARAMETERS;
     }
@@ -150,77 +132,30 @@ ResultCode ParseIconSelectionContext(const std::vector<uint8_t> &context, Compan
     return SUCCESS;
 }
 
-ResultCode SaveIconToDirectory(const std::string &iconDir, const CompanionIcon &icon)
+ResultCode SaveIcon(int32_t hostUserId, const CompanionIcon &icon)
 {
     if (!IsValidIconFileName(icon.fileName)) {
         IAM_LOGE("icon file name is invalid");
         return INVALID_PARAMETERS;
     }
-    if (iconDir.empty()) {
-        IAM_LOGE("icon directory is empty");
+    if (hostUserId == INVALID_USER_ID) {
+        IAM_LOGE("host user id is invalid");
         return INVALID_PARAMETERS;
     }
-    if (!ForceCreateDirectory(iconDir)) {
-        IAM_LOGE("create icon directory failed: %{public}s", iconDir.c_str());
-        return GENERAL_ERROR;
-    }
-    std::string tmpPath = iconDir + ICON_PATH_SEPARATOR + icon.fileName + ICON_TMP_SUFFIX;
-    std::string targetPath = iconDir + ICON_PATH_SEPARATOR + icon.fileName;
-
-    UniqueFd fd(open(tmpPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, S_IRUSR | S_IWUSR));
-    if (fd < 0) {
-        IAM_LOGE("open tmp icon file failed errno=%{public}d", errno);
-        return GENERAL_ERROR;
-    }
-    // Unlink the tmp file on any failure path; Cancel() keeps it after a successful rename.
-    ScopeGuard tmpGuard([&tmpPath]() { unlink(tmpPath.c_str()); });
-    size_t offset = 0;
-    while (offset < icon.data.size()) {
-        ssize_t written = write(fd, icon.data.data() + offset, icon.data.size() - offset);
-        if (written < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-            IAM_LOGE("write tmp icon file failed errno=%{public}d", errno);
-            return GENERAL_ERROR;
-        }
-        offset += static_cast<size_t>(written);
-    }
-    // fdatasync is the real durability and error gate before rename; UniqueFd's destructor closes the fd on return.
-    if (fdatasync(fd) != 0) {
-        IAM_LOGE("sync tmp icon file failed errno=%{public}d", errno);
-        return GENERAL_ERROR;
-    }
-    if (rename(tmpPath.c_str(), targetPath.c_str()) != 0) {
-        IAM_LOGE("rename tmp icon file failed errno=%{public}d", errno);
-        return GENERAL_ERROR;
-    }
-    tmpGuard.Cancel();
-    IAM_LOGI("icon saved: %{public}s size=%{public}zu", targetPath.c_str(), icon.data.size());
-    return SUCCESS;
+    return GetFileStorageAdapter().SaveFile(BuildIconDirectory(hostUserId), icon.fileName, icon.data);
 }
 
-ResultCode DeleteIconFromDirectory(const std::string &iconDir, const std::string &iconFileName)
+ResultCode DeleteIcon(int32_t hostUserId, const std::string &iconFileName)
 {
     if (!IsValidIconFileName(iconFileName)) {
         IAM_LOGE("icon file name is invalid");
         return INVALID_PARAMETERS;
     }
-    if (iconDir.empty()) {
-        IAM_LOGE("icon directory is empty");
+    if (hostUserId == INVALID_USER_ID) {
+        IAM_LOGE("host user id is invalid");
         return INVALID_PARAMETERS;
     }
-    std::string targetPath = iconDir + ICON_PATH_SEPARATOR + iconFileName;
-    if (unlink(targetPath.c_str()) != 0) {
-        if (errno == ENOENT) {
-            IAM_LOGI("icon already absent: %{public}s", targetPath.c_str());
-            return SUCCESS;
-        }
-        IAM_LOGE("unlink icon file failed errno=%{public}d path=%{public}s", errno, targetPath.c_str());
-        return GENERAL_ERROR;
-    }
-    IAM_LOGI("icon deleted: %{public}s", targetPath.c_str());
-    return SUCCESS;
+    return GetFileStorageAdapter().DeleteFile(BuildIconDirectory(hostUserId), iconFileName);
 }
 } // namespace CompanionDeviceAuth
 } // namespace UserIam

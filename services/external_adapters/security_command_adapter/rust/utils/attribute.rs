@@ -244,6 +244,13 @@ impl Attribute {
         Ok(i32::from_le_bytes(array))
     }
 
+    pub fn get_i32_or_legacy(&self, key: AttributeKey, legacy_value: i32) -> Result<i32, ErrorCode> {
+        if !self.has(key) {
+            return Ok(legacy_value);
+        }
+        self.get_i32(key)
+    }
+
     pub fn set_i32(&mut self, key: AttributeKey, value: i32) {
         self.map.insert(key, value.to_le_bytes().to_vec());
     }

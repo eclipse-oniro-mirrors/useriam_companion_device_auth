@@ -29,6 +29,7 @@
 #include "driver_manager_adapter_impl.h"
 #include "event_bus_impl.h"
 #include "event_manager_adapter_impl.h"
+#include "file_storage_adapter_impl.h"
 #include "fwk_comm_manager.h"
 #include "host_binding_manager_impl.h"
 #include "icross_device_channel.h"
@@ -211,6 +212,15 @@ bool BaseServiceInitializer::InitializeSystemParamManager()
     return true;
 }
 
+bool BaseServiceInitializer::InitializeFileStorageAdapter()
+{
+    auto &adapterManager = AdapterManager::GetInstance();
+    auto fileStorageAdapter = FileStorageAdapterImpl::Create();
+    ENSURE_OR_RETURN_VAL(fileStorageAdapter != nullptr, false);
+    adapterManager.SetFileStorageAdapter(fileStorageAdapter);
+    return true;
+}
+
 bool BaseServiceInitializer::InitializeUserKeyManager()
 {
     auto &adapterManager = AdapterManager::GetInstance();
@@ -378,6 +388,7 @@ const BaseServiceInitializer::BasicInitStep BaseServiceInitializer::BASIC_INIT_T
     { &BaseServiceInitializer::InitializeEventManagerAdapter, "InitializeEventManagerAdapter" },
     { &BaseServiceInitializer::InitializeSaManagerAdapter, "InitializeSaManagerAdapter" },
     { &BaseServiceInitializer::InitializeSystemParamManager, "InitializeSystemParamManager" },
+    { &BaseServiceInitializer::InitializeFileStorageAdapter, "InitializeFileStorageAdapter" },
     { &BaseServiceInitializer::InitializeSecurityCommandAdapter, "InitializeSecurityCommandAdapter" },
     { &BaseServiceInitializer::InitializeUserKeyManager, "InitializeUserKeyManager" },
     { &BaseServiceInitializer::InitializeSystemSettingsManager, "InitializeSystemSettingsManager" },

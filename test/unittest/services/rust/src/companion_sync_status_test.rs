@@ -19,6 +19,7 @@ const FILE_ID: u16 = TestFileId::CompanionSyncStatusTest as u16;
 use crate::common::constants::*;
 
 const PROTOCOL_VERSION_1: u16 = 1;
+const BINDING_ID: i32 = 123;
 use crate::entry::companion_device_auth_ffi::{
     BindingSignatureProofFfi,
     CompanionProcessCheckInputFfi, CompanionProcessTokenAuthInputFfi, DataArray1024Ffi, DataArray32Ffi,
@@ -30,8 +31,10 @@ use crate::traits::crypto_engine::{CryptoEngineRegistry, MockCryptoEngine};
 use crate::traits::db_manager::{DeviceKey, HostBinding, HostBindingSk, UserInfo, UserKey};
 use crate::traits::host_binding_db_manager::{HostBindingDbManagerRegistry, MockHostBindingDbManager};
 use crate::traits::request_manager::{Request, RequestParam};
+use crate::utils::{Attribute, AttributeKey};
 use crate::ut_registry_guard;
 use std::boxed::Box;
+use std::sync::{Arc, Mutex};
 
 fn create_mock_host_binding(binding_id: i32, secure_protocol_id: u16) -> HostBinding {
     HostBinding {
@@ -46,9 +49,9 @@ fn create_mock_host_binding(binding_id: i32, secure_protocol_id: u16) -> HostBin
 }
 
 fn create_valid_input(binding_id: i32, challenge: u64) -> CompanionProcessCheckInputFfi {
-    let mut companion_protocol_list = Uint16Array64Ffi::default();
-    companion_protocol_list.data[0] = PROTOCOL_VERSION_1;
-    companion_protocol_list.len = 1;
+    let mut companion_proof_protocol_list = Uint16Array64Ffi::default();
+    companion_proof_protocol_list.data[0] = PROTOCOL_VERSION_1;
+    companion_proof_protocol_list.len = 1;
 
     let mut companion_capability_list = Uint16Array64Ffi::default();
     companion_capability_list.data[0] = 0x01;
@@ -58,7 +61,7 @@ fn create_valid_input(binding_id: i32, challenge: u64) -> CompanionProcessCheckI
     CompanionProcessCheckInputFfi {
         binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id,
-        companion_protocol_list,
+        companion_proof_protocol_list,
         companion_capability_list,
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [1u8; HKDF_SALT_SIZE], len: HKDF_SALT_SIZE as u32 },
@@ -89,7 +92,7 @@ fn companion_sync_status_request_new_test_success() {
     let request = result.unwrap();
     assert_eq!(request.get_request_id(), 123);
     assert_eq!(request.host_challenge, 0);
-    assert_eq!(request.companion_protocol_list, vec![PROTOCOL_VERSION_1]);
+    assert_eq!(request.companion_proof_protocol_list, vec![PROTOCOL_VERSION_1]);
     assert_eq!(request.companion_capability_list, vec![0x01, 0x02]);
 }
 
@@ -116,7 +119,7 @@ fn companion_sync_status_request_new_test_companion_capability_list_convert_fail
     let input = CompanionProcessCheckInputFfi {
         binding_signature_proof: BindingSignatureProofFfi::default(),
         binding_id: 123,
-        companion_protocol_list: Uint16Array64Ffi::default(),
+        companion_proof_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list,
         secure_protocol_id: 1,
         salt: DataArray32Ffi { data: [1u8; HKDF_SALT_SIZE], len: HKDF_SALT_SIZE as u32 },
@@ -293,6 +296,60 @@ fn companion_sync_status_request_begin_test_uses_enrolled_secure_protocol() {
     let result = request.begin(param);
     assert!(result.is_ok());
     assert_eq!(request.secure_protocol_id, SecureProtocolId::Default as u16);
+}
+
+// The proof's protocol list is whatever the SA handed in. The SA narrows it to the host's offer
+// before the call (a legacy host only ever offers VERSION_1); the security layer consults no
+// stored list of its own and keeps the binding's version out of it.
+#[test]
+fn companion_sync_status_request_begin_test_proof_carries_input_protocol_list_verbatim() {
+    let _guard = ut_registry_guard!();
+    log_i!("companion_sync_status_request_begin_test_proof_carries_input_protocol_list_verbatim start");
+
+    let proof_protocol_list = |input_list: Vec<u16>| -> Vec<u16> {
+        let mut mock_host_binding_db_manager = MockHostBindingDbManager::new();
+        mock_host_binding_db_manager
+            .expect_get_device_by_binding_id()
+            .returning(|| Ok(create_mock_host_binding(BINDING_ID, SecureProtocolId::Default as u16)));
+        mock_host_binding_db_manager.expect_read_device_sk().returning(|| Ok(HostBindingSk {
+            sk: [0u8; SHARE_KEY_LEN],
+            kdf_algorithm: 1,
+            aead_algorithm: 1,
+            mac_algorithm: 1,
+        }));
+        HostBindingDbManagerRegistry::set(Box::new(mock_host_binding_db_manager));
+
+        let encrypted = Arc::new(Mutex::new(Vec::new()));
+        let mut mock_crypto_engine = MockCryptoEngine::new();
+        mock_crypto_engine.expect_hkdf().returning(|_, _| Ok(Vec::new()));
+        mock_crypto_engine.expect_secure_random().returning(|_buf| Ok(()));
+        {
+            let encrypted = Arc::clone(&encrypted);
+            mock_crypto_engine.expect_aes_gcm_encrypt().returning(move |data, _| {
+                *encrypted.lock().unwrap() = data.to_vec();
+                Ok(crate::traits::crypto_engine::AesGcmResult {
+                    ciphertext: Vec::new(),
+                    authentication_tag: [0u8; AES_GCM_TAG_SIZE],
+                })
+            });
+        }
+        CryptoEngineRegistry::set(Box::new(mock_crypto_engine));
+
+        let mut input = create_valid_input(BINDING_ID, 0);
+        input.companion_proof_protocol_list = Uint16Array64Ffi::try_from(input_list).unwrap();
+        let mut request = CompanionDeviceSyncStatusRequest::new(&input).unwrap();
+        let mut output = crate::entry::companion_device_auth_ffi::CompanionProcessCheckOutputFfi::default();
+        assert_eq!(request.begin(RequestParam::CompanionSyncStatus(&input, &mut output)), Ok(()));
+
+        let attribute = Attribute::try_from_bytes(&encrypted.lock().unwrap()).unwrap();
+        attribute.get_u16_vec(AttributeKey::AttrProtocolList).unwrap()
+    };
+
+    assert_eq!(proof_protocol_list(vec![PROTOCOL_VERSION_1]), vec![PROTOCOL_VERSION_1]);
+    assert_eq!(
+        proof_protocol_list(vec![PROTOCOL_VERSION_2, PROTOCOL_VERSION_1]),
+        vec![PROTOCOL_VERSION_2, PROTOCOL_VERSION_1]
+    );
 }
 
 #[test]

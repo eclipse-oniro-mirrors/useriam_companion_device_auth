@@ -27,6 +27,7 @@
 #include "mock_event_bus.h"
 #include "mock_event_manager_adapter.h"
 #include "mock_executor_factory.h"
+#include "mock_file_storage_adapter.h"
 #include "mock_host_binding_manager.h"
 #include "mock_idm_adapter.h"
 #include "mock_misc_manager.h"
@@ -67,6 +68,7 @@ public:
     MockEventManagerAdapter &GetEventManagerAdapter();
     MockSystemSettingsManager &GetSystemSettingsManager();
     MockAppForegroundStateAdapter &GetAppForegroundStateAdapter();
+    MockFileStorageAdapter &GetFileStorageAdapter();
 
     // SingletonManager mock access methods
 
@@ -114,6 +116,7 @@ private:
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
     std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<MockAppForegroundStateAdapter> appForegroundStateAdapter_;
+    std::shared_ptr<MockFileStorageAdapter> fileStorageAdapter_;
 
     // SingletonManager mock instances
     std::shared_ptr<MockCrossDeviceCommManager> crossDeviceCommManager_;

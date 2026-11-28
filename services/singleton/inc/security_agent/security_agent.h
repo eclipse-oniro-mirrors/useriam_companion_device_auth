@@ -92,7 +92,7 @@ struct BindingSignatureProof {
 
 struct CompanionProcessCheckInput {
     BindingId bindingId;
-    std::vector<uint16_t> companionProtocolList;
+    std::vector<uint16_t> companionProofProtocolList;
     std::vector<uint16_t> companionCapabilityList;
     SecureProtocolId secureProtocolId;
     std::vector<uint8_t> salt;
@@ -102,10 +102,6 @@ struct CompanionProcessCheckInput {
 
 struct CompanionProcessCheckOutput {
     std::vector<uint8_t> companionCheckResponse;
-};
-
-struct CompanionCancelCheckInput {
-    RequestId requestId;
 };
 
 // Add companion device input/output structs
@@ -163,7 +159,7 @@ struct HostCancelAddCompanionInput {
 struct CompanionInitKeyNegotiationInput {
     RequestId requestId;
     SecureProtocolId secureProtocolId;
-    std::vector<uint16_t> companionProtocolList;
+    std::vector<uint16_t> companionSupportedProtocolList;
     std::vector<uint16_t> companionCapabilityList;
     ProtocolId selectedProtocolId { ProtocolId::INVALID };
     DeviceKey companionDeviceKey;

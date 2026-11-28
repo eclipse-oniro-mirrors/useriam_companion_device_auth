@@ -129,9 +129,9 @@ void InteractionEventCollector::SetProtocolIdList(const std::vector<uint16_t> &p
     protocolIdList_ = protocolIdList;
 }
 
-void InteractionEventCollector::SetPeerProtocolIdList(const std::vector<uint16_t> &peerProtocolIdList)
+void InteractionEventCollector::SetPeerSupportedProtocolIdList(const std::vector<uint16_t> &peerSupportedProtocolIdList)
 {
-    peerProtocolIdList_ = peerProtocolIdList;
+    peerSupportedProtocolIdList_ = peerSupportedProtocolIdList;
 }
 
 void InteractionEventCollector::SetSelectedProtocolId(uint16_t selectedProtocolId)
@@ -247,8 +247,8 @@ void InteractionEventCollector::BuildExtraInfoStep2(std::ostringstream &oss) con
     if (capabilityList_.has_value()) {
         oss << ";" << KEY_CAPABILITY_LIST << ":" << GetVectorString<uint16_t>(*capabilityList_);
     }
-    if (peerProtocolIdList_.has_value()) {
-        oss << ";" << KEY_PEER_PROTOCOL_ID_LIST << ":" << GetVectorString<uint16_t>(*peerProtocolIdList_);
+    if (peerSupportedProtocolIdList_.has_value()) {
+        oss << ";" << KEY_PEER_PROTOCOL_ID_LIST << ":" << GetVectorString<uint16_t>(*peerSupportedProtocolIdList_);
     }
     if (selectedProtocolId_.has_value()) {
         oss << ";" << KEY_SELECTED_PROTOCOL_ID << ":" << *selectedProtocolId_;

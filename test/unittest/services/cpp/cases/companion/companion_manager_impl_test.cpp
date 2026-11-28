@@ -14,9 +14,6 @@
  */
 
 #include <cstdint>
-#include <fstream>
-
-#include <unistd.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -25,7 +22,6 @@
 
 #include "companion_icon_store.h"
 #include "companion_manager_impl.h"
-#include "directory_ex.h"
 #include "host_issue_token_request.h"
 #include "host_remove_host_binding_request.h"
 #include "host_sync_device_status_request.h"
@@ -1718,17 +1714,14 @@ HWTEST_F(CompanionManagerImplTest, IsCapabilitySupported_OnlineEmptyKeepsEnrolle
     EXPECT_TRUE(manager->IsCapabilitySupported(TEMPLATE_ID_12345, Capability::TOKEN_AUTH));
 }
 
+// An icon shared by two companions is deleted only when the last reference goes, under the icon
+// directory of the host user.
 HWTEST_F(CompanionManagerImplTest, Remove_CompanionIconCleanup_RefCount, TestSize.Level0)
 {
     MockGuard guard;
     // Initialize systemTimeMs to prevent timeout in ReloadSingleCompanion
     guard.GetTimeKeeper().AdvanceSystemTime(5000);
     SetupHostCompanionActionMocks(guard, activeUserId_);
-
-    std::string iconRoot = "/data/local/tmp/cda_icon_mgr_test_" + std::to_string(static_cast<int32_t>(getpid()));
-    ForceRemoveDirectory(iconRoot);
-    SetIconStoreRootForTest(iconRoot);
-    std::string iconDir = BuildIconDirectory(activeUserId_);
 
     auto manager = CompanionManagerImpl::Create();
     ASSERT_NE(nullptr, manager);
@@ -1742,26 +1735,44 @@ HWTEST_F(CompanionManagerImplTest, Remove_CompanionIconCleanup_RefCount, TestSiz
     manager->Reload(persistedList, activeTemplateIds);
     ASSERT_EQ(UINT32_2, manager->GetAllCompanionStatus().size());
 
-    EXPECT_EQ(SaveIconToDirectory(iconDir, { "watch.png", { 1, 2, 3 } }), ResultCode::SUCCESS);
-
     // Removing one of two references keeps the shared icon file.
     EXPECT_EQ(manager->RemoveCompanion(TEMPLATE_ID_12345, false, ConnectionMode::BACKGROUND), ResultCode::SUCCESS);
     EXPECT_EQ(UINT32_1, manager->GetAllCompanionStatus().size());
-    {
-        std::ifstream kept(iconDir + "/watch.png");
-        EXPECT_TRUE(kept.good());
-    }
+    EXPECT_TRUE(guard.GetFileStorageAdapter().GetDeletedFiles().empty());
 
     // Removing the last reference deletes it.
     EXPECT_EQ(manager->RemoveCompanion(TEMPLATE_ID_12346, false, ConnectionMode::BACKGROUND), ResultCode::SUCCESS);
     EXPECT_EQ(0u, manager->GetAllCompanionStatus().size());
-    {
-        std::ifstream gone(iconDir + "/watch.png");
-        EXPECT_FALSE(gone.good());
-    }
+    const std::string expectedIconDir =
+        "/data/service/el1/" + std::to_string(activeUserId_) + "/useriam/companion_device_auth/icons";
+    EXPECT_EQ(guard.GetFileStorageAdapter().GetDeletedFiles(),
+        std::vector<MockFileStorageAdapter::DeletedFile>({ { expectedIconDir, "watch.png" } }));
+}
 
-    SetIconStoreRootForTest(ICON_STORE_ROOT);
-    ForceRemoveDirectory(iconRoot);
+// Kept above the reload timeout so ReloadSingleCompanion does not report one.
+constexpr SteadyTimeMs RELOAD_SAFE_SYSTEM_TIME_MS = 5000;
+
+// A failing icon delete is logged and leaves the removal result alone: the companion is gone
+// either way.
+HWTEST_F(CompanionManagerImplTest, Remove_IconDeleteFailure_KeepsRemovalResult, TestSize.Level0)
+{
+    MockGuard guard;
+    guard.GetTimeKeeper().AdvanceSystemTime(RELOAD_SAFE_SYSTEM_TIME_MS);
+    SetupHostCompanionActionMocks(guard, activeUserId_);
+    guard.GetFileStorageAdapter().SetDeleteResult(ResultCode::GENERAL_ERROR);
+
+    auto manager = CompanionManagerImpl::Create();
+    ASSERT_NE(nullptr, manager);
+
+    auto status = MakePersistedStatus(TEMPLATE_ID_12345, activeUserId_, "device-1", USER_ID_200);
+    status.iconFileName = "watch.png";
+    std::vector<PersistedCompanionStatus> persistedList = { status };
+    std::vector<TemplateId> activeTemplateIds = { TEMPLATE_ID_12345 };
+    manager->Reload(persistedList, activeTemplateIds);
+
+    EXPECT_EQ(manager->RemoveCompanion(TEMPLATE_ID_12345, false, ConnectionMode::BACKGROUND), ResultCode::SUCCESS);
+    EXPECT_EQ(0u, manager->GetAllCompanionStatus().size());
+    ASSERT_EQ(guard.GetFileStorageAdapter().GetDeletedFiles().size(), 1u);
 }
 
 } // namespace

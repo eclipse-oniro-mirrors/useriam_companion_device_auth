@@ -105,8 +105,8 @@ HWTEST_F(SecurityAgentImplTest, HostBeginCompanionCheck_ReturnsGeneralError_When
 
 // ============== CompanionGenerateBindingSignatureChallenge ==============
 
-// The challenge is generated inside the TA pool; the SA only round-trips it through the FFI output.
-HWTEST_F(SecurityAgentImplTest, CompanionGenerateBindingSignatureChallenge_ReturnsChallengeFromTa, TestSize.Level0)
+// The challenge is generated inside the Rust pool; the SA only round-trips it through the FFI output.
+HWTEST_F(SecurityAgentImplTest, CompanionGenerateBindingSignatureChallenge_ReturnsChallengeFromRust, TestSize.Level0)
 {
     EXPECT_CALL(*mockCmdAdapter_, InvokeCommand(CommandId::COMPANION_GENERATE_BINDING_SIGNATURE_CHALLENGE, _, _, _, _))
         .WillOnce(Invoke([](int32_t /*commandId*/, const uint8_t *inputData, uint32_t inputLen, uint8_t *outputData,
@@ -133,7 +133,7 @@ HWTEST_F(SecurityAgentImplTest, CompanionGenerateBindingSignatureChallenge_Retur
     }
 }
 
-// A TA-side failure is propagated to the caller without touching the output.
+// A Rust-side failure is propagated to the caller without touching the output.
 HWTEST_F(SecurityAgentImplTest, CompanionGenerateBindingSignatureChallenge_PropagatesInvokeFailure, TestSize.Level0)
 {
     EXPECT_CALL(*mockCmdAdapter_, InvokeCommand(CommandId::COMPANION_GENERATE_BINDING_SIGNATURE_CHALLENGE, _, _, _, _))
@@ -149,7 +149,7 @@ HWTEST_F(SecurityAgentImplTest, CompanionGenerateBindingSignatureChallenge_Propa
 
 // ============== CompanionPurgeBindingSignatureChallenge ==============
 
-// The disconnect cleanup passes the issued challenge back to the TA pool as the pool key.
+// The disconnect cleanup passes the issued challenge back to the Rust pool as the pool key.
 HWTEST_F(SecurityAgentImplTest, CompanionPurgeBindingSignatureChallenge_EncodesChallengeToFfi, TestSize.Level0)
 {
     const std::vector<uint8_t> challenge(BINDING_SIGNATURE_CHALLENGE_LEN, 0xAB);

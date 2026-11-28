@@ -39,6 +39,7 @@
 
 // Mocks (gmock for return value control)
 #include "mock_event_manager_adapter.h"
+#include "mock_file_storage_adapter.h"
 #include "mock_security_agent.h"
 #include "mock_system_settings_manager.h"
 #include "mock_time_keeper.h"
@@ -95,6 +96,7 @@ protected:
     bool InitializeSaManagerAdapter() override;
     bool InitializeSecurityCommandAdapter() override;
     bool InitializeSystemParamManager() override;
+    bool InitializeFileStorageAdapter() override;
     bool InitializeUserKeyManager() override;
     bool InitializeSystemSettingsManager() override;
     bool InitializeUserAuthFramework() override;
@@ -121,6 +123,7 @@ private:
     std::shared_ptr<FakeUserKeyManager> userKeyManager_;
     std::shared_ptr<MockSystemSettingsManager> systemSettingsManager_;
     std::shared_ptr<MockEventManagerAdapter> eventManagerAdapter_;
+    std::shared_ptr<MockFileStorageAdapter> fileStorageAdapter_;
 
     // Singletons
     std::shared_ptr<MockSecurityAgent> securityAgent_;

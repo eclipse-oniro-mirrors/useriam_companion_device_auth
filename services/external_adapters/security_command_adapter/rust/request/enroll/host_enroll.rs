@@ -490,14 +490,14 @@ impl HostDeviceEnrollRequest {
         let expected_protocol_id = self
             .host_protocol_id_list
             .iter()
-            .find(|protocol| reply_info.companion_protocol_list.contains(protocol))
+            .find(|protocol| reply_info.companion_reply_protocol_list.contains(protocol))
             .copied();
         if expected_protocol_id != Some(self.selected_protocol_id) {
             log_e!(
                 "recomputed protocol {:?} differs from selected protocol {} (companion list: {:?})",
                 expected_protocol_id,
                 self.selected_protocol_id,
-                reply_info.companion_protocol_list
+                reply_info.companion_reply_protocol_list
             );
             return Err(ErrorCode::ProtocolNegotiationFailed);
         }

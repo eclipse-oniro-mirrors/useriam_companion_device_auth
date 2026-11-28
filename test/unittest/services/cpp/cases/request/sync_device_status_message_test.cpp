@@ -230,7 +230,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusRequest_WithCompanio
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = protocolIdList_,
+        .companionProofProtocolIdList = protocolIdList_,
         .companionCapabilityList = capabilityList_,
         .secureProtocolId = secureProtocolId_,
         .companionDeviceKey = companionDeviceKey_,
@@ -251,7 +251,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.
     SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
-    EXPECT_EQ(decoded.companionProtocolIdList, reply.companionProtocolIdList);
+    EXPECT_EQ(decoded.companionProofProtocolIdList, reply.companionProofProtocolIdList);
     EXPECT_EQ(decoded.companionCapabilityList, reply.companionCapabilityList);
     EXPECT_EQ(decoded.secureProtocolId, reply.secureProtocolId);
     EXPECT_EQ(decoded.companionDeviceKey.idType, reply.companionDeviceKey.idType);
@@ -266,7 +266,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_001, TestSize.
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_002, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::GENERAL_ERROR,
-        .companionProtocolIdList = protocolIdList_,
+        .companionProofProtocolIdList = protocolIdList_,
         .companionCapabilityList = capabilityList_,
         .secureProtocolId = secureProtocolId_,
         .companionDeviceKey = companionDeviceKey_,
@@ -317,7 +317,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_ErrorWithCompa
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = {},
+        .companionProofProtocolIdList = {},
         .companionCapabilityList = {},
         .secureProtocolId = SecureProtocolId::DEFAULT,
         .companionDeviceKey = companionDeviceKey_,
@@ -336,7 +336,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.
     SyncDeviceStatusReply decoded = result.value();
 
     EXPECT_EQ(decoded.result, reply.result);
-    EXPECT_TRUE(decoded.companionProtocolIdList.empty());
+    EXPECT_TRUE(decoded.companionProofProtocolIdList.empty());
     EXPECT_TRUE(decoded.companionCapabilityList.empty());
     EXPECT_EQ(decoded.secureProtocolId, SecureProtocolId::DEFAULT);
     EXPECT_TRUE(decoded.deviceUserName.empty());
@@ -347,7 +347,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_003, TestSize.
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_CarriesMaxAuthTrustLevel, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = protocolIdList_,
+        .companionProofProtocolIdList = protocolIdList_,
         .companionCapabilityList = capabilityList_,
         .secureProtocolId = secureProtocolId_,
         .companionDeviceKey = companionDeviceKey_,
@@ -375,7 +375,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_CarriesMaxAuth
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_WithoutMaxAuthTrustLevel_OldFormat, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = protocolIdList_,
+        .companionProofProtocolIdList = protocolIdList_,
         .companionCapabilityList = capabilityList_,
         .secureProtocolId = secureProtocolId_,
         .companionDeviceKey = companionDeviceKey_,
@@ -400,7 +400,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_WithoutMaxAuth
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_InvalidMaxAuthTrustLevelFailsDecode, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = protocolIdList_,
+        .companionProofProtocolIdList = protocolIdList_,
         .companionCapabilityList = capabilityList_,
         .secureProtocolId = secureProtocolId_,
         .companionDeviceKey = companionDeviceKey_,
@@ -419,6 +419,87 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_InvalidMaxAuth
     EXPECT_FALSE(result.has_value());
 }
 
+// The complete support set rides its own optional field, separately from the proof list.
+HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_CarriesCompanionSupportedProtocolIdList,
+    TestSize.Level0)
+{
+    SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
+        .companionProofProtocolIdList = { ProtocolId::VERSION_1 },
+        .companionCapabilityList = capabilityList_,
+        .secureProtocolId = secureProtocolId_,
+        .companionDeviceKey = companionDeviceKey_,
+        .deviceUserName = deviceUserName_,
+        .companionCheckResponse = companionCheckResponse_,
+        .companionSupportedProtocolIdList = std::vector<ProtocolId> { ProtocolId::VERSION_1, ProtocolId::VERSION_2 } };
+
+    Attributes attributes;
+    EncodeSyncDeviceStatusReply(reply, attributes);
+    EXPECT_TRUE(attributes.HasAttribute(Attributes::ATTR_CDA_SA_COMPANION_SUPPORTED_PROTOCOL_ID_LIST));
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(reply.companionDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result->companionProofProtocolIdList, std::vector<ProtocolId> { ProtocolId::VERSION_1 });
+    EXPECT_EQ(result->companionSupportedProtocolIdList, reply.companionSupportedProtocolIdList);
+}
+
+// Old-format reply (a peer predating ATTR_CDA_SA_COMPANION_SUPPORTED_PROTOCOL_ID_LIST) is assembled
+// by hand — the encoder always carries the field — and must decode with the support set defaulted
+// to the proof list (the old peer's complete set).
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_WithoutCompanionSupportedProtocolIdList_OldFormat,
+    TestSize.Level0)
+{
+    Attributes attributes;
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_RESULT, static_cast<int32_t>(ResultCode::SUCCESS));
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_PROTOCOL_ID_LIST,
+        ProtocolIdConverter::ToUnderlyingVec({ ProtocolId::VERSION_1, ProtocolId::VERSION_2 }));
+    attributes.SetUint16ArrayValue(Attributes::ATTR_CDA_SA_CAPABILITY_LIST,
+        CapabilityConverter::ToUnderlyingVec({ Capability::DELEGATE_AUTH }));
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_USER_ID, companionDeviceKey_.deviceUserId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_COMPANION_SUB_PROFILE_ID, companionDeviceKey_.deviceSubProfileId);
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(companionDeviceKey_.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, companionDeviceKey_.deviceId);
+    attributes.SetUint16Value(Attributes::ATTR_CDA_SA_SECURE_PROTOCOL_ID, static_cast<uint16_t>(secureProtocolId_));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_USER_NAME, deviceUserName_);
+    attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_EXTRA_INFO, companionCheckResponse_);
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result->companionProofProtocolIdList,
+        (std::vector<ProtocolId> { ProtocolId::VERSION_1, ProtocolId::VERSION_2 }));
+    EXPECT_EQ(result->companionSupportedProtocolIdList, result->companionProofProtocolIdList);
+}
+
+// A carried-but-malformed support set marks the whole reply invalid: present is not absent.
+HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MalformedCompanionSupportedProtocolIdListFailsDecode,
+    TestSize.Level0)
+{
+    SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
+        .companionProofProtocolIdList = protocolIdList_,
+        .companionCapabilityList = capabilityList_,
+        .secureProtocolId = secureProtocolId_,
+        .companionDeviceKey = companionDeviceKey_,
+        .deviceUserName = deviceUserName_,
+        .companionCheckResponse = companionCheckResponse_ };
+
+    Attributes attributes;
+    EncodeSyncDeviceStatusReply(reply, attributes);
+    // One byte more than a whole protocol value: not a whole number of them.
+    attributes.SetUint8ArrayValue(Attributes::ATTR_CDA_SA_COMPANION_SUPPORTED_PROTOCOL_ID_LIST,
+        std::vector<uint8_t>(sizeof(uint16_t) + 1, 0x01));
+
+    attributes.SetInt32Value(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER_TYPE,
+        static_cast<int32_t>(reply.companionDeviceKey.idType));
+    attributes.SetStringValue(Attributes::ATTR_CDA_SA_SRC_IDENTIFIER, reply.companionDeviceKey.deviceId);
+
+    auto result = DecodeSyncDeviceStatusReply(attributes);
+    EXPECT_FALSE(result.has_value());
+}
+
 // Decode enforces only the field's presence; consumption is judged in the Rust security layer,
 // so non-DEFAULT raw values must round-trip unchanged on their way there.
 HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_PreservesFutureSecureProtocolValue, TestSize.Level0)
@@ -426,7 +507,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_PreservesFutur
     for (auto rawSecureProtocolId : std::vector<uint16_t> { static_cast<uint16_t>(SecureProtocolId::INVALID),
              static_cast<uint16_t>(SecureProtocolId::DEFAULT) + 1 }) {
         SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-            .companionProtocolIdList = protocolIdList_,
+            .companionProofProtocolIdList = protocolIdList_,
             .companionCapabilityList = capabilityList_,
             .secureProtocolId = static_cast<SecureProtocolId>(rawSecureProtocolId),
             .companionDeviceKey = companionDeviceKey_,
@@ -572,7 +653,7 @@ HWTEST_F(SyncDeviceStatusMessageTest, DecodeSyncDeviceStatusReply_MissingDeviceN
 HWTEST_F(SyncDeviceStatusMessageTest, EncodeSyncDeviceStatusReply_WithSubProfileFields, TestSize.Level0)
 {
     SyncDeviceStatusReply reply = { .result = ResultCode::SUCCESS,
-        .companionProtocolIdList = protocolIdList_,
+        .companionProofProtocolIdList = protocolIdList_,
         .companionCapabilityList = capabilityList_,
         .secureProtocolId = secureProtocolId_,
         .companionDeviceKey = companionDeviceKey_,

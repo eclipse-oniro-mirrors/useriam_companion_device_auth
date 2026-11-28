@@ -114,7 +114,7 @@ fn companion_token_auth_request_begin_test_wrong_input_type() {
         secure_protocol_id: 1,
         challenge: 0,
         salt: DataArray32Ffi { data: [0u8; HKDF_SALT_SIZE], len: HKDF_SALT_SIZE as u32 },
-        companion_protocol_list: Uint16Array64Ffi::default(),
+        companion_proof_protocol_list: Uint16Array64Ffi::default(),
         companion_capability_list: Uint16Array64Ffi::default(),
     };
 

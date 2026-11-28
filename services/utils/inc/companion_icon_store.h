@@ -30,13 +30,7 @@ struct CompanionIcon {
     std::vector<uint8_t> data;
 };
 
-constexpr const char *ICON_STORE_ROOT = "/data/service/el1";
-constexpr const char *ICON_STORE_LEAF = "useriam/companion_device_auth/icons";
 constexpr size_t MAX_ICON_FILE_NAME_LENGTH = 128;
-
-// Icon files are stored per host user; the directory chain is created at runtime.
-std::string BuildIconDirectory(int32_t userId);
-void SetIconStoreRootForTest(const std::string &root);
 
 // Base64 encoding layout: each group of 4 characters encodes 3 bytes, padded with up to 2 '='.
 constexpr size_t BASE64_GROUP_SIZE = 4;
@@ -44,8 +38,8 @@ constexpr size_t BASE64_GROUP_BYTES = 3;
 constexpr size_t BASE64_MAX_PADDING = 2;
 
 ResultCode ParseIconSelectionContext(const std::vector<uint8_t> &context, CompanionIcon &icon);
-ResultCode SaveIconToDirectory(const std::string &iconDir, const CompanionIcon &icon);
-ResultCode DeleteIconFromDirectory(const std::string &iconDir, const std::string &iconFileName);
+ResultCode SaveIcon(int32_t hostUserId, const CompanionIcon &icon);
+ResultCode DeleteIcon(int32_t hostUserId, const std::string &iconFileName);
 } // namespace CompanionDeviceAuth
 } // namespace UserIam
 } // namespace OHOS

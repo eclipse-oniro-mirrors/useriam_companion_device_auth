@@ -708,7 +708,7 @@ ResultCode CompanionManagerImpl::RemoveCompanionInternal(TemplateId templateId)
     if (stillReferenced) {
         return ResultCode::SUCCESS;
     }
-    ResultCode ret = DeleteIconFromDirectory(BuildIconDirectory(userId), iconFileName);
+    ResultCode ret = DeleteIcon(userId, iconFileName);
     if (ret != ResultCode::SUCCESS) {
         IAM_LOGE("delete icon %{public}s failed ret=%{public}d, keep going", iconFileName.c_str(),
             static_cast<int32_t>(ret));
